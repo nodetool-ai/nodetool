@@ -21,7 +21,7 @@ import React, {
   useRef,
   useEffect
 } from "react";
-import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -53,6 +53,7 @@ import {
 import { useNodes } from "../../../contexts/NodeContext";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
+import type { Node as FlowNode } from "@xyflow/react";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -269,6 +270,23 @@ function sketchLayerIoSignature(doc: SketchDocument): string {
     .join("|");
 }
 
+function getLayerInputHandleName(layerName: string): string {
+  return `layer_in_${layerName}`;
+}
+
+function getLayerOutputHandleName(layerName: string): string {
+  return `layer_out_${layerName}`;
+}
+
+function parseLayerInputHandleName(
+  handleName: string | null | undefined
+): string | null {
+  if (!handleName || !handleName.startsWith("layer_in_")) {
+    return null;
+  }
+  return handleName.slice("layer_in_".length) || null;
+}
+
 const outputImageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -314,6 +332,67 @@ function extractImageUri(result: unknown): string | null {
   return null;
 }
 
+function resolveConnectedOutputValue(
+  result: unknown,
+  sourceHandle: string | null | undefined
+): unknown {
+  if (!sourceHandle || !result || typeof result !== "object") {
+    return result;
+  }
+
+  const record = result as Record<string, unknown>;
+
+  if (sourceHandle in record) {
+    return record[sourceHandle];
+  }
+
+  if (record.output && typeof record.output === "object") {
+    const outputRecord = record.output as Record<string, unknown>;
+    if (sourceHandle in outputRecord) {
+      return outputRecord[sourceHandle];
+    }
+  }
+
+  return result;
+}
+
+function isLiteralSourceNode(nodeType?: string): boolean {
+  if (!nodeType) {
+    return false;
+  }
+  return (
+    nodeType.startsWith("nodetool.input.") ||
+    nodeType.startsWith("nodetool.constant.")
+  );
+}
+
+function resolveNodePropertyValue(
+  node: FlowNode<NodeData> | undefined,
+  sourceHandle: string | null | undefined
+): unknown {
+  if (!node?.data) {
+    return undefined;
+  }
+
+  const dynamicProps = node.data.dynamic_properties || {};
+  if (sourceHandle && dynamicProps[sourceHandle] !== undefined) {
+    return dynamicProps[sourceHandle];
+  }
+  if (dynamicProps.value !== undefined) {
+    return dynamicProps.value;
+  }
+
+  const props = node.data.properties || {};
+  if (sourceHandle && props[sourceHandle] !== undefined) {
+    return props[sourceHandle];
+  }
+  if (props.value !== undefined) {
+    return props.value;
+  }
+
+  return undefined;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface SketchNodeProps extends NodeProps {
@@ -351,10 +430,12 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const pendingDocumentSyncRef = useRef<SketchDocument | null>(null);
   const pendingNodePropsRef = useRef<Record<string, unknown>>({});
   const nodeSyncTimeoutRef = useRef<number | null>(null);
+  const edges = useNodes((s) => s.edges);
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
   const updateNodeData = useNodes((s) => s.updateNodeData);
-
-  const { getEdges } = useReactFlow();
+  const updateEdgeHandle = useNodes((s) => s.updateEdgeHandle);
+  const updateEdge = useNodes((s) => s.updateEdge);
+  const findNode = useNodes((s) => s.findNode);
 
   // Parse sketch document from node properties
   const sketchDoc = useMemo((): SketchDocument => {
@@ -381,50 +462,82 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   // ─── Resolve source node IDs for all image inputs ─────────────────
   // Connected values live on the SOURCE node's result, not this node's own
   // result. Find the relevant incoming edges and subscribe to their results.
-  const inputImageSourceId = useMemo(
+  const inputImageConnection = useMemo(
     () =>
-      getEdges().find(
+      edges.find(
         (e) => e.target === props.id && e.targetHandle === "input_image"
-      )?.source ?? null,
-    // Re-evaluate when exposedInputLayers or results change so new connections
-    // are picked up after the user wires edges and runs the workflow.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getEdges, props.id, props.data.dynamic_inputs]
+      ) ?? null,
+    [edges, props.id]
   );
 
   const inputImageSourceResult = useResultsStore((state) => {
-    if (!inputImageSourceId) {
+    if (!inputImageConnection?.source) {
       return undefined;
     }
     return (
-      state.getOutputResult(props.data.workflow_id, inputImageSourceId) ??
-      state.getResult(props.data.workflow_id, inputImageSourceId) ??
-      state.getPreview(props.data.workflow_id, inputImageSourceId)
+      state.getOutputResult(props.data.workflow_id, inputImageConnection.source) ??
+      state.getResult(props.data.workflow_id, inputImageConnection.source) ??
+      state.getPreview(props.data.workflow_id, inputImageConnection.source)
     );
   });
 
-  const layerInputSourceIds = useMemo(() => {
-    const ids: Record<string, string> = {}; // layerId → sourceNodeId
-    for (const layer of exposedInputLayers) {
-      const sourceId = getEdges().find(
+  const incomingLayerInEdges = useMemo(
+    () =>
+      edges.filter(
         (e) =>
-          e.target === props.id && e.targetHandle === `layer_in_${layer.name}`
-      )?.source;
-      if (sourceId) {
-        ids[layer.id] = sourceId;
+          e.target === props.id &&
+          typeof e.targetHandle === "string" &&
+          e.targetHandle.startsWith("layer_in_")
+      ),
+    [edges, props.id]
+  );
+
+  useEffect(() => {
+    console.log("[SketchNode] layer_in edges", {
+      nodeId: props.id,
+      incomingLayerInEdges: incomingLayerInEdges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle
+      })),
+      exposedInputLayers: exposedInputLayers.map((layer) => ({
+        id: layer.id,
+        name: layer.name,
+        exposedAsInput: Boolean(layer.exposedAsInput),
+        locked: Boolean(layer.locked)
+      }))
+    });
+  }, [incomingLayerInEdges, exposedInputLayers, props.id]);
+
+  const layerInputConnections = useMemo(() => {
+    const connections: Record<
+      string,
+      { sourceId: string; sourceHandle: string | null | undefined }
+    > = {};
+    for (const layer of exposedInputLayers) {
+      const edge = edges.find(
+        (e) =>
+          e.target === props.id &&
+          e.targetHandle === getLayerInputHandleName(layer.name)
+      );
+      if (edge?.source) {
+        connections[layer.id] = {
+          sourceId: edge.source,
+          sourceHandle: edge.sourceHandle
+        };
       }
     }
-    return ids;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getEdges, props.id, exposedInputLayers, props.data.dynamic_inputs]);
+    return connections;
+  }, [edges, props.id, exposedInputLayers]);
 
   const layerInputResults = useResultsStore((state) => {
     const out: Record<string, unknown> = {};
-    for (const [layerId, sourceId] of Object.entries(layerInputSourceIds)) {
+    for (const [layerId, connection] of Object.entries(layerInputConnections)) {
       out[layerId] =
-        state.getOutputResult(props.data.workflow_id, sourceId) ??
-        state.getResult(props.data.workflow_id, sourceId) ??
-        state.getPreview(props.data.workflow_id, sourceId);
+        state.getOutputResult(props.data.workflow_id, connection.sourceId) ??
+        state.getResult(props.data.workflow_id, connection.sourceId) ??
+        state.getPreview(props.data.workflow_id, connection.sourceId);
     }
     return out;
   });
@@ -478,16 +591,140 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [sketchDoc]
   );
 
+  useEffect(() => {
+    if (incomingLayerInEdges.length === 0) {
+      console.log("[SketchNode] reconcile skipped: no layer_in edges", {
+        nodeId: props.id
+      });
+      return;
+    }
+
+    const baseDoc = documentRef.current ?? sketchDoc;
+    let nextDoc = baseDoc;
+    let changed = false;
+
+    console.log("[SketchNode] reconcile start", {
+      nodeId: props.id,
+      handles: incomingLayerInEdges.map((edge) => edge.targetHandle),
+      currentLayers: baseDoc.layers.map((layer) => ({
+        id: layer.id,
+        name: layer.name,
+        exposedAsInput: Boolean(layer.exposedAsInput)
+      }))
+    });
+
+    for (const edge of incomingLayerInEdges) {
+      const layerName = parseLayerInputHandleName(edge.targetHandle);
+      if (!layerName) {
+        console.log("[SketchNode] reconcile ignored edge with unparsable handle", {
+          nodeId: props.id,
+          edgeId: edge.id,
+          targetHandle: edge.targetHandle
+        });
+        continue;
+      }
+
+      const existingIdx = nextDoc.layers.findIndex((l) => l.name === layerName);
+      if (existingIdx >= 0) {
+        const existing = nextDoc.layers[existingIdx];
+        if (existing.exposedAsInput) {
+          console.log("[SketchNode] reconcile found existing exposed layer", {
+            nodeId: props.id,
+            layerId: existing.id,
+            layerName
+          });
+          continue;
+        }
+
+        const updatedLayers = [...nextDoc.layers];
+        updatedLayers[existingIdx] = {
+          ...existing,
+          exposedAsInput: true
+        };
+        nextDoc = {
+          ...nextDoc,
+          layers: updatedLayers,
+          metadata: {
+            ...nextDoc.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        };
+        changed = true;
+        console.log("[SketchNode] reconcile promoted existing layer to exposed input", {
+          nodeId: props.id,
+          layerId: existing.id,
+          layerName
+        });
+        continue;
+      }
+
+      const layer = createDefaultLayer(
+        layerName,
+        "raster",
+        nextDoc.canvas.width,
+        nextDoc.canvas.height
+      );
+      layer.exposedAsInput = true;
+      nextDoc = {
+        ...nextDoc,
+        layers: [...nextDoc.layers, layer],
+        metadata: {
+          ...nextDoc.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      };
+      changed = true;
+      console.log("[SketchNode] reconcile created missing layer", {
+        nodeId: props.id,
+        layerId: layer.id,
+        layerName
+      });
+    }
+
+    if (!changed) {
+      console.log("[SketchNode] reconcile no document changes", {
+        nodeId: props.id
+      });
+      return;
+    }
+
+    documentRef.current = nextDoc;
+    console.log("[SketchNode] reconcile persisted document", {
+      nodeId: props.id,
+      layers: nextDoc.layers.map((layer) => ({
+        id: layer.id,
+        name: layer.name,
+        exposedAsInput: Boolean(layer.exposedAsInput)
+      }))
+    });
+    updateNodeProperties(props.id, {
+      sketch_data: serializeDocument(nextDoc),
+      [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(nextDoc)
+    });
+
+    if (isModalOpen) {
+      useSketchStore.getState().setDocument(nextDoc);
+    } else {
+      setEditorDocument(nextDoc);
+    }
+  }, [
+    incomingLayerInEdges,
+    isModalOpen,
+    props.id,
+    sketchDoc,
+    updateNodeProperties
+  ]);
+
   // Register `layer_in_*` on dynamic_properties / dynamic_inputs and
   // `layer_out_*` on dynamic_outputs so metadata.is_dynamic
   // and findInputHandle / findOutputHandle resolve per-layer handles
   // like other dynamic nodes.
   useEffect(() => {
     const desiredInKeys = new Set(
-      exposedInputLayers.map((l) => `layer_in_${l.name}`)
+      exposedInputLayers.map((l) => getLayerInputHandleName(l.name))
     );
     const desiredOutKeys = new Set(
-      exposedOutputLayers.map((l) => `layer_out_${l.name}`)
+      exposedOutputLayers.map((l) => getLayerOutputHandleName(l.name))
     );
 
     const curDyn = {
@@ -524,7 +761,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       metadata: null
     };
     for (const layer of exposedInputLayers) {
-      const k = `layer_in_${layer.name}`;
+      const k = getLayerInputHandleName(layer.name);
       if (nextDyn[k] === undefined) {
         nextDyn[k] = emptyLayerInImage;
       }
@@ -539,7 +776,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       }
     }
     for (const layer of exposedOutputLayers) {
-      const k = `layer_out_${layer.name}`;
+      const k = getLayerOutputHandleName(layer.name);
       if (nextOut[k] === undefined) {
         nextOut[k] = {
           type: "image",
@@ -596,15 +833,38 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   // ─── Resolve input_image URI ───────────────────────────────────────
   const inputImageUri = useMemo((): string | null => {
     // Priority 1: connected upstream node result (the correct source)
-    const fromResult = extractImageUri(inputImageSourceResult);
+    const fromResult = extractImageUri(
+      resolveConnectedOutputValue(
+        inputImageSourceResult,
+        inputImageConnection?.sourceHandle
+      )
+    );
     if (fromResult) {
       return fromResult;
+    }
+    if (
+      inputImageConnection?.source &&
+      isLiteralSourceNode(findNode(inputImageConnection.source)?.type)
+    ) {
+      const fallbackValue = resolveNodePropertyValue(
+        findNode(inputImageConnection.source),
+        inputImageConnection.sourceHandle
+      );
+      const fromFallback = extractImageUri(fallbackValue);
+      if (fromFallback) {
+        return fromFallback;
+      }
     }
     // Priority 2: static property set without a live connection
     return extractImageUri(
       (staticProps as Record<string, unknown> | undefined)?.input_image
     );
-  }, [inputImageSourceResult, staticProps]);
+  }, [
+    findNode,
+    inputImageConnection,
+    inputImageSourceResult,
+    staticProps
+  ]);
 
   // ─── Load input_image into sketch document when it changes ────────
   useEffect(() => {
@@ -757,24 +1017,71 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   // ─── Load per-layer images from `layer_in_<layerName>` handles ─────
   useEffect(() => {
     if (exposedInputLayers.length === 0) {
+      console.log("[SketchNode] layer hydration skipped: no exposed input layers", {
+        nodeId: props.id
+      });
       return;
     }
 
     for (const layer of exposedInputLayers) {
-      const uri = extractImageUri(layerInputResults[layer.id]);
+      const connection = layerInputConnections[layer.id];
+      const resolvedResult = resolveConnectedOutputValue(
+        layerInputResults[layer.id],
+        connection?.sourceHandle
+      );
+      const fallbackValue =
+        connection?.sourceId &&
+        isLiteralSourceNode(findNode(connection.sourceId)?.type)
+          ? resolveNodePropertyValue(
+              findNode(connection.sourceId),
+              connection.sourceHandle
+            )
+          : undefined;
+      const uri = extractImageUri(resolvedResult) ?? extractImageUri(fallbackValue);
       if (!uri) {
+        console.log("[SketchNode] layer hydration waiting for image result", {
+          nodeId: props.id,
+          layerId: layer.id,
+          layerName: layer.name,
+          sourceHandle: connection?.sourceHandle ?? null,
+          sourceResult: layerInputResults[layer.id],
+          resolvedResult,
+          fallbackValue
+        });
         continue;
       }
       if (layerInputUriLoadedRef.current[layer.id] === uri) {
+        console.log("[SketchNode] layer hydration skipped duplicate uri", {
+          nodeId: props.id,
+          layerId: layer.id,
+          layerName: layer.name,
+          uri
+        });
         continue;
       }
       layerInputUriLoadedRef.current[layer.id] = uri;
+      console.log("[SketchNode] layer hydration loading image", {
+        nodeId: props.id,
+        layerId: layer.id,
+        layerName: layer.name,
+        sourceHandle: connection?.sourceHandle ?? null,
+        uri
+      });
 
       loadImageWithDimensions(uri)
         .then(({ data: layerData, naturalWidth, naturalHeight }) => {
           const base = documentRef.current ?? sketchDoc;
           const layerIdx = base.layers.findIndex((l) => l.id === layer.id);
           if (layerIdx < 0) {
+            console.log("[SketchNode] layer hydration could not find layer by id", {
+              nodeId: props.id,
+              layerId: layer.id,
+              layerName: layer.name,
+              availableLayers: base.layers.map((candidate) => ({
+                id: candidate.id,
+                name: candidate.name
+              }))
+            });
             return;
           }
           const target = base.layers[layerIdx];
@@ -810,6 +1117,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             metadata: { ...base.metadata, updatedAt: new Date().toISOString() }
           };
           documentRef.current = updatedDoc;
+          console.log("[SketchNode] layer hydration applied image to layer", {
+            nodeId: props.id,
+            layerId: layer.id,
+            layerName: layer.name,
+            naturalWidth,
+            naturalHeight
+          });
           updateNodeProperties(props.id, {
             sketch_data: serializeDocument(updatedDoc),
             [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
@@ -854,6 +1168,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     }
   }, [
     exposedInputLayers,
+    findNode,
+    layerInputConnections,
     layerInputResults,
     sketchDoc,
     props.id,
@@ -900,7 +1216,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               if (!layerCanvas) {
                 continue;
               }
-              outputProps[`layer_out_${layer.name}`] = {
+              outputProps[getLayerOutputHandleName(layer.name)] = {
                 type: "image",
                 uri: canvasToDataUrl(layerCanvas),
                 asset_id: null,
@@ -936,6 +1252,39 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   const handleDocumentChange = useCallback(
     (doc: SketchDocument) => {
+      const previousDoc = documentRef.current || sketchDoc;
+      const previousLayersById = new Map(
+        previousDoc.layers.map((layer) => [layer.id, layer])
+      );
+
+      for (const nextLayer of doc.layers) {
+        const previousLayer = previousLayersById.get(nextLayer.id);
+        if (!previousLayer || previousLayer.name === nextLayer.name) {
+          continue;
+        }
+
+        if (previousLayer.exposedAsInput || nextLayer.exposedAsInput) {
+          updateEdgeHandle(
+            props.id,
+            getLayerInputHandleName(previousLayer.name),
+            getLayerInputHandleName(nextLayer.name)
+          );
+        }
+
+        if (previousLayer.exposedAsOutput || nextLayer.exposedAsOutput) {
+          const oldHandle = getLayerOutputHandleName(previousLayer.name);
+          const newHandle = getLayerOutputHandleName(nextLayer.name);
+          for (const edge of edges) {
+            if (edge.source === props.id && edge.sourceHandle === oldHandle) {
+              updateEdge({
+                ...edge,
+                sourceHandle: newHandle
+              });
+            }
+          }
+        }
+      }
+
       documentRef.current = doc;
       pendingDocumentSyncRef.current = doc;
       // Sync sketch_data to the node when exposure or layer identity changes so
@@ -952,7 +1301,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         schedulePendingNodeSync();
       }
     },
-    [schedulePendingNodeSync]
+    [edges, props.id, schedulePendingNodeSync, sketchDoc, updateEdge, updateEdgeHandle]
   );
 
   // ─── Export callbacks for real-time output updates during editing ──
@@ -1049,12 +1398,12 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 <HandleTooltip
                   key={`input-${layer.id}`}
                   typeMetadata={imageTypeMetadata}
-                  paramName={`layer_in_${layer.name}`}
+                  paramName={getLayerInputHandleName(layer.name)}
                   handlePosition="left"
                 >
                   <Handle
                     type="target"
-                    id={`layer_in_${layer.name}`}
+                    id={getLayerInputHandleName(layer.name)}
                     position={Position.Left}
                     isConnectable={true}
                     className={Slugify("image")}
@@ -1085,7 +1434,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                   key={`output-${layer.id}`}
                   id={props.id}
                   output={{
-                    name: `layer_out_${layer.name}`,
+                    name: getLayerOutputHandleName(layer.name),
                     type: outputImageTypeMetadata,
                     stream: false
                   }}
