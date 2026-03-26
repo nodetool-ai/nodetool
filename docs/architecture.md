@@ -8,15 +8,88 @@ description: "How NodeTool's streaming architecture enables real-time feedback, 
 
 NodeTool's architecture is designed around three core principles that directly impact your experience:
 
-1. **Streaming-first execution** – See results as they generate, not after everything completes. Cancel long-running jobs without waiting. Perfect for interactive debugging and user-facing applications.
+1. **Streaming-first execution** -- See results as they generate, not after everything completes. Cancel long-running jobs without waiting. Perfect for interactive debugging and user-facing applications.
 
-2. **Unified runtime** – The same workflow JSON runs in desktop app, headless server, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
+2. **Unified runtime** -- The same workflow JSON runs in desktop app, headless server, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
 
-3. **Pluggable execution strategies** – Run nodes in threads (fast iteration), subprocesses (isolation), or Docker containers (deployment). Switch strategies without changing your workflow.
+3. **Pluggable execution strategies** -- Run nodes in threads (fast iteration), subprocesses (isolation), or Docker containers (deployment). Switch strategies without changing your workflow.
 
 **For developers:** This design lets you prototype locally with instant feedback, then deploy to production infrastructure with confidence that behavior will be identical.
 
-**For teams:** Build workflows collaboratively in the visual editor, then let DevOps deploy them as APIs—no translation layer needed.
+**For teams:** Build workflows collaboratively in the visual editor, then let DevOps deploy them as APIs -- no translation layer needed.
+
+---
+
+## System Components
+
+NodeTool is organized into distinct packages, each responsible for a specific layer of the system:
+
+### Core Packages
+
+| Package | Purpose |
+|---------|---------|
+| **@nodetool/kernel** | DAG execution engine -- graph validation, node actors, inbox routing, edge counting |
+| **@nodetool/runtime** | Processing context, cache adapters, storage adapters, asset handling |
+| **@nodetool/protocol** | Shared message types (JobUpdate, NodeUpdate, EdgeUpdate, TaskUpdate) |
+| **@nodetool/agents** | Agent executor, task planner, step executor, multi-mode agent, 20+ tool types |
+| **@nodetool/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
+| **@nodetool/config** | Settings management and environment configuration |
+
+### Infrastructure Packages
+
+| Package | Purpose |
+|---------|---------|
+| **@nodetool/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
+| **@nodetool/storage** | Asset storage backends (local filesystem, S3, Supabase) |
+| **@nodetool/vectorstore** | Vector database integration (Chroma) for RAG workflows |
+| **@nodetool/cli** | Command-line interface for workflow execution, deployment, and package management |
+| **@nodetool/base-nodes** | Core node implementations and dynamic node generation |
+
+### Frontend
+
+| Package | Purpose |
+|---------|---------|
+| **web** | React application -- workflow editor, asset explorer, model manager, global chat |
+
+---
+
+## Execution Engine
+
+### WorkflowRunner
+
+The `WorkflowRunner` is the DAG orchestrator that executes workflow graphs. It handles:
+
+- **Graph validation** -- Ensures all connections are valid and the graph is acyclic
+- **Node actor spawning** -- Creates a `NodeActor` for each node in the graph
+- **Input dispatch** -- Routes initial data to the correct input nodes
+- **Edge counting and EOS propagation** -- Tracks when nodes have received all inputs and propagates End-Of-Stream signals through the graph
+- **Concurrent execution** -- Runs independent nodes in parallel when their inputs are ready
+
+### NodeActor
+
+Each node in a workflow runs as a `NodeActor` with one of four execution modes:
+
+| Mode | Behavior |
+|------|----------|
+| **Buffered** | Collects all inputs before processing (default for most nodes) |
+| **Streaming input** | Processes inputs as they arrive, one at a time |
+| **Streaming output** | Produces outputs incrementally as they become available |
+| **Controlled** | Manages its own execution lifecycle with cached input replay |
+
+Actors also support different sync modes:
+- **on_any** -- Fire when any input receives data
+- **zip_all** -- Wait until all inputs have data, then fire with matched sets
+- **sticky** -- Remember the last value on inputs that haven't changed
+
+### ProcessingContext
+
+The `ProcessingContext` provides the runtime environment for node execution:
+
+- **Message queue** -- Collects `ProcessingMessage` events for streaming to clients
+- **Cache interface** -- Pluggable cache adapters (memory, disk) for intermediate results
+- **Asset storage** -- `StorageAdapter` interface supporting local filesystem, S3, or Supabase
+- **Asset output modes** -- `data_uri`, `temp_url`, `storage_url`, `workspace`, `raw`
+- **User context** -- Authentication tokens, user data, workspace information
 
 ---
 
@@ -44,8 +117,100 @@ sequenceDiagram
     Msg-->>Client: completion / cancelled status
 {% endmermaid %}
 
+### Message Types
+
+The protocol layer defines several message types for tracking execution state:
+
+| Message | Purpose |
+|---------|---------|
+| **JobUpdate** | Overall job status (queued, running, completed, failed, cancelled) |
+| **NodeUpdate** | Per-node progress (started, output produced, completed, errored) |
+| **EdgeUpdate** | Data flowing through connections between nodes |
+| **TaskUpdate** | Agent task lifecycle (created, step started/completed/failed, task completed) |
+
+---
+
+## Agent System
+
+NodeTool includes a full agent execution framework for autonomous task completion:
+
+### Components
+
+- **TaskPlanner** -- Breaks complex goals into ordered subtasks with dependencies
+- **TaskExecutor** -- Manages the execution of a complete task plan
+- **StepExecutor** -- Runs individual steps within a task, including tool calls
+- **MultiModeAgent** -- Supports both agent mode (autonomous planning) and direct chat mode
+
+### Available Tools (20+)
+
+Agents can use a wide range of tools during execution:
+
+| Category | Tools |
+|----------|-------|
+| **Web** | Browser, HTTP requests, web search, Google APIs |
+| **Files** | Filesystem operations, workspace management, asset tools |
+| **Code** | JavaScript sandbox execution, code analysis |
+| **Data** | Calculator, math operations, vector DB queries |
+| **Documents** | PDF processing, email integration |
+| **AI** | MCP (Model Context Protocol) tools for external service integration |
+
+### Team Collaboration
+
+The agent system supports multi-agent coordination through:
+- **Team Executor** -- Orchestrates multiple agents working on related tasks
+- **Task Board** -- Message bus for inter-agent communication
+- **Edge Message Bus** -- Distributed communication for remote agent setups
+
+---
+
+## Providers
+
+NodeTool supports 20+ AI model providers through a unified provider interface:
+
+| Provider | Types |
+|----------|-------|
+| **OpenAI** | Text, image, audio, embeddings |
+| **Anthropic** | Text (Claude models) |
+| **Google Gemini** | Text, image, video, audio |
+| **Ollama** | Local LLMs |
+| **LM Studio** | Local LLMs |
+| **Hugging Face** | All model types |
+| **Replicate** | Image, video, audio |
+| **FAL** | Image generation |
+| **Groq** | Fast text inference |
+| **Mistral** | Text generation |
+| **Together** | Text, embeddings |
+| **Cerebras** | Fast text inference |
+| **OpenRouter** | Multi-provider routing |
+| **vLLM** | Self-hosted inference |
+
+Each provider implements a base interface that handles authentication, model listing, and inference calls. A built-in cost calculator tracks token usage across providers.
+
+---
+
+## Storage Architecture
+
+NodeTool uses a pluggable storage system with three backends:
+
+| Backend | Use Case |
+|---------|----------|
+| **Local filesystem** | Default for desktop app. Assets stored in `~/.nodetool/` |
+| **S3-compatible** | Production deployments with AWS S3, MinIO, or compatible services |
+| **Supabase Storage** | Integrated auth + storage for Supabase-backed deployments |
+
+The storage adapter is selected automatically based on environment configuration. See [Storage](storage.md) for configuration details.
+
+---
+
 ## Notes
 
 - All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
-- Messaging emits both JSON and optional MessagePack; see [chat-server](chat-server.md) for protocol details.
-- Execution strategies are detailed in [execution-strategies](execution-strategies.md).
+- Messaging emits both JSON and optional MessagePack; see [Chat Server](chat-server.md) for protocol details.
+- Execution strategies are detailed in [Execution Strategies](execution-strategies.md).
+
+## Related
+
+- [Key Concepts](key-concepts.md) -- High-level overview of workflows, nodes, and models
+- [API Reference](api-reference.md) -- REST and WebSocket API documentation
+- [Developer Guide](developer/) -- Building custom nodes and extensions
+- [Deployment Guide](deployment.md) -- Running NodeTool in production
