@@ -132,15 +132,15 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
   <h2>Key Features</h2>
   <div class="feature-grid">
     <article class="feature-card">
-      <h3>🎯 Visual Editor</h3>
+      <h3>Visual Editor</h3>
       <p>Build workflows by connecting nodes. No coding required. View the entire pipeline on one canvas.</p>
     </article>
     <article class="feature-card">
-      <h3>👁️ Real-time Debugging</h3>
+      <h3>Real-time Debugging</h3>
       <p>See every step execute in real-time. Inspect intermediate outputs. Streaming execution shows progress as it happens.</p>
     </article>
     <article class="feature-card">
-      <h3>🔒 Local Execution</h3>
+      <h3>Local Execution</h3>
       <p>Run LLMs, Whisper, and diffusion models on your infrastructure. Cloud APIs are opt-in.</p>
     </article>
   </div>
@@ -151,7 +151,6 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
   <ul class="link-grid">
     <li><a href="{{ '/' | relative_url }}#start-here">Orientation →</a></li>
     <li><a href="{{ '/getting-started' | relative_url }}">Install & first workflow →</a></li>
-    <li><a href="{{ '/' | relative_url }}#personal-ai-stack">📱 Personal AI Stack →</a></li>
     <li><a href="{{ '/key-concepts' | relative_url }}">Core concepts →</a></li>
     <li><a href="{{ '/user-interface' | relative_url }}">UI overview →</a></li>
     <li><a href="{{ '/workflows/' | relative_url }}">Example gallery →</a></li>

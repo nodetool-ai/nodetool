@@ -9,36 +9,47 @@ Run your first NodeTool workflow. No AI experience or coding needed.
 **You'll:**
 - Run a complete workflow
 - See results generate live
-- Try different ways to work
-- Understand the visual builder
+- Customize inputs and iterate
+- Share as a Mini-App
 
 For a visual overview first, see [Start Here](index.md#start-here).
 
 ## Step 1 — Install NodeTool
 
+### Check Requirements
+
+Before installing, make sure your machine meets the minimum requirements:
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| **RAM** | 8 GB | 16 GB+ |
+| **Disk** | 10 GB free | 50 GB+ (for models) |
+| **GPU** | None (CPU works) | 8 GB+ VRAM for local AI |
+| **OS** | macOS 13+, Windows 10+, Ubuntu 22+ | Latest version |
+
+> **No GPU?** No problem. You can use cloud AI providers (OpenAI, Anthropic, Replicate) instead of local models. See [Hardware Requirements](installation.md#what-different-tasks-need) for details.
+
+### Install
+
 1. **Download** from [nodetool.ai](https://nodetool.ai) for macOS, Windows, or Linux
+2. **Run the installer** — sets up Python and AI engines automatically
+3. **Launch NodeTool** — the dashboard appears when ready
 
-2. **Run the installer** - Sets up Python and AI engines automatically
+> Need help? See [Installation Guide](installation.md) for platform-specific instructions and troubleshooting.
 
-3. **Launch NodeTool** - Default install location works for most people
+### Install AI Models (Optional)
 
-> Need help? See [Installation Guide](installation.md) for GPU requirements and troubleshooting.
+For running AI locally without cloud APIs:
 
-![Dashboard Overview](assets/screenshots/dashboard-overview.png)
-
-### Install AI Models
-
-For local workflows, install models:
-
-1. Open **Models**
+1. Open **Models** from the sidebar
 2. Install starter models:
-   - **Flux** or **Qwen Image** - Image generation (needs 8-12 GB VRAM)
-   - **GPT-OSS** - Text generation (optional)
-3. Wait for downloads (~20 GB)
+   - **Flux** or **Qwen Image** — image generation (needs 8–12 GB VRAM)
+   - A text model like **Llama** or **Qwen** — chat and text generation
+3. Wait for downloads (~20 GB total)
 
-> **No GPU?** Skip local models. Use cloud services (OpenAI, Replicate) by adding API keys in Settings → Providers. See [Hardware Requirements](installation.md#hardware-requirements-by-task).
+> **Using cloud instead?** Go to **Settings → Providers**, paste an API key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev), and skip local model downloads.
 
-✅ **You're ready** - Dashboard loaded with templates.
+**How to verify:** You should see the Dashboard with template workflows listed. If models are installed, they appear with a green checkmark in the Models panel.
 
 ---
 
@@ -119,35 +130,27 @@ Mini-Apps hide complexity. Others can use your workflow without seeing how it wo
 
 ## What You Learned
 
-- Installed NodeTool and models
-- Ran a workflow
-- Understood nodes and connections
-- Customized inputs
-- Shared as a Mini-App
+| Step | What You Did |
+|------|-------------|
+| **Install** | Downloaded NodeTool, set up models or cloud providers |
+| **Run** | Executed a template workflow end-to-end |
+| **Customize** | Changed inputs and saw different results |
+| **Share** | Converted a workflow into a Mini-App |
 
 ---
 
 ## Next Steps
 
-**Learn more:**
-- [Key Concepts](key-concepts.md) - How workflows really work
-- [User Interface](user-interface.md) - Every tool explained
-- [Workflow Editor](workflow-editor.md) - Build from scratch
-- [Tips & Tricks](tips-and-tricks.md) - Power user moves
+Pick what interests you most:
 
-**Try examples:**
-- [Workflow Gallery](workflows/) - 19+ ready workflows
-- [Workflow Patterns](cookbook.md) - Common patterns
-- [Node Library](node-packs.md) - All available nodes
+| Goal | Where to Go |
+|------|------------|
+| Understand how workflows work | [Key Concepts](key-concepts.md) |
+| Learn the full interface | [User Interface](user-interface.md), [Workflow Editor](workflow-editor.md) |
+| Try more workflows | [Workflow Gallery](workflows/), [Workflow Patterns](cookbook.md) |
+| Set up more AI models | [Models & Providers](models-and-providers.md) |
+| Build workflows from scratch | [Workflow Editor](workflow-editor.md), [Tips & Tricks](tips-and-tricks.md) |
+| Deploy to production | [Deployment Guide](deployment.md) |
+| Fix a problem | [Troubleshooting](troubleshooting.md), [Workflow Debugging](workflow-debugging.md) |
 
-**Go deeper:**
-- [Models & Providers](models-and-providers.md) - Set up more models
-- [Asset Management](asset-management.md) - Organize files
-- [Deployment](deployment.md) - Share with the world
-
-**Get help:**
-- [Workflow Debugging](workflow-debugging.md) - Fix problems
-- [Troubleshooting](troubleshooting.md) - Common issues
-- [Glossary](glossary.md) - Plain-English terms
-- [Discord](https://discord.gg/WmQTWZRcYE) - Ask the community
-- [GitHub Issues](https://github.com/nodetool-ai/nodetool/issues) - Report bugs
+**Community:** [Discord](https://discord.gg/WmQTWZRcYE) · [GitHub Issues](https://github.com/nodetool-ai/nodetool/issues) · [Glossary](glossary.md)
