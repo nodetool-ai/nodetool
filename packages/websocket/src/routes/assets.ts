@@ -38,8 +38,15 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
 
   app.get("/api/assets/by-filename/:filename", async (req, reply) => {
     const { filename } = req.params as { filename: string };
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(filename);
+    } catch {
+      reply.status(400).send({ detail: "Invalid URL encoding" });
+      return;
+    }
     await bridge(req, reply, (request) =>
-      handleAssetByFilename(request, decodeURIComponent(filename), apiOptions)
+      handleAssetByFilename(request, decoded, apiOptions)
     );
   });
 
@@ -51,8 +58,17 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/assets/packages/:packageName/:assetName", async (req, reply) => {
     const { packageName, assetName } = req.params as { packageName: string; assetName: string };
     await bridge(req, reply, async (_request) => {
-      const pkgName = decodeURIComponent(packageName);
-      const aName = decodeURIComponent(assetName);
+      let pkgName: string;
+      let aName: string;
+      try {
+        pkgName = decodeURIComponent(packageName);
+        aName = decodeURIComponent(assetName);
+      } catch {
+        return new Response(JSON.stringify({ detail: "Invalid URL encoding" }), {
+          status: 400,
+          headers: { "content-type": "application/json" },
+        });
+      }
       if (!pkgName || !aName || pkgName.includes("..") || aName.includes("..") || pkgName.includes("/") || aName.includes("/") || pkgName.includes("\\") || aName.includes("\\")) {
         return new Response(JSON.stringify({ detail: "Not found" }), {
           status: 404,
