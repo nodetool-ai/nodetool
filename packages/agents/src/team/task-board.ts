@@ -326,8 +326,10 @@ export class TaskBoard implements ITaskBoard {
       if (task.status !== "blocked") continue;
       const subtasks = this.getSubtasks(task.id);
       if (subtasks.length === 0) continue;
-      if (subtasks.every((s) => s.status === "done")) {
-        task.status = "done";
+      const allFinished = subtasks.every((s) => s.status === "done" || s.status === "failed");
+      if (allFinished) {
+        const anyFailed = subtasks.some((s) => s.status === "failed");
+        task.status = anyFailed ? "failed" : "done";
         task.result = subtasks.map((s) => s.result);
         task.artifacts = subtasks.flatMap((s) => s.artifacts);
         task.updatedAt = Date.now();

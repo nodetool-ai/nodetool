@@ -128,7 +128,7 @@ export class ReadFileTool extends Tool {
         };
       } else {
         content = raw.length > MAX_READ_CHARS ? raw.slice(0, MAX_READ_CHARS) : raw;
-        lineInfo = { total_lines: (content.match(/\n/g) || []).length + 1 };
+        lineInfo = { total_lines: (raw.match(/\n/g) || []).length + 1 };
       }
 
       const tokenCount = await countTokens(content);
