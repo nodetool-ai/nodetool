@@ -569,8 +569,6 @@ export class ChartGeneratorNode extends BaseNode {
     const keys = rows.length > 0 ? Object.keys(rows[0]) : [];
     const xKey = keys[0] ?? "x";
     const yKey = keys[1] ?? xKey;
-    const x = rows.map((r, i) => r[xKey] ?? i);
-    const y = rows.map((r, i) => r[yKey] ?? i);
     return {
       output: {
         type: "chart_config",
