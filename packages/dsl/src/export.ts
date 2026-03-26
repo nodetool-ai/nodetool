@@ -402,6 +402,23 @@ function buildCreateNodeOptions(node: NormalizedNode, outputNames: string[]): st
   return options.length > 0 ? `, { ${options.join(", ")} }` : "";
 }
 
+/** @internal Exported for unit testing only. */
+export const _testing = {
+  toCamelCase,
+  barrelName,
+  extractClassName,
+  isValidIdentifier,
+  formatKey,
+  formatLiteral,
+  asRecord,
+  normalizeGraph,
+  makeIdentifier,
+  topologicalSort,
+  workflowConstName,
+  formatHandleExpression,
+  buildCreateNodeOptions,
+};
+
 export function workflowToDsl(graph: WorkflowLike, options: WorkflowToDslOptions = {}): string {
   const { nodes, edges } = normalizeGraph(graph);
   const orderedNodes = topologicalSort(nodes, edges);
