@@ -382,10 +382,10 @@ export const createNodeStore = (
             get().edges.filter((e) => e.source === nodeId),
           getSelection: (): NodeSelection => {
             const nodes = get().nodes.filter((node) => node.selected);
-            const nodeIds = nodes.reduce((acc, node) => {
-              acc[node.id] = true;
-              return acc;
-            }, {} as Record<string, boolean>);
+            const nodeIds: Record<string, boolean> = {};
+            for (const node of nodes) {
+              nodeIds[node.id] = true;
+            }
             const edges = get().edges.filter(
               (edge) => edge.source in nodeIds && edge.target in nodeIds
             );
@@ -901,20 +901,23 @@ export const createNodeStore = (
           },
           getModels: (): UnifiedModel[] => {
             const nodes = get().nodes;
-            return nodes.reduce((acc, node) => {
+            const models: UnifiedModel[] = [];
+            for (const node of nodes) {
               for (const key in node.data.properties) {
-                const property = node.data.properties[key];
-                if (
-                  property &&
-                  typeof property === "object" &&
-                  "type" in property &&
-                  "repo_id" in property
-                ) {
-                  acc.push(property as UnifiedModel);
+                if (Object.prototype.hasOwnProperty.call(node.data.properties, key)) {
+                  const property = node.data.properties[key];
+                  if (
+                    property &&
+                    typeof property === "object" &&
+                    "type" in property &&
+                    "repo_id" in property
+                  ) {
+                    models.push(property as UnifiedModel);
+                  }
                 }
               }
-              return acc;
-            }, [] as UnifiedModel[]);
+            }
+            return models;
           },
           getWorkflow: (): Workflow => {
             const workflow = get().workflow;
@@ -1208,13 +1211,10 @@ export const createNodeStore = (
             position: XYPosition,
             properties?: Record<string, any>
           ): Node<NodeData> => {
-            const defaults = metadata.properties.reduce<Record<string, any>>(
-              (acc, property) => ({
-                ...acc,
-                [property.name]: property.default
-              }),
-              {}
-            );
+            const defaults: Record<string, any> = {};
+            for (const property of metadata.properties) {
+              defaults[property.name] = property.default;
+            }
             if (properties) {
               for (const key in properties) {
                 defaults[key] = properties[key];
