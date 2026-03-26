@@ -11,6 +11,24 @@ For a practical full runbook (desktop, public, private, Docker/Podman, and workf
 
 ---
 
+## Prerequisites
+
+Before deploying, ensure you have:
+
+| Requirement | Why | How to Check |
+|-------------|-----|-------------|
+| **Docker** | Builds and runs container images | `docker --version` |
+| **NodeTool CLI** | Manages deployments | `nodetool --version` |
+| **Cloud credentials** (if applicable) | Authenticates with cloud providers | See provider-specific sections below |
+
+**For RunPod:** Set `RUNPOD_API_KEY` environment variable ([get key](https://runpod.io))
+
+**For GCP Cloud Run:** Install `gcloud` CLI and run `gcloud auth login` ([install guide](https://cloud.google.com/sdk/docs/install))
+
+**For Supabase:** Create a project at [supabase.com](https://supabase.com) and note your project URL and service role key
+
+---
+
 ## Quick Reference: What Do You Want to Do?
 
 | I want to... | What you need |
@@ -154,3 +172,64 @@ Deployment-type details live on dedicated pages:
 - [RunPod Deployment](runpod-deployment)
 - [Google Cloud Run Deployment](gcp-deployment)
 - [Supabase Deployment Integration](supabase-deployment)
+
+---
+
+## Monitoring & Health Checks
+
+After deploying, verify your instance is healthy:
+
+```bash
+# Check health (no auth required)
+curl http://your-server:7777/health
+# Expected: {"status": "healthy"}
+
+# Check deployment status
+nodetool deploy status <name>
+
+# Stream logs
+nodetool deploy logs <name> --follow
+```
+
+### Key indicators to monitor
+
+| Indicator | What to Watch | Action |
+|-----------|--------------|--------|
+| **Health endpoint** | Should return 200 | Restart service if unhealthy |
+| **Memory usage** | Models consume significant RAM/VRAM | Scale up or use smaller models |
+| **Disk space** | Model cache and assets grow over time | Set up periodic cleanup or larger volumes |
+| **Response time** | First request after cold start is slow (model loading) | Use health check warm-up or keep-alive |
+
+---
+
+## Troubleshooting Deployments
+
+| Problem | Likely Cause | Fix |
+|---------|-------------|-----|
+| Container exits immediately | Missing environment variables or invalid config | Check `nodetool deploy logs <name>` for error details |
+| Health check fails | Service still starting (model loading) | Increase health check timeout; large models need 60–120s to load |
+| 503 Service Unavailable | Server overloaded or out of memory | Scale up resources or reduce concurrent requests |
+| Port already in use | Another service on the same port | Change `container.port` in deployment.yaml |
+| "Image not found" | Docker image not built | Run `docker build -t nodetool:latest .` first |
+| Permission denied on volumes | Container user lacks access | Check host directory permissions; use `chmod` or adjust Docker user |
+
+For more detailed troubleshooting, see [Troubleshooting Guide](troubleshooting.md#issue-deployment-fails-or-service-wont-start).
+
+---
+
+## Upgrading
+
+To update a deployed instance to a newer NodeTool version:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/nodetool-ai/nodetool:latest
+
+# Re-apply the deployment
+nodetool deploy apply <name>
+
+# Verify
+nodetool deploy status <name>
+```
+
+Your workflows, assets, and settings are preserved across upgrades when using persistent volumes.

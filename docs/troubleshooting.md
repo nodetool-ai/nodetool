@@ -6,6 +6,20 @@ description: "Debugging and fixing common NodeTool workflow issues."
 
 Step-by-step troubleshooting for common NodeTool issues.
 
+**Jump to:**
+- [Quick Diagnostic Checklist](#quick-diagnostic-checklist)
+- [Common Issues & Solutions](#common-issues--solutions)
+  - [Workflow stuck or slow](#issue-my-workflow-is-stuck-or-very-slow)
+  - [Type mismatch errors](#issue-node-shows-error-type-mismatch)
+  - [Poor LLM results](#issue-llm-generates-poor-quality-results)
+  - [RAG returns irrelevant documents](#issue-rag-workflow-returns-irrelevant-documents)
+  - [Model download fails](#issue-model-download-fails-or-stalls)
+  - [Deployment failures](#issue-deployment-fails-or-service-wont-start)
+  - [Empty preview output](#issue-preview-node-shows-empty-or-null-output)
+- [Performance Optimization](#performance-optimization)
+- [Debugging Techniques](#debugging-techniques)
+- [Getting Help](#getting-help)
+
 ---
 
 ## Quick Diagnostic Checklist
@@ -209,6 +223,44 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 ---
 
+### Issue: "Model download fails or stalls"
+
+#### Symptoms
+- Download progress bar stops moving
+- "Connection timed out" or "HTTP error" messages
+- Model appears partially downloaded
+- "Model not found" error even after downloading
+
+#### Diagnostic Steps
+
+1. **Check disk space** — models can be 4–20 GB each. Run `df -h` (macOS/Linux) or check **This PC** (Windows)
+2. **Check internet connection** — try accessing [huggingface.co](https://huggingface.co) in a browser
+3. **Check download progress** — look at the Models panel for status indicators
+
+#### Common Causes & Fixes
+
+**Cause 1: Insufficient disk space**
+- **Fix:** Free up disk space. Models are stored in `~/.cache/huggingface/` by default
+- **Check space:** You need at least 2x the model size free (for download + extraction)
+- **Move cache:** Set `HF_HOME` environment variable to a drive with more space
+
+**Cause 2: Network interruption**
+- **Fix:** Retry the download — NodeTool resumes partial downloads automatically
+- **If behind a proxy:** Configure `HTTP_PROXY` and `HTTPS_PROXY` environment variables
+- **Slow connection:** Large models (12 GB+) may take 30+ minutes on slower connections
+
+**Cause 3: HuggingFace rate limiting**
+- **Fix:** Wait a few minutes and retry
+- **For frequent downloads:** Add a HuggingFace token in **Settings → Providers** to increase rate limits
+- **Get a token:** Create one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+
+**Cause 4: Corrupted download**
+- **Symptoms:** Model appears downloaded but fails to load, or shows unexpected errors
+- **Fix:** Delete the model from the Models panel and re-download it
+- **Manual cleanup:** Remove the model folder from `~/.cache/huggingface/hub/`
+
+---
+
 ### Issue: "Deployment fails or service won't start"
 
 #### Symptoms
@@ -401,35 +453,41 @@ nodetool serve --log-level debug
 
 ## Getting Help
 
-### Before Asking for Help
+### Quick Self-Help Checklist
 
-1. **Try troubleshooting steps above** – Most issues are common and covered here
-2. **Check error messages carefully** – Error text often contains the solution
-3. **Search documentation** – Use site search or browse [Glossary](glossary.md)
-4. **Review example workflows** – See if similar workflow exists in [Examples](workflows/)
+Before reaching out, try these steps — they resolve most issues:
+
+1. **Read the error message** — it often contains the solution or a clear hint
+2. **Check the [Quick Diagnostic Checklist](#quick-diagnostic-checklist)** above
+3. **Search this page** — use `Ctrl/Cmd+F` to find your error message or symptom
+4. **Try a simpler workflow** — isolate the problem by testing with fewer nodes
+5. **Restart NodeTool** — clears cached state and frees memory
+6. **Check [Workflow Debugging](workflow-debugging.md)** — step-by-step debugging guide
 
 ### Where to Get Help
 
-- **Discord Community** – [Join here](https://discord.gg/WmQTWZRcYE) for real-time help
-- **GitHub Issues** – [Report bugs](https://github.com/nodetool-ai/nodetool/issues) or request features
-- **Documentation** – Browse [all docs](index.md) for guides
+| Channel | Best For |
+|---------|----------|
+| **[Discord](https://discord.gg/WmQTWZRcYE)** | Real-time help, community tips, sharing workflows |
+| **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** | Bug reports, feature requests, reproducible problems |
+| **[Documentation](index.md)** | Guides, API reference, node documentation |
 
 ### How to Ask Effectively
 
 Include these details when asking for help:
 
-1. **NodeTool version** – From **Help → About**
-2. **Operating system** – macOS/Windows/Linux + version
-3. **Workflow description** – What you're trying to do
-4. **Error message** – Full text, not just "it doesn't work"
-5. **Steps to reproduce** – Exact sequence that causes the issue
-6. **Screenshots** – Especially of error messages or unexpected behavior
-7. **Workflow file** – Export workflow JSON if possible
+1. **NodeTool version** — from **Help → About**
+2. **Operating system** — macOS/Windows/Linux + version
+3. **What you're trying to do** — describe the goal, not just the error
+4. **Full error message** — copy the complete text, not just "it doesn't work"
+5. **Steps to reproduce** — exact sequence that causes the issue
+6. **Screenshots** — especially of error messages or unexpected behavior
+7. **Workflow file** — export the workflow JSON if possible
 
-**Good question example:**
-> I'm running NodeTool 1.5.0 on macOS 14.1. When I try to run the Chat with Docs workflow (attached JSON), I get error "Collection not found: docs". I've already run the Index PDFs workflow successfully and can see the collection in ChromaDB. Screenshots attached.
+**Good example:**
+> I'm running NodeTool 1.5.0 on macOS 14.1. When I run the Chat with Docs workflow (attached JSON), I get "Collection not found: docs". I've already run the Index PDFs workflow and can see the collection in ChromaDB. Screenshots attached.
 
-**Poor question example:**
+**Poor example:**
 > Chat with docs doesn't work, help!
 
 ---

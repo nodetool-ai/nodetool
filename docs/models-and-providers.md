@@ -66,7 +66,7 @@ NodeTool provides access to high-quality generative AI models through cloud prov
 | **xAI Grok Imagine** | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
 | **Alibaba Wan 2.6** | <img src="assets/icons/alibaba.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
 | **MiniMax Hailuo 2.3** | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
-| **Kling 4.0** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
+| **Kling 2.6** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
 
 ### Top Image Generation Models
 
