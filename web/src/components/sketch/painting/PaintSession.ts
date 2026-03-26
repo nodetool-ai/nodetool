@@ -158,13 +158,8 @@ export class PaintSession {
       // keeps consecutive shift+click line segments in the same
       // compositing pass so opacity doesn't stack at crossings.
       const existing = ctx.activeStrokeRef.current;
-      const canReuse =
-        existing &&
-        existing.layerId === activeLayer.id &&
-        ctx.shiftHeldRef.current &&
-        this.lastStrokeEnd;
 
-      if (!canReuse) {
+      if (!isShiftContinuation) {
         // Flush any leftover buffer from a prior shift-chain that ended
         // (e.g. user released Shift then clicked again).
         if (existing) {
