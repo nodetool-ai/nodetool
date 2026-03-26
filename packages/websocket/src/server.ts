@@ -301,7 +301,7 @@ app.decorateRequest("userId", null);
 app.addHook("onRequest", async (req, reply) => {
   // Public routes — no auth required
   const pathname = req.url.split("?")[0];
-  if (pathname === "/health" || req.url.startsWith("/api/oauth/")) {
+  if (pathname === "/health" || pathname.startsWith("/api/oauth/")) {
     return;
   }
 

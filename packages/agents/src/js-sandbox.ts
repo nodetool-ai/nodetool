@@ -364,15 +364,20 @@ export async function runInSandbox(
 
     let result: unknown;
     if (promise && typeof (promise as Promise<unknown>).then === "function") {
-      result = await Promise.race([
-        promise as Promise<unknown>,
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error("Async execution timeout")),
-            timeoutMs,
-          ),
-        ),
-      ]);
+      let timerId: ReturnType<typeof setTimeout> | undefined;
+      try {
+        result = await Promise.race([
+          promise as Promise<unknown>,
+          new Promise((_, reject) => {
+            timerId = setTimeout(
+              () => reject(new Error("Async execution timeout")),
+              timeoutMs,
+            );
+          }),
+        ]);
+      } finally {
+        if (timerId !== undefined) clearTimeout(timerId);
+      }
     } else {
       result = promise;
     }
