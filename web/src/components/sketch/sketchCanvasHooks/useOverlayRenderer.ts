@@ -274,10 +274,25 @@ export function useOverlayRenderer({
       let size: number;
       let roundness = 1;
       let angle = 0;
+      let hardnessScale = 1;
       if (activeTool === "brush") {
         size = doc.toolSettings.brush.size;
         roundness = doc.toolSettings.brush.roundness;
         angle = doc.toolSettings.brush.angle;
+        // Match the effective hardness used by drawBrushStroke / createBrushStamp
+        const brushType = doc.toolSettings.brush.brushType || "round";
+        const effectiveHardness =
+          brushType === "soft"
+            ? Math.min(doc.toolSettings.brush.hardness, 0.35)
+            : brushType === "airbrush"
+              ? Math.min(doc.toolSettings.brush.hardness, 0.18)
+              : doc.toolSettings.brush.hardness;
+        if (effectiveHardness < 0.999) {
+          // The radial gradient inner stop from createBrushStamp
+          const innerStop = Math.max(0, Math.min(1, effectiveHardness * 0.85 + 0.1));
+          // Show the approximate 25% opacity contour as the cursor edge
+          hardnessScale = innerStop + (1 - innerStop) * 0.5;
+        }
       } else if (activeTool === "pencil") {
         size = doc.toolSettings.pencil.size;
       } else if (activeTool === "blur") {
@@ -286,10 +301,15 @@ export function useOverlayRenderer({
         size = doc.toolSettings.cloneStamp.size;
       } else {
         size = doc.toolSettings.eraser.size;
+        const effectiveHardness = Math.max(0.05, Math.min(1, doc.toolSettings.eraser.hardness));
+        if (effectiveHardness < 0.999) {
+          const innerStop = Math.max(0, Math.min(1, effectiveHardness * 0.85 + 0.1));
+          hardnessScale = innerStop + (1 - innerStop) * 0.5;
+        }
       }
 
-      // Calculate the visual radius on screen (accounting for zoom)
-      const screenRadiusX = (size / 2) * zoom;
+      // Calculate the visual radius on screen (accounting for zoom and hardness)
+      const screenRadiusX = (size / 2) * hardnessScale * zoom;
       const screenRadiusY = screenRadiusX * roundness;
       const angleRad = (angle * Math.PI) / 180;
 
@@ -327,8 +347,11 @@ export function useOverlayRenderer({
       doc.toolSettings.brush.size,
       doc.toolSettings.brush.roundness,
       doc.toolSettings.brush.angle,
+      doc.toolSettings.brush.hardness,
+      doc.toolSettings.brush.brushType,
       doc.toolSettings.pencil.size,
       doc.toolSettings.eraser.size,
+      doc.toolSettings.eraser.hardness,
       doc.toolSettings.blur.size,
       doc.toolSettings.cloneStamp.size,
       zoom,
