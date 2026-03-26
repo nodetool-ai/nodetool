@@ -1182,33 +1182,16 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       const removedEdgeIds = previousDoc.layers
         .filter((layer) => !nextLayerIds.has(layer.id))
         .flatMap((layer) => {
-          const edgeIds: string[] = [];
+          const inputHandle = getLayerInputHandleName(layer.name);
+          const outputHandle = getLayerOutputHandleName(layer.name);
 
-          if (layer.exposedAsInput) {
-            const inputHandle = getLayerInputHandleName(layer.name);
-            edgeIds.push(
-              ...edges
-                .filter(
-                  (edge) =>
-                    edge.target === props.id && edge.targetHandle === inputHandle
-                )
-                .map((edge) => edge.id)
-            );
-          }
-
-          if (layer.exposedAsOutput) {
-            const outputHandle = getLayerOutputHandleName(layer.name);
-            edgeIds.push(
-              ...edges
-                .filter(
-                  (edge) =>
-                    edge.source === props.id && edge.sourceHandle === outputHandle
-                )
-                .map((edge) => edge.id)
-            );
-          }
-
-          return edgeIds;
+          return edges
+            .filter(
+              (edge) =>
+                (edge.target === props.id && edge.targetHandle === inputHandle) ||
+                (edge.source === props.id && edge.sourceHandle === outputHandle)
+            )
+            .map((edge) => edge.id);
         });
 
       if (removedEdgeIds.length > 0) {

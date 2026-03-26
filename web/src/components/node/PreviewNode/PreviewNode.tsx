@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -23,6 +23,7 @@ import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { useNodes } from "../../../contexts/NodeContext";
 
 const styles = (theme: Theme) =>
   css([
@@ -240,6 +241,57 @@ const isEditorGraphSnapshot = (value: unknown): boolean => {
   return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
 };
 
+const resolveConnectedOutputValue = (
+  result: unknown,
+  sourceHandle: string | null | undefined
+): unknown => {
+  if (!sourceHandle || !result || typeof result !== "object") {
+    return result;
+  }
+
+  const record = result as Record<string, unknown>;
+  if (sourceHandle in record) {
+    return record[sourceHandle];
+  }
+
+  const outputRecord = record.output;
+  if (outputRecord && typeof outputRecord === "object") {
+    const nestedRecord = outputRecord as Record<string, unknown>;
+    if (sourceHandle in nestedRecord) {
+      return nestedRecord[sourceHandle];
+    }
+  }
+
+  return result;
+};
+
+const resolveNodePropertyValue = (
+  node: { data?: NodeData } | undefined,
+  sourceHandle: string | null | undefined
+): unknown => {
+  if (!node?.data) {
+    return undefined;
+  }
+
+  const dynamicProps = node.data.dynamic_properties || {};
+  if (sourceHandle && dynamicProps[sourceHandle] !== undefined) {
+    return dynamicProps[sourceHandle];
+  }
+  if (dynamicProps.value !== undefined) {
+    return dynamicProps.value;
+  }
+
+  const props = node.data.properties || {};
+  if (sourceHandle && props[sourceHandle] !== undefined) {
+    return props[sourceHandle];
+  }
+  if (props.value !== undefined) {
+    return props.value;
+  }
+
+  return undefined;
+};
+
 const getCopySource = (value: any): any => {
   if (value === null || value === undefined) {
     return value;
@@ -299,7 +351,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const [isContentFocused, setIsContentFocused] = useState(false);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
-  const { getEdges } = useReactFlow();
+  const edges = useNodes((state) => state.edges);
+  const findNode = useNodes((state) => state.findNode);
 
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
@@ -307,10 +360,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const incomingValueEdge = useMemo(
     () =>
-      getEdges().find(
+      edges.find(
         (edge) => edge.target === props.id && edge.targetHandle === "value"
       ),
-    [getEdges, props.id, result]
+    [edges, props.id]
   );
 
   const sourceNodeValue = useResultsStore((state) => {
@@ -319,10 +372,24 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       return undefined;
     }
 
-    return (
+    const rawSourceValue = (
       state.getOutputResult(props.data.workflow_id, sourceNodeId) ??
       state.getResult(props.data.workflow_id, sourceNodeId) ??
       state.getPreview(props.data.workflow_id, sourceNodeId)
+    );
+
+    const resolvedSourceValue = resolveConnectedOutputValue(
+      rawSourceValue,
+      incomingValueEdge?.sourceHandle
+    );
+
+    if (resolvedSourceValue !== undefined) {
+      return resolvedSourceValue;
+    }
+
+    return resolveNodePropertyValue(
+      findNode(sourceNodeId),
+      incomingValueEdge?.sourceHandle
     );
   });
 

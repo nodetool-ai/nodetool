@@ -851,7 +851,10 @@ export function usePointerHandlers({
         return;
       }
 
-      if (activeTool === "move" && moveStartRef.current) {
+      // Key off moveStartRef, not activeTool — the closure can lag the store right
+      // after switching tools (e.g. V for move), which would skip this branch while
+      // isDrawingRef is still true from pointerDown.
+      if (moveStartRef.current) {
         const pt = screenToCanvas(e.clientX, e.clientY);
         const dx = pt.x - moveStartRef.current.x;
         const dy = pt.y - moveStartRef.current.y;
@@ -1070,7 +1073,8 @@ export function usePointerHandlers({
 
       const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
 
-      if (activeTool === "move") {
+      // Same as pointerMove: finalize using gesture refs, not activeTool closure.
+      if (moveStartRef.current) {
         const previewLayerId = movePreviewLayerIdRef.current;
         const previewTransform = movePreviewTransformRef.current;
         if (previewLayerId && previewTransform && onLayerTransformChange) {
