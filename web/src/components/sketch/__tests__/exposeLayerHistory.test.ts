@@ -9,6 +9,7 @@
 
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
+import { serializeDocument, deserializeDocument } from "../serialization";
 
 beforeEach(() => {
   act(() => {
@@ -171,13 +172,12 @@ describe("Exposed Layer Locking Semantics", () => {
     });
 
     // Serialize and deserialize
-    const { serializeDocument, deserializeDocument } = require("../serialization");
     const doc = useSketchStore.getState().document;
     const serialized = serializeDocument(doc);
     const deserialized = deserializeDocument(serialized);
 
     expect(deserialized).not.toBeNull();
-    const layer = deserialized!.layers.find((l: { id: string }) => l.id === layerId);
+    const layer = deserialized!.layers.find((l) => l.id === layerId);
     expect(layer?.exposedAsInput).toBe(true);
     expect(layer?.locked).toBe(true);
     expect(layer?.imageReference).toBeDefined();
