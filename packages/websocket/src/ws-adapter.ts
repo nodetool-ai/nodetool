@@ -23,8 +23,12 @@ export class WsAdapter implements WebSocketConnection {
     socket.on("close", () => {
       this.clientState = "disconnected";
       this.applicationState = "disconnected";
-      const waiter = this.waiters.shift();
-      if (waiter) waiter({ type: "websocket.disconnect" });
+      const disconnectFrame = { type: "websocket.disconnect" };
+      // Drain all pending waiters, not just the first one
+      while (this.waiters.length > 0) {
+        const waiter = this.waiters.shift();
+        if (waiter) waiter(disconnectFrame);
+      }
     });
   }
 

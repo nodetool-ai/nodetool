@@ -371,7 +371,7 @@ export class WebSocketManager {
   private getReconnectDelay(): number {
     const delay = Math.min(
       this.config.reconnectInterval *
-        Math.pow(this.config.reconnectDecay, this.reconnectAttempt - 1),
+        Math.pow(this.config.reconnectDecay, this.reconnectAttempt),
       30000 // Max 30 seconds
     );
     return delay;

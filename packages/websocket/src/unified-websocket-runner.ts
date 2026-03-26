@@ -485,11 +485,9 @@ export class UnifiedWebSocketRunner {
     if (message.type === "websocket.disconnect") return null;
 
     if (message.bytes) {
-      this.mode = "binary";
       return unpack(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {
-      this.mode = "text";
       return JSON.parse(message.text) as Record<string, unknown>;
     }
     return null;
@@ -765,8 +763,9 @@ export class UnifiedWebSocketRunner {
     }
 
     active.runner.cancel();
-    active.finished = true;
     active.status = "cancelled";
+    // Don't set active.finished = true here — let streamJobMessages drain
+    // remaining messages and send the terminal job_update to the client.
     return {
       message: "Job cancellation requested",
       job_id: jobId,
@@ -1343,7 +1342,7 @@ export class UnifiedWebSocketRunner {
         done: true,
         thread_id: threadId,
       });
-      await this.sendMessage({
+      const errorMsgData: Record<string, unknown> = {
         type: "message",
         role: "assistant",
         content: errorType === "connection_error"
@@ -1355,7 +1354,9 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId,
         provider: providerId,
         model,
-      });
+      };
+      await this.saveMessageToDb(errorMsgData);
+      await this.sendMessage(errorMsgData);
     }
   }
 
