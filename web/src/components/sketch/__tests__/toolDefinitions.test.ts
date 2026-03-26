@@ -61,10 +61,7 @@ describe("toolDefinitions", () => {
   describe("SHAPE_TOOLS", () => {
     it("contains the expected shape tools", () => {
       const tools = SHAPE_TOOLS.map((d) => d.tool);
-      expect(tools).toContain("line");
-      expect(tools).toContain("rectangle");
-      expect(tools).toContain("ellipse");
-      expect(tools).toContain("arrow");
+      expect(tools).toContain("shape");
       expect(tools).toContain("gradient");
       expect(tools).toContain("crop");
       expect(tools).toContain("adjust");

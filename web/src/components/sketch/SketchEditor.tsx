@@ -359,6 +359,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
               onSelectionChange={store.setSelection}
               onAutoPickLayer={store.setActiveLayer}
               foregroundColor={store.foregroundColor}
+              onDropImage={canvasActions.handleDropImage}
             />
           ) : null}
         </Box>

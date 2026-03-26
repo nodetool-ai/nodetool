@@ -36,6 +36,13 @@ function mockCanvas2DContext() {
     restore: jest.fn(),
     translate: jest.fn(),
     scale: jest.fn(),
+    getImageData: jest.fn(() => ({
+      data: new Uint8ClampedArray(64 * 64 * 4),
+      width: 64,
+      height: 64,
+      colorSpace: "srgb" as PredefinedColorSpace
+    })),
+    putImageData: jest.fn(),
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
     fillStyle: "#000"
@@ -50,10 +57,28 @@ function mockCanvas2DContext() {
     .spyOn(HTMLCanvasElement.prototype, "toDataURL")
     .mockReturnValue("data:image/png;base64,stub");
 
+  // Make Image.onload fire synchronously when src is set (JSDOM
+  // doesn't load images). This lets setLayerData tests verify canvas
+  // creation that happens inside the onload callback.
+  const OrigImage = globalThis.Image;
+  class SyncImage {
+    width = 1;
+    height = 1;
+    onload: (() => void) | null = null;
+    private _src = "";
+    get src() { return this._src; }
+    set src(val: string) {
+      this._src = val;
+      if (this.onload) { this.onload(); }
+    }
+  }
+  globalThis.Image = SyncImage as unknown as typeof Image;
+
   return {
     restore: () => {
       getContextSpy.mockRestore();
       toDataUrlSpy.mockRestore();
+      globalThis.Image = OrigImage;
     }
   };
 }
@@ -632,43 +657,52 @@ describe("Canvas2DRuntime", () => {
     });
 
     it("creates the layer canvas when setting a data URL", () => {
-      // In JSDOM, image loading won't work, but the canvas should be created
-      runtime.setLayerData("layer1", "data:image/png;base64,iVBOR...", {
-        x: -10,
-        y: -6,
-        width: 64,
-        height: 64
-      });
-      const canvas = runtime.getLayerCanvas("layer1");
-      expect(canvas).toBeDefined();
-      expect(getCanvasRasterBounds(canvas)).toEqual({
-        x: -10,
-        y: -6,
-        width: 64,
-        height: 64
-      });
+      const mocked = mockCanvas2DContext();
+      try {
+        runtime.setLayerData("layer1", "data:image/png;base64,iVBOR...", {
+          x: -10,
+          y: -6,
+          width: 64,
+          height: 64
+        });
+        const canvas = runtime.getLayerCanvas("layer1");
+        expect(canvas).toBeDefined();
+        expect(getCanvasRasterBounds(canvas)).toEqual({
+          x: -10,
+          y: -6,
+          width: 64,
+          height: 64
+        });
+      } finally {
+        mocked.restore();
+      }
     });
 
     it("restores serialized raster bounds when setting encoded layer data", () => {
-      const sourceCanvas = runtime.getOrCreateLayerCanvas("layer_source", 32, 24);
-      setCanvasRasterBounds(sourceCanvas, { x: -7, y: -5, width: 32, height: 24 });
-      const data = runtime.getLayerData("layer_source");
-      runtime.setLayerData("layer_target", data, {
-        x: 0,
-        y: 0,
-        width: 64,
-        height: 64
-      });
-      const canvas = runtime.getLayerCanvas("layer_target");
-      expect(canvas).toBeDefined();
-      expect(canvas!.width).toBe(32);
-      expect(canvas!.height).toBe(24);
-      expect(getCanvasRasterBounds(canvas)).toEqual({
-        x: -7,
-        y: -5,
-        width: 32,
-        height: 24
-      });
+      const mocked = mockCanvas2DContext();
+      try {
+        const sourceCanvas = runtime.getOrCreateLayerCanvas("layer_source", 32, 24);
+        setCanvasRasterBounds(sourceCanvas, { x: -7, y: -5, width: 32, height: 24 });
+        const data = runtime.getLayerData("layer_source");
+        runtime.setLayerData("layer_target", data, {
+          x: 0,
+          y: 0,
+          width: 64,
+          height: 64
+        });
+        const canvas = runtime.getLayerCanvas("layer_target");
+        expect(canvas).toBeDefined();
+        expect(canvas!.width).toBe(32);
+        expect(canvas!.height).toBe(24);
+        expect(getCanvasRasterBounds(canvas)).toEqual({
+          x: -7,
+          y: -5,
+          width: 32,
+          height: 24
+        });
+      } finally {
+        mocked.restore();
+      }
     });
   });
 

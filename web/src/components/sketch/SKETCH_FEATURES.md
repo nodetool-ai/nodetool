@@ -1,7 +1,7 @@
 # Sketch Editor Roadmap
 
 > **Status**: transform-aware layer foundation is in place; next work should stay focused on correctness and high-value workflows.
-> **Last updated**: 2026-03-25
+> **Last updated**: 2026-03-26
 
 ## Principles
 
@@ -45,7 +45,7 @@
 ## 2.1 - FEATURES
 
 - [ ] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, and feathering on top of it
-- [ ] add auto-select option to move-tool to directly move another layer via hit mask
+- [x] add auto-select option to move-tool to directly move another layer via hit mask (Alt+click picks topmost visible layer with non-transparent pixels)
 - [ ] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
 
 ### PHASE 3 - SAM SEGMENTATION
@@ -55,7 +55,7 @@
 ### PHASE 4 - ADVANCED FEATURES
 
 - [x] rename the editor/node from "Sketch Input" to "Image Editor"
-- [ ] import image into current layer by drop from outside and paste command
+- [x] import image into current layer by drop from outside and paste command
 - [ ] add groupable layers as tree structure with drag and drop support, expand / close option
 - [ ] better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view
 - [ ] make the canvas resizable from edges/corners with a solid interaction model

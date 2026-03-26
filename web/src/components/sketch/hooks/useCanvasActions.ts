@@ -676,6 +676,50 @@ export function useCanvasActions({
     canvasRef.current.redrawDisplay();
   }, [canvasRef, document.activeLayerId, pushHistory, syncPixelLayerFromCanvas]);
 
+  /** Import a dropped or externally-provided image file into the active layer. */
+  const handleDropImage = useCallback(
+    async (file: File) => {
+      if (!canvasRef.current) {
+        return;
+      }
+      const layerId = document.activeLayerId;
+      if (!layerId) {
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        return;
+      }
+
+      const bitmap = await createImageBitmap(file);
+      const tmp = window.document.createElement("canvas");
+      tmp.width = bitmap.width;
+      tmp.height = bitmap.height;
+      const tmpCtx = tmp.getContext("2d");
+      if (tmpCtx) {
+        tmpCtx.drawImage(bitmap, 0, 0);
+      }
+      bitmap.close();
+
+      pushHistory("drop image");
+
+      const snapshot = canvasRef.current.snapshotLayerCanvas(layerId);
+      if (!snapshot) {
+        return;
+      }
+      const ctx = snapshot.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+
+      ctx.drawImage(tmp, 0, 0);
+
+      canvasRef.current.restoreLayerCanvas(layerId, snapshot);
+      syncPixelLayerFromCanvas(layerId);
+      canvasRef.current.redrawDisplay();
+    },
+    [canvasRef, document.activeLayerId, pushHistory, syncPixelLayerFromCanvas]
+  );
+
   // ─── Adjustment preview (auto-apply with snapshot) ──────────────
   const adjustmentBaseRef = useRef<HTMLCanvasElement | null>(null);
   const [adjBrightness, setAdjBrightness] = useState(0);
@@ -787,6 +831,7 @@ export function useCanvasActions({
     handleCopy,
     handleCut,
     handlePaste,
+    handleDropImage,
     adjBrightness,
     adjContrast,
     adjSaturation,

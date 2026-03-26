@@ -189,8 +189,8 @@ describe("Phase 2 New Features", () => {
   describe("tool types completeness", () => {
     const allTools = [
       "move", "brush", "pencil", "eraser", "eyedropper",
-      "fill", "line", "rectangle", "ellipse", "arrow",
-      "blur", "gradient", "crop"
+      "fill", "shape", "blur", "gradient", "crop",
+      "clone_stamp", "select", "adjust"
     ] as const;
 
     it.each(allTools)("can set active tool to %s", (tool) => {

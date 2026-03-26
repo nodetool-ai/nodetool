@@ -68,6 +68,7 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 - [x] `Arrow` keys nudge active layer by 1 px
 - [x] `Shift+Arrow` keys nudge active layer by 10 px
 - [x] `Esc` cancel active selection / crop / transform-like interaction
+- [x] `Alt+click` (move tool) auto-pick topmost layer with non-transparent pixels under cursor
 - [ ] `Shift+drag` constrain line / square / circle drawing - currently broken in practice
 - [ ] `Ctrl+T` free transform
 - [ ] `Enter` commit transform
@@ -87,6 +88,13 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 - [ ] `~` temporarily erase with current brush
 - [ ] `Caps Lock` cross-hair cursor
 - [ ] `/` toggle lock transparent pixels
+
+## Clipboard & Import
+
+- [x] `Ctrl+C` copy selection / layer
+- [x] `Ctrl+X` cut selection / layer
+- [x] `Ctrl+V` paste from internal or system clipboard (supports images from outside apps)
+- [x] Drag-and-drop image file onto canvas imports into active layer
 
 ## View & Navigation
 

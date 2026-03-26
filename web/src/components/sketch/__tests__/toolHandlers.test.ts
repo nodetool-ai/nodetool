@@ -108,24 +108,22 @@ function makePointerEvent(
 
 describe("getToolHandler factory", () => {
   it("returns correct handler types for all tools", () => {
-    const expected: Array<[SketchTool, string]> = [
-      ["brush", "brush"],
-      ["pencil", "pencil"],
-      ["eraser", "eraser"],
-      ["move", "move"],
-      ["fill", "fill"],
-      ["line", "line"],
-      ["rectangle", "line"],
-      ["ellipse", "line"],
-      ["arrow", "line"],
-      ["gradient", "gradient"],
-      ["crop", "crop"],
-      ["select", "select"],
-      ["eyedropper", "eyedropper"],
-      ["blur", "blur"],
-      ["clone_stamp", "clone_stamp"]
+    const expected: SketchTool[] = [
+      "brush",
+      "pencil",
+      "eraser",
+      "move",
+      "fill",
+      "shape",
+      "gradient",
+      "crop",
+      "select",
+      "eyedropper",
+      "blur",
+      "clone_stamp",
+      "adjust"
     ];
-    for (const [tool] of expected) {
+    for (const tool of expected) {
       const handler = getToolHandler(tool);
       expect(handler).toBeDefined();
       expect(handler.toolId).toBeDefined();
@@ -449,7 +447,7 @@ describe("BrushTool", () => {
     const ctx = makeToolContext({ activeTool: "brush" });
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, expect.anything());
     expect(ctx.activeStrokeRef.current).toBeNull();
   });
 });
