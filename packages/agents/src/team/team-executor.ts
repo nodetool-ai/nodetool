@@ -252,10 +252,9 @@ export class TeamExecutor {
     // Build context-aware prompt
     const promptParts: string[] = [];
 
-    // Inject pending messages
-    const messages = this.bus.peek(agent.identity.id);
+    // Inject pending messages (receive atomically drains the inbox)
+    const messages = this.bus.receive(agent.identity.id);
     if (messages.length > 0) {
-      this.bus.receive(agent.identity.id); // consume
       promptParts.push("**New messages from teammates:**");
       for (const m of messages) {
         promptParts.push(`- [${m.from}] (${m.type}) ${m.subject}: ${m.body}`);
