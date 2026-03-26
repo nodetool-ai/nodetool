@@ -44,9 +44,25 @@ function defaultUsersFilePath(): string {
 
 export class FileUserManager {
   private usersFile: string;
+  /** Mutex to serialize concurrent read-modify-write operations. */
+  private writeLock: Promise<void> = Promise.resolve();
 
   constructor(usersFile?: string) {
     this.usersFile = usersFile ?? defaultUsersFilePath();
+  }
+
+  /** Serialize write operations to prevent lost updates from concurrent access. */
+  private async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    let release: () => void;
+    const next = new Promise<void>((resolve) => { release = resolve; });
+    const prev = this.writeLock;
+    this.writeLock = next;
+    await prev;
+    try {
+      return await fn();
+    } finally {
+      release!();
+    }
   }
 
   private async load(): Promise<UsersFile> {
@@ -76,38 +92,44 @@ export class FileUserManager {
   }
 
   async addUser(username: string, role = "user"): Promise<CreateUserResult> {
-    const data = await this.load();
-    if (data.users[username]) {
-      throw new Error(`User '${username}' already exists`);
-    }
-    const token = this.generateToken();
-    const userId = this.generateUserId(username);
-    const createdAt = new Date().toISOString();
-    data.users[username] = { id: userId, username, role, tokenHash: this.hashToken(token), createdAt };
-    await this.save(data);
-    return { username, userId, role, token, createdAt };
+    return this.withLock(async () => {
+      const data = await this.load();
+      if (data.users[username]) {
+        throw new Error(`User '${username}' already exists`);
+      }
+      const token = this.generateToken();
+      const userId = this.generateUserId(username);
+      const createdAt = new Date().toISOString();
+      data.users[username] = { id: userId, username, role, tokenHash: this.hashToken(token), createdAt };
+      await this.save(data);
+      return { username, userId, role, token, createdAt };
+    });
   }
 
   async removeUser(username: string): Promise<void> {
-    const data = await this.load();
-    if (!data.users[username]) {
-      throw new Error(`User '${username}' not found`);
-    }
-    delete data.users[username];
-    await this.save(data);
+    return this.withLock(async () => {
+      const data = await this.load();
+      if (!data.users[username]) {
+        throw new Error(`User '${username}' not found`);
+      }
+      delete data.users[username];
+      await this.save(data);
+    });
   }
 
   async resetToken(username: string): Promise<CreateUserResult> {
-    const data = await this.load();
-    const existing = data.users[username];
-    if (!existing) {
-      throw new Error(`User '${username}' not found`);
-    }
-    const token = this.generateToken();
-    const createdAt = new Date().toISOString();
-    data.users[username] = { ...existing, tokenHash: this.hashToken(token), createdAt };
-    await this.save(data);
-    return { username, userId: existing.id, role: existing.role, token, createdAt };
+    return this.withLock(async () => {
+      const data = await this.load();
+      const existing = data.users[username];
+      if (!existing) {
+        throw new Error(`User '${username}' not found`);
+      }
+      const token = this.generateToken();
+      const createdAt = new Date().toISOString();
+      data.users[username] = { ...existing, tokenHash: this.hashToken(token), createdAt };
+      await this.save(data);
+      return { username, userId: existing.id, role: existing.role, token, createdAt };
+    });
   }
 
   async listUsers(): Promise<Record<string, UserRecord>> {

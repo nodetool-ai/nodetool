@@ -433,8 +433,9 @@ export class VecCollection {
     const allDistances: number[][] = [];
 
     for (const queryText of queryTexts) {
-      let sql = `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE document LIKE ?`;
-      const params: unknown[] = [`%${queryText}%`];
+      let sql = `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE document LIKE ? ESCAPE '\\'`;
+      const escapedQuery = queryText.replace(/[%_\\]/g, "\\$&");
+      const params: unknown[] = [`%${escapedQuery}%`];
 
       if (whereDocument) {
         const conditions = this.buildWhereDocumentConditions(whereDocument);
@@ -478,11 +479,12 @@ export class VecCollection {
     const allDistances: number[][] = [];
 
     for (const uri of queryURIs) {
+      const escapedUri = uri.replace(/[%_\\]/g, "\\$&");
       const rows = this.db
         .prepare(
-          `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE uri LIKE ? LIMIT ?`,
+          `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE uri LIKE ? ESCAPE '\\' LIMIT ?`,
         )
-        .all(`%${uri}%`, nResults) as Array<{
+        .all(`%${escapedUri}%`, nResults) as Array<{
         doc_id: string;
         document: string | null;
         metadata: string;

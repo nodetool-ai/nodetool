@@ -87,15 +87,23 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         });
       }
       const { createReadStream, statSync } = await import("node:fs");
-      const { extname } = await import("node:path");
+      const { extname, resolve } = await import("node:path");
       const mimeTypes: Record<string, string> = {
         ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
         ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
         ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".webm": "video/webm",
         ".json": "application/json", ".txt": "text/plain",
       };
-      const assetPath = `${pkg.sourceFolder}/nodetool/assets/${pkgName}/${aName}`;
-      let fileStat: { size: number };
+      const baseDir = resolve(`${pkg.sourceFolder}/nodetool/assets/${pkgName}`);
+      const assetPath = resolve(baseDir, aName);
+      // Prevent path traversal: resolved path must stay within the base directory
+      if (!assetPath.startsWith(baseDir + "/") && assetPath !== baseDir) {
+        return new Response(JSON.stringify({ detail: "Not found" }), {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      let fileStat: { size: number; mtimeMs: number };
       try {
         fileStat = statSync(assetPath);
       } catch {
@@ -108,9 +116,15 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const stream = createReadStream(assetPath);
       const webStream = new ReadableStream({
         start(controller) {
-          stream.on("data", (chunk) => controller.enqueue(chunk));
-          stream.on("end", () => controller.close());
-          stream.on("error", (err) => controller.error(err));
+          stream.on("data", (chunk) => {
+            try { controller.enqueue(chunk); } catch { stream.destroy(); }
+          });
+          stream.on("end", () => {
+            try { controller.close(); } catch { /* already closed */ }
+          });
+          stream.on("error", (err) => {
+            try { controller.error(err); } catch { /* already errored */ }
+          });
         },
         cancel() { stream.destroy(); },
       });
@@ -120,7 +134,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           "content-type": contentType,
           "content-length": String(fileStat.size),
           "cache-control": "public, max-age=31536000, immutable",
-          "etag": `"${pkgName}-${aName}"`,
+          "etag": `"${pkgName}-${aName}-${fileStat.size}-${fileStat.mtimeMs}"`,
         },
       });
     });
