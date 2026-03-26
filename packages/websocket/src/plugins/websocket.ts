@@ -127,6 +127,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
       });
     }).catch((err: unknown) => {
       log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
+      try {
+        (socket as any).send(JSON.stringify({ status: "error", error: "Download module unavailable" }));
+        (socket as any).close();
+      } catch { /* socket already gone */ }
     });
   });
 };

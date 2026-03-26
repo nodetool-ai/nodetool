@@ -10,12 +10,15 @@ import type { AgentMessage, IMessageBus, MessageType } from "./types.js";
 
 export type MessageHandler = (msg: AgentMessage) => void;
 
+/** Maximum number of messages retained in the history log. */
+const MAX_LOG_SIZE = 10_000;
+
 export class MessageBus implements IMessageBus {
   /** Per-agent inbox queues. */
   private inboxes = new Map<string, AgentMessage[]>();
   /** Per-agent subscribers for real-time push. */
   private subscribers = new Map<string, Set<MessageHandler>>();
-  /** Full message log for history/debugging. */
+  /** Full message log for history/debugging (bounded). */
   private log: AgentMessage[] = [];
 
   /**
@@ -52,6 +55,9 @@ export class MessageBus implements IMessageBus {
     };
 
     this.log.push(msg);
+    if (this.log.length > MAX_LOG_SIZE) {
+      this.log = this.log.slice(-Math.floor(MAX_LOG_SIZE * 0.75));
+    }
 
     if (opts.to === "all") {
       // Broadcast to all registered agents except sender

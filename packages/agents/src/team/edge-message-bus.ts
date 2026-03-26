@@ -14,6 +14,9 @@ import { randomUUID } from "node:crypto";
 import type { ProcessingContext } from "@nodetool/runtime";
 import type { AgentMessage, IMessageBus, MessageType } from "./types.js";
 
+/** Maximum number of messages retained in the history log. */
+const MAX_LOG_SIZE = 10_000;
+
 export class EdgeMessageBus implements IMessageBus {
   /** In-memory fallback inboxes for agents without workflow nodes. */
   private inboxes = new Map<string, AgentMessage[]>();
@@ -21,7 +24,7 @@ export class EdgeMessageBus implements IMessageBus {
   private nodeMap = new Map<string, string>();
   /** Real-time subscribers. */
   private subscribers = new Map<string, Set<(msg: AgentMessage) => void>>();
-  /** Full message log. */
+  /** Full message log (bounded). */
   private log: AgentMessage[] = [];
   /** Processing context for sending control events. */
   private context: ProcessingContext | null;
@@ -67,6 +70,9 @@ export class EdgeMessageBus implements IMessageBus {
     };
 
     this.log.push(msg);
+    if (this.log.length > MAX_LOG_SIZE) {
+      this.log = this.log.slice(-Math.floor(MAX_LOG_SIZE * 0.75));
+    }
 
     if (opts.to === "all") {
       for (const [agentId] of this.inboxes) {
