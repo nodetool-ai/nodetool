@@ -34,6 +34,7 @@ export const useResizeRightPanel = (
     handleMouseMove?: ((e: MouseEvent) => void);
     handleMouseUp?: (() => void);
   }>({});
+  const hasDraggedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragThreshold = 20;
 
   const handleMouseDown = useCallback(
@@ -88,7 +89,11 @@ export const useResizeRightPanel = (
         }
 
         actions.setIsDragging(false);
-        setTimeout(() => actions.setHasDragged(false), 0);
+        // Clear any existing timeout before setting a new one
+        if (hasDraggedTimeoutRef.current !== null) {
+          clearTimeout(hasDraggedTimeoutRef.current);
+        }
+        hasDraggedTimeoutRef.current = setTimeout(() => actions.setHasDragged(false), 0);
 
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
@@ -105,7 +110,7 @@ export const useResizeRightPanel = (
     [panelPosition, panel.panelSize, panel.activeView, actions]
   );
 
-  // Clean up any remaining drag event listeners on unmount
+  // Clean up any remaining drag event listeners and timeouts on unmount
   useEffect(() => {
     return () => {
       const { handleMouseMove, handleMouseUp } = dragHandlersRef.current;
@@ -114,6 +119,10 @@ export const useResizeRightPanel = (
       }
       if (handleMouseUp) {
         document.removeEventListener("mouseup", handleMouseUp);
+      }
+      // Clear any pending timeout
+      if (hasDraggedTimeoutRef.current !== null) {
+        clearTimeout(hasDraggedTimeoutRef.current);
       }
     };
   }, []);
