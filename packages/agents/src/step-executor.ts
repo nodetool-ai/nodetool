@@ -344,6 +344,7 @@ export class StepExecutor {
 
       if (this.useFinishTask) {
         basePrompt = customPrompt ?? DEFAULT_FINISH_TASK_SYSTEM_PROMPT;
+        templateContext["step_content"] = this.step.instructions;
       } else {
         basePrompt = customPrompt ?? DEFAULT_EXECUTION_SYSTEM_PROMPT;
         templateContext["step_content"] = this.step.instructions;
@@ -1252,10 +1253,16 @@ export class StepExecutor {
       }
     }
 
-    // If we exhausted iterations without completing, yield a final event
+    // If we exhausted iterations without completing, yield a failure event
+    // and a step_result so downstream steps see an explicit error rather than undefined.
     if (!this.step.completed) {
       this.step.completed = true;
       this.step.endTime = Date.now();
+
+      const errorResult = { error: `Step failed: exceeded ${this.maxIterations} iterations without completion` };
+      this.result = errorResult;
+      await this.context.storeStepResult(this.step.id, errorResult);
+
       yield {
         type: "task_update",
         node_id: this.step.id,
@@ -1263,6 +1270,13 @@ export class StepExecutor {
         step: { id: this.step.id, instructions: this.step.instructions },
         event: TaskUpdateEvent.StepFailed,
       } satisfies TaskUpdate;
+
+      yield {
+        type: "step_result",
+        step: { id: this.step.id, instructions: this.step.instructions },
+        result: errorResult,
+        is_task_result: this.useFinishTask,
+      } satisfies StepResult;
     }
   }
 

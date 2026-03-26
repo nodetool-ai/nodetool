@@ -32,9 +32,10 @@ export function extractJSON(text: string): unknown | null {
     }
   }
 
-  // Strategy 3: balanced braces
-  const startIdx = trimmed.indexOf("{");
-  if (startIdx !== -1) {
+  // Strategy 3: balanced braces or brackets
+  for (const [open, close] of [["{", "}"], ["[", "]"]] as const) {
+    const startIdx = trimmed.indexOf(open);
+    if (startIdx === -1) continue;
     let depth = 0;
     let inString = false;
     let escape = false;
@@ -53,8 +54,8 @@ export function extractJSON(text: string): unknown | null {
         continue;
       }
       if (inString) continue;
-      if (ch === "{") depth++;
-      if (ch === "}") {
+      if (ch === open) depth++;
+      if (ch === close) {
         depth--;
         if (depth === 0) {
           const candidate = trimmed.slice(startIdx, i + 1);

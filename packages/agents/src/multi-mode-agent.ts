@@ -208,6 +208,7 @@ export class MultiModeAgent extends BaseAgent {
       const planner = new TaskPlanner({
         provider: this.provider,
         model: this.planningModel,
+        reasoningModel: this.planningModel,
         tools: this.tools,
         systemPrompt: this.systemPrompt || undefined,
         outputSchema: this.outputSchema,

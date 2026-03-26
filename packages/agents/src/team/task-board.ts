@@ -333,12 +333,25 @@ export class TaskBoard implements ITaskBoard {
         task.result = subtasks.map((s) => s.result);
         task.artifacts = subtasks.flatMap((s) => s.artifacts);
         task.updatedAt = Date.now();
-        this.emit({
-          type: "task_completed",
-          taskId: task.id,
-          artifacts: task.artifacts,
-          timestamp: task.updatedAt,
-        });
+        if (anyFailed) {
+          const failedNames = subtasks
+            .filter((s) => s.status === "failed")
+            .map((s) => s.title)
+            .join(", ");
+          this.emit({
+            type: "task_failed",
+            taskId: task.id,
+            reason: `Subtask(s) failed: ${failedNames}`,
+            timestamp: task.updatedAt,
+          });
+        } else {
+          this.emit({
+            type: "task_completed",
+            taskId: task.id,
+            artifacts: task.artifacts,
+            timestamp: task.updatedAt,
+          });
+        }
       }
     }
   }
