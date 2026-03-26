@@ -178,22 +178,48 @@ interface ActiveJob {
 }
 
 class ToolBridge {
-  private waiters = new Map<string, (value: Record<string, unknown>) => void>();
+  private waiters = new Map<string, {
+    resolve: (value: Record<string, unknown>) => void;
+    reject: (reason: Error) => void;
+  }>();
 
-  createWaiter(toolCallId: string): Promise<Record<string, unknown>> {
-    return new Promise((resolve) => {
-      this.waiters.set(toolCallId, resolve);
+  createWaiter(toolCallId: string, timeoutMs = 300_000): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        this.waiters.delete(toolCallId);
+      };
+      const wrappedResolve = (value: Record<string, unknown>) => {
+        cleanup();
+        resolve(value);
+      };
+      const wrappedReject = (reason: Error) => {
+        cleanup();
+        reject(reason);
+      };
+      this.waiters.set(toolCallId, { resolve: wrappedResolve, reject: wrappedReject });
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          if (this.waiters.has(toolCallId)) {
+            wrappedReject(new Error(`Tool call ${toolCallId} timed out after ${timeoutMs}ms`));
+          }
+        }, timeoutMs);
+      }
     });
   }
 
   resolveResult(toolCallId: string, payload: Record<string, unknown>): void {
-    const resolve = this.waiters.get(toolCallId);
-    if (!resolve) return;
-    this.waiters.delete(toolCallId);
-    resolve(payload);
+    const waiter = this.waiters.get(toolCallId);
+    if (!waiter) return;
+    waiter.resolve(payload);
   }
 
   cancelAll(): void {
+    const error = new Error("All pending tool calls cancelled");
+    for (const waiter of this.waiters.values()) {
+      waiter.reject(error);
+    }
     this.waiters.clear();
   }
 }
@@ -236,12 +262,7 @@ class UIToolProxy extends Tool {
     });
 
     try {
-      const payload = await Promise.race([
-        this.bridge.createWaiter(toolCallId),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Frontend tool ${this.name} timed out after 60 seconds`)), 60000),
-        ),
-      ]);
+      const payload = await this.bridge.createWaiter(toolCallId, 60_000);
       if ((payload as Record<string, unknown>).ok) {
         return (payload as Record<string, unknown>).result ?? {};
       }
@@ -1168,7 +1189,7 @@ export class UnifiedWebSocketRunner {
                 name: tc.name,
                 args: tc.args,
               });
-              const clientResult = await this.toolBridge.createWaiter(tc.id);
+              const clientResult = await this.toolBridge.createWaiter(tc.id, 300_000);
               toolResult = clientResult.result ?? clientResult.content ?? clientResult;
             } else {
               toolResult = { error: `Tool "${tc.name}" not available` };
@@ -1214,6 +1235,9 @@ export class UnifiedWebSocketRunner {
         if (unprocessedMessages.length === 0) {
           break;
         }
+        // Reset content for next tool round so the final message only contains
+        // text from the last generation pass (prior rounds were already streamed).
+        content = "";
         toolRound++;
         if (toolRound >= MAX_TOOL_ROUNDS) {
           log.warn("Max tool rounds reached, stopping tool loop", { rounds: toolRound });

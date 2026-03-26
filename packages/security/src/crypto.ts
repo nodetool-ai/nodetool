@@ -129,7 +129,7 @@ export function decryptFernet(masterKey: string, userId: string, encryptedValue:
 
   // Decode Fernet token from base64url
   const b64token = encryptedValue.replace(/-/g, "+").replace(/_/g, "/");
-  const token = Buffer.from(b64token + "==".slice((b64token.length % 4) || 4), "base64");
+  const token = Buffer.from(b64token + "=".repeat((4 - (b64token.length % 4)) % 4), "base64");
 
   // Token layout: version(1) + timestamp(8) + iv(16) + ciphertext(N) + hmac(32)
   if (token.length < 1 + 8 + 16 + 32) {
