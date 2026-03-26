@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
+import os from "node:os";
 
 export interface TypeMetadata {
   type: string;
@@ -152,32 +154,85 @@ function walkForMetadataFiles(
   }
 }
 
-export function loadPythonPackageMetadata(
-  options: PythonMetadataLoadOptions = {}
-): PythonMetadataLoadResult {
-  const roots = (options.roots && options.roots.length > 0 ? options.roots : [process.cwd()]).map((p) =>
-    path.resolve(p)
-  );
-  const maxDepth = options.maxDepth ?? 8;
+// ---------------------------------------------------------------------------
+// Metadata cache — avoids re-reading and re-parsing JSON files on every startup
+// when the underlying metadata files haven't changed.
+// ---------------------------------------------------------------------------
 
-  const warnings: string[] = [];
-  const fileSet = new Set<string>();
-  for (const root of roots) {
-    if (!fs.existsSync(root)) {
-      warnings.push(`Metadata root does not exist: ${root}`);
-      continue;
-    }
-    const found: string[] = [];
-    walkForMetadataFiles(root, maxDepth, found, warnings);
-    for (const file of found) {
-      fileSet.add(path.resolve(file));
+const CACHE_DIR = path.join(os.tmpdir(), "nodetool-metadata-cache");
+const CACHE_VERSION = 1;
+
+interface SerializedCacheEntry {
+  version: number;
+  fingerprint: string;
+  files: string[];
+  packages: PackageMetadata[];
+  nodesByType: [string, NodeMetadata][];
+  duplicates: string[];
+  warnings: string[];
+}
+
+/** Build a fingerprint from sorted file paths + their mtime/size. */
+function buildFingerprint(files: string[]): string {
+  const hash = crypto.createHash("sha256");
+  for (const file of files) {
+    hash.update(file);
+    try {
+      const stat = fs.statSync(file);
+      hash.update(`|${stat.mtimeMs}|${stat.size}`);
+    } catch {
+      hash.update("|missing");
     }
   }
+  return hash.digest("hex");
+}
 
-  const files = [...fileSet].sort();
+function getCachePath(roots: string[]): string {
+  const key = crypto.createHash("sha256").update(roots.join(":")).digest("hex").slice(0, 16);
+  return path.join(CACHE_DIR, `metadata-${key}.json`);
+}
+
+function tryReadCache(cachePath: string, fingerprint: string): PythonMetadataLoadResult | null {
+  try {
+    if (!fs.existsSync(cachePath)) return null;
+    const raw = fs.readFileSync(cachePath, "utf8");
+    const entry: SerializedCacheEntry = JSON.parse(raw);
+    if (entry.version !== CACHE_VERSION || entry.fingerprint !== fingerprint) return null;
+    return {
+      files: entry.files,
+      packages: entry.packages,
+      nodesByType: new Map(entry.nodesByType),
+      duplicates: entry.duplicates,
+      warnings: entry.warnings,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(cachePath: string, fingerprint: string, result: PythonMetadataLoadResult): void {
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    const entry: SerializedCacheEntry = {
+      version: CACHE_VERSION,
+      fingerprint,
+      files: result.files,
+      packages: result.packages,
+      nodesByType: [...result.nodesByType.entries()],
+      duplicates: result.duplicates,
+      warnings: result.warnings,
+    };
+    fs.writeFileSync(cachePath, JSON.stringify(entry));
+  } catch {
+    // Cache write failure is non-fatal
+  }
+}
+
+function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
   const packages: PackageMetadata[] = [];
   const nodesByType = new Map<string, NodeMetadata>();
   const duplicates = new Set<string>();
+  const warnings: string[] = [];
 
   for (const file of files) {
     let parsed: unknown;
@@ -236,4 +291,51 @@ export function loadPythonPackageMetadata(
     duplicates: [...duplicates].sort(),
     warnings,
   };
+}
+
+export function loadPythonPackageMetadata(
+  options: PythonMetadataLoadOptions = {}
+): PythonMetadataLoadResult {
+  const roots = (options.roots && options.roots.length > 0 ? options.roots : [process.cwd()]).map((p) =>
+    path.resolve(p)
+  );
+  const maxDepth = options.maxDepth ?? 8;
+
+  const warnings: string[] = [];
+  const fileSet = new Set<string>();
+  for (const root of roots) {
+    if (!fs.existsSync(root)) {
+      warnings.push(`Metadata root does not exist: ${root}`);
+      continue;
+    }
+    const found: string[] = [];
+    walkForMetadataFiles(root, maxDepth, found, warnings);
+    for (const file of found) {
+      fileSet.add(path.resolve(file));
+    }
+  }
+
+  const files = [...fileSet].sort();
+
+  // Try cache first — avoids re-reading and parsing all JSON files.
+  const fingerprint = buildFingerprint(files);
+  const cachePath = getCachePath(roots);
+  const cached = tryReadCache(cachePath, fingerprint);
+  if (cached) {
+    // Merge any walk warnings into the cached result
+    if (warnings.length > 0) {
+      cached.warnings = [...warnings, ...cached.warnings];
+    }
+    return cached;
+  }
+
+  const result = parseMetadataFiles(files);
+  if (warnings.length > 0) {
+    result.warnings = [...warnings, ...result.warnings];
+  }
+
+  // Persist cache for next startup
+  writeCache(cachePath, fingerprint, result);
+
+  return result;
 }
