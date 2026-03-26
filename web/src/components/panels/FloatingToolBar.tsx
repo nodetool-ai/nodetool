@@ -634,4 +634,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   );
 });
 
+FloatingToolBar.displayName = "FloatingToolBar";
+
 export default memo(FloatingToolBar);
