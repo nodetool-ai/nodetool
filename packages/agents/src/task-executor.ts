@@ -156,12 +156,16 @@ export class TaskExecutor {
    * Produce a short deterministic hash for a value (used in ephemeral step IDs).
    */
   private shortHash(value: unknown): string {
-    const data = JSON.stringify(
-      value,
-      value != null && typeof value === "object"
-        ? Object.keys(value as Record<string, unknown>).sort()
-        : undefined,
-    );
+    const data = JSON.stringify(value, (_key, val) => {
+      if (val != null && typeof val === "object" && !Array.isArray(val)) {
+        const sorted: Record<string, unknown> = {};
+        for (const k of Object.keys(val).sort()) {
+          sorted[k] = val[k];
+        }
+        return sorted;
+      }
+      return val;
+    });
     return createHash("sha1").update(data).digest("hex").slice(0, 12);
   }
 
@@ -178,14 +182,22 @@ export class TaskExecutor {
       return;
     }
 
-    const discoverResult = this.context.get(discoverStepId);
+    let discoverResult = this.context.get(discoverStepId);
+    if (discoverResult === undefined || discoverResult === null) {
+      log.warn("Discover step result is null/undefined, skipping fan-out", {
+        stepId: step.id,
+      });
+      step.completed = true;
+      this.context.set(step.id, []);
+      step.endTime = Date.now();
+      return;
+    }
     if (!Array.isArray(discoverResult)) {
-      log.warn("Discover step result is not an array, treating as single item", {
+      log.warn("Discover step result is not an array, wrapping as single-item list", {
         stepId: step.id,
         resultType: typeof discoverResult,
       });
-      step.completed = true;
-      return;
+      discoverResult = [discoverResult];
     }
 
     const items = discoverResult as unknown[];
@@ -370,8 +382,16 @@ async function* mergeAsyncGenerators<T>(
     if (queue.length > 0) {
       yield queue.shift()!;
     } else if (activeCount > 0) {
-      // Wait for the next item or completion signal
-      await new Promise<void>((r) => { resolve = r; });
+      // Set resolve BEFORE checking queue again to avoid race condition
+      // where an item is pushed between the check and the await.
+      const waitPromise = new Promise<void>((r) => { resolve = r; });
+      // Re-check after setting resolve — item may have arrived between
+      // the outer check and setting resolve.
+      if (queue.length > 0) {
+        resolve = null;
+        continue;
+      }
+      await waitPromise;
     }
   }
 
