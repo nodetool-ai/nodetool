@@ -17,6 +17,7 @@ export class PythonDockerRunner extends StreamRunnerBase {
   ): string[] {
     let code = "";
     for (const [key, value] of Object.entries(envLocals)) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) continue;
       code += `${key}=${pythonRepr(value)}\n`;
     }
     code += userCode;

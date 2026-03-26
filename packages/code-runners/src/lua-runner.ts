@@ -16,11 +16,11 @@ export function luaEscapeString(value: string): string {
     return "[===[" + value + "]===]";
   }
   const escaped = value
-    .replace(/\\/g, "\\\\\\\\")
+    .replace(/\\/g, "\\\\")
     .replace(/\n/g, "\\n")
     .replace(/\t/g, "\\t")
     .replace(/\r/g, "\\r")
-    .replace(/"/g, '\\\\\\"');
+    .replace(/"/g, '\\"');
   return '"' + escaped + '"';
 }
 
