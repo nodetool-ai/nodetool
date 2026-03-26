@@ -353,7 +353,7 @@ const AudioListProperty = (props: PropertyProps) => {
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "audio.mp3";
 
-          const file = new File([result.buffer], fileName, { type: result.mimeType });
+          const file = new File([result.buffer as unknown as BlobPart], fileName, { type: result.mimeType });
 
           return new Promise<AudioItem>((resolve, reject) => {
             uploadAsset({

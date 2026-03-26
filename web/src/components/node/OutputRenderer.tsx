@@ -315,13 +315,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     if (data instanceof Uint8Array) {
       bytes = data;
     } else if (Array.isArray(data)) {
-      bytes = new Uint8Array(data);
+      bytes = new Uint8Array(data as unknown as ArrayBuffer);
     } else if (data && typeof data === "object") {
       const numericEntries = Object.entries(data)
         .filter(([k, v]) => /^\d+$/.test(k) && typeof v === "number")
         .sort((a, b) => Number(a[0]) - Number(b[0]));
       if (numericEntries.length > 0) {
-        bytes = new Uint8Array(numericEntries.map(([, v]) => Number(v)));
+        bytes = new Uint8Array(numericEntries.map(([, v]) => Number(v)) as unknown as unknown as ArrayBuffer);
       }
     }
 
@@ -336,7 +336,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       bytes[2] === 0x44 &&
       bytes[3] === 0x46;
     const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
-    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+    const url = URL.createObjectURL(new Blob([bytes as any], { type: mimeType }));
     return { url, isPdf };
   }, [type, value]);
 
@@ -393,7 +393,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
-            imageSource = new Uint8Array(value.data);
+            imageSource = new Uint8Array(value.data as unknown as ArrayBuffer);
           } else if (typeof value?.data === "string") {
             imageSource = value.data;
           } else {
@@ -410,7 +410,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           audioSource = resolveAssetUri(value.uri);
         } else if (Array.isArray(value?.data)) {
           // Convert array of bytes to Uint8Array
-          audioSource = new Uint8Array(value.data);
+          audioSource = new Uint8Array(value.data as unknown as ArrayBuffer);
         } else if (value?.data instanceof Uint8Array) {
           // Already a Uint8Array
           audioSource = value.data;
@@ -461,7 +461,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         } else if (value?.data instanceof Uint8Array) {
           html = new TextDecoder("utf-8").decode(value.data);
         } else if (Array.isArray(value?.data)) {
-          html = new TextDecoder("utf-8").decode(new Uint8Array(value.data));
+          html = new TextDecoder("utf-8").decode(new Uint8Array(value.data as unknown as ArrayBuffer));
         }
 
         if (!html) {

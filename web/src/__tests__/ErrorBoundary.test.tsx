@@ -44,7 +44,7 @@ describe("ErrorBoundary", () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    window.location = originalLocation;
+    window.location = originalLocation as any;
   });
 
   it("renders error message when error is an Error instance", () => {
@@ -131,7 +131,7 @@ describe("ErrorBoundary", () => {
     const reloadButton = screen.getByRole("button", { name: /reload/i });
     await user.click(reloadButton);
 
-    expect(mockReload).toHaveBeenCalledTimes(1);
+    expect(window.location.reload).toHaveBeenCalledTimes(1);
   });
 
   it("displays forum link", () => {
