@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useCallback } from "react";
+import { useMemo, useCallback } from "react";
 import {
   List,
   ListItemButton,
