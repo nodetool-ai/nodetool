@@ -69,17 +69,22 @@ The `WorkflowRunner` is the DAG orchestrator that executes workflow graphs. It h
 
 Each node in a workflow runs as a `NodeActor` with one of four execution modes:
 
-| Mode | Behavior |
-|------|----------|
-| **Buffered** | Collects all inputs before processing (default for most nodes) |
-| **Streaming input** | Processes inputs as they arrive, one at a time |
-| **Streaming output** | Produces outputs incrementally as they become available |
-| **Controlled** | Manages its own execution lifecycle with cached input replay |
+| Mode | Behavior | When to Use |
+|------|----------|-------------|
+| **Buffered** | Collects all inputs before processing | Default for most nodes. Use when you need all data before you can produce output (e.g., image resize, text formatting). |
+| **Streaming input** | Processes inputs as they arrive, one at a time | Use for nodes that handle items in a stream (e.g., filtering, transforming individual items). |
+| **Streaming output** | Produces outputs incrementally as they become available | Use for LLMs and generators that emit tokens/chunks over time (e.g., Agent, ListGenerator). |
+| **Controlled** | Manages its own execution lifecycle with cached input replay | Use for nodes that need custom control over when and how they process (e.g., loops, conditional retry). |
 
-Actors also support different sync modes:
-- **on_any** -- Fire when any input receives data
-- **zip_all** -- Wait until all inputs have data, then fire with matched sets
-- **sticky** -- Remember the last value on inputs that haven't changed
+### Sync Modes
+
+Sync modes determine when a node fires relative to its inputs:
+
+| Sync Mode | Behavior | Example |
+|-----------|----------|---------|
+| **zip_all** | Wait until **all** inputs have data, then fire with matched sets | A "Combine" node that needs both an image and a caption before it can proceed. |
+| **on_any** | Fire when **any** input receives data | A "Logger" node that logs every piece of data passing through, regardless of source. |
+| **sticky** | Remember the last value on inputs that haven't changed | A "Style Transfer" node where the style image is set once but content images stream through repeatedly. |
 
 ### ProcessingContext
 
@@ -192,13 +197,13 @@ Each provider implements a base interface that handles authentication, model lis
 
 NodeTool uses a pluggable storage system with three backends:
 
-| Backend | Use Case |
-|---------|----------|
-| **Local filesystem** | Default for desktop app. Assets stored in `~/.nodetool/` |
-| **S3-compatible** | Production deployments with AWS S3, MinIO, or compatible services |
-| **Supabase Storage** | Integrated auth + storage for Supabase-backed deployments |
+| Backend | Use Case | Pros | Cons |
+|---------|----------|------|------|
+| **Local filesystem** | Desktop app, development | Zero config, fast, private | Single machine only |
+| **S3-compatible** | Production (AWS, MinIO) | Scalable, durable, multi-region | Requires cloud account, network latency |
+| **Supabase Storage** | Supabase deployments | Integrated auth + storage, managed | Requires Supabase project |
 
-The storage adapter is selected automatically based on environment configuration. See [Storage](storage.md) for configuration details.
+The storage adapter is selected automatically based on environment configuration. Assets are stored in two buckets: `assets` (permanent) and `assets-temp` (intermediate results, auto-cleaned). See [Storage](storage.md) for configuration details.
 
 ---
 
