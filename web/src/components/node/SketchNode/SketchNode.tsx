@@ -844,7 +844,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           uri: inputImageUri,
           naturalWidth,
           naturalHeight,
-          objectFit: "fill" as const
+          objectFit: "contain" as const
         };
 
         // Auto-resize canvas to match input image dimensions
@@ -1023,7 +1023,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             uri,
             naturalWidth,
             naturalHeight,
-            objectFit: "fill" as const
+            objectFit: "contain" as const
           };
           const contentBounds = {
             x: prevBounds.x,
