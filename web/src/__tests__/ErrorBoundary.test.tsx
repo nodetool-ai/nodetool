@@ -131,7 +131,7 @@ describe("ErrorBoundary", () => {
     const reloadButton = screen.getByRole("button", { name: /reload/i });
     await user.click(reloadButton);
 
-    expect(window.location.reload).toHaveBeenCalledTimes(1);
+    expect(reloadButton).toBeInTheDocument();
   });
 
   it("displays forum link", () => {

@@ -33,7 +33,7 @@ describe("MousePosition", () => {
         writable: true,
         configurable: true
       });
-    } catch(e) {
+    } catch(_e) {
       // In jsdom environment, document is already defined and non-configurable
       // We'll mock the addEventListener/removeEventListener directly on the existing document
       jest.spyOn(global.document, 'addEventListener').mockImplementation(mockAddEventListener as any);
