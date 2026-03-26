@@ -72,13 +72,15 @@ describe("BackToEditorButton", () => {
       }
     });
 
-    return ({ children }: { children: React.ReactNode }) => (
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={mockTheme}>
           <MemoryRouter>{children}</MemoryRouter>
         </ThemeProvider>
       </QueryClientProvider>
     );
+    Wrapper.displayName = 'TestWrapper';
+    return Wrapper;
   };
 
   beforeEach(() => {
