@@ -166,8 +166,15 @@ export function findInputHandle(
 
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
-    if (dynamicProperties[handleName] !== undefined) {
-      const inputMeta = node.data.dynamic_inputs?.[handleName];
+    const dynamicInputs = node.data.dynamic_inputs || {};
+    const dynamicOutputs = node.data.dynamic_outputs || {};
+    const hasDynamicInputMetadata = dynamicInputs[handleName] !== undefined;
+    const hasDynamicPropertyValue = dynamicProperties[handleName] !== undefined;
+    const isDynamicOutputOnly =
+      dynamicOutputs[handleName] !== undefined && !hasDynamicInputMetadata;
+
+    if ((hasDynamicInputMetadata || hasDynamicPropertyValue) && !isDynamicOutputOnly) {
+      const inputMeta = dynamicInputs[handleName];
       const type = inputMeta
         ? {
             type: inputMeta.type,
@@ -277,7 +284,18 @@ export function getAllInputHandles(
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
     const dynamicInputs = node.data.dynamic_inputs || {};
-    Object.keys(dynamicProperties).forEach((name) => {
+    const dynamicOutputs = node.data.dynamic_outputs || {};
+    const dynamicHandleNames = new Set([
+      ...Object.keys(dynamicInputs),
+      ...Object.keys(dynamicProperties)
+    ]);
+
+    dynamicHandleNames.forEach((name) => {
+      const isDynamicOutputOnly =
+        dynamicOutputs[name] !== undefined && dynamicInputs[name] === undefined;
+      if (isDynamicOutputOnly) {
+        return;
+      }
       const inputMeta = dynamicInputs[name];
       const type = inputMeta
         ? {

@@ -454,6 +454,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const updateNodeData = useNodes((s) => s.updateNodeData);
   const updateEdgeHandle = useNodes((s) => s.updateEdgeHandle);
   const updateEdge = useNodes((s) => s.updateEdge);
+  const deleteEdges = useNodes((s) => s.deleteEdges);
   const findNode = useNodes((s) => s.findNode);
 
   // Parse sketch document from node properties
@@ -786,6 +787,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const displayPreviewUri = outputImageUri ?? previewUrl;
 
   const staticProps = props.data.properties;
+  const currentDocument = editorDocument ?? documentRef.current ?? sketchDoc;
 
   // ─── Resolve input_image URI ───────────────────────────────────────
   const inputImageUri = useMemo((): string | null => {
@@ -1095,10 +1097,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   // ─── Generate preview and update output properties ────────────────
   useEffect(() => {
-    const hasData = sketchDoc.layers.some((l) => l.data !== null);
+    const hasData = currentDocument.layers.some((l) => l.data !== null);
     if (hasData) {
       // Generate flattened image for preview and output
-      flattenDocument(sketchDoc)
+      flattenDocument(currentDocument)
         .then(async (canvas) => {
           const imageDataUrl = canvasToDataUrl(canvas);
           setPreviewUrl(imageDataUrl);
@@ -1114,7 +1116,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           };
 
           // Export mask if designated
-          const maskCanvas = await exportMask(sketchDoc);
+          const maskCanvas = await exportMask(currentDocument);
           if (maskCanvas) {
             const maskDataUrl = canvasToDataUrl(maskCanvas);
             outputProps.mask = {
@@ -1126,9 +1128,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           }
 
           // Export individual layers marked as exposedAsOutput
-          for (const layer of sketchDoc.layers) {
+          for (const layer of currentDocument.layers) {
             if (layer.exposedAsOutput && layer.data) {
-              const layerCanvas = await exportLayer(sketchDoc, layer.id);
+              const layerCanvas = await exportLayer(currentDocument, layer.id);
               if (!layerCanvas) {
                 continue;
               }
@@ -1150,7 +1152,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     } else {
       setPreviewUrl(null);
     }
-  }, [sketchDoc, props.id, updateNodeProperties]);
+  }, [currentDocument, props.id, updateNodeProperties]);
 
   const handleOpenEditor = useCallback(() => {
     // Use documentRef if available (may include async-loaded input image),
@@ -1172,6 +1174,43 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       const previousLayersById = new Map(
         previousDoc.layers.map((layer) => [layer.id, layer])
       );
+      const nextLayerIds = new Set(doc.layers.map((layer) => layer.id));
+
+      const removedEdgeIds = previousDoc.layers
+        .filter((layer) => !nextLayerIds.has(layer.id))
+        .flatMap((layer) => {
+          const edgeIds: string[] = [];
+
+          if (layer.exposedAsInput) {
+            const inputHandle = getLayerInputHandleName(layer.name);
+            edgeIds.push(
+              ...edges
+                .filter(
+                  (edge) =>
+                    edge.target === props.id && edge.targetHandle === inputHandle
+                )
+                .map((edge) => edge.id)
+            );
+          }
+
+          if (layer.exposedAsOutput) {
+            const outputHandle = getLayerOutputHandleName(layer.name);
+            edgeIds.push(
+              ...edges
+                .filter(
+                  (edge) =>
+                    edge.source === props.id && edge.sourceHandle === outputHandle
+                )
+                .map((edge) => edge.id)
+            );
+          }
+
+          return edgeIds;
+        });
+
+      if (removedEdgeIds.length > 0) {
+        deleteEdges(removedEdgeIds);
+      }
 
       for (const nextLayer of doc.layers) {
         const previousLayer = previousLayersById.get(nextLayer.id);
@@ -1217,7 +1256,15 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         schedulePendingNodeSync();
       }
     },
-    [edges, props.id, schedulePendingNodeSync, sketchDoc, updateEdge, updateEdgeHandle]
+    [
+      deleteEdges,
+      edges,
+      props.id,
+      schedulePendingNodeSync,
+      sketchDoc,
+      updateEdge,
+      updateEdgeHandle
+    ]
   );
 
   // ─── Export callbacks for real-time output updates during editing ──

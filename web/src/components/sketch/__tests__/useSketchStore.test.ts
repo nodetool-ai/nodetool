@@ -165,7 +165,13 @@ describe("useSketchStore", () => {
                   ...layer,
                   locked: true,
                   exposedAsInput: true,
-                  exposedAsOutput: true
+                  exposedAsOutput: true,
+                  imageReference: {
+                    uri: "https://example.com/reference.png",
+                    naturalWidth: 128,
+                    naturalHeight: 128,
+                    objectFit: "fill"
+                  }
                 }
               : layer
           )
@@ -182,6 +188,7 @@ describe("useSketchStore", () => {
       expect(layers[1].locked).toBe(false);
       expect(layers[1].exposedAsInput).toBe(false);
       expect(layers[1].exposedAsOutput).toBe(false);
+      expect(layers[1].imageReference).toBeUndefined();
     });
 
     it("reorders layers", () => {
