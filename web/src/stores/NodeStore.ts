@@ -940,7 +940,17 @@ export const createNodeStore = (
 
             const unconnectedProperties = (node: Node<NodeData>) => {
               const properties: Record<string, any> = {};
+              const metadata = useMetadataStore.getState().metadata[node.type || ""];
+              const staticOutputNames = new Set(
+                (metadata?.outputs || []).map((output) => output.name)
+              );
+              const dynamicOutputNames = new Set(
+                Object.keys(node.data.dynamic_outputs || {})
+              );
               for (const name in node.data.properties) {
+                if (staticOutputNames.has(name) || dynamicOutputNames.has(name)) {
+                  continue;
+                }
                 if (!isHandleConnected(node.id, name)) {
                   properties[name] = node.data.properties[name];
                 }
