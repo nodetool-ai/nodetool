@@ -149,7 +149,8 @@ export class Asset extends DBModel {
     } = {},
   ): Promise<[Asset[], string, Array<Record<string, string>>]> {
     const { contentType, limit = 100 } = opts;
-    const sanitized = query.trim();
+    // Escape LIKE special characters to prevent pattern injection
+    const sanitized = query.trim().replace(/[%_\\]/g, "\\$&");
     const db = getDb();
 
     const conditions = [
@@ -157,7 +158,8 @@ export class Asset extends DBModel {
       like(assets.name, `%${sanitized}%`),
     ];
     if (contentType) {
-      conditions.push(like(assets.content_type, `${contentType}%`));
+      const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
+      conditions.push(like(assets.content_type, `${sanitizedType}%`));
     }
 
     const rows = db.select().from(assets)
