@@ -719,3 +719,6 @@ function shellSplit(s: string): string[] {
 
   return tokens;
 }
+
+/** @internal Exported for unit testing only. */
+export { shellSplit as _shellSplit };
