@@ -287,6 +287,25 @@ function parseLayerInputHandleName(
   return handleName.slice("layer_in_".length) || null;
 }
 
+function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
+  const activeLayer = doc.layers.find((layer) => layer.id === doc.activeLayerId);
+  if (activeLayer && !activeLayer.locked) {
+    return doc;
+  }
+
+  const fallbackActiveLayer = [...doc.layers]
+    .reverse()
+    .find((layer) => !layer.locked);
+  if (!fallbackActiveLayer || fallbackActiveLayer.id === doc.activeLayerId) {
+    return doc;
+  }
+
+  return {
+    ...doc,
+    activeLayerId: fallbackActiveLayer.id
+  };
+}
+
 const outputImageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -492,24 +511,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [edges, props.id]
   );
 
-  useEffect(() => {
-    console.log("[SketchNode] layer_in edges", {
-      nodeId: props.id,
-      incomingLayerInEdges: incomingLayerInEdges.map((edge) => ({
-        id: edge.id,
-        source: edge.source,
-        sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle
-      })),
-      exposedInputLayers: exposedInputLayers.map((layer) => ({
-        id: layer.id,
-        name: layer.name,
-        exposedAsInput: Boolean(layer.exposedAsInput),
-        locked: Boolean(layer.locked)
-      }))
-    });
-  }, [incomingLayerInEdges, exposedInputLayers, props.id]);
-
   const layerInputConnections = useMemo(() => {
     const connections: Record<
       string,
@@ -593,9 +594,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
   useEffect(() => {
     if (incomingLayerInEdges.length === 0) {
-      console.log("[SketchNode] reconcile skipped: no layer_in edges", {
-        nodeId: props.id
-      });
       return;
     }
 
@@ -603,24 +601,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     let nextDoc = baseDoc;
     let changed = false;
 
-    console.log("[SketchNode] reconcile start", {
-      nodeId: props.id,
-      handles: incomingLayerInEdges.map((edge) => edge.targetHandle),
-      currentLayers: baseDoc.layers.map((layer) => ({
-        id: layer.id,
-        name: layer.name,
-        exposedAsInput: Boolean(layer.exposedAsInput)
-      }))
-    });
-
     for (const edge of incomingLayerInEdges) {
       const layerName = parseLayerInputHandleName(edge.targetHandle);
       if (!layerName) {
-        console.log("[SketchNode] reconcile ignored edge with unparsable handle", {
-          nodeId: props.id,
-          edgeId: edge.id,
-          targetHandle: edge.targetHandle
-        });
         continue;
       }
 
@@ -628,11 +611,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       if (existingIdx >= 0) {
         const existing = nextDoc.layers[existingIdx];
         if (existing.exposedAsInput) {
-          console.log("[SketchNode] reconcile found existing exposed layer", {
-            nodeId: props.id,
-            layerId: existing.id,
-            layerName
-          });
           continue;
         }
 
@@ -650,11 +628,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           }
         };
         changed = true;
-        console.log("[SketchNode] reconcile promoted existing layer to exposed input", {
-          nodeId: props.id,
-          layerId: existing.id,
-          layerName
-        });
         continue;
       }
 
@@ -674,29 +647,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         }
       };
       changed = true;
-      console.log("[SketchNode] reconcile created missing layer", {
-        nodeId: props.id,
-        layerId: layer.id,
-        layerName
-      });
     }
 
     if (!changed) {
-      console.log("[SketchNode] reconcile no document changes", {
-        nodeId: props.id
-      });
       return;
     }
 
     documentRef.current = nextDoc;
-    console.log("[SketchNode] reconcile persisted document", {
-      nodeId: props.id,
-      layers: nextDoc.layers.map((layer) => ({
-        id: layer.id,
-        name: layer.name,
-        exposedAsInput: Boolean(layer.exposedAsInput)
-      }))
-    });
     updateNodeProperties(props.id, {
       sketch_data: serializeDocument(nextDoc),
       [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(nextDoc)
@@ -927,7 +884,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           updatedLayers = [inputLayer, ...doc.layers];
         }
 
-        const updatedDoc: SketchDocument = {
+        const updatedDoc = ensureEditableActiveLayer({
           ...doc,
           canvas: {
             ...doc.canvas,
@@ -936,7 +893,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           },
           layers: updatedLayers,
           metadata: { ...doc.metadata, updatedAt: new Date().toISOString() }
-        };
+        });
 
         documentRef.current = updatedDoc;
         const serialized = serializeDocument(updatedDoc);
@@ -986,7 +943,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                   })(),
                   ...currentDoc.layers
                 ];
-          storeState.setDocument({
+          storeState.setDocument(ensureEditableActiveLayer({
             ...currentDoc,
             canvas: {
               ...currentDoc.canvas,
@@ -998,7 +955,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               ...currentDoc.metadata,
               updatedAt: new Date().toISOString()
             }
-          });
+          }));
         } else {
           setEditorDocument(updatedDoc);
         }
@@ -1017,9 +974,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   // ─── Load per-layer images from `layer_in_<layerName>` handles ─────
   useEffect(() => {
     if (exposedInputLayers.length === 0) {
-      console.log("[SketchNode] layer hydration skipped: no exposed input layers", {
-        nodeId: props.id
-      });
       return;
     }
 
@@ -1039,49 +993,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           : undefined;
       const uri = extractImageUri(resolvedResult) ?? extractImageUri(fallbackValue);
       if (!uri) {
-        console.log("[SketchNode] layer hydration waiting for image result", {
-          nodeId: props.id,
-          layerId: layer.id,
-          layerName: layer.name,
-          sourceHandle: connection?.sourceHandle ?? null,
-          sourceResult: layerInputResults[layer.id],
-          resolvedResult,
-          fallbackValue
-        });
         continue;
       }
       if (layerInputUriLoadedRef.current[layer.id] === uri) {
-        console.log("[SketchNode] layer hydration skipped duplicate uri", {
-          nodeId: props.id,
-          layerId: layer.id,
-          layerName: layer.name,
-          uri
-        });
         continue;
       }
       layerInputUriLoadedRef.current[layer.id] = uri;
-      console.log("[SketchNode] layer hydration loading image", {
-        nodeId: props.id,
-        layerId: layer.id,
-        layerName: layer.name,
-        sourceHandle: connection?.sourceHandle ?? null,
-        uri
-      });
 
       loadImageWithDimensions(uri)
         .then(({ data: layerData, naturalWidth, naturalHeight }) => {
           const base = documentRef.current ?? sketchDoc;
           const layerIdx = base.layers.findIndex((l) => l.id === layer.id);
           if (layerIdx < 0) {
-            console.log("[SketchNode] layer hydration could not find layer by id", {
-              nodeId: props.id,
-              layerId: layer.id,
-              layerName: layer.name,
-              availableLayers: base.layers.map((candidate) => ({
-                id: candidate.id,
-                name: candidate.name
-              }))
-            });
             return;
           }
           const target = base.layers[layerIdx];
@@ -1111,19 +1034,12 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             contentBounds,
             locked: true
           };
-          const updatedDoc: SketchDocument = {
+          const updatedDoc = ensureEditableActiveLayer({
             ...base,
             layers: updatedLayers,
             metadata: { ...base.metadata, updatedAt: new Date().toISOString() }
-          };
-          documentRef.current = updatedDoc;
-          console.log("[SketchNode] layer hydration applied image to layer", {
-            nodeId: props.id,
-            layerId: layer.id,
-            layerName: layer.name,
-            naturalWidth,
-            naturalHeight
           });
+          documentRef.current = updatedDoc;
           updateNodeProperties(props.id, {
             sketch_data: serializeDocument(updatedDoc),
             [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
@@ -1147,14 +1063,14 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 contentBounds,
                 locked: true
               };
-              storeState.setDocument({
+              storeState.setDocument(ensureEditableActiveLayer({
                 ...currentDoc,
                 layers: storeLayers,
                 metadata: {
                   ...currentDoc.metadata,
                   updatedAt: new Date().toISOString()
                 }
-              });
+              }));
             }
           } else {
             setEditorDocument(updatedDoc);
