@@ -124,6 +124,17 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     setShowModal(false);
   }, []);
 
+  // Handle color cell click using data attribute to avoid creating new functions in map
+  const handleColorCellButtonClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const button = event.currentTarget;
+      const colorString = button.getAttribute('data-color');
+      const cellColor: string | null = colorString === 'null' ? null : colorString;
+      handleColorCellClick(cellColor);
+    },
+    [handleColorCellClick]
+  );
+
   return (
     <div className="color-picker" css={styles(theme)}>
       <Tooltip
@@ -163,6 +174,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
             <Button
               key={String(cellColor)}
               className="pick-color-button"
+              data-color={String(cellColor)}
               sx={{
                 borderRadius: "50%",
                 cursor: "pointer",
@@ -174,7 +186,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
-              onClick={() => handleColorCellClick(cellColor)}
+              onClick={handleColorCellButtonClick}
             />
           ))}
           {showCustom && (
