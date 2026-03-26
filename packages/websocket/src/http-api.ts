@@ -334,11 +334,23 @@ export async function handleWorkflowAutosave(
   lastAutosaveTime.set(workflowId, Date.now());
 
   // Create a version and prune old ones if WorkflowVersion table is available
-  const version: JsonObject | null = null;
+  let version: JsonObject | null = null;
   try {
+    const nextVer = await WorkflowVersion.nextVersion(workflowId);
+    const wv = new WorkflowVersion({
+      workflow_id: workflowId,
+      user_id: userId,
+      graph,
+      version: nextVer,
+      save_type: "autosave",
+      name: workflow.name,
+      description: workflow.description,
+    });
+    await wv.save();
+    version = { id: wv.id, version: wv.version, workflow_id: wv.workflow_id, save_type: wv.save_type, created_at: wv.created_at } as JsonObject;
     await WorkflowVersion.pruneOldVersions(workflowId, maxVersions);
   } catch {
-    // non-fatal
+    // non-fatal — version table may not exist
   }
 
   return jsonResponse({ version, message: "Autosaved successfully", skipped: false });
@@ -452,7 +464,7 @@ export async function handleWorkflowApp(
   }
   const baseUrl = options.baseUrl ?? "http://127.0.0.1:7777";
   const html = `<!DOCTYPE html><html><head><title>Workflow App</title>
-<script>window.WORKFLOW_ID="${workflowId}";window.API_URL="${baseUrl}";</script>
+<script>window.WORKFLOW_ID=${JSON.stringify(workflowId)};window.API_URL=${JSON.stringify(baseUrl)};</script>
 </head><body><div id="app"></div></body></html>`;
   return new Response(html, {
     status: 200,
