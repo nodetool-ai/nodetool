@@ -523,7 +523,7 @@ export class ChartGeneratorNode extends BaseNode {
             static readonly title = "Chart Generator";
             static readonly description = "LLM Agent to create Plotly Express charts based on natural language descriptions.\n    llm, data visualization, charts\n\n    Use cases:\n    - Generating interactive charts from natural language descriptions\n    - Creating data visualizations with minimal configuration\n    - Converting data analysis requirements into visual representations";
         static readonly metadataOutputTypes = {
-    output: "plotly_config"
+    output: "chart_config"
   };
           static readonly basicFields = [
   "prompt",
@@ -573,8 +573,49 @@ export class ChartGeneratorNode extends BaseNode {
     const y = rows.map((r, i) => r[yKey] ?? i);
     return {
       output: {
-        data: [{ type: "bar", x, y, name: prompt || "series" }],
-        layout: { title: prompt || "Generated Chart" },
+        type: "chart_config",
+        title: prompt || "Generated Chart",
+        x_label: xKey,
+        y_label: yKey,
+        legend: true,
+        data: {
+          type: "chart_data",
+          series: [
+            {
+              type: "bar",
+              x_column: xKey,
+              y_column: yKey,
+              label: prompt || "series",
+            },
+          ],
+          row: null,
+          col: null,
+          col_wrap: null,
+        },
+        height: null,
+        aspect: null,
+        x_lim: null,
+        y_lim: null,
+        x_scale: null,
+        y_scale: null,
+        legend_position: "auto",
+        palette: null,
+        hue_order: null,
+        hue_norm: null,
+        sizes: null,
+        size_order: null,
+        size_norm: null,
+        marginal_kws: null,
+        joint_kws: null,
+        diag_kind: null,
+        corner: false,
+        center: null,
+        vmin: null,
+        vmax: null,
+        cmap: null,
+        annot: false,
+        fmt: ".2g",
+        square: false,
       },
     };
   }
