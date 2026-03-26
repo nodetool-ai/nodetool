@@ -5,9 +5,9 @@
  * and S+drag brush-size changes.
  */
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { SketchTool } from "../types";
-import { mergeRgbHexIntoColor } from "../types";
+import { isShapeTool, mergeRgbHexIntoColor } from "../types";
 import { useSketchStore } from "../state";
 
 export interface UseColorActionsParams {
@@ -19,6 +19,31 @@ export interface UseColorActionsParams {
   setFillSettings: (settings: { color?: string }) => void;
   setBlurSettings: (settings: { size?: number }) => void;
   setCloneStampSettings: (settings: { size?: number }) => void;
+  setShapeSettings: (settings: { strokeColor?: string }) => void;
+  setGradientSettings: (settings: { startColor?: string }) => void;
+}
+
+/** Sync the foreground color into the given tool's color setting. */
+function syncFgToTool(
+  tool: SketchTool,
+  color: string,
+  setBrushSettings: (s: { color?: string }) => void,
+  setPencilSettings: (s: { color?: string }) => void,
+  setFillSettings: (s: { color?: string }) => void,
+  setShapeSettings: (s: { strokeColor?: string }) => void,
+  setGradientSettings: (s: { startColor?: string }) => void
+): void {
+  if (tool === "brush") {
+    setBrushSettings({ color });
+  } else if (tool === "pencil") {
+    setPencilSettings({ color });
+  } else if (tool === "fill") {
+    setFillSettings({ color });
+  } else if (isShapeTool(tool)) {
+    setShapeSettings({ strokeColor: color });
+  } else if (tool === "gradient") {
+    setGradientSettings({ startColor: color });
+  }
 }
 
 export function useColorActions({
@@ -29,7 +54,9 @@ export function useColorActions({
   setEraserSettings,
   setFillSettings,
   setBlurSettings,
-  setCloneStampSettings
+  setCloneStampSettings,
+  setShapeSettings,
+  setGradientSettings
 }: UseColorActionsParams) {
   // ─── Eyedropper event (tool = eyedropper) ────────────────────────
   useEffect(() => {
@@ -39,12 +66,54 @@ export function useColorActions({
         const fg = useSketchStore.getState().foregroundColor;
         const merged = mergeRgbHexIntoColor(detail.color, fg);
         setForegroundColor(merged);
-        setBrushSettings({ color: merged });
+        // Sync to whichever tool is active (eyedropper keeps previous tool context)
+        const tool = useSketchStore.getState().activeTool;
+        syncFgToTool(
+          tool,
+          merged,
+          setBrushSettings,
+          setPencilSettings,
+          setFillSettings,
+          setShapeSettings,
+          setGradientSettings
+        );
       }
     };
     window.addEventListener("sketch-eyedropper", handler);
     return () => window.removeEventListener("sketch-eyedropper", handler);
-  }, [setBrushSettings, setForegroundColor]);
+  }, [
+    setBrushSettings,
+    setPencilSettings,
+    setFillSettings,
+    setShapeSettings,
+    setGradientSettings,
+    setForegroundColor
+  ]);
+
+  // ─── Sync foreground color on tool change ───────────────────────
+  const prevToolRef = useRef(activeTool);
+  useEffect(() => {
+    if (prevToolRef.current !== activeTool) {
+      prevToolRef.current = activeTool;
+      const fg = useSketchStore.getState().foregroundColor;
+      syncFgToTool(
+        activeTool,
+        fg,
+        setBrushSettings,
+        setPencilSettings,
+        setFillSettings,
+        setShapeSettings,
+        setGradientSettings
+      );
+    }
+  }, [
+    activeTool,
+    setBrushSettings,
+    setPencilSettings,
+    setFillSettings,
+    setShapeSettings,
+    setGradientSettings
+  ]);
 
   // ─── Alt+click eyedropper pick (stays on current tool) ──────────
   const handleEyedropperPick = useCallback(
@@ -52,16 +121,25 @@ export function useColorActions({
       const fg = useSketchStore.getState().foregroundColor;
       const merged = mergeRgbHexIntoColor(color, fg);
       setForegroundColor(merged);
-      const tool = activeTool;
-      if (tool === "brush") {
-        setBrushSettings({ color: merged });
-      } else if (tool === "pencil") {
-        setPencilSettings({ color: merged });
-      } else if (tool === "fill") {
-        setFillSettings({ color: merged });
-      }
+      syncFgToTool(
+        activeTool,
+        merged,
+        setBrushSettings,
+        setPencilSettings,
+        setFillSettings,
+        setShapeSettings,
+        setGradientSettings
+      );
     },
-    [activeTool, setForegroundColor, setBrushSettings, setPencilSettings, setFillSettings]
+    [
+      activeTool,
+      setForegroundColor,
+      setBrushSettings,
+      setPencilSettings,
+      setFillSettings,
+      setShapeSettings,
+      setGradientSettings
+    ]
   );
 
   // ─── S + drag brush size change ────────────────────────────────

@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import {
+  isTransformOnlyTool,
   layerAllowsTransformWhilePixelLocked,
   type LayerContentBounds,
   type Point,
@@ -195,13 +196,15 @@ export function useCanvasActions({
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
     const activeLayerId = document.activeLayerId;
-    const isTransformOnlyGesture = activeTool === "move";
+    const isTransformOnlyGesture = isTransformOnlyTool(activeTool);
     const activeLayerSnapshot =
       !isTransformOnlyGesture && activeLayerId && canvasRef.current
         ? canvasRef.current.snapshotLayerCanvas(activeLayerId)
         : null;
 
-    const actionLabel = activeTool === "move" ? "move layer" : `${activeTool} stroke`;
+    const actionLabel = isTransformOnlyGesture
+      ? "move layer"
+      : `${activeTool} stroke`;
     const layerSnapshots = activeLayerId
       ? { [activeLayerId]: activeLayerSnapshot }
       : undefined;
@@ -530,6 +533,149 @@ export function useCanvasActions({
     setContextMenu(null);
   }, []);
 
+  // ─── Clipboard (cut / copy / paste) ─────────────────────────────
+  const clipboardCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  /** Copy the selected region (or full layer) to the internal clipboard. */
+  const handleCopy = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+    const layerId = document.activeLayerId;
+    if (!layerId) {
+      return;
+    }
+    const snapshot = canvasRef.current.snapshotLayerCanvas(layerId);
+    if (!snapshot) {
+      return;
+    }
+
+    const sel = useSketchStore.getState().selection;
+    const tmp = window.document.createElement("canvas");
+
+    if (sel && sel.width > 0 && sel.height > 0) {
+      tmp.width = sel.width;
+      tmp.height = sel.height;
+      const ctx = tmp.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(
+          snapshot,
+          sel.x,
+          sel.y,
+          sel.width,
+          sel.height,
+          0,
+          0,
+          sel.width,
+          sel.height
+        );
+      }
+    } else {
+      tmp.width = snapshot.width;
+      tmp.height = snapshot.height;
+      const ctx = tmp.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(snapshot, 0, 0);
+      }
+    }
+
+    clipboardCanvasRef.current = tmp;
+
+    // Also write to system clipboard for interop
+    try {
+      tmp.toBlob((blob) => {
+        if (blob) {
+          const item = new ClipboardItem({ "image/png": blob });
+          navigator.clipboard.write([item]).catch((err) => {
+            // May fail due to missing clipboard-write permission, HTTPS
+            // requirement, or browser security policies.
+            console.warn("Clipboard write failed (internal copy still works):", err);
+          });
+        }
+      }, "image/png");
+    } catch {
+      // toBlob / ClipboardItem may not be available in all environments
+    }
+  }, [canvasRef, document.activeLayerId]);
+
+  /** Cut = copy + clear selection region. */
+  const handleCut = useCallback(() => {
+    handleCopy();
+    handleClearLayer();
+  }, [handleCopy, handleClearLayer]);
+
+  /** Paste from internal clipboard or system clipboard. */
+  const handlePaste = useCallback(async () => {
+    if (!canvasRef.current) {
+      return;
+    }
+    const layerId = document.activeLayerId;
+    if (!layerId) {
+      return;
+    }
+
+    let imageToPaste: HTMLCanvasElement | null = null;
+
+    // Try system clipboard first (for images copied from outside apps)
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find((t) => t.startsWith("image/"));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const bitmap = await createImageBitmap(blob);
+          const tmp = window.document.createElement("canvas");
+          tmp.width = bitmap.width;
+          tmp.height = bitmap.height;
+          const ctx = tmp.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(bitmap, 0, 0);
+          }
+          bitmap.close();
+          imageToPaste = tmp;
+          break;
+        }
+      }
+    } catch {
+      // System clipboard read may fail; fall back to internal clipboard.
+    }
+
+    if (!imageToPaste) {
+      imageToPaste = clipboardCanvasRef.current;
+    }
+    if (!imageToPaste) {
+      return;
+    }
+
+    pushHistory("paste");
+
+    const pasteSnapshot = canvasRef.current.snapshotLayerCanvas(layerId);
+    if (!pasteSnapshot) {
+      return;
+    }
+    const ctx = pasteSnapshot.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+
+    const sel = useSketchStore.getState().selection;
+    if (sel && sel.width > 0 && sel.height > 0) {
+      // Paste into selection region
+      ctx.drawImage(
+        imageToPaste,
+        0, 0, imageToPaste.width, imageToPaste.height,
+        sel.x, sel.y, sel.width, sel.height
+      );
+    } else {
+      // Paste at origin
+      ctx.drawImage(imageToPaste, 0, 0);
+    }
+
+    canvasRef.current.restoreLayerCanvas(layerId, pasteSnapshot);
+    syncPixelLayerFromCanvas(layerId);
+    canvasRef.current.redrawDisplay();
+  }, [canvasRef, document.activeLayerId, pushHistory, syncPixelLayerFromCanvas]);
+
   // ─── Adjustment preview (auto-apply with snapshot) ──────────────
   const adjustmentBaseRef = useRef<HTMLCanvasElement | null>(null);
   const [adjBrightness, setAdjBrightness] = useState(0);
@@ -548,15 +694,15 @@ export function useCanvasActions({
       }
       const allZero = brightness === 0 && contrast === 0 && saturation === 0;
       if (allZero) {
+        // Restore original pixels when sliders return to zero (preview-only, no history)
         if (adjustmentBaseRef.current !== null) {
           canvasRef.current.restoreLayerCanvas(layerId, adjustmentBaseRef.current);
           syncPixelLayerFromCanvas(layerId);
-          adjustmentBaseRef.current = null;
         }
         return;
       }
+      // Take a snapshot before the first non-zero preview of this session
       if (adjustmentBaseRef.current === null) {
-        pushHistory("adjustments");
         adjustmentBaseRef.current = canvasRef.current.snapshotLayerCanvas(layerId);
       }
       if (adjustmentBaseRef.current) {
@@ -566,14 +712,25 @@ export function useCanvasActions({
       syncPixelLayerFromCanvas(layerId);
     },
     [
-      pushHistory,
       document.activeLayerId,
       syncPixelLayerFromCanvas,
       canvasRef
     ]
   );
 
-  const handleResetAdjustments = useCallback(() => {
+  /** Commit the current adjustment preview — exactly one undo step. */
+  const handleApplyAdjustments = useCallback(() => {
+    if (adjustmentBaseRef.current !== null) {
+      pushHistory("adjustments");
+    }
+    adjustmentBaseRef.current = null;
+    setAdjBrightness(0);
+    setAdjContrast(0);
+    setAdjSaturation(0);
+  }, [pushHistory]);
+
+  /** Cancel adjustment preview — restore the original pixels, no undo step. */
+  const handleCancelAdjustments = useCallback(() => {
     if (!canvasRef.current) {
       return;
     }
@@ -627,12 +784,16 @@ export function useCanvasActions({
     contextMenu,
     handleContextMenu,
     handleContextMenuClose,
+    handleCopy,
+    handleCut,
+    handlePaste,
     adjBrightness,
     adjContrast,
     adjSaturation,
     setAdjBrightness,
     setAdjContrast,
     setAdjSaturation,
-    handleResetAdjustments
+    handleApplyAdjustments,
+    handleCancelAdjustments
   };
 }

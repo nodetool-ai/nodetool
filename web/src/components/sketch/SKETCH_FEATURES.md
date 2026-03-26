@@ -17,30 +17,30 @@
 - [x] fix editor bootstrap so the canvas is visible immediately on open instead of only appearing after the first draw/erase interaction
 - [x] fix moving the active layer with arrow keys (incl. Shift+10px nudge; transform deltas covered by `useSketchStore` tests)
 - [x] fix exposed layers being treated as non-image datatypes where image-layer behavior is expected
-- [ ] fix: make input images appear in the editor as real reference/image-backed layers with source URI, crop/fit metadata, transform behavior, and explicit editing rules
+- [x] fix: make input images appear in the editor as real reference/image-backed layers with source URI, crop/fit metadata, transform behavior, and explicit editing rules
 - [x] improve node/editor layout so input handle titles are not covered by the preview and outputs sit below the preview cleanly
 - [x] widen and clean up the right panel: spacing, icon order, icon position, and expose-button visibility
 - [x] add focused regression coverage for transformed layers: move, nudge, paint-after-transform, undo/redo, serialize, reload, and repaint
-- [ ] define and enforce transform-only edit semantics explicitly across store, canvas actions, and history
+- [x] define and enforce transform-only edit semantics explicitly across store, canvas actions, and history
 - [x] transform-only actions: move, nudge, and future live transform preview/commit update `layer.transform` only, never rewrite `layer.data`, never change `contentBounds`, only invalidate compositing/overlay, and create one history transaction on commit/end
-- [ ] pixel-edit actions: brush, eraser, fill, gradient, blur, clone, clear, paste, and trim may change `layer.data` and raster bounds, and must use pixel/history sync paths rather than transform-only paths
+- [x] pixel-edit actions: brush, eraser, fill, gradient, blur, clone, clear, paste, and trim may change `layer.data` and raster bounds, and must use pixel/history sync paths rather than transform-only paths
 - [x] raster-bounds rule: `contentBounds` tracks stored raster extent, not visual placement after transform; translate/nudge/preview must not mutate it
 - [x] reconciliation rule: ordinary paint-after-move must stay transform-aware and must not reconcile to document space; reconciliation is allowed only for explicit destructive bake operations such as merge/flatten/rasterize/export-bake or an explicit "reconcile layer" command
-- [ ] history/invalidation rule: hover, drag preview, transient transform updates, and adjustment preview only invalidate; pointer-up, apply, confirm, or destructive bake creates exactly one undo step
-- [ ] adjustment tool semantics: current destructive adjustments should use preview + confirm/cancel, with no history spam while sliders move and exactly one undo step when confirmed
-- [ ] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
-- [ ] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
-- [ ] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. make sure they show up as layers when opening the editor with image data from inputs.
+- [x] history/invalidation rule: hover, drag preview, transient transform updates, and adjustment preview only invalidate; pointer-up, apply, confirm, or destructive bake creates exactly one undo step
+- [x] adjustment tool semantics: current destructive adjustments should use preview + confirm/cancel, with no history spam while sliders move and exactly one undo step when confirmed
+- [x] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
+- [x] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
+- [x] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. make sure they show up as layers when opening the editor with image data from inputs.
 - [ ] add the next transform workflow: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
 
 ## PHASE 2 - FIXES
 
-- [ ] remove white border around canvas, seems not to come from css?
-- [ ] make alpha texture resolution independent
-- [ ] fix history redo, currently not working. undo does work.
-- [ ] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
+- [x] remove white border around canvas, seems not to come from css?
+- [x] make alpha texture resolution independent
+- [x] fix history redo, currently not working. undo does work.
+- [x] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
 - [ ] improve round cursor/tool preview accuracy, currently roughly 2 times too large
-- [ ] keep drawing straight line with shift as one object / stroke until shift is released. currently overlapping lines multiply stroke and create visible seams at crossings and start dot.
+- [x] keep drawing straight line with shift as one object / stroke until shift is released. currently overlapping lines multiply stroke and create visible seams at crossings and start dot.
 
 ## 2.1 - FEATURES
 

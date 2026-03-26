@@ -38,6 +38,9 @@ export interface UseEditorKeyboardShortcutsParams {
   handleExportPng: () => void;
   handleClearLayer: () => void;
   handleFillLayerWithColor: (color: string) => void;
+  handleCopy: () => void;
+  handleCut: () => void;
+  handlePaste: () => Promise<void>;
   handleNudgeLayer: (
     dx: number,
     dy: number,
@@ -216,6 +219,21 @@ export function useEditorKeyboardShortcuts(
           paramsRef.current.handleFillLayerWithColor(
             useSketchStore.getState().backgroundColor
           );
+        }
+        // Ctrl+C → copy
+        if (e.key === "c" && !e.shiftKey) {
+          e.preventDefault();
+          paramsRef.current.handleCopy();
+        }
+        // Ctrl+X → cut
+        if (e.key === "x" && !e.shiftKey) {
+          e.preventDefault();
+          paramsRef.current.handleCut();
+        }
+        // Ctrl+V → paste
+        if (e.key === "v" && !e.shiftKey) {
+          e.preventDefault();
+          paramsRef.current.handlePaste();
         }
       } else if (e.altKey) {
         // Alt+Backspace → fill with foreground color (Photoshop convention)

@@ -6,6 +6,7 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import { floodFill as floodFillUtil } from "../drawingUtils";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
 
 export class FillTool implements ToolHandler {
   readonly toolId = "fill" as const;
@@ -17,9 +18,12 @@ export class FillTool implements ToolHandler {
       return false;
     }
 
-    const pt = event.point;
+    // Locked layers reject pixel edits.
+    if (activeLayer.locked) {
+      return false;
+    }
 
-    // Only fill if click is within selection (when one exists)
+    const pt = event.point;
     if (selection && selection.width > 0 && selection.height > 0) {
       if (
         pt.x < selection.x ||
@@ -39,10 +43,17 @@ export class FillTool implements ToolHandler {
 
     ctx.onStrokeStart();
 
+    // Map the document-space click into the layer's backing raster space
+    const mapper = new CoordinateMapper({
+      layerTransform: activeLayer.transform,
+      rasterBounds: activeLayer.contentBounds
+    });
+    const localPt = mapper.docToLayer(pt);
+
     // Apply selection clip for fill
-    const offset = { x: 0, y: 0 };
+    const offset = mapper.offset;
     const clipped = ctx.clipSelectionForOffset(layerCtx, offset);
-    floodFillUtil(layerCtx, pt.x, pt.y, doc.toolSettings.fill);
+    floodFillUtil(layerCtx, localPt.x, localPt.y, doc.toolSettings.fill);
     if (clipped) {
       layerCtx.restore();
     }

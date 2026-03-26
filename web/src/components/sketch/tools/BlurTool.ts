@@ -13,6 +13,7 @@ import {
   drawBlurStroke as drawBlurStrokeUtil
 } from "../drawingUtils";
 import type { BlurTempCanvases, DirtyRectTracker } from "../drawingUtils";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
 
 export class BlurTool implements ToolHandler {
   readonly toolId = "blur" as const;
@@ -21,8 +22,10 @@ export class BlurTool implements ToolHandler {
   private lastPoint: Point | null = null;
   private currentPressure = 0.5;
   private paintStrokeHasMoved = false;
-  private paintLayerOffset: Point = { x: 0, y: 0 };
   private lastStrokeEnd: Point | null = null;
+
+  // Transform-aware coordinate mapper
+  private mapper: CoordinateMapper | null = null;
 
   // Alpha lock
   private alphaSnapshot: ImageData | null = null;
@@ -55,17 +58,26 @@ export class BlurTool implements ToolHandler {
       return false;
     }
 
+    // Locked layers reject pixel edits.
+    if (activeLayer.locked) {
+      return false;
+    }
+
     const pt = event.point;
     this.lastPoint = pt;
     this.currentPressure = event.pressure || 0.5;
     this.paintStrokeHasMoved = false;
-    this.paintLayerOffset = { x: 0, y: 0 };
     this.strokeDirtyRect = { current: null };
+
+    // Build coordinate mapper for this layer
+    this.mapper = new CoordinateMapper({
+      layerTransform: activeLayer.transform,
+      rasterBounds: activeLayer.contentBounds
+    });
 
     ctx.onStrokeStart();
 
-    const currentOffset = this.paintLayerOffset;
-    const localPt = pt;
+    const localPt = this.mapper.docToLayer(pt);
 
     // Alpha lock snapshot
     if (activeLayer.alphaLock) {
@@ -99,14 +111,12 @@ export class BlurTool implements ToolHandler {
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const paintCtx = layerCanvas.getContext("2d");
     if (paintCtx) {
-      const hasSelClip = ctx.clipSelectionForOffset(paintCtx, currentOffset);
+      const offset = this.mapper.offset;
+      const hasSelClip = ctx.clipSelectionForOffset(paintCtx, offset);
 
       if (ctx.shiftHeldRef.current && this.lastStrokeEnd) {
         // Shift+click: straight line from last stroke end
-        const from = {
-          x: this.lastStrokeEnd.x - currentOffset.x,
-          y: this.lastStrokeEnd.y - currentOffset.y
-        };
+        const from = this.mapper.docToLayer(this.lastStrokeEnd);
         this.drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
       } else {
         // Initial dab
@@ -127,7 +137,7 @@ export class BlurTool implements ToolHandler {
     _event: ToolPointerEvent,
     coalescedPoints: ToolPointerEvent[]
   ): void {
-    if (!this.lastPoint) {
+    if (!this.lastPoint || !this.mapper) {
       return;
     }
     const { doc } = ctx;
@@ -136,14 +146,14 @@ export class BlurTool implements ToolHandler {
       return;
     }
 
-    const currentOffset = this.paintLayerOffset;
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const paintCtx = layerCanvas.getContext("2d");
     if (!paintCtx) {
       return;
     }
 
-    const hasSelectionClip = ctx.clipSelectionForOffset(paintCtx, currentOffset);
+    const offset = this.mapper.offset;
+    const hasSelectionClip = ctx.clipSelectionForOffset(paintCtx, offset);
 
     for (const eventPoint of coalescedPoints) {
       const pt = eventPoint.point;
@@ -154,18 +164,10 @@ export class BlurTool implements ToolHandler {
       ) {
         this.paintStrokeHasMoved = true;
       }
-      const localPt = {
-        x: pt.x - currentOffset.x,
-        y: pt.y - currentOffset.y
-      };
+      const localPt = this.mapper.docToLayer(pt);
       this.currentPressure = eventPoint.pressure;
 
-      const from = this.lastPoint
-        ? {
-            x: this.lastPoint.x - currentOffset.x,
-            y: this.lastPoint.y - currentOffset.y
-          }
-        : localPt;
+      const from = this.mapper.docToLayer(this.lastPoint);
       this.drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);
       this.lastPoint = pt;
     }
@@ -174,15 +176,11 @@ export class BlurTool implements ToolHandler {
       paintCtx.restore();
     }
 
-    // Dirty-rect compositing
+    // Dirty-rect compositing (map from layer-space back to doc-space)
     const dirty = this.strokeDirtyRect.current;
     if (dirty && dirty.minX < dirty.maxX && dirty.minY < dirty.maxY) {
-      ctx.redrawDirty(
-        dirty.minX + currentOffset.x,
-        dirty.minY + currentOffset.y,
-        dirty.maxX - dirty.minX,
-        dirty.maxY - dirty.minY
-      );
+      const docDirty = this.mapper.dirtyToDoc(dirty);
+      ctx.redrawDirty(docDirty.x, docDirty.y, docDirty.w, docDirty.h);
     } else {
       ctx.requestRedraw();
     }
@@ -200,7 +198,7 @@ export class BlurTool implements ToolHandler {
 
     this.lastPoint = null;
     this.paintStrokeHasMoved = false;
-    this.paintLayerOffset = { x: 0, y: 0 };
+    this.mapper = null;
 
     // Alpha lock: restore original alpha channel
     if (activeLayer?.alphaLock && this.alphaSnapshot) {

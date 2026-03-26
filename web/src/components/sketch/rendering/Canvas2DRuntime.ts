@@ -94,6 +94,12 @@ export class Canvas2DRuntime implements SketchRuntime {
   private strokeTempCanvas: HTMLCanvasElement | null = null;
 
   /**
+   * Current zoom level, updated by the compositing hook so that
+   * the checkerboard pattern can maintain a constant screen-pixel size.
+   */
+  zoom = 1;
+
+  /**
    * Generation counter per layer for setLayerData. Each call increments the
    * generation; img.onload checks it and bails out if superseded, preventing
    * a stale (e.g. pre-stroke) image from overwriting live-painted pixels.
@@ -170,10 +176,10 @@ export class Canvas2DRuntime implements SketchRuntime {
       ctx.rect(rx, ry, rw, rh);
       ctx.clip();
       ctx.clearRect(rx, ry, rw, rh);
-      drawCheckerboard(ctx, fullW, fullH);
+      drawCheckerboard(ctx, fullW, fullH, this.zoom);
     } else {
       ctx.clearRect(0, 0, fullW, fullH);
-      drawCheckerboard(ctx, fullW, fullH);
+      drawCheckerboard(ctx, fullW, fullH, this.zoom);
     }
 
     for (const layer of doc.layers) {

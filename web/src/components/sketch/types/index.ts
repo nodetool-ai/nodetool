@@ -587,7 +587,51 @@ export function isShapeTool(tool: SketchTool): boolean {
 
 /** Check if a tool is a painting tool (supports Alt+click eyedropper) */
 export function isPaintingTool(tool: SketchTool): boolean {
-  return tool === "brush" || tool === "pencil" || tool === "eraser" || tool === "fill" || tool === "clone_stamp";
+  return tool === "brush" || tool === "pencil" || tool === "eraser" || tool === "fill" || tool === "clone_stamp" || tool === "blur";
+}
+
+// ─── Edit Action Kind ─────────────────────────────────────────────────────
+/**
+ * Classifies how a tool gesture interacts with document state:
+ * - `"transform-only"`: modifies layer.transform only; never rewrites layer.data or contentBounds.
+ * - `"pixel-edit"`: may change layer.data and raster bounds; uses full history sync.
+ * - `"none"`: read-only tool that does not modify the document (e.g. eyedropper).
+ */
+export type EditActionKind = "transform-only" | "pixel-edit" | "none";
+
+/** Map every tool to its edit-action kind. */
+export function editActionKindForTool(tool: SketchTool): EditActionKind {
+  switch (tool) {
+    case "move":
+      return "transform-only";
+    case "eyedropper":
+    case "select":
+    case "crop":
+      return "none";
+    // pixel-edit tools
+    case "brush":
+    case "pencil":
+    case "eraser":
+    case "fill":
+    case "blur":
+    case "clone_stamp":
+    case "shape":
+    case "gradient":
+    case "adjust":
+      return "pixel-edit";
+    default:
+      return "none";
+  }
+}
+
+/** True when the tool only modifies layer.transform, never pixel data. */
+export function isTransformOnlyTool(tool: SketchTool): boolean {
+  return editActionKindForTool(tool) === "transform-only";
+}
+
+/** True when the tool may modify layer.data / raster bounds. */
+export function isPixelEditTool(tool: SketchTool): boolean {
+  return editActionKindForTool(tool) === "pixel-edit";
 }
 
 export const MAX_HISTORY_SIZE = 30;

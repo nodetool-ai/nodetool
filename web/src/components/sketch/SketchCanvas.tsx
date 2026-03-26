@@ -45,8 +45,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: "50%",
       left: "50%",
-      imageRendering: "pixelated",
-      border: "1px solid var(--palette-grey-600)"
+      imageRendering: "pixelated"
     },
     "& .cursor-overlay": {
       position: "absolute",
@@ -239,6 +238,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       requestDirtyRedraw
     } = useCompositing({
       doc,
+      zoom,
       isolatedLayerId,
       activeStrokeRef,
       transformPreviewByLayerId
