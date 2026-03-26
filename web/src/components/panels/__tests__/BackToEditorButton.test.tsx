@@ -240,7 +240,7 @@ describe("BackToEditorButton", () => {
         wrapper
       });
 
-      const initialButton = screen.getByRole("button");
+      // remove initialButton
 
       // Re-render with same props - need to use the wrapper correctly
       rtlRerender(<BackToEditorButton title="Editor" />);
