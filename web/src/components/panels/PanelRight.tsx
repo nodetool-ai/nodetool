@@ -255,10 +255,11 @@ const PanelRight: React.FC = () => {
   );
 
   // Get the current workflow reactively for the WorkflowForm
-  // Note: This is only used when activeNodeStore exists and workflow panel is active
-  const currentWorkflow = activeNodeStore
-    ? activeNodeStore((state) => state.getWorkflow())
-    : null;
+  const currentWorkflow = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ?? null
+      : null
+  );
   const {
     openWorkflows,
     currentWorkflowId,
