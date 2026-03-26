@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,8 +26,19 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+
+  const filteredWorkflows = useMemo(() => {
+    if (!searchQuery.trim()) return workflows;
+    const query = searchQuery.toLowerCase();
+    return workflows.filter(
+      (w) =>
+        w.name.toLowerCase().includes(query) ||
+        (w.description && w.description.toLowerCase().includes(query))
+    );
+  }, [workflows, searchQuery]);
 
   const loadWorkflows = useCallback(async () => {
     try {
@@ -80,7 +92,13 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
     <TouchableOpacity
       style={[styles.workflowCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
       onPress={() => handleWorkflowPress(item)}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${item.name}${item.description ? `: ${item.description}` : ''}`}
+      activeOpacity={0.7}
     >
+      <View style={[styles.workflowIcon, { backgroundColor: colors.primaryMuted }]}>
+        <Ionicons name="cube-outline" size={22} color={colors.primary} />
+      </View>
       <View style={styles.workflowContent}>
         <Text style={[styles.workflowName, { color: colors.text }]}>{item.name}</Text>
         {item.description && (
@@ -89,7 +107,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
           </Text>
         )}
       </View>
-      <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
+      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -117,12 +135,16 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => navigation.navigate('Chat')}
+            accessibilityRole="button"
+            accessibilityLabel="Open chat"
           >
             <Ionicons name="chatbubble-ellipses-outline" size={26} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => navigation.navigate('Settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
           >
             <Ionicons name="settings-outline" size={26} color={colors.text} />
           </TouchableOpacity>
@@ -139,25 +161,62 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('Settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Go to Settings"
           >
             <Text style={styles.buttonText}>Go to Settings</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <FlatList
-          data={workflows}
-          renderItem={renderWorkflowItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.text}
-              colors={[colors.primary]}
-            />
-          }
-        />
+        <>
+          {workflows.length > 3 && (
+            <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+              <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+                <TextInput
+                  style={[styles.searchInput, { color: colors.text }]}
+                  placeholder="Search mini apps..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  clearButtonMode="while-editing"
+                  accessibilityLabel="Search mini apps"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Clear search">
+                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+          <FlatList
+            data={filteredWorkflows}
+            renderItem={renderWorkflowItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.text}
+                colors={[colors.primary]}
+              />
+            }
+            ListEmptyComponent={
+              searchQuery.length > 0 ? (
+                <View style={styles.noResultsContainer}>
+                  <Ionicons name="search-outline" size={48} color={colors.border} />
+                  <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
+                    No results for "{searchQuery}"
+                  </Text>
+                </View>
+              ) : null
+            }
+          />
+        </>
       )}
     </View>
   );
@@ -204,11 +263,19 @@ const styles = StyleSheet.create({
   },
   workflowCard: {
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 14,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
+  },
+  workflowIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   workflowContent: {
     flex: 1,
@@ -244,5 +311,34 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 0,
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+    gap: 12,
+  },
+  noResultsText: {
+    fontSize: 16,
   },
 });

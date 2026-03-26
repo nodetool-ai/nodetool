@@ -59,8 +59,8 @@ describe('ChatView', () => {
     it('renders welcome message when no messages', () => {
       render(<ChatView {...defaultProps} />);
       
-      expect(screen.getByText('Welcome to Chat')).toBeTruthy();
-      expect(screen.getByText('Start a conversation by typing a message below')).toBeTruthy();
+      expect(screen.getByText('Start a Conversation')).toBeTruthy();
+      expect(screen.getByText('Ask questions, get help with tasks, or explore ideas with AI.')).toBeTruthy();
     });
 
     it('does not render message list when empty', () => {
@@ -111,7 +111,7 @@ describe('ChatView', () => {
       
       render(<ChatView {...defaultProps} messages={messages} />);
       
-      expect(screen.queryByText('Welcome to Chat')).toBeNull();
+      expect(screen.queryByText('Start a Conversation')).toBeNull();
     });
   });
 
