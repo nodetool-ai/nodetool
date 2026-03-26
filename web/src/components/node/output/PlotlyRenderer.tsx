@@ -2,7 +2,7 @@
 import React, { Suspense, lazy, memo } from "react";
 import { Box, CircularProgress } from "@mui/material";
 import type { PlotlyConfig } from "../../../stores/ApiTypes";
-import type { Data, Layout, Config, Frame } from "plotly.js";
+
 
 const PlotlyPlot = lazy(() => 
   import("react-plotly.js").then(module => ({ default: module.default }))
