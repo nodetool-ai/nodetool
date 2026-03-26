@@ -43,7 +43,6 @@ import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import StepResultDisplay from "../../node/StepResultDisplay";
 import AgentExecutionView from "./AgentExecutionView";
-import { formatToolName } from "../../../utils/formatUtils";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -89,7 +88,7 @@ const ToolCallCard: React.FC<{
     <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
       <Box className="tool-call-header">
         <Typography component="span" variant="caption" className="tool-call-name">
-          {formatToolName(tc.name)}
+          {tc.name}
         </Typography>
         {(isRunning || tc.message) && (
           <Typography component="span" variant="caption" className="tool-message">
@@ -240,7 +239,7 @@ export const MessageView: React.FC<
             </div>
           );
         } else if (executionEventType === "log_update") {
-          const logContent = executionContent as ExecutionEventContent;
+          const logContent = executionContent as ExecutionEventContent | null;
           return (
             <div className="chat-message-list-item execution-event">
               <Box sx={{
@@ -249,10 +248,10 @@ export const MessageView: React.FC<
                 borderRadius: "8px",
                 backgroundColor: "rgba(30, 35, 40, 0.4)",
                 border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: logContent.severity === "error" ? "error.light" : logContent.severity === "warning" ? "warning.light" : "grey.300",
+                color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
                 mb: 1
               }}>
-                {logContent.content}
+                {logContent?.content}
               </Box>
             </div>
           );
@@ -286,7 +285,7 @@ export const MessageView: React.FC<
           </div>
         );
       } else if (executionEventType === "log_update") {
-        const logContent = executionContent as ExecutionEventContent;
+        const logContent = executionContent as ExecutionEventContent | null;
         return (
           <div className="chat-message-list-item execution-event">
             <Box sx={{
@@ -295,10 +294,10 @@ export const MessageView: React.FC<
               borderRadius: "8px",
               backgroundColor: "rgba(30, 35, 40, 0.4)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
-              color: logContent.severity === "error" ? "error.light" : logContent.severity === "warning" ? "warning.light" : "grey.300",
+              color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
               mb: 1
             }}>
-              {logContent.content}
+              {logContent?.content}
             </Box>
           </div>
         );

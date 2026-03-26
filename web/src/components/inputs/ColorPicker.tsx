@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -99,6 +99,11 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     [onColorChange, handleClose]
   );
 
+  // Memoize color button click handlers to prevent unnecessary re-renders
+  const colorButtonClickHandlers = useMemo(() => {
+    return colorPickerColors.map((cellColor) => () => handleColorCellClick(cellColor));
+  }, [handleColorCellClick]);
+
   const handleOpenModal = useCallback(() => {
     currentColorRef.current = color || "#ffffff";
     setShowModal(true);
@@ -159,9 +164,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         }}
       >
         <div css={colorMatrixStyle(theme)}>
-          {colorPickerColors.map((cellColor, index) => (
+          {colorPickerColors.map((cellColor) => (
             <Button
-              key={index}
+              key={String(cellColor)}
               className="pick-color-button"
               sx={{
                 borderRadius: "50%",
@@ -174,7 +179,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
-              onClick={() => handleColorCellClick(cellColor)}
+              onClick={colorButtonClickHandlers[index]}
             />
           ))}
           {showCustom && (

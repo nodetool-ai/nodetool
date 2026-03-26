@@ -61,8 +61,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleInspectorToggle}
+                    aria-label="Toggle Inspector panel (I)"
                     className={
                         activeView === "inspector" && panelVisible
                             ? "inspector active"
@@ -87,8 +87,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleAssistantToggle}
+                    aria-label="Toggle Operator panel (O)"
                     className={
                         activeView === "assistant" && panelVisible
                             ? "assistant active"
@@ -109,8 +109,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleAgentToggle}
+                    aria-label="Toggle Agent panel"
                     className={
                         activeView === "agent" && panelVisible
                             ? "agent active"
@@ -128,8 +128,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleWorkspaceToggle}
+                    aria-label="Toggle Workspace panel"
                     className={
                         activeView === "workspace" && panelVisible
                             ? "workspace active"
@@ -147,8 +147,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleVersionsToggle}
+                    aria-label="Toggle Version History panel"
                     className={
                         activeView === "versions" && panelVisible
                             ? "versions active"
@@ -173,8 +173,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleWorkflowToggle}
+                    aria-label="Toggle Workflow Settings panel (W)"
                     className={
                         activeView === "workflow" && panelVisible
                             ? "workflow active"
@@ -199,8 +199,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleWorkflowAssetsToggle}
+                    aria-label="Toggle Workflow Assets panel (3)"
                     className={
                         activeView === "workflowAssets" && panelVisible
                             ? "workflowAssets active"
@@ -232,8 +232,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleLogsToggle}
+                    aria-label="Toggle Logs panel (L)"
                     className={
                         activeView === "logs" && panelVisible ? "logs active" : "logs"
                     }
@@ -249,8 +249,8 @@ function VerticalToolbar({
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
                 <IconButton
-                    tabIndex={-1}
                     onClick={handleJobsToggle}
+                    aria-label="Toggle Jobs panel"
                     className={
                         activeView === "jobs" && panelVisible ? "jobs active" : "jobs"
                     }

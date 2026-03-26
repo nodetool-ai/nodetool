@@ -27,6 +27,20 @@ const popoverStyles = css({
   }
 });
 
+/**
+ * Generate an accessible ARIA label for the notification button.
+ * Describes the number of unread notifications to screen readers.
+ */
+const getNotificationButtonLabel = (unreadCount: number): string => {
+  if (unreadCount === 0) {
+    return "Notifications, no unread notifications";
+  }
+  if (unreadCount === 1) {
+    return "Notifications, 1 unread notification";
+  }
+  return `Notifications, ${unreadCount} unread notifications`;
+};
+
 const NotificationButton: React.FC = React.memo(() => {
   const [notificationAnchor, setNotificationAnchor] =
     useState<null | HTMLElement>(null);
@@ -58,7 +72,9 @@ const NotificationButton: React.FC = React.memo(() => {
         <Button
           className="notification-button command-button command-icon"
           onClick={handleNotificationClick}
-          tabIndex={-1}
+          aria-label={getNotificationButtonLabel(unreadCount)}
+          aria-live="polite"
+          aria-atomic="true"
           sx={{
             "& .MuiBadge-badge": {
               fontSize: "0.75rem",
@@ -72,6 +88,7 @@ const NotificationButton: React.FC = React.memo(() => {
             badgeContent={unreadCount}
             color="error"
             className="notification-badge"
+            aria-label={`${unreadCount} unread`}
           >
             <NotificationsIcon
               sx={{ fontSize: "18px" }}
@@ -105,6 +122,8 @@ const NotificationButton: React.FC = React.memo(() => {
       >
         <Box
           className="notification-container"
+          role="region"
+          aria-label="Notifications"
           sx={{
             p: 3,
             width: "600px",
@@ -123,40 +142,45 @@ const NotificationButton: React.FC = React.memo(() => {
             <Typography
               className="notification-empty-message"
               color="textSecondary"
+              role="status"
+              aria-live="polite"
               sx={{ fontSize: "0.9rem", fontWeight: 300 }}
             >
               No notifications
             </Typography>
           ) : (
-            notifications.map((notification) => (
-              <Box
-                key={notification.id}
-                className={`notification-item notification-type-${notification.type}`}
-                sx={{
-                  p: 2,
-                  mb: 1.5,
-                  borderRadius: 1.5,
-                  maxHeight: "100px",
-                  overflow: "auto",
-                  backgroundColor: `${theme.vars.palette.grey[800]}CC`,
-                  borderLeft: `3px solid ${
-                    notification.type === "error"
-                      ? theme.vars.palette.error.main
-                      : notification.type === "warning"
-                      ? theme.vars.palette.warning.main
-                      : notification.type === "success"
-                      ? theme.vars.palette.success.main
-                      : notification.type === "info"
-                      ? theme.vars.palette.info.main
-                      : theme.vars.palette.grey[600]
-                  }`,
-                  transition: "all 0.2s ease",
-                  position: "relative",
-                  "&:hover": {
-                    backgroundColor: theme.vars.palette.grey[800]
-                  }
-                }}
-              >
+            <Box role="list" aria-label={`Notification list, ${notifications.length} item${notifications.length > 1 ? "s" : ""}`}>
+              {notifications.map((notification) => (
+                <Box
+                  key={notification.id}
+                  role="listitem"
+                  className={`notification-item notification-type-${notification.type}`}
+                  aria-label={`${notification.type} notification: ${notification.content}`}
+                  sx={{
+                    p: 2,
+                    mb: 1.5,
+                    borderRadius: 1.5,
+                    maxHeight: "100px",
+                    overflow: "auto",
+                    backgroundColor: `${theme.vars.palette.grey[800]}CC`,
+                    borderLeft: `3px solid ${
+                      notification.type === "error"
+                        ? theme.vars.palette.error.main
+                        : notification.type === "warning"
+                        ? theme.vars.palette.warning.main
+                        : notification.type === "success"
+                        ? theme.vars.palette.success.main
+                        : notification.type === "info"
+                        ? theme.vars.palette.info.main
+                        : theme.vars.palette.grey[600]
+                    }`,
+                    transition: "all 0.2s ease",
+                    position: "relative",
+                    "&:hover": {
+                      backgroundColor: theme.vars.palette.grey[800]
+                    }
+                  }}
+                >
                 <Typography
                   variant="body2"
                   color="textPrimary"
@@ -170,25 +194,26 @@ const NotificationButton: React.FC = React.memo(() => {
                 >
                   {notification.content}
                 </Typography>
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  className="notification-timestamp"
-                  sx={{
-                    fontSize: "0.75rem",
-                    display: "block",
-                    mt: 0.5
-                  }}
-                >
-                  {notification.timestamp.toLocaleString()}
-                </Typography>
-                <CopyButton
-                  value={notification.content}
-                  className="copy-button"
-                  tooltip="Copy to clipboard"
-                />
-              </Box>
-            ))
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    className="notification-timestamp"
+                    sx={{
+                      fontSize: "0.75rem",
+                      display: "block",
+                      mt: 0.5
+                    }}
+                  >
+                    {notification.timestamp.toLocaleString()}
+                  </Typography>
+                  <CopyButton
+                    value={notification.content}
+                    className="copy-button"
+                    tooltip="Copy to clipboard"
+                  />
+                </Box>
+              ))}
+            </Box>
           )}
         </Box>
       </Popover>

@@ -80,6 +80,18 @@ const InlineModelDownload: React.FC<{
   }));
   const downloadKey = model.repo_id || model.id;
   const inProgress = !!downloads[downloadKey];
+
+  // Memoize download handler to prevent re-creation on every render
+  const handleDownload = useCallback(() => {
+    startDownload(
+      model.repo_id || "",
+      model.type || "hf.model",
+      model.path ?? null,
+      model.allow_patterns ?? null,
+      model.ignore_patterns ?? null
+    );
+  }, [model.repo_id, model.type, model.path, model.allow_patterns, model.ignore_patterns, startDownload]);
+
   if (inProgress) {
     return (
       <Box
@@ -100,15 +112,7 @@ const InlineModelDownload: React.FC<{
       aria-label={`Download ${model.repo_id || model.id}`}
       sx={{ ml: 1, verticalAlign: "middle" }}
       className={`model-download-button ${isDefault ? "default-model" : ""}`}
-      onClick={() =>
-        startDownload(
-          model.repo_id || "",
-          model.type || "hf.model",
-          model.path ?? null,
-          model.allow_patterns ?? null,
-          model.ignore_patterns ?? null
-        )
-      }
+      onClick={handleDownload}
     >
       {label ?? "Download"}
     </Button>
@@ -121,6 +125,9 @@ const InlineModelDownload: React.FC<{
     button
   );
 };
+
+// Memoize InlineModelDownload to prevent unnecessary re-renders when parent re-renders
+const MemoizedInlineModelDownload = memo(InlineModelDownload);
 
 interface FeaturedModel extends UnifiedModel {
   displayName?: string;
@@ -230,6 +237,31 @@ const Welcome = () => {
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const theme = useTheme();
   const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
+
+  // Memoized navigation handlers to prevent re-renders of child components
+  const handleNavigateToDashboard = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
+  const handleNavigateToEditor = useCallback(() => {
+    navigate("/editor");
+  }, [navigate]);
+
+  const handleNavigateToTemplates = useCallback(() => {
+    navigate("/templates");
+  }, [navigate]);
+
+  const handleNavigateToChat = useCallback(() => {
+    navigate("/chat");
+  }, [navigate]);
+
+  const handleNavigateToAssets = useCallback(() => {
+    navigate("/assets");
+  }, [navigate]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
 
   // Memoize sections array - overviewContents is static, so this should be stable
   const sections = useMemo(
@@ -409,9 +441,7 @@ const Welcome = () => {
             </Tooltip>
           </div>
           <Button
-            onClick={() => {
-              navigate("/dashboard");
-            }}
+            onClick={handleNavigateToDashboard}
             className="start-button"
           >
             Open Dashboard
@@ -480,7 +510,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/editor")}
+                        onClick={handleNavigateToEditor}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -504,7 +534,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/templates")}
+                        onClick={handleNavigateToTemplates}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -527,7 +557,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/chat")}
+                        onClick={handleNavigateToChat}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -550,7 +580,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/assets")}
+                        onClick={handleNavigateToAssets}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -583,7 +613,7 @@ const Welcome = () => {
                     <Box sx={{ mt: 1 }} className="clear-search-container">
                       <Button
                         size="small"
-                        onClick={() => setSearchTerm("")}
+                        onClick={handleClearSearch}
                         className="clear-search-button"
                       >
                         Clear search
@@ -775,7 +805,7 @@ const Welcome = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate("/templates")}
+                      onClick={handleNavigateToTemplates}
                       className="setup-test-button"
                     >
                       Open Templates
@@ -783,7 +813,7 @@ const Welcome = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate("/chat")}
+                      onClick={handleNavigateToChat}
                       className="setup-test-button"
                     >
                       Open Chat
@@ -870,7 +900,7 @@ const Welcome = () => {
                                       variant.toLowerCase() ===
                                       (defaultVariant || "").toLowerCase();
                                     return (
-                                      <InlineModelDownload
+                                      <MemoizedInlineModelDownload
                                         key={`${model.id}-${variant}`}
                                         model={variantModel}
                                         isDefault={isDefault}
