@@ -397,7 +397,9 @@ export class WorkflowRunner {
 
     for (const [key, count] of handleEdgeCounts) {
       if (count > 1) {
-        const [nodeId, handle] = key.split(":");
+        const sepIdx = key.lastIndexOf(":");
+        const nodeId = key.substring(0, sepIdx);
+        const handle = key.substring(sepIdx + 1);
 
         // Look up the target node to check its property type
         const node = this._graph.findNode(nodeId);

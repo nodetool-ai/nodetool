@@ -2286,7 +2286,7 @@ export class UnifiedWebSocketRunner {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => {
-      void this.sendMessage({ type: "ping", ts: Date.now() / 1000 });
+      this.sendMessage({ type: "ping", ts: Date.now() / 1000 }).catch(() => {});
     }, 25_000);
   }
 
@@ -2300,7 +2300,7 @@ export class UnifiedWebSocketRunner {
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
     this.statsTimer = setInterval(() => {
-      void this.sendMessage({ type: "system_stats", stats: this.getSystemStats() });
+      this.sendMessage({ type: "system_stats", stats: this.getSystemStats() }).catch(() => {});
     }, 1_000);
   }
 
