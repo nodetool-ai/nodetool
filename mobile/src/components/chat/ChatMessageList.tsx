@@ -3,29 +3,42 @@
  * Displays messages with auto-scroll behavior.
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   FlatList,
   StyleSheet,
   ListRenderItemInfo,
+  RefreshControl,
 } from 'react-native';
 import { Message } from '../../types';
 import { MessageView } from './MessageView';
 import { LoadingIndicator } from './LoadingIndicator';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ChatMessageListProps {
   messages: Message[];
   isLoading: boolean;
   isStreaming: boolean;
+  onRefresh?: () => Promise<void>;
 }
 
 export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   messages,
   isLoading,
   isStreaming,
+  onRefresh,
 }) => {
   const flatListRef = useRef<FlatList<Message>>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { colors } = useTheme();
+
+  const handleRefresh = useCallback(async () => {
+    if (!onRefresh) return;
+    setIsRefreshing(true);
+    await onRefresh();
+    setIsRefreshing(false);
+  }, [onRefresh]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -73,6 +86,16 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={true}
       ListFooterComponent={renderFooter}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        ) : undefined
+      }
       // Performance optimizations
       removeClippedSubviews={true}
       maxToRenderPerBatch={10}
