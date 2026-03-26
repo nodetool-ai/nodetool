@@ -787,7 +787,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const displayPreviewUri = outputImageUri ?? previewUrl;
 
   const staticProps = props.data.properties;
-  const currentDocument = editorDocument ?? documentRef.current ?? sketchDoc;
+  // `documentRef` tracks the latest live editor state without forcing React
+  // re-renders on every stroke. Prefer it over `editorDocument`, which is
+  // just the snapshot used to open the modal or stage async hydration updates.
+  const currentDocument = documentRef.current ?? editorDocument ?? sketchDoc;
 
   // ─── Resolve input_image URI ───────────────────────────────────────
   const inputImageUri = useMemo((): string | null => {
