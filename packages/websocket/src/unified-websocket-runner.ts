@@ -765,8 +765,10 @@ export class UnifiedWebSocketRunner {
     }
 
     active.runner.cancel();
-    active.finished = true;
     active.status = "cancelled";
+    // Do NOT set active.finished = true here. Let the runner's cancellation
+    // propagate through executePromise's .finally() callback so that
+    // streamJobMessages can drain remaining messages and persist job state.
     return {
       message: "Job cancellation requested",
       job_id: jobId,
