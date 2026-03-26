@@ -463,7 +463,10 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       const newLayer: Layer = {
         ...layer,
         id: generateLayerId(),
-        name: `${layer.name} Copy`
+        name: `${layer.name} Copy`,
+        locked: false,
+        exposedAsInput: false,
+        exposedAsOutput: false
       };
       const idx = state.document.layers.findIndex((l) => l.id === layerId);
       const newLayers = [...state.document.layers];

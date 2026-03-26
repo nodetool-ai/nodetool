@@ -152,6 +152,38 @@ describe("useSketchStore", () => {
       expect(layers[1].name).toBe("Background Copy");
     });
 
+    it("unlocks duplicated locked layers", () => {
+      const firstLayerId = useSketchStore.getState().document.layers[0].id;
+
+      act(() => {
+        const doc = useSketchStore.getState().document;
+        useSketchStore.getState().setDocument({
+          ...doc,
+          layers: doc.layers.map((layer) =>
+            layer.id === firstLayerId
+              ? {
+                  ...layer,
+                  locked: true,
+                  exposedAsInput: true,
+                  exposedAsOutput: true
+                }
+              : layer
+          )
+        });
+      });
+
+      act(() => {
+        useSketchStore.getState().duplicateLayer(firstLayerId);
+      });
+
+      const layers = useSketchStore.getState().document.layers;
+      expect(layers).toHaveLength(2);
+      expect(layers[1].name).toBe("Background Copy");
+      expect(layers[1].locked).toBe(false);
+      expect(layers[1].exposedAsInput).toBe(false);
+      expect(layers[1].exposedAsOutput).toBe(false);
+    });
+
     it("reorders layers", () => {
       act(() => {
         useSketchStore.getState().addLayer("Layer A");
