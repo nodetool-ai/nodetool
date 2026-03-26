@@ -335,7 +335,7 @@ async function handleChatCompletions(
 
   const model = body.model || options?.defaultModel || "llama3.2:latest";
   const openaiMessages = body.messages || [];
-  const stream = body.stream !== false; // default to streaming
+  const stream = body.stream === true; // default to non-streaming per OpenAI API spec
   const tools = convertTools(body.tools);
   const messages = convertMessages(openaiMessages);
 

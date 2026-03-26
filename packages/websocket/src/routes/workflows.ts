@@ -121,6 +121,10 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.post("/api/workflows/:id/versions/:version/restore", async (req, reply) => {
     const { id, version } = req.params as { id: string; version: string };
     const versionNum = Number.parseInt(version, 10);
+    if (Number.isNaN(versionNum)) {
+      reply.status(400).send({ detail: "Invalid version number" });
+      return;
+    }
     await bridge(req, reply, (request) =>
       handleWorkflowVersionByNumber(request, id, versionNum, apiOptions)
     );

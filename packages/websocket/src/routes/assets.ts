@@ -53,7 +53,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     await bridge(req, reply, async (_request) => {
       const pkgName = decodeURIComponent(packageName);
       const aName = decodeURIComponent(assetName);
-      if (!pkgName || !aName) {
+      if (!pkgName || !aName || pkgName.includes("..") || aName.includes("..") || pkgName.includes("/") || aName.includes("/") || pkgName.includes("\\") || aName.includes("\\")) {
         return new Response(JSON.stringify({ detail: "Not found" }), {
           status: 404,
           headers: { "content-type": "application/json" },

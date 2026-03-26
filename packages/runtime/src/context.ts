@@ -12,7 +12,7 @@
 
 import type { ProcessingMessage } from "@nodetool/protocol";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { BaseProvider } from "./providers/base-provider.js";
@@ -273,7 +273,14 @@ export class FileStorageAdapter implements StorageAdapter {
   }
 
   async exists(uri: string): Promise<boolean> {
-    return (await this.retrieve(uri)) !== null;
+    const absolutePath = this.resolvePathFromUri(uri);
+    if (!absolutePath) return false;
+    try {
+      await access(absolutePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -773,6 +780,7 @@ export class ProcessingContext {
    */
   emit(msg: ProcessingMessage): void {
     this._messages.push(msg);
+    this._notifyMessage();
     if (msg.type === "node_update" && msg.node_id) {
       this._nodeStatuses.set(msg.node_id, msg);
     }
@@ -805,9 +813,22 @@ export class ProcessingContext {
     return this._messages.shift();
   }
 
+  private _messageResolve: (() => void) | null = null;
+
+  /** Notify that a new message has been pushed. */
+  private _notifyMessage(): void {
+    if (this._messageResolve) {
+      const resolve = this._messageResolve;
+      this._messageResolve = null;
+      resolve();
+    }
+  }
+
   async popMessageAsync(): Promise<ProcessingMessage> {
     while (this._messages.length === 0) {
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise<void>((r) => {
+        this._messageResolve = r;
+      });
     }
     return this._messages.shift() as ProcessingMessage;
   }

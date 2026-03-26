@@ -106,6 +106,7 @@ try {
   setSecretResolver((key, userId) => getSecret(key, userId).then((v) => v ?? undefined));
 } catch (err) {
   log.error("Database setup failed", err instanceof Error ? err : new Error(String(err)));
+  process.exit(1);
 }
 
 // ---------------------------------------------------------------------------

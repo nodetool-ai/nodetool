@@ -250,8 +250,9 @@ function isDownloadedFromFiles(
 }
 
 function getHfCacheRoot(): string {
-  return process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME
-    ? join(process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME ?? "", "hub")
+  const cacheEnv = process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME;
+  return cacheEnv
+    ? join(cacheEnv, "hub")
     : join(homedir(), ".cache", "huggingface", "hub");
 }
 
