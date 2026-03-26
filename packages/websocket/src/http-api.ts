@@ -971,9 +971,7 @@ export async function handleThreadById(
       const [messages] = await Message.paginate(threadId, { limit: 100 });
       if (!messages.length) break;
       for (const msg of messages) {
-        if (msg.user_id === userId) {
-          await msg.delete();
-        }
+        await msg.delete();
       }
       if (messages.length < 100) break;
     }
