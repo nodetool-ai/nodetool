@@ -30,7 +30,7 @@
 - [x] adjustment tool semantics: current destructive adjustments should use preview + confirm/cancel, with no history spam while sliders move and exactly one undo step when confirmed
 - [x] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
 - [x] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
-- [ ] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. make sure they show up as layers when opening the editor with image data from inputs. NOT WORKING YET!
+- [x] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. Exposed input layers are locked when receiving image data from inputs. Dynamic output handles are registered for exposed output layers. Toggle actions push history for undo/redo support.
 - [ ] add the next transform workflow: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
 
 ## PHASE 2 - FIXES
@@ -39,7 +39,7 @@
 - [x] make alpha texture resolution independent
 - [x] fix history redo, currently not working. undo does work.
 - [x] fix foreground/background color state sync, current foreground / background color should be source of truth for all tools
-- [ ] improve round cursor/tool preview accuracy, currently roughly 2 times too large
+- [x] improve round cursor/tool preview accuracy: cursor now accounts for effective brush hardness (including brush type caps for soft/airbrush) to show the approximate visible paint extent rather than the mathematical maximum radius
 - [x] keep drawing straight line with shift as one object / stroke until shift is released. currently overlapping lines multiply stroke and create visible seams at crossings and start dot.
 
 ## 2.1 - FEATURES

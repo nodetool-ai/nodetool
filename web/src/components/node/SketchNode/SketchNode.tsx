@@ -478,29 +478,41 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [sketchDoc]
   );
 
-  // Register `layer_in_*` on dynamic_properties / dynamic_inputs so metadata.is_dynamic
-  // and findInputHandle resolve per-layer handles like other dynamic nodes.
+  // Register `layer_in_*` on dynamic_properties / dynamic_inputs and
+  // `layer_out_*` on dynamic_outputs so metadata.is_dynamic
+  // and findInputHandle / findOutputHandle resolve per-layer handles
+  // like other dynamic nodes.
   useEffect(() => {
-    const desiredKeys = new Set(
+    const desiredInKeys = new Set(
       exposedInputLayers.map((l) => `layer_in_${l.name}`)
+    );
+    const desiredOutKeys = new Set(
+      exposedOutputLayers.map((l) => `layer_out_${l.name}`)
     );
 
     const curDyn = {
       ...(props.data.dynamic_properties || {})
     } as Record<string, unknown>;
     const curIn = { ...(props.data.dynamic_inputs || {}) };
+    const curOut = { ...(props.data.dynamic_outputs || {}) };
 
     const nextDyn = { ...curDyn };
     const nextIn = { ...curIn };
+    const nextOut = { ...curOut };
 
     for (const k of Object.keys(nextDyn)) {
-      if (k.startsWith("layer_in_") && !desiredKeys.has(k)) {
+      if (k.startsWith("layer_in_") && !desiredInKeys.has(k)) {
         delete nextDyn[k];
       }
     }
     for (const k of Object.keys(nextIn)) {
-      if (k.startsWith("layer_in_") && !desiredKeys.has(k)) {
+      if (k.startsWith("layer_in_") && !desiredInKeys.has(k)) {
         delete nextIn[k];
+      }
+    }
+    for (const k of Object.keys(nextOut)) {
+      if (k.startsWith("layer_out_") && !desiredOutKeys.has(k)) {
+        delete nextOut[k];
       }
     }
 
@@ -526,25 +538,41 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         };
       }
     }
+    for (const layer of exposedOutputLayers) {
+      const k = `layer_out_${layer.name}`;
+      if (nextOut[k] === undefined) {
+        nextOut[k] = {
+          type: "image",
+          type_args: [],
+          optional: false,
+          values: null,
+          type_name: null
+        };
+      }
+    }
 
     if (
       JSON.stringify(curDyn) === JSON.stringify(nextDyn) &&
-      JSON.stringify(curIn) === JSON.stringify(nextIn)
+      JSON.stringify(curIn) === JSON.stringify(nextIn) &&
+      JSON.stringify(curOut) === JSON.stringify(nextOut)
     ) {
       return;
     }
 
     updateNodeData(props.id, {
       dynamic_properties: nextDyn,
-      dynamic_inputs: nextIn
+      dynamic_inputs: nextIn,
+      dynamic_outputs: nextOut
     });
   }, [
     props.id,
     layerIoSyncSignature,
     exposedInputLayers,
+    exposedOutputLayers,
     updateNodeData,
     props.data.dynamic_properties,
-    props.data.dynamic_inputs
+    props.data.dynamic_inputs,
+    props.data.dynamic_outputs
   ]);
 
   useEffect(() => {
@@ -773,7 +801,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             ...target,
             data: layerData,
             imageReference,
-            contentBounds
+            contentBounds,
+            locked: true
           };
           const updatedDoc: SketchDocument = {
             ...base,
@@ -801,7 +830,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 ...storeLayers[storeLayerIdx],
                 data: layerData,
                 imageReference,
-                contentBounds
+                contentBounds,
+                locked: true
               };
               storeState.setDocument({
                 ...currentDoc,

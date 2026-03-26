@@ -162,16 +162,18 @@ export function useLayerActions({
 
   const handleToggleExposedInput = useCallback(
     (layerId: string) => {
+      pushHistory("toggle exposed input");
       toggleLayerExposedInput(layerId);
     },
-    [toggleLayerExposedInput]
+    [pushHistory, toggleLayerExposedInput]
   );
 
   const handleToggleExposedOutput = useCallback(
     (layerId: string) => {
+      pushHistory("toggle exposed output");
       toggleLayerExposedOutput(layerId);
     },
-    [toggleLayerExposedOutput]
+    [pushHistory, toggleLayerExposedOutput]
   );
 
   const handleFlipLayer = useCallback((
