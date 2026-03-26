@@ -48,6 +48,33 @@ describe("Sketch Serialization", () => {
       expect(parsed.canvas.width).toBe(800);
       expect(parsed.canvas.height).toBe(600);
     });
+
+    it("strips raster data for locked reference-backed input layers", () => {
+      const doc = createDefaultDocument();
+      doc.layers[0] = {
+        ...doc.layers[0],
+        name: "Input Image",
+        locked: true,
+        exposedAsInput: true,
+        data: encodeLayerData("data:image/png;base64,large-payload", {
+          x: 0,
+          y: 0,
+          width: 64,
+          height: 64
+        }),
+        imageReference: {
+          uri: "https://example.com/reference.png",
+          naturalWidth: 64,
+          naturalHeight: 64,
+          objectFit: "fill"
+        }
+      };
+
+      const parsed = JSON.parse(serializeDocument(doc)) as SketchDocument;
+
+      expect(parsed.layers[0].imageReference).toEqual(doc.layers[0].imageReference);
+      expect(parsed.layers[0].data).toBeNull();
+    });
   });
 
   describe("deserializeDocument", () => {

@@ -8,7 +8,8 @@
 import {
   SketchDocument,
   Layer,
-  normalizeSketchDocument
+  normalizeSketchDocument,
+  SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
 } from "../types";
 import { blendModeToComposite } from "../drawingUtils";
 
@@ -29,6 +30,18 @@ type SerializedLayerData = {
 
 function getDefaultBounds(width: number, height: number): LayerRasterBounds {
   return { x: 0, y: 0, width, height };
+}
+
+function shouldStripSerializedLayerData(layer: Layer): boolean {
+  if (!layer.imageReference?.uri) {
+    return false;
+  }
+
+  return (
+    layer.locked ||
+    layer.exposedAsInput === true ||
+    layer.name === SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
+  );
 }
 
 export function serializeLayerData(
@@ -75,7 +88,17 @@ export function deserializeLayerData(
  * Serialize a SketchDocument to a JSON string
  */
 export function serializeDocument(doc: SketchDocument): string {
-  return JSON.stringify(doc);
+  return JSON.stringify({
+    ...doc,
+    layers: doc.layers.map((layer) =>
+      shouldStripSerializedLayerData(layer)
+        ? {
+            ...layer,
+            data: null
+          }
+        : layer
+    )
+  });
 }
 
 /**
