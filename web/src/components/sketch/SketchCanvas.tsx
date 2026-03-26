@@ -238,6 +238,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       requestDirtyRedraw
     } = useCompositing({
       doc,
+      zoom,
       isolatedLayerId,
       activeStrokeRef,
       transformPreviewByLayerId

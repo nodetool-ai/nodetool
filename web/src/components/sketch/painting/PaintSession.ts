@@ -22,6 +22,7 @@
 import type { Point, Layer } from "../types";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { PaintEngine } from "./PaintEngine";
+import type { ActiveStrokeInfo } from "../rendering";
 import { CoordinateMapper } from "./CoordinateMapper";
 import {
   ensureLayerRasterBounds,
@@ -96,8 +97,22 @@ export class PaintSession {
       return false;
     }
 
+    // Detect shift-line continuation: an existing buffer on the same layer
+    // that was intentionally kept alive by a previous end() call.
+    const existing = ctx.activeStrokeRef.current;
+    const isShiftContinuation =
+      existing &&
+      existing.layerId === activeLayer.id &&
+      ctx.shiftHeldRef.current &&
+      this.lastStrokeEnd &&
+      this.engine.bufferMode === "buffered";
+
     this.layer = activeLayer;
-    ctx.onStrokeStart();
+
+    // Only push a history entry for the first stroke in a shift-chain.
+    if (!isShiftContinuation) {
+      ctx.onStrokeStart();
+    }
     const rasterBounds = ensureLayerRasterBounds(
       ctx,
       activeLayer,
@@ -138,16 +153,35 @@ export class PaintSession {
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
 
     if (this.engine.bufferMode === "buffered") {
-      const buffer = window.document.createElement("canvas");
-      buffer.width = layerCanvas.width;
-      buffer.height = layerCanvas.height;
-      const strokeOpacity = this.getStrokeOpacity(doc);
-      ctx.activeStrokeRef.current = {
-        layerId: activeLayer.id,
-        buffer,
-        opacity: strokeOpacity,
-        compositeOp: this.engine.compositeOp
-      };
+      // Reuse an existing buffer when Shift is held and the previous
+      // stroke left its buffer alive (shift-line continuation).  This
+      // keeps consecutive shift+click line segments in the same
+      // compositing pass so opacity doesn't stack at crossings.
+      const existing = ctx.activeStrokeRef.current;
+      const canReuse =
+        existing &&
+        existing.layerId === activeLayer.id &&
+        ctx.shiftHeldRef.current &&
+        this.lastStrokeEnd;
+
+      if (!canReuse) {
+        // Flush any leftover buffer from a prior shift-chain that ended
+        // (e.g. user released Shift then clicked again).
+        if (existing) {
+          this.flushShiftBuffer(ctx, existing);
+        }
+
+        const buffer = window.document.createElement("canvas");
+        buffer.width = layerCanvas.width;
+        buffer.height = layerCanvas.height;
+        const strokeOpacity = this.getStrokeOpacity(doc);
+        ctx.activeStrokeRef.current = {
+          layerId: activeLayer.id,
+          buffer,
+          opacity: strokeOpacity,
+          compositeOp: this.engine.compositeOp
+        };
+      }
     }
 
     // ── Get the target context (buffer or layer) ─────────────────────
@@ -309,6 +343,23 @@ export class PaintSession {
     this.hasMoved = false;
     this.active = false;
 
+    // ── Shift-line continuation ─────────────────────────────────────
+    // When Shift is held at the end of a buffered stroke, keep the
+    // buffer alive so the next Shift+click line shares the same
+    // compositing pass.  This prevents opacity stacking at
+    // overlapping segments.
+    if (
+      activeStroke &&
+      ctx.shiftHeldRef.current &&
+      this.engine.bufferMode === "buffered"
+    ) {
+      // Don't merge yet — leave activeStrokeRef intact.
+      // The next begin() call will reuse it.
+      this.layer = null;
+      ctx.requestRedraw();
+      return;
+    }
+
     if (activeStroke) {
       // ── Defer buffer merge to rAF to avoid GPU→CPU stall ─────────
       // The stroke buffer may be GPU-accelerated. The layer canvas uses
@@ -394,6 +445,34 @@ export class PaintSession {
   }
 
   // ─── Internals ────────────────────────────────────────────────────
+
+  /**
+   * Immediately merge and finalize a shift-chain buffer that was kept alive
+   * by a previous end() call.  Called when a new non-shift stroke starts
+   * while a leftover buffer still exists.
+   */
+  private flushShiftBuffer(
+    ctx: ToolContext,
+    stroke: ActiveStrokeInfo
+  ): void {
+    const layerCanvas = ctx.layerCanvasesRef.current.get(stroke.layerId);
+    if (layerCanvas) {
+      const layerCtx = layerCanvas.getContext("2d");
+      if (layerCtx) {
+        layerCtx.save();
+        layerCtx.globalAlpha = stroke.opacity;
+        layerCtx.globalCompositeOperation = stroke.compositeOp;
+        layerCtx.drawImage(stroke.buffer, 0, 0);
+        layerCtx.restore();
+      }
+    }
+    ctx.activeStrokeRef.current = null;
+    ctx.invalidateLayer?.(stroke.layerId);
+    const committedBounds = getCanvasRasterBounds(
+      ctx.getOrCreateLayerCanvas(stroke.layerId)
+    );
+    ctx.onStrokeEnd(stroke.layerId, null, committedBounds ?? undefined);
+  }
 
   /** Return the paint target (stroke buffer or layer canvas). */
   private getPaintCanvas(

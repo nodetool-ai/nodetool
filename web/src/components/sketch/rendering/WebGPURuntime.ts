@@ -73,6 +73,12 @@ export class WebGPURuntime implements SketchRuntime {
   private cpuRuntime: Canvas2DRuntime;
   private layerCanvases: Map<string, HTMLCanvasElement>;
 
+  /**
+   * Current zoom level – used to scale the checkerboard cell so
+   * the visual size stays constant on screen.
+   */
+  zoom = 1;
+
   // ── Dirty tracking ───────────────────────────────────────────────────
   /** Layers whose CPU canvas changed and need re-upload to GPU. */
   private dirtyLayers = new Set<string>();
@@ -406,10 +412,12 @@ export class WebGPURuntime implements SketchRuntime {
 
       if (this.checkerboardPipeline && this.checkerboardBindGroupLayout) {
         // Checkerboard uniforms: canvasSize, cellSize, pad, colorA, colorB
+        // cellSize is 8 / zoom so that after CSS scale(zoom) the visual size stays 8 screen px.
+        const effectiveCell = 8 / (this.zoom > 0 ? this.zoom : 1);
         const uniformData = new Float32Array([
           fullW,
           fullH,
-          8.0,
+          effectiveCell,
           0.0, // canvasSize, cellSize, pad
           0x2a / 255,
           0x2a / 255,

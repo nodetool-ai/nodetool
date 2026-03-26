@@ -25,6 +25,7 @@ import type { ActiveStrokeInfo } from "../rendering";
 
 export interface UseCompositingParams {
   doc: SketchDocument;
+  zoom?: number;
   isolatedLayerId?: string | null;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   transformPreviewByLayerId?: Record<string, LayerTransform>;
@@ -53,6 +54,7 @@ export interface UseCompositingResult {
 
 export function useCompositing({
   doc,
+  zoom: externalZoom = 1,
   isolatedLayerId,
   activeStrokeRef,
   transformPreviewByLayerId = {}
@@ -93,6 +95,14 @@ export function useCompositing({
     runtimeRef.current = new Canvas2DRuntime(layerCanvasesRef.current);
   }
   const runtime: SketchRuntime = runtimeRef.current;
+
+  // Keep zoom in sync on the runtime so the checkerboard pattern
+  // can maintain a constant visual size regardless of the zoom level.
+  // Both Canvas2DRuntime and WebGPURuntime expose a `zoom` property.
+  const rt = runtimeRef.current as { zoom?: number };
+  if (typeof rt.zoom === "number") {
+    rt.zoom = externalZoom;
+  }
 
   // Try to upgrade to WebGPU on mount
   useEffect(() => {
@@ -431,6 +441,11 @@ export function useCompositing({
   useLayoutEffect(() => {
     requestRedraw();
   }, [requestRedraw, bootstrapPhaseActive, backend]);
+
+  // Redraw when zoom changes so the checkerboard pattern rescales.
+  useEffect(() => {
+    requestRedraw();
+  }, [externalZoom, requestRedraw]);
 
   // Cleanup rAF and dispose runtime only on **unmount**, not when `runtime`
   // identity changes. Upgrading Canvas2D → WebGPU swaps `runtimeRef` but keeps
