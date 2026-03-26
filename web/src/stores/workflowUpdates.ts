@@ -206,7 +206,6 @@ export const handleUpdate = (
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
   const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
 
-  console.log("Received workflow update", data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;

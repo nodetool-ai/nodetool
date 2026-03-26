@@ -1145,16 +1145,16 @@ const TextEditorModal = ({
                           initialContent={value}
                           onInsertTextCommand={(fn) => {
                             // Save the inserter for Lexical
-                            (insertTextFnRef as any).current = fn;
+                            insertTextFnRef.current = fn;
                           }}
                           onReplaceSelectionCommand={(fn) => {
-                            (replaceSelectionFnRef as any).current = fn;
+                            replaceSelectionFnRef.current = fn;
                           }}
                           onSetAllTextCommand={(fn) => {
-                            (setAllTextFnRef as any).current = fn;
+                            setAllTextFnRef.current = fn;
                           }}
                           onGetSelectedTextCommand={(fn) => {
-                            (getSelectedTextFnRef as any).current = fn;
+                            getSelectedTextFnRef.current = fn;
                           }}
                         />
                         <LexicalPlugins

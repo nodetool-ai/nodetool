@@ -34,13 +34,12 @@ const TagFilter = memo(({
     onSelectTag(null);
   }, [onSelectTag]);
 
-  const handleSelectTag = useCallback((tag: string) => {
-    onSelectTag(tag);
+  const handleTagClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const tag = event.currentTarget.dataset.tag;
+    if (tag) {
+      onSelectTag(tag);
+    }
   }, [onSelectTag]);
-
-  const handleTagClick = useCallback((tag: string) => () => {
-    handleSelectTag(tag);
-  }, [handleSelectTag]);
 
   return (
     <Box className="tag-menu">
@@ -67,7 +66,8 @@ const TagFilter = memo(({
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <EditorButton
-                onClick={handleTagClick(tag)}
+                onClick={handleTagClick}
+                data-tag={tag}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
                 density="normal"

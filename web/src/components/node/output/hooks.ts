@@ -105,7 +105,7 @@ export function useVideoSrc(value: unknown) {
     const videoValue = value as VideoValue | null;
     if (videoValue?.type === "video" && videoRef.current) {
       if (videoValue.data) {
-        const blob = new Blob([videoValue.data as BlobPart]);
+        const blob = new Blob([videoValue.data]);
         const url = URL.createObjectURL(blob);
         videoRef.current.src = url;
         return () => URL.revokeObjectURL(url);

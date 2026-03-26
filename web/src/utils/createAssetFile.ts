@@ -10,6 +10,41 @@ interface AssetFileResult {
   type: string;
 }
 
+/**
+ * Represents a column in a DataFrame output
+ */
+interface DataFrameColumn {
+  name: string;
+}
+
+/**
+ * Represents a DataFrame output from Python nodes
+ */
+interface DataFrame {
+  columns: DataFrameColumn[];
+  data: unknown[][];
+}
+
+/**
+ * Base interface for typed output values
+ */
+interface TypedOutput {
+  type?: string;
+  data?: unknown;
+  value?: unknown;
+  content?: unknown;
+  mime_type?: string;
+  mimeType?: string;
+  uri?: string;
+  asset_id?: string;
+  filename?: string;
+}
+
+/**
+ * Union type for all possible asset output formats
+ */
+type AssetOutput = TypedOutput | string | Uint8Array | unknown[] | null;
+
 export type CreateAssetFileOptions = {
   /**
    * Cap large text outputs (especially streaming chunk joins) to avoid browser OOM
@@ -43,9 +78,9 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   "application/json": "json"
 };
 
-const convertDataFrameToCSV = (dataframe: any): string => {
-  const headers = dataframe.columns.map((col: any) => col.name).join(",");
-  const rows = dataframe.data.map((row: any) => row.join(",")).join("\n");
+const convertDataFrameToCSV = (dataframe: DataFrame): string => {
+  const headers = dataframe.columns.map((col) => col.name).join(",");
+  const rows = dataframe.data.map((row) => (row as string[]).join(",")).join("\n");
   return `${headers}\n${rows}`;
 };
 
@@ -81,7 +116,10 @@ const decodeBase64 = (value: string): Uint8Array => {
   return TEXT_ENCODER.encode(value);
 };
 
-const toUint8Array = (input: any): Uint8Array => {
+/**
+ * Convert various input types to Uint8Array
+ */
+const toUint8Array = (input: unknown): Uint8Array => {
   if (!input) {return new Uint8Array();}
   if (input instanceof Uint8Array) {
     return input;
@@ -111,13 +149,14 @@ const toUint8Array = (input: any): Uint8Array => {
     return new Uint8Array(input);
   }
   if (typeof input === "object") {
-    if ("data" in input) {
-      return toUint8Array((input as { data: unknown }).data);
+    const record = input as Record<string, unknown>;
+    if ("data" in record) {
+      return toUint8Array(record.data);
     }
-    if ("content" in input) {
-      return toUint8Array((input as { content: unknown }).content);
+    if ("content" in record) {
+      return toUint8Array(record.content);
     }
-    return new Uint8Array(Object.values(input as Record<string, number>));
+    return new Uint8Array(Object.values(record as Record<string, number>));
   }
 
   return new Uint8Array();
@@ -228,7 +267,10 @@ const concatTextChunksSafely = (
   return { text: parts.join(""), truncated: false };
 };
 
-const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => {
+const normalizeOutput = (
+  output: AssetOutput,
+  options?: CreateAssetFileOptions
+): AssetOutput => {
   const maxTextChars = Math.max(
     1,
     options?.maxTextChars ?? DEFAULT_MAX_TEXT_CHARS
@@ -255,9 +297,9 @@ const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => 
           data: text
         };
       }
-      return chunks.map((chunk) => normalizeOutput(chunk, options));
+      return chunks.map((chunk) => normalizeOutput(chunk as AssetOutput, options));
     }
-    return output.map((item) => normalizeOutput(item, options));
+    return output.map((item) => normalizeOutput(item as AssetOutput, options));
   }
 
   if (isChunk(output)) {
@@ -267,31 +309,23 @@ const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => 
   return output;
 };
 
-const getOutputType = (output: any): string | undefined => {
+const getOutputType = (output: AssetOutput): string | undefined => {
   if (output && typeof output === "object") {
-    return output.type;
+    return (output as TypedOutput).type;
   }
   return undefined;
 };
 
-const getOutputData = (output: any): any => {
+const getOutputData = (output: AssetOutput): unknown => {
   if (output && typeof output === "object") {
-    const record = output as Record<string, any>;
-    if ("data" in record && record.data !== undefined && record.data !== null) {
+    const record = output as TypedOutput;
+    if (record.data !== undefined && record.data !== null) {
       return record.data;
     }
-    if (
-      "value" in record &&
-      record.value !== undefined &&
-      record.value !== null
-    ) {
+    if (record.value !== undefined && record.value !== null) {
       return record.value;
     }
-    if (
-      "content" in record &&
-      record.content !== undefined &&
-      record.content !== null
-    ) {
+    if (record.content !== undefined && record.content !== null) {
       return record.content;
     }
     return output;
@@ -300,22 +334,23 @@ const getOutputData = (output: any): any => {
 };
 
 const getMimeType = (
-  output: Record<string, any> | undefined,
+  output: AssetOutput,
   fallback: string
 ): string => {
   if (!output || typeof output !== "object") {
     return fallback;
   }
 
-  const asString = (value: any) =>
+  const asString = (value: unknown): value is string =>
     typeof value === "string" && value.includes("/");
 
+  const typedOutput = output as TypedOutput;
   return (
-    (asString(output.mime_type) && output.mime_type) ||
-    (asString(output.mimeType) && output.mimeType) ||
-    (asString(output.type) && output.type) ||
-    (asString(output.data?.mime_type) && output.data?.mime_type) ||
-    (asString(output.data?.mimeType) && output.data?.mimeType) ||
+    (asString(typedOutput.mime_type) && typedOutput.mime_type) ||
+    (asString(typedOutput.mimeType) && typedOutput.mimeType) ||
+    (asString(typedOutput.type) && typedOutput.type) ||
+    (asString((typedOutput.data as TypedOutput)?.mime_type) && (typedOutput.data as TypedOutput).mime_type) ||
+    (asString((typedOutput.data as TypedOutput)?.mimeType) && (typedOutput.data as TypedOutput).mimeType) ||
     fallback
   );
 };
@@ -374,7 +409,7 @@ const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
 };
 
 const createSingleAssetFile = async (
-  output: any,
+  output: AssetOutput,
   id: string,
   index?: number
 ): Promise<AssetFileResult> => {
@@ -403,10 +438,11 @@ const createSingleAssetFile = async (
     typeof output?.asset_id === "string" &&
     (isDataEmpty || data === output || isAssetUri);
 
+
   if (shouldDownloadAsset) {
     try {
       const assetResponse = await client.GET("/api/assets/{id}", {
-        params: { path: { id: output.asset_id } }
+        params: { path: { id: output?.asset_id as string } }
       });
       if (assetResponse.error) {
         const detail =
@@ -467,7 +503,7 @@ const createSingleAssetFile = async (
       break;
     }
     case "dataframe":
-      content = convertDataFrameToCSV(data);
+      content = convertDataFrameToCSV(data as DataFrame);
       mimeType = "text/csv";
       filename = buildFilename(desiredFilename, id, suffix, "csv", index);
       break;
@@ -517,7 +553,7 @@ const createSingleAssetFile = async (
 };
 
 export const createAssetFile = async (
-  output: any | any[],
+  output: AssetOutput | AssetOutput[],
   id: string,
   options?: CreateAssetFileOptions
 ): Promise<AssetFileResult[]> => {
@@ -528,8 +564,8 @@ export const createAssetFile = async (
       count: normalized.length
     });
     return Promise.all(
-      normalized.map((item, index) => createSingleAssetFile(item, id, index))
+      normalized.map((item, index) => createSingleAssetFile(item as AssetOutput, id, index))
     );
   }
-  return Promise.all([createSingleAssetFile(normalized, id)]);
+  return Promise.all([createSingleAssetFile(normalized as AssetOutput, id)]);
 };

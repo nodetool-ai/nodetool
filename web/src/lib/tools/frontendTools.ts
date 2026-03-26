@@ -1,10 +1,18 @@
 import { z } from "zod";
-import type { ZodType } from "zod";
+import type { ZodType, ZodTypeAny } from "zod";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
 
 export type JsonSchema = Record<string, unknown>;
 export type ZodOrJsonSchema = ZodType | JsonSchema;
+
+/**
+ * Type guard to check if a schema has a _def property with typeName method.
+ * This is needed for accessing Zod's internal type information.
+ */
+function hasZodDef(schema: unknown): schema is { _def: { typeName(): string; type?: ZodTypeAny; innerType?: ZodTypeAny; shape?: () => Record<string, ZodTypeAny>; options?: ZodTypeAny[]; value?: unknown; valueType?: ZodTypeAny; schema?: ZodTypeAny; values?: readonly unknown[] } } {
+  return typeof schema === "object" && schema !== null && "_def" in schema;
+}
 
 export interface FrontendToolDefinition<Result = unknown> {
   name: `ui_${string}`;
@@ -68,8 +76,8 @@ function isZodSchema(schema: ZodOrJsonSchema): schema is ZodType {
  * Convert a Zod schema to JSON Schema format for the manifest
  */
 function zodToJsonSchema(schema: ZodType): JsonSchema {
-  if ("_def" in schema && "typeName" in (schema as any)._def) {
-    const def = (schema as any)._def;
+  if (hasZodDef(schema)) {
+    const def = schema._def;
     switch (def.typeName()) {
       case "ZodString":
         return { type: "string" };
@@ -83,15 +91,18 @@ function zodToJsonSchema(schema: ZodType): JsonSchema {
           items: zodToJsonSchema(def.type as ZodType)
         };
       case "ZodObject": {
-        const shape = def.shape();
+        const shape = def.shape?.();
+        if (!shape) {
+          return { type: "object" };
+        }
         const properties: Record<string, JsonSchema> = {};
         const required: string[] = [];
         for (const [key, value] of Object.entries(shape)) {
           const fieldSchema = value as ZodType;
           properties[key] = zodToJsonSchema(fieldSchema);
-          const fieldDef = (fieldSchema as any)._def;
+          const fieldDef = hasZodDef(fieldSchema) ? fieldSchema._def : undefined;
           const isDefault =
-            typeof fieldDef?.typeName === "function" &&
+            fieldDef && typeof fieldDef?.typeName === "function" &&
             fieldDef.typeName() === "ZodDefault";
           if (
             !fieldSchema.isOptional() &&
@@ -118,7 +129,7 @@ function zodToJsonSchema(schema: ZodType): JsonSchema {
       case "ZodLiteral":
         return { const: def.value };
       case "ZodEnum":
-        return { enum: def.values };
+        return { enum: (def as { values?: readonly unknown[] }).values ?? [] };
       case "ZodEffects":
         return zodToJsonSchema(def.schema as ZodType);
       case "ZodRecord":

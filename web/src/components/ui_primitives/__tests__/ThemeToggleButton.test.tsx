@@ -44,13 +44,13 @@ describe("ThemeToggleButton", () => {
 
   it("adds aria-label to Switch when variant is switch", () => {
     renderWithTheme(<ThemeToggleButtonInternal variant="switch" />);
-    const switchElement = screen.getByRole("switch");
+    const switchElement = screen.getByRole("checkbox");
     expect(switchElement).toHaveAttribute("aria-label", "Switch to dark mode");
   });
 
   it("calls setMode when clicked", () => {
     renderWithTheme(<ThemeToggleButtonInternal variant="switch" />);
-    const switchElement = screen.getByRole("switch");
+    const switchElement = screen.getByRole("checkbox");
     fireEvent.click(switchElement);
     expect(mockSetMode).toHaveBeenCalledWith("dark");
   });

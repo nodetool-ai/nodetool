@@ -542,12 +542,21 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setSelected(null);
   }, [setSelected]);
 
-  const handleSelectProvider = useCallback((p: string) => () => {
-    setSelected(p);
+  const handleSelectProvider = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const provider = event.currentTarget.dataset.provider;
+    if (provider) {
+      setSelected(provider);
+    }
   }, [setSelected]);
 
-  const handleProviderChange = useCallback((p: string, enabled: boolean) => () => {
-    setProviderEnabled(p, enabled);
+  const handleProviderToggle = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    const target = event.currentTarget;
+    const provider = target.dataset.provider;
+    const newEnabled = target.dataset.enabled === "true";
+    if (provider) {
+      setProviderEnabled(provider, newEnabled);
+    }
   }, [setProviderEnabled]);
 
   const handleMenuOpen = useCallback((event: React.MouseEvent, p: string) => {
@@ -706,7 +715,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 disableRipple
                 className={`model-menu__provider-item ${selected === p ? "is-selected" : ""} ${enabled && available ? "is-enabled" : "is-disabled"}`}
                 selected={selected === p}
-                onClick={handleSelectProvider(p)}
+                onClick={handleSelectProvider}
+                data-provider={p}
                 onContextMenu={(e) => handleMenuOpen(e, p)}
                 sx={{
                   gap: 0.1,
@@ -813,6 +823,44 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         }
                       }}
                     />
+                    {!hasKey && (
+                      <Box
+                        className="model-menu__provider-missing-key"
+                        sx={{
+                          mr: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5
+                        }}
+                        onClick={handleStopPropagation}
+                      >
+                        <Tooltip className="model-menu__provider-missing-key-tooltip" title="API key required">
+                          <InfoOutlinedIcon
+                            className="model-menu__provider-missing-key-icon"
+                            sx={{
+                              fontSize: (theme) => theme.vars.fontSizeNormal,
+                              color: "warning.main"
+                            }}
+                          />
+                        </Tooltip>
+                        <Tooltip className="model-menu__provider-add-key-tooltip" title="Open Settings to add API key">
+                          <Button
+                            className="model-menu__provider-add-key-button"
+                            size="small"
+                            variant="text"
+                            color="warning"
+                            sx={{
+                              minWidth: "auto",
+                              p: 0,
+                              fontSize: (theme) => theme.vars.fontSizeSmaller
+                            }}
+                            onClick={handleOpenSettings}
+                          >
+                            Add key
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                    )}
                     <Box
                       className="model-menu__provider-actions"
                       sx={{
@@ -828,19 +876,26 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         className="model-menu__provider-toggle-tooltip"
                         title={enabled ? "Disable provider" : "Enable provider"}
                       >
-                        <Checkbox
-                          className="model-menu__provider-toggle-checkbox"
-                          edge="end"
-                          size="small"
-                          sx={{
-                            padding: 0,
-                            "& .MuiSvgIcon-root": {
-                              fontSize: (theme) => theme.vars.fontSizeBig
-                            }
-                          }}
-                          checked={enabled}
-                          onChange={(e) => handleProviderChange(p, e.target.checked)}
-                        />
+                        <Box
+                          data-provider={p}
+                          data-enabled={!enabled}
+                          onClick={handleProviderToggle}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <Checkbox
+                            className="model-menu__provider-toggle-checkbox"
+                            edge="end"
+                            size="small"
+                            sx={{
+                              padding: 0,
+                              "& .MuiSvgIcon-root": {
+                                fontSize: (theme) => theme.vars.fontSizeBig
+                              },
+                              pointerEvents: 'none'
+                            }}
+                            checked={enabled}
+                          />
+                        </Box>
                       </Tooltip>
                     </Box>
                   </>

@@ -58,9 +58,6 @@ const styles = (theme: Theme) =>
       backgroundRepeat: "no-repeat",
       transition: "opacity 0.3s"
     },
-    ".asset.alpha-surface": {
-      ...alphaSurfaceBg
-    },
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",

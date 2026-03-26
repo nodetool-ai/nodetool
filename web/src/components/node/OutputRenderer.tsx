@@ -336,7 +336,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       bytes[2] === 0x44 &&
       bytes[3] === 0x46;
     const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mimeType }));
+    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
     return { url, isPdf };
   }, [type, value]);
 
@@ -704,8 +704,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={(firstMeta?.sample_rate as number) || 22000}
-                    channels={(firstMeta?.channels as number) || 1}
+                    sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
+                    channels={(firstMeta?.channels as number | undefined) ?? 1}
                   />
                 );
               }

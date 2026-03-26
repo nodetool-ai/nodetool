@@ -45,6 +45,7 @@ export const useRealtimeAudioPlayback = ({
   const instanceIdRef = useRef<string>(
     nodeId || `audio-${Date.now()}-${Math.random()}`
   );
+  const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [internalPlaying, setInternalPlaying] = useState<boolean>(false);
   const [wantsToPlay, setWantsToPlay] = useState<boolean>(true);
   const [visualizerVersion, setVisualizerVersion] = useState<number>(0);
@@ -96,6 +97,11 @@ export const useRealtimeAudioPlayback = ({
       audioContextRef.current = null;
       streamDestRef.current = null;
       gainRef.current = null;
+      // Clear any pending restart timeout
+      if (restartTimeoutRef.current !== null) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -218,7 +224,11 @@ export const useRealtimeAudioPlayback = ({
     lastIndexRef.current = 0; // Reset to replay all chunks
     scheduledChunkIndices.current.clear(); // Clear scheduled indices for replay
     setVisualizerVersion((v) => v + 1);
-    setTimeout(() => start(), 50); // Small delay to ensure clean restart
+    // Clear any existing timeout before setting a new one
+    if (restartTimeoutRef.current !== null) {
+      clearTimeout(restartTimeoutRef.current);
+    }
+    restartTimeoutRef.current = setTimeout(() => start(), 50); // Small delay to ensure clean restart
   }, [start, stop]);
 
   // Auto-enqueue on mount if wantsToPlay is true

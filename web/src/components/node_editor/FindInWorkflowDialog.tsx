@@ -300,7 +300,8 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     );
 
     const handleResultClick = useCallback(
-      (index: number) => (_event: React.MouseEvent) => {
+      (event: React.MouseEvent<HTMLElement>) => {
+        const index = Number(event.currentTarget.dataset.index);
         selectNode(index);
         goToSelected();
         closeFind();
@@ -402,7 +403,8 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                   className={`result-button ${
                     index === selectedIndex ? "selected" : ""
                   }`}
-                  onClick={handleResultClick(index)}
+                  data-index={index}
+                  onClick={handleResultClick}
                 >
                   <Typography className="result-name" variant="body2">
                     {getNodeDisplayName(result.node)}

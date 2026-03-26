@@ -54,9 +54,6 @@ jest.mock('@mui/material/styles', () => {
   return {
     ...original,
     useTheme: () => ({
-      palette: {
-        mode: 'light',
-      },
       vars: {
         palette: {
           grey: { 400: '#ccc' },
