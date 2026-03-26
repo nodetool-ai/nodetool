@@ -83,8 +83,8 @@ function hasMediaContent(content: Message['content']): boolean {
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
   // All hooks must be called before any early returns
   const isUser = message.role === 'user';
-  const { mode } = useTheme();
-  
+  const { colors } = useTheme();
+
   /**
    * Render text content (used as callback for MessageContentRenderer)
    */
@@ -92,10 +92,10 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
     if (!text) { return null; }
 
     if (isUser) {
-      return <Text key={index} style={[styles.userText, { color: '#2A2A2A' }]}>{text}</Text>;
+      return <Text key={index} style={[styles.userText, { color: colors.userBubbleText }]}>{text}</Text>;
     }
     return <ChatMarkdown key={index} content={text} />;
-  }, [isUser]);
+  }, [isUser, colors.userBubbleText]);
 
   // Return null for system and tool messages as they should not be displayed
   if (message.role === 'system' || message.role === 'tool') {
@@ -111,7 +111,7 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
    */
   const renderSimpleMessage = () => {
     if (isUser) {
-      return <Text style={[styles.userText, { color: '#2A2A2A' }]}>{textContent}</Text>;
+      return <Text style={[styles.userText, { color: colors.userBubbleText }]}>{textContent}</Text>;
     }
     return <ChatMarkdown content={textContent} />;
   };
@@ -140,13 +140,15 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
         styles.container,
         isUser ? styles.userContainer : styles.assistantContainer,
       ]}
+      accessibilityRole="text"
+      accessibilityLabel={`${isUser ? 'You' : 'Assistant'}: ${textContent}`}
     >
       <View
         style={[
           styles.bubble,
           isUser
-            ? [styles.userBubble, { backgroundColor: '#EFEFEF' }]
-            : [styles.assistantBubble, { backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.05)' }],
+            ? [styles.userBubble, { backgroundColor: colors.userBubbleBg }]
+            : [styles.assistantBubble, { backgroundColor: colors.assistantBubbleBg }],
         ]}
       >
         {hasMedia ? renderMixedContent() : renderSimpleMessage()}

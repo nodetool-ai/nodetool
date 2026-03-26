@@ -7,7 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  Linking,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import axios from 'axios';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
@@ -86,49 +90,35 @@ export default function SettingsScreen() {
     );
   }
 
+  const appVersion = Constants.expoConfig?.version || '1.0.0';
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.scrollContent}>
       <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
 
       <View style={styles.section}>
         <Text style={[styles.label, { color: colors.text }]}>Theme</Text>
         <View style={[styles.themeSwitcher, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              mode === 'light' && [styles.themeOptionActive, { backgroundColor: colors.primary }]
-            ]}
-            onPress={() => setTheme('light')}
-          >
-            <Text style={[styles.themeOptionText, { color: mode === 'light' ? '#fff' : colors.textSecondary }]}>
-              Light
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              mode === 'dark' && [styles.themeOptionActive, { backgroundColor: colors.primary }]
-            ]}
-            onPress={() => setTheme('dark')}
-          >
-            <Text style={[styles.themeOptionText, { color: mode === 'dark' ? '#fff' : colors.textSecondary }]}>
-              Dark
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              mode === 'system' && [styles.themeOptionActive, { backgroundColor: colors.primary }]
-            ]}
-            onPress={() => setTheme('system')}
-          >
-            <Text style={[styles.themeOptionText, { color: mode === 'system' ? '#fff' : colors.textSecondary }]}>
-              System
-            </Text>
-          </TouchableOpacity>
+          {(['light', 'dark', 'system'] as const).map((theme) => (
+            <TouchableOpacity
+              key={theme}
+              style={[
+                styles.themeOption,
+                mode === theme && [styles.themeOptionActive, { backgroundColor: colors.primary }]
+              ]}
+              onPress={() => setTheme(theme)}
+              accessibilityRole="button"
+              accessibilityLabel={`${theme} theme`}
+              accessibilityState={{ selected: mode === theme }}
+            >
+              <Text style={[styles.themeOptionText, { color: mode === theme ? '#fff' : colors.textSecondary }]}>
+                {theme.charAt(0).toUpperCase() + theme.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
-      
+
       <View style={styles.section}>
         <Text style={[styles.label, { color: colors.text }]}>API Host</Text>
         <TextInput
@@ -140,6 +130,7 @@ export default function SettingsScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
+          accessibilityLabel="API host URL"
         />
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
           Enter the URL of your NodeTool server
@@ -147,14 +138,19 @@ export default function SettingsScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.cardBg }, isTesting && styles.buttonDisabled]}
+        style={[styles.button, { backgroundColor: colors.cardBg, borderColor: colors.border, borderWidth: 1 }, isTesting && styles.buttonDisabled]}
         onPress={handleTestConnection}
         disabled={isTesting || isSaving}
+        accessibilityRole="button"
+        accessibilityLabel="Test connection"
       >
         {isTesting ? (
           <ActivityIndicator color={colors.text} />
         ) : (
-          <Text style={[styles.buttonText, { color: colors.text }]}>Test Connection</Text>
+          <View style={styles.buttonContent}>
+            <Ionicons name="wifi-outline" size={18} color={colors.text} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.text }]}>Test Connection</Text>
+          </View>
         )}
       </TouchableOpacity>
 
@@ -162,6 +158,8 @@ export default function SettingsScreen() {
         style={[styles.button, { backgroundColor: colors.primary }, isSaving && styles.buttonDisabled]}
         onPress={handleSave}
         disabled={isTesting || isSaving}
+        accessibilityRole="button"
+        accessibilityLabel="Save settings"
       >
         {isSaving ? (
           <ActivityIndicator color="#fff" />
@@ -169,7 +167,27 @@ export default function SettingsScreen() {
           <Text style={[styles.buttonText, { color: '#fff' }]}>Save</Text>
         )}
       </TouchableOpacity>
-    </View>
+
+      <View style={[styles.aboutSection, { borderTopColor: colors.border }]}>
+        <Text style={[styles.aboutTitle, { color: colors.text }]}>About</Text>
+        <View style={styles.aboutRow}>
+          <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Version</Text>
+          <Text style={[styles.aboutValue, { color: colors.text }]}>{appVersion}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.aboutRow}
+          onPress={() => Linking.openURL('https://github.com/nodetool-ai/nodetool')}
+          accessibilityRole="link"
+          accessibilityLabel="Open NodeTool on GitHub"
+        >
+          <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>GitHub</Text>
+          <View style={styles.aboutLink}>
+            <Text style={[styles.aboutValue, { color: colors.primary }]}>nodetool-ai/nodetool</Text>
+            <Ionicons name="open-outline" size={14} color={colors.primary} style={{ marginLeft: 4 }} />
+          </View>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -206,6 +224,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 6,
   },
+  scrollContent: {
+    paddingBottom: 40,
+  },
   button: {
     padding: 16,
     borderRadius: 8,
@@ -215,9 +236,43 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  aboutSection: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+  },
+  aboutTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  aboutRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  aboutLabel: {
+    fontSize: 15,
+  },
+  aboutValue: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  aboutLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   themeSwitcher: {
     flexDirection: 'row',
