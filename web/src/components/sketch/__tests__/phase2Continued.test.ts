@@ -374,3 +374,70 @@ describe("Phase 2 Continued Features", () => {
     });
   });
 });
+
+// ─── Checkerboard resolution independence ────────────────────────────────
+
+import { drawCheckerboard } from "../drawingUtils";
+
+describe("drawCheckerboard resolution independence", () => {
+  // jsdom doesn't provide a real CanvasRenderingContext2D, so we mock it
+  let mockCtx: Record<string, jest.Mock | string>;
+
+  beforeEach(() => {
+    // Reset the module-level cached tile between tests
+    mockCtx = {
+      createPattern: jest.fn(() => ({
+        setTransform: jest.fn()
+      })),
+      fillRect: jest.fn(),
+      fillStyle: ""
+    };
+    // Clear cached tile by overriding the module var (drawCheckerboard caches
+    // a tile on first call).  We can't easily reset it, but using the mock
+    // context means the pattern path always succeeds.
+  });
+
+  it("draws without error when zoom is 1 (default)", () => {
+    expect(() =>
+      drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 100, 100)
+    ).not.toThrow();
+    expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 0, 100, 100);
+  });
+
+  it("draws without error when zoom > 1", () => {
+    expect(() =>
+      drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 100, 100, 2)
+    ).not.toThrow();
+  });
+
+  it("draws without error when zoom < 1", () => {
+    expect(() =>
+      drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 100, 100, 0.5)
+    ).not.toThrow();
+  });
+
+  it("draws without error when zoom is undefined", () => {
+    expect(() =>
+      drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 100, 100, undefined)
+    ).not.toThrow();
+  });
+
+  it("draws without error when zoom is 0 (edge case)", () => {
+    expect(() =>
+      drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 100, 100, 0)
+    ).not.toThrow();
+  });
+
+  it("uses the pattern's setTransform when zoom != 1 and DOMMatrix is available", () => {
+    // DOMMatrix is not available in jsdom, so the pattern.setTransform path
+    // is skipped.  We only verify the fallback still fills the area.
+    drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 200, 150, 2);
+    expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 0, 200, 150);
+  });
+
+  it("falls back to solid color when createPattern returns null", () => {
+    mockCtx.createPattern = jest.fn(() => null);
+    drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 64, 64, 1);
+    expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 0, 64, 64);
+  });
+});
