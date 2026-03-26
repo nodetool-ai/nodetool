@@ -36,8 +36,7 @@
 
 import React, { memo, forwardRef, useCallback } from "react";
 import { IconButton, Tooltip, CircularProgress } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -164,7 +163,7 @@ export interface CircularActionButtonProps {
   /**
    * Additional sx styles
    */
-  sx?: object;
+  sx?: SxProps<Theme>;
   /**
    * Whether to disable ripple effect
    * @default false
@@ -259,7 +258,7 @@ export const CircularActionButton = memo(
           ? theme.vars.palette.common.black
           : theme.vars.palette.grey[0];
 
-      const buttonStyles = {
+      const buttonStyles: SxProps<Theme> = {
         width: `${size}px`,
         height: `${size}px`,
         padding: 0,

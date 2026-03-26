@@ -72,7 +72,8 @@ const ModelTypeSidebar: React.FC = () => {
                       rel="noopener noreferrer"
                       size="small"
                       onClick={handleLinkClick}
-                      sx={{ 
+                      aria-label={`View ${prettifyModelType(type)} models on Hugging Face`}
+                      sx={{
                         color: isSelected ? theme.vars.palette.text.primary : "inherit",
                         opacity: 0.7,
                         "&:hover": { opacity: 1 }

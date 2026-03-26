@@ -17,7 +17,6 @@ import isEqual from "lodash/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import log from "loglevel";
 
 interface PropertyDropzoneProps {

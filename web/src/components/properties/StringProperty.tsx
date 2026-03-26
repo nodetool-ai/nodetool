@@ -11,7 +11,6 @@ import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
-import { inferReturnOutputs } from "../../utils/inferCodeOutputs";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -85,25 +84,9 @@ const StringProperty = ({
 
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
   const isConnected = useNodes(isConnectedSelector);
-  const updateNodeData = useNodes((state) => state.updateNodeData);
 
   const codeLanguage = determineCodeLanguage(nodeType);
   const stringValue = typeof value === "string" ? value : "";
-
-  const isCodeNode = nodeType === "nodetool.code.Code" && property.name === "code";
-
-  const handleCodeChange = useCallback(
-    (next: string) => {
-      onChange(next);
-      if (!isCodeNode) return;
-      const keys = inferReturnOutputs(next);
-      if (keys === null) return;
-      const dynamic_outputs: Record<string, { type: string; type_args: never[]; optional: boolean }> = {};
-      for (const k of keys) dynamic_outputs[k] = { type: "any", type_args: [], optional: true };
-      updateNodeData(nodeId, { dynamic_outputs });
-    },
-    [onChange, isCodeNode, updateNodeData, nodeId]
-  );
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -164,7 +147,7 @@ const StringProperty = ({
             )}
             value={stringValue}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              handleCodeChange(e.target.value ?? "");
+              onChange(e.target.value ?? "");
             }}
             onFocus={(e) => {
               e.preventDefault();
@@ -192,8 +175,7 @@ const StringProperty = ({
         <TextEditorModal
           value={stringValue}
           language={codeLanguage}
-          nodeType={nodeType}
-          onChange={handleCodeChange}
+          onChange={(next) => onChange(next)}
           onClose={toggleExpand}
           propertyName={property.name}
           propertyDescription={property.description || ""}

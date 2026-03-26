@@ -14,6 +14,7 @@ import PanelHeadline from "../ui/PanelHeadline";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { LanguageModel, Message, Workflow } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
+import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -142,7 +143,7 @@ const WorkflowAssistantChat: React.FC = () => {
   }, [setAgentMode, setSelectedTools, setSelectedCollections]);
 
   const total = progress.total;
-  const nodes = useNodes((state) => state.nodes);
+  const nodes = useNodes((state) => state.nodes, areNodesEqualIgnoringPosition);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();

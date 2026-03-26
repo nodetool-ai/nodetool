@@ -335,6 +335,9 @@ export const createNodeStore = (
           }
         });
 
+        let lastNodesForSelectionCount: Node<NodeData>[] | null = null;
+        let lastSelectionCount = 0;
+
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
           missingModelFiles: [],
@@ -392,13 +395,19 @@ export const createNodeStore = (
           getSelectedNodes: (): Node<NodeData>[] =>
             get().nodes.filter((node) => node.selected),
           getSelectedNodeCount: (): number => {
-            let count = 0;
             const nodes = get().nodes;
+            if (nodes === lastNodesForSelectionCount) {
+              return lastSelectionCount;
+            }
+
+            lastNodesForSelectionCount = nodes;
+            let count = 0;
             for (const node of nodes) {
               if (node.selected) {
                 count++;
               }
             }
+            lastSelectionCount = count;
             return count;
           },
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {

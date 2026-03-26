@@ -240,7 +240,7 @@ export const MessageView: React.FC<
             </div>
           );
         } else if (executionEventType === "log_update") {
-          const logContent = executionContent as ExecutionEventContent;
+          const logContent = executionContent as ExecutionEventContent | null;
           return (
             <div className="chat-message-list-item execution-event">
               <Box sx={{
@@ -249,10 +249,10 @@ export const MessageView: React.FC<
                 borderRadius: "8px",
                 backgroundColor: "rgba(30, 35, 40, 0.4)",
                 border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: logContent.severity === "error" ? "error.light" : logContent.severity === "warning" ? "warning.light" : "grey.300",
+                color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
                 mb: 1
               }}>
-                {logContent.content}
+                {logContent?.content}
               </Box>
             </div>
           );
@@ -286,7 +286,7 @@ export const MessageView: React.FC<
           </div>
         );
       } else if (executionEventType === "log_update") {
-        const logContent = executionContent as ExecutionEventContent;
+        const logContent = executionContent as ExecutionEventContent | null;
         return (
           <div className="chat-message-list-item execution-event">
             <Box sx={{
@@ -295,10 +295,10 @@ export const MessageView: React.FC<
               borderRadius: "8px",
               backgroundColor: "rgba(30, 35, 40, 0.4)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
-              color: logContent.severity === "error" ? "error.light" : logContent.severity === "warning" ? "warning.light" : "grey.300",
+              color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
               mb: 1
             }}>
-              {logContent.content}
+              {logContent?.content}
             </Box>
           </div>
         );

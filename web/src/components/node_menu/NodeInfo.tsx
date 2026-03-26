@@ -192,12 +192,12 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   );
 
   const renderTags = (tags: string = "") => {
-    return tags?.split(",").map((tag, index) => {
+    return tags?.split(",").map((tag) => {
       const trimmedTag = tag.trim();
       return (
         <span
           onClick={handleTagClick(trimmedTag)}
-          key={index}
+          key={trimmedTag}
           className="tag"
         >
           {trimmedTag}
@@ -237,13 +237,17 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </Typography>
 
-      {nodeMetadata.the_model_info?.cover_image_url && (
-        <img
-          className="preview-image"
-          src={nodeMetadata.the_model_info.cover_image_url as string}
-          alt={nodeMetadata.title}
-        />
-      )}
+      {nodeMetadata.the_model_info?.cover_image_url ? (
+        isLoading ? (
+          <div className="preview-image loading"></div>
+        ) : (
+          <img
+            className="preview-image"
+            src={nodeMetadata.the_model_info.cover_image_url as string}
+            alt={nodeMetadata.title}
+          />
+        )
+      ) : null}
 
       <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
 

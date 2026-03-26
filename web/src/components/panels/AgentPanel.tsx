@@ -513,6 +513,79 @@ const AgentPanel: React.FC = () => {
   }, [activeSessionEntry?.provider, provider]);
   const resumeMenuOpen = Boolean(resumeAnchorEl);
 
+  // Stable handler for opening resume menu
+  const handleResumeMenuOpen = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setResumeAnchorEl(event.currentTarget);
+    },
+    []
+  );
+
+  // Stable handler for closing resume menu
+  const handleResumeMenuClose = useCallback(() => {
+    setResumeAnchorEl(null);
+  }, []);
+
+  // Stable handler for resume session with error handling
+  const handleResumeSessionWithError = useCallback(
+    (entryId: string) => () => {
+      setResumeAnchorEl(null);
+      void handleResumeSession(entryId).catch((err) => {
+        log.error("Failed to resume Agent session:", err);
+      });
+    },
+    [handleResumeSession]
+  );
+
+  // Stable handler for closing new session dialog
+  const handleNewSessionDialogClose = useCallback(() => {
+    if (!creatingSession) {
+      setNewSessionDialogOpen(false);
+    }
+  }, [creatingSession]);
+
+  // Stable handler for provider change in dialog
+  const handleProviderSelectChange = useCallback(
+    (_event: unknown, value: unknown) => {
+      const nextProvider = value as "claude" | "codex";
+      if (nextProvider === "claude" || nextProvider === "codex") {
+        setDraftProvider(nextProvider);
+      }
+    },
+    []
+  );
+
+  // Stable handler for model change in dialog
+  const handleModelSelectChange = useCallback(
+    (_event: unknown, value: unknown) => {
+      const stringValue = value as string;
+      if (typeof stringValue === "string") {
+        setDraftModel(stringValue);
+      }
+    },
+    []
+  );
+
+  // Stable handler for workspace change in dialog
+  const handleWorkspaceSelectChange = useCallback(
+    (_event: unknown, value: unknown) => {
+      const stringValue = value as string;
+      const val = stringValue === "" ? undefined : stringValue;
+      handleDialogWorkspaceChange(val);
+    },
+    [handleDialogWorkspaceChange]
+  );
+
+  // Stable handler for cancel button
+  const handleCancelNewSession = useCallback(() => {
+    setNewSessionDialogOpen(false);
+  }, []);
+
+  // Stable handler for confirm button
+  const handleConfirmNewSessionClick = useCallback(() => {
+    void handleConfirmNewSession();
+  }, [handleConfirmNewSession]);
+
   return (
     <Box css={containerStyles(theme)} className="agent-panel">
       <PanelHeadline
@@ -523,9 +596,7 @@ const AgentPanel: React.FC = () => {
               <span>
                 <IconButton
                   size="small"
-                  onClick={(event) => {
-                    setResumeAnchorEl(event.currentTarget);
-                  }}
+                  onClick={handleResumeMenuOpen}
                   disabled={!isAvailable || previousSessions.length === 0}
                   aria-label="Resume session"
                   sx={{
@@ -580,22 +651,12 @@ const AgentPanel: React.FC = () => {
             <Menu
               anchorEl={resumeAnchorEl}
               open={resumeMenuOpen}
-              onClose={() => {
-                setResumeAnchorEl(null);
-              }}
+              onClose={handleResumeMenuClose}
             >
               {previousSessions.map((entry) => (
                 <MenuItem
                   key={entry.id}
-                  onClick={() => {
-                    setResumeAnchorEl(null);
-                    handleResumeSession(entry.id).catch((err) => {
-                      log.error(
-                        "Failed to resume Agent session:",
-                        err
-                      );
-                    });
-                  }}
+                  onClick={handleResumeSessionWithError(entry.id)}
                 >
                   <span
                     style={{
@@ -615,11 +676,7 @@ const AgentPanel: React.FC = () => {
 
       <Dialog
         open={newSessionDialogOpen}
-        onClose={() => {
-          if (!creatingSession) {
-            setNewSessionDialogOpen(false);
-          }
-        }}
+        onClose={handleNewSessionDialogClose}
         fullWidth
         maxWidth="sm"
       >
@@ -635,12 +692,7 @@ const AgentPanel: React.FC = () => {
               labelId="agent-provider-label"
               value={draftProvider}
               label="Provider"
-              onChange={(event) => {
-                const nextProvider = event.target.value;
-                if (nextProvider === "claude" || nextProvider === "codex") {
-                  setDraftProvider(nextProvider);
-                }
-              }}
+              onChange={handleProviderSelectChange}
             >
               <MenuItem value="claude">Claude</MenuItem>
               <MenuItem value="codex">Codex</MenuItem>
@@ -653,11 +705,7 @@ const AgentPanel: React.FC = () => {
               labelId="agent-model-label"
               value={draftModel}
               label="Model"
-              onChange={(event) => {
-                if (typeof event.target.value === "string") {
-                  setDraftModel(event.target.value);
-                }
-              }}
+              onChange={handleModelSelectChange}
               disabled={draftModelsLoading || draftModels.length === 0}
             >
               {draftModels.map((entry) => (
@@ -674,10 +722,7 @@ const AgentPanel: React.FC = () => {
               labelId="agent-workspace-label"
               value={draftWorkspaceId ?? ""}
               label="Workspace"
-              onChange={(event) => {
-                const val = event.target.value;
-                handleDialogWorkspaceChange(val === "" ? undefined : val);
-              }}
+              onChange={handleWorkspaceSelectChange}
             >
               <MenuItem value="">
                 <em>None</em>
@@ -701,16 +746,14 @@ const AgentPanel: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => setNewSessionDialogOpen(false)}
+            onClick={handleCancelNewSession}
             disabled={creatingSession}
           >
             Cancel
           </Button>
           <Button
             variant="contained"
-            onClick={() => {
-              void handleConfirmNewSession();
-            }}
+            onClick={handleConfirmNewSessionClick}
             disabled={!canCreateSession}
           >
             {creatingSession ? "Starting..." : "Start Session"}

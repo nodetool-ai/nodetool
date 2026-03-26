@@ -2,7 +2,6 @@ import { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
-import { RepoPath } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 
 type ComfyModelItem = { name?: string; path?: string; repo_id?: string; downloaded?: boolean };

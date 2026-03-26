@@ -40,6 +40,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
     );
   }, [workflows, searchQuery]);
 
+
   const loadWorkflows = useCallback(async () => {
     try {
       const data = await apiService.getWorkflows();

@@ -147,7 +147,7 @@ const registerFrontendTools = () => {
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
-(window as any).log = log;
+window.log = log;
 installIpcLogBridge();
 
 if (isLocalhost) {

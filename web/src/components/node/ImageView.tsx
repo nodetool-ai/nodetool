@@ -181,6 +181,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
             size="small"
             onClick={handleDownload}
             sx={iconButtonStyle}
+            aria-label="Download image"
           >
             <DownloadIcon />
           </IconButton>
@@ -190,6 +191,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
             size="small"
             onClick={handleOpenInViewer}
             sx={iconButtonStyle}
+            aria-label="Open image in full-screen viewer"
           >
             <OpenInNewIcon />
           </IconButton>
@@ -198,7 +200,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       <img
         ref={imageRef}
         src={imageUrl}
-        alt=""
+        alt="Generated image output"
         onLoad={handleImageLoad}
         style={imageStyle}
         onDoubleClick={handleDoubleClick}

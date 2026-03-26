@@ -67,3 +67,4 @@ key.pem
 .codegpt
 __plans__
 .claude/settings.local.json
+.memory
