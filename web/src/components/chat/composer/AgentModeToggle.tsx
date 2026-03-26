@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import { StateIconButton } from "../../ui_primitives";
 import { Typography } from "@mui/material";
@@ -14,6 +14,10 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
   onToggle,
   disabled = false
 }) => {
+  const handleClick = useCallback(() => {
+    onToggle(!agentMode);
+  }, [agentMode, onToggle]);
+
   const tooltipContent = (
     <div style={{ textAlign: "center" }}>
       <Typography variant="inherit">
@@ -30,7 +34,7 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
       icon={<PsychologyIcon fontSize="small" />}
       tooltip={tooltipContent}
       tooltipPlacement="top"
-      onClick={() => onToggle(!agentMode)}
+      onClick={handleClick}
       disabled={disabled}
       size="small"
       isActive={agentMode}
