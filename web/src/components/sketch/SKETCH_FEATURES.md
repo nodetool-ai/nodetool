@@ -30,7 +30,7 @@
 - [x] adjustment tool semantics: current destructive adjustments should use preview + confirm/cancel, with no history spam while sliders move and exactly one undo step when confirmed
 - [x] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
 - [x] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
-- [x] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. make sure they show up as layers when opening the editor with image data from inputs.
+- [ ] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. make sure they show up as layers when opening the editor with image data from inputs. NOT WORKING YET!
 - [ ] add the next transform workflow: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
 
 ## PHASE 2 - FIXES

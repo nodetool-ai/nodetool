@@ -13,7 +13,14 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo, useCallback, useState, useRef, useEffect } from "react";
+import React, {
+  memo,
+  useMemo,
+  useCallback,
+  useState,
+  useRef,
+  useEffect
+} from "react";
 import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -70,7 +77,8 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       border: `1px solid ${theme.vars.palette.grey[900]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative",
-      transition: "border-color 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease",
+      transition:
+        "border-color 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease",
       boxShadow: opts.selected
         ? `0 0 0 1px ${opts.baseColor}, 0 1px 10px rgba(0,0,0,0.5)`
         : opts.isFocused
@@ -84,7 +92,9 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       outlineOffset: "-2px",
       "--node-primary-color": opts.baseColor,
       backdropFilter: opts.selected ? theme.vars.palette.glass.blur : "none",
-      WebkitBackdropFilter: opts.selected ? theme.vars.palette.glass.blur : "none",
+      WebkitBackdropFilter: opts.selected
+        ? theme.vars.palette.glass.blur
+        : "none",
       "&:hover:not(.sketch-node--selected)": {
         borderColor: theme.vars.palette.grey[500]
       }
@@ -232,9 +242,10 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       transform: "translate(0, -50%)",
       transformOrigin: "right center"
     },
-    "& .sketch-input-handles .react-flow__handle.react-flow__handle-left:hover": {
-      transform: "translate(0, -50%) scale(1.75, 1.5)"
-    }
+    "& .sketch-input-handles .react-flow__handle.react-flow__handle-left:hover":
+      {
+        transform: "translate(0, -50%) scale(1.75, 1.5)"
+      }
   });
 
 // Type metadata for handles
@@ -287,12 +298,18 @@ function getSketchOutputImageUri(
  *   - wrapped output       { output: { type: "image", uri: "..." } }
  */
 function extractImageUri(result: unknown): string | null {
-  if (!result || typeof result !== "object") { return null; }
+  if (!result || typeof result !== "object") {
+    return null;
+  }
   const r = result as Record<string, unknown>;
-  if (typeof r.uri === "string" && r.uri) { return r.uri; }
+  if (typeof r.uri === "string" && r.uri) {
+    return r.uri;
+  }
   if (r.output && typeof r.output === "object") {
     const out = r.output as Record<string, unknown>;
-    if (typeof out.uri === "string" && out.uri) return out.uri;
+    if (typeof out.uri === "string" && out.uri) {
+      return out.uri;
+    }
   }
   return null;
 }
@@ -307,7 +324,9 @@ interface SketchNodeProps extends NodeProps {
 const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const theme = useTheme();
   const hasParent = props.parentId !== undefined;
-  const isFocused = useNodeFocusStore((state) => state.focusedNodeId === props.id);
+  const isFocused = useNodeFocusStore(
+    (state) => state.focusedNodeId === props.id
+  );
   const inputAccentColor = theme.vars.palette.success.main;
   const sketchCss = useMemo(
     () =>
@@ -320,7 +339,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(null);
+  const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(
+    null
+  );
   const documentRef = useRef<SketchDocument | null>(null);
   const inputImageLoadedRef = useRef<string | null>(null);
   /** Last applied `layer_in_*` source URI per layer id (avoid reload loops). */
@@ -372,7 +393,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   );
 
   const inputImageSourceResult = useResultsStore((state) => {
-    if (!inputImageSourceId) return undefined;
+    if (!inputImageSourceId) {
+      return undefined;
+    }
     return (
       state.getOutputResult(props.data.workflow_id, inputImageSourceId) ??
       state.getResult(props.data.workflow_id, inputImageSourceId) ??
@@ -385,10 +408,11 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     for (const layer of exposedInputLayers) {
       const sourceId = getEdges().find(
         (e) =>
-          e.target === props.id &&
-          e.targetHandle === `layer_in_${layer.name}`
+          e.target === props.id && e.targetHandle === `layer_in_${layer.name}`
       )?.source;
-      if (sourceId) ids[layer.id] = sourceId;
+      if (sourceId) {
+        ids[layer.id] = sourceId;
+      }
     }
     return ids;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -545,7 +569,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const inputImageUri = useMemo((): string | null => {
     // Priority 1: connected upstream node result (the correct source)
     const fromResult = extractImageUri(inputImageSourceResult);
-    if (fromResult) { return fromResult; }
+    if (fromResult) {
+      return fromResult;
+    }
     // Priority 2: static property set without a live connection
     return extractImageUri(
       (staticProps as Record<string, unknown> | undefined)?.input_image
@@ -573,7 +599,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
         // Auto-resize canvas to match input image dimensions
         const canvasWidth = naturalWidth > 0 ? naturalWidth : doc.canvas.width;
-        const canvasHeight = naturalHeight > 0 ? naturalHeight : doc.canvas.height;
+        const canvasHeight =
+          naturalHeight > 0 ? naturalHeight : doc.canvas.height;
 
         const contentBounds = {
           x: 0,
@@ -673,16 +700,27 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 ];
           storeState.setDocument({
             ...currentDoc,
-            canvas: { ...currentDoc.canvas, width: canvasWidth, height: canvasHeight },
+            canvas: {
+              ...currentDoc.canvas,
+              width: canvasWidth,
+              height: canvasHeight
+            },
             layers: mergedLayers,
-            metadata: { ...currentDoc.metadata, updatedAt: new Date().toISOString() }
+            metadata: {
+              ...currentDoc.metadata,
+              updatedAt: new Date().toISOString()
+            }
           });
         } else {
           setEditorDocument(updatedDoc);
         }
       })
       .catch((err) => {
-        console.warn("[SketchNode] Failed to load input_image:", inputImageUri, err);
+        console.warn(
+          "[SketchNode] Failed to load input_image:",
+          inputImageUri,
+          err
+        );
         // Allow retry if the URI changes again
         inputImageLoadedRef.current = null;
       });
@@ -754,7 +792,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           if (isModalOpen) {
             const storeState = useSketchStore.getState();
             const currentDoc = storeState.document;
-            const storeLayerIdx = currentDoc.layers.findIndex((l) => l.id === layer.id);
+            const storeLayerIdx = currentDoc.layers.findIndex(
+              (l) => l.id === layer.id
+            );
             if (storeLayerIdx >= 0) {
               const storeLayers = [...currentDoc.layers];
               storeLayers[storeLayerIdx] = {
@@ -766,7 +806,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               storeState.setDocument({
                 ...currentDoc,
                 layers: storeLayers,
-                metadata: { ...currentDoc.metadata, updatedAt: new Date().toISOString() }
+                metadata: {
+                  ...currentDoc.metadata,
+                  updatedAt: new Date().toISOString()
+                }
               });
             }
           } else {
@@ -800,14 +843,24 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
           // Build all output properties in a single batch
           const outputProps: Record<string, unknown> = {
-            image: { type: "image", uri: imageDataUrl, asset_id: null, data: null }
+            image: {
+              type: "image",
+              uri: imageDataUrl,
+              asset_id: null,
+              data: null
+            }
           };
 
           // Export mask if designated
           const maskCanvas = await exportMask(sketchDoc);
           if (maskCanvas) {
             const maskDataUrl = canvasToDataUrl(maskCanvas);
-            outputProps.mask = { type: "image", uri: maskDataUrl, asset_id: null, data: null };
+            outputProps.mask = {
+              type: "image",
+              uri: maskDataUrl,
+              asset_id: null,
+              data: null
+            };
           }
 
           // Export individual layers marked as exposedAsOutput
@@ -940,7 +993,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     </div>
                   </>
                 ) : (
-                  <Typography className="hint">Click to open image editor</Typography>
+                  <Typography className="hint">
+                    Click to open image editor
+                  </Typography>
                 )}
               </div>
             </div>
