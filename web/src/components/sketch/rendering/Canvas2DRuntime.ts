@@ -153,8 +153,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
     activeStroke: ActiveStrokeInfo | null,
-    dirtyRect?: DirtyRect | null,
-    hiddenLayerId?: string | null
+    dirtyRect?: DirtyRect | null
   ): void {
     const ctx = targetCanvas.getContext("2d");
     if (!ctx) {
@@ -188,9 +187,6 @@ export class Canvas2DRuntime implements SketchRuntime {
         continue;
       }
       if (isolatedLayerId && layer.id !== isolatedLayerId) {
-        continue;
-      }
-      if (hiddenLayerId && layer.id === hiddenLayerId) {
         continue;
       }
       const layerCanvas = this.layerCanvases.get(layer.id);

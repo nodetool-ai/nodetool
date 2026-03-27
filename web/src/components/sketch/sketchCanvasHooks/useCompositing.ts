@@ -226,19 +226,13 @@ export function useCompositing({
             })
           }
         : doc;
-      // Buffered stroke preview: Canvas2D merges layer+stroke in compositeToDisplay.
-      // WebGPU uploads the same CPU merge into a temp texture (see WebGPURuntime)
-      // so the whole stack stays on one surface — never hide a layer and repaint
-      // it on the 2D overlay (browser blending vs GPU premultiplied looks like
-      // wrong / “double” opacity).
       const activeStroke = activeStrokeRef.current;
       rt.compositeToDisplay(
         targetCanvas,
         compositeDoc,
         isolatedLayerId ?? null,
         activeStroke,
-        dirtyRect,
-        null
+        dirtyRect
       );
     },
     // Include `backend` so that this callback (and the redraw/requestRedraw

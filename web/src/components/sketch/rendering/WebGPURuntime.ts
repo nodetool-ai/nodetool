@@ -442,8 +442,7 @@ export class WebGPURuntime implements SketchRuntime {
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
     activeStroke: ActiveStrokeInfo | null,
-    dirtyRect?: DirtyRect | null,
-    _hiddenLayerId?: string | null
+    dirtyRect?: DirtyRect | null
   ): void {
     // Ensure context is configured for this canvas
     this.configureContext(targetCanvas);
@@ -869,6 +868,11 @@ export class WebGPURuntime implements SketchRuntime {
       texture.destroy();
     }
     this.layerTextures.clear();
+    if (this.strokeMergeTexture) {
+      this.strokeMergeTexture.destroy();
+      this.strokeMergeTexture = null;
+    }
+    this.strokeMergeCpuCanvas = null;
     this.cpuRuntime.dispose();
     this.dirtyLayers.clear();
     this.context = null;

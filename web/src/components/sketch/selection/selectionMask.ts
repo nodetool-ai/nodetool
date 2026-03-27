@@ -6,167 +6,51 @@ import type { Point, Selection } from "../types";
 
 const THRESH = 128;
 
-function clampSketchZoom(zoom: number): number {
-  return Math.max(0.02, Math.min(zoom, 64));
-}
-
-type DocSegment = readonly [number, number, number, number];
-
 /**
- * Stroke width and dash lengths in **document** coordinates so that after the
- * sketch overlay’s CSS `scale(zoom)`, the border reads as ~constant CSS pixels
- * on screen. Selection masks stay integer document pixels; only the chrome scales.
+ * Marching-ants cell size in **document** pixels. The overlay uses CSS
+ * `scale(zoom)`, so one bitmap pixel already spans `zoom` CSS pixels — do not
+ * enlarge cells when zoom >= 1. When zoomed out, coarsen so the pattern stays
+ * visible after shrink.
  */
-function strokeScreenSpaceMarchingAntSegments(
-  ctx: CanvasRenderingContext2D,
-  zoom: number,
-  phase: number,
-  segments: DocSegment[]
-): void {
-  if (segments.length === 0) {
-    return;
+function selectionOutlineCellSize(zoom: number): number {
+  const z = Math.max(0.02, Math.min(zoom, 64));
+  if (z >= 1) {
+    return 1;
   }
-  const z = clampSketchZoom(zoom);
-  const lineW = 1 / z;
-  const dashLen = 3 / z;
-  const gapLen = 3 / z;
-  const cycle = dashLen + gapLen;
-  const offset = -((phase % 256) / 32) * cycle;
-
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  ctx.lineCap = "butt";
-  ctx.lineJoin = "miter";
-  ctx.miterLimit = 2;
-  ctx.lineWidth = lineW;
-  ctx.setLineDash([dashLen, gapLen]);
-
-  for (const s of segments) {
-    const [x0, y0, x1, y1] = s;
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineDashOffset = offset;
-    ctx.stroke();
-    ctx.strokeStyle = "#000000";
-    ctx.lineDashOffset = offset + dashLen;
-    ctx.stroke();
-  }
-  ctx.restore();
+  return Math.max(1, Math.min(16, Math.ceil(1 / z)));
 }
 
-function strokeScreenSpaceMarchingAntPath(
-  ctx: CanvasRenderingContext2D,
-  zoom: number,
-  phase: number,
-  buildPath: (c: CanvasRenderingContext2D) => void
+function bresenhamPlot(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  plot: (x: number, y: number) => void
 ): void {
-  const z = clampSketchZoom(zoom);
-  const lineW = 1 / z;
-  const dashLen = 3 / z;
-  const gapLen = 3 / z;
-  const cycle = dashLen + gapLen;
-  const offset = -((phase % 256) / 32) * cycle;
-
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  ctx.lineCap = "butt";
-  ctx.lineJoin = "miter";
-  ctx.miterLimit = 2;
-  ctx.lineWidth = lineW;
-  ctx.setLineDash([dashLen, gapLen]);
-  ctx.beginPath();
-  buildPath(ctx);
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineDashOffset = offset;
-  ctx.stroke();
-  ctx.strokeStyle = "#000000";
-  ctx.lineDashOffset = offset + dashLen;
-  ctx.stroke();
-  ctx.restore();
-}
-
-/** Axis-aligned contour segments on the document pixel grid (merged runs). */
-function collectSelectionMaskContourSegments(mask: Selection): DocSegment[] {
-  const { width: w, height: h, data } = mask;
-  const inside = (x: number, y: number): boolean =>
-    x >= 0 && y >= 0 && x < w && y < h && data[y * w + x] >= THRESH;
-
-  const vert = new Map<number, number[]>();
-  const horiz = new Map<number, number[]>();
-
-  const addVert = (x: number, y: number): void => {
-    let arr = vert.get(x);
-    if (!arr) {
-      arr = [];
-      vert.set(x, arr);
+  let x0r = Math.round(x0);
+  let y0r = Math.round(y0);
+  const x1r = Math.round(x1);
+  const y1r = Math.round(y1);
+  const dx = Math.abs(x1r - x0r);
+  const dy = Math.abs(y1r - y0r);
+  const sx = x0r < x1r ? 1 : -1;
+  const sy = y0r < y1r ? 1 : -1;
+  let err = dx - dy;
+  for (;;) {
+    plot(x0r, y0r);
+    if (x0r === x1r && y0r === y1r) {
+      break;
     }
-    arr.push(y);
-  };
-  const addHoriz = (yLine: number, x: number): void => {
-    let arr = horiz.get(yLine);
-    if (!arr) {
-      arr = [];
-      horiz.set(yLine, arr);
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0r += sx;
     }
-    arr.push(x);
-  };
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (!inside(x, y)) {
-        continue;
-      }
-      if (x === 0 || !inside(x - 1, y)) {
-        addVert(x, y);
-      }
-      if (x === w - 1 || !inside(x + 1, y)) {
-        addVert(x + 1, y);
-      }
-      if (y === 0 || !inside(x, y - 1)) {
-        addHoriz(y, x);
-      }
-      if (y === h - 1 || !inside(x, y + 1)) {
-        addHoriz(y + 1, x);
-      }
+    if (e2 < dx) {
+      err += dx;
+      y0r += sy;
     }
   }
-
-  const mergeRuns = (values: number[]): Array<[number, number]> => {
-    if (values.length === 0) {
-      return [];
-    }
-    values.sort((a, b) => a - b);
-    const runs: Array<[number, number]> = [];
-    let s = values[0];
-    let e = values[0] + 1;
-    for (let i = 1; i < values.length; i++) {
-      const v = values[i];
-      if (v <= e) {
-        e = Math.max(e, v + 1);
-      } else {
-        runs.push([s, e]);
-        s = v;
-        e = v + 1;
-      }
-    }
-    runs.push([s, e]);
-    return runs;
-  };
-
-  const out: DocSegment[] = [];
-  for (const [x, ys] of vert) {
-    for (const [y0, y1] of mergeRuns(ys)) {
-      out.push([x, y0, x, y1]);
-    }
-  }
-  for (const [yLine, xs] of horiz) {
-    for (const [x0, x1] of mergeRuns(xs)) {
-      out.push([x0, yLine, x1, yLine]);
-    }
-  }
-  return out;
 }
 
 export function createEmptyMask(width: number, height: number): Selection {
@@ -629,8 +513,9 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
 }
 
 /**
- * Marching ants along an open polyline (lasso in progress). Path is in document
- * pixels; stroke width and dashes are scaled for constant on-screen size.
+ * Marching ants along an open polyline (lasso in progress). Integer fillRects on
+ * the document pixel grid stay sharp when the overlay is CSS-scaled; `phase`
+ * drives the checker crawl.
  */
 export function drawSelectionPolylineOutline(
   ctx: CanvasRenderingContext2D,
@@ -641,27 +526,120 @@ export function drawSelectionPolylineOutline(
   if (points.length < 2) {
     return;
   }
-  strokeScreenSpaceMarchingAntPath(ctx, zoom, phase, (c) => {
-    c.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      c.lineTo(points[i].x, points[i].y);
+  const cell = selectionOutlineCellSize(zoom);
+  const drawn = new Set<string>();
+
+  const plot = (x: number, y: number): void => {
+    if (cell <= 1) {
+      const on = ((x + y + phase) >> 2) % 2 === 0;
+      ctx.fillStyle = on ? "#ffffff" : "#000000";
+      ctx.fillRect(x, y, 1, 1);
+      return;
     }
-  });
+    const qx = Math.floor(x / cell);
+    const qy = Math.floor(y / cell);
+    const key = `${qx},${qy}`;
+    if (drawn.has(key)) {
+      return;
+    }
+    drawn.add(key);
+    const on = ((qx + qy + phase) & 1) === 0;
+    ctx.fillStyle = on ? "#ffffff" : "#000000";
+    ctx.fillRect(qx * cell, qy * cell, cell, cell);
+  };
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    bresenhamPlot(a.x, a.y, b.x, b.y, plot);
+  }
+  ctx.restore();
 }
 
-/** Marching ants on the mask boundary (document pixel grid, screen-spaced stroke). */
+/** Marching ants on mask edges (document pixels; `phase` animates the checker). */
 export function drawSelectionMaskOutline(
   ctx: CanvasRenderingContext2D,
   mask: Selection,
   phase: number,
   zoom = 1
 ): void {
-  strokeScreenSpaceMarchingAntSegments(
-    ctx,
-    zoom,
-    phase,
-    collectSelectionMaskContourSegments(mask)
-  );
+  const { width: w, height: h, data } = mask;
+  const cell = selectionOutlineCellSize(zoom);
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+
+  const isEdge = (x: number, y: number, idx: number): boolean =>
+    x === 0 ||
+    y === 0 ||
+    x === w - 1 ||
+    y === h - 1 ||
+    data[idx - 1] < THRESH ||
+    data[idx + 1] < THRESH ||
+    data[idx - w] < THRESH ||
+    data[idx + w] < THRESH;
+
+  if (cell <= 1) {
+    for (let y = 1; y < h - 1; y++) {
+      const row = y * w;
+      for (let x = 1; x < w - 1; x++) {
+        const idx = row + x;
+        if (data[idx] < THRESH || !isEdge(x, y, idx)) {
+          continue;
+        }
+        ctx.fillStyle = ((x + y + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+    // Border rows/columns (always edge if selected)
+    for (let x = 0; x < w; x++) {
+      if (data[x] >= THRESH) {
+        ctx.fillStyle = ((x + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
+        ctx.fillRect(x, 0, 1, 1);
+      }
+      const last = (h - 1) * w + x;
+      if (data[last] >= THRESH) {
+        ctx.fillStyle = ((x + h - 1 + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
+        ctx.fillRect(x, h - 1, 1, 1);
+      }
+    }
+    for (let y = 1; y < h - 1; y++) {
+      if (data[y * w] >= THRESH) {
+        ctx.fillStyle = ((y + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
+        ctx.fillRect(0, y, 1, 1);
+      }
+      if (data[y * w + w - 1] >= THRESH) {
+        ctx.fillStyle = ((w - 1 + y + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
+        ctx.fillRect(w - 1, y, 1, 1);
+      }
+    }
+    ctx.restore();
+    return;
+  }
+
+  const cw = Math.ceil(w / cell);
+  const drawn = new Uint8Array(cw * Math.ceil(h / cell));
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      const idx = row + x;
+      if (data[idx] < THRESH || !isEdge(x, y, idx)) {
+        continue;
+      }
+      const qx = (x / cell) | 0;
+      const qy = (y / cell) | 0;
+      const qi = qy * cw + qx;
+      if (drawn[qi]) {
+        continue;
+      }
+      drawn[qi] = 1;
+      ctx.fillStyle = ((qx + qy + phase) & 1) === 0 ? "#fff" : "#000";
+      ctx.fillRect(qx * cell, qy * cell, cell, cell);
+    }
+  }
+  ctx.restore();
 }
 
 /** Clip layer-space context to document selection (offset = document coord of layer 0,0). */

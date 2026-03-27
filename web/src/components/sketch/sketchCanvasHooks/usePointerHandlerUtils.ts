@@ -404,6 +404,9 @@ export function usePointerHandlerUtils({
   );
 
   // ─── Active-stroke preview ─────────────────────────────────────────
+  // Buffered strokes are merged into the display target (Canvas2D composite or
+  // WebGPU upload), so this just clears the overlay — painting the merge here
+  // would stack with the display and produce wrong opacity.
   const drawActiveStrokePreview = useCallback(() => {
     const overlay = overlayCanvasRef.current;
     if (!overlay) {
@@ -414,14 +417,7 @@ export function usePointerHandlerUtils({
       return;
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = "source-over";
-    ctx.filter = "none";
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    ctx.imageSmoothingEnabled = false;
-    // Buffered stroke is merged into the display target (Canvas2D composite or
-    // WebGPU upload). Never paint the same merge here — it stacks with the
-    // display and reads as wrong opacity / double compositing.
   }, [overlayCanvasRef]);
 
   return {
