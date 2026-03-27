@@ -15,6 +15,7 @@ import { BrushTool } from "../tools/BrushTool";
 import { PencilTool } from "../tools/PencilTool";
 import { EraserTool } from "../tools/EraserTool";
 import { MoveTool } from "../tools/MoveTool";
+import { TransformTool } from "../tools/TransformTool";
 import { FillTool } from "../tools/FillTool";
 import { ShapeTool } from "../tools/ShapeTool";
 import { GradientTool } from "../tools/GradientTool";
@@ -113,6 +114,7 @@ describe("getToolHandler factory", () => {
       "pencil",
       "eraser",
       "move",
+      "transform",
       "fill",
       "shape",
       "gradient",
@@ -150,6 +152,7 @@ describe("tool handler interface compliance", () => {
     PencilTool,
     EraserTool,
     MoveTool,
+    TransformTool,
     FillTool,
     ShapeTool,
     GradientTool,
@@ -230,6 +233,80 @@ describe("MoveTool", () => {
     doc.activeLayerId = refLayer.id;
     const ctx = makeToolContext({ doc });
     expect(tool.onDown(ctx, makePointerEvent())).toBe(true);
+  });
+});
+
+describe("TransformTool", () => {
+  it("stores original transform on activation", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const layer = doc.layers[0];
+    layer.transform = { x: 5, y: 10, scaleX: 2, scaleY: 1.5, rotation: 0.5 };
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    const orig = tool.getOriginalTransform();
+    expect(orig.x).toBe(5);
+    expect(orig.y).toBe(10);
+    expect(orig.scaleX).toBe(2);
+    expect(orig.scaleY).toBe(1.5);
+    expect(orig.rotation).toBe(0.5);
+  });
+
+  it("returns false when the active layer is locked", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const layer = doc.layers[0];
+    layer.locked = true;
+    const ctx = makeToolContext({ doc });
+    expect(tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }))).toBe(false);
+  });
+
+  it("starts a move gesture when clicking inside the layer bounds", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    // Click in center of 64x64 layer — should be inside bounds
+    const result = tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    expect(result).toBe(true);
+    expect(ctx.onStrokeStart).toHaveBeenCalled();
+  });
+
+  it("translates the layer when dragging with move handle", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 42, y: 37 } }), []);
+    expect(ctx.onLayerTransformChange).toHaveBeenCalledWith(
+      doc.activeLayerId,
+      expect.objectContaining({ x: 10, y: 5 })
+    );
+  });
+
+  it("calls onStrokeEnd on pointer up", () => {
+    const tool = new TransformTool();
+    const doc = createDefaultDocument(64, 64);
+    const ctx = makeToolContext({ doc });
+    tool.onActivate!(ctx);
+    tool.onDown(ctx, makePointerEvent({ point: { x: 32, y: 32 } }));
+    tool.onUp!(ctx, makePointerEvent());
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
+      doc.activeLayerId,
+      null,
+      undefined,
+      { syncDocumentFromCanvas: false }
+    );
+  });
+
+  it("clears overlay on deactivation", () => {
+    const tool = new TransformTool();
+    const ctx = makeToolContext();
+    tool.onActivate!(ctx);
+    tool.onDeactivate!(ctx);
+    expect(ctx.clearOverlay).toHaveBeenCalled();
+    expect(ctx.drawSelectionOverlay).toHaveBeenCalled();
   });
 });
 

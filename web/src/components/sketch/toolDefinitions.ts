@@ -20,6 +20,7 @@ import BlurOnIcon from "@mui/icons-material/BlurOn";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import GradientIcon from "@mui/icons-material/Gradient";
 import CropIcon from "@mui/icons-material/Crop";
+import TransformIcon from "@mui/icons-material/Transform";
 import TuneIcon from "@mui/icons-material/Tune";
 import type { SketchTool } from "./types";
 
@@ -39,6 +40,7 @@ export interface ToolDefinition {
 
 export const PAINTING_TOOLS: ToolDefinition[] = [
   { tool: "move", label: "Move", shortcut: "V", Icon: OpenWithIcon, group: "painting" },
+  { tool: "transform", label: "Transform", shortcut: "F", Icon: TransformIcon, group: "painting" },
   { tool: "select", label: "Select", Icon: SelectAllIcon, group: "painting" },
   { tool: "brush", label: "Brush", shortcut: "B", Icon: BrushIcon, group: "painting" },
   { tool: "pencil", label: "Pencil", shortcut: "P", Icon: CreateIcon, group: "painting" },

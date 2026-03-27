@@ -234,7 +234,7 @@ export class Canvas2DRuntime implements SketchRuntime {
           ctx.globalCompositeOperation = blendModeToComposite(
             layer.blendMode || "normal"
           );
-          ctx.drawImage(tempCanvas, compositeOffset.x, compositeOffset.y);
+          this.drawWithTransform(ctx, tempCanvas, compositeOffset, layer);
           ctx.restore();
         }
       } else {
@@ -243,7 +243,7 @@ export class Canvas2DRuntime implements SketchRuntime {
         ctx.globalCompositeOperation = blendModeToComposite(
           layer.blendMode || "normal"
         );
-        ctx.drawImage(layerCanvas, compositeOffset.x, compositeOffset.y);
+        this.drawWithTransform(ctx, layerCanvas, compositeOffset, layer);
         ctx.restore();
       }
     }
@@ -259,6 +259,34 @@ export class Canvas2DRuntime implements SketchRuntime {
       ctx.lineWidth = 1;
       ctx.strokeRect(0.5, 0.5, fullW - 1, fullH - 1);
       ctx.restore();
+    }
+  }
+
+  // ─── Transform-aware drawing ─────────────────────────────────────────
+
+  /**
+   * Draw a source canvas into the target context, applying any scale/rotation
+   * from the layer transform around the content center.
+   */
+  private drawWithTransform(
+    ctx: CanvasRenderingContext2D,
+    source: HTMLCanvasElement,
+    compositeOffset: { x: number; y: number },
+    layer: { transform: { scaleX?: number; scaleY?: number; rotation?: number } }
+  ): void {
+    const sx = layer.transform.scaleX ?? 1;
+    const sy = layer.transform.scaleY ?? 1;
+    const rot = layer.transform.rotation ?? 0;
+
+    if (sx !== 1 || sy !== 1 || rot !== 0) {
+      const cx = compositeOffset.x + source.width / 2;
+      const cy = compositeOffset.y + source.height / 2;
+      ctx.translate(cx, cy);
+      ctx.rotate(rot);
+      ctx.scale(sx, sy);
+      ctx.drawImage(source, -source.width / 2, -source.height / 2);
+    } else {
+      ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
     }
   }
 
@@ -291,7 +319,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       },
       layerCanvas
     );
-    ctx.drawImage(layerCanvas, compositeOffset.x, compositeOffset.y);
+    this.drawWithTransform(ctx, layerCanvas, compositeOffset, layer);
     ctx.restore();
   }
 
@@ -1038,7 +1066,13 @@ export class Canvas2DRuntime implements SketchRuntime {
 
     const tx = layer.transform?.x ?? 0;
     const ty = layer.transform?.y ?? 0;
-    if (tx === 0 && ty === 0) {
+    const sx = layer.transform?.scaleX ?? 1;
+    const sy = layer.transform?.scaleY ?? 1;
+    const rot = layer.transform?.rotation ?? 0;
+    const hasTranslation = tx !== 0 || ty !== 0;
+    const hasScaleOrRotation = sx !== 1 || sy !== 1 || rot !== 0;
+
+    if (!hasTranslation && !hasScaleOrRotation) {
       setCanvasRasterBounds(canvas, {
         x: 0,
         y: 0,
@@ -1085,7 +1119,18 @@ export class Canvas2DRuntime implements SketchRuntime {
       });
     }
 
-    tempCtx.drawImage(source, tx, ty);
+    // Apply full transform: translate to position, then scale/rotate around center
+    if (hasScaleOrRotation) {
+      const cx = tx + source.width / 2;
+      const cy = ty + source.height / 2;
+      tempCtx.translate(cx, cy);
+      tempCtx.rotate(rot);
+      tempCtx.scale(sx, sy);
+      tempCtx.drawImage(source, -source.width / 2, -source.height / 2);
+    } else {
+      tempCtx.drawImage(source, tx, ty);
+    }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(temp, 0, 0);
     setCanvasRasterBounds(canvas, {

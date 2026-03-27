@@ -96,6 +96,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     [store.selection]
   );
 
+  const activeLayerTransform = useMemo(() => {
+    const layer = store.document.layers.find(
+      (l) => l.id === store.document.activeLayerId
+    );
+    return layer?.transform ?? { x: 0, y: 0 };
+  }, [store.document]);
+
   // ─── Flush ref (filled in after canvasActions is created) ──────────
   const flushBeforeUndoRef = useRef<() => void>(() => {});
 
@@ -143,6 +150,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     updateLayerData: store.updateLayerData,
     offsetLayerTransform: store.offsetLayerTransform,
     commitLayerTransform: store.commitLayerTransform,
+    setLayerTransform: store.setLayerTransform,
     setLayerContentBounds: store.setLayerContentBounds,
     setDocument: store.setDocument,
     setZoom: store.setZoom,
@@ -177,6 +185,20 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       store.activeTool !== "adjust"
     ) {
       canvasActions.handleCancelAdjustments();
+    }
+    // Save transform baseline when switching to "transform"
+    if (
+      prevAdjustToolRef.current !== "transform" &&
+      store.activeTool === "transform"
+    ) {
+      canvasActions.saveTransformOriginal();
+    }
+    // Cancel transform when switching away from "transform"
+    if (
+      prevAdjustToolRef.current === "transform" &&
+      store.activeTool !== "transform"
+    ) {
+      canvasActions.handleTransformCancel();
     }
     prevAdjustToolRef.current = store.activeTool;
   }, [store.activeTool, canvasActions]);
@@ -340,6 +362,12 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onAdjustSaturationChange={canvasActions.setAdjSaturation}
             onAdjustApply={canvasActions.handleApplyAdjustments}
             onAdjustCancel={canvasActions.handleCancelAdjustments}
+            transformScaleX={activeLayerTransform.scaleX ?? 1}
+            transformScaleY={activeLayerTransform.scaleY ?? 1}
+            transformRotation={activeLayerTransform.rotation ?? 0}
+            onTransformCommit={canvasActions.handleTransformCommit}
+            onTransformCancel={canvasActions.handleTransformCancel}
+            onTransformReset={canvasActions.handleTransformReset}
           />
         )}
 

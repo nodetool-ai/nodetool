@@ -14,7 +14,9 @@ import type {
 } from "../types";
 import {
   drawShapeOnCtx as drawShapeOnCtxUtil,
-  drawGradient as drawGradientUtil
+  drawGradient as drawGradientUtil,
+  drawPixelGrid,
+  PIXEL_GRID_MIN_ZOOM
 } from "../drawingUtils";
 import {
   drawSelectionMaskOutline,
@@ -101,6 +103,18 @@ export function useOverlayRenderer({
 
   // ─── Overlay helpers ───────────────────────────────────────────────
 
+  /** Paint the pixel grid on the overlay canvas (underneath other overlays). */
+  const paintPixelGridOverlay = useCallback(
+    (ctx: CanvasRenderingContext2D) => {
+      const overlay = overlayCanvasRef.current;
+      if (!overlay) {
+        return;
+      }
+      drawPixelGrid(ctx, overlay.width, overlay.height, zoom);
+    },
+    [overlayCanvasRef, zoom]
+  );
+
   const clearOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
     if (!overlay) {
@@ -109,8 +123,9 @@ export function useOverlayRenderer({
     const ctx = overlay.getContext("2d");
     if (ctx) {
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ctx);
     }
-  }, [overlayCanvasRef]);
+  }, [overlayCanvasRef, paintPixelGridOverlay]);
 
   /** Marching ants for the committed mask, drawn under in-progress marquee/lasso previews. */
   const paintExistingSelectionMaskOutline = useCallback(
@@ -124,10 +139,7 @@ export function useOverlayRenderer({
 
   const drawSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
-    if (!overlay || !selection || !selectionHasAnyPixels(selection)) {
-      return;
-    }
-    if (selectStartRef.current || lassoPointsRef.current.length > 0) {
+    if (!overlay) {
       return;
     }
     const ctx = overlay.getContext("2d");
@@ -136,9 +148,14 @@ export function useOverlayRenderer({
     }
     ctx.save();
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
+    paintPixelGridOverlay(ctx);
+    if (selection && selectionHasAnyPixels(selection)) {
+      if (!selectStartRef.current && lassoPointsRef.current.length === 0) {
+        drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
+      }
+    }
     ctx.restore();
-  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef, zoom]);
+  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef, zoom, paintPixelGridOverlay]);
 
   const appendSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
@@ -212,9 +229,10 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ctx);
       drawShapeOnCtxUtil(ctx, doc.toolSettings.shape.shapeType, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
     },
-    [doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef]
+    [doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef, paintPixelGridOverlay]
   );
 
   const drawOverlayGradient = useCallback(
@@ -228,6 +246,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ctx);
       drawGradientUtil(ctx, start, end, doc.toolSettings.gradient);
       // Draw guide line
       ctx.save();
@@ -240,7 +259,7 @@ export function useOverlayRenderer({
       ctx.stroke();
       ctx.restore();
     },
-    [doc.toolSettings.gradient, overlayCanvasRef]
+    [doc.toolSettings.gradient, overlayCanvasRef, paintPixelGridOverlay]
   );
 
   const drawOverlayCrop = useCallback(
@@ -254,6 +273,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ctx);
       const x = Math.min(start.x, end.x);
       const y = Math.min(start.y, end.y);
       const w = Math.abs(end.x - start.x);
@@ -269,7 +289,7 @@ export function useOverlayRenderer({
       ctx.strokeRect(x, y, w, h);
       ctx.restore();
     },
-    [overlayCanvasRef]
+    [overlayCanvasRef, paintPixelGridOverlay]
   );
 
   const drawOverlaySelection = useCallback(
@@ -283,6 +303,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ctx);
       paintExistingSelectionMaskOutline(ctx);
       const x = Math.min(start.x, end.x);
       const y = Math.min(start.y, end.y);
@@ -294,7 +315,7 @@ export function useOverlayRenderer({
       const previewMask = rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
       drawSelectionMaskOutline(ctx, previewMask, antsPhaseRef.current, zoom);
     },
-    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline]
+    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline, paintPixelGridOverlay]
   );
 
   const drawOverlayLassoPreview = useCallback(
@@ -308,6 +329,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ctx);
       paintExistingSelectionMaskOutline(ctx);
       const path: Point[] = cursor ? [...points, cursor] : [...points];
       if (path.length < 2) {
@@ -315,7 +337,7 @@ export function useOverlayRenderer({
       }
       drawSelectionPolylineOutline(ctx, path, antsPhaseRef.current, zoom);
     },
-    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline]
+    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline, paintPixelGridOverlay]
   );
 
   // ─── Cursor rendering ──────────────────────────────────────────────
@@ -348,6 +370,7 @@ export function useOverlayRenderer({
       let roundness = 1;
       let angle = 0;
       let hardnessScale = 1;
+      let isPencilHighZoom = false;
       if (activeTool === "brush") {
         size = doc.toolSettings.brush.size;
         roundness = doc.toolSettings.brush.roundness;
@@ -368,6 +391,7 @@ export function useOverlayRenderer({
         }
       } else if (activeTool === "pencil") {
         size = doc.toolSettings.pencil.size;
+        isPencilHighZoom = zoom >= PIXEL_GRID_MIN_ZOOM;
       } else if (activeTool === "blur") {
         size = doc.toolSettings.blur.size;
       } else if (activeTool === "clone_stamp") {
@@ -395,6 +419,52 @@ export function useOverlayRenderer({
             hardnessScale = innerStop + (1 - innerStop) * 0.5;
           }
         }
+      }
+
+      // ── Pencil pixel-snap cursor at high zoom ─────────────────────────
+      if (isPencilHighZoom) {
+        // Show a pixel-aligned square cursor that snaps to the grid
+        const container = containerRef.current;
+        const display = overlayCanvasRef.current;
+        if (container && display) {
+          const rect = display.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const offsetLeft = rect.left - containerRect.left;
+          const offsetTop = rect.top - containerRect.top;
+          // Compute which document pixel the cursor is over
+          const docX = Math.floor((screenX - offsetLeft) / zoom);
+          const docY = Math.floor((screenY - offsetTop) / zoom);
+          // Convert the snapped pixel back to screen coords
+          const pixelScreenX = (docX * zoom) + offsetLeft;
+          const pixelScreenY = (docY * zoom) + offsetTop;
+          const pixelSize = size * zoom;
+
+          ctx.save();
+          // Filled pixel preview with tool color at low opacity
+          ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.fillRect(pixelScreenX, pixelScreenY, pixelSize, pixelSize);
+          // Outline
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(pixelScreenX + 0.5, pixelScreenY + 0.5, pixelSize - 1, pixelSize - 1);
+          ctx.restore();
+
+          // Center crosshair
+          const cx = pixelScreenX + pixelSize / 2;
+          const cy = pixelScreenY + pixelSize / 2;
+          const crossLen = Math.max(4, pixelSize * 0.3);
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cx - crossLen, cy);
+          ctx.lineTo(cx + crossLen, cy);
+          ctx.moveTo(cx, cy - crossLen);
+          ctx.lineTo(cx, cy + crossLen);
+          ctx.stroke();
+          ctx.restore();
+        }
+        return;
       }
 
       // Calculate the visual radius on screen (accounting for zoom and hardness)
@@ -444,7 +514,9 @@ export function useOverlayRenderer({
       doc.toolSettings.blur.size,
       doc.toolSettings.cloneStamp.size,
       zoom,
-      cursorCanvasRef
+      cursorCanvasRef,
+      containerRef,
+      overlayCanvasRef
     ]
   );
 

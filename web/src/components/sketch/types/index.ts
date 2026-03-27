@@ -60,6 +60,12 @@ export interface SelectSettings {
 export interface LayerTransform {
   x: number;
   y: number;
+  /** Horizontal scale factor. 1 = no scale. Default 1. */
+  scaleX?: number;
+  /** Vertical scale factor. 1 = no scale. Default 1. */
+  scaleY?: number;
+  /** Rotation in radians. 0 = no rotation. Default 0. */
+  rotation?: number;
 }
 
 export interface LayerContentBounds {
@@ -91,6 +97,7 @@ export const SYMMETRY_DEFAULT_RAYS = 6;
 
 export type SketchTool =
   | "move"
+  | "transform"
   | "select"
   | "brush"
   | "pencil"
@@ -623,7 +630,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         collapsed: layer.collapsed ?? false,
         transform: {
           x: layer.transform?.x ?? 0,
-          y: layer.transform?.y ?? 0
+          y: layer.transform?.y ?? 0,
+          scaleX: layer.transform?.scaleX,
+          scaleY: layer.transform?.scaleY,
+          rotation: layer.transform?.rotation
         },
         contentBounds: {
           x: layer.contentBounds?.x ?? 0,
@@ -887,6 +897,7 @@ export type EditActionKind = "transform-only" | "pixel-edit" | "none";
 export function editActionKindForTool(tool: SketchTool): EditActionKind {
   switch (tool) {
     case "move":
+    case "transform":
       return "transform-only";
     case "eyedropper":
     case "select":

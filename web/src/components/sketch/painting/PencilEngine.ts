@@ -40,7 +40,8 @@ export class PencilEngine implements PaintEngine {
   }
 
   stabilize(raw: Point): Point {
-    return raw;
+    // Snap to pixel centers for crisp pixel-art drawing
+    return { x: Math.round(raw.x), y: Math.round(raw.y) };
   }
 
   evaluate(
@@ -50,14 +51,17 @@ export class PencilEngine implements PaintEngine {
     pressure: number | undefined,
     branchIdx: number
   ): void {
+    // Snap coordinates to integer pixels
+    const snappedFrom = { x: Math.round(from.x), y: Math.round(from.y) };
+    const snappedTo = { x: Math.round(to.x), y: Math.round(to.y) };
     let stampState = this.stampStates.get(branchIdx);
     if (!stampState) {
       stampState = { hasStamped: false, distanceToNextDab: 0 };
       this.stampStates.set(branchIdx, stampState);
     }
     drawPencilStrokeUtil(
-      from,
-      to,
+      snappedFrom,
+      snappedTo,
       this.settings,
       ctx,
       pressure,
