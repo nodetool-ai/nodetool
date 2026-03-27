@@ -35,7 +35,9 @@ import LockIcon from "@mui/icons-material/Lock";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference } from "./types";
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference, buildVisibleLayerTree } from "./types";
 import LayerItem from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
@@ -227,6 +229,10 @@ export interface SketchLayersPanelProps {
   canvasWidth: number;
   canvasHeight: number;
   onCanvasResize: (width: number, height: number) => void;
+  onAddGroup: (name?: string) => void;
+  onToggleGroupCollapsed: (groupId: string) => void;
+  onMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
+  onUngroupLayer: (groupId: string) => void;
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
@@ -255,7 +261,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onTrimLayerToBounds,
   canvasWidth,
   canvasHeight,
-  onCanvasResize
+  onCanvasResize,
+  onAddGroup,
+  onToggleGroupCollapsed,
+  onMoveLayerToGroup,
+  onUngroupLayer
 }) => {
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -336,12 +346,19 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     (realIdx: number) => {
       const from = dragSourceIndex.current;
       if (from !== null && from !== realIdx) {
-        onReorderLayers(from, realIdx);
+        const draggedLayer = layers[from];
+        const targetLayer = layers[realIdx];
+        // If dropping onto a group, reparent into that group
+        if (targetLayer && targetLayer.type === "group" && draggedLayer && draggedLayer.id !== targetLayer.id) {
+          onMoveLayerToGroup(draggedLayer.id, targetLayer.id);
+        } else {
+          onReorderLayers(from, realIdx);
+        }
       }
       dragSourceIndex.current = null;
       setDragOverIndex(null);
     },
-    [onReorderLayers]
+    [layers, onReorderLayers, onMoveLayerToGroup]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -442,6 +459,23 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[300] }} />
             </IconButton>
           </Tooltip>
+          <Tooltip title="Add Group">
+            <IconButton
+              size="small"
+              onClick={() => onAddGroup()}
+              sx={{
+                width: 26,
+                height: 26,
+                padding: 0,
+                borderRadius: "3px",
+                border: `1px solid ${theme.vars.palette.grey[500]}`,
+                backgroundColor: theme.vars.palette.grey[700],
+                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: theme.vars.palette.grey[600] }
+              }}
+            >
+              <CreateNewFolderIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }} />
+            </IconButton>
+          </Tooltip>
         </Box>
         <Box
           sx={{
@@ -530,43 +564,57 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <LayersIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
+          {activeLayer?.type === "group" && (
+            <Tooltip title="Ungroup">
+              <IconButton size="small" onClick={() => onUngroupLayer(activeLayerId)}>
+                <FolderOpenIcon sx={{ fontSize: "1.125rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       </Box>
 
       <Divider />
 
-      {/* Layer list (rendered top to bottom = last to first in array) */}
+      {/* Layer list (rendered top to bottom = last to first in array, tree-aware) */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-        {[...layers].reverse().map((layer, reverseIdx) => {
-          const realIdx = layers.length - 1 - reverseIdx;
-          return (
-            <LayerItem
-              key={layer.id}
-              layer={layer}
-              realIdx={realIdx}
-              isActive={layer.id === activeLayerId}
-              isMask={layer.id === maskLayerId}
-              isIsolated={layer.id === isolatedLayerId}
-              isDragOver={dragOverIndex === realIdx}
-              editingLayerId={editingLayerId}
-              editName={editName}
-              onSelectLayer={onSelectLayer}
-              onToggleVisibility={onToggleVisibility}
-              onToggleIsolateLayer={onToggleIsolateLayer}
-              onToggleExposedInput={onToggleExposedInput}
-              onToggleExposedOutput={onToggleExposedOutput}
-              onStartRename={handleStartRename}
-              onFinishRename={handleFinishRename}
-              onEditNameChange={handleEditNameChange}
-              onCancelRename={handleCancelRename}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onDragEnd={handleDragEnd}
-            />
-          );
-        })}
+        {(() => {
+          const visibleTree = buildVisibleLayerTree(layers);
+          // Reverse for rendering (top layer first in the panel)
+          const reversed = [...visibleTree].reverse();
+          return reversed.map(({ layer, depth }) => {
+            const realIdx = layers.indexOf(layer);
+            return (
+              <LayerItem
+                key={layer.id}
+                layer={layer}
+                realIdx={realIdx}
+                depth={depth}
+                isActive={layer.id === activeLayerId}
+                isMask={layer.id === maskLayerId}
+                isIsolated={layer.id === isolatedLayerId}
+                isDragOver={dragOverIndex === realIdx}
+                editingLayerId={editingLayerId}
+                editName={editName}
+                onSelectLayer={onSelectLayer}
+                onToggleVisibility={onToggleVisibility}
+                onToggleIsolateLayer={onToggleIsolateLayer}
+                onToggleExposedInput={onToggleExposedInput}
+                onToggleExposedOutput={onToggleExposedOutput}
+                onStartRename={handleStartRename}
+                onFinishRename={handleFinishRename}
+                onEditNameChange={handleEditNameChange}
+                onCancelRename={handleCancelRename}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
+                onToggleGroupCollapsed={onToggleGroupCollapsed}
+              />
+            );
+          });
+        })()}
       </Box>
 
       <Divider />

@@ -119,7 +119,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     toggleLayerExposedInput: store.toggleLayerExposedInput,
     toggleLayerExposedOutput: store.toggleLayerExposedOutput,
     mergeLayerDown: store.mergeLayerDown,
-    flattenVisible: store.flattenVisible
+    flattenVisible: store.flattenVisible,
+    addGroup: store.addGroup,
+    toggleGroupCollapsed: store.toggleGroupCollapsed,
+    moveLayerToGroup: store.moveLayerToGroup,
+    ungroupLayer: store.ungroupLayer
   });
 
   // ─── Canvas actions ─────────────────────────────────────────────────
@@ -395,6 +399,10 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           canvasWidth={store.document.canvas.width}
           canvasHeight={store.document.canvas.height}
           onCanvasResize={canvasActions.handleCanvasResize}
+          onAddGroup={layerActions.handleAddGroup}
+          onToggleGroupCollapsed={layerActions.handleToggleGroupCollapsed}
+          onMoveLayerToGroup={layerActions.handleMoveLayerToGroup}
+          onUngroupLayer={layerActions.handleUngroupLayer}
         />
       )}
 
