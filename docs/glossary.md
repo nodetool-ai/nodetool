@@ -140,16 +140,49 @@ A special database that stores text as mathematical vectors, enabling semantic s
 
 ---
 
+## AI Techniques
+
+### RAG (Retrieval-Augmented Generation)
+A technique where an AI model answers questions using your own documents as context. Instead of relying only on its training data, the model retrieves relevant snippets from your documents first, then generates an answer based on that context. This dramatically reduces hallucinations and keeps answers grounded in your data.
+
+*In NodeTool: Use the HybridSearch node to retrieve documents, then pass them to an Agent node via FormatText.*
+
+### Embedding
+A mathematical representation of text (or images) as a list of numbers (a "vector"). Embeddings capture meaning, so similar concepts have similar numbers. This is what makes semantic search possible — finding content by meaning rather than exact keyword matches.
+
+### Prompt
+The text instruction you give to an AI model. Good prompts are specific and clear. In NodeTool, prompts are usually set as text inputs or constructed using FormatText nodes that combine variables into a template.
+
+### Temperature
+A setting that controls how creative or deterministic an AI model's output is. Low temperature (0.0–0.3) produces consistent, factual responses. High temperature (0.8–1.2) produces more varied, creative results.
+
+### Quantization
+A technique for making AI models smaller and faster by reducing the precision of their numbers. A Q4 model uses 4-bit precision (smaller, slightly less accurate), while Q8 uses 8-bit (larger, more accurate). Quantized models let you run larger models on less powerful hardware.
+
+### Fine-tuning
+The process of further training an existing AI model on your own data to specialize it for a particular task. NodeTool can use fine-tuned models from providers like HuggingFace or OpenAI.
+
+---
+
 ## Development Terms
 
 ### DAG (Directed Acyclic Graph)
-The technical name for how workflows are structured. "Directed" means data flows one way; "Acyclic" means no loops. NodeTool handles this automatically – you just connect nodes.
+The technical name for how workflows are structured. "Directed" means data flows one way; "Acyclic" means no loops. NodeTool handles this automatically — you just connect nodes and it figures out the execution order.
 
 ### DSL (Domain Specific Language)
-NodeTool's TypeScript API (`@nodetool/dsl`) for building workflows in code rather than the visual editor. Useful for automation and custom integrations.
+NodeTool's TypeScript API (`@nodetool/dsl`) for building workflows in code rather than the visual editor. Useful for automation, testing, and custom integrations.
 
 ### Node Pack
-A collection of related nodes bundled together. Install node packs to add new capabilities to NodeTool.
+A collection of related nodes bundled together. Install node packs to add new capabilities to NodeTool (e.g., additional model providers or data processing tools).
+
+### API Key
+A secret string that authenticates you with a cloud AI provider. You get API keys from provider dashboards (OpenAI, Anthropic, Google, etc.) and enter them in NodeTool's **Settings → Providers** panel.
+
+### WebSocket
+A communication protocol that allows real-time, bidirectional data flow between NodeTool's frontend and backend. This is what enables live streaming of workflow results and chat responses.
+
+### SSE (Server-Sent Events)
+A one-way streaming protocol used by NodeTool's Server API to push workflow progress and results to clients in real-time. Similar to WebSocket but simpler and HTTP-based.
 
 ---
 
