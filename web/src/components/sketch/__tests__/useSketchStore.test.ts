@@ -44,6 +44,61 @@ describe("useSketchStore", () => {
       expect(useSketchStore.getState().activeTool).toBe("eraser");
     });
 
+    it("clears move spring backup when setActiveTool is used", () => {
+      act(() => {
+        useSketchStore.getState().moveSpringOnKeyDown();
+      });
+      expect(useSketchStore.getState().activeTool).toBe("move");
+      expect(useSketchStore.getState().moveSpringBackup).toBe("brush");
+      act(() => {
+        useSketchStore.getState().setActiveTool("pencil");
+      });
+      expect(useSketchStore.getState().activeTool).toBe("pencil");
+      expect(useSketchStore.getState().moveSpringBackup).toBeNull();
+    });
+
+    it("moveSpringOnKeyDown switches to move and stores previous tool", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("eraser");
+        useSketchStore.getState().moveSpringOnKeyDown();
+      });
+      const s = useSketchStore.getState();
+      expect(s.activeTool).toBe("move");
+      expect(s.moveSpringBackup).toBe("eraser");
+    });
+
+    it("moveSpringOnKeyUp restores previous tool when still on move", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("fill");
+        useSketchStore.getState().moveSpringOnKeyDown();
+        useSketchStore.getState().moveSpringOnKeyUp();
+      });
+      const s = useSketchStore.getState();
+      expect(s.activeTool).toBe("fill");
+      expect(s.moveSpringBackup).toBeNull();
+    });
+
+    it("moveSpringOnKeyUp clears backup without changing tool if user picked another tool", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("blur");
+        useSketchStore.getState().moveSpringOnKeyDown();
+        useSketchStore.getState().setActiveTool("gradient");
+        useSketchStore.getState().moveSpringOnKeyUp();
+      });
+      const s = useSketchStore.getState();
+      expect(s.activeTool).toBe("gradient");
+      expect(s.moveSpringBackup).toBeNull();
+    });
+
+    it("does not nest moveSpring when already springing or already on move", () => {
+      act(() => {
+        useSketchStore.getState().setActiveTool("brush");
+        useSketchStore.getState().moveSpringOnKeyDown();
+        useSketchStore.getState().moveSpringOnKeyDown();
+      });
+      expect(useSketchStore.getState().moveSpringBackup).toBe("brush");
+    });
+
     it("sets brush settings", () => {
       act(() => {
         useSketchStore.getState().setBrushSettings({ size: 50, color: "#ff0000" });

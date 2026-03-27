@@ -20,6 +20,29 @@ import type {
 
 type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
+/** True on macOS / iOS / iPadOS-style platforms where Cmd replaces Ctrl for spring shortcuts. */
+function useMetaForMoveSpring(): boolean {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.platform ?? "");
+}
+
+/** Physical Ctrl (Win/Linux) or Cmd (Mac) key for spring-loaded move tool. */
+function isMoveSpringModifierPhysicalKey(e: KeyboardEvent): boolean {
+  const apple = useMetaForMoveSpring();
+  if (apple) {
+    return e.code === "MetaLeft" || e.code === "MetaRight";
+  }
+  return e.code === "ControlLeft" || e.code === "ControlRight";
+}
+
+function moveSpringModifierStillHeld(e: KeyboardEvent): boolean {
+  return useMetaForMoveSpring()
+    ? e.getModifierState("Meta")
+    : e.getModifierState("Control");
+}
+
 function isArrowKey(key: string): key is ArrowKey {
   return (
     key === "ArrowUp" ||
@@ -145,6 +168,12 @@ export function useEditorKeyboardShortcuts(
 
       // Prevent sketch shortcuts from bleeding to node editor
       e.stopPropagation();
+
+      if (!e.repeat && isMoveSpringModifierPhysicalKey(e)) {
+        e.preventDefault();
+        useSketchStore.getState().moveSpringOnKeyDown();
+        return;
+      }
 
       if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
         shiftHeldRef.current = true;
@@ -473,6 +502,10 @@ export function useEditorKeyboardShortcuts(
       }
       e.stopPropagation();
 
+      if (isMoveSpringModifierPhysicalKey(e) && !moveSpringModifierStillHeld(e)) {
+        useSketchStore.getState().moveSpringOnKeyUp();
+      }
+
       if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
         shiftHeldRef.current = false;
       }
@@ -491,11 +524,18 @@ export function useEditorKeyboardShortcuts(
       }
     };
 
+    const blurHandler = () => {
+      useSketchStore.getState().moveSpringOnKeyUp();
+    };
+
     window.addEventListener("keydown", keydownHandler, true);
     window.addEventListener("keyup", keyupHandler, true);
+    window.addEventListener("blur", blurHandler);
     return () => {
       window.removeEventListener("keydown", keydownHandler, true);
       window.removeEventListener("keyup", keyupHandler, true);
+      window.removeEventListener("blur", blurHandler);
+      useSketchStore.getState().moveSpringOnKeyUp();
       if (nudgeRafRef.current !== null) {
         cancelAnimationFrame(nudgeRafRef.current);
         nudgeRafRef.current = null;

@@ -69,6 +69,7 @@ const containerStyles = css({
 const handleStyles = css({
   position: "absolute",
   pointerEvents: "auto",
+  touchAction: "none",
   backgroundColor: "transparent",
   transition: "background-color 0.15s ease",
   "&:hover, &.active": {

@@ -48,6 +48,7 @@
 
 - [x] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, smooth borders, and feathering on top of it
 - [x] add auto-pick layer option to directly move another layer via hit mask (CTRL Alt+click picks topmost visible layer with non-transparent pixels)
+- [x] spring-loaded move: hold Ctrl (Windows/Linux) or Cmd (Mac) to temporarily use the move tool, release to return to the previous tool
 - [x] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
 
 ### PHASE 3 - SAM SEGMENTATION

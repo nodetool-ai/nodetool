@@ -8,6 +8,7 @@
 import {
   SketchDocument,
   Layer,
+  getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
   normalizeSketchDocument,
   SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
@@ -192,7 +193,8 @@ export function getLayerDataImageUrl(
 async function drawLayerToContext(
   ctx: CanvasRenderingContext2D,
   doc: SketchDocument,
-  layer: Layer
+  layer: Layer,
+  applyAncestorGroupOpacity = false
 ): Promise<void> {
   if (!layer.data) {
     return;
@@ -203,7 +205,10 @@ async function drawLayerToContext(
     doc.canvas.height
   );
   ctx.save();
-  ctx.globalAlpha = layer.opacity;
+  const ancestorOpacity = applyAncestorGroupOpacity
+    ? getAncestorGroupOpacityProduct(doc.layers, layer, null)
+    : 1;
+  ctx.globalAlpha = layer.opacity * ancestorOpacity;
   ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode ?? "normal");
   ctx.drawImage(
     layerCanvas,
@@ -216,7 +221,7 @@ async function drawLayerToContext(
 /**
  * Flatten all visible raster layers into a single canvas.
  * Mask and group rows are excluded; the base is transparent (checkerboard in UI),
- * matching runtime flatten/export behavior.
+ * matching runtime flatten/export behavior (including ancestor group opacity).
  */
 export async function flattenDocument(
   doc: SketchDocument
@@ -239,7 +244,7 @@ export async function flattenDocument(
     if (!isLayerCompositeVisible(doc.layers, layer, null)) {
       continue;
     }
-    await drawLayerToContext(ctx, doc, layer);
+    await drawLayerToContext(ctx, doc, layer, true);
   }
 
   return canvas;

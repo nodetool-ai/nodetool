@@ -42,11 +42,17 @@ const styles = (theme: Theme) =>
     height: "100%",
     overflow: "hidden",
     backgroundColor: theme.vars.palette.grey[800],
+    // Pen/tablet: avoid browser gestures (Edge/Chrome “back” arrow on horizontal drag).
+    touchAction: "none",
+    overscrollBehaviorX: "none",
+    overscrollBehaviorY: "contain",
     "& canvas": {
       position: "absolute",
       top: "50%",
       left: "50%",
-      imageRendering: "pixelated"
+      imageRendering: "pixelated",
+      // Hit target is often the canvas; touch-action is not inherited.
+      touchAction: "none"
     },
     "& .cursor-overlay": {
       position: "absolute",

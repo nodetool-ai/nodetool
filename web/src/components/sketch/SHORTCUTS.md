@@ -73,7 +73,7 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 - [ ] `Ctrl+T` free transform
 - [ ] `Enter` commit transform
 - [ ] `Ctrl+Shift+T` repeat last transform
-- [ ] hold `Ctrl` while painting to temporarily switch to move tool
+- [x] hold `Ctrl` / `Cmd` (Mac) to temporarily switch to move tool; release to restore the previous tool
 - [ ] `Ctrl+Alt+Arrow` move duplicate of selection by 1 px
 - [ ] `Ctrl+Alt+Shift+Arrow` move duplicate of selection by 10 px
 
