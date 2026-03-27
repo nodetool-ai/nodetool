@@ -21,6 +21,8 @@ const BOX_STROKE_COLOR = "#22aaff";
 const BOX_FILL_COLOR = "rgba(34, 170, 255, 0.12)";
 const BOX_LINE_WIDTH = 2;
 const BOX_DASH_PATTERN = [6, 4];
+/** Minimum box dimension in pixels to accept as a valid prompt (avoids accidental clicks). */
+const MIN_BOX_SIZE = 3;
 
 export class SegmentTool implements ToolHandler {
   readonly toolId = "segment" as const;
@@ -112,7 +114,7 @@ export class SegmentTool implements ToolHandler {
     const height = Math.abs(this.dragCurrent.y - this.dragStart.y);
 
     // Only set box if it has meaningful size
-    if (width > 2 && height > 2) {
+    if (width > MIN_BOX_SIZE && height > MIN_BOX_SIZE) {
       this.boxPrompt = { x, y, width, height };
       this.notifyPromptsChanged();
     }

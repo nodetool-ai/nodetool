@@ -80,6 +80,7 @@ export function useSegmentation({
       setModelInfo(info);
       setStatus("idle");
     } catch {
+      // Model check failed (network error, backend unavailable, etc.) — surface via status
       setStatus("error");
     }
   }, []);
@@ -143,6 +144,8 @@ export function useSegmentation({
           setStatus("idle");
           return;
         }
+        // Log inference errors for debugging; status is exposed to the UI
+        console.error("[useSegmentation] Inference failed:", err);
         setStatus("error");
       }
     },
