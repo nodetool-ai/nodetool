@@ -323,7 +323,11 @@ export const handleUpdate = (
       | undefined;
 
     if (job.status === "running" || job.status === "queued") {
-      newState = "running";
+      // Don't overwrite an error state from a node_update with a stale "running" job_update
+      const currentState = runnerStore.getState().state;
+      if (currentState !== "error") {
+        newState = "running";
+      }
     } else if (job.status === "suspended") {
       newState = "suspended";
     } else if (job.status === "paused") {
