@@ -17,6 +17,7 @@ import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import ApiIcon from "@mui/icons-material/Api";
+import CodeIcon from "@mui/icons-material/Code";
 import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode";
 import { DYNAMIC_REPLICATE_NODE_TYPE } from "../node/DynamicReplicateNode";
@@ -56,6 +57,20 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
     hoverShadow:
       "0 8px 24px rgba(79, 70, 229, 0.35), 0 0 16px rgba(99, 102, 241, 0.25)",
     iconColor: "#e0e7ff"
+  },
+  {
+    key: "code",
+    label: "Code",
+    nodeType: "nodetool.code.Code",
+    icon: <CodeIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(74, 222, 128, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(34, 197, 94, 0.6), rgba(74, 222, 128, 0.5))",
+    shadow: "0 4px 12px rgba(34, 197, 94, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(34, 197, 94, 0.35), 0 0 16px rgba(74, 222, 128, 0.25)",
+    iconColor: "#dcfce7"
   },
   {
     key: "text-to-image",
