@@ -12,7 +12,24 @@ export type EditTool =
   | "rectangle"
   | "ellipse"
   | "line"
-  | "arrow";
+  | "arrow"
+  | "marquee-rect"
+  | "marquee-ellipse"
+  | "lasso"
+  | "magic-wand";
+
+/** How a new selection combines with the existing mask. */
+export type SelectionMode = "replace" | "add" | "subtract" | "intersect";
+
+export interface SelectionSettings {
+  mode: SelectionMode;
+  /** Magic-wand colour tolerance 0–255. */
+  tolerance: number;
+  /** Feather radius in pixels (0 = none). */
+  featherRadius: number;
+  /** Gaussian-smooth radius in pixels (0 = none). */
+  smoothRadius: number;
+}
 
 export type EditAction =
   | "rotate-cw"
@@ -21,7 +38,10 @@ export type EditAction =
   | "flip-v"
   | "reset"
   | "apply-crop"
-  | "cancel-crop";
+  | "cancel-crop"
+  | "select-all"
+  | "deselect"
+  | "invert-selection";
 
 export interface Point {
   x: number;
@@ -120,6 +140,13 @@ export const DEFAULT_ADJUSTMENTS: AdjustmentSettings = {
   brightness: 0,
   contrast: 0,
   saturation: 0
+};
+
+export const DEFAULT_SELECTION_SETTINGS: SelectionSettings = {
+  mode: "replace",
+  tolerance: 32,
+  featherRadius: 0,
+  smoothRadius: 0
 };
 
 export const DEFAULT_EDITOR_STATE: ImageEditorState = {

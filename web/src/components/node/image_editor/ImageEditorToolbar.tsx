@@ -33,6 +33,12 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
+import GestureIcon from "@mui/icons-material/Gesture";
+import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
+import SelectAllIcon from "@mui/icons-material/SelectAll";
+import DeselectIcon from "@mui/icons-material/Deselect";
+import InvertColorsIcon from "@mui/icons-material/InvertColors";
 
 import type {
   EditTool,
@@ -40,7 +46,9 @@ import type {
   BrushSettings,
   AdjustmentSettings,
   ShapeSettings,
-  TextSettings
+  TextSettings,
+  SelectionSettings,
+  SelectionMode
 } from "./types";
 
 const styles = (theme: Theme) =>
@@ -213,15 +221,18 @@ interface ImageEditorToolbarProps {
   brushSettings: BrushSettings;
   shapeSettings: ShapeSettings;
   textSettings: TextSettings;
+  selectionSettings: SelectionSettings;
   adjustments: AdjustmentSettings;
   zoom: number;
   isCropping: boolean;
+  hasSelection: boolean;
   canUndo: boolean;
   canRedo: boolean;
   onToolChange: (tool: EditTool) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
   onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
   onTextSettingsChange: (settings: Partial<TextSettings>) => void;
+  onSelectionSettingsChange: (settings: Partial<SelectionSettings>) => void;
   onAdjustmentsChange: (adjustments: Partial<AdjustmentSettings>) => void;
   onAction: (action: EditAction) => void;
   onZoomChange: (zoom: number) => void;
@@ -234,15 +245,18 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   brushSettings,
   shapeSettings,
   textSettings,
+  selectionSettings,
   adjustments,
   zoom,
   isCropping,
+  hasSelection,
   canUndo,
   canRedo,
   onToolChange,
   onBrushSettingsChange,
   onShapeSettingsChange,
   onTextSettingsChange,
+  onSelectionSettingsChange,
   onAdjustmentsChange,
   onAction,
   onZoomChange,
@@ -404,6 +418,42 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 <ArrowRightAltIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+            <Tooltip title="Rectangle Select (M)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "marquee-rect" ? "active" : ""}`}
+                onClick={handleSelectTool("marquee-rect")}
+                size="small"
+              >
+                <HighlightAltIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Ellipse Select" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "marquee-ellipse" ? "active" : ""}`}
+                onClick={handleSelectTool("marquee-ellipse")}
+                size="small"
+              >
+                <SelectAllIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Lasso Select" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "lasso" ? "active" : ""}`}
+                onClick={handleSelectTool("lasso")}
+                size="small"
+              >
+                <GestureIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Magic Wand (W)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "magic-wand" ? "active" : ""}`}
+                onClick={handleSelectTool("magic-wand")}
+                size="small"
+              >
+                <AutoFixNormalIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </div>
         </div>
 
@@ -427,6 +477,121 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <CloseIcon fontSize="small" /> Cancel
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Selection Settings (shown when a selection tool is active) */}
+        {(tool === "marquee-rect" || tool === "marquee-ellipse" || tool === "lasso" || tool === "magic-wand") && (
+          <div className="toolbar-section">
+            <Typography className="section-title">Selection Settings</Typography>
+
+            <div className="slider-container">
+              <div className="slider-label">
+                <span>Mode</span>
+              </div>
+              <div className="actions-row">
+                {(["replace", "add", "subtract", "intersect"] as SelectionMode[]).map((m) => (
+                  <Tooltip key={m} title={m.charAt(0).toUpperCase() + m.slice(1)}>
+                    <IconButton
+                      className={`action-button ${selectionSettings.mode === m ? "active" : ""}`}
+                      onClick={() => onSelectionSettingsChange({ mode: m })}
+                      size="small"
+                      sx={selectionSettings.mode === m ? { bgcolor: "primary.main", color: "primary.contrastText" } : {}}
+                    >
+                      <Typography variant="caption" sx={{ fontSize: "10px", fontWeight: 600 }}>
+                        {m === "replace" ? "R" : m === "add" ? "+" : m === "subtract" ? "−" : "∩"}
+                      </Typography>
+                    </IconButton>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+
+            {tool === "magic-wand" && (
+              <div className="slider-container">
+                <div className="slider-label">
+                  <span>Tolerance</span>
+                  <span className="slider-value">{selectionSettings.tolerance}</span>
+                </div>
+                <Slider
+                  value={selectionSettings.tolerance}
+                  onChange={(_, value) =>
+                    onSelectionSettingsChange({ tolerance: value as number })
+                  }
+                  min={0}
+                  max={255}
+                  size="small"
+                />
+              </div>
+            )}
+
+            <div className="slider-container">
+              <div className="slider-label">
+                <span>Feather</span>
+                <span className="slider-value">{selectionSettings.featherRadius}px</span>
+              </div>
+              <Slider
+                value={selectionSettings.featherRadius}
+                onChange={(_, value) =>
+                  onSelectionSettingsChange({ featherRadius: value as number })
+                }
+                min={0}
+                max={50}
+                size="small"
+              />
+            </div>
+
+            <div className="slider-container">
+              <div className="slider-label">
+                <span>Smooth</span>
+                <span className="slider-value">{selectionSettings.smoothRadius}px</span>
+              </div>
+              <Slider
+                value={selectionSettings.smoothRadius}
+                onChange={(_, value) =>
+                  onSelectionSettingsChange({ smoothRadius: value as number })
+                }
+                min={0}
+                max={20}
+                size="small"
+              />
+            </div>
+
+            <div className="actions-row" style={{ marginTop: "8px" }}>
+              <Tooltip title="Select All (Ctrl+A)">
+                <IconButton
+                  className="action-button"
+                  onClick={() => onAction("select-all")}
+                  size="small"
+                >
+                  <SelectAllIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Deselect (Ctrl+D)">
+                <span>
+                  <IconButton
+                    className="action-button"
+                    onClick={() => onAction("deselect")}
+                    disabled={!hasSelection}
+                    size="small"
+                  >
+                    <DeselectIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title="Invert Selection (Ctrl+Shift+I)">
+                <span>
+                  <IconButton
+                    className="action-button"
+                    onClick={() => onAction("invert-selection")}
+                    disabled={!hasSelection}
+                    size="small"
+                  >
+                    <InvertColorsIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
             </div>
           </div>
         )}
