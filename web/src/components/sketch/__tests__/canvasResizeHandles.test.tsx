@@ -33,16 +33,16 @@ if (typeof window !== "undefined" && !window.PointerEvent) {
 
 // Polyfill setPointerCapture / releasePointerCapture for jsdom
 if (typeof Element !== "undefined" && !Element.prototype.setPointerCapture) {
-  Element.prototype.setPointerCapture = function () { /* noop */ };
-  Element.prototype.releasePointerCapture = function () { /* noop */ };
+  Element.prototype.setPointerCapture = function () { /* noop – jsdom stub */ };
+  Element.prototype.releasePointerCapture = function () { /* noop – jsdom stub */ };
 }
 
-// Mock @emotion/react's css for jsdom
+// Stub @emotion/react's css for jsdom – actual style generation is not needed in unit tests
 jest.mock("@emotion/react", () => {
   const actual = jest.requireActual("@emotion/react");
   return {
     ...actual,
-    css: () => "",
+    css: () => "" /* return empty string; styles are not applied in jsdom */,
     jsx: actual.jsx ?? React.createElement
   };
 });
