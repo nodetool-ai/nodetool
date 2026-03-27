@@ -363,6 +363,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleToggleTerminal,
     handleToggleMiniMap,
     isWorkflowRunning,
+    isBusy,
     isPaused,
     isSuspended
   } = useFloatingToolbarActions();
@@ -547,12 +548,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
               <PlayArrow />
             )
           }
-          tooltip={isWorkflowRunning ? "Running..." : "Run"}
+          tooltip={isBusy ? "Running..." : "Run"}
           shortcut="runWorkflow"
           variant="primary"
           className={isWorkflowRunning ? "running" : undefined}
           onClick={handleRun}
-          disabled={isWorkflowRunning}
+          disabled={isBusy}
           aria-label="Run workflow"
         />
       </Box>

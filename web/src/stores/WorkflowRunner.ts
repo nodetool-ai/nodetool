@@ -262,9 +262,33 @@ export const createWorkflowRunnerStore = (
       resource_limits?: Record<string, unknown>,
       subgraphNodeIds?: Set<string>
     ) => {
+      // Guard against multiple concurrent runs (e.g. rapid double-clicks)
+      const currentState = get().state;
+      if (currentState === "running") {
+        log.warn(
+          `WorkflowRunner[${workflowId}]: Already running, ignoring duplicate run request`
+        );
+        return;
+      }
+
       log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
-      await get().ensureConnection();
+      // Immediately mark as running to prevent duplicate runs before async work completes
+      set({
+        state: "running",
+        notifications: [],
+        statusMessage: "Workflow starting..."
+      });
+
+      // Ensure WebSocket connection (without going through ensureConnection
+      // which would overwrite the "running" state with "connecting"/"connected")
+      try {
+        await globalWebSocketManager.ensureConnection();
+      } catch (error) {
+        log.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
+        set({ state: "error", statusMessage: "Connection failed" });
+        return;
+      }
 
       set({ workflow, nodes, edges });
 
@@ -295,10 +319,6 @@ export const createWorkflowRunnerStore = (
         user = session?.user?.id || "";
       }
 
-      set({
-        statusMessage: "Workflow starting..."
-      });
-
       // When running a subgraph, only clear state for the subgraph nodes.
       // Derive edge IDs from edges that belong to the subgraph.
       const subgraphEdgeIds = subgraphNodeIds
@@ -316,11 +336,6 @@ export const createWorkflowRunnerStore = (
       clearTasks(workflow.id, subgraphNodeIds);
       clearPlanningUpdates(workflow.id, subgraphNodeIds);
       clearChunks(workflow.id, subgraphNodeIds);
-
-      set({
-        state: "running",
-        notifications: []
-      });
 
       // Filter out bypassed nodes and their edges for execution
       const activeNodes: Node<NodeData>[] = [];

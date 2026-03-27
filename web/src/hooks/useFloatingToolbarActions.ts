@@ -30,6 +30,10 @@ export const useFloatingToolbarActions = () => {
   const run = useWebsocketRunner((state) => state.run);
   const state = useWebsocketRunner((state) => state.state);
   const isWorkflowRunning = state === "running";
+  const isBusy =
+    state === "running" ||
+    state === "connecting" ||
+    state === "connected";
   const isPaused = state === "paused";
   const isSuspended = state === "suspended";
   const cancel = useWebsocketRunner((state) => state.cancel);
@@ -56,7 +60,7 @@ export const useFloatingToolbarActions = () => {
   const toggleMiniMap = useMiniMapStore((state) => state.toggleVisible);
 
   const handleRun = useCallback(async () => {
-    if (!isWorkflowRunning) {
+    if (!isBusy) {
       // Create a checkpoint version before execution if enabled
       if (autosave?.saveBeforeRun) {
         const w = getWorkflowById(workflow.id);
@@ -93,7 +97,7 @@ export const useFloatingToolbarActions = () => {
       }
     }, 100);
   }, [
-    isWorkflowRunning,
+    isBusy,
     run,
     workflow,
     nodeStore,
@@ -190,6 +194,7 @@ export const useFloatingToolbarActions = () => {
     handleToggleTerminal,
     handleToggleMiniMap,
     isWorkflowRunning,
+    isBusy,
     isPaused,
     isSuspended
   };
