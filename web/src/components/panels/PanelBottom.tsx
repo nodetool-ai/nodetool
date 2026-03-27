@@ -203,4 +203,6 @@ const PanelBottom: React.FC = () => {
   );
 };
 
+PanelBottom.displayName = "PanelBottom";
+
 export default memo(PanelBottom, isEqual);

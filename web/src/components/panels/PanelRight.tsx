@@ -578,4 +578,6 @@ const PanelRight: React.FC = () => {
   );
 };
 
+PanelRight.displayName = "PanelRight";
+
 export default memo(PanelRight, isEqual);
