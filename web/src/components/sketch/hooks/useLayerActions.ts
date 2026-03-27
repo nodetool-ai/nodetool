@@ -148,8 +148,9 @@ export function useLayerActions({
     (layerId: string | null) => {
       pushHistory("set mask layer");
       setMaskLayer(layerId);
+      scheduleDisplayRedraw();
     },
-    [pushHistory, setMaskLayer]
+    [pushHistory, setMaskLayer, scheduleDisplayRedraw]
   );
 
   const handleToggleAlphaLock = useCallback(

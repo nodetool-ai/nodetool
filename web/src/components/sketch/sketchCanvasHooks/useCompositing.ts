@@ -158,11 +158,11 @@ export function useCompositing({
     })
     .join("|");
 
-  /** Visibility / opacity / blend / order — drives display recomposite (hydration sig omits these). */
+  /** Visibility / opacity / blend / type / order — drives display recomposite (hydration sig omits these). */
   const layerDisplayStackSignature = doc.layers
     .map(
       (l) =>
-        `${l.id}:${l.visible ? 1 : 0}:${l.opacity}:${String(l.blendMode ?? "normal")}`
+        `${l.id}:${l.visible ? 1 : 0}:${l.opacity}:${String(l.blendMode ?? "normal")}:${l.type}`
     )
     .join("|");
 
@@ -436,11 +436,11 @@ export function useCompositing({
   ]);
 
   // After DOM commit, `<canvas>` refs are set; compositing effects may have run
-  // in the same tick with null refs. One layout-pass redraw catches hydration
-  // + bootstrap/WebGPU handoff so the first frame is not stuck blank.
+  // in the same tick with null refs. Synchronous composite before the browser
+  // paints so the very first frame shows layer content instead of a blank canvas.
   useLayoutEffect(() => {
-    requestRedraw();
-  }, [requestRedraw, bootstrapPhaseActive, backend]);
+    compositeToDisplayRef.current(null);
+  }, [bootstrapPhaseActive, backend]);
 
   // Redraw when zoom changes so the checkerboard pattern rescales.
   useEffect(() => {
