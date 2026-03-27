@@ -969,14 +969,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               >
                 {summarizeLayerImageReference(activeLayer.imageReference)}
               </Typography>
-              {activeLayer.locked ? (
-                <Typography
-                  sx={{ fontSize: "0.58rem", color: "grey.600", mt: "4px" }}
-                >
-                  Reference layer: pixels locked; move and nudge still apply
-                  transform.
-                </Typography>
-              ) : null}
             </Box>
           ) : null}
         </>
