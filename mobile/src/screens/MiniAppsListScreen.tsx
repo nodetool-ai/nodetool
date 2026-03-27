@@ -9,7 +9,6 @@ import {
   RefreshControl,
   Alert,
   TextInput,
-  Animated,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,7 +31,6 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const [isConnected, setIsConnected] = useState(false);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const statusPulse = React.useRef(new Animated.Value(1)).current;
 
   const filteredWorkflows = useMemo(() => {
     if (!searchQuery.trim()) return workflows;
