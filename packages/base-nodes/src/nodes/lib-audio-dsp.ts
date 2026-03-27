@@ -1,6 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { AudioRef } from "@nodetool/node-sdk";
-import sharp from "sharp";
 
 // ── WAV helpers (shared with lib-synthesis.ts pattern) ──────────────
 

@@ -18,6 +18,7 @@ import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import log from "loglevel";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;

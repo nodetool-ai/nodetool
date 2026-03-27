@@ -556,7 +556,7 @@ export class WorkflowRunner {
             const pending = this._pendingControlResponses.get(node.id);
             if (pending) {
               this._pendingControlResponses.delete(node.id);
-              pending.reject(result.error instanceof Error ? result.error : new Error(String(result.error)));
+              pending.reject(new Error(result.error));
             }
           }
 
