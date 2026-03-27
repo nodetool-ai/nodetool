@@ -18,7 +18,10 @@ import {
 } from "../types";
 import { useSketchStore } from "../state";
 import { getLayerCompositeOffset } from "../painting";
-import { selectionHasAnyPixels } from "../selection/selectionMask";
+import {
+  getSelectionBounds,
+  selectionHasAnyPixels
+} from "../selection/selectionMask";
 import type { StrokeEndOptions } from "../tools/types";
 
 export interface UseCanvasActionsParams {
@@ -563,23 +566,24 @@ export function useCanvasActions({
     }
 
     const sel = useSketchStore.getState().selection;
+    const bounds = sel ? getSelectionBounds(sel) : null;
     const tmp = window.document.createElement("canvas");
 
-    if (sel && sel.width > 0 && sel.height > 0) {
-      tmp.width = sel.width;
-      tmp.height = sel.height;
+    if (bounds && bounds.width > 0 && bounds.height > 0) {
+      tmp.width = bounds.width;
+      tmp.height = bounds.height;
       const ctx = tmp.getContext("2d");
       if (ctx) {
         ctx.drawImage(
           snapshot,
-          sel.x,
-          sel.y,
-          sel.width,
-          sel.height,
+          bounds.x,
+          bounds.y,
+          bounds.width,
+          bounds.height,
           0,
           0,
-          sel.width,
-          sel.height
+          bounds.width,
+          bounds.height
         );
       }
     } else {
@@ -671,12 +675,12 @@ export function useCanvasActions({
     }
 
     const sel = useSketchStore.getState().selection;
-    if (sel && sel.width > 0 && sel.height > 0) {
-      // Paste into selection region
+    const bounds = sel ? getSelectionBounds(sel) : null;
+    if (bounds && bounds.width > 0 && bounds.height > 0) {
       ctx.drawImage(
         imageToPaste,
         0, 0, imageToPaste.width, imageToPaste.height,
-        sel.x, sel.y, sel.width, sel.height
+        bounds.x, bounds.y, bounds.width, bounds.height
       );
     } else {
       // Paste at origin

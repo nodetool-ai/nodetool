@@ -874,7 +874,9 @@ export function usePointerHandlers({
       shiftHeldRef,
       altHeldRef,
       foregroundColor,
-      clearLayerTransformPreview
+      clearLayerTransformPreview,
+      lassoPointsRef,
+      selectStartRef
     ]
   );
 
@@ -1107,6 +1109,7 @@ export function usePointerHandlers({
       drawOverlaySelection,
       drawOverlayLassoPreview,
       lassoPointsRef,
+      selectStartRef,
       onSelectionChange,
       setLayerTransformPreview,
       activeStrokeRef,
@@ -1366,9 +1369,7 @@ export function usePointerHandlers({
       }
     },
     [
-      doc.layers,
-      doc.activeLayerId,
-      doc.toolSettings.gradient,
+      doc,
       activeTool,
       selection,
       onStrokeEnd,
@@ -1388,7 +1389,9 @@ export function usePointerHandlers({
       clonePaintOffsetRef,
       strokeDirtyRectRef,
       shiftHeldRef,
-      altHeldRef
+      altHeldRef,
+      lassoPointsRef,
+      selectStartRef
     ]
   );
 
