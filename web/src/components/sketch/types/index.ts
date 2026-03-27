@@ -377,10 +377,15 @@ export interface SketchEditorState {
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
+/** Upper bound for brush / eraser / blur / clone stamp diameter (matches tool panels). */
+const SKETCH_LARGE_TOOL_SIZE_MAX = 200;
+/** Pencil size slider max in ToolSettingsPanels. */
+const SKETCH_PENCIL_SIZE_MAX = 10;
+
 export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
-  size: 12,
+  size: 8,
   opacity: 1,
-  hardness: 0.8,
+  hardness: 0.65,
   color: "#ffffff",
   brushType: "round",
   pressureSensitivity: true,
@@ -390,7 +395,7 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
 };
 
 export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
-  size: 1,
+  size: 2,
   opacity: 1,
   color: "#ffffff",
   pressureSensitivity: true,
@@ -398,7 +403,7 @@ export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
 };
 
 export const DEFAULT_ERASER_SETTINGS: EraserSettings = {
-  size: 20,
+  size: 14,
   opacity: 1,
   mode: "brush"
 };
@@ -417,8 +422,8 @@ export const DEFAULT_FILL_SETTINGS: FillSettings = {
 };
 
 export const DEFAULT_BLUR_SETTINGS: BlurSettings = {
-  size: 20,
-  strength: 5
+  size: 14,
+  strength: 4
 };
 
 export const DEFAULT_GRADIENT_SETTINGS: GradientSettings = {
@@ -428,9 +433,9 @@ export const DEFAULT_GRADIENT_SETTINGS: GradientSettings = {
 };
 
 export const DEFAULT_CLONE_STAMP_SETTINGS: CloneStampSettings = {
-  size: 20,
+  size: 14,
   opacity: 1,
-  hardness: 0.8,
+  hardness: 0.7,
   sampling: "active_layer"
 };
 
@@ -451,6 +456,78 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   cloneStamp: DEFAULT_CLONE_STAMP_SETTINGS,
   select: DEFAULT_SELECT_SETTINGS
 };
+
+/**
+ * Deep-enough copy for a new document so nested tool objects are not shared with
+ * module-level defaults (avoids accidental cross-session mutation).
+ */
+export function cloneDefaultToolSettings(): ToolSettings {
+  return {
+    brush: { ...DEFAULT_BRUSH_SETTINGS },
+    pencil: { ...DEFAULT_PENCIL_SETTINGS },
+    eraser: { ...DEFAULT_ERASER_SETTINGS },
+    shape: { ...DEFAULT_SHAPE_SETTINGS },
+    fill: { ...DEFAULT_FILL_SETTINGS },
+    blur: { ...DEFAULT_BLUR_SETTINGS },
+    gradient: { ...DEFAULT_GRADIENT_SETTINGS },
+    cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS },
+    select: { ...DEFAULT_SELECT_SETTINGS }
+  };
+}
+
+function normalizedLargeToolSize(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  const rounded = Math.round(value);
+  if (rounded < 1) {
+    return fallback;
+  }
+  return Math.min(SKETCH_LARGE_TOOL_SIZE_MAX, rounded);
+}
+
+function normalizedPencilSize(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  const rounded = Math.round(value);
+  if (rounded < 1) {
+    return fallback;
+  }
+  return Math.min(SKETCH_PENCIL_SIZE_MAX, rounded);
+}
+
+function normalizedUnitScalar(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+function normalizedBrushRoundness(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.min(1, Math.max(0.1, value));
+}
+
+function normalizedBrushAngle(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return ((Math.round(value) % 360) + 360) % 360;
+}
+
+function normalizedBlurStrength(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  const rounded = Math.round(value);
+  if (rounded < 1) {
+    return fallback;
+  }
+  return Math.min(20, rounded);
+}
 
 export function generateLayerId(): string {
   return `layer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -513,7 +590,7 @@ export function createDefaultDocument(
     layers: [baseLayer],
     activeLayerId: baseLayer.id,
     maskLayerId: null,
-    toolSettings: DEFAULT_TOOL_SETTINGS,
+    toolSettings: cloneDefaultToolSettings(),
     metadata: {
       createdAt: now,
       updatedAt: now
@@ -578,52 +655,123 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
     layers,
     activeLayerId,
     maskLayerId,
-    toolSettings: {
-      brush: {
+    toolSettings: (() => {
+      const mergedBrush = {
         ...DEFAULT_BRUSH_SETTINGS,
         ...doc.toolSettings?.brush
-      },
-      pencil: {
+      };
+      const mergedPencil = {
         ...DEFAULT_PENCIL_SETTINGS,
         ...doc.toolSettings?.pencil
-      },
-      eraser: (() => {
-        const raw = doc.toolSettings?.eraser as
-          | (Partial<EraserSettings> & { hardness?: number; tip?: EraserMode })
-          | undefined;
-        const mode: EraserMode =
-          raw?.mode ?? raw?.tip ?? DEFAULT_ERASER_SETTINGS.mode;
-        return {
-          ...DEFAULT_ERASER_SETTINGS,
-          ...raw,
-          mode
-        };
-      })(),
-      shape: {
-        ...DEFAULT_SHAPE_SETTINGS,
-        ...doc.toolSettings?.shape
-      },
-      fill: {
-        ...DEFAULT_FILL_SETTINGS,
-        ...doc.toolSettings?.fill
-      },
-      blur: {
+      };
+      const rawEraser = doc.toolSettings?.eraser as
+        | (Partial<EraserSettings> & { hardness?: number; tip?: EraserMode })
+        | undefined;
+      const eraserMode: EraserMode =
+        rawEraser?.mode ?? rawEraser?.tip ?? DEFAULT_ERASER_SETTINGS.mode;
+      const mergedEraser = {
+        ...DEFAULT_ERASER_SETTINGS,
+        ...rawEraser,
+        mode: eraserMode
+      };
+      const mergedBlur = {
         ...DEFAULT_BLUR_SETTINGS,
         ...doc.toolSettings?.blur
-      },
-      gradient: {
-        ...DEFAULT_GRADIENT_SETTINGS,
-        ...doc.toolSettings?.gradient
-      },
-      cloneStamp: {
+      };
+      const mergedClone = {
         ...DEFAULT_CLONE_STAMP_SETTINGS,
         ...doc.toolSettings?.cloneStamp
-      },
-      select: {
-        ...DEFAULT_SELECT_SETTINGS,
-        ...doc.toolSettings?.select
-      }
-    },
+      };
+      return {
+        brush: {
+          ...mergedBrush,
+          size: normalizedLargeToolSize(
+            mergedBrush.size,
+            DEFAULT_BRUSH_SETTINGS.size
+          ),
+          opacity: normalizedUnitScalar(
+            mergedBrush.opacity,
+            DEFAULT_BRUSH_SETTINGS.opacity
+          ),
+          hardness: normalizedUnitScalar(
+            mergedBrush.hardness,
+            DEFAULT_BRUSH_SETTINGS.hardness
+          ),
+          roundness: normalizedBrushRoundness(
+            mergedBrush.roundness,
+            DEFAULT_BRUSH_SETTINGS.roundness
+          ),
+          angle: normalizedBrushAngle(
+            mergedBrush.angle,
+            DEFAULT_BRUSH_SETTINGS.angle
+          )
+        },
+        pencil: {
+          ...mergedPencil,
+          size: normalizedPencilSize(
+            mergedPencil.size,
+            DEFAULT_PENCIL_SETTINGS.size
+          ),
+          opacity: normalizedUnitScalar(
+            mergedPencil.opacity,
+            DEFAULT_PENCIL_SETTINGS.opacity
+          )
+        },
+        eraser: {
+          ...mergedEraser,
+          size: normalizedLargeToolSize(
+            mergedEraser.size,
+            DEFAULT_ERASER_SETTINGS.size
+          ),
+          opacity: normalizedUnitScalar(
+            mergedEraser.opacity,
+            DEFAULT_ERASER_SETTINGS.opacity
+          )
+        },
+        shape: {
+          ...DEFAULT_SHAPE_SETTINGS,
+          ...doc.toolSettings?.shape
+        },
+        fill: {
+          ...DEFAULT_FILL_SETTINGS,
+          ...doc.toolSettings?.fill
+        },
+        blur: {
+          ...mergedBlur,
+          size: normalizedLargeToolSize(
+            mergedBlur.size,
+            DEFAULT_BLUR_SETTINGS.size
+          ),
+          strength: normalizedBlurStrength(
+            mergedBlur.strength,
+            DEFAULT_BLUR_SETTINGS.strength
+          )
+        },
+        gradient: {
+          ...DEFAULT_GRADIENT_SETTINGS,
+          ...doc.toolSettings?.gradient
+        },
+        cloneStamp: {
+          ...mergedClone,
+          size: normalizedLargeToolSize(
+            mergedClone.size,
+            DEFAULT_CLONE_STAMP_SETTINGS.size
+          ),
+          opacity: normalizedUnitScalar(
+            mergedClone.opacity,
+            DEFAULT_CLONE_STAMP_SETTINGS.opacity
+          ),
+          hardness: normalizedUnitScalar(
+            mergedClone.hardness,
+            DEFAULT_CLONE_STAMP_SETTINGS.hardness
+          )
+        },
+        select: {
+          ...DEFAULT_SELECT_SETTINGS,
+          ...doc.toolSettings?.select
+        }
+      };
+    })(),
     metadata: {
       ...baseDocument.metadata,
       ...doc.metadata

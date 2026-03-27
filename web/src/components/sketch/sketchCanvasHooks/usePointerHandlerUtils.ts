@@ -44,6 +44,8 @@ import {
 } from "../selection/selectionMask";
 
 export interface UsePointerHandlerUtilsParams {
+  /** When `canvas2d`, the display composite already includes the merged active stroke — skip overlay preview to avoid double-applying layer opacity. */
+  compositingBackend: "webgpu" | "canvas2d";
   zoom: number;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -64,6 +66,7 @@ export interface UsePointerHandlerUtilsParams {
 }
 
 export function usePointerHandlerUtils({
+  compositingBackend,
   zoom,
   displayCanvasRef,
   overlayCanvasRef,
@@ -416,6 +419,12 @@ export function usePointerHandlerUtils({
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.imageSmoothingEnabled = false;
 
+    if (compositingBackend === "canvas2d") {
+      // Display composite already merges stroke into the active layer at layer opacity.
+      // Drawing the same merge again on the overlay stacks alpha and dims the layer.
+      return;
+    }
+
     const activeStroke = activeStrokeRef.current;
     if (!activeStroke) {
       return;
@@ -452,7 +461,13 @@ export function usePointerHandlerUtils({
     ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode);
     ctx.drawImage(temp, compositeOffset.x, compositeOffset.y);
     ctx.restore();
-  }, [overlayCanvasRef, activeStrokeRef, doc.layers, layerCanvasesRef]);
+  }, [
+    compositingBackend,
+    overlayCanvasRef,
+    activeStrokeRef,
+    doc.layers,
+    layerCanvasesRef
+  ]);
 
   return {
     // Clone stamp state refs

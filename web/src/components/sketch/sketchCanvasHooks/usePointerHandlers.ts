@@ -82,6 +82,8 @@ export interface UsePointerHandlersParams {
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   mousePositionRef: React.MutableRefObject<Point>;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
+  /** Matches `useCompositing` backend: WebGPU hides the active layer during strokes and needs the 2D overlay preview. */
+  compositingBackend: "webgpu" | "canvas2d";
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   invalidateLayer: (layerId: string) => void;
   redraw: () => void;
@@ -161,6 +163,7 @@ export function usePointerHandlers({
   layerCanvasesRef,
   mousePositionRef,
   activeStrokeRef,
+  compositingBackend,
   getOrCreateLayerCanvas,
   invalidateLayer,
   redraw,
@@ -264,6 +267,7 @@ export function usePointerHandlers({
     drawCloneStampStroke,
     drawActiveStrokePreview
   } = usePointerHandlerUtils({
+    compositingBackend,
     zoom,
     displayCanvasRef,
     overlayCanvasRef,

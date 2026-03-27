@@ -31,9 +31,9 @@
 - [x] route all remaining pointer/helper paths through one shared coordinate model for screen, canvas, layer-local, raster-bounds, and selection-space math
 - [x] add cut/copy/paste for selected pixels, including clipboard interop with images copied from outside apps
 - [x] **Exposed Layers** turn exposed inputs into real document layers with stable IDs, clear locking/editability rules, and correct save/load/preview/output behavior. Exposed input layers are locked when receiving image data from inputs. Dynamic output handles are registered for exposed output layers. Toggle actions push history for undo/redo support.
-- [ ] add the next transform workflow: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
-- [ ] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
-- [ ] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
+- [ ] add transform tool: live transform preview with commit/cancel, then scale/rotate/free transform on top of a matrix-capable layer transform model
+- [x] fix layer visibility: layers not visible when opening editor until using a drawing tool, toggling layers does not always work, setting mask layer not always working correctly
+- [x] fix brush strokes not visible when holding shift for straight lines - they only appear after releasing shift key. also all layers become invisible during drawing of straight lines
 
 ## PHASE 2 - FIXES
 
@@ -46,9 +46,9 @@
 
 ## 2.1 - FEATURES
 
-- [-] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, smooth borders, and feathering on top of it
+- [x] **Selection** replace the rectangle-only selection model with a per-pixel selection mask, then build lasso, magic wand, invert/add/subtract/intersect, smooth borders, and feathering on top of it
 - [x] add auto-pick layer option to directly move another layer via hit mask (CTRL Alt+click picks topmost visible layer with non-transparent pixels)
-- [-] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
+- [x] radial palette HUD with color circle and a triangle inside for brightness and saturation, gamut hints like in krita.
 
 ### PHASE 3 - SAM SEGMENTATION
 
@@ -59,9 +59,9 @@
 - [x] rename the editor/node from "Sketch Input" to "Image Editor"
 - [x] import image into current layer by drop from outside and paste command
 - [ ] add groupable layers as tree structure with drag and drop support, expand / close option
-- [ ] better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view.
-- [ ] improve selection mask to be able to select 1 pixel width exactly on close zoom
-- [-] make the canvas resizable from edges/corners with a solid interaction model
+- [ ] better cursor and pixel-workflow affordances such as thin white grid overlay when zoomed in, snap-to-pixel, and crisp high-zoom view
+- [x] improve selection mask to be able to select 1 pixel width exactly on close zoom
+- [x] make the canvas resizable from edges/corners with a solid interaction model
 
 ### PHASE 5 - FX LAYER
 

@@ -77,11 +77,15 @@ export function getToolSettingsLabel(tool: SketchTool): string {
 interface BrushSettingsPanelProps {
   settings: BrushSettings;
   onChange: (settings: Partial<BrushSettings>) => void;
+  /** Hide size + brush opacity (e.g. eraser uses `toolSettings.eraser` for those). */
+  omitPaintSliders?: boolean;
 }
 
 interface PencilSettingsPanelProps {
   settings: PencilSettings;
   onChange: (settings: Partial<PencilSettings>) => void;
+  /** Hide size + pencil opacity (e.g. eraser uses `toolSettings.eraser` for those). */
+  omitPaintSliders?: boolean;
 }
 
 interface EraserSettingsPanelProps {
@@ -126,7 +130,8 @@ interface SelectSettingsPanelProps {
 
 export const BrushSettingsPanel = memo(function BrushSettingsPanel({
   settings,
-  onChange
+  onChange,
+  omitPaintSliders = false
 }: BrushSettingsPanelProps) {
   return (
     <>
@@ -154,33 +159,37 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           Spray
         </ToggleButton>
       </ToggleButtonGroup>
-      <Box className="setting-row">
-        <Typography className="setting-label">Size</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={1}
-          max={200}
-          value={settings.size}
-          onChange={(_, v) => onChange({ size: v as number })}
-        />
-        <Typography className="setting-value">{settings.size}</Typography>
-      </Box>
-      <Box className="setting-row">
-        <Typography className="setting-label">Opacity</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={1}
-          step={0.01}
-          value={settings.opacity}
-          onChange={(_, v) => onChange({ opacity: v as number })}
-        />
-        <Typography className="setting-value">
-          {Math.round(settings.opacity * 100)}%
-        </Typography>
-      </Box>
+      {!omitPaintSliders && (
+        <>
+          <Box className="setting-row">
+            <Typography className="setting-label">Size</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={1}
+              max={200}
+              value={settings.size}
+              onChange={(_, v) => onChange({ size: v as number })}
+            />
+            <Typography className="setting-value">{settings.size}</Typography>
+          </Box>
+          <Box className="setting-row">
+            <Typography className="setting-label">Opacity</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0}
+              max={1}
+              step={0.01}
+              value={settings.opacity}
+              onChange={(_, v) => onChange({ opacity: v as number })}
+            />
+            <Typography className="setting-value">
+              {Math.round(settings.opacity * 100)}%
+            </Typography>
+          </Box>
+        </>
+      )}
       <Box className="setting-row">
         <Typography className="setting-label">Hard</Typography>
         <Slider
@@ -284,37 +293,42 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
 
 export const PencilSettingsPanel = memo(function PencilSettingsPanel({
   settings,
-  onChange
+  onChange,
+  omitPaintSliders = false
 }: PencilSettingsPanelProps) {
   return (
     <>
-      <Box className="setting-row">
-        <Typography className="setting-label">Size</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={1}
-          max={10}
-          value={settings.size}
-          onChange={(_, v) => onChange({ size: v as number })}
-        />
-        <Typography className="setting-value">{settings.size}</Typography>
-      </Box>
-      <Box className="setting-row">
-        <Typography className="setting-label">Opacity</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={1}
-          step={0.01}
-          value={settings.opacity}
-          onChange={(_, v) => onChange({ opacity: v as number })}
-        />
-        <Typography className="setting-value">
-          {Math.round(settings.opacity * 100)}%
-        </Typography>
-      </Box>
+      {!omitPaintSliders && (
+        <>
+          <Box className="setting-row">
+            <Typography className="setting-label">Size</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={1}
+              max={10}
+              value={settings.size}
+              onChange={(_, v) => onChange({ size: v as number })}
+            />
+            <Typography className="setting-value">{settings.size}</Typography>
+          </Box>
+          <Box className="setting-row">
+            <Typography className="setting-label">Opacity</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0}
+              max={1}
+              step={0.01}
+              value={settings.opacity}
+              onChange={(_, v) => onChange({ opacity: v as number })}
+            />
+            <Typography className="setting-value">
+              {Math.round(settings.opacity * 100)}%
+            </Typography>
+          </Box>
+        </>
+      )}
       <Box className="setting-row" sx={{ alignItems: "center" }}>
         <Typography className="setting-label">Pressure</Typography>
         <Switch
@@ -361,11 +375,10 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
   settings,
   onChange
 }: EraserSettingsPanelProps) {
-  const mode = settings.mode ?? "brush";
   return (
     <>
       <ToggleButtonGroup
-        value={mode}
+        value={settings.mode ?? "brush"}
         exclusive
         onChange={(_, v) => {
           if (v) {
@@ -382,11 +395,6 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
           Pencil
         </ToggleButton>
       </ToggleButtonGroup>
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: "6px" }}>
-        {mode === "brush"
-          ? "Uses the Brush tool shape (type, hardness, angle, …)."
-          : "Uses the Pencil tool dab behavior."}
-      </Typography>
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider
@@ -1073,11 +1081,27 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
     );
   }
   if (activeTool === "eraser") {
+    const eraserMode = eraserSettings.mode ?? "brush";
     return (
-      <EraserSettingsPanel
-        settings={eraserSettings}
-        onChange={onEraserSettingsChange}
-      />
+      <>
+        <EraserSettingsPanel
+          settings={eraserSettings}
+          onChange={onEraserSettingsChange}
+        />
+        {eraserMode === "brush" ? (
+          <BrushSettingsPanel
+            settings={brushSettings}
+            onChange={onBrushSettingsChange}
+            omitPaintSliders
+          />
+        ) : (
+          <PencilSettingsPanel
+            settings={pencilSettings}
+            onChange={onPencilSettingsChange}
+            omitPaintSliders
+          />
+        )}
+      </>
     );
   }
   if (activeTool === "shape") {

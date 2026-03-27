@@ -176,7 +176,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
 
     // Editor state
     const [tool, setTool] = useState<EditTool>("select");
-    const [brushSettings, setBrushSettings] = useState<BrushSettings>(DEFAULT_BRUSH_SETTINGS);
+    const [brushSettings, setBrushSettings] = useState<BrushSettings>(() => ({
+        ...DEFAULT_BRUSH_SETTINGS
+    }));
     const [shapeSettings, setShapeSettings] = useState<ShapeSettings>(DEFAULT_SHAPE_SETTINGS);
     const [textSettings, setTextSettings] = useState<TextSettings>(DEFAULT_TEXT_SETTINGS);
     const [adjustments, setAdjustments] = useState<AdjustmentSettings>(DEFAULT_ADJUSTMENTS);
