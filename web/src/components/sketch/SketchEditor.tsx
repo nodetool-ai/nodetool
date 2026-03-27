@@ -367,6 +367,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
 
       {!store.panelsHidden && (
         <SketchLayersPanel
+          foregroundColor={store.foregroundColor}
+          onForegroundColorChange={handleFgColorChange}
           layers={store.document.layers}
           activeLayerId={store.document.activeLayerId}
           maskLayerId={store.document.maskLayerId}

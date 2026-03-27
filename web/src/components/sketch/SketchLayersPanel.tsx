@@ -37,6 +37,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference } from "./types";
 import LayerItem from "./LayerItem";
+import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 
 type PanelSectionKey = "canvasSize" | "shortcuts";
@@ -200,6 +201,8 @@ const styles = (theme: Theme) =>
   });
 
 export interface SketchLayersPanelProps {
+  foregroundColor: string;
+  onForegroundColorChange: (color: string) => void;
   layers: Layer[];
   activeLayerId: string;
   maskLayerId: string | null;
@@ -227,6 +230,8 @@ export interface SketchLayersPanelProps {
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
+  foregroundColor,
+  onForegroundColorChange,
   layers,
   activeLayerId,
   maskLayerId,
@@ -348,6 +353,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
   return (
     <Box className="sketch-layers-panel" css={styles(theme)}>
+      {/* ── Color Selector ── */}
+      <HueTriangleColorPicker
+        color={foregroundColor}
+        onColorChange={onForegroundColorChange}
+      />
+
       <Typography className="section-label sketch-layers-panel__title">
         Layers
       </Typography>
