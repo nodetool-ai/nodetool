@@ -12,7 +12,12 @@
  */
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
-import type { LayerContentBounds, Selection, SketchDocument } from "../types";
+import {
+  isLayerCompositeVisible,
+  type LayerContentBounds,
+  type Selection,
+  type SketchDocument
+} from "../types";
 import { selectionHasAnyPixels } from "../selection/selectionMask";
 import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
 import {
@@ -183,7 +188,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     }
 
     for (const layer of doc.layers) {
-      if (!layer.visible) {
+      if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
         continue;
       }
       if (isolatedLayerId && layer.id !== isolatedLayerId) {
@@ -479,7 +484,10 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx.fillStyle = doc.canvas.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (const layer of doc.layers) {
-      if (!layer.visible || layer.type === "mask") {
+      if (layer.type === "mask") {
+        continue;
+      }
+      if (!isLayerCompositeVisible(doc.layers, layer, null)) {
         continue;
       }
       this.drawLayerToContext(ctx, doc, layer.id);
@@ -489,6 +497,10 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   getMaskDataUrl(doc: SketchDocument): string | null {
     if (!doc.maskLayerId) {
+      return null;
+    }
+    const maskLayer = doc.layers.find((l) => l.id === doc.maskLayerId);
+    if (!maskLayer || !isLayerCompositeVisible(doc.layers, maskLayer, null)) {
       return null;
     }
     const canvas = window.document.createElement("canvas");
@@ -513,7 +525,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx.fillStyle = doc.canvas.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (const layer of doc.layers) {
-      if (!layer.visible) {
+      if (!isLayerCompositeVisible(doc.layers, layer, null)) {
         continue;
       }
       this.drawLayerToContext(ctx, doc, layer.id);

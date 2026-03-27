@@ -18,6 +18,7 @@ import type {
 import {
   isShapeTool,
   isPaintingTool,
+  isLayerCompositeVisible,
   layerAllowsTransformWhilePixelLocked
 } from "../types";
 import {
@@ -455,7 +456,12 @@ export function usePointerHandlers({
       }
 
       const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
-      if (!activeLayer || !activeLayer.visible) {
+      if (!activeLayer) {
+        return;
+      }
+      // Selection (rect/lasso/magic wand, move mask) does not paint the active
+      // layer — allow it even when the active layer is hidden.
+      if (!activeLayer.visible && activeTool !== "select") {
         return;
       }
 
@@ -494,7 +500,8 @@ export function usePointerHandlers({
           for (let i = doc.layers.length - 1; i >= 0; i--) {
             const layer = doc.layers[i];
             const skipForHit =
-              !layer.visible || (layer.locked && !layer.imageReference);
+              !isLayerCompositeVisible(doc.layers, layer, null) ||
+              (layer.locked && !layer.imageReference);
             if (skipForHit) {
               continue;
             }

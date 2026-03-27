@@ -13,10 +13,15 @@
  */
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
-import type { LayerContentBounds, Selection, SketchDocument } from "../types";
+import {
+  isLayerCompositeVisible,
+  type BlendMode,
+  type LayerContentBounds,
+  type Selection,
+  type SketchDocument
+} from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { blendModeToComposite, checkerboardDocumentCellPx } from "../drawingUtils";
-import type { BlendMode } from "../types";
 import { getLayerCompositeOffset } from "../painting/layerBounds";
 import {
   FULLSCREEN_QUAD_VERTEX,
@@ -523,7 +528,7 @@ export class WebGPURuntime implements SketchRuntime {
       activeStroke != null ? this.uploadStrokeMergePreview(activeStroke) : null;
 
     for (const layer of doc.layers) {
-      if (!layer.visible) {
+      if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
         continue;
       }
       if (isolatedLayerId && layer.id !== isolatedLayerId) {

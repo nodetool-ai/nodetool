@@ -269,9 +269,6 @@ export function magicWandFromRgba(
   const targetG = d[idx0 + 1];
   const targetB = d[idx0 + 2];
   const targetA = d[idx0 + 3];
-  if (targetA < THRESH) {
-    return out;
-  }
   const tol = Math.max(0, Math.min(255, tolerance));
   const tol2 = tol * tol;
   const colorMatches = (i: number): boolean => {

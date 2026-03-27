@@ -837,6 +837,40 @@ export function getDescendantIds(layers: Layer[], groupId: string): string[] {
 }
 
 /**
+ * Whether a layer should be drawn in the flat composite stack: the layer is
+ * visible and every ancestor group is visible. Hiding a group therefore hides
+ * all descendant pixels without changing child `visible` flags.
+ *
+ * When `isolatedLayerId` matches this layer, ancestor visibility is ignored so
+ * solo/isolate still shows that layer's pixels.
+ */
+export function isLayerCompositeVisible(
+  layers: Layer[],
+  layer: Layer,
+  isolatedLayerId: string | null | undefined
+): boolean {
+  if (!layer.visible) {
+    return false;
+  }
+  if (isolatedLayerId && layer.id === isolatedLayerId) {
+    return true;
+  }
+  let current: Layer | undefined = layer;
+  let depth = 0;
+  while (current?.parentId) {
+    if (depth++ > MAX_LAYER_DEPTH) {
+      break;
+    }
+    const parent = layers.find((l) => l.id === current!.parentId);
+    if (!parent || !parent.visible) {
+      return false;
+    }
+    current = parent;
+  }
+  return true;
+}
+
+/**
  * Build a flat rendering order that respects the tree structure.
  * Returns layers in the same order as the flat array but annotated
  * with their depth. Layers whose ancestor group is collapsed are excluded.

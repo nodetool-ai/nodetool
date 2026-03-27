@@ -18,12 +18,13 @@
  */
 
 import { useCallback, useRef } from "react";
-import type {
-  SketchDocument,
-  Point,
-  Selection,
-  BlurSettings,
-  CloneStampSettings
+import {
+  isLayerCompositeVisible,
+  type SketchDocument,
+  type Point,
+  type Selection,
+  type BlurSettings,
+  type CloneStampSettings
 } from "../types";
 import {
   drawBlurStroke as drawBlurStrokeUtil,
@@ -333,7 +334,10 @@ export function usePointerHandlerUtils({
           return null;
         }
         for (const layer of doc.layers) {
-          if (!layer.visible || layer.type === "mask") {
+          if (layer.type === "mask") {
+            continue;
+          }
+          if (!isLayerCompositeVisible(doc.layers, layer, null)) {
             continue;
           }
           const lc = layerCanvasesRef.current.get(layer.id);

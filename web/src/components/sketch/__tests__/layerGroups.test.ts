@@ -15,6 +15,7 @@ import {
   getDescendantIds,
   buildVisibleLayerTree,
   buildLayersPanelRows,
+  isLayerCompositeVisible,
   Layer
 } from "../types";
 
@@ -175,6 +176,24 @@ describe("Layer Tree Helpers", () => {
     const rows = buildLayersPanelRows(layers);
     expect(rows.map((r) => r.layer.id)).toEqual(["root2", "group1", "root1"]);
     expect(rows.map((r) => r.depth)).toEqual([0, 0, 0]);
+  });
+
+  it("isLayerCompositeVisible hides children when parent group is hidden", () => {
+    const layers = makeLayers();
+    const group = layers.find((l) => l.id === "group1")!;
+    const child = layers.find((l) => l.id === "child1")!;
+    expect(isLayerCompositeVisible(layers, child, null)).toBe(true);
+    group.visible = false;
+    expect(isLayerCompositeVisible(layers, child, null)).toBe(false);
+    expect(isLayerCompositeVisible(layers, group, null)).toBe(false);
+  });
+
+  it("isLayerCompositeVisible ignores ancestors when layer is isolated", () => {
+    const layers = makeLayers();
+    const group = layers.find((l) => l.id === "group1")!;
+    const child = layers.find((l) => l.id === "child1")!;
+    group.visible = false;
+    expect(isLayerCompositeVisible(layers, child, child.id)).toBe(true);
   });
 
   it("buildLayersPanelRows nests subgroups under parent group row", () => {

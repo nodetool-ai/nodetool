@@ -8,6 +8,7 @@
 import {
   SketchDocument,
   Layer,
+  isLayerCompositeVisible,
   normalizeSketchDocument,
   SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
 } from "../types";
@@ -233,7 +234,10 @@ export async function flattenDocument(
 
   // Composite visible non-mask layers bottom to top
   for (const layer of doc.layers) {
-    if (!layer.visible || !layer.data || layer.type === "mask") {
+    if (!layer.data || layer.type === "mask") {
+      continue;
+    }
+    if (!isLayerCompositeVisible(doc.layers, layer, null)) {
       continue;
     }
     await drawLayerToContext(ctx, doc, layer);
@@ -253,6 +257,9 @@ export async function exportMask(
     (l) => l.id === doc.maskLayerId && l.data
   );
   if (!maskLayer || !maskLayer.data) {
+    return null;
+  }
+  if (!isLayerCompositeVisible(doc.layers, maskLayer, null)) {
     return null;
   }
 

@@ -8,7 +8,7 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
-import type { Point } from "../types";
+import { isLayerCompositeVisible, type Point } from "../types";
 import {
   drawCloneStampStroke as drawCloneStampStrokeUtil,
   blendModeToComposite
@@ -114,7 +114,10 @@ export class CloneStampTool implements ToolHandler {
       const tmpCtx = tmp.getContext("2d", { willReadFrequently: true });
       if (tmpCtx) {
         for (const layer of doc.layers) {
-          if (!layer.visible || layer.type === "mask") {
+          if (layer.type === "mask") {
+            continue;
+          }
+          if (!isLayerCompositeVisible(doc.layers, layer, null)) {
             continue;
           }
           const lc = ctx.layerCanvasesRef.current.get(layer.id);
