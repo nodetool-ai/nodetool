@@ -4,10 +4,10 @@ title: "Troubleshooting Guide"
 description: "Debugging and fixing common NodeTool workflow issues."
 ---
 
-Step-by-step troubleshooting for common NodeTool issues.
+Step-by-step troubleshooting for common NodeTool issues. For installation-specific problems (GPU drivers, CUDA, platform issues), see [Installation Troubleshooting](installation.md#troubleshooting-installation).
 
 **Jump to:**
-- [Quick Diagnostic Checklist](#quick-diagnostic-checklist)
+- [Quick Diagnostic Checklist](#quick-diagnostic-checklist) — Start here
 - [Common Issues & Solutions](#common-issues--solutions)
   - [Workflow stuck or slow](#issue-my-workflow-is-stuck-or-very-slow)
   - [Type mismatch errors](#issue-node-shows-error-type-mismatch)

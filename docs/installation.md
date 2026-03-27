@@ -160,7 +160,7 @@ You'll be asked where to install NodeTool's environment:
 
 > **Tip**: Use an SSD for faster AI model loading and workflow execution.
 
-### Select Optional Packages
+### 4. Select Optional Packages
 
 Choose additional features:
 

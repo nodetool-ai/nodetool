@@ -4,15 +4,15 @@ title: "Getting Started"
 description: "Build your first AI workflow in 10 minutes."
 ---
 
-Run your first NodeTool workflow. No AI experience or coding needed.
+Run your first NodeTool workflow in under 10 minutes. No AI experience or coding needed.
 
-**You'll:**
-- Run a complete workflow
-- See results generate live
-- Customize inputs and iterate
-- Share as a Mini-App
+**By the end of this guide, you'll have:**
+- Installed NodeTool and set up AI models
+- Run a complete workflow end-to-end
+- Customized inputs and seen different results
+- Shared your workflow as a Mini-App
 
-For a visual overview first, see [Start Here](index.md#start-here).
+> **Want a visual overview first?** See the [Start Here](index.md#start-here) section on the home page for a quick orientation.
 
 ## Step 1 — Install NodeTool
 
@@ -55,7 +55,7 @@ For running AI locally without cloud APIs:
 
 ## Step 2 — Run Your First Workflow
 
-Pick one template to try:
+Now that NodeTool is installed, let's run a real workflow. Pick one of the templates below to try:
 
 ### Option A: Generate Movie Posters
 
@@ -99,16 +99,16 @@ Pick one template to try:
 
 ## Step 3 — Customize and Iterate
 
-1. **Save**: Press <kbd>Ctrl/⌘ + S</kbd> and name it
+Now that you've seen a workflow run, try making it your own:
 
-2. **Change things**: Edit inputs and run again
-   
-3. **Explore**:
-   - Click nodes to see settings
-   - Hover connections to see data flow
-   - Click Preview nodes for intermediate results
+1. **Save your workflow**: Press <kbd>Ctrl/⌘ + S</kbd> and give it a descriptive name
+2. **Change inputs and re-run**: Edit the text inputs and press Run again to see different results
+3. **Explore the graph**:
+   - **Click any node** to see its settings in the right panel
+   - **Hover over connections** to see what data is flowing between nodes
+   - **Add Preview nodes** (press `Space`, search "Preview") to inspect intermediate results
 
-Workflows are reusable. Try variations. Refine. Save.
+Workflows are reusable — try different variations, refine your inputs, and save your favorites.
 
 ✅ **Done** - You can customize workflows.
 
@@ -116,15 +116,17 @@ Workflows are reusable. Try variations. Refine. Save.
 
 ## Step 4 — Share as a Mini-App
 
-Convert a workflow into a simplified interface:
+Turn any workflow into a simple app that anyone can use — no NodeTool knowledge required:
 
 1. **Open your workflow** in the editor
-2. **Click Mini-App** (top-right)
-3. **See simplified view**: Only inputs and outputs, no graph
+2. **Click Mini-App** (top-right corner of the toolbar)
+3. **See the simplified view**: Only inputs and outputs are visible, the node graph is hidden
 
-Mini-Apps hide complexity. Others can use your workflow without seeing how it works.
+Mini-Apps are perfect for sharing with teammates, clients, or anyone who just wants to use the workflow without understanding how it's built.
 
-✅ **Done** - You know three ways to work: Visual Editor (full control), Mini-App (simple interface).
+> **Want a custom UI?** Use [VibeCoding](vibecoding.md) to design a fully custom interface for your Mini-App with AI assistance.
+
+✅ **Done** - You know two ways to work: the Visual Editor (full control) and Mini-Apps (simple interface).
 
 ---
 
