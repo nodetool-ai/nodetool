@@ -47,6 +47,7 @@ header_pages:
   - workflow-editor.md
   - image-editor.md
   - vibecoding.md
+  - code-node.md
   - workflow-debugging.md
   - mobile-app.md
   - cookbook.md
