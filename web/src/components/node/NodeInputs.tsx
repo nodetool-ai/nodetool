@@ -148,8 +148,11 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
       }),
     [properties]
   );
-  const dynamicProperties: { [key: string]: Property } =
-    (data?.dynamic_properties || {}) as { [key: string]: Property };
+
+  const dynamicProperties: { [key: string]: Property } = useMemo(
+    () => (data?.dynamic_properties || {}) as { [key: string]: Property },
+    [data?.dynamic_properties]
+  );
 
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
@@ -204,9 +207,12 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     }
   });
 
-  const dynamicInputs = data?.dynamic_inputs || {};
+  const dynamicInputs = useMemo(
+    () => data?.dynamic_inputs || {},
+    [data?.dynamic_inputs]
+  );
 
-  const dynamicInputElements = Object.entries(dynamicProperties).map(
+  const dynamicInputElements = useMemo(() => Object.entries(dynamicProperties).map(
     ([name], index) => {
       const incoming = connectedEdges.find(
         (edge) => edge.targetHandle === name
@@ -277,7 +283,18 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         />
       );
     }
-  );
+  ), [
+    dynamicProperties,
+    connectedEdges,
+    dynamicInputs,
+    id,
+    nodeType,
+    layout,
+    data,
+    editableDynamicInputs,
+    findNode,
+    getMetadata
+  ]);
 
   return (
     <div className={`node-inputs node-drag-handle node-${id}`} css={rootStyles}>
