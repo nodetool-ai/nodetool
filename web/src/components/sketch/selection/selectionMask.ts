@@ -469,13 +469,49 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
  * Clip layer-space context to document selection (offset = document coord of layer 0,0).
  * Uses horizontal span rects per scanline (only within layer canvas).
  */
-/** Marching-ants style 1px outline on mask edges (phase animates over time). */
+/**
+ * Marching-ants outline on mask edges. `zoom` is the canvas CSS scale so we can
+ * draw thicker dashes in document space (~constant size on screen when zoomed out).
+ */
 export function drawSelectionMaskOutline(
   ctx: CanvasRenderingContext2D,
   mask: Selection,
-  phase: number
+  phase: number,
+  zoom = 1
 ): void {
   const { width: w, height: h, data } = mask;
+  const z = Math.max(0.02, Math.min(zoom, 64));
+  const cell = Math.max(1, Math.min(16, Math.ceil(1 / z)));
+
+  if (cell <= 1) {
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      for (let x = 0; x < w; x++) {
+        const idx = row + x;
+        if (data[idx] < THRESH) {
+          continue;
+        }
+        const edge =
+          x === 0 ||
+          y === 0 ||
+          x === w - 1 ||
+          y === h - 1 ||
+          data[idx - 1] < THRESH ||
+          data[idx + 1] < THRESH ||
+          (y > 0 && data[idx - w] < THRESH) ||
+          (y < h - 1 && data[idx + w] < THRESH);
+        if (!edge) {
+          continue;
+        }
+        const on = ((x + y + phase) >> 2) % 2 === 0;
+        ctx.fillStyle = on ? "#ffffff" : "#000000";
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+    return;
+  }
+
+  const drawn = new Set<string>();
   for (let y = 0; y < h; y++) {
     const row = y * w;
     for (let x = 0; x < w; x++) {
@@ -495,9 +531,16 @@ export function drawSelectionMaskOutline(
       if (!edge) {
         continue;
       }
-      const on = ((x + y + phase) >> 2) % 2 === 0;
+      const qx = Math.floor(x / cell);
+      const qy = Math.floor(y / cell);
+      const key = `${qx},${qy}`;
+      if (drawn.has(key)) {
+        continue;
+      }
+      drawn.add(key);
+      const on = ((qx + qy + phase) & 1) === 0;
       ctx.fillStyle = on ? "#ffffff" : "#000000";
-      ctx.fillRect(x, y, 1, 1);
+      ctx.fillRect(qx * cell, qy * cell, cell, cell);
     }
   }
 }

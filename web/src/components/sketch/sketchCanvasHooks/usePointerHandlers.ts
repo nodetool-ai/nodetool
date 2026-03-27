@@ -214,6 +214,15 @@ export function usePointerHandlers({
   const moveSelectionOriginRef = useRef<Point | null>(null);
   const selectionAtMoveStartRef = useRef<Selection | null>(null);
 
+  /** Lasso + Shift: index of anchor point; segment (anchor → cursor) is a straight line. */
+  const lassoStraightAnchorIndexRef = useRef(-1);
+  const lassoStraightCursorRef = useRef<Point | null>(null);
+
+  /** Shift/Alt at pointer-down for lasso or marquee (so key-up before mouse-up still applies combine). */
+  const selectionDragModifiersRef = useRef<{ shift: boolean; alt: boolean } | null>(
+    null
+  );
+
   // Alpha lock & stroke tracking
   const alphaSnapshotRef = useRef<ImageData | null>(null);
   const lastStrokeEndRef = useRef<Point | null>(null);
@@ -396,10 +405,11 @@ export function usePointerHandlers({
         return;
       }
 
-      // Alt+click (non-painting tools) or middle-click or Space+drag: pan canvas
+      // Alt+click pans except on the select tool (Alt = subtract from selection).
+      // Middle-click or Space+drag always pan.
       if (
         e.button === 1 ||
-        (e.button === 0 && e.altKey) ||
+        (e.button === 0 && e.altKey && activeTool !== "select") ||
         (e.button === 0 && spaceHeldRef.current)
       ) {
         isPanningRef.current = true;
@@ -577,8 +587,14 @@ export function usePointerHandlers({
           return;
         }
         if (mode === "lasso") {
+          lassoStraightAnchorIndexRef.current = -1;
+          lassoStraightCursorRef.current = null;
           lassoPointsRef.current = [pt];
           selectStartRef.current = null;
+          selectionDragModifiersRef.current = {
+            shift: shiftHeldRef.current,
+            alt: altHeldRef.current
+          };
           isDrawingRef.current = true;
           if (!shiftHeldRef.current && !altHeldRef.current) {
             onSelectionChange?.(null);
@@ -588,6 +604,10 @@ export function usePointerHandlers({
         }
         selectStartRef.current = pt;
         lassoPointsRef.current = [];
+        selectionDragModifiersRef.current = {
+          shift: shiftHeldRef.current,
+          alt: altHeldRef.current
+        };
         isDrawingRef.current = true;
         if (!shiftHeldRef.current && !altHeldRef.current) {
           onSelectionChange?.(null);
@@ -967,6 +987,31 @@ export function usePointerHandlers({
       if (activeTool === "select" && lassoPointsRef.current.length > 0) {
         const pt = screenToCanvas(e.clientX, e.clientY);
         const pts = lassoPointsRef.current;
+
+        if (shiftHeldRef.current) {
+          if (lassoStraightAnchorIndexRef.current < 0) {
+            lassoStraightAnchorIndexRef.current = Math.max(0, pts.length - 1);
+          }
+          lassoStraightCursorRef.current = pt;
+          const anchor = lassoStraightAnchorIndexRef.current;
+          const prefix = pts.slice(0, anchor + 1);
+          drawOverlayLassoPreview([...prefix, pt], pt);
+          return;
+        }
+
+        if (
+          lassoStraightAnchorIndexRef.current >= 0 &&
+          lassoStraightCursorRef.current
+        ) {
+          const end = lassoStraightCursorRef.current;
+          const lastCommitted = pts[pts.length - 1];
+          if (!lastCommitted || lastCommitted.x !== end.x || lastCommitted.y !== end.y) {
+            pts.push(end);
+          }
+          lassoStraightAnchorIndexRef.current = -1;
+          lassoStraightCursorRef.current = null;
+        }
+
         const last = pts[pts.length - 1];
         if (!last || last.x !== pt.x || last.y !== pt.y) {
           pts.push(pt);
@@ -1110,6 +1155,7 @@ export function usePointerHandlers({
       drawOverlayLassoPreview,
       lassoPointsRef,
       selectStartRef,
+      shiftHeldRef,
       onSelectionChange,
       setLayerTransformPreview,
       activeStrokeRef,
@@ -1244,6 +1290,19 @@ export function usePointerHandlers({
           mousePositionRef.current.y +
             (containerRef.current?.getBoundingClientRect().top ?? 0)
         );
+        if (
+          lassoStraightAnchorIndexRef.current >= 0 &&
+          lassoStraightCursorRef.current
+        ) {
+          const ptsMut = lassoPointsRef.current;
+          const end = lassoStraightCursorRef.current;
+          const lastM = ptsMut[ptsMut.length - 1];
+          if (!lastM || lastM.x !== end.x || lastM.y !== end.y) {
+            ptsMut.push(end);
+          }
+          lassoStraightAnchorIndexRef.current = -1;
+          lassoStraightCursorRef.current = null;
+        }
         const pts = [...lassoPointsRef.current];
         lassoPointsRef.current = [];
         const last = pts[pts.length - 1];
@@ -1259,14 +1318,17 @@ export function usePointerHandlers({
           const bin = polygonToBinaryMask(cw, ch, pts);
           const overlay: Selection = { width: cw, height: ch, data: bin };
           if (selectionHasAnyPixels(overlay)) {
+            const mod = selectionDragModifiersRef.current;
+            selectionDragModifiersRef.current = null;
             const op = selectionCombineMode(
-              shiftHeldRef.current,
-              altHeldRef.current
+              mod?.shift ?? shiftHeldRef.current,
+              mod?.alt ?? altHeldRef.current
             );
             const base = op === "replace" ? null : selection ?? null;
             onSelectionChange(combineMasks(base, overlay, op));
           }
         }
+        selectionDragModifiersRef.current = null;
         return;
       }
 
@@ -1287,12 +1349,16 @@ export function usePointerHandlers({
         const ch = doc.canvas.height;
         if (w > 1 && h > 1 && onSelectionChange) {
           const overlay = rectSelectionMask(cw, ch, x, y, w, h);
+          const mod = selectionDragModifiersRef.current;
+          selectionDragModifiersRef.current = null;
           const op = selectionCombineMode(
-            shiftHeldRef.current,
-            altHeldRef.current
+            mod?.shift ?? shiftHeldRef.current,
+            mod?.alt ?? altHeldRef.current
           );
           const base = op === "replace" ? null : selection ?? null;
           onSelectionChange(combineMasks(base, overlay, op));
+        } else {
+          selectionDragModifiersRef.current = null;
         }
         drawSelectionOverlay();
         return;

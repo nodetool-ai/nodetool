@@ -22,8 +22,20 @@ import {
 } from "../selection/selectionMask";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-const SELECTION_DASH_LENGTH = 4;
-const SELECTION_DASH_OFFSET = SELECTION_DASH_LENGTH;
+const SELECTION_DASH_BASE = 4;
+
+/** Document-space stroke metrics so selection UI stays ~constant on screen (CSS scale = zoom). */
+function selectionOverlayDocStroke(zoom: number): {
+  lineWidth: number;
+  dash: number;
+  dashOffset: number;
+} {
+  const z = Math.max(0.02, Math.min(zoom, 64));
+  const docPerScreen = 1 / z;
+  const lineWidth = Math.max(1, Math.min(10, Math.ceil(docPerScreen)));
+  const dash = Math.max(3, Math.min(24, Math.round(SELECTION_DASH_BASE * docPerScreen)));
+  return { lineWidth, dash, dashOffset: dash / 2 };
+}
 
 export interface UseOverlayRendererParams {
   doc: SketchDocument;
@@ -112,6 +124,16 @@ export function useOverlayRenderer({
     }
   }, [overlayCanvasRef]);
 
+  /** Marching ants for the committed mask, drawn under in-progress marquee/lasso previews. */
+  const paintExistingSelectionMaskOutline = useCallback(
+    (ctx: CanvasRenderingContext2D) => {
+      if (selection && selectionHasAnyPixels(selection)) {
+        drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
+      }
+    },
+    [selection, zoom]
+  );
+
   const drawSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
     if (!overlay || !selection || !selectionHasAnyPixels(selection)) {
@@ -126,9 +148,9 @@ export function useOverlayRenderer({
     }
     ctx.save();
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current);
+    drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
     ctx.restore();
-  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef]);
+  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef, zoom]);
 
   useEffect(() => {
     drawSelectionOverlay();
@@ -250,6 +272,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintExistingSelectionMaskOutline(ctx);
       const x = Math.min(start.x, end.x);
       const y = Math.min(start.y, end.y);
       const w = Math.abs(end.x - start.x);
@@ -257,17 +280,18 @@ export function useOverlayRenderer({
       if (w < 1 || h < 1) {
         return;
       }
+      const { lineWidth, dash, dashOffset } = selectionOverlayDocStroke(zoom);
       ctx.save();
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash([dash, dash]);
       ctx.strokeRect(x, y, w, h);
       ctx.strokeStyle = "#000000";
-      ctx.lineDashOffset = SELECTION_DASH_OFFSET;
+      ctx.lineDashOffset = dashOffset;
       ctx.strokeRect(x, y, w, h);
       ctx.restore();
     },
-    [overlayCanvasRef]
+    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline]
   );
 
   const drawOverlayLassoPreview = useCallback(
@@ -281,6 +305,7 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
+      paintExistingSelectionMaskOutline(ctx);
       const path: Point[] = cursor ? [...points, cursor] : [...points];
       if (path.length < 2) {
         return;
@@ -291,16 +316,17 @@ export function useOverlayRenderer({
       for (let i = 1; i < path.length; i++) {
         ctx.lineTo(path[i].x, path[i].y);
       }
+      const { lineWidth, dash, dashOffset } = selectionOverlayDocStroke(zoom);
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash([dash, dash]);
       ctx.stroke();
       ctx.strokeStyle = "#000000";
-      ctx.lineDashOffset = SELECTION_DASH_OFFSET;
+      ctx.lineDashOffset = dashOffset;
       ctx.stroke();
       ctx.restore();
     },
-    [overlayCanvasRef]
+    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline]
   );
 
   // ─── Cursor rendering ──────────────────────────────────────────────
