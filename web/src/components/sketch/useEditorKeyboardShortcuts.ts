@@ -362,6 +362,9 @@ export function useEditorKeyboardShortcuts(
             case "v":
               paramsRef.current.setActiveTool("move");
               break;
+            case "f":
+              paramsRef.current.setActiveTool("transform");
+              break;
             case "x":
               paramsRef.current.swapColors();
               break;

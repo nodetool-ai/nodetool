@@ -214,7 +214,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const setLayerTransformPreview = useCallback((layerId: string, transform: LayerTransform) => {
       setTransformPreviewByLayerId((current) => {
         const existing = current[layerId];
-        if (existing && existing.x === transform.x && existing.y === transform.y) {
+        if (
+          existing &&
+          existing.x === transform.x &&
+          existing.y === transform.y &&
+          (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
+          (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
+          Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
+        ) {
           return current;
         }
         return { ...current, [layerId]: transform };
@@ -426,7 +433,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Determine cursor style based on tool
     const cursorStyle =
-      activeTool === "move"
+      activeTool === "move" || activeTool === "transform"
         ? "move"
         : activeTool === "crop" || activeTool === "select"
           ? "crosshair"

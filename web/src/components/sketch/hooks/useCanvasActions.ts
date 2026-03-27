@@ -11,6 +11,7 @@ import {
   isTransformOnlyTool,
   layerAllowsTransformWhilePixelLocked,
   type LayerContentBounds,
+  type LayerTransform,
   type Point,
   type PushHistoryOptions,
   type SketchDocument,
@@ -37,6 +38,7 @@ export interface UseCanvasActionsParams {
   updateLayerData: (layerId: string, data: string | null) => void;
   offsetLayerTransform: (layerId: string, dx: number, dy: number) => void;
   commitLayerTransform: (layerId: string, transform: Point) => void;
+  setLayerTransform: (layerId: string, transform: LayerTransform) => void;
   setLayerContentBounds: (
     layerId: string,
     contentBounds: LayerContentBounds
@@ -58,6 +60,7 @@ export function useCanvasActions({
   updateLayerData,
   offsetLayerTransform,
   commitLayerTransform,
+  setLayerTransform,
   setLayerContentBounds,
   setDocument,
   setZoom,
@@ -196,6 +199,69 @@ export function useCanvasActions({
     },
     [commitLayerTransform]
   );
+
+  // ─── Transform tool commit / cancel / reset ────────────────────────
+
+  /** Original transform saved when the transform tool activates. */
+  const transformOriginalRef = useRef<LayerTransform | null>(null);
+
+  /** Save the current layer transform as the baseline for cancel. */
+  const saveTransformOriginal = useCallback(() => {
+    const activeLayer = document.layers.find(
+      (l) => l.id === document.activeLayerId
+    );
+    if (activeLayer) {
+      transformOriginalRef.current = {
+        x: activeLayer.transform.x,
+        y: activeLayer.transform.y,
+        scaleX: activeLayer.transform.scaleX ?? 1,
+        scaleY: activeLayer.transform.scaleY ?? 1,
+        rotation: activeLayer.transform.rotation ?? 0
+      };
+    }
+  }, [document]);
+
+  /** Commit: bake the current scale/rotation into the pixel data and reset transform fields. */
+  const handleTransformCommit = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const activeLayer = document.layers.find((l) => l.id === activeLayerId);
+    if (!activeLayer) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    // Reconcile (bake transform into pixels) and clear scale/rotation
+    const newData = canvas.reconcileLayerToDocumentSpace(activeLayerId);
+    if (newData !== null) {
+      updateLayerData(activeLayerId, newData);
+    }
+    setLayerTransform(activeLayerId, {
+      x: activeLayer.transform.x,
+      y: activeLayer.transform.y
+    });
+
+    transformOriginalRef.current = null;
+  }, [document, canvasRef, updateLayerData, setLayerTransform]);
+
+  /** Cancel: restore the original transform. */
+  const handleTransformCancel = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const original = transformOriginalRef.current;
+    if (original) {
+      setLayerTransform(activeLayerId, original);
+    }
+    transformOriginalRef.current = null;
+  }, [document.activeLayerId, setLayerTransform]);
+
+  /** Reset: set transform to identity. */
+  const handleTransformReset = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    setLayerTransform(activeLayerId, { x: 0, y: 0 });
+  }, [document.activeLayerId, setLayerTransform]);
 
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
@@ -857,6 +923,10 @@ export function useCanvasActions({
     setAdjContrast,
     setAdjSaturation,
     handleApplyAdjustments,
-    handleCancelAdjustments
+    handleCancelAdjustments,
+    saveTransformOriginal,
+    handleTransformCommit,
+    handleTransformCancel,
+    handleTransformReset
   };
 }

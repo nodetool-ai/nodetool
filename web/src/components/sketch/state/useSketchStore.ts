@@ -106,6 +106,7 @@ function offsetLayerTransformInDocument(
         ? {
             ...layer,
             transform: {
+              ...layer.transform,
               x: layer.transform.x + dx,
               y: layer.transform.y + dy
             }
