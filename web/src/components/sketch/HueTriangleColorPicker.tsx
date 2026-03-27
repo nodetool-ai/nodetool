@@ -1,13 +1,12 @@
 /**
  * HueTriangleColorPicker
  *
- * Krita-style radial HSV color selector:
+ * Radial HSV color selector:
  * - Outer ring: static hue spectrum (0–360°)
- * - Inner equilateral triangle: saturation + value for the selected hue
- *   - Vertex toward the ring = fully saturated color (S=1, V=1)
- *   - Opposite-left vertex = white (S=0, V=1)
- *   - Opposite-right vertex = black (S=0, V=0)
- * The triangle rotates with the hue, and its fill repaints when hue changes.
+ * - Inner equilateral triangle (fixed orientation): saturation + value for the selected hue
+ *   - Top vertex = fully saturated color (S=1, V=1) for the current hue
+ *   - Other vertices = white (S=0, V=1) and black (S=0, V=0)
+ * The triangle does not rotate when the hue ring changes; only its colors update.
  * A round cursor is always visible inside the triangle.
  */
 
@@ -46,15 +45,13 @@ const MIN_SV_FOR_HUE_SYNC = 0.01;
 
 // ─── Geometry helpers ────────────────────────────────────────────────────────
 
-/** Equilateral-triangle vertices rotated so V0 points at `hueAngle`.
- *  v0 = hue vertex (S=1, V=1), v1 = white vertex (S=0, V=1), v2 = black vertex (S=0, V=0).
- *  v0 points toward the selected hue on the ring; v1 and v2 form the opposite edge. */
-function triVerts(hueDeg: number): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
-  const hRad = (hueDeg - 90) * Math.PI / 180;       // -90 so 0° points up
+/** Equilateral triangle in a fixed orientation (hue vertex at top). Geometry is independent of hue. */
+function triVertsFixed(): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
+  const hRad = -Math.PI / 2; // same as hue 0°: vertex v0 points up (−Y in canvas)
   const v0 = { x: CX + TRI_R * Math.cos(hRad), y: CY + TRI_R * Math.sin(hRad) };
   const v1 = { x: CX + TRI_R * Math.cos(hRad + 2 * Math.PI / 3), y: CY + TRI_R * Math.sin(hRad + 2 * Math.PI / 3) };
   const v2 = { x: CX + TRI_R * Math.cos(hRad + 4 * Math.PI / 3), y: CY + TRI_R * Math.sin(hRad + 4 * Math.PI / 3) };
-  return [v0, v1, v2];   // v0 = hue vertex, v1 = white, v2 = black
+  return [v0, v1, v2];
 }
 
 /** Barycentric coordinates of P relative to triangle (A, B, C). */
@@ -117,9 +114,9 @@ function paintRing(ctx: CanvasRenderingContext2D) {
   }
 }
 
-/** Paint the HSV triangle for the given hue. */
+/** Paint the HSV triangle for the given hue (fixed geometry; only pixel colors depend on hue). */
 function paintTriangle(ctx: CanvasRenderingContext2D, hueDeg: number) {
-  const [v0, v1, v2] = triVerts(hueDeg);
+  const [v0, v1, v2] = triVertsFixed();
 
   // Build bounding box
   const minX = Math.floor(Math.min(v0.x, v1.x, v2.x));
@@ -150,6 +147,9 @@ function paintTriangle(ctx: CanvasRenderingContext2D, hueDeg: number) {
         data[idx + 1] = g;
         data[idx + 2] = b;
         data[idx + 3] = 255;
+      } else {
+        const idx = ((py - minY) * w + (px - minX)) * 4;
+        data[idx + 3] = 0;
       }
     }
   }
@@ -185,8 +185,8 @@ function paintHueCursor(ctx: CanvasRenderingContext2D, hueDeg: number) {
 }
 
 /** Draw the SV cursor inside the triangle. */
-function paintSVCursor(ctx: CanvasRenderingContext2D, hueDeg: number, s: number, val: number) {
-  const [v0, v1, v2] = triVerts(hueDeg);
+function paintSVCursor(ctx: CanvasRenderingContext2D, _hueDeg: number, s: number, val: number) {
+  const [v0, v1, v2] = triVertsFixed();
   const { u, v, w } = svToBary(s, val);
   const cx = u * v0.x + v * v1.x + w * v2.x;
   const cy = u * v0.y + v * v1.y + w * v2.y;
