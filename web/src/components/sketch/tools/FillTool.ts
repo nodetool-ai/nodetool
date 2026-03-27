@@ -7,6 +7,10 @@
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import { floodFill as floodFillUtil } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import {
+  selectionHasAnyPixels,
+  selectionHitTest
+} from "../selection/selectionMask";
 
 export class FillTool implements ToolHandler {
   readonly toolId = "fill" as const;
@@ -24,13 +28,8 @@ export class FillTool implements ToolHandler {
     }
 
     const pt = event.point;
-    if (selection && selection.width > 0 && selection.height > 0) {
-      if (
-        pt.x < selection.x ||
-        pt.x > selection.x + selection.width ||
-        pt.y < selection.y ||
-        pt.y > selection.y + selection.height
-      ) {
+    if (selection && selectionHasAnyPixels(selection)) {
+      if (!selectionHitTest(selection, pt.x, pt.y)) {
         return false;
       }
     }

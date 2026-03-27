@@ -34,7 +34,29 @@ import type {
 import { getCanvasRasterBounds } from "../painting";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
+import {
+  cloneSelectionMask,
+  combineMasks,
+  type SelectionCombineOp,
+  magicWandFromRgba,
+  polygonToBinaryMask,
+  rectSelectionMask,
+  selectionHitTest,
+  translateMask
+} from "../selection/selectionMask";
 
+function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp {
+  if (shift && alt) {
+    return "intersect";
+  }
+  if (shift) {
+    return "add";
+  }
+  if (alt) {
+    return "subtract";
+  }
+  return "replace";
+}
 
 export interface UsePointerHandlersParams {
   doc: SketchDocument;
@@ -46,6 +68,8 @@ export interface UsePointerHandlersParams {
   symmetryMode: string;
   symmetryRays: number;
   selection?: Selection | null;
+  selectStartRef: React.MutableRefObject<Point | null>;
+  lassoPointsRef: React.MutableRefObject<Point[]>;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -65,6 +89,7 @@ export interface UsePointerHandlersParams {
   drawOverlayGradient: (start: Point, end: Point) => void;
   drawOverlayCrop: (start: Point, end: Point) => void;
   drawOverlaySelection: (start: Point, end: Point) => void;
+  drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
   drawCursor: (screenX: number, screenY: number) => void;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
@@ -121,6 +146,8 @@ export function usePointerHandlers({
   symmetryMode,
   symmetryRays,
   selection,
+  selectStartRef,
+  lassoPointsRef,
   displayCanvasRef,
   overlayCanvasRef,
   cursorCanvasRef,
@@ -140,6 +167,7 @@ export function usePointerHandlers({
   drawOverlayGradient,
   drawOverlayCrop,
   drawOverlaySelection,
+  drawOverlayLassoPreview,
   drawCursor,
   onZoomChange,
   onPanChange,
@@ -179,7 +207,6 @@ export function usePointerHandlers({
   const gradientStartRef = useRef<Point | null>(null);
   const gradientEndRef = useRef<Point | null>(null);
   const cropStartRef = useRef<Point | null>(null);
-  const selectStartRef = useRef<Point | null>(null);
 
   // Selection movement state
   const isMovingSelectionRef = useRef(false);
@@ -271,6 +298,7 @@ export function usePointerHandlers({
     drawOverlayGradient,
     drawOverlayCrop,
     drawOverlaySelection,
+    drawOverlayLassoPreview,
     drawCursor,
     onZoomChange,
     onPanChange,

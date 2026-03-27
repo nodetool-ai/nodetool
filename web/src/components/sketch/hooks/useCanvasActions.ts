@@ -18,6 +18,7 @@ import {
 } from "../types";
 import { useSketchStore } from "../state";
 import { getLayerCompositeOffset } from "../painting";
+import { selectionHasAnyPixels } from "../selection/selectionMask";
 import type { StrokeEndOptions } from "../tools/types";
 
 export interface UseCanvasActionsParams {
@@ -306,18 +307,17 @@ export function useCanvasActions({
       return;
     }
     const sel = useSketchStore.getState().selection;
-    if (sel && sel.width > 0 && sel.height > 0) {
+    if (sel && selectionHasAnyPixels(sel)) {
       pushHistory("clear selection");
       const offset = getLayerCompositeOffset(layer, {
         width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
         height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
       });
-      canvasRef.current.clearLayerRect(
+      canvasRef.current.clearLayerBySelectionMask(
         activeLayerId,
-        sel.x - offset.x,
-        sel.y - offset.y,
-        sel.width,
-        sel.height
+        offset.x,
+        offset.y,
+        sel
       );
       syncPixelLayerFromCanvas(activeLayerId);
     } else {
@@ -345,18 +345,17 @@ export function useCanvasActions({
         return;
       }
       const sel = useSketchStore.getState().selection;
-      if (sel && sel.width > 0 && sel.height > 0) {
+      if (sel && selectionHasAnyPixels(sel)) {
         pushHistory("fill selection");
         const offset = getLayerCompositeOffset(layer, {
           width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
           height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
         });
-        canvasRef.current.fillLayerRect(
+        canvasRef.current.fillLayerBySelectionMask(
           activeLayerId,
-          sel.x - offset.x,
-          sel.y - offset.y,
-          sel.width,
-          sel.height,
+          offset.x,
+          offset.y,
+          sel,
           color
         );
       } else {

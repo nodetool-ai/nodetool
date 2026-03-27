@@ -469,6 +469,39 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
  * Clip layer-space context to document selection (offset = document coord of layer 0,0).
  * Uses horizontal span rects per scanline (only within layer canvas).
  */
+/** Marching-ants style 1px outline on mask edges (phase animates over time). */
+export function drawSelectionMaskOutline(
+  ctx: CanvasRenderingContext2D,
+  mask: Selection,
+  phase: number
+): void {
+  const { width: w, height: h, data } = mask;
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      const idx = row + x;
+      if (data[idx] < THRESH) {
+        continue;
+      }
+      const edge =
+        x === 0 ||
+        y === 0 ||
+        x === w - 1 ||
+        y === h - 1 ||
+        data[idx - 1] < THRESH ||
+        data[idx + 1] < THRESH ||
+        (y > 0 && data[idx - w] < THRESH) ||
+        (y < h - 1 && data[idx + w] < THRESH);
+      if (!edge) {
+        continue;
+      }
+      const on = ((x + y + phase) >> 2) % 2 === 0;
+      ctx.fillStyle = on ? "#ffffff" : "#000000";
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+}
+
 export function clipContextToSelectionMask(
   ctx: CanvasRenderingContext2D,
   mask: Selection,

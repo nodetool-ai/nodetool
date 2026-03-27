@@ -75,6 +75,7 @@ export interface ToolContext {
   drawOverlayGradient: (start: Point, end: Point) => void;
   drawOverlayCrop: (start: Point, end: Point) => void;
   drawOverlaySelection: (start: Point, end: Point) => void;
+  drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
   drawCursor: (screenX: number, screenY: number) => void;
 
   // ── Editor callbacks ─────────────────────────────────────────────────

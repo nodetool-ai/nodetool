@@ -10,7 +10,7 @@
 
 import { useImperativeHandle, type Ref } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
-import type { SketchDocument } from "../types";
+import type { Selection, SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
 
 export interface UseCanvasImperativeHandleParams {
@@ -135,6 +135,31 @@ export function useCanvasImperativeHandle({
       },
       fillLayerRect: (layerId: string, x: number, y: number, width: number, height: number, color: string) => {
         runtime.fillLayerRect(layerId, x, y, width, height, color);
+        redraw();
+      },
+      clearLayerBySelectionMask: (
+        layerId: string,
+        offsetX: number,
+        offsetY: number,
+        mask: Selection
+      ) => {
+        runtime.clearLayerBySelectionMask(layerId, offsetX, offsetY, mask);
+        redraw();
+      },
+      fillLayerBySelectionMask: (
+        layerId: string,
+        offsetX: number,
+        offsetY: number,
+        mask: Selection,
+        color: string
+      ) => {
+        runtime.fillLayerBySelectionMask(
+          layerId,
+          offsetX,
+          offsetY,
+          mask,
+          color
+        );
         redraw();
       },
       nudgeLayer: (layerId: string, dx: number, dy: number) => {

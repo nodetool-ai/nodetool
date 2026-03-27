@@ -101,6 +101,19 @@ export interface SketchCanvasRef {
     height: number,
     color: string
   ) => void;
+  clearLayerBySelectionMask: (
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection
+  ) => void;
+  fillLayerBySelectionMask: (
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    color: string
+  ) => void;
   nudgeLayer: (layerId: string, dx: number, dy: number) => void;
   /** Full display composite (layer visibility, opacity, blend, isolation). */
   redrawDisplay: () => void;
@@ -271,6 +284,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const shiftHeldRef = useRef(false);
     const altHeldRef = useRef(false);
     const selectStartRef = useRef<Point | null>(null);
+    const lassoPointsRef = useRef<Point[]>([]);
 
     // ─── Overlay and cursor rendering ──────────────────────────────────
 
@@ -284,7 +298,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       containerRef,
       shiftHeldRef,
       altHeldRef,
-      selectStartRef
+      selectStartRef,
+      lassoPointsRef
     });
 
     // ─── Pointer handlers ──────────────────────────────────────────────
@@ -299,6 +314,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       symmetryMode,
       symmetryRays,
       selection,
+      selectStartRef,
+      lassoPointsRef,
       displayCanvasRef,
       overlayCanvasRef,
       cursorCanvasRef,
@@ -318,6 +335,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       drawOverlayGradient: overlay.drawOverlayGradient,
       drawOverlayCrop: overlay.drawOverlayCrop,
       drawOverlaySelection: overlay.drawOverlaySelection,
+      drawOverlayLassoPreview: overlay.drawOverlayLassoPreview,
       drawCursor: overlay.drawCursor,
       onZoomChange,
       onPanChange,

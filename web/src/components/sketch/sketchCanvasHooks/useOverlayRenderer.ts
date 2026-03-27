@@ -5,7 +5,7 @@
  * and cursor canvas rendering for brush size indicator.
  */
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type {
   SketchDocument,
   SketchTool,
@@ -16,6 +16,10 @@ import {
   drawShapeOnCtx as drawShapeOnCtxUtil,
   drawGradient as drawGradientUtil
 } from "../drawingUtils";
+import {
+  drawSelectionMaskOutline,
+  selectionHasAnyPixels
+} from "../selection/selectionMask";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const SELECTION_DASH_LENGTH = 4;
@@ -33,6 +37,7 @@ export interface UseOverlayRendererParams {
   altHeldRef: React.MutableRefObject<boolean>;
   /** When non-null, the user is actively dragging a new selection — skip persistent overlay */
   selectStartRef: React.MutableRefObject<Point | null>;
+  lassoPointsRef: React.MutableRefObject<Point[]>;
 }
 
 export interface UseOverlayRendererResult {
@@ -42,6 +47,7 @@ export interface UseOverlayRendererResult {
   drawOverlayGradient: (start: Point, end: Point) => void;
   drawOverlayCrop: (start: Point, end: Point) => void;
   drawOverlaySelection: (start: Point, end: Point) => void;
+  drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
   drawCursor: (screenX: number, screenY: number) => void;
 }
 
@@ -55,8 +61,11 @@ export function useOverlayRenderer({
   containerRef,
   shiftHeldRef,
   altHeldRef,
-  selectStartRef
+  selectStartRef,
+  lassoPointsRef
 }: UseOverlayRendererParams): UseOverlayRendererResult {
+
+  const antsPhaseRef = useRef(0);
 
   // ─── Cursor canvas sizing ──────────────────────────────────────────
 
@@ -105,34 +114,51 @@ export function useOverlayRenderer({
 
   const drawSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
-    if (!overlay || !selection) {
+    if (!overlay || !selection || !selectionHasAnyPixels(selection)) {
       return;
     }
-    // Don't draw persistent selection while actively dragging a new one
-    if (selectStartRef.current) {
+    if (selectStartRef.current || lassoPointsRef.current.length > 0) {
       return;
     }
     const ctx = overlay.getContext("2d");
     if (!ctx) {
       return;
     }
-    const { x, y, width, height } = selection;
     ctx.save();
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
-    ctx.strokeRect(x, y, width, height);
-    ctx.strokeStyle = "#000000";
-    ctx.lineDashOffset = SELECTION_DASH_OFFSET;
-    ctx.strokeRect(x, y, width, height);
+    drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current);
     ctx.restore();
-  }, [selection, overlayCanvasRef, selectStartRef]);
+  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef]);
 
-  // Redraw selection overlay when selection changes
   useEffect(() => {
     drawSelectionOverlay();
   }, [drawSelectionOverlay]);
+
+  useEffect(() => {
+    if (
+      !selection ||
+      !selectionHasAnyPixels(selection) ||
+      activeTool !== "select"
+    ) {
+      return;
+    }
+    const id = window.setInterval(() => {
+      if (selectStartRef.current || lassoPointsRef.current.length > 0) {
+        return;
+      }
+      antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
+      drawSelectionOverlay();
+    }, 180);
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [
+    selection,
+    activeTool,
+    drawSelectionOverlay,
+    selectStartRef,
+    lassoPointsRef
+  ]);
 
   // Clear gradient preview when switching tools
   useEffect(() => {
@@ -231,7 +257,6 @@ export function useOverlayRenderer({
       if (w < 1 || h < 1) {
         return;
       }
-      // Marching ants: white dashes + offset black dashes
       ctx.save();
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1;
@@ -240,6 +265,39 @@ export function useOverlayRenderer({
       ctx.strokeStyle = "#000000";
       ctx.lineDashOffset = SELECTION_DASH_OFFSET;
       ctx.strokeRect(x, y, w, h);
+      ctx.restore();
+    },
+    [overlayCanvasRef]
+  );
+
+  const drawOverlayLassoPreview = useCallback(
+    (points: Point[], cursor: Point | null) => {
+      const overlay = overlayCanvasRef.current;
+      if (!overlay) {
+        return;
+      }
+      const ctx = overlay.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      const path: Point[] = cursor ? [...points, cursor] : [...points];
+      if (path.length < 2) {
+        return;
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i < path.length; i++) {
+        ctx.lineTo(path[i].x, path[i].y);
+      }
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([SELECTION_DASH_LENGTH, SELECTION_DASH_LENGTH]);
+      ctx.stroke();
+      ctx.strokeStyle = "#000000";
+      ctx.lineDashOffset = SELECTION_DASH_OFFSET;
+      ctx.stroke();
       ctx.restore();
     },
     [overlayCanvasRef]
@@ -366,6 +424,7 @@ export function useOverlayRenderer({
     drawOverlayGradient,
     drawOverlayCrop,
     drawOverlaySelection,
+    drawOverlayLassoPreview,
     drawCursor
   };
 }

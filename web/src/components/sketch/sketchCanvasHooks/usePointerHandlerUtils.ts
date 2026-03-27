@@ -38,6 +38,10 @@ import {
   getDocumentViewportLayerBounds,
   getLayerCompositeOffset
 } from "../painting";
+import {
+  clipContextToSelectionMask,
+  selectionHasAnyPixels
+} from "../selection/selectionMask";
 
 export interface UsePointerHandlerUtilsParams {
   zoom: number;
@@ -237,18 +241,10 @@ export function usePointerHandlerUtils({
   // ─── Selection clipping ────────────────────────────────────────────
   const clipSelectionForOffset = useCallback(
     (ctx: CanvasRenderingContext2D, offset: Point) => {
-      if (!selection || selection.width <= 0 || selection.height <= 0) {
+      if (!selection || !selectionHasAnyPixels(selection)) {
         return false;
       }
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(
-        selection.x - offset.x,
-        selection.y - offset.y,
-        selection.width,
-        selection.height
-      );
-      ctx.clip();
+      clipContextToSelectionMask(ctx, selection, offset.x, offset.y);
       return true;
     },
     [selection]

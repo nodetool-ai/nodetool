@@ -13,7 +13,7 @@
  */
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
-import type { LayerContentBounds, SketchDocument } from "../types";
+import type { LayerContentBounds, Selection, SketchDocument } from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { blendModeToComposite } from "../drawingUtils";
 import type { BlendMode } from "../types";
@@ -688,6 +688,33 @@ export class WebGPURuntime implements SketchRuntime {
     color: string
   ): void {
     this.cpuRuntime.fillLayerRect(layerId, x, y, width, height, color);
+    this.markLayerDirty(layerId);
+  }
+
+  clearLayerBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection
+  ): void {
+    this.cpuRuntime.clearLayerBySelectionMask(layerId, offsetX, offsetY, mask);
+    this.markLayerDirty(layerId);
+  }
+
+  fillLayerBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    color: string
+  ): void {
+    this.cpuRuntime.fillLayerBySelectionMask(
+      layerId,
+      offsetX,
+      offsetY,
+      mask,
+      color
+    );
     this.markLayerDirty(layerId);
   }
 
