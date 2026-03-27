@@ -579,8 +579,11 @@ export function usePointerHandlers({
         const cw = doc.canvas.width;
         const ch = doc.canvas.height;
         const mode = doc.toolSettings.select.mode;
+        const polygonInProgress =
+          mode === "lasso_polygon" && lassoPointsRef.current.length > 0;
         if (
           mode !== "magic_wand" &&
+          !polygonInProgress &&
           selection &&
           selectionHitTest(selection, pt.x, pt.y) &&
           !shiftHeldRef.current &&
@@ -628,6 +631,24 @@ export function usePointerHandlers({
             onSelectionChange?.(null);
           }
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
+        if (mode === "lasso_polygon") {
+          // Click to add vertices; pointer-move rubber-band when !isDrawing (below).
+          // Double-click closes the polygon (handleDoubleClick).
+          selectStartRef.current = null;
+          const isFirstVertex = lassoPointsRef.current.length === 0;
+          if (isFirstVertex) {
+            selectionDragModifiersRef.current = {
+              shift: shiftHeldRef.current,
+              alt: altHeldRef.current
+            };
+            if (!shiftHeldRef.current && !altHeldRef.current) {
+              onSelectionChange?.(null);
+            }
+          }
+          lassoPointsRef.current = [...lassoPointsRef.current, pt];
+          drawOverlayLassoPreview(lassoPointsRef.current, pt);
           return;
         }
         selectStartRef.current = pt;
@@ -924,7 +945,8 @@ export function usePointerHandlers({
       foregroundColor,
       clearLayerTransformPreview,
       lassoPointsRef,
-      selectStartRef
+      selectStartRef,
+      drawOverlayLassoPreview
     ]
   );
 
@@ -1052,9 +1074,10 @@ export function usePointerHandlers({
 
       // ─── Brush / Pencil / Eraser: delegate to shared PaintSession ─────
       if (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser") {
-        if (!pointerHasPaintContact(e.nativeEvent)) {
-          return;
-        }
+        // Do not gate pointermove on pen contact: many tablet drivers briefly
+        // report buttons=0 / pressure=0 between samples while the tip is down;
+        // skipping moves causes short, broken strokes. Hover is filtered on
+        // pointerdown via pointerHasPaintContact.
         const handler = getToolHandler(activeTool);
         handler.onMove?.(
           toolCtxRef.current,

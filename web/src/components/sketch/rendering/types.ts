@@ -27,6 +27,15 @@ export interface ActiveStrokeInfo {
   opacity: number;
   compositeOp: GlobalCompositeOperation;
   /**
+   * When set, live compositing applies the same alpha modulation as commit-time
+   * `applySelectionMaskAlpha` (feathered selection edges) without mutating `buffer`.
+   */
+  selectionMaskForPreview?: {
+    mask: Selection;
+    offsetX: number;
+    offsetY: number;
+  } | null;
+  /**
    * When set, the stroke buffer has not yet been merged onto the layer canvas.
    * Execute this callback at the start of the next rAF (before compositing) to
    * commit the merge without blocking the pointer-up handler.

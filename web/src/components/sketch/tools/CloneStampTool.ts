@@ -19,7 +19,10 @@ import {
 } from "../drawingUtils";
 import type { DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
-import { normalizePointerPressure } from "../pointerPen";
+import {
+  coalescedStrokePressure,
+  normalizePointerPressure
+} from "../pointerPen";
 
 export class CloneStampTool implements ToolHandler {
   readonly toolId = "clone_stamp" as const;
@@ -221,7 +224,13 @@ export class CloneStampTool implements ToolHandler {
       ) {
         this.paintStrokeHasMoved = true;
       }
-      this.currentPressure = eventPoint.pressure;
+      this.currentPressure = coalescedStrokePressure(
+        {
+          pointerType: eventPoint.nativeEvent.pointerType,
+          pressure: eventPoint.pressure
+        } as PointerEvent,
+        this.currentPressure || 0.5
+      );
       const localFrom = this.mapper.docToLayer(this.lastPoint);
       const localTo = this.mapper.docToLayer(pt);
       this.drawCloneStampStroke(localFrom, localTo, doc.toolSettings.cloneStamp, paintCtx);

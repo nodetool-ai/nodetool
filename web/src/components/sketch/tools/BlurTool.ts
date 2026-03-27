@@ -14,7 +14,10 @@ import {
 } from "../drawingUtils";
 import type { BlurTempCanvases, DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
-import { normalizePointerPressure } from "../pointerPen";
+import {
+  coalescedStrokePressure,
+  normalizePointerPressure
+} from "../pointerPen";
 
 export class BlurTool implements ToolHandler {
   readonly toolId = "blur" as const;
@@ -166,7 +169,13 @@ export class BlurTool implements ToolHandler {
         this.paintStrokeHasMoved = true;
       }
       const localPt = this.mapper.docToLayer(pt);
-      this.currentPressure = eventPoint.pressure;
+      this.currentPressure = coalescedStrokePressure(
+        {
+          pointerType: eventPoint.nativeEvent.pointerType,
+          pressure: eventPoint.pressure
+        } as PointerEvent,
+        this.currentPressure || 0.5
+      );
 
       const from = this.mapper.docToLayer(this.lastPoint);
       this.drawBlurStroke(from, localPt, doc.toolSettings.blur, layerCanvas);

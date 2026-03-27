@@ -215,7 +215,8 @@ async function drawLayerToContext(
 
 /**
  * Flatten all visible raster layers into a single canvas.
- * Mask layers are excluded from the flattened image.
+ * Mask and group rows are excluded; the base is transparent (checkerboard in UI),
+ * matching runtime flatten/export behavior.
  */
 export async function flattenDocument(
   doc: SketchDocument
@@ -228,13 +229,11 @@ export async function flattenDocument(
     throw new Error("Failed to get canvas context");
   }
 
-  // Fill background
-  ctx.fillStyle = doc.canvas.backgroundColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Composite visible non-mask layers bottom to top
   for (const layer of doc.layers) {
-    if (!layer.data || layer.type === "mask") {
+    if (!layer.data || layer.type === "mask" || layer.type === "group") {
       continue;
     }
     if (!isLayerCompositeVisible(doc.layers, layer, null)) {

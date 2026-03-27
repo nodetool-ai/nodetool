@@ -24,6 +24,7 @@ import {
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { blendModeToComposite, checkerboardDocumentCellPx } from "../drawingUtils";
 import { getLayerCompositeOffset } from "../painting/layerBounds";
+import { drawStrokeBufferForDisplayWithSelectionFeather } from "../selection/selectionMask";
 import {
   FULLSCREEN_QUAD_VERTEX,
   CHECKERBOARD_FRAGMENT,
@@ -78,6 +79,7 @@ export class WebGPURuntime implements SketchRuntime {
   /** CPU merge (layer + stroke buffer) uploaded each frame while a buffered stroke is active. */
   private strokeMergeCpuCanvas: HTMLCanvasElement | null = null;
   private strokeMergeTexture: GPUTexture | null = null;
+  private strokeMaskScratchCanvas: HTMLCanvasElement | null = null;
 
   // ── CPU-side fallback for readback & layer pixel ops ─────────────────
   private cpuRuntime: Canvas2DRuntime;
@@ -412,7 +414,12 @@ export class WebGPURuntime implements SketchRuntime {
     sctx.save();
     sctx.globalAlpha = stroke.opacity;
     sctx.globalCompositeOperation = stroke.compositeOp;
-    sctx.drawImage(stroke.buffer, 0, 0);
+    this.strokeMaskScratchCanvas = drawStrokeBufferForDisplayWithSelectionFeather(
+      sctx,
+      stroke.buffer,
+      stroke.selectionMaskForPreview,
+      this.strokeMaskScratchCanvas
+    );
     sctx.restore();
 
     if (
@@ -895,6 +902,7 @@ export class WebGPURuntime implements SketchRuntime {
       this.strokeMergeTexture = null;
     }
     this.strokeMergeCpuCanvas = null;
+    this.strokeMaskScratchCanvas = null;
     this.cpuRuntime.dispose();
     this.dirtyLayers.clear();
     this.context = null;

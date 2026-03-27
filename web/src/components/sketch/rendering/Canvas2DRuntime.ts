@@ -19,7 +19,10 @@ import {
   type Selection,
   type SketchDocument
 } from "../types";
-import { selectionHasAnyPixels } from "../selection/selectionMask";
+import {
+  drawStrokeBufferForDisplayWithSelectionFeather,
+  selectionHasAnyPixels
+} from "../selection/selectionMask";
 import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
 import {
   getCanvasRasterBounds,
@@ -99,6 +102,8 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   /** Reusable temp canvas for stroke compositing. */
   private strokeTempCanvas: HTMLCanvasElement | null = null;
+  /** Scratch for feathered selection preview (stroke buffer × mask alpha). */
+  private strokeMaskScratchCanvas: HTMLCanvasElement | null = null;
 
   /**
    * Current zoom level, updated by the compositing hook so that
@@ -240,7 +245,13 @@ export class Canvas2DRuntime implements SketchRuntime {
           tempCtx.save();
           tempCtx.globalAlpha = activeStroke.opacity;
           tempCtx.globalCompositeOperation = activeStroke.compositeOp;
-          tempCtx.drawImage(activeStroke.buffer, 0, 0);
+          this.strokeMaskScratchCanvas =
+            drawStrokeBufferForDisplayWithSelectionFeather(
+              tempCtx,
+              activeStroke.buffer,
+              activeStroke.selectionMaskForPreview,
+              this.strokeMaskScratchCanvas
+            );
           tempCtx.restore();
 
           ctx.save();
@@ -495,10 +506,9 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!ctx) {
       return "";
     }
-    ctx.fillStyle = doc.canvas.backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (const layer of doc.layers) {
-      if (layer.type === "mask") {
+      if (layer.type === "mask" || layer.type === "group") {
         continue;
       }
       if (!isLayerCompositeVisible(doc.layers, layer, null)) {
@@ -1180,5 +1190,6 @@ export class Canvas2DRuntime implements SketchRuntime {
   dispose(): void {
     this.layerCanvases.clear();
     this.strokeTempCanvas = null;
+    this.strokeMaskScratchCanvas = null;
   }
 }

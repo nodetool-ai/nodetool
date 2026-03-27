@@ -16,8 +16,10 @@ export function normalizePointerPressure(
 }
 
 /**
- * Pressure for a coalesced sample during an active stroke. Pen keeps real
- * values including 0; mouse falls back when the sample reports 0.
+ * Pressure for a coalesced sample during an active stroke.
+ * Pen/touch: a 0 sample often means a dropped reading mid-stroke — reuse
+ * `fallBack` (last good pressure) when it is > 0. Mouse uses fallBack when
+ * the sample is 0.
  */
 export function coalescedStrokePressure(
   eventPoint: PointerEvent,
@@ -27,21 +29,27 @@ export function coalescedStrokePressure(
   if (p > 0) {
     return p;
   }
-  if (eventPoint.pointerType === "pen") {
-    return 0;
+  if (eventPoint.pointerType === "pen" || eventPoint.pointerType === "touch") {
+    return fallBack > 0 ? fallBack : p;
   }
   return fallBack;
 }
 
 /**
- * Whether the pointer should start or continue a paint gesture.
- * Pen hover: buttons 0 and pressure 0 — do not paint (matches native apps).
+ * Whether to **start** a left-button paint gesture on pointerdown.
+ * Do not use on pointermove (drivers often clear `buttons` between samples).
+ *
+ * - **pen**: require primary button (tip). Proximity often sets `pressure > 0`
+ *   without the primary bit — that was causing ink before touch.
+ * - **mouse**: same; some tablets report the stylus as `pointerType: "mouse"`.
+ * - **touch** / unknown: no hover equivalent; allow (first contact is the down).
  */
 export function pointerHasPaintContact(
   e: Pick<PointerEvent, "pointerType" | "buttons" | "pressure">
 ): boolean {
-  if (e.pointerType !== "pen") {
-    return true;
+  const primaryDown = (e.buttons & 1) !== 0;
+  if (e.pointerType === "pen" || e.pointerType === "mouse") {
+    return primaryDown;
   }
-  return e.buttons !== 0 || e.pressure > 0;
+  return true;
 }

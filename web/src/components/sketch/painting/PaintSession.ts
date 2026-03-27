@@ -30,7 +30,10 @@ import {
   getCanvasRasterBounds
 } from "./layerBounds";
 import { paintPressureForEngine } from "../drawingUtils";
-import { normalizePointerPressure } from "../pointerPen";
+import {
+  coalescedStrokePressure,
+  normalizePointerPressure
+} from "../pointerPen";
 import {
   applySelectionMaskAlpha,
   selectionHasAnyPixels
@@ -246,6 +249,7 @@ export class PaintSession {
     if (this.engine.bufferMode === "direct") {
       ctx.invalidateLayer?.(activeLayer.id);
     }
+    this.syncActiveStrokeSelectionPreview(ctx);
     ctx.redraw();
 
     return true;
@@ -292,7 +296,13 @@ export class PaintSession {
           ) {
             this.hasMoved = true;
           }
-          this.currentPressure = ep.pressure;
+          this.currentPressure = coalescedStrokePressure(
+            {
+              pointerType: this.strokePointerType ?? "mouse",
+              pressure: ep.pressure
+            } as PointerEvent,
+            this.currentPressure || 0.5
+          );
           bctx.clearRect(0, 0, stroke.buffer.width, stroke.buffer.height);
           bctx.drawImage(base, 0, 0);
           const from = this.mapper.docToLayer(this.lastStrokeEnd);
@@ -303,6 +313,7 @@ export class PaintSession {
         if (hasSelClip) {
           paintCtx.restore();
         }
+        this.syncActiveStrokeSelectionPreview(ctx);
         ctx.requestRedraw();
         return;
       }
@@ -321,8 +332,13 @@ export class PaintSession {
       }
 
       const localPt = this.mapper.docToLayer(pt);
-      const rawPressure = ep.pressure ?? 0.5;
-      this.currentPressure = rawPressure;
+      this.currentPressure = coalescedStrokePressure(
+        {
+          pointerType: this.strokePointerType ?? "mouse",
+          pressure: ep.pressure
+        } as PointerEvent,
+        this.currentPressure || 0.5
+      );
 
       // Stabilize if the engine supports it
       const smoothPt = this.engine.stabilize(localPt);
@@ -331,7 +347,7 @@ export class PaintSession {
       const from = this.resolveFromPoint();
 
       const paintPressure = paintPressureForEngine(
-        ep.pressure,
+        this.currentPressure,
         this.strokePointerType
       );
 
@@ -358,6 +374,8 @@ export class PaintSession {
     if (this.engine.bufferMode === "direct") {
       ctx.invalidateLayer?.(this.layer.id);
     }
+
+    this.syncActiveStrokeSelectionPreview(ctx);
 
     // ── Dirty-rect compositing ──────────────────────────────────────
     const dirtyRect = this.engine.getDirtyRect();
@@ -535,6 +553,23 @@ export class PaintSession {
   }
 
   // ─── Internals ────────────────────────────────────────────────────
+
+  /** Keep `activeStrokeRef.selectionMaskForPreview` in sync for live compositing. */
+  private syncActiveStrokeSelectionPreview(ctx: ToolContext): void {
+    const stroke = ctx.activeStrokeRef.current;
+    if (!stroke || this.engine.bufferMode !== "buffered") {
+      return;
+    }
+    if (this.selectionMask && selectionHasAnyPixels(this.selectionMask)) {
+      stroke.selectionMaskForPreview = {
+        mask: this.selectionMask,
+        offsetX: this.mapper.offset.x,
+        offsetY: this.mapper.offset.y
+      };
+    } else {
+      stroke.selectionMaskForPreview = null;
+    }
+  }
 
   /**
    * Immediately merge and finalize a shift-chain buffer that was kept alive
