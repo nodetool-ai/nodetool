@@ -770,4 +770,6 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   );
 };
 
+AppToolbar.displayName = "AppToolbar";
+
 export default memo(AppToolbar, isEqual);

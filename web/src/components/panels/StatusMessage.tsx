@@ -25,4 +25,6 @@ const StatusMessage = memo(function StatusMessage() {
   );
 });
 
-export default memo(StatusMessage);
+StatusMessage.displayName = "StatusMessage";
+
+export default StatusMessage;

@@ -123,10 +123,12 @@ export const hydrateWorkflowResultsFromAssets = async (
     const grouped = groupWorkflowAssetsByNodeResult(assets);
     const setOutputResult = useResultsStore.getState().setOutputResult;
 
-    Object.entries(grouped).forEach(([nodeId, nodeResults]) => {
+    for (const nodeId in grouped) {
+      if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) {continue;}
+      const nodeResults = grouped[nodeId];
       const value = nodeResults.length === 1 ? nodeResults[0] : nodeResults;
       setOutputResult(workflowId, nodeId, value);
-    });
+    }
   } catch (error) {
     log.warn(
       `[workflowResultHydration] Failed to hydrate workflow ${workflowId} from assets`,
