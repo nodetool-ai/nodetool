@@ -314,6 +314,42 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
           {Math.round(settings.opacity * 100)}%
         </Typography>
       </Box>
+      <Box className="setting-row" sx={{ alignItems: "center" }}>
+        <Typography className="setting-label">Pressure</Typography>
+        <Switch
+          size="small"
+          checked={settings.pressureSensitivity ?? true}
+          onChange={(_, checked) =>
+            onChange({ pressureSensitivity: checked })
+          }
+        />
+      </Box>
+      {settings.pressureSensitivity !== false && (
+        <Box sx={{ mb: "4px" }}>
+          <ToggleButtonGroup
+            value={settings.pressureAffects || "both"}
+            exclusive
+            onChange={(_, v) => {
+              if (v) {
+                onChange({
+                  pressureAffects: v as "size" | "opacity" | "both"
+                });
+              }
+            }}
+            size="small"
+          >
+            <ToggleButton value="size" sx={toggleButtonSmallSx}>
+              Size
+            </ToggleButton>
+            <ToggleButton value="opacity" sx={toggleButtonSmallSx}>
+              Opacity
+            </ToggleButton>
+            <ToggleButton value="both" sx={toggleButtonSmallSx}>
+              Both
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+      )}
     </>
   );
 });

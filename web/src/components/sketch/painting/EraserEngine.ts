@@ -66,7 +66,7 @@ export class EraserEngine implements PaintEngine {
     from: Point,
     to: Point,
     ctx: CanvasRenderingContext2D,
-    pressure: number,
+    pressure: number | undefined,
     branchIdx: number
   ): void {
     let stampState = this.stampStates.get(branchIdx);

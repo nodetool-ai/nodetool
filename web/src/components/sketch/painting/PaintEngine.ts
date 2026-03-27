@@ -66,14 +66,14 @@ export interface PaintEngine {
    * @param from       Start point (layer-local coordinates)
    * @param to         End point (layer-local coordinates)
    * @param ctx        Canvas2D context to draw on (either layer or buffer)
-   * @param pressure   Pointer pressure in [0, 1]
+   * @param pressure   Pen/touch pressure in [0, 1]; `undefined` when not applicable (e.g. mouse)
    * @param branchIdx  Symmetry branch index
    */
   evaluate(
     from: Point,
     to: Point,
     ctx: CanvasRenderingContext2D,
-    pressure: number,
+    pressure: number | undefined,
     branchIdx: number
   ): void;
 

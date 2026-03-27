@@ -26,8 +26,35 @@ import { parseColorToRgba } from "./types";
 
 export const MIN_PRESSURE_FACTOR = 0.2;
 
+/**
+ * Pointer pressure is meaningful for pen/touch. Mouse uses a nominal value
+ * (commonly 0.5) while the button is down per Pointer Events — ignore it for
+ * brush/pencil/eraser dynamics so mouse strokes stay full strength.
+ */
+export function paintPressureForEngine(
+  pressure: number | undefined,
+  pointerType: string | undefined
+): number | undefined {
+  if (pointerType !== "pen" && pointerType !== "touch") {
+    return undefined;
+  }
+  if (pressure === undefined || pressure <= 0) {
+    return undefined;
+  }
+  return pressure;
+}
+
 /** Tool opacity at or above this is treated as fully opaque (no pressure fade). */
 const PENCIL_FULL_OPACITY_THRESHOLD = 0.999;
+
+/**
+ * Supersample factor for soft brush/eraser stamps so radial alpha falloff is
+ * smooth at small brush sizes (stable appearance at any canvas zoom).
+ */
+function stampSupersampleScale(logicalDiameter: number): number {
+  const d = Math.max(logicalDiameter, 1);
+  return Math.max(2, Math.min(4, Math.round(80 / d)));
+}
 
 function adjustSpacingForHardness(
   baseSpacing: number,
@@ -476,6 +503,15 @@ export function drawBrushStroke(
         ? Math.min(settings.hardness, 0.18)
         : settings.hardness;
 
+  const pressureOpacityMul =
+    settings.pressureSensitivity &&
+    pressure !== undefined &&
+    pressure > 0 &&
+    (settings.pressureAffects === "opacity" ||
+      settings.pressureAffects === "both")
+      ? Math.max(MIN_PRESSURE_FACTOR, pressure)
+      : 1;
+
   const createBrushStamp = (
     size: number,
     hardness: number,
@@ -484,49 +520,73 @@ export function drawBrushStroke(
     color: string
   ) => {
     const feather = Math.max(4, Math.ceil(size * 0.5));
-    const diameter = Math.max(2, Math.ceil(size + feather * 2));
+    const logicalD = Math.max(2, Math.ceil(size + feather * 2));
     const stamp = window.document.createElement("canvas");
-    stamp.width = diameter;
-    stamp.height = diameter;
+    stamp.width = logicalD;
+    stamp.height = logicalD;
     const stampCtx = stamp.getContext("2d");
     if (!stampCtx) {
       return stamp;
     }
-    const center = diameter / 2;
+    const center = logicalD / 2;
     const radius = size / 2;
     const innerStop = Math.max(0, Math.min(1, hardness * 0.85 + 0.1));
     const parsed = parseColorToRgba(color);
 
-    stampCtx.save();
-    stampCtx.translate(center, center);
-    stampCtx.rotate((angle * Math.PI) / 180);
-    stampCtx.scale(1, roundness);
+    const drawAtLogicalScale = (targetCtx: CanvasRenderingContext2D) => {
+      targetCtx.save();
+      targetCtx.translate(center, center);
+      targetCtx.rotate((angle * Math.PI) / 180);
+      targetCtx.scale(1, roundness);
+
+      if (hardness >= 0.999) {
+        targetCtx.fillStyle = color;
+        targetCtx.beginPath();
+        targetCtx.arc(0, 0, radius, 0, Math.PI * 2);
+        targetCtx.fill();
+      } else {
+        const gradient = targetCtx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        gradient.addColorStop(
+          0,
+          `rgba(${parsed.r},${parsed.g},${parsed.b},${parsed.a})`
+        );
+        gradient.addColorStop(
+          innerStop,
+          `rgba(${parsed.r},${parsed.g},${parsed.b},${parsed.a})`
+        );
+        gradient.addColorStop(
+          1,
+          `rgba(${parsed.r},${parsed.g},${parsed.b},0)`
+        );
+        targetCtx.fillStyle = gradient;
+        targetCtx.beginPath();
+        targetCtx.arc(0, 0, radius, 0, Math.PI * 2);
+        targetCtx.fill();
+      }
+      targetCtx.restore();
+    };
 
     if (hardness >= 0.999) {
-      stampCtx.fillStyle = color;
-      stampCtx.beginPath();
-      stampCtx.arc(0, 0, radius, 0, Math.PI * 2);
-      stampCtx.fill();
-    } else {
-      const gradient = stampCtx.createRadialGradient(0, 0, 0, 0, 0, radius);
-      gradient.addColorStop(
-        0,
-        `rgba(${parsed.r},${parsed.g},${parsed.b},${parsed.a})`
-      );
-      gradient.addColorStop(
-        innerStop,
-        `rgba(${parsed.r},${parsed.g},${parsed.b},${parsed.a})`
-      );
-      gradient.addColorStop(
-        1,
-        `rgba(${parsed.r},${parsed.g},${parsed.b},0)`
-      );
-      stampCtx.fillStyle = gradient;
-      stampCtx.beginPath();
-      stampCtx.arc(0, 0, radius, 0, Math.PI * 2);
-      stampCtx.fill();
+      drawAtLogicalScale(stampCtx);
+      return stamp;
     }
-    stampCtx.restore();
+
+    const superS = stampSupersampleScale(logicalD);
+    const hiPx = Math.ceil(logicalD * superS);
+    const hi = window.document.createElement("canvas");
+    hi.width = hiPx;
+    hi.height = hiPx;
+    const hiCtx = hi.getContext("2d");
+    if (!hiCtx) {
+      drawAtLogicalScale(stampCtx);
+      return stamp;
+    }
+    hiCtx.setTransform(superS, 0, 0, superS, 0, 0);
+    drawAtLogicalScale(hiCtx);
+    stampCtx.imageSmoothingEnabled = true;
+    stampCtx.imageSmoothingQuality = "high";
+    stampCtx.clearRect(0, 0, logicalD, logicalD);
+    stampCtx.drawImage(hi, 0, 0, hiPx, hiPx, 0, 0, logicalD, logicalD);
     return stamp;
   };
 
@@ -575,7 +635,7 @@ export function drawBrushStroke(
       const density = Math.max(6, Math.round(effectiveSize * 0.8));
       const radius = effectiveSize / 2;
       ctx.save();
-      ctx.globalAlpha = dabAlpha;
+      ctx.globalAlpha = dabAlpha * pressureOpacityMul;
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = settings.color;
       for (let i = 0; i < density; i++) {
@@ -601,7 +661,7 @@ export function drawBrushStroke(
       settings.color
     );
     ctx.save();
-    ctx.globalAlpha = dabAlpha;
+    ctx.globalAlpha = dabAlpha * pressureOpacityMul;
     ctx.globalCompositeOperation = "source-over";
     ctx.drawImage(stamp, x - stamp.width / 2, y - stamp.height / 2);
     ctx.restore();
@@ -638,32 +698,55 @@ export function drawEraserStroke(
     hardness: number
   ): HTMLCanvasElement => {
     const feather = Math.max(4, Math.ceil(size * 0.5));
-    const diameter = Math.max(2, Math.ceil(size + feather * 2));
+    const logicalD = Math.max(2, Math.ceil(size + feather * 2));
     const stamp = window.document.createElement("canvas");
-    stamp.width = diameter;
-    stamp.height = diameter;
+    stamp.width = logicalD;
+    stamp.height = logicalD;
     const stampCtx = stamp.getContext("2d");
     if (!stampCtx) {
       return stamp;
     }
-    const center = diameter / 2;
+    const center = logicalD / 2;
     const radius = size / 2;
     const innerStop = Math.max(0, Math.min(1, hardness * 0.85 + 0.1));
-    const gradient = stampCtx.createRadialGradient(
-      center,
-      center,
-      0,
-      center,
-      center,
-      radius
-    );
+
+    const superS = stampSupersampleScale(logicalD);
+    const hiPx = Math.ceil(logicalD * superS);
+    const hi = window.document.createElement("canvas");
+    hi.width = hiPx;
+    hi.height = hiPx;
+    const hiCtx = hi.getContext("2d");
+    if (!hiCtx) {
+      const gradient = stampCtx.createRadialGradient(
+        center,
+        center,
+        0,
+        center,
+        center,
+        radius
+      );
+      gradient.addColorStop(0, "rgba(0,0,0,1)");
+      gradient.addColorStop(innerStop, "rgba(0,0,0,1)");
+      gradient.addColorStop(1, "rgba(0,0,0,0)");
+      stampCtx.fillStyle = gradient;
+      stampCtx.beginPath();
+      stampCtx.arc(center, center, radius, 0, Math.PI * 2);
+      stampCtx.fill();
+      return stamp;
+    }
+    hiCtx.setTransform(superS, 0, 0, superS, 0, 0);
+    const lc = logicalD / 2;
+    const gradient = hiCtx.createRadialGradient(lc, lc, 0, lc, lc, radius);
     gradient.addColorStop(0, "rgba(0,0,0,1)");
     gradient.addColorStop(innerStop, "rgba(0,0,0,1)");
     gradient.addColorStop(1, "rgba(0,0,0,0)");
-    stampCtx.fillStyle = gradient;
-    stampCtx.beginPath();
-    stampCtx.arc(center, center, radius, 0, Math.PI * 2);
-    stampCtx.fill();
+    hiCtx.fillStyle = gradient;
+    hiCtx.beginPath();
+    hiCtx.arc(lc, lc, radius, 0, Math.PI * 2);
+    hiCtx.fill();
+    stampCtx.imageSmoothingEnabled = true;
+    stampCtx.imageSmoothingQuality = "high";
+    stampCtx.drawImage(hi, 0, 0, hiPx, hiPx, 0, 0, logicalD, logicalD);
     return stamp;
   };
 
@@ -719,24 +802,29 @@ export function drawPencilStroke(
   dirtyRect: DirtyRectTracker,
   stampState?: StrokeStampState
 ): void {
-  const pressureFactor =
-    pressure !== undefined && pressure > 0
-      ? Math.max(MIN_PRESSURE_FACTOR, pressure)
-      : 1;
+  const pressureAffects = settings.pressureAffects ?? "both";
+  const usePressure =
+    settings.pressureSensitivity &&
+    pressure !== undefined &&
+    pressure > 0;
+  const pressureFactor = usePressure
+    ? Math.max(MIN_PRESSURE_FACTOR, pressure)
+    : 1;
 
   let effectiveSize = settings.size;
-  if (pressure !== undefined && pressure > 0) {
+  if (
+    usePressure &&
+    (pressureAffects === "size" || pressureAffects === "both")
+  ) {
     effectiveSize = settings.size * pressureFactor;
   }
 
-  const fullOpaque = settings.opacity >= PENCIL_FULL_OPACITY_THRESHOLD;
-  let effectiveOpacity: number;
-  if (fullOpaque) {
-    effectiveOpacity = 1;
-  } else if (pressure !== undefined && pressure > 0) {
+  let effectiveOpacity = settings.opacity;
+  if (
+    usePressure &&
+    (pressureAffects === "opacity" || pressureAffects === "both")
+  ) {
     effectiveOpacity = settings.opacity * pressureFactor;
-  } else {
-    effectiveOpacity = settings.opacity;
   }
 
   const spacing = Math.max(0.35, effectiveSize * 0.3);
@@ -749,15 +837,17 @@ export function drawPencilStroke(
     expandDirtyRect(dirtyRect, x, y, Math.max(2, radius + 2));
   };
 
+  const snapDabs = effectiveOpacity >= PENCIL_FULL_OPACITY_THRESHOLD;
+
   ctx.save();
-  ctx.globalAlpha = effectiveOpacity;
+  ctx.globalAlpha = Math.min(1, effectiveOpacity);
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = settings.color;
   ctx.imageSmoothingEnabled = true;
 
   const dabAt = (x: number, y: number) => {
-    const px = fullOpaque ? Math.round(x) : x;
-    const py = fullOpaque ? Math.round(y) : y;
+    const px = snapDabs ? Math.round(x) : x;
+    const py = snapDabs ? Math.round(y) : y;
     ctx.beginPath();
     ctx.arc(px, py, radius, 0, Math.PI * 2);
     ctx.fill();

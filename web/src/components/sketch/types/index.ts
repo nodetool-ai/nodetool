@@ -124,6 +124,8 @@ export interface PencilSettings {
   size: number;
   opacity: number;
   color: string;
+  pressureSensitivity: boolean;
+  pressureAffects: "size" | "opacity" | "both";
 }
 
 export interface EraserSettings {
@@ -384,7 +386,9 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
 export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
   size: 1,
   opacity: 1,
-  color: "#ffffff"
+  color: "#ffffff",
+  pressureSensitivity: true,
+  pressureAffects: "both"
 };
 
 export const DEFAULT_ERASER_SETTINGS: EraserSettings = {

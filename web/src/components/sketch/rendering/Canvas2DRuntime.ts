@@ -222,6 +222,9 @@ export class Canvas2DRuntime implements SketchRuntime {
         }
         const tempCtx = tempCanvas.getContext("2d");
         if (tempCtx) {
+          tempCtx.setTransform(1, 0, 0, 1, 0, 0);
+          tempCtx.globalAlpha = 1;
+          tempCtx.globalCompositeOperation = "source-over";
           tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
           tempCtx.drawImage(layerCanvas, 0, 0);
           tempCtx.save();

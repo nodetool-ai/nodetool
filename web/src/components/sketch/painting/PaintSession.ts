@@ -29,6 +29,7 @@ import {
   getDocumentViewportLayerBounds,
   getCanvasRasterBounds
 } from "./layerBounds";
+import { paintPressureForEngine } from "../drawingUtils";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ export class PaintSession {
   private lastPoint: Point | null = null;
   private lastSmoothedPoint: Point | null = null;
   private currentPressure = 0.5;
+  /** Pointer type for the active stroke (pen/touch vs mouse). */
+  private strokePointerType: string | undefined = undefined;
   private hasMoved = false;
   private lastStrokeEnd: Point | null = null;
 
@@ -111,6 +114,7 @@ export class PaintSession {
       this.engine.bufferMode === "buffered";
 
     this.layer = activeLayer;
+    this.strokePointerType = event.nativeEvent.pointerType;
 
     // Only push a history entry for the first stroke in a shift-chain.
     if (!isShiftContinuation) {
@@ -206,7 +210,13 @@ export class PaintSession {
         ctx.withMirror(
           paintCtx,
           (f, t, c, branchIdx) =>
-            this.engine.evaluate(f, t, c, this.currentPressure, branchIdx),
+            this.engine.evaluate(
+              f,
+              t,
+              c,
+              paintPressureForEngine(this.currentPressure, this.strokePointerType),
+              branchIdx
+            ),
           localPt,
           localPt
         );
@@ -296,8 +306,8 @@ export class PaintSession {
       }
 
       const localPt = this.mapper.docToLayer(pt);
-      const pressure = ep.pressure;
-      this.currentPressure = pressure;
+      const rawPressure = ep.pressure ?? 0.5;
+      this.currentPressure = rawPressure;
 
       // Stabilize if the engine supports it
       const smoothPt = this.engine.stabilize(localPt);
@@ -305,10 +315,15 @@ export class PaintSession {
       // Determine the "from" point
       const from = this.resolveFromPoint();
 
+      const paintPressure = paintPressureForEngine(
+        ep.pressure,
+        this.strokePointerType
+      );
+
       ctx.withMirror(
         paintCtx,
         (f, t, c, branchIdx) =>
-          this.engine.evaluate(f, t, c, pressure, branchIdx),
+          this.engine.evaluate(f, t, c, paintPressure, branchIdx),
         from,
         smoothPt
       );
@@ -366,7 +381,13 @@ export class PaintSession {
         ctx.withMirror(
           bufferCtx,
           (f, t, c, branchIdx) =>
-            this.engine.evaluate(f, t, c, this.currentPressure, branchIdx),
+            this.engine.evaluate(
+              f,
+              t,
+              c,
+              paintPressureForEngine(this.currentPressure, this.strokePointerType),
+              branchIdx
+            ),
           localPt,
           localPt
         );
@@ -590,7 +611,13 @@ export class PaintSession {
       toolCtx.withMirror(
         paintCtx,
         (f, tt, c, branchIdx) =>
-          this.engine.evaluate(f, tt, c, this.currentPressure, branchIdx),
+          this.engine.evaluate(
+            f,
+            tt,
+            c,
+            paintPressureForEngine(this.currentPressure, this.strokePointerType),
+            branchIdx
+          ),
         prev,
         current
       );
