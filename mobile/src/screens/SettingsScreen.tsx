@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Linking,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -16,11 +17,23 @@ import axios from 'axios';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 
+type ConnectionStatus = 'idle' | 'testing' | 'success' | 'error';
+
+function isValidUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export default function SettingsScreen() {
   const [apiHost, setApiHost] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
+  const [savedIndicator, setSavedIndicator] = useState(false);
   const { colors, mode, setTheme } = useTheme();
 
   useEffect(() => {
@@ -40,16 +53,30 @@ export default function SettingsScreen() {
     }
   };
 
+  const showSavedIndicator = () => {
+    setSavedIndicator(true);
+    setTimeout(() => setSavedIndicator(false), 2000);
+  };
+
   const handleSave = async () => {
-    if (!apiHost.trim()) {
+    Keyboard.dismiss();
+    const trimmed = apiHost.trim();
+
+    if (!trimmed) {
       Alert.alert('Error', 'Please enter a valid API host');
+      return;
+    }
+
+    if (!isValidUrl(trimmed)) {
+      Alert.alert('Invalid URL', 'Please enter a valid URL starting with http:// or https://');
       return;
     }
 
     try {
       setIsSaving(true);
-      await apiService.saveApiHost(apiHost.trim());
-      Alert.alert('Success', 'API host saved successfully');
+      await apiService.saveApiHost(trimmed);
+      setApiHost(trimmed);
+      showSavedIndicator();
     } catch (error) {
       console.error('Failed to save settings:', error);
       Alert.alert('Error', 'Failed to save API host');
@@ -59,41 +86,100 @@ export default function SettingsScreen() {
   };
 
   const handleTestConnection = async () => {
-    if (!apiHost.trim()) {
+    Keyboard.dismiss();
+    const trimmed = apiHost.trim();
+
+    if (!trimmed) {
       Alert.alert('Error', 'Please enter a valid API host');
       return;
     }
 
+    if (!isValidUrl(trimmed)) {
+      Alert.alert('Invalid URL', 'Please enter a valid URL starting with http:// or https://');
+      return;
+    }
+
     try {
-      setIsTesting(true);
+      setConnectionStatus('testing');
       const testClient = axios.create({
-        baseURL: apiHost.trim(),
-        timeout: 30000,
+        baseURL: trimmed,
+        timeout: 15000,
       });
       await testClient.get('/api/workflows/', { params: { limit: 1 } });
-      
-      await apiService.saveApiHost(apiHost.trim());
-      Alert.alert('Success', 'Connection successful!');
-    } catch (error) {
+
+      // Auto-save on successful test
+      await apiService.saveApiHost(trimmed);
+      setApiHost(trimmed);
+      setConnectionStatus('success');
+      setTimeout(() => setConnectionStatus('idle'), 3000);
+    } catch (error: any) {
       console.error('Connection test failed:', error);
-      Alert.alert('Error', 'Failed to connect to server. Please check the host URL.');
-    } finally {
-      setIsTesting(false);
+      setConnectionStatus('error');
+      const detail = error.code === 'ECONNABORTED'
+        ? 'Connection timed out. Is the server running?'
+        : error.code === 'ERR_NETWORK'
+          ? 'Network error. Check the URL and your connection.'
+          : 'Could not reach the server. Verify the URL is correct.';
+      Alert.alert('Connection Failed', detail);
+      setTimeout(() => setConnectionStatus('idle'), 3000);
     }
   };
 
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.text} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   const appVersion = Constants.expoConfig?.version || '1.0.0';
 
+  const getTestButtonStyle = () => {
+    switch (connectionStatus) {
+      case 'success':
+        return { backgroundColor: colors.success + '20', borderColor: colors.success };
+      case 'error':
+        return { backgroundColor: colors.error + '20', borderColor: colors.error };
+      default:
+        return { backgroundColor: colors.cardBg, borderColor: colors.border };
+    }
+  };
+
+  const getTestButtonContent = () => {
+    switch (connectionStatus) {
+      case 'testing':
+        return <ActivityIndicator color={colors.text} />;
+      case 'success':
+        return (
+          <View style={styles.buttonContent}>
+            <Ionicons name="checkmark-circle" size={18} color={colors.success} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.success }]}>Connected & Saved</Text>
+          </View>
+        );
+      case 'error':
+        return (
+          <View style={styles.buttonContent}>
+            <Ionicons name="close-circle" size={18} color={colors.error} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.error }]}>Connection Failed</Text>
+          </View>
+        );
+      default:
+        return (
+          <View style={styles.buttonContent}>
+            <Ionicons name="wifi-outline" size={18} color={colors.text} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.text }]}>Test & Save</Text>
+          </View>
+        );
+    }
+  };
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
 
       <View style={styles.section}>
@@ -111,6 +197,12 @@ export default function SettingsScreen() {
               accessibilityLabel={`${theme} theme`}
               accessibilityState={{ selected: mode === theme }}
             >
+              <Ionicons
+                name={theme === 'light' ? 'sunny-outline' : theme === 'dark' ? 'moon-outline' : 'phone-portrait-outline'}
+                size={16}
+                color={mode === theme ? '#fff' : colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
               <Text style={[styles.themeOptionText, { color: mode === theme ? '#fff' : colors.textSecondary }]}>
                 {theme.charAt(0).toUpperCase() + theme.slice(1)}
               </Text>
@@ -120,51 +212,57 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.label, { color: colors.text }]}>API Host</Text>
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, { color: colors.text }]}>API Host</Text>
+          {savedIndicator && (
+            <View style={styles.savedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+              <Text style={[styles.savedText, { color: colors.success }]}>Saved</Text>
+            </View>
+          )}
+        </View>
         <TextInput
           style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
           value={apiHost}
-          onChangeText={setApiHost}
-          placeholder="http://localhost:7777"
+          onChangeText={(text) => {
+            setApiHost(text);
+            setConnectionStatus('idle');
+          }}
+          placeholder="http://192.168.1.100:7777"
           placeholderTextColor={colors.textSecondary}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
+          returnKeyType="done"
+          onSubmitEditing={Keyboard.dismiss}
           accessibilityLabel="API host URL"
         />
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          Enter the URL of your NodeTool server
+          The URL of your NodeTool server (e.g. http://your-ip:7777)
         </Text>
       </View>
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.cardBg, borderColor: colors.border, borderWidth: 1 }, isTesting && styles.buttonDisabled]}
+        style={[styles.button, getTestButtonStyle(), { borderWidth: 1 }, connectionStatus === 'testing' && styles.buttonDisabled]}
         onPress={handleTestConnection}
-        disabled={isTesting || isSaving}
+        disabled={connectionStatus === 'testing' || isSaving}
         accessibilityRole="button"
-        accessibilityLabel="Test connection"
+        accessibilityLabel="Test connection and save"
       >
-        {isTesting ? (
-          <ActivityIndicator color={colors.text} />
-        ) : (
-          <View style={styles.buttonContent}>
-            <Ionicons name="wifi-outline" size={18} color={colors.text} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.text }]}>Test Connection</Text>
-          </View>
-        )}
+        {getTestButtonContent()}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: colors.primary }, isSaving && styles.buttonDisabled]}
         onPress={handleSave}
-        disabled={isTesting || isSaving}
+        disabled={connectionStatus === 'testing' || isSaving}
         accessibilityRole="button"
         accessibilityLabel="Save settings"
       >
         {isSaving ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={[styles.buttonText, { color: '#fff' }]}>Save</Text>
+          <Text style={[styles.buttonText, { color: '#fff' }]}>Save Only</Text>
         )}
       </TouchableOpacity>
 
@@ -209,10 +307,25 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 25,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   label: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+  },
+  savedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  savedText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   input: {
     padding: 15,
@@ -282,14 +395,16 @@ const styles = StyleSheet.create({
   },
   themeOption: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 6,
   },
   themeOptionActive: {
   },
   themeOptionText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

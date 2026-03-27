@@ -31,6 +31,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
 }) => {
   const flatListRef = useRef<FlatList<Message>>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isNearBottomRef = useRef(true);
   const { colors } = useTheme();
 
   const handleRefresh = useCallback(async () => {
@@ -40,32 +41,37 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     setIsRefreshing(false);
   }, [onRefresh]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive (only if near bottom)
   useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
-      // Small delay to ensure layout is complete
+    if (messages.length > 0 && flatListRef.current && isNearBottomRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   }, [messages.length]);
 
-  // Also scroll when content changes (streaming)
+  // Scroll during streaming (without animation to avoid jank)
   useEffect(() => {
-    if (isStreaming && flatListRef.current) {
+    if (isStreaming && flatListRef.current && isNearBottomRef.current) {
       flatListRef.current?.scrollToEnd({ animated: false });
     }
   }, [isStreaming, messages]);
 
-  const renderMessage = ({ item, index }: ListRenderItemInfo<Message>) => {
+  const handleScroll = useCallback((event: any) => {
+    const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+    isNearBottomRef.current = distanceFromBottom < 150;
+  }, []);
+
+  const renderMessage = useCallback(({ item, index }: ListRenderItemInfo<Message>) => {
     return <MessageView key={item.id || `msg-${index}`} message={item} />;
-  };
+  }, []);
 
-  const keyExtractor = (item: Message, index: number) => {
+  const keyExtractor = useCallback((item: Message, index: number) => {
     return item.id || `message-${index}`;
-  };
+  }, []);
 
-  const renderFooter = () => {
+  const renderFooter = useCallback(() => {
     if (isLoading && !isStreaming) {
       return (
         <View style={styles.loadingContainer}>
@@ -74,7 +80,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       );
     }
     return null;
-  };
+  }, [isLoading, isStreaming]);
 
   return (
     <FlatList
@@ -86,6 +92,8 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={true}
       ListFooterComponent={renderFooter}
+      onScroll={handleScroll}
+      scrollEventThrottle={100}
       refreshControl={
         onRefresh ? (
           <RefreshControl
@@ -99,11 +107,10 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       // Performance optimizations
       removeClippedSubviews={true}
       maxToRenderPerBatch={10}
-      windowSize={10}
+      windowSize={15}
       initialNumToRender={15}
-      // Prevent scroll jumping when new messages arrive
       onContentSizeChange={() => {
-        if (messages.length > 0) {
+        if (messages.length > 0 && isNearBottomRef.current) {
           flatListRef.current?.scrollToEnd({ animated: true });
         }
       }}
