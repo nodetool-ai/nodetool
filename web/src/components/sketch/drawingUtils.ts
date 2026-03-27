@@ -390,6 +390,59 @@ export function drawCheckerboard(
   }
 }
 
+/**
+ * Minimum zoom level at which the pixel grid becomes visible.
+ * Below this zoom each pixel is too small for grid lines to be useful.
+ */
+export const PIXEL_GRID_MIN_ZOOM = 4;
+
+/**
+ * Draws a thin semi-transparent white grid on the overlay canvas at every
+ * integer pixel boundary. The grid fades in between PIXEL_GRID_MIN_ZOOM and
+ * PIXEL_GRID_MIN_ZOOM * 2 so it doesn't pop in abruptly.
+ *
+ * Because the overlay canvas has the same intrinsic size as the document
+ * (e.g. 512×512) and is displayed with CSS `scale(zoom)`, a line width of
+ * `1 / zoom` document pixels results in exactly 1 screen pixel.
+ */
+export function drawPixelGrid(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  zoom: number
+): void {
+  if (zoom < PIXEL_GRID_MIN_ZOOM) {
+    return;
+  }
+
+  // Fade in from 0 → target opacity between PIXEL_GRID_MIN_ZOOM and 2×
+  const fadeEnd = PIXEL_GRID_MIN_ZOOM * 2;
+  const opacity =
+    zoom >= fadeEnd
+      ? 0.18
+      : 0.18 * ((zoom - PIXEL_GRID_MIN_ZOOM) / (fadeEnd - PIXEL_GRID_MIN_ZOOM));
+
+  const lw = 1 / zoom; // 1 screen-pixel wide
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+  ctx.lineWidth = lw;
+
+  // Vertical lines
+  ctx.beginPath();
+  for (let x = 0; x <= width; x++) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+  }
+  // Horizontal lines
+  for (let y = 0; y <= height; y++) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 // ─── Dirty-rect helper ──────────────────────────────────────────────────────
 
 function expandDirtyRect(

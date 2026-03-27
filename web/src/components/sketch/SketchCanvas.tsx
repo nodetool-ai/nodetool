@@ -55,7 +55,8 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       pointerEvents: "none",
-      zIndex: 10
+      zIndex: 10,
+      imageRendering: "auto"
     }
   });
 
@@ -243,6 +244,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
     const activeStrokeRef = useRef<ActiveStrokeInfo | null>(null);
 
+    // ─── Document-space cursor position for info bar readout ────────────
+    const [cursorDocPos, setCursorDocPos] = useState<Point | null>(null);
+
     // ─── Compositing (layer canvases, redraw) ──────────────────────────
 
     const {
@@ -392,6 +396,27 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       redraw
     });
 
+    // ─── Document-space cursor tracking ─────────────────────────────────
+
+    const handleMouseMoveWithCoords = useCallback(
+      (e: React.MouseEvent) => {
+        pointerHandlers.handleMouseMove(e);
+        const display = displayCanvasRef.current;
+        if (display) {
+          const rect = display.getBoundingClientRect();
+          const dx = (e.clientX - rect.left) / zoom;
+          const dy = (e.clientY - rect.top) / zoom;
+          setCursorDocPos({ x: Math.floor(dx), y: Math.floor(dy) });
+        }
+      },
+      [pointerHandlers, displayCanvasRef, zoom]
+    );
+
+    const handleMouseLeaveWithCoords = useCallback(() => {
+      pointerHandlers.handleMouseLeave();
+      setCursorDocPos(null);
+    }, [pointerHandlers]);
+
     // ─── Transform style ──────────────────────────────────────────────
 
     const canvasStyle: React.CSSProperties = {
@@ -424,8 +449,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onPointerMove={pointerHandlers.handlePointerMove}
         onPointerUp={pointerHandlers.handlePointerUp}
         onPointerLeave={pointerHandlers.handleMouseLeave}
-        onMouseMove={pointerHandlers.handleMouseMove}
-        onMouseLeave={pointerHandlers.handleMouseLeave}
+        onMouseMove={handleMouseMoveWithCoords}
+        onMouseLeave={handleMouseLeaveWithCoords}
         onContextMenu={pointerHandlers.handleContextMenu}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
@@ -500,6 +525,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             {doc.canvas.width} × {doc.canvas.height}
           </span>
           <span>{Math.round(zoom * 100)}%</span>
+          {cursorDocPos !== null && (
+            <span>
+              {cursorDocPos.x}, {cursorDocPos.y}
+            </span>
+          )}
           <span
             style={{
               textTransform: "uppercase",
