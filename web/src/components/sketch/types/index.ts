@@ -600,6 +600,9 @@ export function isPaintingTool(tool: SketchTool): boolean {
 
 // ─── Layer Group Helpers ──────────────────────────────────────────────────────
 
+/** Maximum nesting depth to prevent infinite loops in corrupt data. */
+const MAX_LAYER_DEPTH = 20;
+
 /** Returns the children of a given group layer (or root if parentId is null). */
 export function getChildLayers(layers: Layer[], parentId: string | null | undefined): Layer[] {
   return layers.filter((l) =>
@@ -614,7 +617,7 @@ export function getLayerDepth(layers: Layer[], layerId: string): number {
   while (current?.parentId) {
     depth++;
     current = layers.find((l) => l.id === current!.parentId);
-    if (depth > 20) { break; } // prevent infinite loops in corrupt data
+    if (depth > MAX_LAYER_DEPTH) { break; } // prevent infinite loops in corrupt data
   }
   return depth;
 }

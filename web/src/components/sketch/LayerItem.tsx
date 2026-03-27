@@ -22,6 +22,11 @@ import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
 
+/** Base left padding for the layer row (px). */
+const BASE_PADDING = 8;
+/** Additional left padding per nesting depth level (px). */
+const DEPTH_INDENT = 16;
+
 export interface LayerItemProps {
   layer: Layer;
   realIdx: number;
@@ -97,7 +102,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
         onDragEnd={onDragEnd}
         onClick={() => onSelectLayer(layer.id)}
         sx={{
-          pl: `${8 + depth * 16}px`,
+          pl: `${BASE_PADDING + depth * DEPTH_INDENT}px`,
           ...(isDragOver
             ? {
                 borderTop: "2px solid",

@@ -458,8 +458,9 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         // Re-parent direct children of a non-group removed layer (edge case)
         .map((l) => l.parentId === layerId ? { ...l, parentId } : l);
       if (newLayers.length === 0) {
-        // Don't remove all layers — keep at least the first non-removed or restore one
-        newLayers = layers.slice(0, 1);
+        // Don't remove all layers — create a fresh default layer
+        const { width, height } = state.document.canvas;
+        newLayers = [createDefaultLayer("Background", "raster", width, height)];
       }
       const newActiveId =
         idsToRemove.has(activeLayerId) ? newLayers[newLayers.length - 1].id : activeLayerId;
