@@ -1232,10 +1232,14 @@ export class ExtractorNode extends BaseNode {
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
+      const dynamicSchema = getStructuredOutputSchema(this);
+      const responseFormat = dynamicSchema
+        ? { type: "json_schema" as const, json_schema: { name: "extraction_result", schema: dynamicSchema, strict: true } }
+        : { type: "json_object" as const };
       const raw = await generateProviderMessage(provider, {
         model: modelId,
         maxTokens: Number((this as any).max_tokens ?? 1024),
-        responseFormat: { type: "json_object" },
+        responseFormat,
         messages: [
           { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
           { role: "user", content: text },
@@ -2677,41 +2681,49 @@ export class ResearchAgentNode extends BaseNode {
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
-      const raw = await generateProviderMessage(provider, {
-        model: modelId,
-        maxTokens: Number(this.max_tokens ?? this.max_tokens ?? 2048),
-        responseFormat: {
-          type: "json_schema",
-          json_schema: {
-            name: "research_result",
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              required: ["summary", "findings"],
-              properties: {
-                summary: { type: "string" },
-                findings: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    required: ["title", "summary"],
-                    properties: {
-                      title: { type: "string" },
-                      summary: { type: "string" },
-                      source: { type: "string" },
+      const dynamicSchema = getStructuredOutputSchema(this);
+      const responseFormat = dynamicSchema
+        ? { type: "json_schema" as const, json_schema: { name: "research_result", schema: dynamicSchema, strict: true } }
+        : {
+            type: "json_schema" as const,
+            json_schema: {
+              name: "research_result",
+              schema: {
+                type: "object",
+                additionalProperties: false,
+                required: ["summary", "findings"],
+                properties: {
+                  summary: { type: "string" },
+                  findings: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["title", "summary"],
+                      properties: {
+                        title: { type: "string" },
+                        summary: { type: "string" },
+                        source: { type: "string" },
+                      },
                     },
                   },
                 },
               },
             },
-          },
-        },
+          };
+      const raw = await generateProviderMessage(provider, {
+        model: modelId,
+        maxTokens: Number(this.max_tokens ?? this.max_tokens ?? 2048),
+        responseFormat,
         messages: [
           { role: "system", content: RESEARCH_AGENT_SYSTEM_PROMPT },
           { role: "user", content: `Research objective: ${query}` },
         ],
       });
+      if (dynamicSchema) {
+        const parsed = extractJson(raw);
+        if (parsed) return parsed;
+      }
       return parseResearchOutput(raw, query);
     }
     const summary = summarize(query, 2);

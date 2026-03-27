@@ -64,6 +64,9 @@ export class NodeRegistry {
     const instance = new NodeClass((descriptor.properties as Record<string, unknown> | undefined) ?? {});
     instance.__node_id = descriptor.id;
     instance.__node_name = descriptor.name ?? descriptor.type;
+    if (descriptor.dynamic_outputs) {
+      (instance as any)._dynamic_outputs = descriptor.dynamic_outputs;
+    }
     return instance.toExecutor();
   }
 

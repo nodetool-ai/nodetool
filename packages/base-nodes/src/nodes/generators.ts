@@ -77,6 +77,26 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
   return rows;
 }
 
+function buildSchemaFromDynamicOutputs(outputs: unknown): Record<string, unknown> | null {
+  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+  for (const [name, spec] of Object.entries(outputs as Record<string, unknown>)) {
+    required.push(name);
+    const value = spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
+    const declared = typeof value.type === "string" ? value.type.toLowerCase() : "str";
+    let type = "string";
+    if (["int", "integer"].includes(declared)) type = "integer";
+    else if (["float", "number"].includes(declared)) type = "number";
+    else if (["bool", "boolean"].includes(declared)) type = "boolean";
+    else if (["list", "array"].includes(declared)) type = "array";
+    else if (["dict", "object"].includes(declared)) type = "object";
+    properties[name] = { type };
+  }
+  if (required.length === 0) return null;
+  return { type: "object", additionalProperties: false, required, properties };
+}
+
 function normalizeBinaryRef(value: unknown): BinaryRef | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
@@ -325,24 +345,25 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const { providerId, modelId } = getModelConfig(this.serialize());
-    const schema = (this as any).schema;
-    if (schema && typeof schema === "object" && !Array.isArray(schema) && hasProviderSupport(context, providerId, modelId)) {
+    const schema = buildSchemaFromDynamicOutputs((this as any)._dynamic_outputs);
+    if (schema && hasProviderSupport(context, providerId, modelId)) {
       const instructions = asText(this.instructions ?? this.instructions ?? "");
       const extraContext = asText(this.context ?? this.context ?? "");
+      const systemPrompt = asText(this.system_prompt ?? "");
       const userText = [instructions, extraContext].filter(Boolean).join("\n\n");
+      const messages: Array<{ role: string; content: unknown }> = [];
+      if (systemPrompt) {
+        messages.push({ role: "system", content: systemPrompt });
+      }
+      messages.push({ role: "user", content: buildMessageContent(userText, this.image, this.audio) });
       const result = await context.runProviderPrediction({
         provider: providerId,
         capability: "generate_message",
         model: modelId,
         params: {
           model: modelId,
-          messages: [
-            {
-              role: "user",
-              content: buildMessageContent(userText, this.image, this.audio),
-            },
-          ],
-          responseFormat: {
+          messages,
+          response_format: {
             type: "json_schema",
             json_schema: {
               name: "structured_output",
