@@ -11,15 +11,19 @@ import {
   Box,
   Menu,
   MenuItem,
-  Divider
+  Divider,
+  Button
 } from "@mui/material";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 
 import {
@@ -589,12 +593,19 @@ const ProviderList: React.FC<ProviderListProps> = ({
     handleMenuClose();
   }, [menuProvider, isProviderEnabled, setProviderEnabled, handleMenuClose]);
 
+  const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
+  const handleOpenSettings = useCallback(() => {
+    // Open settings dialog on "API Settings" tab (index 1)
+    setMenuOpen(true, 1);
+    handleMenuClose();
+  }, [setMenuOpen, handleMenuClose]);
+
   return (
     <List
       dense
       css={listStyles}
       className="model-menu__providers-list"
-      sx={{ fontSize: (theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
+      sx={{ fontSize: (theme: Theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
     >
       {isLoading && (
         <div className="model-menu__providers-loading is-loading" style={{ padding: 8 }}>
@@ -647,6 +658,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
           const normKey = /gemini|google/i.test(p) ? "gemini" : p;
           const providerEnabled = (enabledProviders || {})[normKey] !== false;
           const available = providerEnabled;
+          const env = requiredSecretForProvider(p);
+          const hasKey = env ? isApiKeySet(env) : true;
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             const isHF = isHuggingFaceProvider(p);
@@ -838,7 +851,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           <InfoOutlinedIcon
                             className="model-menu__provider-missing-key-icon"
                             sx={{
-                              fontSize: (theme) => theme.vars.fontSizeNormal,
+                              fontSize: (theme: Theme) => theme.vars.fontSizeNormal,
                               color: "warning.main"
                             }}
                           />
@@ -852,7 +865,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             sx={{
                               minWidth: "auto",
                               p: 0,
-                              fontSize: (theme) => theme.vars.fontSizeSmaller
+                              fontSize: (theme: Theme) => theme.vars.fontSizeSmaller
                             }}
                             onClick={handleOpenSettings}
                           >
@@ -889,7 +902,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             sx={{
                               padding: 0,
                               "& .MuiSvgIcon-root": {
-                                fontSize: (theme) => theme.vars.fontSizeBig
+                                fontSize: (theme: Theme) => theme.vars.fontSizeBig
                               },
                               pointerEvents: 'none'
                             }}
