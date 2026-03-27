@@ -31,6 +31,8 @@ import {
   GradientSettings,
   CloneStampSettings,
   CloneStampSampling,
+  SelectSettings,
+  SelectToolMode,
   parseColorToRgba,
   rgbaToCss,
   colorToHex6
@@ -58,6 +60,8 @@ export function getToolSettingsLabel(tool: SketchTool): string {
       return "Gradient";
     case "crop":
       return "Crop";
+    case "select":
+      return "Selection";
     case "adjust":
       return "Adjustments";
     case "shape":
@@ -107,6 +111,14 @@ interface GradientSettingsPanelProps {
 interface CloneStampSettingsPanelProps {
   settings: CloneStampSettings;
   onChange: (settings: Partial<CloneStampSettings>) => void;
+}
+
+interface SelectSettingsPanelProps {
+  settings: SelectSettings;
+  onChange: (settings: Partial<SelectSettings>) => void;
+  hasActiveSelection: boolean;
+  onFeatherSelection: () => void;
+  onSmoothSelectionBorders: () => void;
 }
 
 // ─── BrushSettingsPanel ───────────────────────────────────────────────────
@@ -819,6 +831,101 @@ export const CropSettingsMessage = memo(function CropSettingsMessage() {
   );
 });
 
+// ─── SelectSettingsPanel ──────────────────────────────────────────────────
+
+export const SelectSettingsPanel = memo(function SelectSettingsPanel({
+  settings,
+  onChange,
+  hasActiveSelection,
+  onFeatherSelection,
+  onSmoothSelectionBorders
+}: SelectSettingsPanelProps) {
+  return (
+    <>
+      <ToggleButtonGroup
+        size="small"
+        exclusive
+        value={settings.mode}
+        onChange={(_e, v: SelectToolMode | null) => {
+          if (v != null) {
+            onChange({ mode: v });
+          }
+        }}
+      >
+        <ToggleButton value="rectangle" sx={toggleButtonSmallSx}>
+          Rect
+        </ToggleButton>
+        <ToggleButton value="lasso" sx={toggleButtonSmallSx}>
+          Lasso
+        </ToggleButton>
+        <ToggleButton value="magic_wand" sx={toggleButtonSmallSx}>
+          Wand
+        </ToggleButton>
+      </ToggleButtonGroup>
+      {settings.mode === "magic_wand" ? (
+        <Box className="setting-row">
+          <Typography className="setting-label">Tol.</Typography>
+          <Slider
+            sx={sketchSliderSx}
+            size="small"
+            min={0}
+            max={255}
+            value={settings.magicWandTolerance}
+            onChange={(_, v) =>
+              onChange({ magicWandTolerance: v as number })
+            }
+          />
+          <Typography className="setting-value">
+            {settings.magicWandTolerance}
+          </Typography>
+        </Box>
+      ) : null}
+      <Box className="setting-row">
+        <Typography className="setting-label">Feather</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={64}
+          value={settings.featherRadius}
+          onChange={(_, v) => onChange({ featherRadius: v as number })}
+        />
+        <Typography className="setting-value">{settings.featherRadius}</Typography>
+      </Box>
+      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={!hasActiveSelection}
+          onClick={onFeatherSelection}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+        >
+          Feather
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={!hasActiveSelection}
+          onClick={onSmoothSelectionBorders}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+        >
+          Smooth
+        </Button>
+      </Box>
+      <Typography
+        sx={{
+          fontSize: "0.58rem",
+          color: "grey.500",
+          lineHeight: 1.3,
+          maxWidth: 320
+        }}
+      >
+        Shift+drag: add · Alt: subtract · Shift+Alt: intersect
+      </Typography>
+    </>
+  );
+});
+
 // ─── ToolSettingsPanel (dispatcher) ───────────────────────────────────────
 
 export interface ToolSettingsPanelProps {
@@ -831,6 +938,8 @@ export interface ToolSettingsPanelProps {
   blurSettings: BlurSettings;
   gradientSettings: GradientSettings;
   cloneStampSettings: CloneStampSettings;
+  selectSettings: SelectSettings;
+  hasActiveSelection: boolean;
   adjustBrightness?: number;
   adjustContrast?: number;
   adjustSaturation?: number;
@@ -844,6 +953,9 @@ export interface ToolSettingsPanelProps {
   onCloneStampSettingsChange: (
     settings: Partial<CloneStampSettings>
   ) => void;
+  onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
+  onFeatherSelection: () => void;
+  onSmoothSelectionBorders: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -861,6 +973,8 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   blurSettings,
   gradientSettings,
   cloneStampSettings,
+  selectSettings,
+  hasActiveSelection,
   adjustBrightness,
   adjustContrast,
   adjustSaturation,
@@ -872,6 +986,9 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onBlurSettingsChange,
   onGradientSettingsChange,
   onCloneStampSettingsChange,
+  onSelectSettingsChange,
+  onFeatherSelection,
+  onSmoothSelectionBorders,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -945,7 +1062,18 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
       />
     );
   }
-  if (activeTool === "move" || activeTool === "eyedropper" || activeTool === "select") {
+  if (activeTool === "select") {
+    return (
+      <SelectSettingsPanel
+        settings={selectSettings}
+        onChange={onSelectSettingsChange}
+        hasActiveSelection={hasActiveSelection}
+        onFeatherSelection={onFeatherSelection}
+        onSmoothSelectionBorders={onSmoothSelectionBorders}
+      />
+    );
+  }
+  if (activeTool === "move" || activeTool === "eyedropper") {
     return <NoSettingsMessage />;
   }
   if (activeTool === "adjust") {

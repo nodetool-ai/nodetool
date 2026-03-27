@@ -17,6 +17,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState
 } from "react";
@@ -38,6 +39,7 @@ import {
   useCanvasActions,
   useColorActions
 } from "./hooks";
+import { selectionHasAnyPixels } from "./selection/selectionMask";
 
 const styles = (theme: Theme) =>
   css({
@@ -88,6 +90,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
 
   // ─── Store selectors ────────────────────────────────────────────────
   const store = useSketchStoreSelectors();
+
+  const hasActiveSelection = useMemo(
+    () => selectionHasAnyPixels(store.selection),
+    [store.selection]
+  );
 
   // ─── Flush ref (filled in after canvasActions is created) ──────────
   const flushBeforeUndoRef = useRef<() => void>(() => {});
@@ -312,6 +319,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             blurSettings={store.toolSettings.blur}
             gradientSettings={store.toolSettings.gradient}
             cloneStampSettings={store.toolSettings.cloneStamp}
+            selectSettings={store.toolSettings.select}
+            hasActiveSelection={hasActiveSelection}
             adjustBrightness={canvasActions.adjBrightness}
             adjustContrast={canvasActions.adjContrast}
             adjustSaturation={canvasActions.adjSaturation}
@@ -323,6 +332,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onBlurSettingsChange={store.setBlurSettings}
             onGradientSettingsChange={store.setGradientSettings}
             onCloneStampSettingsChange={store.setCloneStampSettings}
+            onSelectSettingsChange={store.setSelectSettings}
+            onFeatherSelection={store.featherCurrentSelection}
+            onSmoothSelectionBorders={store.smoothCurrentSelectionBorders}
             onAdjustBrightnessChange={canvasActions.setAdjBrightness}
             onAdjustContrastChange={canvasActions.setAdjContrast}
             onAdjustSaturationChange={canvasActions.setAdjSaturation}

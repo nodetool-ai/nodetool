@@ -14,7 +14,8 @@ import {
   DEFAULT_FILL_SETTINGS,
   DEFAULT_BLUR_SETTINGS,
   DEFAULT_GRADIENT_SETTINGS,
-  DEFAULT_CLONE_STAMP_SETTINGS
+  DEFAULT_CLONE_STAMP_SETTINGS,
+  DEFAULT_SELECT_SETTINGS
 } from "../types";
 
 export function useSketchStoreSelectors() {
@@ -32,6 +33,11 @@ export function useSketchStoreSelectors() {
   const setBlurSettings = useSketchStore((s) => s.setBlurSettings);
   const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
   const setCloneStampSettings = useSketchStore((s) => s.setCloneStampSettings);
+  const setSelectSettings = useSketchStore((s) => s.setSelectSettings);
+  const featherCurrentSelection = useSketchStore((s) => s.featherCurrentSelection);
+  const smoothCurrentSelectionBorders = useSketchStore(
+    (s) => s.smoothCurrentSelectionBorders
+  );
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
@@ -95,7 +101,8 @@ export function useSketchStoreSelectors() {
     fill: { ...DEFAULT_FILL_SETTINGS, ...document.toolSettings?.fill },
     blur: { ...DEFAULT_BLUR_SETTINGS, ...document.toolSettings?.blur },
     gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...document.toolSettings?.gradient },
-    cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS, ...document.toolSettings?.cloneStamp }
+    cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS, ...document.toolSettings?.cloneStamp },
+    select: { ...DEFAULT_SELECT_SETTINGS, ...document.toolSettings?.select }
   };
 
   const safeForegroundColor = foregroundColor || "#ffffff";
@@ -116,6 +123,9 @@ export function useSketchStoreSelectors() {
     setBlurSettings,
     setGradientSettings,
     setCloneStampSettings,
+    setSelectSettings,
+    featherCurrentSelection,
+    smoothCurrentSelectionBorders,
     setZoom,
     setPan,
     setActiveLayer,

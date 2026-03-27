@@ -41,6 +41,7 @@ import {
   magicWandFromRgba,
   polygonToBinaryMask,
   rectSelectionMask,
+  selectionHasAnyPixels,
   selectionHitTest,
   translateMask
 } from "../selection/selectionMask";
@@ -535,25 +536,58 @@ export function usePointerHandlers({
 
       if (activeTool === "select") {
         const pt = screenToCanvas(e.clientX, e.clientY);
-        // Check if clicking inside an existing selection — start moving it
+        const cw = doc.canvas.width;
+        const ch = doc.canvas.height;
+        const mode = doc.toolSettings.select.mode;
         if (
+          mode !== "magic_wand" &&
           selection &&
+          selectionHitTest(selection, pt.x, pt.y) &&
           !shiftHeldRef.current &&
-          !altHeldRef.current &&
-          pt.x >= selection.x &&
-          pt.x < selection.x + selection.width &&
-          pt.y >= selection.y &&
-          pt.y < selection.y + selection.height
+          !altHeldRef.current
         ) {
           isMovingSelectionRef.current = true;
           moveSelectionOriginRef.current = pt;
-          selectionAtMoveStartRef.current = { ...selection };
+          selectionAtMoveStartRef.current = cloneSelectionMask(selection);
           isDrawingRef.current = true;
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
           return;
         }
-        // Otherwise draw a new selection (Shift=add, Alt=subtract handled on pointerUp)
+        if (mode === "magic_wand") {
+          const display = displayCanvasRef.current;
+          if (display && onSelectionChange) {
+            const dctx = display.getContext("2d");
+            if (dctx) {
+              const id = dctx.getImageData(0, 0, cw, ch);
+              const bin = magicWandFromRgba(
+                id,
+                pt.x,
+                pt.y,
+                doc.toolSettings.select.magicWandTolerance
+              );
+              const overlay: Selection = { width: cw, height: ch, data: bin };
+              const op = selectionCombineMode(
+                shiftHeldRef.current,
+                altHeldRef.current
+              );
+              const base = op === "replace" ? null : selection ?? null;
+              onSelectionChange(combineMasks(base, overlay, op));
+            }
+          }
+          return;
+        }
+        if (mode === "lasso") {
+          lassoPointsRef.current = [pt];
+          selectStartRef.current = null;
+          isDrawingRef.current = true;
+          if (!shiftHeldRef.current && !altHeldRef.current) {
+            onSelectionChange?.(null);
+          }
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          return;
+        }
         selectStartRef.current = pt;
+        lassoPointsRef.current = [];
         isDrawingRef.current = true;
         if (!shiftHeldRef.current && !altHeldRef.current) {
           onSelectionChange?.(null);
@@ -568,14 +602,8 @@ export function usePointerHandlers({
 
       if (activeTool === "fill") {
         const pt = screenToCanvas(e.clientX, e.clientY);
-        // Only fill if click is within selection (when one exists)
-        if (selection && selection.width > 0 && selection.height > 0) {
-          if (
-            pt.x < selection.x ||
-            pt.x > selection.x + selection.width ||
-            pt.y < selection.y ||
-            pt.y > selection.y + selection.height
-          ) {
+        if (selection && selectionHasAnyPixels(selection)) {
+          if (!selectionHitTest(selection, pt.x, pt.y)) {
             return;
           }
         }
@@ -925,17 +953,23 @@ export function usePointerHandlers({
         selectionAtMoveStartRef.current
       ) {
         const pt = screenToCanvas(e.clientX, e.clientY);
-        const dx = pt.x - moveSelectionOriginRef.current.x;
-        const dy = pt.y - moveSelectionOriginRef.current.y;
+        const dx = Math.round(pt.x - moveSelectionOriginRef.current.x);
+        const dy = Math.round(pt.y - moveSelectionOriginRef.current.y);
         const orig = selectionAtMoveStartRef.current;
         if (onSelectionChange) {
-          onSelectionChange({
-            x: Math.round(orig.x + dx),
-            y: Math.round(orig.y + dy),
-            width: orig.width,
-            height: orig.height
-          });
+          onSelectionChange(translateMask(orig, dx, dy));
         }
+        return;
+      }
+
+      if (activeTool === "select" && lassoPointsRef.current.length > 0) {
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        const pts = lassoPointsRef.current;
+        const last = pts[pts.length - 1];
+        if (!last || last.x !== pt.x || last.y !== pt.y) {
+          pts.push(pt);
+        }
+        drawOverlayLassoPreview(pts, pt);
         return;
       }
 
@@ -1071,6 +1105,8 @@ export function usePointerHandlers({
       requestRedraw,
       clipSelectionForOffset,
       drawOverlaySelection,
+      drawOverlayLassoPreview,
+      lassoPointsRef,
       onSelectionChange,
       setLayerTransformPreview,
       activeStrokeRef,
@@ -1198,6 +1234,39 @@ export function usePointerHandlers({
         return;
       }
 
+      if (activeTool === "select" && lassoPointsRef.current.length > 0) {
+        const pt = screenToCanvas(
+          mousePositionRef.current.x +
+            (containerRef.current?.getBoundingClientRect().left ?? 0),
+          mousePositionRef.current.y +
+            (containerRef.current?.getBoundingClientRect().top ?? 0)
+        );
+        const pts = [...lassoPointsRef.current];
+        lassoPointsRef.current = [];
+        const last = pts[pts.length - 1];
+        if (!last || last.x !== pt.x || last.y !== pt.y) {
+          pts.push(pt);
+        }
+        clearOverlay();
+        drawSelectionOverlay();
+        selectStartRef.current = null;
+        const cw = doc.canvas.width;
+        const ch = doc.canvas.height;
+        if (pts.length >= 3 && onSelectionChange) {
+          const bin = polygonToBinaryMask(cw, ch, pts);
+          const overlay: Selection = { width: cw, height: ch, data: bin };
+          if (selectionHasAnyPixels(overlay)) {
+            const op = selectionCombineMode(
+              shiftHeldRef.current,
+              altHeldRef.current
+            );
+            const base = op === "replace" ? null : selection ?? null;
+            onSelectionChange(combineMasks(base, overlay, op));
+          }
+        }
+        return;
+      }
+
       if (activeTool === "select" && selectStartRef.current) {
         const pt = screenToCanvas(
           mousePositionRef.current.x +
@@ -1211,52 +1280,18 @@ export function usePointerHandlers({
         const h = Math.round(Math.abs(pt.y - selectStartRef.current.y));
         clearOverlay();
         selectStartRef.current = null;
+        const cw = doc.canvas.width;
+        const ch = doc.canvas.height;
         if (w > 1 && h > 1 && onSelectionChange) {
-          const newRect = { x, y, width: w, height: h };
-          if (shiftHeldRef.current && selection) {
-            // Shift+drag: add (union) the new rect with existing selection
-            const ux = Math.min(selection.x, newRect.x);
-            const uy = Math.min(selection.y, newRect.y);
-            const ux2 = Math.max(
-              selection.x + selection.width,
-              newRect.x + newRect.width
-            );
-            const uy2 = Math.max(
-              selection.y + selection.height,
-              newRect.y + newRect.height
-            );
-            onSelectionChange({
-              x: ux,
-              y: uy,
-              width: ux2 - ux,
-              height: uy2 - uy
-            });
-          } else if (altHeldRef.current && selection) {
-            // Alt+drag: subtract the new rect from existing selection
-            // We approximate this by clipping the existing selection to exclude the new rect.
-            // Since we only support rectangular selections, we clip the existing rect:
-            // If the new rect fully covers the selection, deselect.
-            // NOTE: Partial subtraction is not supported because we only
-            // support rectangular selections. A full non-rectangular
-            // selection system would be needed for true subtract.
-            const sx1 = selection.x;
-            const sy1 = selection.y;
-            const sx2 = selection.x + selection.width;
-            const sy2 = selection.y + selection.height;
-            const nx1 = newRect.x;
-            const ny1 = newRect.y;
-            const nx2 = newRect.x + newRect.width;
-            const ny2 = newRect.y + newRect.height;
-            if (nx1 <= sx1 && ny1 <= sy1 && nx2 >= sx2 && ny2 >= sy2) {
-              onSelectionChange(null);
-            } else {
-              // Partial overlap: keep existing selection unchanged
-              onSelectionChange(selection);
-            }
-          } else {
-            onSelectionChange(newRect);
-          }
+          const overlay = rectSelectionMask(cw, ch, x, y, w, h);
+          const op = selectionCombineMode(
+            shiftHeldRef.current,
+            altHeldRef.current
+          );
+          const base = op === "replace" ? null : selection ?? null;
+          onSelectionChange(combineMasks(base, overlay, op));
         }
+        drawSelectionOverlay();
         return;
       }
 

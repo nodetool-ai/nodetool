@@ -20,7 +20,8 @@ import {
   FillSettings,
   BlurSettings,
   GradientSettings,
-  CloneStampSettings
+  CloneStampSettings,
+  SelectSettings
 } from "./types";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
 
@@ -77,6 +78,8 @@ export interface SketchToolTopBarProps {
   blurSettings: BlurSettings;
   gradientSettings: GradientSettings;
   cloneStampSettings: CloneStampSettings;
+  selectSettings: SelectSettings;
+  hasActiveSelection: boolean;
   adjustBrightness: number;
   adjustContrast: number;
   adjustSaturation: number;
@@ -88,6 +91,9 @@ export interface SketchToolTopBarProps {
   onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
   onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
+  onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
+  onFeatherSelection: () => void;
+  onSmoothSelectionBorders: () => void;
   onAdjustBrightnessChange: (value: number) => void;
   onAdjustContrastChange: (value: number) => void;
   onAdjustSaturationChange: (value: number) => void;
@@ -105,6 +111,8 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   blurSettings,
   gradientSettings,
   cloneStampSettings,
+  selectSettings,
+  hasActiveSelection,
   adjustBrightness,
   adjustContrast,
   adjustSaturation,
@@ -116,6 +124,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onBlurSettingsChange,
   onGradientSettingsChange,
   onCloneStampSettingsChange,
+  onSelectSettingsChange,
+  onFeatherSelection,
+  onSmoothSelectionBorders,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -136,6 +147,8 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         blurSettings={blurSettings}
         gradientSettings={gradientSettings}
         cloneStampSettings={cloneStampSettings}
+        selectSettings={selectSettings}
+        hasActiveSelection={hasActiveSelection}
         adjustBrightness={adjustBrightness}
         adjustContrast={adjustContrast}
         adjustSaturation={adjustSaturation}
@@ -147,6 +160,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onBlurSettingsChange={onBlurSettingsChange}
         onGradientSettingsChange={onGradientSettingsChange}
         onCloneStampSettingsChange={onCloneStampSettingsChange}
+        onSelectSettingsChange={onSelectSettingsChange}
+        onFeatherSelection={onFeatherSelection}
+        onSmoothSelectionBorders={onSmoothSelectionBorders}
         onAdjustBrightnessChange={onAdjustBrightnessChange}
         onAdjustContrastChange={onAdjustContrastChange}
         onAdjustSaturationChange={onAdjustSaturationChange}
