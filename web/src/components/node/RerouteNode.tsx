@@ -13,6 +13,7 @@ import { DATA_TYPES } from "../../config/data_types";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { hexToRgba } from "../../utils/ColorUtils";
 
 const styles = (theme: Theme) =>
   css({
@@ -24,7 +25,7 @@ const styles = (theme: Theme) =>
     minHeight: "20px !important",
     overflow: "visible",
     border: `1px solid ${theme.vars.palette.grey[400]}`,
-    backgroundColor: rerouteBackground(theme, 0.8),
+    backgroundColor: hexToRgba(theme.vars.palette.c_node_bg as string, 0.8),
     backdropFilter: theme.vars.palette.glass.blur,
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     borderRadius: "50%",

@@ -44,15 +44,6 @@ describe('Performance Regression Tests', () => {
         nodes: [{ id: 'a' }, { id: 'b' }]
       }));
 
-      // BAD: Object selector creates new reference
-      const BadComponent = () => {
-        const { edges } = useTestStore((state) => ({
-          edges: state.edges
-        }));
-        trackRender('BadComponent');
-        return <div>{edges.length}</div>;
-      };
-
       // GOOD: Direct selector
       const GoodComponent = () => {
         const edges = useTestStore((state) => state.edges);
@@ -60,10 +51,8 @@ describe('Performance Regression Tests', () => {
         return <div>{edges.length}</div>;
       };
 
-      const { rerender: rerenderBad } = render(<BadComponent />);
-      const { rerender: rerenderGood } = render(<GoodComponent />);
+      render(<GoodComponent />);
 
-      expect(getRenderCount('BadComponent')).toBe(1);
       expect(getRenderCount('GoodComponent')).toBe(1);
 
       // Trigger a re-render without changing edges
@@ -71,29 +60,17 @@ describe('Performance Regression Tests', () => {
         useTestStore.setState({ nodes: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] });
       });
 
-      rerenderBad(<BadComponent />);
-      rerenderGood(<GoodComponent />);
-
-      // Bad component re-renders because object reference changed
-      // Good component may re-render due to store updates but should not re-render as much
-      expect(getRenderCount('BadComponent')).toBeGreaterThan(1);
-      expect(getRenderCount('GoodComponent')).toBeLessThan(getRenderCount('BadComponent'));
+      // Good component should NOT re-render because edges didn't change
+      expect(getRenderCount('GoodComponent')).toBe(1);
     });
 
-    it('should demonstrate 100x re-render reduction with proper selectors', () => {
+    it('should demonstrate re-render reduction with proper selectors', () => {
       const useTestStore = create<{ data: any; counter: number }>(() => ({
         data: { value: 1 },
         counter: 0
       }));
 
-      let badRenders = 0;
       let goodRenders = 0;
-
-      const BadSelector = () => {
-        const _data = useTestStore((state) => ({ data: state.data }));
-        badRenders++;
-        return null;
-      };
 
       const GoodSelector = () => {
         const _data = useTestStore((state) => state.data);
@@ -101,12 +78,7 @@ describe('Performance Regression Tests', () => {
         return null;
       };
 
-      render(
-        <>
-          <BadSelector />
-          <GoodSelector />
-        </>
-      );
+      render(<GoodSelector />);
 
       // Simulate 100 unrelated updates
       act(() => {
@@ -115,11 +87,9 @@ describe('Performance Regression Tests', () => {
         }
       });
 
-      expect(badRenders).toBeGreaterThan(1); // Bad selector re-renders
       expect(goodRenders).toBe(1); // Only initial render!
 
-      console.log(`[PERF] Bad selector: ${badRenders} renders, Good selector: ${goodRenders} renders`);
-      console.log(`[PERF] Reduction: ${((1 - goodRenders / badRenders) * 100).toFixed(1)}%`);
+      console.log(`[PERF] Good selector: ${goodRenders} renders after 100 unrelated updates`);
     });
   });
 

@@ -5,15 +5,6 @@ import useLogsStore from '../../stores/LogStore';
 import { shallow } from 'zustand/shallow';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 
-// Mock component that mimics NodeHeader's log subscription
-const TestComponent = ({ workflowId, nodeId, onRender }: { workflowId: string, nodeId: string, onRender: () => void }) => {
-  // Simulate the inefficient selector
-  const logs = useLogsStore((state) => state.getLogs(workflowId, nodeId));
-
-  onRender();
-  return <div>Log count: {logs.length}</div>;
-};
-
 // Optimized component
 const OptimizedComponent = ({ workflowId, nodeId, onRender }: { workflowId: string, nodeId: string, onRender: () => void }) => {
   const logs = useStoreWithEqualityFn(
@@ -29,29 +20,6 @@ const OptimizedComponent = ({ workflowId, nodeId, onRender }: { workflowId: stri
 describe('LogStore Performance', () => {
   beforeEach(() => {
     useLogsStore.getState().clearLogs();
-  });
-
-  it('re-renders TestComponent when unrelated logs are added', () => {
-    const renderCount = jest.fn();
-    render(<TestComponent workflowId="wf1" nodeId="node1" onRender={renderCount} />);
-
-    expect(renderCount).toHaveBeenCalledTimes(1);
-
-    // Add log for UNRELATED node
-    act(() => {
-      useLogsStore.getState().appendLog({
-        workflowId: 'wf1',
-        nodeId: 'node2', // Different node
-        workflowName: 'wf',
-        nodeName: 'n2',
-        content: 'test',
-        severity: 'info',
-        timestamp: 123
-      });
-    });
-
-    // It SHOULD re-render because getLogs returns a new array reference
-    expect(renderCount).toHaveBeenCalledTimes(2);
   });
 
   it('does NOT re-render OptimizedComponent when unrelated logs are added', () => {

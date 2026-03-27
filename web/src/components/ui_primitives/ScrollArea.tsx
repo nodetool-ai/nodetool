@@ -5,7 +5,7 @@
  * Replaces 164+ instances of manual overflow: auto/scroll patterns.
  */
 
-import React from "react";
+import { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -47,7 +47,7 @@ export interface ScrollAreaProps extends BoxProps {
  *   <Content />
  * </ScrollArea>
  */
-export const ScrollArea = React.forwardRef<HTMLDivElement, ScrollAreaProps>(({
+export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(({
   direction = "vertical",
   thin = false,
   autoHide = false,
