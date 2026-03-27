@@ -6,13 +6,11 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import AudioPlayer from "../AudioPlayer";
 
-// Mock URL.createObjectURL
-Object.defineProperty(global, 'URL', {
-  value: {
-    createObjectURL: jest.fn(() => 'mock-blob-url'),
-    revokeObjectURL: jest.fn()
-  }
-});
+// Mock URL.createObjectURL/revokeObjectURL without replacing the entire URL object
+const originalCreateObjectURL = global.URL.createObjectURL;
+const originalRevokeObjectURL = global.URL.revokeObjectURL;
+global.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
+global.URL.revokeObjectURL = jest.fn();
 
 // Mock dependencies
 jest.mock("wavesurfer.js", () => ({
@@ -92,6 +90,11 @@ describe("AudioPlayer", () => {
     source: "http://example.com/audio.mp3",
     filename: "test-audio.mp3"
   };
+
+  afterAll(() => {
+    global.URL.createObjectURL = originalCreateObjectURL;
+    global.URL.revokeObjectURL = originalRevokeObjectURL;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
