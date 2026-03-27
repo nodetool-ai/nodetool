@@ -404,9 +404,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         if ((draggedLayer.parentId ?? null) !== targetParentId) {
           onMoveLayerToGroup(draggedLayer.id, targetParentId);
         }
-        // Calculate the insertion index in the flat array
+        // Calculate the target insertion index in the flat array.
+        // "after" inserts one position later; "before" inserts at the target's index.
         const insertIdx = position === "after" ? realIdx + 1 : realIdx;
-        // After reparenting, recalc source index since the array didn't change order
+        // After reparenting, the array order hasn't changed; recalculate the
+        // source index. Skip the reorder when the layer is already at the
+        // target position (currentFrom === insertIdx) or directly before it
+        // (currentFrom + 1 === insertIdx), since splice-based reorder would
+        // be a no-op in those cases.
         const currentFrom = layers.indexOf(draggedLayer);
         if (currentFrom !== -1 && currentFrom !== insertIdx && currentFrom + 1 !== insertIdx) {
           onReorderLayers(currentFrom, insertIdx > currentFrom ? insertIdx - 1 : insertIdx);

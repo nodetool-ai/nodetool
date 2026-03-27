@@ -86,18 +86,22 @@ const LayerItem: React.FC<LayerItemProps> = ({
   const isGroup = layer.type === "group";
   const thumbnailSrc = isGroup ? null : getLayerDataImageUrl(layer.data);
 
-  const dropIndicatorSx =
-    dropPosition === "before"
-      ? { borderTop: "2px solid", borderTopColor: "primary.main" }
-      : dropPosition === "after"
-        ? { borderBottom: "2px solid", borderBottomColor: "primary.main" }
-        : dropPosition === "into"
-          ? {
-              outline: "2px solid",
-              outlineColor: "primary.main",
-              outlineOffset: "-2px"
-            }
-          : {};
+  const dropIndicatorSx = (() => {
+    switch (dropPosition) {
+      case "before":
+        return { borderTop: "2px solid", borderTopColor: "primary.main" };
+      case "after":
+        return { borderBottom: "2px solid", borderBottomColor: "primary.main" };
+      case "into":
+        return {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: "-2px"
+        };
+      default:
+        return {};
+    }
+  })();
 
   return (
     <Box>
