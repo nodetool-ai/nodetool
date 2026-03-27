@@ -119,8 +119,10 @@ export abstract class BaseNode {
         // Explicit value provided — use it
         (this as any)[name] = properties[name];
       } else if ((this as any)[name] === undefined && Object.prototype.hasOwnProperty.call(options, "default")) {
-        // No value on instance yet and a default exists — apply it
-        (this as any)[name] = options.default;
+        // No value on instance yet and a default exists — apply it.
+        // Deep-copy mutable defaults so instances don't share references.
+        const def = options.default;
+        (this as any)[name] = (def !== null && typeof def === "object") ? JSON.parse(JSON.stringify(def)) : def;
       }
     }
     // For dynamic nodes, store undeclared properties in dynamicProps
@@ -140,6 +142,13 @@ export abstract class BaseNode {
 
     for (const { name } of ctor.getDeclaredProperties()) {
       result[name] = (this as any)[name];
+    }
+
+    // Include dynamic properties so round-trip serialization is lossless
+    if (ctor.isDynamic) {
+      for (const [key, value] of this.dynamicProps) {
+        result[key] = value;
+      }
     }
 
     return result;
@@ -211,7 +220,7 @@ export abstract class BaseNode {
       }
     }
     if (Object.keys(secrets).length === 0) return inputs;
-    return { ...inputs, _secrets: { ...secrets, ...((inputs._secrets as Record<string, string>) ?? {}) } };
+    return { ...inputs, _secrets: { ...((inputs._secrets as Record<string, string>) ?? {}), ...secrets } };
   }
 
   /** Get resolved secrets (available during process()). */
