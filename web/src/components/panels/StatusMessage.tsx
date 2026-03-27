@@ -22,4 +22,4 @@ const StatusMessage = memo(function StatusMessage() {
 
 StatusMessage.displayName = "StatusMessage";
 
-export default memo(StatusMessage);
+export default StatusMessage;
