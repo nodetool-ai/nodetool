@@ -24,8 +24,10 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool/kernel",
     "@nodetool/node-sdk",
     "@nodetool/base-nodes",
+    "@nodetool/elevenlabs-nodes",
     "@nodetool/fal-nodes",
     "@nodetool/replicate-nodes",
+    "@nodetool/dsl",
     "@nodetool/protocol",
     "@nodetool/config",
     // Direct CLI dependencies not installed at the workspace root
