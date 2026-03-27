@@ -9,3 +9,4 @@ export { useHistoryActions } from "./useHistoryActions";
 export { useLayerActions } from "./useLayerActions";
 export { useCanvasActions } from "./useCanvasActions";
 export { useColorActions } from "./useColorActions";
+export { useSegmentation } from "./useSegmentation";

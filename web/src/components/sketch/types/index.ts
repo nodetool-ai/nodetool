@@ -109,7 +109,8 @@ export type SketchTool =
   | "gradient"
   | "crop"
   | "clone_stamp"
-  | "adjust";
+  | "adjust"
+  | "segment";
 
 export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
@@ -206,6 +207,75 @@ export interface CloneStampSettings {
   sampling: CloneStampSampling;
 }
 
+// ─── Segmentation Types ───────────────────────────────────────────────────────
+
+/** Prompt mode for SAM-based segmentation. */
+export type SegmentPromptMode = "point" | "box";
+
+/** A single point prompt for segmentation. */
+export interface SegmentPointPrompt {
+  /** X coordinate in canvas space. */
+  x: number;
+  /** Y coordinate in canvas space. */
+  y: number;
+  /** Positive = include, negative = exclude. */
+  label: "positive" | "negative";
+}
+
+/** A bounding box prompt for segmentation. */
+export interface SegmentBoxPrompt {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A single mask returned from segmentation inference. */
+export interface SegmentationMask {
+  /** Unique mask identifier within the segmentation run. */
+  id: string;
+  /** Human-readable label (e.g. "Object 1"). */
+  label: string;
+  /** PNG data URL of the mask (white = object, black = background). */
+  maskDataUrl: string;
+  /** Confidence score from the model (0–1). */
+  confidence: number;
+  /** Bounding box of the mask region in canvas space. */
+  bounds: { x: number; y: number; width: number; height: number };
+}
+
+/** Full result from a segmentation inference run. */
+export interface SegmentationResult {
+  /** Source layer that was segmented. */
+  sourceLayerId: string;
+  /** All masks returned by the model. */
+  masks: SegmentationMask[];
+  /** Timestamp of the segmentation run. */
+  timestamp: number;
+}
+
+/** Progress state of a segmentation operation. */
+export type SegmentationStatus =
+  | "idle"
+  | "checking-model"
+  | "encoding"
+  | "inferring"
+  | "previewing"
+  | "applying"
+  | "error";
+
+/** Settings for the segment tool. */
+export interface SegmentSettings {
+  /** Current prompt mode: point clicks or box drag. */
+  promptMode: SegmentPromptMode;
+  /** Maximum number of objects to return. */
+  maxObjects: number;
+  /** Minimum mask area in pixels²; smaller fragments are discarded. */
+  minObjectSize: number;
+  /** Mask confidence threshold (0–1); masks below are discarded. */
+  confidenceThreshold: number;
+}
+
 export interface ToolSettings {
   brush: BrushSettings;
   pencil: PencilSettings;
@@ -216,6 +286,7 @@ export interface ToolSettings {
   gradient: GradientSettings;
   cloneStamp: CloneStampSettings;
   select: SelectSettings;
+  segment: SegmentSettings;
 }
 
 // ─── Layer Types ──────────────────────────────────────────────────────────────
@@ -485,6 +556,13 @@ export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
   featherRadius: 4
 };
 
+export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
+  promptMode: "point",
+  maxObjects: 5,
+  minObjectSize: 100,
+  confidenceThreshold: 0.5
+};
+
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
   pencil: DEFAULT_PENCIL_SETTINGS,
@@ -494,7 +572,8 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   blur: DEFAULT_BLUR_SETTINGS,
   gradient: DEFAULT_GRADIENT_SETTINGS,
   cloneStamp: DEFAULT_CLONE_STAMP_SETTINGS,
-  select: DEFAULT_SELECT_SETTINGS
+  select: DEFAULT_SELECT_SETTINGS,
+  segment: DEFAULT_SEGMENT_SETTINGS
 };
 
 /**
@@ -511,7 +590,8 @@ export function cloneDefaultToolSettings(): ToolSettings {
     blur: { ...DEFAULT_BLUR_SETTINGS },
     gradient: { ...DEFAULT_GRADIENT_SETTINGS },
     cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS },
-    select: { ...DEFAULT_SELECT_SETTINGS }
+    select: { ...DEFAULT_SELECT_SETTINGS },
+    segment: { ...DEFAULT_SEGMENT_SETTINGS }
   };
 }
 
@@ -812,6 +892,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         select: {
           ...DEFAULT_SELECT_SETTINGS,
           ...doc.toolSettings?.select
+        },
+        segment: {
+          ...DEFAULT_SEGMENT_SETTINGS,
+          ...doc.toolSettings?.segment
         }
       };
     })(),
@@ -1065,6 +1149,7 @@ export function editActionKindForTool(tool: SketchTool): EditActionKind {
     case "eyedropper":
     case "select":
     case "crop":
+    case "segment":
       return "none";
     // pixel-edit tools
     case "brush":

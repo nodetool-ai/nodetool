@@ -19,7 +19,8 @@ export {
   useHistoryActions,
   useLayerActions,
   useCanvasActions,
-  useColorActions
+  useColorActions,
+  useSegmentation
 } from "./hooks";
 
 export {
@@ -34,6 +35,7 @@ export type { SketchRuntime, ActiveStrokeInfo, DirtyRect, WebGPUInitResult } fro
 
 export { getToolHandler } from "./tools";
 export type { ToolHandler, ToolContext, ToolPointerEvent } from "./tools";
+export { SegmentTool } from "./tools/SegmentTool";
 
 export { useCollapsedSections } from "./useCollapsedSections";
 
@@ -67,6 +69,13 @@ export type {
   FillSettings,
   BlurSettings,
   ToolSettings,
+  SegmentSettings,
+  SegmentPromptMode,
+  SegmentPointPrompt,
+  SegmentBoxPrompt,
+  SegmentationMask,
+  SegmentationResult,
+  SegmentationStatus,
   Point,
   Size,
   Color,
@@ -91,6 +100,7 @@ export {
   DEFAULT_BLUR_SETTINGS,
   DEFAULT_TOOL_SETTINGS,
   DEFAULT_SWATCHES,
+  DEFAULT_SEGMENT_SETTINGS,
   CANVAS_PRESETS,
   createDefaultDocument,
   createDefaultLayer,
@@ -123,3 +133,13 @@ export type {
   ImageLoadResult,
   LayerRasterBounds
 } from "./serialization";
+
+export { getSamService, setSamService, SamServiceStub } from "./sam";
+export { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./sam";
+export type {
+  SamService,
+  SamModelStatus,
+  SamModelInfo,
+  SegmentationRequest,
+  SegmentationResponse
+} from "./sam";
