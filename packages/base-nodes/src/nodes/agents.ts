@@ -12,7 +12,7 @@ import type {
 } from "@nodetool/runtime";
 import type { Chunk, ProcessingMessage } from "@nodetool/protocol";
 import { MultiModeAgent, Tool as AgentTool } from "@nodetool/agents";
-import type { AgentMode } from "@nodetool/agents";
+
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
