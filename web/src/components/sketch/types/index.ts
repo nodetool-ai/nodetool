@@ -47,7 +47,7 @@ export interface Selection {
   data: Uint8ClampedArray;
 }
 
-export type SelectToolMode = "rectangle" | "lasso" | "magic_wand";
+export type SelectToolMode = "rectangle" | "lasso" | "lasso_polygon" | "magic_wand";
 
 export interface SelectSettings {
   mode: SelectToolMode;
@@ -868,6 +868,37 @@ export function isLayerCompositeVisible(
     current = parent;
   }
   return true;
+}
+
+/**
+ * Product of `opacity` for every ancestor group of `layer`. Multiplied with
+ * the layer's own opacity when compositing so folder opacity dims descendants.
+ *
+ * When `isolatedLayerId` matches this layer, returns 1 so solo view is not
+ * double-dimmed by hidden folder opacity.
+ */
+export function getAncestorGroupOpacityProduct(
+  layers: Layer[],
+  layer: Layer,
+  isolatedLayerId: string | null | undefined
+): number {
+  if (isolatedLayerId && layer.id === isolatedLayerId) {
+    return 1;
+  }
+  let product = 1;
+  let current: Layer | undefined = layer;
+  let depth = 0;
+  while (current?.parentId && depth++ <= MAX_LAYER_DEPTH) {
+    const parent = layers.find((l) => l.id === current!.parentId);
+    if (!parent) {
+      break;
+    }
+    if (parent.type === "group") {
+      product *= parent.opacity;
+    }
+    current = parent;
+  }
+  return product;
 }
 
 /**

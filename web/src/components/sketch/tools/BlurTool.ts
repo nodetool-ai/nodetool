@@ -14,6 +14,7 @@ import {
 } from "../drawingUtils";
 import type { BlurTempCanvases, DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { normalizePointerPressure } from "../pointerPen";
 
 export class BlurTool implements ToolHandler {
   readonly toolId = "blur" as const;
@@ -65,7 +66,7 @@ export class BlurTool implements ToolHandler {
 
     const pt = event.point;
     this.lastPoint = pt;
-    this.currentPressure = event.pressure || 0.5;
+    this.currentPressure = normalizePointerPressure(event.nativeEvent);
     this.paintStrokeHasMoved = false;
     this.strokeDirtyRect = { current: null };
 

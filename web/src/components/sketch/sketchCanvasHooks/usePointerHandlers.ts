@@ -50,6 +50,11 @@ import {
   SKETCH_ZOOM_MAX,
   SKETCH_ZOOM_MIN
 } from "../state/useSketchStore";
+import {
+  coalescedStrokePressure,
+  normalizePointerPressure,
+  pointerHasPaintContact
+} from "../pointerPen";
 
 function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp {
   if (shift && alt) {
@@ -134,6 +139,7 @@ export interface UsePointerHandlersResult {
   handlePointerDown: (e: React.PointerEvent) => void;
   handlePointerMove: (e: React.PointerEvent) => void;
   handlePointerUp: (e: React.PointerEvent) => void;
+  handleDoubleClick: (e: React.MouseEvent) => void;
   handleWheel: (e: React.WheelEvent) => void;
   handleMouseMove: (e: React.MouseEvent) => void;
   handleMouseLeave: () => void;
@@ -220,10 +226,6 @@ export function usePointerHandlers({
   const isMovingSelectionRef = useRef(false);
   const moveSelectionOriginRef = useRef<Point | null>(null);
   const selectionAtMoveStartRef = useRef<Selection | null>(null);
-
-  /** Lasso + Shift: index of anchor point; segment (anchor → cursor) is a straight line. */
-  const lassoStraightAnchorIndexRef = useRef(-1);
-  const lassoStraightCursorRef = useRef<Point | null>(null);
 
   /** Shift/Alt at pointer-down for lasso or marquee (so key-up before mouse-up still applies combine). */
   const selectionDragModifiersRef = useRef<{ shift: boolean; alt: boolean } | null>(
@@ -432,6 +434,11 @@ export function usePointerHandlers({
       }
 
       if (e.button !== 0) {
+        return;
+      }
+
+      // Pen hover must not start left-button gestures (some stacks fire pointerdown).
+      if (!pointerHasPaintContact(e.nativeEvent)) {
         return;
       }
 
@@ -818,7 +825,7 @@ export function usePointerHandlers({
       const pt = screenToCanvas(e.clientX, e.clientY);
       lastPointRef.current = pt;
       lastSmoothedPointRef.current = pt;
-      currentPressureRef.current = e.pressure || 0.5;
+      currentPressureRef.current = normalizePointerPressure(e.nativeEvent);
       onStrokeStart();
       const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
       paintLayerOffsetRef.current = ensuredBounds
@@ -948,6 +955,17 @@ export function usePointerHandlers({
         return;
       }
 
+      if (
+        !isDrawingRef.current &&
+        activeTool === "select" &&
+        doc.toolSettings.select.mode === "lasso_polygon" &&
+        lassoPointsRef.current.length > 0
+      ) {
+        const pt = screenToCanvas(e.clientX, e.clientY);
+        drawOverlayLassoPreview(lassoPointsRef.current, pt);
+        return;
+      }
+
       if (!isDrawingRef.current) {
         return;
       }
@@ -1014,39 +1032,18 @@ export function usePointerHandlers({
       }
 
       if (activeTool === "select" && lassoPointsRef.current.length > 0) {
+        const selectMode = doc.toolSettings.select.mode;
         const pt = screenToCanvas(e.clientX, e.clientY);
         const pts = lassoPointsRef.current;
 
-        if (shiftHeldRef.current) {
-          if (lassoStraightAnchorIndexRef.current < 0) {
-            lassoStraightAnchorIndexRef.current = Math.max(0, pts.length - 1);
+        if (selectMode === "lasso") {
+          const last = pts[pts.length - 1];
+          if (!last || last.x !== pt.x || last.y !== pt.y) {
+            pts.push(pt);
           }
-          lassoStraightCursorRef.current = pt;
-          const anchor = lassoStraightAnchorIndexRef.current;
-          const prefix = pts.slice(0, anchor + 1);
-          drawOverlayLassoPreview([...prefix, pt], pt);
+          drawOverlayLassoPreview(pts, pt);
           return;
         }
-
-        if (
-          lassoStraightAnchorIndexRef.current >= 0 &&
-          lassoStraightCursorRef.current
-        ) {
-          const end = lassoStraightCursorRef.current;
-          const lastCommitted = pts[pts.length - 1];
-          if (!lastCommitted || lastCommitted.x !== end.x || lastCommitted.y !== end.y) {
-            pts.push(end);
-          }
-          lassoStraightAnchorIndexRef.current = -1;
-          lassoStraightCursorRef.current = null;
-        }
-
-        const last = pts[pts.length - 1];
-        if (!last || last.x !== pt.x || last.y !== pt.y) {
-          pts.push(pt);
-        }
-        drawOverlayLassoPreview(pts, pt);
-        return;
       }
 
       if (activeTool === "select" && selectStartRef.current) {
@@ -1057,6 +1054,9 @@ export function usePointerHandlers({
 
       // ─── Brush / Pencil / Eraser: delegate to shared PaintSession ─────
       if (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser") {
+        if (!pointerHasPaintContact(e.nativeEvent)) {
+          return;
+        }
         const handler = getToolHandler(activeTool);
         handler.onMove?.(
           toolCtxRef.current,
@@ -1087,7 +1087,10 @@ export function usePointerHandlers({
           : [nativePointerEvent];
       const eventPoints = coalescedEvents.map((eventPoint) => ({
         point: screenToCanvas(eventPoint.clientX, eventPoint.clientY),
-        pressure: eventPoint.pressure || currentPressureRef.current || 0.5
+        pressure: coalescedStrokePressure(
+          eventPoint,
+          currentPressureRef.current || 0.5
+        )
       }));
       if (eventPoints.length === 0) {
         return;
@@ -1319,25 +1322,15 @@ export function usePointerHandlers({
       }
 
       if (activeTool === "select" && lassoPointsRef.current.length > 0) {
+        if (doc.toolSettings.select.mode === "lasso_polygon") {
+          return;
+        }
         const pt = screenToCanvas(
           mousePositionRef.current.x +
             (containerRef.current?.getBoundingClientRect().left ?? 0),
           mousePositionRef.current.y +
             (containerRef.current?.getBoundingClientRect().top ?? 0)
         );
-        if (
-          lassoStraightAnchorIndexRef.current >= 0 &&
-          lassoStraightCursorRef.current
-        ) {
-          const ptsMut = lassoPointsRef.current;
-          const end = lassoStraightCursorRef.current;
-          const lastM = ptsMut[ptsMut.length - 1];
-          if (!lastM || lastM.x !== end.x || lastM.y !== end.y) {
-            ptsMut.push(end);
-          }
-          lassoStraightAnchorIndexRef.current = -1;
-          lassoStraightCursorRef.current = null;
-        }
         const pts = [...lassoPointsRef.current];
         lassoPointsRef.current = [];
         const last = pts[pts.length - 1];

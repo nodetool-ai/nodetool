@@ -30,6 +30,7 @@ import {
   getCanvasRasterBounds
 } from "./layerBounds";
 import { paintPressureForEngine } from "../drawingUtils";
+import { normalizePointerPressure } from "../pointerPen";
 import {
   applySelectionMaskAlpha,
   selectionHasAnyPixels
@@ -141,7 +142,7 @@ export class PaintSession {
     const pt = event.point;
     this.lastPoint = pt;
     this.lastSmoothedPoint = pt;
-    this.currentPressure = event.pressure || 0.5;
+    this.currentPressure = normalizePointerPressure(event.nativeEvent);
     this.hasMoved = false;
     this.active = true;
 
@@ -291,7 +292,7 @@ export class PaintSession {
           ) {
             this.hasMoved = true;
           }
-          this.currentPressure = ep.pressure || 0.5;
+          this.currentPressure = ep.pressure;
           bctx.clearRect(0, 0, stroke.buffer.width, stroke.buffer.height);
           bctx.drawImage(base, 0, 0);
           const from = this.mapper.docToLayer(this.lastStrokeEnd);

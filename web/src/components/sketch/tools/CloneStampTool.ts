@@ -15,6 +15,7 @@ import {
 } from "../drawingUtils";
 import type { DirtyRectTracker } from "../drawingUtils";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { normalizePointerPressure } from "../pointerPen";
 
 export class CloneStampTool implements ToolHandler {
   readonly toolId = "clone_stamp" as const;
@@ -155,7 +156,7 @@ export class CloneStampTool implements ToolHandler {
 
     this.lastPoint = pt;
     this.lastSmoothedPoint = pt;
-    this.currentPressure = event.pressure || 0.5;
+    this.currentPressure = normalizePointerPressure(event.nativeEvent);
     this.paintStrokeHasMoved = false;
     this.stabilizerBuffer = [];
     this.strokeDirtyRect = { current: null };

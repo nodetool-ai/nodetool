@@ -72,9 +72,10 @@
 
 ### PHASE 6 - IMPROVE PAINT AND SELECT
 
-- [ ] build a more programmable/extensible brush system on top of the shared paint/session seams
-- [ ] advanced brush extensions such as stronger stabilizer controls, smudge/color-smudge
-- [ ] selection transform tools
+- [-] build- [ ] build a more programmable/extensible brush system on top of the shared paint/session seams a more programmable/extensible brush system on top of the shared paint/session seams
+- [-] drawing extensions: stronger stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
+- [ ] brush extensions: smudge/color-smudge
+- [ ] selection transform tools + selection move with (shift) arrow keys. note: do not move layer when selection active
 - [ ] add AI-assisted tools such as healing or segmentation-driven layer creation
 
 ### PHASE 7 - COLOR PALETTES

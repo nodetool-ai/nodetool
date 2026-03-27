@@ -13,6 +13,7 @@
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
 import {
+  getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
   type LayerContentBounds,
   type Selection,
@@ -188,6 +189,9 @@ export class Canvas2DRuntime implements SketchRuntime {
     }
 
     for (const layer of doc.layers) {
+      if (layer.type === "mask" || layer.type === "group") {
+        continue;
+      }
       if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
         continue;
       }
@@ -199,6 +203,11 @@ export class Canvas2DRuntime implements SketchRuntime {
         continue;
       }
 
+      const opacityScale = getAncestorGroupOpacityProduct(
+        doc.layers,
+        layer,
+        isolatedLayerId
+      );
       const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
       const compositeOffset = getLayerCompositeOffset(
         layer,
@@ -235,7 +244,7 @@ export class Canvas2DRuntime implements SketchRuntime {
           tempCtx.restore();
 
           ctx.save();
-          ctx.globalAlpha = layer.opacity;
+          ctx.globalAlpha = layer.opacity * opacityScale;
           ctx.globalCompositeOperation = blendModeToComposite(
             layer.blendMode || "normal"
           );
@@ -244,7 +253,7 @@ export class Canvas2DRuntime implements SketchRuntime {
         }
       } else {
         ctx.save();
-        ctx.globalAlpha = layer.opacity;
+        ctx.globalAlpha = layer.opacity * opacityScale;
         ctx.globalCompositeOperation = blendModeToComposite(
           layer.blendMode || "normal"
         );
