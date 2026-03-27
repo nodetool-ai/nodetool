@@ -9,7 +9,7 @@
  * - `changed`: Shows visual indicator when value differs from default
  */
 
-import React, { forwardRef, useMemo, memo } from "react";
+import { forwardRef, useMemo, memo } from "react";
 import { Switch, SwitchProps } from "@mui/material";
 import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";

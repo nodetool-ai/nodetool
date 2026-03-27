@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import { useLanguageModelMenuStore } from "../../stores/ModelMenuStore";
