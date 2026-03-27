@@ -6,6 +6,21 @@ import type { Point, Selection } from "../types";
 
 const THRESH = 128;
 
+/**
+ * Marching-ants checker cell size in **document / bitmap** pixels.
+ * The overlay canvas uses CSS `transform: scale(zoom)`, so one bitmap pixel
+ * already occupies `zoom` CSS pixels. Growing cells when zoom > 1 would
+ * double-scale (huge ants). We only enlarge when zoomed out (z < 1) so the
+ * pattern stays visible on screen after the shrink transform.
+ */
+function selectionOutlineCellSize(zoom: number): number {
+  const z = Math.max(0.02, Math.min(zoom, 64));
+  if (z >= 1) {
+    return 1;
+  }
+  return Math.max(1, Math.min(16, Math.ceil(1 / z)));
+}
+
 export function createEmptyMask(width: number, height: number): Selection {
   const n = width * height;
   return {
@@ -508,7 +523,7 @@ function bresenhamPlot(
 
 /**
  * Crisp marching-ants along an open polyline (lasso in progress).
- * Matches `drawSelectionMaskOutline` phase / zoom-thickening rules.
+ * Matches `drawSelectionMaskOutline` phase / outline cell rules.
  */
 export function drawSelectionPolylineOutline(
   ctx: CanvasRenderingContext2D,
@@ -519,8 +534,7 @@ export function drawSelectionPolylineOutline(
   if (points.length < 2) {
     return;
   }
-  const z = Math.max(0.02, Math.min(zoom, 64));
-  const cell = Math.max(1, Math.min(16, Math.ceil(1 / z)));
+  const cell = selectionOutlineCellSize(zoom);
   const drawn = new Set<string>();
 
   const plot = (x: number, y: number): void => {
@@ -559,8 +573,7 @@ export function drawSelectionMaskOutline(
   zoom = 1
 ): void {
   const { width: w, height: h, data } = mask;
-  const z = Math.max(0.02, Math.min(zoom, 64));
-  const cell = Math.max(1, Math.min(16, Math.ceil(1 / z)));
+  const cell = selectionOutlineCellSize(zoom);
 
   ctx.save();
   ctx.imageSmoothingEnabled = false;

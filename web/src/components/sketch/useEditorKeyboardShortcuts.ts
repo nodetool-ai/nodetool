@@ -263,9 +263,9 @@ export function useEditorKeyboardShortcuts(
           } else if (tool === "eraser") {
             const newHardness = Math.max(
               0,
-              store.document.toolSettings.eraser.hardness - 0.1
+              store.document.toolSettings.brush.hardness - 0.1
             );
-            paramsRef.current.setEraserSettings({
+            paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
             });
           }
@@ -283,9 +283,9 @@ export function useEditorKeyboardShortcuts(
           } else if (tool === "eraser") {
             const newHardness = Math.min(
               1,
-              store.document.toolSettings.eraser.hardness + 0.1
+              store.document.toolSettings.brush.hardness + 0.1
             );
-            paramsRef.current.setEraserSettings({
+            paramsRef.current.setBrushSettings({
               hardness: Math.round(newHardness * 100) / 100
             });
           }

@@ -128,10 +128,16 @@ export interface PencilSettings {
   pressureAffects: "size" | "opacity" | "both";
 }
 
+/** Brush: same stamp as Brush tool (`drawBrushStroke`). Pencil: same as Pencil tool (`drawPencilStroke`). */
+export type EraserMode = "brush" | "pencil";
+
+/** @deprecated Use `EraserMode`; kept for document migration only. */
+export type EraserTip = EraserMode;
+
 export interface EraserSettings {
   size: number;
   opacity: number;
-  hardness: number;
+  mode: EraserMode;
 }
 
 export interface ShapeSettings {
@@ -394,7 +400,7 @@ export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
 export const DEFAULT_ERASER_SETTINGS: EraserSettings = {
   size: 20,
   opacity: 1,
-  hardness: 0.8
+  mode: "brush"
 };
 
 export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {
@@ -581,10 +587,18 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         ...DEFAULT_PENCIL_SETTINGS,
         ...doc.toolSettings?.pencil
       },
-      eraser: {
-        ...DEFAULT_ERASER_SETTINGS,
-        ...doc.toolSettings?.eraser
-      },
+      eraser: (() => {
+        const raw = doc.toolSettings?.eraser as
+          | (Partial<EraserSettings> & { hardness?: number; tip?: EraserMode })
+          | undefined;
+        const mode: EraserMode =
+          raw?.mode ?? raw?.tip ?? DEFAULT_ERASER_SETTINGS.mode;
+        return {
+          ...DEFAULT_ERASER_SETTINGS,
+          ...raw,
+          mode
+        };
+      })(),
       shape: {
         ...DEFAULT_SHAPE_SETTINGS,
         ...doc.toolSettings?.shape

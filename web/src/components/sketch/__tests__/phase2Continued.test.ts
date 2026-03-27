@@ -132,15 +132,15 @@ describe("Phase 2 Continued Features", () => {
       expect(useSketchStore.getState().document.toolSettings.brush.hardness).toBe(1);
     });
 
-    it("can adjust eraser hardness", () => {
+    it("eraser brush shape uses brush hardness (adjust via brush settings)", () => {
       act(() => {
-        useSketchStore.getState().setEraserSettings({ hardness: 0.5 });
+        useSketchStore.getState().setBrushSettings({ hardness: 0.5 });
       });
       act(() => {
-        const h = useSketchStore.getState().document.toolSettings.eraser.hardness;
-        useSketchStore.getState().setEraserSettings({ hardness: Math.min(1, h + 0.1) });
+        const h = useSketchStore.getState().document.toolSettings.brush.hardness;
+        useSketchStore.getState().setBrushSettings({ hardness: Math.min(1, h + 0.1) });
       });
-      expect(useSketchStore.getState().document.toolSettings.eraser.hardness).toBeCloseTo(0.6, 2);
+      expect(useSketchStore.getState().document.toolSettings.brush.hardness).toBeCloseTo(0.6, 2);
     });
   });
 

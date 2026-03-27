@@ -27,6 +27,7 @@ import {
   BlurSettings,
   CloneStampSettings,
   EraserSettings,
+  EraserMode,
   FillSettings,
   GradientSettings,
   PencilSettings,
@@ -90,10 +91,18 @@ function getSummaryItems(
     return [`${pencilSettings.size}px`, formatPercent(pencilSettings.opacity)];
   }
   if (activeTool === "eraser") {
+    const mode = eraserSettings.mode ?? "brush";
+    if (mode === "pencil") {
+      return [
+        `${eraserSettings.size}px`,
+        formatPercent(eraserSettings.opacity),
+        "Pencil"
+      ];
+    }
     return [
       `${eraserSettings.size}px`,
       formatPercent(eraserSettings.opacity),
-      `${Math.round(eraserSettings.hardness * 100)}% hard`
+      getBrushTypeLabel(brushSettings.brushType)
     ];
   }
   if (isShapeTool(activeTool)) {
@@ -673,8 +682,24 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     }
 
     if (activeTool === "eraser") {
+      const eraserMode = eraserSettings.mode ?? "brush";
       return (
         <>
+          <ToggleButtonGroup
+            value={eraserMode}
+            exclusive
+            size="small"
+            fullWidth
+            onChange={(_, value) => {
+              if (value) {
+                onEraserSettingsChange({ mode: value as EraserMode });
+              }
+            }}
+            sx={{ mb: 1.2 }}
+          >
+            <ToggleButton value="brush">Brush</ToggleButton>
+            <ToggleButton value="pencil">Pencil</ToggleButton>
+          </ToggleButtonGroup>
           <QuickSlider
             label="Size"
             valueLabel={`${eraserSettings.size}px`}
@@ -698,15 +723,17 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             step={0.01}
             onChange={(value) => onEraserSettingsChange({ opacity: value })}
           />
-          <QuickSlider
-            label="Hardness"
-            valueLabel={formatPercent(eraserSettings.hardness)}
-            value={eraserSettings.hardness}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(value) => onEraserSettingsChange({ hardness: value })}
-          />
+          {eraserMode === "brush" ? (
+            <QuickSlider
+              label="Brush hardness"
+              valueLabel={formatPercent(brushSettings.hardness)}
+              value={brushSettings.hardness}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(value) => onBrushSettingsChange({ hardness: value })}
+            />
+          ) : null}
         </>
       );
     }

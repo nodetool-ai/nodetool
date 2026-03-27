@@ -46,6 +46,10 @@ import {
   smoothSelectionBorders
 } from "../selection/selectionMask";
 
+/** Sketch viewport zoom limits (1 = 100%). */
+export const SKETCH_ZOOM_MIN = 0.1;
+export const SKETCH_ZOOM_MAX = 32;
+
 function withUpdatedDocumentTimestamp(document: SketchDocument): SketchDocument {
   return {
     ...document,
@@ -416,7 +420,10 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       }
     })),
 
-  setZoom: (zoom: number) => set({ zoom: Math.max(0.1, Math.min(10, zoom)) }),
+  setZoom: (zoom: number) =>
+    set({
+      zoom: Math.max(SKETCH_ZOOM_MIN, Math.min(SKETCH_ZOOM_MAX, zoom))
+    }),
   setPan: (pan: Point) => set({ pan }),
   setIsDrawing: (isDrawing: boolean) => set({ isDrawing }),
   setMirrorX: (v: boolean) => set({ mirrorX: v }),

@@ -44,8 +44,8 @@ export function paintPressureForEngine(
   return pressure;
 }
 
-/** Tool opacity at or above this is treated as fully opaque (no pressure fade). */
-const PENCIL_FULL_OPACITY_THRESHOLD = 0.999;
+/** Tool opacity at or above this is treated as fully opaque (no pressure fade, crisp eraser stamp, etc.). */
+export const SKETCH_FULL_OPACITY_THRESHOLD = 0.999;
 
 /**
  * Supersample factor for soft brush/eraser stamps so radial alpha falloff is
@@ -673,122 +673,80 @@ export function drawBrushStroke(
 
 // ─── Eraser Stroke ───────────────────────────────────────────────────────────
 
+const ERASER_STROKE_COLOR = "#000000";
+
+/** Black stroke-buffer mask: same brush shape/behavior as `brush` (new brush types apply automatically). */
+export function brushSettingsForEraserStroke(
+  eraser: EraserSettings,
+  brush: BrushSettings
+): BrushSettings {
+  return {
+    ...brush,
+    size: eraser.size,
+    opacity: 1,
+    color: ERASER_STROKE_COLOR
+  };
+}
+
+/** Black stroke-buffer mask: same dab behavior as `pencil`. */
+export function pencilSettingsForEraserStroke(
+  eraser: EraserSettings,
+  pencil: PencilSettings
+): PencilSettings {
+  return {
+    ...pencil,
+    size: eraser.size,
+    opacity: 1,
+    color: ERASER_STROKE_COLOR
+  };
+}
+
+function eraserModeFromSettings(settings: EraserSettings): "brush" | "pencil" {
+  const raw = settings as EraserSettings & { tip?: "brush" | "pencil" };
+  return settings.mode ?? raw.tip ?? "brush";
+}
+
+/**
+ * Eraser draws a black mask into the stroke buffer; the session composites with
+ * `destination-out` at tool opacity. Delegates to `drawBrushStroke` or
+ * `drawPencilStroke` using current brush/pencil tool settings (size overridden by
+ * eraser).
+ */
 export function drawEraserStroke(
   from: Point,
   to: Point,
-  settings: EraserSettings,
+  eraser: EraserSettings,
+  brushTemplate: BrushSettings,
+  pencilTemplate: PencilSettings,
   ctx: CanvasRenderingContext2D,
   pressure: number | undefined,
   dirtyRect: DirtyRectTracker,
-  eraserStampCache: Map<string, HTMLCanvasElement>,
+  brushStampCache: Map<string, HTMLCanvasElement>,
   stampState?: StrokeStampState
 ): void {
-  let effectiveSize = settings.size;
-  if (pressure !== undefined && pressure > 0) {
-    const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
-    effectiveSize = settings.size * pressureFactor;
+  if (eraserModeFromSettings(eraser) === "pencil") {
+    drawPencilStroke(
+      from,
+      to,
+      pencilSettingsForEraserStroke(eraser, pencilTemplate),
+      ctx,
+      pressure,
+      dirtyRect,
+      stampState
+    );
+    return;
   }
 
-  const markDirtyRect = (x: number, y: number, radius: number) => {
-    expandDirtyRect(dirtyRect, x, y, Math.max(2, radius + 2));
-  };
-
-  const createEraserStamp = (
-    size: number,
-    hardness: number
-  ): HTMLCanvasElement => {
-    const feather = Math.max(4, Math.ceil(size * 0.5));
-    const logicalD = Math.max(2, Math.ceil(size + feather * 2));
-    const stamp = window.document.createElement("canvas");
-    stamp.width = logicalD;
-    stamp.height = logicalD;
-    const stampCtx = stamp.getContext("2d");
-    if (!stampCtx) {
-      return stamp;
-    }
-    const center = logicalD / 2;
-    const radius = size / 2;
-    const innerStop = Math.max(0, Math.min(1, hardness * 0.85 + 0.1));
-
-    const superS = stampSupersampleScale(logicalD);
-    const hiPx = Math.ceil(logicalD * superS);
-    const hi = window.document.createElement("canvas");
-    hi.width = hiPx;
-    hi.height = hiPx;
-    const hiCtx = hi.getContext("2d");
-    if (!hiCtx) {
-      const gradient = stampCtx.createRadialGradient(
-        center,
-        center,
-        0,
-        center,
-        center,
-        radius
-      );
-      gradient.addColorStop(0, "rgba(0,0,0,1)");
-      gradient.addColorStop(innerStop, "rgba(0,0,0,1)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
-      stampCtx.fillStyle = gradient;
-      stampCtx.beginPath();
-      stampCtx.arc(center, center, radius, 0, Math.PI * 2);
-      stampCtx.fill();
-      return stamp;
-    }
-    hiCtx.setTransform(superS, 0, 0, superS, 0, 0);
-    const lc = logicalD / 2;
-    const gradient = hiCtx.createRadialGradient(lc, lc, 0, lc, lc, radius);
-    gradient.addColorStop(0, "rgba(0,0,0,1)");
-    gradient.addColorStop(innerStop, "rgba(0,0,0,1)");
-    gradient.addColorStop(1, "rgba(0,0,0,0)");
-    hiCtx.fillStyle = gradient;
-    hiCtx.beginPath();
-    hiCtx.arc(lc, lc, radius, 0, Math.PI * 2);
-    hiCtx.fill();
-    stampCtx.imageSmoothingEnabled = true;
-    stampCtx.imageSmoothingQuality = "high";
-    stampCtx.drawImage(hi, 0, 0, hiPx, hiPx, 0, 0, logicalD, logicalD);
-    return stamp;
-  };
-
-  const getEraserStamp = (size: number, hardness: number) => {
-    const cacheKey = `${size.toFixed(2)}|${hardness.toFixed(3)}`;
-    const cached = eraserStampCache.get(cacheKey);
-    if (cached) {
-      return cached;
-    }
-    const created = createEraserStamp(size, hardness);
-    eraserStampCache.set(cacheKey, created);
-    return created;
-  };
-
-  const baseSpacing = Math.max(0.5, effectiveSize * 0.12);
-  const stamp = getEraserStamp(
-    effectiveSize,
-    Math.max(0.05, Math.min(1, settings.hardness))
-  );
-  const spacing = adjustSpacingForHardness(
-    baseSpacing,
-    Math.max(0.05, Math.min(1, settings.hardness)),
-    0.5
-  );
-
-  // Eraser dabs paint at full alpha with source-over onto the stroke buffer.
-  // The buffer is composited as destination-out at eraser opacity by the
-  // compositing system, so no per-dab alpha normalization is needed.
-  ctx.save();
-  ctx.globalAlpha = 1.0;
-  ctx.globalCompositeOperation = "source-over";
-  stampAlongStroke(
+  drawBrushStroke(
     from,
     to,
-    spacing,
-    (x, y) => {
-    ctx.drawImage(stamp, x - stamp.width / 2, y - stamp.height / 2);
-    markDirtyRect(x, y, effectiveSize / 2);
-    },
+    brushSettingsForEraserStroke(eraser, brushTemplate),
+    ctx,
+    pressure,
+    dirtyRect,
+    brushStampCache,
     stampState
   );
-  ctx.restore();
 }
 
 // ─── Pencil Stroke ───────────────────────────────────────────────────────────
@@ -827,31 +785,46 @@ export function drawPencilStroke(
     effectiveOpacity = settings.opacity * pressureFactor;
   }
 
-  const spacing = Math.max(0.35, effectiveSize * 0.3);
+  const snapDabs = effectiveOpacity >= SKETCH_FULL_OPACITY_THRESHOLD;
+  /** Single-pixel (or tiny block) dabs — avoids sub-pixel circle blur at size 1. */
+  const usePixelCrispDab = snapDabs && effectiveSize <= 1.25;
+
+  const spacing = usePixelCrispDab
+    ? 0.5
+    : Math.max(0.35, effectiveSize * 0.3);
   const radius =
     effectiveSize <= 1.5
       ? Math.max(0.5, effectiveSize / 2)
       : Math.max(0.75, effectiveSize / 2);
 
-  const markDab = (x: number, y: number) => {
-    expandDirtyRect(dirtyRect, x, y, Math.max(2, radius + 2));
+  const markDab = (x: number, y: number, pad: number) => {
+    expandDirtyRect(dirtyRect, x, y, Math.max(2, pad + 2));
   };
-
-  const snapDabs = effectiveOpacity >= PENCIL_FULL_OPACITY_THRESHOLD;
 
   ctx.save();
   ctx.globalAlpha = Math.min(1, effectiveOpacity);
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = settings.color;
-  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingEnabled = !usePixelCrispDab;
 
   const dabAt = (x: number, y: number) => {
+    if (usePixelCrispDab) {
+      // Cursor hotspot is the pointer (x, y). fillRect(i, j, 1, 1) covers
+      // [i, i+1)×[j, j+1) with center (i+0.5, j+0.5); pick i = round(x - 0.5)
+      // so that center is nearest to (x, y) (not top-left at round(x), which
+      // shifts ink +0.5 vs the centered brush preview).
+      const ix = Math.round(x - 0.5);
+      const iy = Math.round(y - 0.5);
+      ctx.fillRect(ix, iy, 1, 1);
+      markDab(ix + 0.5, iy + 0.5, 0.5);
+      return;
+    }
     const px = snapDabs ? Math.round(x) : x;
     const py = snapDabs ? Math.round(y) : y;
     ctx.beginPath();
     ctx.arc(px, py, radius, 0, Math.PI * 2);
     ctx.fill();
-    markDab(px, py);
+    markDab(px, py, radius);
   };
 
   stampAlongStroke(from, to, spacing, dabAt, stampState);

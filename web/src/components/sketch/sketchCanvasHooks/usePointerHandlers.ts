@@ -45,6 +45,10 @@ import {
   selectionHitTest,
   translateMask
 } from "../selection/selectionMask";
+import {
+  SKETCH_ZOOM_MAX,
+  SKETCH_ZOOM_MIN
+} from "../state/useSketchStore";
 
 function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp {
   if (shift && alt) {
@@ -1483,7 +1487,10 @@ export function usePointerHandlers({
       event.preventDefault();
       const factor = 1.3;
       const delta = event.deltaY > 0 ? 1 / factor : factor;
-      const newZoom = Math.max(0.1, Math.min(10, zoom * delta));
+      const newZoom = Math.max(
+        SKETCH_ZOOM_MIN,
+        Math.min(SKETCH_ZOOM_MAX, zoom * delta)
+      );
       const container = containerRef.current;
       if (container) {
         const rect = container.getBoundingClientRect();

@@ -24,7 +24,12 @@ import { PencilTool } from "../tools/PencilTool";
 import { EraserTool } from "../tools/EraserTool";
 import { ShapeTool } from "../tools/ShapeTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import { createDefaultDocument } from "../types";
+import {
+  createDefaultDocument,
+  DEFAULT_BRUSH_SETTINGS,
+  DEFAULT_PENCIL_SETTINGS,
+  DEFAULT_ERASER_SETTINGS
+} from "../types";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -268,11 +273,11 @@ describe("PaintEngine implementations", () => {
 
   describe("EraserEngine", () => {
     it("has correct engine properties", () => {
-      const engine = new EraserEngine({
-        size: 20,
-        opacity: 1,
-        hardness: 0.8
-      });
+      const engine = new EraserEngine(
+        DEFAULT_ERASER_SETTINGS,
+        DEFAULT_BRUSH_SETTINGS,
+        DEFAULT_PENCIL_SETTINGS
+      );
       expect(engine.engineId).toBe("eraser");
       expect(engine.compositeOp).toBe("destination-out");
       expect(engine.bufferMode).toBe("buffered");
@@ -281,11 +286,11 @@ describe("PaintEngine implementations", () => {
     });
 
     it("stabilizes points with a moving average", () => {
-      const engine = new EraserEngine({
-        size: 20,
-        opacity: 1,
-        hardness: 0.8
-      });
+      const engine = new EraserEngine(
+        DEFAULT_ERASER_SETTINGS,
+        DEFAULT_BRUSH_SETTINGS,
+        DEFAULT_PENCIL_SETTINGS
+      );
       engine.beginStroke();
       engine.stabilize({ x: 0, y: 0 });
       const p2 = engine.stabilize({ x: 20, y: 20 });
@@ -407,11 +412,11 @@ describe("PaintSession", () => {
   });
 
   it("eraser creates destination-out stroke buffer", () => {
-    const engine = new EraserEngine({
-      size: 20,
-      opacity: 1,
-      hardness: 0.8
-    });
+    const engine = new EraserEngine(
+      DEFAULT_ERASER_SETTINGS,
+      DEFAULT_BRUSH_SETTINGS,
+      DEFAULT_PENCIL_SETTINGS
+    );
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
     session.begin(ctx, makePointerEvent());
@@ -470,11 +475,11 @@ describe("PaintSession", () => {
       roundness: 1,
       angle: 0
     });
-    const eraserEngine = new EraserEngine({
-      size: 20,
-      opacity: 1,
-      hardness: 0.8
-    });
+    const eraserEngine = new EraserEngine(
+      DEFAULT_ERASER_SETTINGS,
+      DEFAULT_BRUSH_SETTINGS,
+      DEFAULT_PENCIL_SETTINGS
+    );
     const session = new PaintSession(brushEngine);
 
     // First stroke with brush

@@ -373,11 +373,27 @@ export function useOverlayRenderer({
       } else if (activeTool === "clone_stamp") {
         size = doc.toolSettings.cloneStamp.size;
       } else {
-        size = doc.toolSettings.eraser.size;
-        const effectiveHardness = Math.max(0.05, Math.min(1, doc.toolSettings.eraser.hardness));
-        if (effectiveHardness < 0.999) {
-          const innerStop = Math.max(0, Math.min(1, effectiveHardness * 0.85 + 0.1));
-          hardnessScale = innerStop + (1 - innerStop) * 0.5;
+        const eraser = doc.toolSettings.eraser;
+        const eraserMode =
+          eraser.mode ??
+          (eraser as { tip?: "brush" | "pencil" }).tip ??
+          "brush";
+        size = eraser.size;
+        if (eraserMode === "brush") {
+          const b = doc.toolSettings.brush;
+          roundness = b.roundness;
+          angle = b.angle;
+          const brushType = b.brushType || "round";
+          const effectiveHardness =
+            brushType === "soft"
+              ? Math.min(b.hardness, 0.35)
+              : brushType === "airbrush"
+                ? Math.min(b.hardness, 0.18)
+                : b.hardness;
+          if (effectiveHardness < 0.999) {
+            const innerStop = Math.max(0, Math.min(1, effectiveHardness * 0.85 + 0.1));
+            hardnessScale = innerStop + (1 - innerStop) * 0.5;
+          }
         }
       }
 
@@ -424,7 +440,7 @@ export function useOverlayRenderer({
       doc.toolSettings.brush.brushType,
       doc.toolSettings.pencil.size,
       doc.toolSettings.eraser.size,
-      doc.toolSettings.eraser.hardness,
+      doc.toolSettings.eraser.mode,
       doc.toolSettings.blur.size,
       doc.toolSettings.cloneStamp.size,
       zoom,

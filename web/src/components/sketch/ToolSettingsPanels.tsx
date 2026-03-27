@@ -25,6 +25,7 @@ import {
   BrushType,
   PencilSettings,
   EraserSettings,
+  EraserMode,
   ShapeSettings,
   FillSettings,
   BlurSettings,
@@ -360,8 +361,32 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
   settings,
   onChange
 }: EraserSettingsPanelProps) {
+  const mode = settings.mode ?? "brush";
   return (
     <>
+      <ToggleButtonGroup
+        value={mode}
+        exclusive
+        onChange={(_, v) => {
+          if (v) {
+            onChange({ mode: v as EraserMode });
+          }
+        }}
+        size="small"
+        sx={{ mb: "4px" }}
+      >
+        <ToggleButton value="brush" sx={toggleButtonSmallSx}>
+          Brush
+        </ToggleButton>
+        <ToggleButton value="pencil" sx={toggleButtonSmallSx}>
+          Pencil
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: "6px" }}>
+        {mode === "brush"
+          ? "Uses the Brush tool shape (type, hardness, angle, …)."
+          : "Uses the Pencil tool dab behavior."}
+      </Typography>
       <Box className="setting-row">
         <Typography className="setting-label">Size</Typography>
         <Slider

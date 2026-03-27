@@ -80,9 +80,8 @@ describe("Cursor hardness compensation", () => {
     expect(scale).toBeLessThan(0.7);
   });
 
-  it("eraser hardness also affects cursor (uses same formula)", () => {
-    const eraserHardness = 0.5;
-    const scale = computeHardnessScale(eraserHardness);
+  it("computeHardnessScale matches formula for mid-range hardness", () => {
+    const scale = computeHardnessScale(0.5);
     // innerStop = 0.5 * 0.85 + 0.1 = 0.525
     // scale = 0.525 + (1 - 0.525) * 0.5 = 0.525 + 0.2375 = 0.7625
     expect(scale).toBeCloseTo(0.763, 2);

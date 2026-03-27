@@ -209,12 +209,11 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
   );
 
   // ─── Handle positioning ────────────────────────────────────────────────────
-  // Each handle is positioned relative to the resize-handles wrapper which has
-  // the same transform as the canvas (top:50%, left:50%, translate(-50%,-50%)
-  // + pan + scale). So inside the wrapper 0,0 is the top-left of the canvas
-  // and we position handles at the edges in CSS pixels (pre-scale).
+  // Wrapper shares the canvas transform; coordinates are canvas pixels before
+  // scale. Hit targets sit fully *outside* 0..W / 0..H so edge pixels stay
+  // drawable (previously half-overlapped the border).
 
-  const halfEdge = EDGE_THICKNESS / 2 / zoom;
+  const OUTSET = EDGE_THICKNESS / zoom;
   const cornerSize = HANDLE_SIZE / zoom;
 
   interface HandleDef {
@@ -227,40 +226,40 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     {
       edge: "n",
       style: {
-        top: -halfEdge,
+        top: -OUTSET,
         left: cornerSize,
         right: cornerSize,
-        height: EDGE_THICKNESS / zoom,
+        height: OUTSET,
         cursor: CURSOR_MAP.n
       }
     },
     {
       edge: "s",
       style: {
-        bottom: -halfEdge,
+        top: "100%",
         left: cornerSize,
         right: cornerSize,
-        height: EDGE_THICKNESS / zoom,
+        height: OUTSET,
         cursor: CURSOR_MAP.s
       }
     },
     {
       edge: "w",
       style: {
-        left: -halfEdge,
+        left: -OUTSET,
         top: cornerSize,
         bottom: cornerSize,
-        width: EDGE_THICKNESS / zoom,
+        width: OUTSET,
         cursor: CURSOR_MAP.w
       }
     },
     {
       edge: "e",
       style: {
-        right: -halfEdge,
+        left: "100%",
         top: cornerSize,
         bottom: cornerSize,
-        width: EDGE_THICKNESS / zoom,
+        width: OUTSET,
         cursor: CURSOR_MAP.e
       }
     },
@@ -268,8 +267,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     {
       edge: "nw",
       style: {
-        top: -halfEdge,
-        left: -halfEdge,
+        top: -cornerSize,
+        left: -cornerSize,
         width: cornerSize,
         height: cornerSize,
         cursor: CURSOR_MAP.nw
@@ -278,8 +277,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     {
       edge: "ne",
       style: {
-        top: -halfEdge,
-        right: -halfEdge,
+        top: -cornerSize,
+        right: -cornerSize,
         width: cornerSize,
         height: cornerSize,
         cursor: CURSOR_MAP.ne
@@ -288,8 +287,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     {
       edge: "sw",
       style: {
-        bottom: -halfEdge,
-        left: -halfEdge,
+        bottom: -cornerSize,
+        left: -cornerSize,
         width: cornerSize,
         height: cornerSize,
         cursor: CURSOR_MAP.sw
@@ -298,8 +297,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     {
       edge: "se",
       style: {
-        bottom: -halfEdge,
-        right: -halfEdge,
+        bottom: -cornerSize,
+        right: -cornerSize,
         width: cornerSize,
         height: cornerSize,
         cursor: CURSOR_MAP.se
