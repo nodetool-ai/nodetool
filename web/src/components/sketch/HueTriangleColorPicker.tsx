@@ -26,10 +26,11 @@ import {
 } from "./types";
 
 // ─── Layout constants ────────────────────────────────────────────────────────
-const WIDGET_SIZE = 180;
+/** Overall wheel + triangle diameter (canvas px). */
+const WIDGET_SIZE = 144;
 /** Floating preview while dragging hue ring or triangle: fixed to viewport, left of the wheel (does not affect panel width). */
-const PREVIEW_SWATCH_SIZE = 52;
-const PREVIEW_GAP = 6;
+const PREVIEW_SWATCH_SIZE = 42;
+const PREVIEW_GAP = 5;
 const RING_WIDTH = 16;
 const OUTER_R = WIDGET_SIZE / 2;
 const INNER_R = OUTER_R - RING_WIDTH;
@@ -206,13 +207,13 @@ function paintSVCursor(ctx: CanvasRenderingContext2D, s: number, val: number) {
   const cy = u * v0.y + v * v1.y + w * v2.y;
   // Outer white ring
   ctx.beginPath();
-  ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 2;
   ctx.stroke();
   // Inner shadow ring
   ctx.beginPath();
-  ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
   ctx.strokeStyle = "rgba(0,0,0,0.5)";
   ctx.lineWidth = 1;
   ctx.stroke();

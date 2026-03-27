@@ -41,8 +41,9 @@ export const SKETCH_FONT = {
 // ─── Spacing / Size Scale ─────────────────────────────────────────────────────
 
 export const SKETCH_SIZE = {
-  layerItemHeight: "36px",
-  layerThumbnail:  "28px",
+  /** Row min-height; thumbnails sized to match (~40% larger than original 36/28). */
+  layerItemHeight: "50.4px",
+  layerThumbnail: "39.2px",
   panelWidth:      "260px",
   iconButtonPad:   "3px",
   borderRadius:    "4px",
@@ -87,6 +88,55 @@ export const toggleButtonSmallSx: SxProps<Theme> = {
   fontSize: SKETCH_FONT.xs,
   py: "2px",
   px: "6px",
+};
+
+/**
+ * Layout + `.setting-row` styles when tool settings panels render outside the top bar
+ * (e.g. context menu): vertical stack, full-width sliders.
+ */
+export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
+  const t = theme as Theme;
+  return {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: "6px",
+    minWidth: 0,
+    "& .setting-row": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      flexWrap: "wrap",
+      "& .MuiSlider-root": {
+        flex: "1 1 140px",
+        minWidth: "120px",
+        width: "100%",
+        maxWidth: "100%"
+      },
+      "& .setting-label": {
+        fontSize: SKETCH_FONT.sm,
+        whiteSpace: "nowrap",
+        color: t.palette.grey[300]
+      },
+      "& .setting-value": {
+        fontSize: SKETCH_FONT.sm,
+        minWidth: "24px",
+        textAlign: "right",
+        color: t.palette.grey[200]
+      }
+    },
+    "& .MuiToggleButtonGroup-root": {
+      alignSelf: "stretch",
+      flexWrap: "wrap",
+      "& .MuiToggleButton-root": {
+        padding: "2px 6px",
+        fontSize: "0.6rem"
+      }
+    },
+    "& .MuiIconButton-root": {
+      padding: "3px"
+    }
+  };
 };
 
 // ─── Color Utilities ──────────────────────────────────────────────────────────

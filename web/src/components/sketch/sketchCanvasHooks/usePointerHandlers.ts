@@ -41,6 +41,7 @@ import {
   type SelectionCombineOp,
   magicWandFromRgba,
   polygonToBinaryMask,
+  marqueeRectFromDocPoints,
   rectSelectionMask,
   selectionHasAnyPixels,
   selectionHitTest,
@@ -1415,10 +1416,10 @@ export function usePointerHandlers({
           mousePositionRef.current.y +
             (containerRef.current?.getBoundingClientRect().top ?? 0)
         );
-        const x = Math.round(Math.min(selectStartRef.current.x, pt.x));
-        const y = Math.round(Math.min(selectStartRef.current.y, pt.y));
-        const w = Math.round(Math.abs(pt.x - selectStartRef.current.x));
-        const h = Math.round(Math.abs(pt.y - selectStartRef.current.y));
+        const { x, y, w, h } = marqueeRectFromDocPoints(
+          selectStartRef.current,
+          pt
+        );
         clearOverlay();
         selectStartRef.current = null;
         const cw = doc.canvas.width;

@@ -1,19 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
-import { sketchSliderSx, mergeHexPickerRgbPreserveAlpha as mergeColor } from "./sketchStyles";
+import { sketchToolSettingsContainerSx } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   Box,
   ButtonBase,
-  Chip,
   Divider,
   IconButton,
   Popover,
-  Slider,
   Stack,
   Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
@@ -23,120 +19,19 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import {
   BrushSettings,
-  BrushType,
   BlurSettings,
   CloneStampSettings,
   EraserSettings,
-  EraserMode,
   FillSettings,
   GradientSettings,
   PencilSettings,
+  SelectSettings,
   ShapeSettings,
   SketchTool,
-  colorToHex6,
-  isShapeTool,
-  parseColorToRgba,
-  rgbaToCss
+  isShapeTool
 } from "./types";
 import { CONTEXT_MENU_TOOLS, getToolDefinition, type ToolDefinition } from "./toolDefinitions";
-
-const BRUSH_SIZE_PRESETS = [4, 12, 24, 48];
-const PENCIL_SIZE_PRESETS = [1, 3, 5, 8];
-const ERASER_SIZE_PRESETS = [8, 20, 48, 96];
-const SHAPE_WIDTH_PRESETS = [1, 2, 4, 8];
-const FILL_TOLERANCE_PRESETS = [0, 16, 32, 64];
-const BLUR_SIZE_PRESETS = [10, 20, 40, 60];
-const CLONE_STAMP_SIZE_PRESETS = [10, 20, 40, 80];
-const OPACITY_PRESETS = [0.25, 0.5, 0.75, 1];
-const STRENGTH_PRESETS = [2, 5, 10];
-
-function getBrushTypeLabel(brushType: BrushType): string {
-  switch (brushType) {
-    case "airbrush":
-      return "Air";
-    case "spray":
-      return "Spray";
-    case "soft":
-      return "Soft";
-    case "round":
-    default:
-      return "Round";
-  }
-}
-
-function formatPercent(value: number): string {
-  return `${Math.round(value * 100)}%`;
-}
-
-
-function getSummaryItems(
-  activeTool: SketchTool,
-  brushSettings: BrushSettings,
-  pencilSettings: PencilSettings,
-  eraserSettings: EraserSettings,
-  shapeSettings: ShapeSettings,
-  fillSettings: FillSettings,
-  blurSettings: BlurSettings,
-  gradientSettings: GradientSettings,
-  cloneStampSettings?: CloneStampSettings
-): string[] {
-  if (activeTool === "brush") {
-    return [
-      `${brushSettings.size}px`,
-      formatPercent(brushSettings.opacity),
-      getBrushTypeLabel(brushSettings.brushType)
-    ];
-  }
-  if (activeTool === "pencil") {
-    return [`${pencilSettings.size}px`, formatPercent(pencilSettings.opacity)];
-  }
-  if (activeTool === "eraser") {
-    const mode = eraserSettings.mode ?? "brush";
-    if (mode === "pencil") {
-      return [
-        `${eraserSettings.size}px`,
-        formatPercent(eraserSettings.opacity),
-        "Pencil"
-      ];
-    }
-    return [
-      `${eraserSettings.size}px`,
-      formatPercent(eraserSettings.opacity),
-      getBrushTypeLabel(brushSettings.brushType)
-    ];
-  }
-  if (isShapeTool(activeTool)) {
-    return [
-      `${shapeSettings.strokeWidth}px stroke`,
-      shapeSettings.filled ? "Filled" : "Outline"
-    ];
-  }
-  if (activeTool === "fill") {
-    return [`Tolerance ${fillSettings.tolerance}`];
-  }
-  if (activeTool === "blur") {
-    return [`${blurSettings.size}px`, `Strength ${blurSettings.strength}`];
-  }
-  if (activeTool === "clone_stamp" && cloneStampSettings) {
-    return [
-      `${cloneStampSettings.size}px`,
-      formatPercent(cloneStampSettings.opacity)
-    ];
-  }
-  if (activeTool === "gradient") {
-    return [gradientSettings.type === "linear" ? "Linear" : "Radial"];
-  }
-  if (activeTool === "crop") {
-    return ["Drag region"];
-  }
-  if (activeTool === "eyedropper") {
-    return ["Sample color"];
-  }
-  if (activeTool === "select") {
-    return ["Selection"];
-  }
-  return ["Pan canvas"];
-}
+import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -152,96 +47,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     >
       {children}
     </Typography>
-  );
-}
-
-interface QuickSliderProps {
-  label: string;
-  valueLabel: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  onChange: (value: number) => void;
-}
-
-function QuickSlider({
-  label,
-  valueLabel,
-  value,
-  min,
-  max,
-  step,
-  onChange
-}: QuickSliderProps) {
-  return (
-    <Box sx={{ mb: 0.6 }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: 0.6 }}
-      >
-        <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, color: "text.primary" }}>
-          {label}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: "0.78rem",
-            fontWeight: 700,
-            color: "text.secondary",
-            fontVariantNumeric: "tabular-nums"
-          }}
-        >
-          {valueLabel}
-        </Typography>
-      </Stack>
-      <Slider
-        sx={sketchSliderSx}
-        size="small"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(_, nextValue) => onChange(nextValue as number)}
-      />
-    </Box>
-  );
-}
-
-interface PresetChipRowProps<T extends number | string> {
-  values: T[];
-  selectedValue: T;
-  format: (value: T) => string;
-  onSelect: (value: T) => void;
-}
-
-function PresetChipRow<T extends number | string>({
-  values,
-  selectedValue,
-  format,
-  onSelect
-}: PresetChipRowProps<T>) {
-  return (
-    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mb: 1.05 }}>
-      {values.map((value) => {
-        const selected = value === selectedValue;
-        return (
-          <Chip
-            key={String(value)}
-            label={format(value)}
-            size="small"
-            color={selected ? "primary" : "default"}
-            variant={selected ? "filled" : "outlined"}
-            onClick={() => onSelect(value)}
-            sx={{
-              fontSize: "0.8rem",
-              fontWeight: selected ? 700 : 500
-            }}
-          />
-        );
-      })}
-    </Stack>
   );
 }
 
@@ -267,62 +72,6 @@ function ColorPreview({
       <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "text.secondary" }}>
         {label}
       </Typography>
-    </Stack>
-  );
-}
-
-function ColorSetting({
-  label,
-  color,
-  onChange
-}: {
-  label: string;
-  color: string;
-  onChange: (color: string) => void;
-}) {
-  return (
-    <Stack spacing={0.5} sx={{ minWidth: 0 }}>
-      <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: "text.primary" }}>
-        {label}
-      </Typography>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          px: 1,
-          py: 0.8,
-          borderRadius: "9px",
-          border: "1px solid",
-          borderColor: "grey.700",
-          backgroundColor: "grey.900"
-        }}
-      >
-        <input
-          type="color"
-          aria-label={label}
-          value={colorToHex6(color)}
-          onChange={(event) => onChange(event.target.value)}
-          style={{
-            width: 28,
-            height: 28,
-            border: "none",
-            borderRadius: "6px",
-            padding: 0,
-            background: "transparent",
-            cursor: "pointer"
-          }}
-        />
-        <Typography
-          sx={{
-            fontSize: "0.74rem",
-            color: "text.secondary",
-            fontVariantNumeric: "tabular-nums"
-          }}
-        >
-          {colorToHex6(color).toUpperCase()}
-        </Typography>
-      </Box>
     </Stack>
   );
 }
@@ -435,7 +184,6 @@ export interface SketchCanvasContextMenuProps {
   canRedo: boolean;
   onClose: () => void;
   onToolChange: (tool: SketchTool) => void;
-  onForegroundColorChange: (color: string) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
   onPencilSettingsChange: (settings: Partial<PencilSettings>) => void;
   onEraserSettingsChange: (settings: Partial<EraserSettings>) => void;
@@ -444,6 +192,25 @@ export interface SketchCanvasContextMenuProps {
   onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
   onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
+  selectSettings: SelectSettings;
+  hasActiveSelection: boolean;
+  adjustBrightness?: number;
+  adjustContrast?: number;
+  adjustSaturation?: number;
+  onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
+  onFeatherSelection: () => void;
+  onSmoothSelectionBorders: () => void;
+  onAdjustBrightnessChange?: (value: number) => void;
+  onAdjustContrastChange?: (value: number) => void;
+  onAdjustSaturationChange?: (value: number) => void;
+  onAdjustApply?: () => void;
+  onAdjustCancel?: () => void;
+  transformScaleX?: number;
+  transformScaleY?: number;
+  transformRotation?: number;
+  onTransformCommit?: () => void;
+  onTransformCancel?: () => void;
+  onTransformReset?: () => void;
   onSwapColors: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -472,7 +239,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   canRedo,
   onClose,
   onToolChange,
-  onForegroundColorChange,
   onBrushSettingsChange,
   onPencilSettingsChange,
   onEraserSettingsChange,
@@ -481,6 +247,25 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onBlurSettingsChange,
   onGradientSettingsChange,
   onCloneStampSettingsChange,
+  selectSettings,
+  hasActiveSelection,
+  adjustBrightness,
+  adjustContrast,
+  adjustSaturation,
+  onSelectSettingsChange,
+  onFeatherSelection,
+  onSmoothSelectionBorders,
+  onAdjustBrightnessChange,
+  onAdjustContrastChange,
+  onAdjustSaturationChange,
+  onAdjustApply,
+  onAdjustCancel,
+  transformScaleX,
+  transformScaleY,
+  transformRotation,
+  onTransformCommit,
+  onTransformCancel,
+  onTransformReset,
   onSwapColors,
   onUndo,
   onRedo,
@@ -490,17 +275,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   const theme = useTheme();
   const activeDefinition = getToolDefinition(activeTool);
   const surfaceSoft = theme.vars.palette.grey[800];
-  const summaryItems = getSummaryItems(
-    activeTool,
-    brushSettings,
-    pencilSettings,
-    eraserSettings,
-    shapeSettings,
-    fillSettings,
-    blurSettings,
-    gradientSettings,
-    cloneStampSettings
-  );
   const ActiveIcon = activeDefinition.Icon;
 
   useEffect(() => {
@@ -564,423 +338,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     );
   };
 
-  const renderQuickControls = () => {
-    if (activeTool === "brush") {
-      return (
-        <>
-          <ColorSetting
-            label="Color"
-            color={brushSettings.color}
-            onChange={(value) => {
-              const next = mergeColor(brushSettings.color, value);
-              onForegroundColorChange(next);
-              onBrushSettingsChange({ color: next });
-            }}
-          />
-          <ToggleButtonGroup
-            value={brushSettings.brushType}
-            exclusive
-            size="small"
-            fullWidth
-            onChange={(_, value) => {
-              if (value) {
-                onBrushSettingsChange({ brushType: value as BrushType });
-              }
-            }}
-            sx={{ mb: 1.8, mt: 1.4 }}
-          >
-            <ToggleButton value="round">Round</ToggleButton>
-            <ToggleButton value="soft">Soft</ToggleButton>
-            <ToggleButton value="airbrush">Air</ToggleButton>
-            <ToggleButton value="spray">Spray</ToggleButton>
-          </ToggleButtonGroup>
-          <QuickSlider
-            label="Size"
-            valueLabel={`${brushSettings.size}px`}
-            value={brushSettings.size}
-            min={1}
-            max={200}
-            onChange={(value) => onBrushSettingsChange({ size: value })}
-          />
-          <PresetChipRow
-            values={BRUSH_SIZE_PRESETS}
-            selectedValue={brushSettings.size}
-            format={(value) => `${value}px`}
-            onSelect={(value) => onBrushSettingsChange({ size: value })}
-          />
-          <QuickSlider
-            label="Opacity"
-            valueLabel={formatPercent(brushSettings.opacity)}
-            value={brushSettings.opacity}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(value) => onBrushSettingsChange({ opacity: value })}
-          />
-          <PresetChipRow
-            values={OPACITY_PRESETS}
-            selectedValue={brushSettings.opacity}
-            format={(value) => formatPercent(value)}
-            onSelect={(value) => onBrushSettingsChange({ opacity: value })}
-          />
-          <QuickSlider
-            label="Hardness"
-            valueLabel={formatPercent(brushSettings.hardness)}
-            value={brushSettings.hardness}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(value) => onBrushSettingsChange({ hardness: value })}
-          />
-        </>
-      );
-    }
-
-    if (activeTool === "pencil") {
-      return (
-        <>
-          <ColorSetting
-            label="Color"
-            color={pencilSettings.color}
-            onChange={(value) => {
-              const next = mergeColor(pencilSettings.color, value);
-              onForegroundColorChange(next);
-              onPencilSettingsChange({ color: next });
-            }}
-          />
-          <QuickSlider
-            label="Size"
-            valueLabel={`${pencilSettings.size}px`}
-            value={pencilSettings.size}
-            min={1}
-            max={10}
-            onChange={(value) => onPencilSettingsChange({ size: value })}
-          />
-          <PresetChipRow
-            values={PENCIL_SIZE_PRESETS}
-            selectedValue={pencilSettings.size}
-            format={(value) => `${value}px`}
-            onSelect={(value) => onPencilSettingsChange({ size: value })}
-          />
-          <QuickSlider
-            label="Opacity"
-            valueLabel={formatPercent(pencilSettings.opacity)}
-            value={pencilSettings.opacity}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(value) => onPencilSettingsChange({ opacity: value })}
-          />
-          <PresetChipRow
-            values={OPACITY_PRESETS}
-            selectedValue={pencilSettings.opacity}
-            format={(value) => formatPercent(value)}
-            onSelect={(value) => onPencilSettingsChange({ opacity: value })}
-          />
-        </>
-      );
-    }
-
-    if (activeTool === "eraser") {
-      const eraserMode = eraserSettings.mode ?? "brush";
-      return (
-        <>
-          <ToggleButtonGroup
-            value={eraserMode}
-            exclusive
-            size="small"
-            fullWidth
-            onChange={(_, value) => {
-              if (value) {
-                onEraserSettingsChange({ mode: value as EraserMode });
-              }
-            }}
-            sx={{ mb: 1.2 }}
-          >
-            <ToggleButton value="brush">Brush</ToggleButton>
-            <ToggleButton value="pencil">Pencil</ToggleButton>
-          </ToggleButtonGroup>
-          <QuickSlider
-            label="Size"
-            valueLabel={`${eraserSettings.size}px`}
-            value={eraserSettings.size}
-            min={1}
-            max={200}
-            onChange={(value) => onEraserSettingsChange({ size: value })}
-          />
-          <PresetChipRow
-            values={ERASER_SIZE_PRESETS}
-            selectedValue={eraserSettings.size}
-            format={(value) => `${value}px`}
-            onSelect={(value) => onEraserSettingsChange({ size: value })}
-          />
-          <QuickSlider
-            label="Opacity"
-            valueLabel={formatPercent(eraserSettings.opacity)}
-            value={eraserSettings.opacity}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(value) => onEraserSettingsChange({ opacity: value })}
-          />
-          {eraserMode === "brush" ? (
-            <QuickSlider
-              label="Brush hardness"
-              valueLabel={formatPercent(brushSettings.hardness)}
-              value={brushSettings.hardness}
-              min={0}
-              max={1}
-              step={0.01}
-              onChange={(value) => onBrushSettingsChange({ hardness: value })}
-            />
-          ) : null}
-        </>
-      );
-    }
-
-    if (activeTool === "shape") {
-      const canFill = shapeSettings.shapeType === "rectangle" || shapeSettings.shapeType === "ellipse";
-      return (
-        <>
-          <ToggleButtonGroup
-            value={shapeSettings.shapeType ?? "rectangle"}
-            exclusive
-            size="small"
-            fullWidth
-            onChange={(_, value) => {
-              if (value) {
-                onShapeSettingsChange({ shapeType: value });
-              }
-            }}
-            sx={{ mb: 1.4 }}
-          >
-            <ToggleButton value="line">Line</ToggleButton>
-            <ToggleButton value="rectangle">Rect</ToggleButton>
-            <ToggleButton value="ellipse">Ellipse</ToggleButton>
-            <ToggleButton value="arrow">Arrow</ToggleButton>
-          </ToggleButtonGroup>
-          <Stack direction="row" spacing={1.2} sx={{ mb: 1.4 }}>
-            <ColorSetting
-              label="Stroke"
-              color={shapeSettings.strokeColor}
-              onChange={(value) => onShapeSettingsChange({ strokeColor: value })}
-            />
-            {canFill && (
-              <ColorSetting
-                label="Fill"
-                color={shapeSettings.fillColor}
-                onChange={(value) => onShapeSettingsChange({ fillColor: value })}
-              />
-            )}
-          </Stack>
-          {canFill && (
-            <ToggleButtonGroup
-              value={shapeSettings.filled ? "filled" : "outline"}
-              exclusive
-              size="small"
-              fullWidth
-              onChange={(_, value) => {
-                if (value) {
-                  onShapeSettingsChange({ filled: value === "filled" });
-                }
-              }}
-              sx={{ mb: 1.8 }}
-            >
-              <ToggleButton value="outline">Outline</ToggleButton>
-              <ToggleButton value="filled">Filled</ToggleButton>
-            </ToggleButtonGroup>
-          )}
-          <QuickSlider
-            label="Stroke"
-            valueLabel={`${shapeSettings.strokeWidth}px`}
-            value={shapeSettings.strokeWidth}
-            min={1}
-            max={50}
-            onChange={(value) => onShapeSettingsChange({ strokeWidth: value })}
-          />
-          <PresetChipRow
-            values={SHAPE_WIDTH_PRESETS}
-            selectedValue={shapeSettings.strokeWidth}
-            format={(value) => `${value}px`}
-            onSelect={(value) => onShapeSettingsChange({ strokeWidth: value })}
-          />
-        </>
-      );
-    }
-
-    if (activeTool === "fill") {
-      return (
-        <>
-          <ColorSetting
-            label="Color"
-            color={fillSettings.color}
-            onChange={(value) => {
-              const next = mergeColor(fillSettings.color, value);
-              onForegroundColorChange(next);
-              onFillSettingsChange({ color: next });
-            }}
-          />
-          <QuickSlider
-            label="Tolerance"
-            valueLabel={String(fillSettings.tolerance)}
-            value={fillSettings.tolerance}
-            min={0}
-            max={128}
-            onChange={(value) => onFillSettingsChange({ tolerance: value })}
-          />
-          <PresetChipRow
-            values={FILL_TOLERANCE_PRESETS}
-            selectedValue={fillSettings.tolerance}
-            format={(value) => String(value)}
-            onSelect={(value) => onFillSettingsChange({ tolerance: value })}
-          />
-        </>
-      );
-    }
-
-    if (activeTool === "blur") {
-      return (
-        <>
-          <QuickSlider
-            label="Size"
-            valueLabel={`${blurSettings.size}px`}
-            value={blurSettings.size}
-            min={1}
-            max={200}
-            onChange={(value) => onBlurSettingsChange({ size: value })}
-          />
-          <PresetChipRow
-            values={BLUR_SIZE_PRESETS}
-            selectedValue={blurSettings.size}
-            format={(value) => `${value}px`}
-            onSelect={(value) => onBlurSettingsChange({ size: value })}
-          />
-          <QuickSlider
-            label="Strength"
-            valueLabel={String(blurSettings.strength)}
-            value={blurSettings.strength}
-            min={1}
-            max={20}
-            onChange={(value) => onBlurSettingsChange({ strength: value })}
-          />
-          <PresetChipRow
-            values={STRENGTH_PRESETS}
-            selectedValue={blurSettings.strength}
-            format={(value) => String(value)}
-            onSelect={(value) => onBlurSettingsChange({ strength: value })}
-          />
-        </>
-      );
-    }
-
-    if (activeTool === "clone_stamp") {
-      return (
-        <>
-          <QuickSlider
-            label="Size"
-            valueLabel={`${cloneStampSettings.size}px`}
-            value={cloneStampSettings.size}
-            min={1}
-            max={200}
-            onChange={(value) => onCloneStampSettingsChange({ size: value })}
-          />
-          <PresetChipRow
-            values={CLONE_STAMP_SIZE_PRESETS}
-            selectedValue={cloneStampSettings.size}
-            format={(value) => `${value}px`}
-            onSelect={(value) => onCloneStampSettingsChange({ size: value })}
-          />
-          <QuickSlider
-            label="Opacity"
-            valueLabel={formatPercent(cloneStampSettings.opacity)}
-            value={cloneStampSettings.opacity}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(value) => onCloneStampSettingsChange({ opacity: value })}
-          />
-          <PresetChipRow
-            values={OPACITY_PRESETS}
-            selectedValue={cloneStampSettings.opacity}
-            format={formatPercent}
-            onSelect={(value) => onCloneStampSettingsChange({ opacity: value })}
-          />
-          <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", mt: 1 }}>
-            Alt+click to set clone source.
-          </Typography>
-        </>
-      );
-    }
-
-    if (activeTool === "gradient") {
-      return (
-        <>
-          <Stack direction="row" spacing={1.2} sx={{ mb: 1.4 }}>
-            <ColorSetting
-              label="Start"
-              color={gradientSettings.startColor}
-              onChange={(value) => onGradientSettingsChange({ startColor: value })}
-            />
-            <ColorSetting
-              label="End"
-              color={gradientSettings.endColor}
-              onChange={(value) => onGradientSettingsChange({ endColor: value })}
-            />
-          </Stack>
-          <ToggleButtonGroup
-            value={gradientSettings.type}
-            exclusive
-            size="small"
-            fullWidth
-            onChange={(_, value) => {
-              if (value) {
-                onGradientSettingsChange({
-                  type: value as GradientSettings["type"]
-                });
-              }
-            }}
-            sx={{ mb: 1.8 }}
-          >
-            <ToggleButton value="linear">Linear</ToggleButton>
-            <ToggleButton value="radial">Radial</ToggleButton>
-          </ToggleButtonGroup>
-          <Typography sx={{ fontSize: "0.76rem", color: "text.secondary" }}>
-            Drag on the canvas to place and orient the gradient.
-          </Typography>
-        </>
-      );
-    }
-
-    if (activeTool === "eyedropper") {
-      return (
-        <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", lineHeight: 1.45 }}>
-          Click to sample a color from the canvas.
-        </Typography>
-      );
-    }
-
-    if (activeTool === "crop") {
-      return (
-        <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", lineHeight: 1.45 }}>
-          Drag to define the crop region, then apply on the canvas.
-        </Typography>
-      );
-    }
-
-    if (activeTool === "select") {
-      return (
-        <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", lineHeight: 1.45 }}>
-          Selection tools are still lightweight here. Use the canvas for the actual interaction.
-        </Typography>
-      );
-    }
-
-    return (
-      <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", lineHeight: 1.45 }}>
-        Use the canvas to pan and reposition your view.
-      </Typography>
-    );
-  };
 
   return (
     <Popover
@@ -1082,47 +439,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               {activeDefinition.shortcut}
             </Box>
           ) : null}
-          <Stack
-            className="sketch-context-menu__header-summary"
-            direction="row"
-            spacing={0.65}
-            useFlexGap
-            sx={{
-              flex: "1 1 auto",
-              minWidth: 0,
-              alignItems: "center",
-              flexWrap: "nowrap",
-              overflowX: "auto",
-              overflowY: "hidden",
-              py: 0.25,
-              "&::-webkit-scrollbar": { height: 4 },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: theme.vars.palette.grey[700],
-                borderRadius: 2
-              }
-            }}
-          >
-            {summaryItems.map((item) => (
-              <Box
-                key={item}
-                component="span"
-                sx={{
-                  flex: "0 0 auto",
-                  px: 0.75,
-                  py: 0.2,
-                  borderRadius: "999px",
-                  backgroundColor: theme.vars.palette.grey[800],
-                  fontSize: "0.66rem",
-                  fontWeight: 700,
-                  lineHeight: 1.2,
-                  color: "text.secondary",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                {item}
-              </Box>
-            ))}
-          </Stack>
+          <Box sx={{ flex: 1, minWidth: 0 }} />
           <Divider
             orientation="vertical"
             flexItem
@@ -1172,8 +489,47 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             py: 1.2
           }}
         >
-          <SectionLabel>Quick Controls</SectionLabel>
-          {renderQuickControls()}
+          <SectionLabel>{getToolSettingsLabel(activeTool)}</SectionLabel>
+          <Box sx={sketchToolSettingsContainerSx}>
+            <ToolSettingsPanel
+              activeTool={activeTool}
+              brushSettings={brushSettings}
+              pencilSettings={pencilSettings}
+              eraserSettings={eraserSettings}
+              shapeSettings={shapeSettings}
+              fillSettings={fillSettings}
+              blurSettings={blurSettings}
+              gradientSettings={gradientSettings}
+              cloneStampSettings={cloneStampSettings}
+              selectSettings={selectSettings}
+              hasActiveSelection={hasActiveSelection}
+              adjustBrightness={adjustBrightness}
+              adjustContrast={adjustContrast}
+              adjustSaturation={adjustSaturation}
+              onBrushSettingsChange={onBrushSettingsChange}
+              onPencilSettingsChange={onPencilSettingsChange}
+              onEraserSettingsChange={onEraserSettingsChange}
+              onShapeSettingsChange={onShapeSettingsChange}
+              onFillSettingsChange={onFillSettingsChange}
+              onBlurSettingsChange={onBlurSettingsChange}
+              onGradientSettingsChange={onGradientSettingsChange}
+              onCloneStampSettingsChange={onCloneStampSettingsChange}
+              onSelectSettingsChange={onSelectSettingsChange}
+              onFeatherSelection={onFeatherSelection}
+              onSmoothSelectionBorders={onSmoothSelectionBorders}
+              onAdjustBrightnessChange={onAdjustBrightnessChange}
+              onAdjustContrastChange={onAdjustContrastChange}
+              onAdjustSaturationChange={onAdjustSaturationChange}
+              onAdjustApply={onAdjustApply}
+              onAdjustCancel={onAdjustCancel}
+              transformScaleX={transformScaleX}
+              transformScaleY={transformScaleY}
+              transformRotation={transformRotation}
+              onTransformCommit={onTransformCommit}
+              onTransformCancel={onTransformCancel}
+              onTransformReset={onTransformReset}
+            />
+          </Box>
         </Box>
 
         <Stack className="sketch-context-menu__sidebar" spacing={1.1} sx={{ minWidth: 0 }}>

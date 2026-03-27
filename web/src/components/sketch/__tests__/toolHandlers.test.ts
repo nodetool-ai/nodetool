@@ -440,7 +440,17 @@ describe("ShapeTool", () => {
     });
 
     const fakeCtx = {
-      drawImage: jest.fn()
+      drawImage: jest.fn(),
+      save: jest.fn(),
+      restore: jest.fn(),
+      beginPath: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      stroke: jest.fn(),
+      strokeRect: jest.fn(),
+      fillRect: jest.fn(),
+      fill: jest.fn(),
+      ellipse: jest.fn()
     } as unknown as CanvasRenderingContext2D;
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")

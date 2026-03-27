@@ -9,8 +9,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useState, useRef } from "react";
-import { sketchSliderSx, SKETCH_CHECKERBOARD, SKETCH_FONT, SKETCH_SIZE } from "./sketchStyles";
-import { useTheme } from "@mui/material/styles";
+import {
+  sketchSliderSx,
+  SKETCH_CHECKERBOARD,
+  SKETCH_FONT,
+  SKETCH_SIZE
+} from "./sketchStyles";
+import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Box,
@@ -39,7 +44,14 @@ import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
-import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference, buildLayersPanelRows, getDescendantIds } from "./types";
+import {
+  Layer,
+  BlendMode,
+  CANVAS_PRESETS,
+  summarizeLayerImageReference,
+  buildLayersPanelRows,
+  getDescendantIds
+} from "./types";
 import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
@@ -154,6 +166,25 @@ const styles = (theme: Theme) =>
       "&.mask-layer.isolated": {
         outline: `2px solid ${theme.vars.palette.warning.main}`,
         outlineOffset: "-2px"
+      },
+      /* Matches Lock Transparency toolbar control (IconButton color=info when on). */
+      "&.alpha-lock": {
+        boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}`,
+        backgroundColor: alpha(theme.palette.info.main, 0.1)
+      },
+      "&.alpha-lock:hover": {
+        backgroundColor: alpha(theme.palette.info.main, 0.18)
+      },
+      "&.alpha-lock.active": {
+        backgroundColor: theme.vars.palette.primary.dark,
+        boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}`
+      },
+      "&.alpha-lock.selected-secondary": {
+        backgroundColor: theme.vars.palette.grey[700],
+        boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}, inset 0 0 0 1px ${theme.vars.palette.primary.light}`
+      },
+      "&.alpha-lock.selected-secondary:hover": {
+        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     "& .layer-thumbnail": {
@@ -301,10 +332,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const dragSourceIndex = useRef<number | null>(null);
 
   // ─── Collapsible section state (persisted in localStorage) ────────
-  const [collapsedSections, handleToggleSection] = useCollapsedSections<PanelSectionKey>(
-    "nodetool-sketch-layers-panel-collapsed",
-    { canvasSize: true, shortcuts: true }
-  );
+  const [collapsedSections, handleToggleSection] =
+    useCollapsedSections<PanelSectionKey>(
+      "nodetool-sketch-layers-panel-collapsed",
+      { canvasSize: true, shortcuts: true }
+    );
 
   // ─── Custom canvas size state ─────────────────────────────────────
   const [customWidth, setCustomWidth] = useState(String(canvasWidth));
@@ -361,12 +393,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   );
 
   // ─── Drag-and-drop layer reordering (tree-aware) ───────────────
-  const handleDragStart = useCallback(
-    (realIdx: number) => {
-      dragSourceIndex.current = realIdx;
-    },
-    []
-  );
+  const handleDragStart = useCallback((realIdx: number) => {
+    dragSourceIndex.current = realIdx;
+  }, []);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent, realIdx: number) => {
@@ -447,8 +476,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         // (currentFrom + 1 === insertIdx), since splice-based reorder would
         // be a no-op in those cases.
         const currentFrom = layers.indexOf(draggedLayer);
-        if (currentFrom !== -1 && currentFrom !== insertIdx && currentFrom + 1 !== insertIdx) {
-          onReorderLayers(currentFrom, insertIdx > currentFrom ? insertIdx - 1 : insertIdx);
+        if (
+          currentFrom !== -1 &&
+          currentFrom !== insertIdx &&
+          currentFrom + 1 !== insertIdx
+        ) {
+          onReorderLayers(
+            currentFrom,
+            insertIdx > currentFrom ? insertIdx - 1 : insertIdx
+          );
         }
       }
 
@@ -480,17 +516,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       <Typography className="section-label sketch-layers-panel__title">
         Layers
       </Typography>
-      <Typography
-        sx={{
-          fontSize: "0.62rem",
-          color: "grey.500",
-          lineHeight: 1.35,
-          mb: 0.5
-        }}
-      >
-        Ctrl+click (⌘+click) layers to multi-select. Wrap as group only works for adjacent
-        layers with the same parent. Pixel grid appears from 200% zoom.
-      </Typography>
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions">
@@ -517,7 +542,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 "&:hover": { borderColor: theme.vars.palette.grey[300] }
               }}
             >
-              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }} />
+              <AddIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }}
+              />
             </IconButton>
           </Tooltip>
           <Tooltip title="Add Black Layer">
@@ -531,10 +558,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 borderRadius: "3px",
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 backgroundColor: "#000000",
-                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#111111" }
+                "&:hover": {
+                  borderColor: theme.vars.palette.grey[300],
+                  backgroundColor: "#111111"
+                }
               }}
             >
-              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[500] }} />
+              <AddIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[500] }}
+              />
             </IconButton>
           </Tooltip>
           <Tooltip title="Add White Layer">
@@ -548,10 +580,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 borderRadius: "3px",
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 backgroundColor: "#ffffff",
-                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#eeeeee" }
+                "&:hover": {
+                  borderColor: theme.vars.palette.grey[300],
+                  backgroundColor: "#eeeeee"
+                }
               }}
             >
-              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[600] }} />
+              <AddIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[600] }}
+              />
             </IconButton>
           </Tooltip>
           <Tooltip title="Add Gray Layer">
@@ -565,10 +602,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 borderRadius: "3px",
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 backgroundColor: "#808080",
-                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: "#999999" }
+                "&:hover": {
+                  borderColor: theme.vars.palette.grey[300],
+                  backgroundColor: "#999999"
+                }
               }}
             >
-              <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[300] }} />
+              <AddIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[300] }}
+              />
             </IconButton>
           </Tooltip>
           <Tooltip title="New empty layer group (folder)">
@@ -582,30 +624,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 borderRadius: "3px",
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 backgroundColor: theme.vars.palette.grey[700],
-                "&:hover": { borderColor: theme.vars.palette.grey[300], backgroundColor: theme.vars.palette.grey[600] }
+                "&:hover": {
+                  borderColor: theme.vars.palette.grey[300],
+                  backgroundColor: theme.vars.palette.grey[600]
+                }
               }}
             >
-              <CreateNewFolderIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }} />
+              <CreateNewFolderIcon
+                sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }}
+              />
             </IconButton>
           </Tooltip>
         </Box>
-        <Button
-          size="small"
-          variant="text"
-          onClick={() => onAddGroup()}
-          sx={{
-            fontSize: "0.65rem",
-            py: 0.25,
-            px: 0.5,
-            minHeight: 0,
-            color: "grey.400",
-            justifyContent: "flex-start",
-            textTransform: "none",
-            "&:hover": { color: "grey.200", bgcolor: "grey.800" }
-          }}
-        >
-          + New empty group
-        </Button>
         <Box
           sx={{
             display: "flex",
@@ -621,7 +651,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           }}
         >
           <Tooltip title="Duplicate Layer">
-            <IconButton size="small" onClick={() => onDuplicateLayer(activeLayerId)}>
+            <IconButton
+              size="small"
+              onClick={() => onDuplicateLayer(activeLayerId)}
+            >
               <ContentCopyIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
@@ -727,7 +760,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               isRowSelected={isRowSelected}
               isMask={layer.id === maskLayerId}
               isIsolated={layer.id === isolatedLayerId}
-              dropPosition={dropTarget?.realIdx === realIdx ? dropTarget.position : null}
+              dropPosition={
+                dropTarget?.realIdx === realIdx ? dropTarget.position : null
+              }
               editingLayerId={editingLayerId}
               editName={editName}
               onLayerRowClick={handleLayerRowClick}
@@ -763,7 +798,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           py: 0.25
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, minHeight: 30 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.25,
+            minHeight: 30
+          }}
+        >
           {selectedLayerIds.length >= 2 ? (
             <>
               <Tooltip title="Group selected layers (adjacent siblings, same parent)">
@@ -772,17 +814,31 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 </IconButton>
               </Tooltip>
               <Tooltip title="Delete selected layers">
-                <IconButton size="small" color="error" onClick={onDeleteSelectedLayers}>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={onDeleteSelectedLayers}
+                >
                   <DeleteIcon sx={{ fontSize: "1.125rem" }} />
                 </IconButton>
               </Tooltip>
             </>
           ) : null}
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, minHeight: 30 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.25,
+            minHeight: 30
+          }}
+        >
           {activeLayer?.type === "group" ? (
             <Tooltip title="Ungroup">
-              <IconButton size="small" onClick={() => onUngroupLayer(activeLayerId)}>
+              <IconButton
+                size="small"
+                onClick={() => onUngroupLayer(activeLayerId)}
+              >
                 <FolderOpenIcon sx={{ fontSize: "1.125rem" }} />
               </IconButton>
             </Tooltip>
@@ -830,13 +886,19 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onClick={onFlipVertical}
               disabled={pixelLayerCanvasActionsDisabled}
             >
-              <FlipCameraAndroidIcon sx={{ fontSize: "1.125rem", transform: "rotate(90deg)" }} />
+              <FlipCameraAndroidIcon
+                sx={{ fontSize: "1.125rem", transform: "rotate(90deg)" }}
+              />
             </IconButton>
           </span>
         </Tooltip>
         <Tooltip title="Merge Down">
           <span>
-            <IconButton size="small" onClick={onMergeDown} disabled={!canMergeDown}>
+            <IconButton
+              size="small"
+              onClick={onMergeDown}
+              disabled={!canMergeDown}
+            >
               <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </span>
@@ -863,7 +925,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 onLayerOpacityChange(activeLayerId, v as number)
               }
             />
-            <Typography sx={{ fontSize: "0.7rem", minWidth: "30px", textAlign: "right" }}>
+            <Typography
+              sx={{ fontSize: "0.7rem", minWidth: "30px", textAlign: "right" }}
+            >
               {Math.round(activeLayer.opacity * 100)}%
             </Typography>
           </Box>
@@ -871,7 +935,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <Select
               value={activeLayer.blendMode || "normal"}
               onChange={(e) =>
-                onLayerBlendModeChange(activeLayerId, e.target.value as BlendMode)
+                onLayerBlendModeChange(
+                  activeLayerId,
+                  e.target.value as BlendMode
+                )
               }
               sx={{ fontSize: "0.7rem", height: "28px" }}
             >
@@ -903,8 +970,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 {summarizeLayerImageReference(activeLayer.imageReference)}
               </Typography>
               {activeLayer.locked ? (
-                <Typography sx={{ fontSize: "0.58rem", color: "grey.600", mt: "4px" }}>
-                  Reference layer: pixels locked; move and nudge still apply transform.
+                <Typography
+                  sx={{ fontSize: "0.58rem", color: "grey.600", mt: "4px" }}
+                >
+                  Reference layer: pixels locked; move and nudge still apply
+                  transform.
                 </Typography>
               ) : null}
             </Box>
@@ -929,7 +999,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           displayEmpty
           value=""
           onChange={(e) => {
-            const preset = CANVAS_PRESETS.find((p) => p.label === e.target.value);
+            const preset = CANVAS_PRESETS.find(
+              (p) => p.label === e.target.value
+            );
             if (preset) {
               onCanvasResize(preset.width, preset.height);
             }
@@ -944,19 +1016,30 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               (p) => p.width === canvasWidth && p.height === canvasHeight
             );
             return (
-              <Typography sx={{ fontSize: "0.65rem", color: match ? "grey.200" : "grey.500" }}>
+              <Typography
+                sx={{
+                  fontSize: "0.65rem",
+                  color: match ? "grey.200" : "grey.500"
+                }}
+              >
                 {match ? match.label : "Presets…"}
               </Typography>
             );
           }}
         >
           {CANVAS_PRESETS.map((preset) => (
-            <MenuItem key={preset.label} value={preset.label} sx={{ fontSize: "0.65rem" }}>
+            <MenuItem
+              key={preset.label}
+              value={preset.label}
+              sx={{ fontSize: "0.65rem" }}
+            >
               {preset.label} — {preset.width}×{preset.height}
             </MenuItem>
           ))}
         </Select>
-        <Box sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}>
+        <Box
+          sx={{ display: "flex", gap: "4px", mt: "6px", alignItems: "center" }}
+        >
           <TextField
             className="hex-input"
             size="small"
@@ -967,7 +1050,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             inputProps={{ min: 1, max: 4096, step: 1 }}
             sx={{ flex: 1, "& .MuiInputLabel-root": { fontSize: "0.65rem" } }}
           />
-          <Typography sx={{ fontSize: "0.7rem", color: "grey.500" }}>×</Typography>
+          <Typography sx={{ fontSize: "0.7rem", color: "grey.500" }}>
+            ×
+          </Typography>
           <TextField
             className="hex-input"
             size="small"
@@ -1012,36 +1097,66 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             "& dd": { m: 0 }
           }}
         >
-          <dt>V</dt><dd>Move</dd>
-          <dt>B</dt><dd>Brush</dd>
-          <dt>P</dt><dd>Pencil</dd>
-          <dt>E</dt><dd>Eraser</dd>
-          <dt>G</dt><dd>Fill</dd>
-          <dt>I</dt><dd>Eyedropper</dd>
-          <dt>Q</dt><dd>Blur</dd>
-          <dt>L</dt><dd>Line</dd>
-          <dt>R</dt><dd>Rect</dd>
-          <dt>O</dt><dd>Ellipse</dd>
-          <dt>A</dt><dd>Arrow</dd>
-          <dt>T</dt><dd>Gradient</dd>
-          <dt>C</dt><dd>Crop</dd>
-          <dt>M</dt><dd>Mirror H</dd>
-          <dt>Shift+M</dt><dd>Mirror V</dd>
-          <dt>X</dt><dd>Swap colors</dd>
-          <dt>D</dt><dd>Reset colors</dd>
-          <dt>Tab</dt><dd>Toggle UI</dd>
-          <dt>[ / ]</dt><dd>Brush size</dd>
-          <dt>Shift+[/]</dt><dd>Hardness</dd>
-          <dt>0–9</dt><dd>Opacity</dd>
-          <dt>Alt+Click</dt><dd>Pick color</dd>
-          <dt>Alt+⌫</dt><dd>Fill FG</dd>
-          <dt>Ctrl+⌫</dt><dd>Fill BG</dd>
-          <dt>Shift</dt><dd>Constrain</dd>
-          <dt>Space</dt><dd>Pan</dd>
-          <dt>+ / −</dt><dd>Zoom</dd>
-          <dt>Ctrl+0</dt><dd>Reset view</dd>
-          <dt>Del</dt><dd>Clear layer</dd>
-          <dt>Ctrl+S</dt><dd>Export</dd>
+          <dt>V</dt>
+          <dd>Move</dd>
+          <dt>B</dt>
+          <dd>Brush</dd>
+          <dt>P</dt>
+          <dd>Pencil</dd>
+          <dt>E</dt>
+          <dd>Eraser</dd>
+          <dt>G</dt>
+          <dd>Fill</dd>
+          <dt>I</dt>
+          <dd>Eyedropper</dd>
+          <dt>Q</dt>
+          <dd>Blur</dd>
+          <dt>L</dt>
+          <dd>Line</dd>
+          <dt>R</dt>
+          <dd>Rect</dd>
+          <dt>O</dt>
+          <dd>Ellipse</dd>
+          <dt>A</dt>
+          <dd>Arrow</dd>
+          <dt>T</dt>
+          <dd>Gradient</dd>
+          <dt>C</dt>
+          <dd>Crop</dd>
+          <dt>M</dt>
+          <dd>Mirror H</dd>
+          <dt>Shift+M</dt>
+          <dd>Mirror V</dd>
+          <dt>X</dt>
+          <dd>Swap colors</dd>
+          <dt>D</dt>
+          <dd>Reset colors</dd>
+          <dt>Tab</dt>
+          <dd>Toggle UI</dd>
+          <dt>[ / ]</dt>
+          <dd>Brush size</dd>
+          <dt>Shift+[/]</dt>
+          <dd>Hardness</dd>
+          <dt>0–9</dt>
+          <dd>Opacity</dd>
+          <dt>Alt+Click</dt>
+          <dd>Pick color</dd>
+          <dt>Alt+⌫</dt>
+          <dd>Fill FG</dd>
+          <dt>Ctrl+⌫</dt>
+          <dd>Fill BG</dd>
+          <dt>Shift</dt>
+          <dd>Constrain</dd>
+          <dt>Space</dt>
+          <dd>Pan</dd>
+          <dt>+ / −</dt>
+          <dd>Zoom</dd>
+          <dt>Ctrl+0</dt>
+          <dd>Reset view</dd>
+          <dt>Del</dt>
+          <dd>Clear layer</dd>
+          <dt>Ctrl+S</dt>
+          <dd>Export</dd>
         </Box>
       </PanelSection>
     </Box>

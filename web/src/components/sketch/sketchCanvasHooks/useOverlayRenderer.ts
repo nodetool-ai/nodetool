@@ -21,6 +21,7 @@ import {
 import {
   drawSelectionMaskOutline,
   drawSelectionPolylineOutline,
+  marqueeRectFromDocPoints,
   rectSelectionMask,
   selectionHasAnyPixels
 } from "../selection/selectionMask";
@@ -363,10 +364,7 @@ export function useOverlayRenderer({
 
       paintSelectionAnts();
 
-      const x = Math.min(start.x, end.x);
-      const y = Math.min(start.y, end.y);
-      const w = Math.abs(end.x - start.x);
-      const h = Math.abs(end.y - start.y);
+      const { x, y, w, h } = marqueeRectFromDocPoints(start, end);
       if (w < 1 || h < 1) {
         return;
       }

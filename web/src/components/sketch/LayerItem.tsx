@@ -11,10 +11,11 @@ import React, { memo } from "react";
 import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import FilterNoneIcon from "@mui/icons-material/FilterNone";
-import InputIcon from "@mui/icons-material/Input";
-import OutputIcon from "@mui/icons-material/Output";
+import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
 import LinkIcon from "@mui/icons-material/Link";
+import LockIcon from "@mui/icons-material/Lock";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -94,6 +95,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
     `${isMask ? " mask-layer" : ""}` +
     `${isIsolated ? " isolated" : ""}` +
     `${isGroup ? " group-layer" : ""}` +
+    `${layer.alphaLock ? " alpha-lock" : ""}` +
     `${isRowSelected && !isPaintTarget ? " selected-secondary" : ""}`;
 
   const dropIndicatorSx = (() => {
@@ -209,7 +211,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 "&:hover": { opacity: 1, color: isIsolated ? "warning.main" : "grey.300" }
               }}
             >
-              <FilterNoneIcon sx={{ fontSize: "1rem" }} />
+              <CenterFocusStrongIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
         )}
@@ -263,27 +265,41 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 />
               </Tooltip>
             ) : null}
+            {layer.alphaLock ? (
+              <Tooltip title="Lock transparency" placement="top">
+                <LockIcon
+                  sx={{
+                    fontSize: "1rem",
+                    color: "info.main",
+                    flexShrink: 0,
+                    opacity: 0.95
+                  }}
+                />
+              </Tooltip>
+            ) : null}
             <Typography
               className="layer-name"
               onDoubleClick={() => onStartRename(layer.id, layer.name)}
               sx={{ minWidth: 0 }}
             >
               {layer.name}
-              {layer.alphaLock && " 🔒"}
             </Typography>
           </Box>
         )}
 
-        {/* I/O toggles only for non-group layers */}
+        {/* I/O toggles: stacked, full row height (in / out flow) */}
         {!isGroup && (
           <Box
             sx={{
               display: "flex",
-              alignItems: "center",
+              flexDirection: "column",
+              alignSelf: "stretch",
               flexShrink: 0,
-              gap: 0.25,
+              width: 30,
+              minHeight: 0,
               ml: "auto",
-              pl: 0.5
+              pl: 0.5,
+              my: "-2px"
             }}
           >
             <Tooltip
@@ -300,7 +316,11 @@ const LayerItem: React.FC<LayerItemProps> = ({
                   onToggleExposedInput(layer.id);
                 }}
                 sx={{
-                  padding: "4px",
+                  flex: 1,
+                  minHeight: 0,
+                  width: "100%",
+                  py: 0,
+                  borderRadius: "4px 4px 0 0",
                   color: layer.exposedAsInput ? "info.main" : "grey.400",
                   opacity: layer.exposedAsInput ? 1 : 0.88,
                   "&:hover": {
@@ -310,7 +330,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                   }
                 }}
               >
-                <InputIcon sx={{ fontSize: "1.0625rem" }} />
+                <LoginIcon sx={{ fontSize: "1rem" }} />
               </IconButton>
             </Tooltip>
             <Tooltip
@@ -327,7 +347,11 @@ const LayerItem: React.FC<LayerItemProps> = ({
                   onToggleExposedOutput(layer.id);
                 }}
                 sx={{
-                  padding: "4px",
+                  flex: 1,
+                  minHeight: 0,
+                  width: "100%",
+                  py: 0,
+                  borderRadius: "0 0 4px 4px",
                   color: layer.exposedAsOutput ? "success.main" : "grey.400",
                   opacity: layer.exposedAsOutput ? 1 : 0.88,
                   "&:hover": {
@@ -337,7 +361,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                   }
                 }}
               >
-                <OutputIcon sx={{ fontSize: "1.0625rem" }} />
+                <LogoutIcon sx={{ fontSize: "1rem" }} />
               </IconButton>
             </Tooltip>
           </Box>

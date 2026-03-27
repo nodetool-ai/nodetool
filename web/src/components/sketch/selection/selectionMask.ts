@@ -185,6 +185,29 @@ export function rectSelectionMask(
   return m;
 }
 
+/**
+ * Pixel-aligned marquee bounds in document space from two drag endpoints.
+ * Matches {@link fillRectMask}: every pixel that intersects the continuous
+ * axis-aligned box between the two points is included. Use for preview and
+ * commit so marching ants do not shift on pointer up.
+ */
+export function marqueeRectFromDocPoints(start: Point, end: Point): {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+} {
+  const minX = Math.min(start.x, end.x);
+  const minY = Math.min(start.y, end.y);
+  const maxX = Math.max(start.x, end.x);
+  const maxY = Math.max(start.y, end.y);
+  const x = Math.floor(minX);
+  const y = Math.floor(minY);
+  const w = Math.ceil(maxX) - x;
+  const h = Math.ceil(maxY) - y;
+  return { x, y, w, h };
+}
+
 export type SelectionCombineOp = "replace" | "add" | "subtract" | "intersect";
 
 export function combineMasks(

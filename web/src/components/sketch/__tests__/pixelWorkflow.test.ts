@@ -47,6 +47,27 @@ describe("drawPixelGrid", () => {
     expect(ctx.moveTo).toHaveBeenCalledTimes(10);
   });
 
+  it("uses non-zero stroke alpha at minimum zoom (grid must be visible at 200%)", () => {
+    let strokeStyle = "";
+    const ctx = {
+      save: jest.fn(),
+      restore: jest.fn(),
+      beginPath: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      stroke: jest.fn(),
+      set strokeStyle(v: string) {
+        strokeStyle = v;
+      }
+    } as unknown as CanvasRenderingContext2D;
+    drawPixelGrid(ctx, 4, 4, PIXEL_GRID_MIN_ZOOM);
+    const m = strokeStyle.match(
+      /rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([\d.]+)\s*\)/
+    );
+    expect(m).not.toBeNull();
+    expect(parseFloat(m![1])).toBeGreaterThan(0);
+  });
+
   it("draws correct number of grid lines for given dimensions", () => {
     const ctx = createMockCtx();
     drawPixelGrid(ctx, 8, 6, PIXEL_GRID_MIN_ZOOM * 2);
@@ -75,16 +96,17 @@ describe("PencilEngine snap-to-pixel", () => {
     const engine = new PencilEngine({ size: 1, opacity: 1, color: "#000000" });
     engine.beginStroke();
 
-    // Create a mock context to verify snapped coordinates
+    // Create a mock context to verify snapped coordinates (pencil uses fillRect dabs)
     const fillCalls: { x: number; y: number }[] = [];
     const ctx = {
       save: jest.fn(),
       restore: jest.fn(),
       beginPath: jest.fn(),
-      arc: jest.fn(
-        (x: number, y: number) => fillCalls.push({ x, y })
-      ),
+      arc: jest.fn(),
       fill: jest.fn(),
+      fillRect: jest.fn((x: number, y: number) => {
+        fillCalls.push({ x, y });
+      }),
       moveTo: jest.fn(),
       lineTo: jest.fn(),
       stroke: jest.fn(),
@@ -103,7 +125,8 @@ describe("PencilEngine snap-to-pixel", () => {
       0
     );
 
-    // The arc calls should be at integer coordinates (snapped from 1.3→1, 2.7→3, etc.)
+    expect(fillCalls.length).toBeGreaterThan(0);
+    // fillRect dabs should be at integer coordinates (snapped from 1.3→1, 2.7→3, etc.)
     for (const call of fillCalls) {
       expect(Number.isInteger(call.x)).toBe(true);
       expect(Number.isInteger(call.y)).toBe(true);

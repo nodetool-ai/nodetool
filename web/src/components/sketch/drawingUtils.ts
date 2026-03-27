@@ -456,8 +456,10 @@ export const PIXEL_GRID_MIN_ZOOM = 2;
 
 /**
  * Draws a thin semi-transparent white grid on the overlay canvas at every
- * integer pixel boundary. The grid fades in between PIXEL_GRID_MIN_ZOOM and
- * PIXEL_GRID_MIN_ZOOM * 2 so it doesn't pop in abruptly.
+ * integer pixel boundary. Opacity ramps from a subtle value at
+ * PIXEL_GRID_MIN_ZOOM up to full strength at PIXEL_GRID_MIN_ZOOM * 2 so the
+ * grid is visible as soon as pixel-level editing makes sense (e.g. 200% zoom)
+ * without a harsh pop-in.
  *
  * Because the overlay canvas has the same intrinsic size as the document
  * (e.g. 512×512) and is displayed with CSS `scale(zoom)`, a line width of
@@ -473,12 +475,14 @@ export function drawPixelGrid(
     return;
   }
 
-  // Fade in from 0 → target opacity between PIXEL_GRID_MIN_ZOOM and 2×
   const fadeEnd = PIXEL_GRID_MIN_ZOOM * 2;
-  const opacity =
+  const t =
     zoom >= fadeEnd
-      ? 0.18
-      : 0.18 * ((zoom - PIXEL_GRID_MIN_ZOOM) / (fadeEnd - PIXEL_GRID_MIN_ZOOM));
+      ? 1
+      : (zoom - PIXEL_GRID_MIN_ZOOM) / (fadeEnd - PIXEL_GRID_MIN_ZOOM);
+  // At exactly PIXEL_GRID_MIN_ZOOM, t === 0: use a visible floor (previous
+  // formula multiplied by t and made the grid fully transparent at 200%).
+  const opacity = 0.08 + 0.1 * Math.min(1, Math.max(0, t));
 
   const lw = 1 / zoom; // 1 screen-pixel wide
 
