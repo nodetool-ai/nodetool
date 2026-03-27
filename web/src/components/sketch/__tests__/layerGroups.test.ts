@@ -16,6 +16,7 @@ import {
   buildVisibleLayerTree,
   buildLayersPanelRows,
   isLayerCompositeVisible,
+  getAncestorGroupOpacityProduct,
   Layer
 } from "../types";
 
@@ -194,6 +195,15 @@ describe("Layer Tree Helpers", () => {
     const child = layers.find((l) => l.id === "child1")!;
     group.visible = false;
     expect(isLayerCompositeVisible(layers, child, child.id)).toBe(true);
+  });
+
+  it("getAncestorGroupOpacityProduct multiplies ancestor group opacities", () => {
+    const layers = makeLayers();
+    const group = layers.find((l) => l.id === "group1")!;
+    const child = layers.find((l) => l.id === "child1")!;
+    group.opacity = 0.5;
+    expect(getAncestorGroupOpacityProduct(layers, child, null)).toBe(0.5);
+    expect(getAncestorGroupOpacityProduct(layers, child, child.id)).toBe(1);
   });
 
   it("buildLayersPanelRows nests subgroups under parent group row", () => {

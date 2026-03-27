@@ -19,6 +19,7 @@
 
 import { useCallback, useRef } from "react";
 import {
+  getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
   type SketchDocument,
   type Point,
@@ -346,7 +347,9 @@ export function usePointerHandlerUtils({
           }
           const compositeOffset = getLayerPaintOffset(layer.id);
           tmpCtx.save();
-          tmpCtx.globalAlpha = layer.opacity;
+          tmpCtx.globalAlpha =
+            layer.opacity *
+            getAncestorGroupOpacityProduct(doc.layers, layer, null);
           tmpCtx.globalCompositeOperation = blendModeToComposite(
             layer.blendMode || "normal"
           );

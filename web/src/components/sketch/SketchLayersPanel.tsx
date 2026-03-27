@@ -676,7 +676,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <IconButton
               size="small"
               onClick={onTrimLayerToBounds}
-              disabled={!activeLayer || activeLayer.locked}
+              disabled={
+                !activeLayer ||
+                activeLayer.locked ||
+                activeLayer.type === "group" ||
+                activeLayer.type === "mask"
+              }
             >
               <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>

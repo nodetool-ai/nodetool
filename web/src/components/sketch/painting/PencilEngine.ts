@@ -14,17 +14,22 @@ import {
   type StrokeStampState
 } from "../drawingUtils";
 import type { DirtyRectTracker } from "../drawingUtils";
+import { StabilizerBuffer } from "./StabilizerBuffer";
 
 export class PencilEngine implements PaintEngine {
   readonly engineId = "pencil";
   readonly compositeOp: EngineCompositeOp = "source-over";
   readonly bufferMode: StrokeBufferMode = "buffered";
-  readonly hasStabilizer = false;
+  // Always true: stabilize() at minimum snaps to pixel centres, and may also
+  // smooth when settings.stabilizer > 0.  PaintSession uses lastSmoothedPoint
+  // as "from", which keeps segments connected at the snapped coordinates.
+  readonly hasStabilizer = true;
   readonly dabOnDown = true;
 
   private settings: PencilSettings;
   private dirtyRect: DirtyRectTracker = { current: null };
   private stampStates: Map<number, StrokeStampState> = new Map();
+  private stab = new StabilizerBuffer();
 
   constructor(settings: PencilSettings) {
     this.settings = settings;
@@ -37,11 +42,13 @@ export class PencilEngine implements PaintEngine {
   beginStroke(): void {
     this.dirtyRect = { current: null };
     this.stampStates.clear();
+    this.stab.reset();
   }
 
   stabilize(raw: Point): Point {
-    // Snap to pixel centers for crisp pixel-art drawing
-    return { x: Math.round(raw.x), y: Math.round(raw.y) };
+    // Smooth first (when enabled), then snap to pixel centres for crisp lines.
+    const smoothed = this.stab.apply(raw, this.settings.stabilizer ?? 0);
+    return { x: Math.round(smoothed.x), y: Math.round(smoothed.y) };
   }
 
   evaluate(

@@ -20,6 +20,9 @@ export { BrushEngine } from "./BrushEngine";
 export { PencilEngine } from "./PencilEngine";
 export { EraserEngine } from "./EraserEngine";
 
+// ── Shared stabiliser ───────────────────────────────────────────────────────
+export { StabilizerBuffer } from "./StabilizerBuffer";
+
 // ── Coordinate mapping ─────────────────────────────────────────────────────
 export { CoordinateMapper } from "./CoordinateMapper";
 export type { CoordinateMapperConfig } from "./CoordinateMapper";

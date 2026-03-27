@@ -10,7 +10,7 @@
 
 import { useImperativeHandle, type Ref } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
-import type { Selection, SketchDocument } from "../types";
+import type { LayerContentBounds, Selection, SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
 
 export interface UseCanvasImperativeHandleParams {
@@ -37,19 +37,20 @@ export function useCanvasImperativeHandle({
       getLayerData: (layerId: string) => {
         return runtime.getLayerData(layerId);
       },
-      setLayerData: (layerId: string, data: string | null) => {
+      setLayerData: (
+        layerId: string,
+        data: string | null,
+        boundsOverride?: LayerContentBounds
+      ) => {
         const layer = doc.layers.find((entry) => entry.id === layerId);
-        runtime.setLayerData(
-          layerId,
-          data,
-          {
+        const bounds =
+          boundsOverride ?? {
             x: layer?.contentBounds?.x ?? 0,
             y: layer?.contentBounds?.y ?? 0,
             width: Math.max(1, layer?.contentBounds?.width ?? doc.canvas.width),
             height: Math.max(1, layer?.contentBounds?.height ?? doc.canvas.height)
-          },
-          () => redraw()
-        );
+          };
+        runtime.setLayerData(layerId, data, bounds, () => redraw());
       },
       reconcileLayerToDocumentSpace: (layerId: string) => {
         const result = runtime.reconcileLayerToDocumentSpace(layerId, doc);

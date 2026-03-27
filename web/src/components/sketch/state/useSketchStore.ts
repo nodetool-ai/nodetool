@@ -35,6 +35,7 @@ import {
   createDefaultGroupLayer,
   generateLayerId,
   getDescendantIds,
+  isLayerCompositeVisible,
   MAX_HISTORY_SIZE
 } from "../types";
 import {
@@ -803,8 +804,13 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
 
   flattenVisible: () =>
     set((state) => {
-      const visibleLayers = state.document.layers.filter((l) => l.visible);
-      if (visibleLayers.length === 0) {
+      const contributing = state.document.layers.filter(
+        (l) =>
+          l.type !== "mask" &&
+          l.type !== "group" &&
+          isLayerCompositeVisible(state.document.layers, l, null)
+      );
+      if (contributing.length === 0) {
         return state;
       }
       // Keep only one layer — actual pixel compositing is done on the

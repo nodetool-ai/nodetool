@@ -287,6 +287,21 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           </Box>
         </>
       )}
+      <Box className="setting-row">
+        <Typography className="setting-label">Smooth</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={1}
+          step={0.01}
+          value={settings.stabilizer ?? 0}
+          onChange={(_, v) => onChange({ stabilizer: v as number })}
+        />
+        <Typography className="setting-value">
+          {Math.round((settings.stabilizer ?? 0) * 100)}%
+        </Typography>
+      </Box>
     </>
   );
 });
@@ -367,6 +382,21 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
           </ToggleButtonGroup>
         </Box>
       )}
+      <Box className="setting-row">
+        <Typography className="setting-label">Smooth</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={1}
+          step={0.01}
+          value={settings.stabilizer ?? 0}
+          onChange={(_, v) => onChange({ stabilizer: v as number })}
+        />
+        <Typography className="setting-value">
+          {Math.round((settings.stabilizer ?? 0) * 100)}%
+        </Typography>
+      </Box>
     </>
   );
 });
@@ -422,6 +452,21 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
         />
         <Typography className="setting-value">
           {Math.round(settings.opacity * 100)}%
+        </Typography>
+      </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Smooth</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={1}
+          step={0.01}
+          value={settings.stabilizer ?? 0}
+          onChange={(_, v) => onChange({ stabilizer: v as number })}
+        />
+        <Typography className="setting-value">
+          {Math.round((settings.stabilizer ?? 0) * 100)}%
         </Typography>
       </Box>
     </>
@@ -994,6 +1039,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         </ToggleButton>
         <ToggleButton value="lasso" sx={toggleButtonSmallSx}>
           Lasso
+        </ToggleButton>
+        <ToggleButton value="lasso_polygon" sx={toggleButtonSmallSx}>
+          Polygon
         </ToggleButton>
         <ToggleButton value="magic_wand" sx={toggleButtonSmallSx}>
           Wand

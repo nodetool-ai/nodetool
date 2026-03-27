@@ -8,7 +8,11 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
-import { isLayerCompositeVisible, type Point } from "../types";
+import {
+  getAncestorGroupOpacityProduct,
+  isLayerCompositeVisible,
+  type Point
+} from "../types";
 import {
   drawCloneStampStroke as drawCloneStampStrokeUtil,
   blendModeToComposite
@@ -128,7 +132,9 @@ export class CloneStampTool implements ToolHandler {
               ((activeLayer.transform?.x ?? 0) !== 0 ||
                 (activeLayer.transform?.y ?? 0) !== 0);
             tmpCtx.save();
-            tmpCtx.globalAlpha = layer.opacity;
+            tmpCtx.globalAlpha =
+              layer.opacity *
+              getAncestorGroupOpacityProduct(doc.layers, layer, null);
             tmpCtx.globalCompositeOperation = blendModeToComposite(
               layer.blendMode || "normal"
             );

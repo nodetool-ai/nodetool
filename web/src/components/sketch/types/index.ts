@@ -125,6 +125,8 @@ export interface BrushSettings {
   pressureAffects: "size" | "opacity" | "both";
   roundness: number; // 0.1 to 1.0 (1.0 = perfect circle)
   angle: number; // 0 to 360 degrees
+  /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
+  stabilizer: number;
 }
 
 export interface PencilSettings {
@@ -133,6 +135,8 @@ export interface PencilSettings {
   color: string;
   pressureSensitivity: boolean;
   pressureAffects: "size" | "opacity" | "both";
+  /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
+  stabilizer: number;
 }
 
 /** Brush: same stamp as Brush tool (`drawBrushStroke`). Pencil: same as Pencil tool (`drawPencilStroke`). */
@@ -145,6 +149,8 @@ export interface EraserSettings {
   size: number;
   opacity: number;
   mode: EraserMode;
+  /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
+  stabilizer: number;
 }
 
 export interface ShapeSettings {
@@ -398,7 +404,8 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   pressureSensitivity: true,
   pressureAffects: "both",
   roundness: 1.0,
-  angle: 0
+  angle: 0,
+  stabilizer: 0
 };
 
 export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
@@ -406,13 +413,15 @@ export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
   opacity: 1,
   color: "#ffffff",
   pressureSensitivity: true,
-  pressureAffects: "both"
+  pressureAffects: "both",
+  stabilizer: 0
 };
 
 export const DEFAULT_ERASER_SETTINGS: EraserSettings = {
   size: 14,
   opacity: 1,
-  mode: "brush"
+  mode: "brush",
+  stabilizer: 0
 };
 
 export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {

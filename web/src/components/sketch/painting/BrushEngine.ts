@@ -12,8 +12,7 @@ import {
   drawBrushStroke as drawBrushStrokeUtil
 } from "../drawingUtils";
 import type { StrokeStampState, DirtyRectTracker } from "../drawingUtils";
-
-const STABILIZER_WINDOW = 4;
+import { StabilizerBuffer } from "./StabilizerBuffer";
 
 export class BrushEngine implements PaintEngine {
   readonly engineId = "brush";
@@ -26,7 +25,7 @@ export class BrushEngine implements PaintEngine {
   private dirtyRect: DirtyRectTracker = { current: null };
   private stampStates: Map<number, StrokeStampState> = new Map();
   private stampCache: Map<string, HTMLCanvasElement> = new Map();
-  private stabilizerBuffer: Point[] = [];
+  private stab = new StabilizerBuffer();
 
   constructor(settings: BrushSettings) {
     this.settings = settings;
@@ -40,27 +39,11 @@ export class BrushEngine implements PaintEngine {
   beginStroke(): void {
     this.dirtyRect = { current: null };
     this.stampStates.clear();
-    this.stabilizerBuffer = [];
+    this.stab.reset();
   }
 
   stabilize(raw: Point): Point {
-    this.stabilizerBuffer.push(raw);
-    if (this.stabilizerBuffer.length > STABILIZER_WINDOW) {
-      this.stabilizerBuffer.shift();
-    }
-    if (this.stabilizerBuffer.length === 1) {
-      return raw;
-    }
-    let sx = 0;
-    let sy = 0;
-    for (const p of this.stabilizerBuffer) {
-      sx += p.x;
-      sy += p.y;
-    }
-    return {
-      x: sx / this.stabilizerBuffer.length,
-      y: sy / this.stabilizerBuffer.length
-    };
+    return this.stab.apply(raw, this.settings.stabilizer ?? 0);
   }
 
   evaluate(

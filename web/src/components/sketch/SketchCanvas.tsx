@@ -64,7 +64,11 @@ const styles = (theme: Theme) =>
 
 export interface SketchCanvasRef {
   getLayerData: (layerId: string) => string | null;
-  setLayerData: (layerId: string, data: string | null) => void;
+  setLayerData: (
+    layerId: string,
+    data: string | null,
+    boundsOverride?: LayerContentBounds
+  ) => void;
   reconcileLayerToDocumentSpace: (layerId: string) => string | null;
   trimLayerToBounds: (
     layerId: string
@@ -458,6 +462,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onPointerDown={pointerHandlers.handlePointerDown}
         onPointerMove={pointerHandlers.handlePointerMove}
         onPointerUp={pointerHandlers.handlePointerUp}
+        onDoubleClick={pointerHandlers.handleDoubleClick}
         onPointerLeave={pointerHandlers.handleMouseLeave}
         onMouseMove={handleMouseMoveWithCoords}
         onMouseLeave={handleMouseLeaveWithCoords}

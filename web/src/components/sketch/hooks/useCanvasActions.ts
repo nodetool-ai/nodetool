@@ -499,7 +499,14 @@ export function useCanvasActions({
   const handleTrimLayerToBounds = useCallback(() => {
     const activeLayerId = document.activeLayerId;
     const layer = document.layers.find((entry) => entry.id === activeLayerId);
-    if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
+    if (
+      !activeLayerId ||
+      !canvasRef.current ||
+      !layer ||
+      layer.locked ||
+      layer.type === "group" ||
+      layer.type === "mask"
+    ) {
       return;
     }
 
@@ -510,6 +517,11 @@ export function useCanvasActions({
     }
 
     commitPixelLayerChange(activeLayerId, trimmed.data, trimmed.bounds);
+    canvasRef.current.setLayerData(
+      activeLayerId,
+      trimmed.data,
+      trimmed.bounds
+    );
 
     syncSketchOutputsNow();
   }, [

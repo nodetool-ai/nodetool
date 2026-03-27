@@ -14,6 +14,7 @@
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
 import {
+  getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
   type BlendMode,
   type LayerContentBounds,
@@ -528,6 +529,9 @@ export class WebGPURuntime implements SketchRuntime {
       activeStroke != null ? this.uploadStrokeMergePreview(activeStroke) : null;
 
     for (const layer of doc.layers) {
+      if (layer.type === "mask" || layer.type === "group") {
+        continue;
+      }
       if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
         continue;
       }
@@ -545,7 +549,19 @@ export class WebGPURuntime implements SketchRuntime {
         layer.id === activeStroke.layerId
           ? mergeTex
           : layerTexture;
-      this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH, drawTex);
+      const opacityScale = getAncestorGroupOpacityProduct(
+        doc.layers,
+        layer,
+        isolatedLayerId
+      );
+      this.compositeLayerGPU(
+        encoder,
+        textureView,
+        { ...layer, opacity: layer.opacity * opacityScale },
+        fullW,
+        fullH,
+        drawTex
+      );
     }
 
     // ── Pass 3: Border ────────────────────────────────────────────────

@@ -320,7 +320,12 @@ export class Canvas2DRuntime implements SketchRuntime {
     }
     ctx.save();
     if (includeOpacity) {
-      ctx.globalAlpha = layer.opacity;
+      const opacityScale = getAncestorGroupOpacityProduct(
+        doc.layers,
+        layer,
+        null
+      );
+      ctx.globalAlpha = layer.opacity * opacityScale;
       ctx.globalCompositeOperation = blendModeToComposite(
         layer.blendMode || "normal"
       );
@@ -531,9 +536,11 @@ export class Canvas2DRuntime implements SketchRuntime {
     if (!ctx) {
       return "";
     }
-    ctx.fillStyle = doc.canvas.backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (const layer of doc.layers) {
+      if (layer.type === "mask" || layer.type === "group") {
+        continue;
+      }
       if (!isLayerCompositeVisible(doc.layers, layer, null)) {
         continue;
       }

@@ -20,8 +20,7 @@ import {
   drawEraserStroke as drawEraserStrokeUtil
 } from "../drawingUtils";
 import type { StrokeStampState, DirtyRectTracker } from "../drawingUtils";
-
-const STABILIZER_WINDOW = 4;
+import { StabilizerBuffer } from "./StabilizerBuffer";
 
 export class EraserEngine implements PaintEngine {
   readonly engineId = "eraser";
@@ -36,7 +35,7 @@ export class EraserEngine implements PaintEngine {
   private dirtyRect: DirtyRectTracker = { current: null };
   private stampStates: Map<number, StrokeStampState> = new Map();
   private stampCache: Map<string, HTMLCanvasElement> = new Map();
-  private stabilizerBuffer: Point[] = [];
+  private stab = new StabilizerBuffer();
 
   constructor(
     eraser: EraserSettings,
@@ -61,27 +60,11 @@ export class EraserEngine implements PaintEngine {
   beginStroke(): void {
     this.dirtyRect = { current: null };
     this.stampStates.clear();
-    this.stabilizerBuffer = [];
+    this.stab.reset();
   }
 
   stabilize(raw: Point): Point {
-    this.stabilizerBuffer.push(raw);
-    if (this.stabilizerBuffer.length > STABILIZER_WINDOW) {
-      this.stabilizerBuffer.shift();
-    }
-    if (this.stabilizerBuffer.length === 1) {
-      return raw;
-    }
-    let sx = 0;
-    let sy = 0;
-    for (const p of this.stabilizerBuffer) {
-      sx += p.x;
-      sy += p.y;
-    }
-    return {
-      x: sx / this.stabilizerBuffer.length,
-      y: sy / this.stabilizerBuffer.length
-    };
+    return this.stab.apply(raw, this.eraser.stabilizer ?? 0);
   }
 
   evaluate(

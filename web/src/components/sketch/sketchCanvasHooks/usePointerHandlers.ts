@@ -341,7 +341,7 @@ export function usePointerHandlers({
   // ─── Tool pointer event helpers ────────────────────────────────────
   const buildToolPointerEvent = (e: React.PointerEvent): ToolPointerEvent => ({
     point: toolCtxRef.current.screenToCanvas(e.clientX, e.clientY),
-    pressure: e.pressure || 0.5,
+    pressure: normalizePointerPressure(e.nativeEvent),
     nativeEvent: e,
   });
 
@@ -353,7 +353,7 @@ export function usePointerHandlers({
         : [nativePointerEvent];
     return coalescedEvents.map((ep) => ({
       point: toolCtxRef.current.screenToCanvas(ep.clientX, ep.clientY),
-      pressure: ep.pressure || 0.5,
+      pressure: normalizePointerPressure(ep),
       nativeEvent: e,
     }));
   };
@@ -617,8 +617,6 @@ export function usePointerHandlers({
           return;
         }
         if (mode === "lasso") {
-          lassoStraightAnchorIndexRef.current = -1;
-          lassoStraightCursorRef.current = null;
           lassoPointsRef.current = [pt];
           selectStartRef.current = null;
           selectionDragModifiersRef.current = {
@@ -731,7 +729,7 @@ export function usePointerHandlers({
         paintStrokeHasMovedRef.current = false;
         lastPointRef.current = pt;
         lastSmoothedPointRef.current = pt;
-        currentPressureRef.current = e.pressure || 0.5;
+        currentPressureRef.current = normalizePointerPressure(e.nativeEvent);
         onStrokeStart();
         const ensuredBounds = ensureLayerViewportStorage(activeLayer.id);
         paintLayerOffsetRef.current = ensuredBounds
@@ -1591,6 +1589,62 @@ export function usePointerHandlers({
     [onContextMenu]
   );
 
+  // ─── Double-click (polygon lasso close) ────────────────────────────
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (
+        activeTool !== "select" ||
+        doc.toolSettings.select.mode !== "lasso_polygon" ||
+        lassoPointsRef.current.length < 3
+      ) {
+        return;
+      }
+      const pts = [...lassoPointsRef.current];
+      lassoPointsRef.current = [];
+      clearOverlay();
+      drawSelectionOverlay();
+      const cw = doc.canvas.width;
+      const ch = doc.canvas.height;
+      if (onSelectionChange) {
+        const bin = polygonToBinaryMask(cw, ch, pts);
+        const overlay: Selection = { width: cw, height: ch, data: bin };
+        if (selectionHasAnyPixels(overlay)) {
+          const mod = selectionDragModifiersRef.current;
+          selectionDragModifiersRef.current = null;
+          const op = selectionCombineMode(
+            mod?.shift ?? shiftHeldRef.current,
+            mod?.alt ?? altHeldRef.current
+          );
+          const base = op === "replace" ? null : selection ?? null;
+          onSelectionChange(combineMasks(base, overlay, op));
+        }
+      }
+      selectionDragModifiersRef.current = null;
+    },
+    [
+      activeTool,
+      doc.toolSettings.select.mode,
+      doc.canvas.width,
+      doc.canvas.height,
+      selection,
+      onSelectionChange,
+      clearOverlay,
+      drawSelectionOverlay,
+      lassoPointsRef,
+      shiftHeldRef,
+      altHeldRef
+    ]
+  );
+
+  // Clear in-progress polygon when selection is cleared externally (e.g. Escape)
+  useEffect(() => {
+    if (!selection && lassoPointsRef.current.length > 0 && doc.toolSettings.select.mode === "lasso_polygon") {
+      lassoPointsRef.current = [];
+      clearOverlay();
+    }
+  }, [selection, doc.toolSettings.select.mode, lassoPointsRef, clearOverlay]);
+
   // ─── Tool activation lifecycle ────────────────────────────────────
   const prevActiveToolRef = useRef(activeTool);
   useEffect(() => {
@@ -1609,6 +1663,7 @@ export function usePointerHandlers({
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handleDoubleClick,
     handleWheel,
     handleMouseMove,
     handleMouseLeave,
