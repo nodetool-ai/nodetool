@@ -19,6 +19,7 @@ export type {
 
 export { EyedropperTool } from "./EyedropperTool";
 export { MoveTool } from "./MoveTool";
+export { TransformTool } from "./TransformTool";
 export { FillTool } from "./FillTool";
 export { ShapeTool } from "./ShapeTool";
 export { GradientTool } from "./GradientTool";
@@ -33,6 +34,7 @@ export { AdjustTool } from "./AdjustTool";
 
 import { EyedropperTool } from "./EyedropperTool";
 import { MoveTool } from "./MoveTool";
+import { TransformTool } from "./TransformTool";
 import { FillTool } from "./FillTool";
 import { ShapeTool } from "./ShapeTool";
 import { GradientTool } from "./GradientTool";
@@ -69,6 +71,9 @@ export function getToolHandler(tool: SketchTool): ToolHandler {
       break;
     case "move":
       handler = new MoveTool();
+      break;
+    case "transform":
+      handler = new TransformTool();
       break;
     case "fill":
       handler = new FillTool();

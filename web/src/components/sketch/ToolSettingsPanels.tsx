@@ -66,6 +66,8 @@ export function getToolSettingsLabel(tool: SketchTool): string {
       return "Adjustments";
     case "shape":
       return "Shape";
+    case "transform":
+      return "Transform";
     default:
       return "Settings";
   }
@@ -807,6 +809,72 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
   );
 });
 
+// ─── TransformSettingsPanel ───────────────────────────────────────────────
+
+interface TransformSettingsPanelProps {
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+  onCommit: () => void;
+  onCancel: () => void;
+  onReset: () => void;
+}
+
+export const TransformSettingsPanel = memo(function TransformSettingsPanel({
+  scaleX,
+  scaleY,
+  rotation,
+  onCommit,
+  onCancel,
+  onReset
+}: TransformSettingsPanelProps) {
+  const rotDeg = Math.round((rotation * 180) / Math.PI * 10) / 10;
+  return (
+    <>
+      <Box className="setting-row">
+        <Typography className="setting-label">Scale X</Typography>
+        <Typography className="setting-value">{(scaleX * 100).toFixed(0)}%</Typography>
+      </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Scale Y</Typography>
+        <Typography className="setting-value">{(scaleY * 100).toFixed(0)}%</Typography>
+      </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Rotation</Typography>
+        <Typography className="setting-value">{rotDeg}°</Typography>
+      </Box>
+      <Box sx={{ display: "flex", gap: "4px", ml: 1 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          color="success"
+          onClick={onCommit}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+        >
+          ✓ Commit
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          onClick={onCancel}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+        >
+          ✗ Cancel
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={onReset}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+        >
+          Reset
+        </Button>
+      </Box>
+    </>
+  );
+});
+
 // ─── NoSettingsMessage ────────────────────────────────────────────────────
 
 export const NoSettingsMessage = memo(function NoSettingsMessage() {
@@ -961,6 +1029,12 @@ export interface ToolSettingsPanelProps {
   onAdjustSaturationChange?: (value: number) => void;
   onAdjustApply?: () => void;
   onAdjustCancel?: () => void;
+  transformScaleX?: number;
+  transformScaleY?: number;
+  transformRotation?: number;
+  onTransformCommit?: () => void;
+  onTransformCancel?: () => void;
+  onTransformReset?: () => void;
 }
 
 export const ToolSettingsPanel = memo(function ToolSettingsPanel({
@@ -993,7 +1067,13 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onAdjustContrastChange,
   onAdjustSaturationChange,
   onAdjustApply,
-  onAdjustCancel
+  onAdjustCancel,
+  transformScaleX,
+  transformScaleY,
+  transformRotation,
+  onTransformCommit,
+  onTransformCancel,
+  onTransformReset
 }: ToolSettingsPanelProps) {
   if (activeTool === "brush") {
     return (
@@ -1075,6 +1155,18 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   }
   if (activeTool === "move" || activeTool === "eyedropper") {
     return <NoSettingsMessage />;
+  }
+  if (activeTool === "transform") {
+    return (
+      <TransformSettingsPanel
+        scaleX={transformScaleX ?? 1}
+        scaleY={transformScaleY ?? 1}
+        rotation={transformRotation ?? 0}
+        onCommit={onTransformCommit ?? noop}
+        onCancel={onTransformCancel ?? noop}
+        onReset={onTransformReset ?? noop}
+      />
+    );
   }
   if (activeTool === "adjust") {
     return (

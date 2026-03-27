@@ -99,6 +99,12 @@ export interface SketchToolTopBarProps {
   onAdjustSaturationChange: (value: number) => void;
   onAdjustApply: () => void;
   onAdjustCancel: () => void;
+  transformScaleX?: number;
+  transformScaleY?: number;
+  transformRotation?: number;
+  onTransformCommit?: () => void;
+  onTransformCancel?: () => void;
+  onTransformReset?: () => void;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -131,7 +137,13 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onAdjustContrastChange,
   onAdjustSaturationChange,
   onAdjustApply,
-  onAdjustCancel
+  onAdjustCancel,
+  transformScaleX,
+  transformScaleY,
+  transformRotation,
+  onTransformCommit,
+  onTransformCancel,
+  onTransformReset
 }) => {
   const theme = useTheme();
 
@@ -168,6 +180,12 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onAdjustSaturationChange={onAdjustSaturationChange}
         onAdjustApply={onAdjustApply}
         onAdjustCancel={onAdjustCancel}
+        transformScaleX={transformScaleX}
+        transformScaleY={transformScaleY}
+        transformRotation={transformRotation}
+        onTransformCommit={onTransformCommit}
+        onTransformCancel={onTransformCancel}
+        onTransformReset={onTransformReset}
       />
     </Box>
   );
