@@ -32,10 +32,10 @@ Before installing, make sure your machine meets the minimum requirements:
 ### Install
 
 1. **Download** from [nodetool.ai](https://nodetool.ai) for macOS, Windows, or Linux
-2. **Run the installer** — sets up Python and AI engines automatically
-3. **Launch NodeTool** — the dashboard appears when ready
+2. **Run the installer** — follow the platform-specific prompts
+3. **Launch NodeTool** — the app opens immediately, no setup wizard needed
 
-> Need help? See [Installation Guide](installation.md) for platform-specific instructions and troubleshooting.
+> Python and AI engines are installed on demand when you first use local models. See [Installation Guide](installation.md) for platform-specific instructions and troubleshooting.
 
 ### Install AI Models (Optional)
 
