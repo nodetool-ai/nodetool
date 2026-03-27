@@ -1168,6 +1168,7 @@ export class ProcessingContext {
           messages: (params.messages as Message[]) ?? [],
           model: req.model,
           tools: params.tools as Parameters<BaseProvider["generateMessage"]>[0]["tools"],
+          toolChoice: params.tool_choice as string | undefined,
           maxTokens: params.max_tokens as number | undefined,
           responseFormat: params.response_format as Record<string, unknown> | undefined,
           jsonSchema: params.json_schema as Record<string, unknown> | undefined,

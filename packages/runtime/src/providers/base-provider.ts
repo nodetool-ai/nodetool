@@ -121,6 +121,8 @@ export abstract class BaseProvider {
     messages: Message[];
     model: string;
     tools?: ProviderTool[];
+    /** Force the model to call a specific tool by name, or "any" to require any tool call. */
+    toolChoice?: string | "any";
     maxTokens?: number;
     responseFormat?: Record<string, unknown>;
     jsonSchema?: Record<string, unknown>;

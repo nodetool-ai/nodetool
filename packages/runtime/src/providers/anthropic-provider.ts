@@ -633,6 +633,7 @@ export class AnthropicProvider extends BaseProvider {
     messages: Message[];
     model: string;
     tools?: ProviderTool[];
+    toolChoice?: string | "any";
     maxTokens?: number;
     responseFormat?: Record<string, unknown>;
     jsonSchema?: Record<string, unknown>;
@@ -658,13 +659,20 @@ export class AnthropicProvider extends BaseProvider {
 
     const structured = this.setupStructuredOutput(args.tools, args.responseFormat);
 
+    let resolvedToolChoice: Record<string, unknown> | undefined = structured.toolChoice;
+    if (args.toolChoice && !structured.isStructured) {
+      resolvedToolChoice = args.toolChoice === "any"
+        ? { type: "any" }
+        : { type: "tool", name: args.toolChoice };
+    }
+
     const request: Record<string, unknown> = {
       model: args.model,
       messages: anthropicMessages,
       system,
       max_tokens: args.maxTokens ?? 8192,
       ...(structured.tools ? { tools: structured.tools } : {}),
-      ...(structured.toolChoice ? { tool_choice: structured.toolChoice } : {}),
+      ...(resolvedToolChoice ? { tool_choice: resolvedToolChoice } : {}),
       ...(args.temperature != null ? { temperature: args.temperature } : {}),
       ...(args.topP != null ? { top_p: args.topP } : {}),
       ...(args.thinkingBudget != null ? { thinking: { type: "enabled", budget_tokens: args.thinkingBudget } } : {}),
