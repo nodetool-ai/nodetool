@@ -37,8 +37,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference, buildVisibleLayerTree } from "./types";
+import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference, buildVisibleLayerTree, getDescendantIds } from "./types";
 import LayerItem from "./LayerItem";
+import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 
@@ -270,7 +271,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    realIdx: number;
+    position: DropPosition;
+  } | null>(null);
   const dragSourceIndex = useRef<number | null>(null);
 
   // ─── Collapsible section state (persisted in localStorage) ────────
@@ -322,7 +326,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     setEditingLayerId(null);
   }, []);
 
-  // ─── Drag-and-drop layer reordering ─────────────────────────────
+  // ─── Drag-and-drop layer reordering (tree-aware) ───────────────
   const handleDragStart = useCallback(
     (realIdx: number) => {
       dragSourceIndex.current = realIdx;
@@ -333,37 +337,91 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const handleDragOver = useCallback(
     (e: React.DragEvent, realIdx: number) => {
       e.preventDefault();
-      setDragOverIndex(realIdx);
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const height = rect.height;
+      const targetLayer = layers[realIdx];
+      let position: DropPosition;
+
+      if (targetLayer && targetLayer.type === "group") {
+        // For groups: top 25% = before, middle 50% = into, bottom 25% = after
+        if (y < height * 0.25) {
+          position = "before";
+        } else if (y > height * 0.75) {
+          position = "after";
+        } else {
+          position = "into";
+        }
+      } else {
+        // For non-groups: top half = before, bottom half = after
+        position = y < height * 0.5 ? "before" : "after";
+      }
+
+      setDropTarget({ realIdx, position });
     },
-    []
+    [layers]
   );
 
   const handleDragLeave = useCallback(() => {
-    setDragOverIndex(null);
+    setDropTarget(null);
   }, []);
 
   const handleDrop = useCallback(
     (realIdx: number) => {
       const from = dragSourceIndex.current;
-      if (from !== null && from !== realIdx) {
-        const draggedLayer = layers[from];
-        const targetLayer = layers[realIdx];
-        // If dropping onto a group, reparent into that group
-        if (targetLayer && targetLayer.type === "group" && draggedLayer && draggedLayer.id !== targetLayer.id) {
-          onMoveLayerToGroup(draggedLayer.id, targetLayer.id);
-        } else {
-          onReorderLayers(from, realIdx);
+      if (from === null || !dropTarget) {
+        dragSourceIndex.current = null;
+        setDropTarget(null);
+        return;
+      }
+
+      const draggedLayer = layers[from];
+      const targetLayer = layers[realIdx];
+      if (!draggedLayer || !targetLayer || from === realIdx) {
+        dragSourceIndex.current = null;
+        setDropTarget(null);
+        return;
+      }
+
+      // Prevent dropping a group into itself or its descendants
+      if (draggedLayer.type === "group") {
+        const descendantIds = getDescendantIds(layers, draggedLayer.id);
+        if (descendantIds.includes(targetLayer.id)) {
+          dragSourceIndex.current = null;
+          setDropTarget(null);
+          return;
         }
       }
+
+      const { position } = dropTarget;
+
+      if (position === "into" && targetLayer.type === "group") {
+        // Drop INTO a group: reparent the dragged layer
+        onMoveLayerToGroup(draggedLayer.id, targetLayer.id);
+      } else {
+        // Drop BEFORE or AFTER: reparent to the same parent as the target, then reorder
+        const targetParentId = targetLayer.parentId ?? null;
+        if ((draggedLayer.parentId ?? null) !== targetParentId) {
+          onMoveLayerToGroup(draggedLayer.id, targetParentId);
+        }
+        // Calculate the insertion index in the flat array
+        const insertIdx = position === "after" ? realIdx + 1 : realIdx;
+        // After reparenting, recalc source index since the array didn't change order
+        const currentFrom = layers.indexOf(draggedLayer);
+        if (currentFrom !== -1 && currentFrom !== insertIdx && currentFrom + 1 !== insertIdx) {
+          onReorderLayers(currentFrom, insertIdx > currentFrom ? insertIdx - 1 : insertIdx);
+        }
+      }
+
       dragSourceIndex.current = null;
-      setDragOverIndex(null);
+      setDropTarget(null);
     },
-    [layers, onReorderLayers, onMoveLayerToGroup]
+    [layers, dropTarget, onReorderLayers, onMoveLayerToGroup]
   );
 
   const handleDragEnd = useCallback(() => {
     dragSourceIndex.current = null;
-    setDragOverIndex(null);
+    setDropTarget(null);
   }, []);
 
   const activeLayer = layers.find((l) => l.id === activeLayerId);
@@ -593,7 +651,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 isActive={layer.id === activeLayerId}
                 isMask={layer.id === maskLayerId}
                 isIsolated={layer.id === isolatedLayerId}
-                isDragOver={dragOverIndex === realIdx}
+                dropPosition={dropTarget?.realIdx === realIdx ? dropTarget.position : null}
                 editingLayerId={editingLayerId}
                 editName={editName}
                 onSelectLayer={onSelectLayer}
