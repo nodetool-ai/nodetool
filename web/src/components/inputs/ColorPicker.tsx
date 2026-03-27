@@ -128,8 +128,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const handleColorCellButtonClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       const button = event.currentTarget;
-      const colorString = button.getAttribute('data-color');
-      const cellColor: string | null = colorString === 'null' ? null : colorString;
+      const isNullColor = button.getAttribute('data-color-null') === 'true';
+      const cellColor: string | null = isNullColor ? null : button.getAttribute('data-color');
       handleColorCellClick(cellColor);
     },
     [handleColorCellClick]
@@ -174,7 +174,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
             <Button
               key={String(cellColor)}
               className="pick-color-button"
-              data-color={String(cellColor)}
+              {...(cellColor === null
+                ? { 'data-color-null': 'true' }
+                : { 'data-color': cellColor })}
               sx={{
                 borderRadius: "50%",
                 cursor: "pointer",
