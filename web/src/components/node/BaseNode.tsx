@@ -36,7 +36,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
-import { NodeMetadata } from "../../stores/ApiTypes";
+import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
@@ -184,7 +184,7 @@ const getStyleProps = (
   parentId: string | undefined,
   nodeType: { isInputNode: boolean; isOutputNode: boolean },
   isLoading: boolean,
-  metadata: any
+  metadata: NodeMetadata | undefined
 ) => {
   const hasParent = Boolean(parentId);
   return {
@@ -201,16 +201,16 @@ const getStyleProps = (
   };
 };
 
-const getNodeColors = (metadata: any): string[] => {
+const getNodeColors = (metadata: NodeMetadata | undefined): string[] => {
   const outputColors = [
     ...new Set(
-      metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
+      metadata?.outputs?.map((output: OutputSlot) => colorForType(output.type.type)) ||
         []
     )
   ];
   const inputColors = [
     ...new Set(
-      metadata?.properties?.map((input: any) =>
+      metadata?.properties?.map((input: Property) =>
         colorForType(input.type.type)
       ) || []
     )

@@ -115,11 +115,11 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     [inactiveKeys]
   );
 
-  const handleOsToggle = useCallback((_: any, value: "mac" | "win") => {
+  const handleOsToggle = useCallback((_event: React.SyntheticEvent, value: "mac" | "win") => {
     if (value) {setOs(value);}
   }, []);
 
-  const handleLayoutToggle = useCallback((_: any, value: "english" | "german") => {
+  const handleLayoutToggle = useCallback((_event: React.SyntheticEvent, value: "english" | "german") => {
     if (value) {setLayoutName(value);}
   }, []);
 
