@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Box, LinearProgress, LinearProgressProps, Typography } from "@mui/material";
 
 type LinearProgressWithLabelProps = LinearProgressProps & {
