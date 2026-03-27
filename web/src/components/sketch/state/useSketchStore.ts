@@ -533,7 +533,11 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         ...state.document,
         layers: state.document.layers.map((l) =>
           l.id === layerId ? { ...l, visible: !l.visible } : l
-        )
+        ),
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
       }
     })),
 
