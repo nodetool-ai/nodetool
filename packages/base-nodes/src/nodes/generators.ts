@@ -125,24 +125,36 @@ function dataframeFromRows(rows: Row[], columnsInput: unknown): Record<string, u
   };
 }
 
-function buildRowSchema(specs: ColumnSpec[]): Record<string, unknown> {
-  if (specs.length === 0) {
-    return { type: "object", additionalProperties: true };
-  }
-  const properties: Record<string, unknown> = {};
-  for (const spec of specs) {
-    const kind = (spec.data_type ?? "").toLowerCase();
-    let jsonType: string;
-    if (kind === "int" || kind === "integer") jsonType = "integer";
-    else if (kind === "float" || kind === "number") jsonType = "number";
-    else if (kind === "bool" || kind === "boolean") jsonType = "boolean";
-    else jsonType = "string";
-    properties[spec.name] = { type: jsonType };
-  }
-  return { type: "object", properties, required: specs.map((s) => s.name) };
+function parseCsv(text: string, specs: ColumnSpec[]): Row[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("```"));
+  if (lines.length < 2) return [];
+
+  const header = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map((line) => {
+    const cells = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? line.split(",");
+    const row: Row = {};
+    header.forEach((name, i) => {
+      const raw = (cells[i] ?? "").trim().replace(/^"|"$/g, "");
+      const spec = specs.find((s) => s.name === name);
+      const kind = (spec?.data_type ?? "").toLowerCase();
+      if (kind === "int" || kind === "integer") {
+        const n = Number.parseInt(raw, 10);
+        row[name] = Number.isFinite(n) ? n : raw;
+      } else if (kind === "float" || kind === "number") {
+        const n = Number.parseFloat(raw);
+        row[name] = Number.isFinite(n) ? n : raw;
+      } else {
+        row[name] = raw;
+      }
+    });
+    return row;
+  });
 }
 
-async function generateDataframeWithToolCall(
+async function generateDataframeFromCsv(
   context: ProcessingContext & {
     runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
   },
@@ -154,39 +166,25 @@ async function generateDataframeWithToolCall(
   maxTokens: number
 ): Promise<Row[]> {
   const specs = parseColumnSpecs(columnsInput);
-  const rowSchema = buildRowSchema(specs);
-  const tool = {
-    name: "create_dataframe",
-    description: "Create a dataframe with the requested data rows.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rows: {
-          type: "array",
-          description: `Array of ${count} data rows`,
-          items: rowSchema,
-        },
-      },
-      required: ["rows"],
-    },
-  };
+  const columnHint = specs.length > 0
+    ? `Use exactly these columns: ${specs.map((s) => s.name).join(", ")}.`
+    : "Choose appropriate columns for the data.";
+  const systemPrompt = `You are a data generator. Return ONLY a CSV with a header row and exactly ${count} data rows. No explanation, no markdown fences, no extra text. ${columnHint}`;
   const result = await context.runProviderPrediction({
     provider: providerId,
     capability: "generate_message",
     model: modelId,
     params: {
       model: modelId,
-      messages: [{ role: "user", content: prompt }],
-      tools: [tool],
-      tool_choice: "create_dataframe",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ],
       max_tokens: maxTokens,
     },
   });
-  const msg = result as { toolCalls?: Array<{ name: string; args: Record<string, unknown> }> };
-  const call = msg.toolCalls?.find((tc) => tc.name === "create_dataframe");
-  const rows = call?.args?.rows;
-  if (Array.isArray(rows)) return rows as Row[];
-  return [];
+  const content = asText((result as { content?: unknown }).content ?? result);
+  return parseCsv(content, specs);
 }
 
 async function generateProviderText(
@@ -392,7 +390,7 @@ export class DataGeneratorNode extends BaseNode {
     const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
-      const rows = await generateDataframeWithToolCall(
+      const rows = await generateDataframeFromCsv(
         context,
         providerId,
         modelId,
