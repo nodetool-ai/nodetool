@@ -462,6 +462,19 @@ export function useCanvasActions({
     [pushHistory, resizeCanvas]
   );
 
+  /** Push a single history snapshot before a drag-resize begins. */
+  const handleCanvasResizeStart = useCallback(() => {
+    pushHistory("resize canvas");
+  }, [pushHistory]);
+
+  /** Apply new canvas dimensions during a drag-resize (no history push). */
+  const handleCanvasResizeDrag = useCallback(
+    (width: number, height: number) => {
+      resizeCanvas(width, height);
+    },
+    [resizeCanvas]
+  );
+
   // ─── Zoom handlers ─────────────────────────────────────────────────
   const handleZoomIn = useCallback(() => setZoom(zoom * 1.3), [zoom, setZoom]);
   const handleZoomOut = useCallback(() => setZoom(zoom / 1.3), [zoom, setZoom]);
@@ -821,6 +834,8 @@ export function useCanvasActions({
     handleTrimLayerToBounds,
     handleExportPng,
     handleCanvasResize,
+    handleCanvasResizeStart,
+    handleCanvasResizeDrag,
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
