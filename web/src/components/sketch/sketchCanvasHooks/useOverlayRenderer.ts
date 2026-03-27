@@ -412,12 +412,15 @@ export function useOverlayRenderer({
         const display = overlayCanvasRef.current;
         if (container && display) {
           const rect = display.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const offsetLeft = rect.left - containerRect.left;
+          const offsetTop = rect.top - containerRect.top;
           // Compute which document pixel the cursor is over
-          const docX = Math.floor((screenX - (rect.left - container.getBoundingClientRect().left)) / zoom);
-          const docY = Math.floor((screenY - (rect.top - container.getBoundingClientRect().top)) / zoom);
+          const docX = Math.floor((screenX - offsetLeft) / zoom);
+          const docY = Math.floor((screenY - offsetTop) / zoom);
           // Convert the snapped pixel back to screen coords
-          const pixelScreenX = (docX * zoom) + (rect.left - container.getBoundingClientRect().left);
-          const pixelScreenY = (docY * zoom) + (rect.top - container.getBoundingClientRect().top);
+          const pixelScreenX = (docX * zoom) + offsetLeft;
+          const pixelScreenY = (docY * zoom) + offsetTop;
           const pixelSize = size * zoom;
 
           ctx.save();

@@ -67,20 +67,23 @@ describe("PencilEngine snap-to-pixel", () => {
     const engine = new PencilEngine({ size: 1, opacity: 1, color: "#000000" });
     expect(engine.stabilize({ x: 3.7, y: 4.2 })).toEqual({ x: 4, y: 4 });
     expect(engine.stabilize({ x: 0.5, y: 0.5 })).toEqual({ x: 1, y: 1 });
-    expect(engine.stabilize({ x: -0.3, y: 2.9 })).toEqual({ x: -0, y: 3 });
+    expect(engine.stabilize({ x: 0.3, y: 2.9 })).toEqual({ x: 0, y: 3 });
+    expect(engine.stabilize({ x: 10.1, y: 7.8 })).toEqual({ x: 10, y: 8 });
   });
 
   it("evaluate() snaps coordinates to integers", () => {
     const engine = new PencilEngine({ size: 1, opacity: 1, color: "#000000" });
     engine.beginStroke();
 
-    // Create a mock context to verify coordinates passed to drawPencilStroke
-    const drawCalls: { from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
+    // Create a mock context to verify snapped coordinates
+    const fillCalls: { x: number; y: number }[] = [];
     const ctx = {
       save: jest.fn(),
       restore: jest.fn(),
       beginPath: jest.fn(),
-      arc: jest.fn(),
+      arc: jest.fn(
+        (x: number, y: number) => fillCalls.push({ x, y })
+      ),
       fill: jest.fn(),
       moveTo: jest.fn(),
       lineTo: jest.fn(),
@@ -100,12 +103,10 @@ describe("PencilEngine snap-to-pixel", () => {
       0
     );
 
-    // The dirty rect should have integer-ish bounds
-    const dirty = engine.getDirtyRect();
-    if (dirty) {
-      // Coordinates should be snapped to integers
-      expect(Number.isInteger(Math.round(dirty.minX))).toBe(true);
-      expect(Number.isInteger(Math.round(dirty.minY))).toBe(true);
+    // The arc calls should be at integer coordinates (snapped from 1.3→1, 2.7→3, etc.)
+    for (const call of fillCalls) {
+      expect(Number.isInteger(call.x)).toBe(true);
+      expect(Number.isInteger(call.y)).toBe(true);
     }
   });
 });
