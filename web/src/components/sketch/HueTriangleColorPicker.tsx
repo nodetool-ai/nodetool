@@ -196,7 +196,7 @@ function paintHueCursor(ctx: CanvasRenderingContext2D, hueDeg: number) {
 }
 
 /** Draw the SV cursor inside the triangle. */
-function paintSVCursor(ctx: CanvasRenderingContext2D, _hueDeg: number, s: number, val: number) {
+function paintSVCursor(ctx: CanvasRenderingContext2D, s: number, val: number) {
   const [v0, v1, v2] = triVertsFixed();
   const { u, v, w } = svToBary(s, val);
   const cx = u * v0.x + v * v1.x + w * v2.x;
@@ -232,7 +232,6 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   const ringCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const triangleCacheRef = useRef<{ hueKey: number; canvas: HTMLCanvasElement } | null>(null);
   const dragTarget = useRef<DragTarget>(null);
-  const localHueRef = useRef(0);
   const pendingEmitRef = useRef<{ h: number; s: number; v: number } | null>(null);
   const rafEmitRef = useRef<number | null>(null);
 
@@ -242,6 +241,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
 
   // Stable hue: only update from external color when NOT dragging
   const [localHue, setLocalHue] = useState(hsvRef.current.h);
+  const localHueRef = useRef(localHue);
   const prevColor = useRef(color);
 
   useEffect(() => {
@@ -259,6 +259,27 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
 
   const hsv = rgbToHsv(r, g, b);
 
+  if (dragTarget.current !== "ring") {
+    localHueRef.current = localHue;
+  }
+
+  const ensureTriangleLayer = useCallback((hue: number): HTMLCanvasElement => {
+    const hueKey = Math.round(normalizeHueDeg(hue));
+    const prev = triangleCacheRef.current;
+    if (prev && prev.hueKey === hueKey) {
+      return prev.canvas;
+    }
+    const c = document.createElement("canvas");
+    c.width = WIDGET_SIZE;
+    c.height = WIDGET_SIZE;
+    const tctx = c.getContext("2d");
+    if (tctx) {
+      paintTriangle(tctx, hueKey);
+    }
+    triangleCacheRef.current = { hueKey, canvas: c };
+    return c;
+  }, []);
+
   // ─── Repaint ─────────────────────────────────────────────────────
   const repaint = useCallback((hue: number, sat: number, val: number) => {
     const canvas = canvasRef.current;
@@ -267,7 +288,6 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     if (!ctx) { return; }
     ctx.clearRect(0, 0, WIDGET_SIZE, WIDGET_SIZE);
 
-    // Draw cached ring
     if (!ringCanvasRef.current) {
       const offscreen = document.createElement("canvas");
       offscreen.width = WIDGET_SIZE;
@@ -278,12 +298,15 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     }
     ctx.drawImage(ringCanvasRef.current, 0, 0);
 
-    paintTriangle(ctx, hue);
+    const triLayer = ensureTriangleLayer(hue);
+    ctx.drawImage(triLayer, 0, 0);
+
     paintHueCursor(ctx, hue);
-    paintSVCursor(ctx, hue, sat, val);
-  }, []);
+    paintSVCursor(ctx, sat, val);
+  }, [ensureTriangleLayer]);
 
   useEffect(() => {
+    if (dragTarget.current !== null) { return; }
     repaint(localHue, hsv.s, hsv.v);
   }, [localHue, hsv.s, hsv.v, repaint]);
 
@@ -300,21 +323,19 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
 
     if (dist >= INNER_R && dist <= OUTER_R) { return "ring"; }
 
-    // Check inside triangle
-    const [v0, v1, v2] = triVerts(localHue);
+    const [v0, v1, v2] = triVertsFixed();
     const { u, v, w } = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
     if (u >= HIT_EPSILON && v >= HIT_EPSILON && w >= HIT_EPSILON) { return "triangle"; }
 
-    // If close to the ring but not quite, treat as ring
     if (dist > TRI_R) { return "ring"; }
 
-    return "triangle";   // Default to triangle for inner area
-  }, [localHue]);
+    return "triangle";
+  }, []);
 
   // ─── Pointer → color ────────────────────────────────────────────
   const pointerToHue = useCallback((clientX: number, clientY: number): number => {
     const canvas = canvasRef.current;
-    if (!canvas) { return localHue; }
+    if (!canvas) { return localHueRef.current; }
     const rect = canvas.getBoundingClientRect();
     const px = (clientX - rect.left) * (WIDGET_SIZE / rect.width);
     const py = (clientY - rect.top) * (WIDGET_SIZE / rect.height);
@@ -323,25 +344,35 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
     if (angle < 0) { angle += 360; }
     return angle % 360;
-  }, [localHue]);
+  }, []);
 
-  const pointerToSV = useCallback((clientX: number, clientY: number, hue: number): { s: number; val: number } => {
+  const pointerToSV = useCallback((clientX: number, clientY: number): { s: number; val: number } => {
     const canvas = canvasRef.current;
     if (!canvas) { return { s: hsv.s, val: hsv.v }; }
     const rect = canvas.getBoundingClientRect();
     const px = (clientX - rect.left) * (WIDGET_SIZE / rect.width);
     const py = (clientY - rect.top) * (WIDGET_SIZE / rect.height);
-    const [v0, v1, v2] = triVerts(hue);
+    const [v0, v1, v2] = triVertsFixed();
     const raw = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
     const clamped = clampBarycentric(raw.u, raw.v, raw.w);
     return baryToSV(clamped.u, clamped.v, clamped.w);
   }, [hsv.s, hsv.v]);
 
-  // ─── Emit color ─────────────────────────────────────────────────
-  const emitColor = useCallback((h: number, s: number, v: number) => {
-    const { r: nr, g: ng, b: nb } = hsvToRgb(h, s, v);
+  const flushEmit = useCallback(() => {
+    rafEmitRef.current = null;
+    const p = pendingEmitRef.current;
+    if (p == null) { return; }
+    pendingEmitRef.current = null;
+    const { r: nr, g: ng, b: nb } = hsvToRgb(p.h, p.s, p.v);
     onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
   }, [a, onColorChange]);
+
+  const scheduleEmit = useCallback((h: number, s: number, v: number) => {
+    pendingEmitRef.current = { h, s, v };
+    if (rafEmitRef.current === null) {
+      rafEmitRef.current = requestAnimationFrame(flushEmit);
+    }
+  }, [flushEmit]);
 
   // ─── Mouse handlers ─────────────────────────────────────────────
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -354,13 +385,16 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
 
     if (target === "ring") {
       const newHue = pointerToHue(e.clientX, e.clientY);
+      localHueRef.current = newHue;
       setLocalHue(newHue);
-      emitColor(newHue, hsv.s, hsv.v);
+      repaint(newHue, hsv.s, hsv.v);
+      scheduleEmit(newHue, hsv.s, hsv.v);
     } else if (target === "triangle") {
-      const { s, val } = pointerToSV(e.clientX, e.clientY, localHue);
-      emitColor(localHue, s, val);
+      const { s, val } = pointerToSV(e.clientX, e.clientY);
+      repaint(localHue, s, val);
+      scheduleEmit(localHue, s, val);
     }
-  }, [hitTest, pointerToHue, pointerToSV, localHue, hsv.s, hsv.v, emitColor]);
+  }, [hitTest, pointerToHue, pointerToSV, localHue, hsv.s, hsv.v, repaint, scheduleEmit]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (dragTarget.current === null) { return; }
@@ -368,19 +402,39 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
 
     if (dragTarget.current === "ring") {
       const newHue = pointerToHue(e.clientX, e.clientY);
-      setLocalHue(newHue);
-      emitColor(newHue, hsv.s, hsv.v);
+      localHueRef.current = newHue;
+      repaint(newHue, hsv.s, hsv.v);
+      scheduleEmit(newHue, hsv.s, hsv.v);
     } else if (dragTarget.current === "triangle") {
-      const { s, val } = pointerToSV(e.clientX, e.clientY, localHue);
-      emitColor(localHue, s, val);
+      const { s, val } = pointerToSV(e.clientX, e.clientY);
+      repaint(localHueRef.current, s, val);
+      scheduleEmit(localHueRef.current, s, val);
     }
-  }, [pointerToHue, pointerToSV, localHue, hsv.s, hsv.v, emitColor]);
+  }, [pointerToHue, pointerToSV, hsv.s, hsv.v, repaint, scheduleEmit]);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+  const endPointerDrag = useCallback((e: React.PointerEvent) => {
+    if (rafEmitRef.current !== null) {
+      cancelAnimationFrame(rafEmitRef.current);
+      rafEmitRef.current = null;
+    }
+    flushEmit();
+    if (dragTarget.current === "ring") {
+      setLocalHue(localHueRef.current);
+    }
     dragTarget.current = null;
     const canvas = canvasRef.current;
-    if (canvas) { canvas.releasePointerCapture(e.pointerId); }
-  }, []);
+    if (canvas?.hasPointerCapture(e.pointerId)) {
+      canvas.releasePointerCapture(e.pointerId);
+    }
+  }, [flushEmit]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    endPointerDrag(e);
+  }, [endPointerDrag]);
+
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    endPointerDrag(e);
+  }, [endPointerDrag]);
 
   return (
     <Box
@@ -405,6 +459,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       />
     </Box>
   );
