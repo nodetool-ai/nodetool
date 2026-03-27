@@ -224,10 +224,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   connect: async () => {
     const state = get();
 
+    // Prevent duplicate connection attempts
+    if (state.status === 'connecting') {
+      console.log('Connection already in progress, skipping');
+      return;
+    }
+
     // Clean up existing connection
     if (state.wsManager) {
       state.wsManager.destroy();
     }
+
+    set({ status: 'connecting' });
 
     // Get WebSocket URL from API service
     const wsUrl = apiService.getWebSocketUrl('/ws/chat');

@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './src/navigation/types';
@@ -8,6 +9,7 @@ import MiniAppScreen from './src/screens/MiniAppScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -16,60 +18,93 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const { colors, isDark } = useTheme();
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Load API host on app start
-    apiService.loadApiHost();
+    const initialize = async () => {
+      try {
+        await apiService.loadApiHost();
+      } catch (error) {
+        console.error('Failed to load API host:', error);
+      } finally {
+        setIsReady(true);
+      }
+    };
+    initialize();
   }, []);
 
+  if (!isReady) {
+    return (
+      <View style={[splashStyles.container, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[splashStyles.text, { color: colors.textSecondary }]}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack.Navigator
-        initialRouteName="MiniAppsList"
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: colors.surfaceHeader,
-          },
-          headerTintColor: colors.text,
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-          contentStyle: {
-            backgroundColor: colors.background,
-          },
-        }}
-      >
-        <Stack.Screen
-          name="MiniAppsList"
-          component={MiniAppsListScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="MiniApp"
-          component={MiniAppScreen}
-          options={{ title: 'Mini App' }}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{ title: 'Settings' }}
-        />
-        <Stack.Screen
-          name="Chat"
-          component={ChatScreen}
-          options={{
-            title: 'Chat',
-          }}
-        />
-        <Stack.Screen
-          name="LanguageModelSelection"
-          component={LanguageModelSelectionScreen}
-          options={{ title: 'Select Provider' }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  </SafeAreaProvider>
-);
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <Stack.Navigator
+            initialRouteName="MiniAppsList"
+            screenOptions={{
+              headerStyle: {
+                backgroundColor: colors.surfaceHeader,
+              },
+              headerTintColor: colors.text,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              contentStyle: {
+                backgroundColor: colors.background,
+              },
+              animation: 'slide_from_right',
+            }}
+          >
+            <Stack.Screen
+              name="MiniAppsList"
+              component={MiniAppsListScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="MiniApp"
+              component={MiniAppScreen}
+              options={{ title: 'Mini App' }}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{ title: 'Settings' }}
+            />
+            <Stack.Screen
+              name="Chat"
+              component={ChatScreen}
+              options={{
+                title: 'Chat',
+              }}
+            />
+            <Stack.Screen
+              name="LanguageModelSelection"
+              component={LanguageModelSelectionScreen}
+              options={{ title: 'Select Provider' }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </ErrorBoundary>
+  );
 }
+
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    marginTop: 12,
+    fontSize: 16,
+  },
+});
