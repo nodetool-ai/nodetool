@@ -57,8 +57,11 @@ header_pages:
   - deployment-e2e-guide.md
   - storage.md
   - api-reference.md
+  - manifesto.md
   - developer/index.md
   - architecture.md
+  - developer/comfyui-implementation.md
+  - developer/subgraphs.md
   - installation.md
   - troubleshooting.md
   - comparisons.md

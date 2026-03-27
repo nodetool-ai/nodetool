@@ -1,221 +1,767 @@
 ---
 layout: page
-title: "Architecture & Lifecycle"
-description: "How NodeTool's streaming architecture enables real-time feedback, cancellation, and deployment portability."
+title: "Architecture"
+description: "Complete architecture overview of NodeTool — backend packages, frontend, Electron, mobile, and deployment."
 ---
 
-## Why This Architecture Matters
 
-NodeTool's architecture is designed around three core principles that directly impact your experience:
-
-1. **Streaming-first execution** -- See results as they generate, not after everything completes. Cancel long-running jobs without waiting. Perfect for interactive debugging and user-facing applications.
-
-2. **Unified runtime** -- The same workflow JSON runs in desktop app, headless server, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
-
-3. **Pluggable execution strategies** -- Run nodes in threads (fast iteration), subprocesses (isolation), or Docker containers (deployment). Switch strategies without changing your workflow.
-
-**For developers:** This design lets you prototype locally with instant feedback, then deploy to production infrastructure with confidence that behavior will be identical.
-
-**For teams:** Build workflows collaboratively in the visual editor, then let DevOps deploy them as APIs -- no translation layer needed.
+This document describes the architecture of NodeTool — a visual AI workflow platform that runs across desktop, web, and mobile. It covers both the TypeScript backend (the `packages/` monorepo) and the React frontend (the `web/` application), along with the Electron desktop shell and React Native mobile app.
 
 ---
 
-## System Components
+## Table of Contents
 
-NodeTool is organized into distinct packages, each responsible for a specific layer of the system:
-
-### Core Packages
-
-| Package | Purpose |
-|---------|---------|
-| **@nodetool/kernel** | DAG execution engine -- graph validation, node actors, inbox routing, edge counting |
-| **@nodetool/runtime** | Processing context, cache adapters, storage adapters, asset handling |
-| **@nodetool/protocol** | Shared message types (JobUpdate, NodeUpdate, EdgeUpdate, TaskUpdate) |
-| **@nodetool/agents** | Agent executor, task planner, step executor, multi-mode agent, 20+ tool types |
-| **@nodetool/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
-| **@nodetool/config** | Settings management and environment configuration |
-
-### Infrastructure Packages
-
-| Package | Purpose |
-|---------|---------|
-| **@nodetool/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
-| **@nodetool/storage** | Asset storage backends (local filesystem, S3, Supabase) |
-| **@nodetool/vectorstore** | Vector database integration (Chroma) for RAG workflows |
-| **@nodetool/cli** | Command-line interface for workflow execution, deployment, and package management |
-| **@nodetool/base-nodes** | Core node implementations and dynamic node generation |
-
-### Frontend
-
-| Package | Purpose |
-|---------|---------|
-| **web** | React application -- workflow editor, asset explorer, model manager, global chat |
-
----
-
-## Execution Engine
-
-### WorkflowRunner
-
-The `WorkflowRunner` is the DAG orchestrator that executes workflow graphs. It handles:
-
-- **Graph validation** -- Ensures all connections are valid and the graph is acyclic
-- **Node actor spawning** -- Creates a `NodeActor` for each node in the graph
-- **Input dispatch** -- Routes initial data to the correct input nodes
-- **Edge counting and EOS propagation** -- Tracks when nodes have received all inputs and propagates End-Of-Stream signals through the graph
-- **Concurrent execution** -- Runs independent nodes in parallel when their inputs are ready
-
-### NodeActor
-
-Each node in a workflow runs as a `NodeActor` with one of four execution modes:
-
-| Mode | Behavior | When to Use |
-|------|----------|-------------|
-| **Buffered** | Collects all inputs before processing | Default for most nodes. Use when you need all data before you can produce output (e.g., image resize, text formatting). |
-| **Streaming input** | Processes inputs as they arrive, one at a time | Use for nodes that handle items in a stream (e.g., filtering, transforming individual items). |
-| **Streaming output** | Produces outputs incrementally as they become available | Use for LLMs and generators that emit tokens/chunks over time (e.g., Agent, ListGenerator). |
-| **Controlled** | Manages its own execution lifecycle with cached input replay | Use for nodes that need custom control over when and how they process (e.g., loops, conditional retry). |
-
-### Sync Modes
-
-Sync modes determine when a node fires relative to its inputs:
-
-| Sync Mode | Behavior | Example |
-|-----------|----------|---------|
-| **zip_all** | Wait until **all** inputs have data, then fire with matched sets | A "Combine" node that needs both an image and a caption before it can proceed. |
-| **on_any** | Fire when **any** input receives data | A "Logger" node that logs every piece of data passing through, regardless of source. |
-| **sticky** | Remember the last value on inputs that haven't changed | A "Style Transfer" node where the style image is set once but content images stream through repeatedly. |
-
-### ProcessingContext
-
-The `ProcessingContext` provides the runtime environment for node execution:
-
-- **Message queue** -- Collects `ProcessingMessage` events for streaming to clients
-- **Cache interface** -- Pluggable cache adapters (memory, disk) for intermediate results
-- **Asset storage** -- `StorageAdapter` interface supporting local filesystem, S3, or Supabase
-- **Asset output modes** -- `data_uri`, `temp_url`, `storage_url`, `workspace`, `raw`
-- **User context** -- Authentication tokens, user data, workspace information
+- [High-Level Overview](#high-level-overview)
+- [Repository Layout](#repository-layout)
+- [Design Principles](#design-principles)
+- [Backend Architecture](#backend-architecture)
+  - [Package Dependency Graph](#package-dependency-graph)
+  - [Foundational Layer](#foundational-layer)
+  - [Infrastructure Layer](#infrastructure-layer)
+  - [Domain Layer](#domain-layer)
+  - [Feature Layer](#feature-layer)
+  - [Application Layer](#application-layer)
+  - [Workflow Execution Pipeline](#workflow-execution-pipeline)
+  - [Agent System](#agent-system)
+  - [Node System](#node-system)
+- [Frontend Architecture](#frontend-architecture)
+  - [Technology Stack](#technology-stack)
+  - [Application Shell & Routing](#application-shell--routing)
+  - [State Management](#state-management)
+  - [Component Architecture](#component-architecture)
+  - [WebSocket Communication](#websocket-communication)
+  - [API Client](#api-client)
+  - [Code Splitting & Performance](#code-splitting--performance)
+- [Electron Desktop App](#electron-desktop-app)
+- [Mobile App](#mobile-app)
+- [Communication Protocols](#communication-protocols)
+- [Data Flow Examples](#data-flow-examples)
+  - [Workflow Execution](#workflow-execution)
+  - [Chat / Agent Interaction](#chat--agent-interaction)
+- [Storage & Persistence](#storage--persistence)
+- [Authentication](#authentication)
+- [Deployment](#deployment)
+- [Build System](#build-system)
+- [Testing Strategy](#testing-strategy)
 
 ---
 
-## Job Lifecycle (run, stream, reconnect, cancel)
+## High-Level Overview
 
-{% mermaid %}
-sequenceDiagram
-    participant Client
-    participant API as API Server
-    participant JEM as JobExecutionManager
-    participant Runner as Execution Strategy
-    participant Msg as Messaging/WS
-
-    Client->>API: POST /api/workflows/{id}/run (stream=true)
-    API->>JEM: Create job + enqueue
-    JEM->>Runner: Start job (threaded/subprocess/docker)
-    Runner->>Msg: Emit streaming events
-    Msg-->>Client: token/output events
-    Client-->>API: reconnect with thread/job id
-    API-->>Msg: resume stream from checkpoint
-    Client->>API: DELETE /api/workflows/{id}/run (cancel)
-    API->>JEM: cancel job
-    Runner-->>JEM: teardown and cleanup
-    JEM-->>Msg: end event
-    Msg-->>Client: completion / cancelled status
-{% endmermaid %}
-
-### Message Types
-
-The protocol layer defines several message types for tracking execution state:
-
-| Message | Purpose |
-|---------|---------|
-| **JobUpdate** | Overall job status (queued, running, completed, failed, cancelled) |
-| **NodeUpdate** | Per-node progress (started, output produced, completed, errored) |
-| **EdgeUpdate** | Data flowing through connections between nodes |
-| **TaskUpdate** | Agent task lifecycle (created, step started/completed/failed, task completed) |
-
----
-
-## Agent System
-
-NodeTool includes a full agent execution framework for autonomous task completion:
-
-### Components
-
-- **TaskPlanner** -- Breaks complex goals into ordered subtasks with dependencies
-- **TaskExecutor** -- Manages the execution of a complete task plan
-- **StepExecutor** -- Runs individual steps within a task, including tool calls
-- **MultiModeAgent** -- Supports both agent mode (autonomous planning) and direct chat mode
-
-### Available Tools (20+)
-
-Agents can use a wide range of tools during execution:
-
-| Category | Tools |
-|----------|-------|
-| **Web** | Browser, HTTP requests, web search, Google APIs |
-| **Files** | Filesystem operations, workspace management, asset tools |
-| **Code** | JavaScript sandbox execution, code analysis |
-| **Data** | Calculator, math operations, vector DB queries |
-| **Documents** | PDF processing, email integration |
-| **AI** | MCP (Model Context Protocol) tools for external service integration |
-
-### Team Collaboration
-
-The agent system supports multi-agent coordination through:
-- **Team Executor** -- Orchestrates multiple agents working on related tasks
-- **Task Board** -- Message bus for inter-agent communication
-- **Edge Message Bus** -- Distributed communication for remote agent setups
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                          Clients                                 │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐     │
+│  │  Web UI  │   │ Electron │   │  Mobile  │   │   CLI    │     │
+│  │ (React)  │   │ (Desktop)│   │ (Expo)   │   │  (Ink)   │     │
+│  └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘     │
+│       │              │              │              │             │
+│       └──────────────┴──────┬───────┴──────────────┘             │
+│                             │                                    │
+│                     HTTP + WebSocket                             │
+│                             │                                    │
+├─────────────────────────────┼────────────────────────────────────┤
+│                       Backend Server                             │
+│                             │                                    │
+│  ┌──────────────────────────┴──────────────────────────────┐     │
+│  │              WebSocket + HTTP Server                     │     │
+│  │           (packages/websocket)                          │     │
+│  └──────┬────────────┬────────────┬────────────┬───────────┘     │
+│         │            │            │            │                 │
+│  ┌──────┴──┐  ┌──────┴──┐  ┌─────┴────┐ ┌────┴─────┐           │
+│  │ Kernel  │  │ Agents  │  │  Models  │ │  Auth    │           │
+│  │ (DAG    │  │ (LLM    │  │ (SQLite  │ │ (JWT     │           │
+│  │ Runner) │  │ Tasks)  │  │ + ORM)   │ │ Tokens)  │           │
+│  └────┬────┘  └────┬────┘  └──────────┘ └──────────┘           │
+│       │            │                                            │
+│  ┌────┴────┐  ┌────┴────────────────────────────────────┐       │
+│  │Node SDK │  │  Tools (100+)                           │       │
+│  │+ Nodes  │  │  Search, Code, File, Browser, PDF, ...  │       │
+│  └────┬────┘  └─────────────────────────────────────────┘       │
+│       │                                                         │
+│  ┌────┴────────────────────────────────────────────────┐        │
+│  │  Runtime  │  Protocol  │  Config  │  Security       │        │
+│  │  Storage  │  VectorDB  │  Code Runners              │        │
+│  └─────────────────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Providers
+## Repository Layout
 
-NodeTool supports 20+ AI model providers through a unified provider interface:
-
-| Provider | Types |
-|----------|-------|
-| **OpenAI** | Text, image, audio, embeddings |
-| **Anthropic** | Text (Claude models) |
-| **Google Gemini** | Text, image, video, audio |
-| **Ollama** | Local LLMs |
-| **LM Studio** | Local LLMs |
-| **Hugging Face** | All model types |
-| **Replicate** | Image, video, audio |
-| **FAL** | Image generation |
-| **Groq** | Fast text inference |
-| **Mistral** | Text generation |
-| **Together** | Text, embeddings |
-| **Cerebras** | Fast text inference |
-| **OpenRouter** | Multi-provider routing |
-| **vLLM** | Self-hosted inference |
-
-Each provider implements a base interface that handles authentication, model listing, and inference calls. A built-in cost calculator tracks token usage across providers.
+```
+nodetool/
+├── packages/               # TypeScript backend monorepo (26 packages)
+│   ├── protocol/           #   Shared types & message definitions (Zod)
+│   ├── config/             #   Environment & settings management
+│   ├── security/           #   Encryption, secrets, master key
+│   ├── auth/               #   JWT authentication & user management
+│   ├── storage/            #   Pluggable asset storage (file, S3, Supabase)
+│   ├── models/             #   Database models (SQLite + Drizzle ORM)
+│   ├── runtime/            #   Processing context & LLM providers
+│   ├── kernel/             #   DAG orchestration & workflow runner
+│   ├── node-sdk/           #   BaseNode class & node registry
+│   ├── base-nodes/         #   100+ built-in node types
+│   ├── agents/             #   Agent system with task planning & tools
+│   ├── chat/               #   Chat protocol & runtime integration
+│   ├── vectorstore/        #   SQLite-vec vector database
+│   ├── code-runners/       #   Sandboxed code execution (Docker/subprocess)
+│   ├── dsl/                #   Type-safe workflow DSL
+│   ├── websocket/          #   HTTP + WebSocket server (entry point)
+│   ├── cli/                #   Terminal UI (React + Ink)
+│   ├── deploy/             #   Deployment utilities (Docker, SSH, RunPod, GCP)
+│   ├── huggingface/        #   HuggingFace model discovery & cache
+│   ├── replicate-nodes/    #   Replicate AI integration nodes
+│   ├── replicate-codegen/  #   Code generator for Replicate nodes
+│   ├── fal-nodes/          #   FAL AI integration nodes
+│   ├── fal-codegen/        #   Code generator for FAL nodes
+│   └── elevenlabs-nodes/   #   ElevenLabs voice synthesis nodes
+├── web/                    # React web application (Vite + MUI)
+├── electron/               # Electron desktop shell
+├── mobile/                 # React Native mobile app (Expo)
+├── docs/                   # Jekyll documentation site
+├── scripts/                # Build, release, and dev helper scripts
+├── workflow_runner/        # Standalone workflow execution utilities
+├── examples/               # Example workflows
+├── Makefile                # Top-level build/test/lint commands
+├── package.json            # npm workspace configuration
+└── tsconfig.base.json      # Shared TypeScript configuration
+```
 
 ---
 
-## Storage Architecture
+## Design Principles
 
-NodeTool uses a pluggable storage system with three backends:
+1. **Streaming-first execution** — Results are streamed to clients as they are produced. Workflows, chat, and agent tasks all emit incremental updates over WebSocket so users see progress in real time and can cancel at any point.
 
-| Backend | Use Case | Pros | Cons |
-|---------|----------|------|------|
-| **Local filesystem** | Desktop app, development | Zero config, fast, private | Single machine only |
-| **S3-compatible** | Production (AWS, MinIO) | Scalable, durable, multi-region | Requires cloud account, network latency |
-| **Supabase Storage** | Supabase deployments | Integrated auth + storage, managed | Requires Supabase project |
+2. **Unified runtime** — The same workflow JSON graph runs identically on desktop (Electron), headless server, RunPod GPU cloud, or Google Cloud Run. No platform-specific code is required.
 
-The storage adapter is selected automatically based on environment configuration. Assets are stored in two buckets: `assets` (permanent) and `assets-temp` (intermediate results, auto-cleaned). See [Storage](storage.md) for configuration details.
+3. **Pluggable execution strategies** — Nodes can run in-process (fast iteration), in subprocesses (isolation), or in Docker containers (deployment). The strategy is chosen at runtime without changing the workflow definition.
+
+4. **Layered package architecture** — Packages are organized into layers (foundational → infrastructure → domain → feature → application) with strict dependency direction. Lower layers never import from higher layers.
+
+5. **Type safety end-to-end** — The protocol package defines Zod schemas shared between backend and frontend. The API client is generated from OpenAPI specs. TypeScript strict mode is enforced across all packages.
 
 ---
 
-## Notes
+## Backend Architecture
 
-- All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
-- Messaging emits both JSON and optional MessagePack; see [Chat Server](chat-server.md) for protocol details.
-- Execution strategies are detailed in [Execution Strategies](execution-strategies.md).
+The backend is a TypeScript monorepo of 26 npm workspace packages. Each package has a focused responsibility and explicit dependencies.
 
-## Related
+### Package Dependency Graph
 
-- [Key Concepts](key-concepts.md) -- High-level overview of workflows, nodes, and models
-- [API Reference](api-reference.md) -- REST and WebSocket API documentation
-- [Developer Guide](developer/) -- Building custom nodes and extensions
-- [Deployment Guide](deployment.md) -- Running NodeTool in production
+```
+Application Layer
+  └── websocket ─────────────────────────── Server entry point
+  └── cli ───────────────────────────────── Terminal UI
+  └── deploy ────────────────────────────── Deployment tooling
+
+Feature Layer
+  ├── base-nodes ────────────────────────── Built-in node types
+  ├── dsl ───────────────────────────────── Workflow DSL
+  ├── replicate-nodes, fal-nodes ────────── Provider integrations
+  ├── elevenlabs-nodes ──────────────────── Voice synthesis
+  ├── huggingface ───────────────────────── Model discovery
+  └── chat ──────────────────────────────── Chat protocol
+
+Domain Layer
+  ├── kernel ────────────────────────────── DAG runner & actors
+  ├── node-sdk ──────────────────────────── Node framework
+  ├── agents ────────────────────────────── Agent task planning
+  └── models ────────────────────────────── Database persistence
+
+Infrastructure Layer
+  ├── runtime ───────────────────────────── Processing context
+  ├── vectorstore ───────────────────────── Vector search
+  └── security ──────────────────────────── Encryption & secrets
+
+Foundational Layer
+  ├── protocol ──────────────────────────── Types & messages (Zod)
+  ├── config ────────────────────────────── Environment management
+  ├── storage ───────────────────────────── Asset storage adapters
+  ├── auth ──────────────────────────────── Authentication providers
+  └── code-runners ──────────────────────── Sandboxed code execution
+```
+
+### Foundational Layer
+
+These packages have no internal dependencies and form the base of the stack.
+
+**`protocol`** — Defines all shared types using Zod schemas: `ProcessingMessage`, `NodeDescriptor`, `Edge`, `JobUpdate`, `NodeUpdate`, `OutputUpdate`, and asset reference types (`ImageRef`, `AudioRef`, `VideoRef`). Provides `TypeMetadata` for complex type parsing (e.g., `list[dict[str, int]]`), JSON schema generation for tool definitions, and type validation/coercion utilities.
+
+**`config`** — Environment and settings management built on dotenv. Exports `loadEnvironment()`, `getEnv()`, `requireEnv()` for environment variables, `registerSetting()`/`getSettings()` for a typed settings registry, `createLogger()` using pino for structured logging, and `diagnoseEnvironment()` for startup validation.
+
+**`storage`** — Pluggable asset storage with a shared `AbstractStorage` interface (`store`, `retrieve`, `exists`). Four backend implementations: `FileStorage` (local filesystem), `MemoryStorage` (tests), `S3Storage` (AWS S3 via dynamic import), and `SupabaseStorage` (Supabase cloud). SDKs are loaded lazily to keep them as optional runtime-only dependencies.
+
+**`auth`** — JWT-based authentication with multiple provider implementations: `LocalAuthProvider` (file-based users), `StaticTokenProvider` (fixed tokens), `MultiUserAuthProvider`, and `SupabaseAuthProvider`. Provides middleware (`createAuthMiddleware`), token extraction, and a `UserManager` abstraction with role-based access control.
+
+**`code-runners`** — Sandboxed code execution for Python, JavaScript, Bash, Ruby, and Lua. Supports subprocess-based and Docker container-based runners with streaming stdout/stderr capture.
+
+### Infrastructure Layer
+
+Built on top of the foundational packages.
+
+**`runtime`** — The central `ProcessingContext` class that every node receives during execution. It provides a message queue for emitting `ProcessingMessage` events, cache adapter interface (get/set with TTL), storage adapter interface for assets, and LLM provider abstractions (`BaseProvider`) for OpenAI, Anthropic, Gemini, and others. Also includes `StreamingInputs`/`StreamingOutputs` types, a Python bridge for interop with Python nodes, and OpenTelemetry tracing.
+
+**`security`** — Cryptography and secret management. Uses AES-256-GCM encryption with a master key derived from OS keychain (keytar), AWS KMS, or environment variables. Provides `getSecret()`/`hasSecret()` for database-backed encrypted credential access with caching. Includes `runStartupChecks()` to validate encryption and database connectivity at boot.
+
+**`vectorstore`** — SQLite-vec backed vector database for semantic search. Exports `SqliteVecStore` with collection-based organization, multiple embedding providers (OpenAI, Gemini, Ollama, Mistral), and document splitting with configurable chunk size and overlap.
+
+### Domain Layer
+
+Core business logic for workflows, nodes, agents, and persistence.
+
+**`kernel`** — The workflow orchestration engine. Key components:
+- `Graph` — DAG data structure with O(1) node/edge lookup via Map-based indexing, edge type validation, cycle detection, and topological sort (Kahn's algorithm).
+- `WorkflowRunner` — Coordinates execution: graph initialization, `NodeInbox` creation for message buffering, actor spawning for concurrent node execution, edge counter tracking for end-of-stream propagation, and output collection.
+- `NodeActor` — Executes individual nodes by resolving a `NodeExecutor` implementation, managing output routing, and handling streaming/batched inputs.
+- `NodeInbox` — Per-node message buffer that tracks upstream completion and supports different sync modes (`zip_all` waits for all inputs, `on_any` fires immediately).
+
+**`node-sdk`** — The framework for defining custom nodes. Exports `BaseNode` (abstract class with static metadata, property/output declarations, and serialization), `NodeRegistry` (central type registry), and TypeScript decorators (`@node()`, `@output()`, `@property()`) for declarative node definition. Nodes implement `process(context, values)` returning an output record.
+
+**`agents`** — Multi-step LLM agent system with layered execution:
+- `Agent` / `SimpleAgent` — Agent abstractions with skill loading.
+- `AgentExecutor` → `TaskPlanner` → `TaskExecutor` → `StepExecutor` — Decomposes goals into tasks, executes them with tool availability.
+- Tool system with 100+ tools across categories: search (Google, DataForSEO), code execution, file I/O, browser automation (Playwright), email, image generation, PDF processing, vector search, workflow management, and MCP (Model Context Protocol) integration.
+
+**`models`** — Database persistence layer using Drizzle ORM over SQLite. Defines tables for: `workflows` (DAG definitions), `jobs` (execution records), `messages` / `threads` (chat history), `assets` (file metadata), `secrets` (encrypted credentials), `workspaces`, `workflowVersions`, `oauthCredentials`, `predictions` (usage/cost tracking), `runNodeState`, `runEvents`, and `runLeases` (distributed job leasing).
+
+### Feature Layer
+
+Node implementations and provider integrations.
+
+**`base-nodes`** — 100+ built-in node types organized by category: input/output, data processing (lists, dicts, transforms), text manipulation, code execution (Python/JS/TS via isolated-vm), document processing (PDF extraction, DOCX/Excel/Markdown conversion), image/audio/video processing, web scraping (Playwright), email, search, agent execution, vector store operations, and LLM model integration (Gemini, Anthropic, OpenAI).
+
+**`dsl`** — Type-safe TypeScript DSL for programmatically defining workflows. Converts between DSL representation and kernel graph format.
+
+**`chat`** — Chat protocol and runtime integration for conversational AI interactions.
+
+**`replicate-nodes`**, **`fal-nodes`**, **`elevenlabs-nodes`** — Provider-specific node packs for Replicate AI, FAL AI, and ElevenLabs voice synthesis. Each extends `BaseNode` from node-sdk.
+
+**`huggingface`** — HuggingFace model discovery, cache scanning, and artifact inspection for local model management.
+
+### Application Layer
+
+Entry points that wire everything together.
+
+**`websocket`** — The main server package. Runs an HTTP + WebSocket server on port 7777 (default).
+
+HTTP API routes (40+ endpoints):
+| Route prefix | Purpose |
+|---|---|
+| `/api/workflows/*` | Workflow CRUD, tools, examples |
+| `/api/jobs/*` | Job status, triggers, cancellation |
+| `/api/messages/*`, `/api/threads/*` | Chat messages and threads |
+| `/api/assets/*` | Asset storage, search, thumbnails |
+| `/api/nodes/*` | Node metadata and validation |
+| `/api/settings/*` | Configuration and secrets |
+| `/api/collections/*` | Vector store collections |
+| `/api/models/*` | LLM provider model listings |
+| `/api/users/*`, `/api/workspaces/*` | User and workspace management |
+| `/v1/*` | OpenAI-compatible API endpoints |
+| `/api/oauth/*` | OAuth flows |
+
+WebSocket commands handled by `UnifiedWebSocketRunner`:
+| Command | Purpose |
+|---|---|
+| `run_job` | Execute a workflow DAG |
+| `chat_message` | Chat with agent mode |
+| `inference` | Direct LLM inference |
+| `cancel_job` | Stop execution |
+| `reconnect_job` / `resume_job` | Resume existing or suspended jobs |
+| `stream_input` / `end_input_stream` | Push streaming data to input nodes |
+| `get_status` | Query job status |
+
+The server also registers all node types (base + provider nodes), initializes the Python bridge for HuggingFace/MLX node execution, and sets up tool registries.
+
+**`cli`** — Interactive terminal UI built with React + Ink. Provides `nodetool-chat` for conversational AI and `nodetool` for workflow management, connecting to the WebSocket server.
+
+**`deploy`** — Deployment utilities supporting Docker image build/push, SSH remote deployment, RunPod GPU cloud, and Google Cloud Run/Compute Engine. Uses YAML configuration files.
+
+### Workflow Execution Pipeline
+
+```
+Client sends "run_job" via WebSocket
+        │
+        ▼
+UnifiedWebSocketRunner (packages/websocket)
+  ├── Creates ProcessingContext with storage, cache, secrets
+  ├── Resolves node executors (TS registry → Python bridge fallback)
+  │
+  ▼
+WorkflowRunner (packages/kernel)
+  ├── Graph.fromDict() — validates and indexes the DAG
+  ├── Creates NodeInbox per node (message buffers)
+  ├── Dispatches input values to InputNodes
+  │
+  ▼
+NodeActor (packages/kernel)
+  ├── Pulls messages from NodeInbox
+  ├── Resolves NodeExecutor for node type
+  ├── Calls BaseNode.process(context, values)
+  │
+  ▼
+BaseNode.process() (packages/node-sdk or base-nodes)
+  ├── Executes node logic
+  ├── Emits ProcessingMessages via context
+  │
+  ▼
+Output Routing
+  ├── Results sent along edges to downstream NodeInboxes
+  ├── Edge counters track end-of-stream propagation
+  ├── OutputUpdate messages streamed to client via WebSocket
+  │
+  ▼
+Client receives streaming updates (JobUpdate, NodeUpdate, OutputUpdate)
+```
+
+### Agent System
+
+```
+User sends "chat_message" with agent mode
+        │
+        ▼
+AgentExecutor
+  ├── Loads agent skills and available tools
+  │
+  ▼
+TaskPlanner
+  ├── Uses LLM to decompose goal into ordered tasks
+  │
+  ▼
+TaskExecutor (for each task)
+  ├── Selects relevant tools
+  │
+  ▼
+StepExecutor
+  ├── Calls LLM with tool schemas
+  ├── Processes tool_call responses
+  ├── Executes tools (search, code, file, browser, etc.)
+  ├── Returns tool results to LLM
+  ├── Repeats until task is complete
+  │
+  ▼
+Results streamed to client via WebSocket
+```
+
+### Node System
+
+Nodes are the fundamental units of computation. Each node:
+- Extends `BaseNode` from `node-sdk`
+- Declares input properties with types and defaults
+- Declares output slots with type information
+- Implements `process(context, values)` returning output values
+- Can be synchronous or streaming (via `StreamingInputs`/`StreamingOutputs`)
+
+```typescript
+@node({ namespace: "math", title: "Add" })
+class AddNode extends BaseNode {
+  @property({ type: "float" }) a: number = 0;
+  @property({ type: "float" }) b: number = 0;
+  @output({ type: "float" })  result: number = 0;
+
+  async process(context: ProcessingContext, values: { a: number; b: number }) {
+    return { result: values.a + values.b };
+  }
+}
+```
+
+Node types are registered in `NodeRegistry` and resolved at runtime by the kernel's executor resolution chain: TypeScript registry → Python bridge fallback.
+
+---
+
+## Frontend Architecture
+
+### Technology Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| UI Framework | React | 18.2 |
+| Language | TypeScript | 5.7 |
+| Bundler | Vite | 6.4 |
+| Component Library | Material-UI (MUI) | v7 |
+| State Management | Zustand | 4.5 |
+| Server State | TanStack Query (React Query) | v5 |
+| Graph Editor | @xyflow/react (React Flow) | v12 |
+| Routing | React Router | v7 |
+| Styling | Emotion (CSS-in-JS) | v11 |
+| Code Editor | Monaco Editor | — |
+| Rich Text | Lexical | — |
+| 3D Visualization | React Three Fiber + Three.js | — |
+| Panel Layout | Dockview | — |
+| Testing | Jest + React Testing Library | 29.7 |
+| E2E Testing | Playwright | 1.57 |
+
+### Application Shell & Routing
+
+The app entry point (`web/src/index.tsx`) wraps the application in a provider stack:
+
+```
+<ErrorBoundary>
+  <ThemeProvider theme={ThemeNodetool}>
+    <CssBaseline />
+    <QueryClientProvider>
+      <MobileClassProvider>
+        <MenuProvider>
+          <WorkflowManagerProvider>
+            <KeyboardProvider>
+              <RouterProvider routes={...} />
+            </KeyboardProvider>
+          </WorkflowManagerProvider>
+        </MenuProvider>
+      </MobileClassProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
+</ErrorBoundary>
+```
+
+Routes:
+
+| Path | Component | Description |
+|---|---|---|
+| `/` | NavigateToStart | Redirects to editor or dashboard |
+| `/dashboard` | Dashboard | Home screen |
+| `/editor/:workflow` | TabsNodeEditor | Multi-tab workflow editor |
+| `/chat/:thread_id?` | GlobalChat | AI chat interface |
+| `/standalone-chat/:thread_id?` | StandaloneChat | Full-screen chat |
+| `/apps/:workflowId?` | MiniAppPage | Mini-app runner |
+| `/miniapp/:workflowId` | StandaloneMiniApp | Standalone mini-app |
+| `/assets` | AssetExplorer | Asset browser |
+| `/collections` | CollectionsExplorer | Vector collection browser |
+| `/templates` | ExampleGrid | Template workflow gallery |
+| `/models` | ModelListIndex | HuggingFace model browser |
+| `/login` | Login | Authentication page |
+
+All routes except `/login` and dev routes are wrapped in `ProtectedRoute`.
+
+### State Management
+
+The frontend uses a multi-layer state management approach:
+
+**Zustand stores (55+)** manage client-side state. Major stores:
+
+| Store | Responsibility |
+|---|---|
+| `NodeStore` | Per-tab graph state (nodes, edges) with @xyflow/react integration and temporal undo/redo via zundo |
+| `WorkflowManagerStore` | Open workflows, create/load/copy/delete via API, localStorage persistence |
+| `WorkflowRunner` | Per-workflow execution state machine (idle → connecting → running → completed/error) |
+| `GlobalChatStore` | Chat threads, messages, WebSocket streaming, tool calls |
+| `AgentStore` | Agent execution and workflow automation |
+| `ResultsStore` | Workflow execution results and previews |
+| `AssetStore` | Asset management with TanStack Query integration |
+| `MetadataStore` | Node type metadata registry |
+| `SettingsStore` | User settings with localStorage persistence |
+| `ModelDownloadStore` | HuggingFace model downloads with progress tracking |
+| `NotificationStore` / `ErrorStore` | User-facing notifications and errors |
+| `LayoutStore` / `PanelStore` | UI layout and panel visibility |
+| `KeyPressedStore` | Keyboard event tracking |
+
+Store patterns:
+- Selector-based subscriptions to prevent unnecessary re-renders: `useStore(state => state.value)`
+- Middleware: `persist()` for localStorage, `temporal()` for undo/redo
+- Per-workflow stores created and managed by `WorkflowManagerContext`
+
+**TanStack Query** manages server state (data fetching, caching, mutations):
+- `useWorkflow()`, `useAssets()`, `useWorkflowVersions()` — query hooks in `serverState/`
+- Hierarchical query keys: `['workflows', workflowId]`
+- Automatic cache invalidation after mutations
+
+**React Contexts** coordinate cross-cutting concerns:
+- `WorkflowManagerContext` — manages all per-workflow `NodeStore` instances for the tabbed editor, persists open workflows to localStorage, provides validation helpers
+- `NodeContext` — provides node-specific data within node component trees
+- `EditorInsertionContext` — manages editor insertion/creation points
+
+### Component Architecture
+
+```
+web/src/components/
+├── node_editor/       # Core graph editor (canvas, drag-drop, selection)
+├── node/              # Individual node rendering and property editing
+├── node_menu/         # Node search and quick-add menu
+├── panels/            # App layout (Header, PanelLeft, PanelRight, PanelBottom)
+├── editor/            # Multi-tab editor (TabsNodeEditor)
+├── chat/              # Chat UI (GlobalChat, messages, streaming)
+├── dashboard/         # Dashboard / home page
+├── assets/            # Asset explorer and editor
+├── workflows/         # Workflow templates and grid views
+├── collections/       # Vector collection management
+├── hugging_face/      # Model browser and download manager
+├── miniapps/          # Mini-app page rendering
+├── vibecoding/        # AI-assisted coding integration
+├── terminal/          # Terminal emulator (xterm.js)
+├── textEditor/        # Rich text editor (Lexical)
+├── audio/             # Audio player and waveform components
+├── video/             # Video player components
+├── asset_viewer/      # Asset preview (PDF, images, 3D models)
+├── inputs/            # Form inputs and input widgets
+├── widgets/           # Node input widgets (color pickers, sliders, etc.)
+├── buttons/           # Reusable button components
+├── dialogs/           # Modal dialogs
+├── menus/             # Context menus and dropdowns
+├── themes/            # MUI theme configuration
+├── ui_primitives/     # Low-level UI primitives
+├── ui/                # Generic shared UI components
+└── common/            # Shared components (loaders, errors)
+```
+
+### WebSocket Communication
+
+The frontend communicates with the backend via a single WebSocket connection managed by `WebSocketManager` (in `web/src/lib/websocket/`):
+
+- **Binary protocol** — Messages are encoded with msgpack (not JSON) for performance
+- **State machine** — Connection states: `disconnected` → `connecting` → `connected` → `reconnecting` → `failed`
+- **Auto-reconnect** — Exponential backoff with configurable decay (1.5×) and max attempts (10). Auth/policy errors (codes 1008–1011, 4000–4003) are not retried.
+- **Message queuing** — Outbound messages are queued during connection and flushed when connected
+- **Global singleton** — `GlobalWebSocketManager` provides a shared connection for all stores
+
+Messages flow:
+```
+WorkflowRunner store ──┐
+GlobalChatStore ───────┼──▶ GlobalWebSocketManager ──▶ WebSocket ──▶ Server
+AgentStore ────────────┘              ▲
+                                      │
+                              message events
+                                      │
+                              ◀───────┘
+```
+
+### API Client
+
+The REST API client (`web/src/stores/ApiClient.ts`) is generated from an OpenAPI schema using `openapi-fetch`:
+- **Type-safe** — Request/response types generated by `openapi-typescript`
+- **Auth middleware** — Automatically attaches Supabase Bearer tokens on production; skips auth on localhost
+- **Environment detection** — `isLocalhost` / `isElectron` / `isProduction` flags derived from hostname, URL parameters, and localStorage preferences
+- **Dev proxy** — Vite proxies `/api` → `localhost:7777`, `/ws` → WebSocket, `/storage` → asset storage during development
+
+### Code Splitting & Performance
+
+Vite production builds use manual chunk splitting:
+
+| Chunk | Contents |
+|---|---|
+| `vendor-react` | React, ReactDOM, React Router |
+| `vendor-mui` | Material-UI, Emotion |
+| `vendor-plotly` | Plotly.js |
+| `vendor-three` | Three.js, React Three Fiber |
+| `vendor-editor` | Monaco Editor, Lexical |
+| `vendor-pdf` | React PDF viewer |
+| `vendor-waveform` | WaveSurfer.js |
+
+Heavy components (PanelLeft, PanelRight, PanelBottom, Dashboard, Chat, Editor) are lazy-loaded with `React.lazy()` and `<Suspense>` boundaries.
+
+---
+
+## Electron Desktop App
+
+The Electron shell (`electron/`) wraps the web UI for desktop use:
+
+- **Electron** 35.7.5 with **Vite** for the renderer process
+- Uses `contextBridge` for secure IPC — `nodeIntegration` is disabled
+- `electron-builder` for packaging (Windows, macOS, Linux including Flatpak)
+- `electron-updater` for auto-updates
+- `electron-log` for structured logging
+- Hash-based routing (`#/path`) for compatibility with file:// protocol
+- Preload scripts bridge frontend tool calls to main process capabilities
+
+---
+
+## Mobile App
+
+The React Native mobile app (`mobile/`) enables users to browse and run mini-apps:
+
+- **Expo SDK 54** with React Native 0.81
+- **React Navigation** (native-stack) for screen transitions
+- **Zustand** for state management (WorkflowRunner, ChatStore)
+- **Axios** for HTTP, custom `WebSocketManager` with msgpack for real-time chat
+- **AsyncStorage** for persistent settings (server URL configuration)
+- Screens: MiniAppsListScreen, MiniAppScreen, SettingsScreen, ChatScreen
+
+See [mobile/ARCHITECTURE.md](https://github.com/nodetool-ai/nodetool/blob/main/mobile/ARCHITECTURE.md) for detailed mobile architecture documentation.
+
+---
+
+## Communication Protocols
+
+### WebSocket Protocol
+
+All WebSocket messages use **msgpack** binary encoding.
+
+**Client → Server commands:**
+```
+run_job          { job_id, workflow_id, graph, params }
+chat_message     { thread_id, content, model, tools }
+inference        { model, messages, tools }
+cancel_job       { job_id }
+reconnect_job    { job_id }
+resume_job       { job_id }
+stream_input     { job_id, node_id, data }
+end_input_stream { job_id, node_id }
+get_status       { job_id }
+```
+
+**Server → Client events:**
+```
+job_update       { job_id, status }           # Job lifecycle (started, completed, failed, cancelled)
+node_update      { job_id, node_id, status }  # Node execution state changes
+output_update    { job_id, node_id, value }   # Streaming output values
+node_progress    { job_id, node_id, progress } # Progress percentage
+task_update      { task_id, status, result }  # Agent task progress
+planning_update  { plan }                     # Agent planning status
+prediction       { model, tokens, cost }      # LLM usage tracking
+error            { message, details }         # Error notifications
+```
+
+### HTTP API
+
+REST endpoints follow standard conventions:
+- JSON request/response bodies
+- Bearer token authentication
+- OpenAPI spec for type generation
+- Vite dev proxy for local development
+
+---
+
+## Data Flow Examples
+
+### Workflow Execution
+
+```
+1. User clicks "Run" in the editor
+2. WorkflowRunner store serializes the graph from NodeStore
+3. Sends "run_job" command via GlobalWebSocketManager (msgpack)
+4. Server creates ProcessingContext with storage and secrets
+5. WorkflowRunner (kernel) validates and indexes the graph
+6. NodeActors process nodes concurrently following the DAG topology
+7. Each node's BaseNode.process() emits ProcessingMessages
+8. Outputs route along edges to downstream NodeInboxes
+9. Server streams job_update, node_update, output_update to client
+10. WorkflowRunner store updates execution state
+11. ResultsStore updates output previews
+12. NodeStore reflects node status (running, completed, error)
+```
+
+### Chat / Agent Interaction
+
+```
+1. User sends a message in the chat UI
+2. GlobalChatStore sends "chat_message" via WebSocket
+3. Server creates or retrieves the thread
+4. AgentExecutor loads skills and tools for the agent
+5. TaskPlanner uses LLM to decompose the goal into tasks
+6. StepExecutor iterates: LLM call → tool_call → tool execution → result
+7. Tool calls that need frontend context are forwarded via UIToolProxy
+8. Streaming chunks sent as they're generated
+9. GlobalChatStore appends chunks to the current message
+10. Final message stored in database (models package)
+```
+
+---
+
+## Storage & Persistence
+
+| Data | Storage | Location |
+|---|---|---|
+| Workflows, jobs, threads, messages | SQLite (Drizzle ORM) | `packages/models` |
+| Assets (images, audio, video, files) | Pluggable: filesystem, S3, or Supabase | `packages/storage` |
+| Encrypted secrets | SQLite + AES-256-GCM | `packages/security` + `packages/models` |
+| Vector embeddings | SQLite-vec | `packages/vectorstore` |
+| User settings (frontend) | localStorage | `web/src/stores/SettingsStore` |
+| Open workflows (frontend) | localStorage | `web/src/stores/WorkflowManagerStore` |
+| Server URL (mobile) | AsyncStorage | `mobile/src/services/api.ts` |
+
+---
+
+## Authentication
+
+Authentication is handled by `packages/auth` with pluggable providers:
+
+| Provider | Use Case |
+|---|---|
+| `LocalAuthProvider` | Single-user local development (file-based) |
+| `StaticTokenProvider` | Fixed API token for headless/CI usage |
+| `MultiUserAuthProvider` | Multi-user with role-based access (admin, user) |
+| `SupabaseAuthProvider` | Production cloud authentication |
+
+The frontend uses Supabase JS client for session management, token refresh, and attaches Bearer tokens via API client middleware.
+
+---
+
+## Deployment
+
+Supported deployment targets (via `packages/deploy`):
+
+| Target | Description |
+|---|---|
+| **Local** | Docker container on local machine |
+| **Docker** | Container build and push to registry |
+| **SSH** | Remote deployment to self-hosted servers |
+| **RunPod** | GPU cloud platform for ML workloads |
+| **GCP** | Google Cloud Run / Compute Engine |
+
+Deployments are configured via YAML files and managed through the CLI. The same server image runs in all environments — only the storage adapter and auth provider change.
+
+---
+
+## Build System
+
+### Top-Level Make Targets
+
+```bash
+make install          # Install all dependencies (web, electron, mobile)
+make build            # Build all packages + web
+make typecheck        # TypeScript type-check all packages
+make lint             # Lint all packages
+make lint-fix         # Auto-fix linting issues
+make test             # Run all tests
+make check            # typecheck + lint + test (quality gate)
+make clean            # Remove dependencies and build artifacts
+```
+
+### Package Build Order
+
+Packages must be built in dependency order. The root `build:packages` script handles this:
+
+```
+protocol → config → security → storage → auth → code-runners
+    → runtime → vectorstore → models → kernel → node-sdk
+    → agents → base-nodes → dsl → chat → huggingface
+    → replicate-nodes → fal-nodes → elevenlabs-nodes
+    → websocket → cli → deploy
+```
+
+### Development Mode
+
+```bash
+make dev              # Starts websocket server + web dev server (concurrent)
+make electron         # Builds web, starts Electron desktop app
+```
+
+Vite dev server runs on port 3000 with hot module replacement. API calls are proxied to the backend on port 7777.
+
+---
+
+## Testing Strategy
+
+| Layer | Framework | Location |
+|---|---|---|
+| Backend packages | Vitest | `packages/*/tests/` |
+| Web unit tests | Jest + React Testing Library | `web/src/__tests__/`, `web/src/components/__tests__/` |
+| Web E2E tests | Playwright | `web/tests/e2e/` |
+| Electron unit tests | Jest | `electron/src/__tests__/` |
+| Electron E2E tests | Playwright | `electron/tests/e2e/` |
+| Mobile tests | Jest | `mobile/src/__tests__/` |
+
+Backend packages use Vitest with per-package `vitest.config.ts` files. The web app uses Jest with jsdom environment and extensive module mocks. E2E tests use Playwright with automatic server startup.
+
+```bash
+# Run all tests
+make test
+
+# Package-specific
+cd packages/kernel && npx vitest run
+cd web && npm test
+cd web && npm run test:e2e
+```
+
+CI/CD is managed through 19 GitHub Actions workflows covering unit tests, E2E tests, code quality, security auditing, accessibility, performance monitoring, and release automation.

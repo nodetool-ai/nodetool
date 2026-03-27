@@ -66,8 +66,8 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 **Proof Points:**
 - **Deployment portability** (`/docs/index.md:138-140`): "When you outgrow your laptop, push the same workflow to RunPod or Cloud Run. No refactoring required."
 - **Single configuration file** (`/docs/deployment.md:8-11`): "`deployment.yaml` configuration... driven by a single... across self-hosted hosts, RunPod serverless, and Google Cloud Run"
-- **Unified runtime** (`/docs/MANIFESTO.md:20`): "One graph. One runtime. Visual and headless share semantics."
-- **JSON-serialized workflows** (`/docs/MANIFESTO.md:29`): "Execute via CLI, API, WebSocket; graphs in JSON"
+- **Unified runtime** (`/docs/manifesto.md`): "One graph. One runtime. Visual and headless share semantics."
+- **JSON-serialized workflows** (`/docs/manifesto.md`): "Execute via CLI, API, WebSocket; graphs in JSON"
 - **Multiple execution surfaces** (`/docs/index.md:135-136`): "Create once in the editor, trigger from Global Chat, expose via Mini-Apps, or call it from the Workflow API—all backed by the same graph"
 
 **Example Use Cases:**
@@ -86,8 +86,8 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 - **Node-level inspection** (`/docs/getting-started.md:70-72`): Understanding what you see—each node's inputs, outputs, and settings visible
 - **Workflow visualization** (`/docs/cookbook.md:43-51`): Directed Acyclic Graph representation showing data flow
 - **Typed connections** (`/docs/cookbook.md:58`): "Type Safety: Connections enforce type compatibility"
-- **No black boxes** (`/docs/MANIFESTO.md:23`): "See every step while it runs"
-- **Reproducible runs** (`/docs/MANIFESTO.md:22`): "Seeds and inputs captured"
+- **No black boxes** (`/docs/manifesto.md`): "See every step while it runs"
+- **Reproducible runs** (`/docs/manifesto.md`): "Seeds and inputs captured"
 
 **Example Use Cases:**
 - Debug RAG pipelines by inspecting retrieved documents

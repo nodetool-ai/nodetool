@@ -56,6 +56,12 @@ Register this class in your package's index file and NodeTool discovers the node
 - [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions
 - [Gradio Conversion Guide](gradio-conversion.md) -- Convert NodeTool workflows to Gradio applications
 
+### Architecture & Internals
+
+- [Architecture](../architecture.md) -- Complete system architecture: backend, frontend, deployment
+- [ComfyUI Implementation](comfyui-implementation.md) -- Developer guide for the ComfyUI integration architecture
+- [Subgraph System](subgraphs.md) -- Architecture and specification for the UI-only subgraph system
+
 ### API Integration
 
 - [API Reference](../api-reference.md) -- REST API endpoints and authentication

@@ -1,4 +1,9 @@
-# NodeTool Manifesto
+---
+layout: page
+title: "Manifesto"
+description: "NodeTool's vision, mission, and core principles."
+---
+
 
 ## Vision
 

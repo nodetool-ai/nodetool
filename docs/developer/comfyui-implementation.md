@@ -1,4 +1,9 @@
-# ComfyUI Integration Implementation
+---
+layout: page
+title: "ComfyUI Implementation Details"
+description: "Developer guide for the ComfyUI integration architecture — services, stores, workflow conversion, and execution."
+---
+
 
 ## Overview
 
@@ -411,8 +416,8 @@ Potential improvements for future versions:
 
 - [ComfyUI Documentation](https://github.com/comfyanonymous/ComfyUI)
 - [ComfyUI API Reference](https://github.com/comfyanonymous/ComfyUI/wiki/API-Reference)
-- [NodeTool Architecture](./web/src/AGENTS.md)
-- [Testing Guide](./web/TESTING.md)
+- [NodeTool Architecture](../architecture.md)
+- [Developer Guide](index.md)
 
 ## Contributing
 

@@ -1,4 +1,9 @@
-# **Product Requirements Document: UI-Only Subgraph System**
+---
+layout: page
+title: "Subgraph System"
+description: "Architecture and specification for the UI-only subgraph system for node-based visual programming."
+---
+
 ## **For Node-Based Visual Programming Environments**
 
 **Version:** 1.0  
