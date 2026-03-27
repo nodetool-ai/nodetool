@@ -1,0 +1,61 @@
+{
+  "modelId": "jingyunliang/swinir",
+  "owner": "jingyunliang",
+  "name": "swinir",
+  "version": "660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a",
+  "description": "Image Restoration Using Swin Transformer",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "jpeg": {
+        "default": 40,
+        "description": "scale factor, activated for JPEG Compression Artifact Reduction. Leave it as default or arbitrary if other tasks are selected",
+        "title": "Jpeg",
+        "type": "integer",
+        "x-order": 3
+      },
+      "noise": {
+        "default": 15,
+        "description": "noise level, activated for Grayscale Image Denoising and Color Image Denoising. Leave it as default or arbitrary if other tasks are selected",
+        "enum": [
+          15,
+          25,
+          50
+        ],
+        "title": "noise",
+        "type": "integer",
+        "x-order": 2
+      },
+      "task_type": {
+        "default": "Real-World Image Super-Resolution-Large",
+        "description": "Choose a task",
+        "enum": [
+          "Real-World Image Super-Resolution-Large",
+          "Real-World Image Super-Resolution-Medium",
+          "Grayscale Image Denoising",
+          "Color Image Denoising",
+          "JPEG Compression Artifact Reduction"
+        ],
+        "title": "task_type",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -33,7 +33,7 @@ export const getRemoteSidebarSections = () => {
     ];
   }
 
-  return Object.entries(finalGroupedSettings).map(
+  return (Object.entries(finalGroupedSettings) as [string, any[]][]).map(
     ([groupName, settingsArray]: [string, any[]]) => {
       const sectionId = groupName.toLowerCase().replace(/\s+/g, "-");
       const items = settingsArray.reduce<{ id: string; label: string }[]>(

@@ -1,0 +1,175 @@
+{
+  "modelId": "datalab-to/marker",
+  "owner": "datalab-to",
+  "name": "marker",
+  "version": "60af7e72bef73c71197269b27a98929910d7496806efecac17d9deab596e5239",
+  "description": "Convert PDF to markdown + JSON quickly with high accuracy",
+  "inputSchema": {
+    "properties": {
+      "additional_config": {
+        "description": "Advanced configuration options as JSON string. Options include: 'disable_links' (remove hyperlinks), 'keep_pageheader_in_output' (preserve headers), 'keep_pagefooter_in_output' (preserve footers), 'filter_blank_pages' (skip empty pages), 'drop_repeated_text' (remove duplicates), and layout/table processing thresholds. Full list at: https://documentation.datalab.to/api-reference/marker",
+        "nullable": true,
+        "title": "Additional Config",
+        "type": "string"
+      },
+      "block_correction_prompt": {
+        "description": "Optional text prompt to guide output improvements. Use this to specify formatting preferences or extraction requirements, e.g., 'Extract all dates in YYYY-MM-DD format' or 'Keep all tables in their original structure'",
+        "nullable": true,
+        "title": "Block Correction Prompt",
+        "type": "string"
+      },
+      "disable_image_extraction": {
+        "default": false,
+        "description": "Skip extracting images from the PDF. By default, images are extracted and returned as base64-encoded data in the images field",
+        "title": "Disable Image Extraction",
+        "type": "boolean"
+      },
+      "disable_ocr_math": {
+        "default": false,
+        "description": "Disable recognition of inline mathematical expressions during OCR. By default, math expressions are detected and can be formatted as LaTeX",
+        "title": "Disable Ocr Math",
+        "type": "boolean"
+      },
+      "file": {
+        "description": "Input file. Must be one of: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp",
+        "format": "uri",
+        "title": "File",
+        "type": "string"
+      },
+      "force_ocr": {
+        "default": false,
+        "description": "Force OCR on all pages even if text is extractable. By default, Marker automatically uses OCR only when needed (e.g., scanned PDFs). Enable this if you see garbled or incorrect text in the output",
+        "title": "Force Ocr",
+        "type": "boolean"
+      },
+      "format_lines": {
+        "default": false,
+        "description": "Detect and format inline mathematical expressions and text styles (bold, italic, etc.) in the output. Useful for documents with mathematical notation",
+        "title": "Format Lines",
+        "type": "boolean"
+      },
+      "include_metadata": {
+        "default": false,
+        "description": "Include detailed metadata and JSON structure in the output. When enabled, returns json_data (hierarchical document structure with bounding boxes) and metadata (page stats, table of contents). When disabled (default), only returns markdown to reduce response size",
+        "title": "Include Metadata",
+        "type": "boolean"
+      },
+      "max_pages": {
+        "description": "Maximum number of pages to process. Cannot be specified if page_range is set - these parameters are mutually exclusive",
+        "minimum": 1,
+        "nullable": true,
+        "title": "Max Pages",
+        "type": "integer"
+      },
+      "mode": {
+        "default": "fast",
+        "description": "Processing mode affecting speed and quality. 'fast': lowest latency, preserves most positional information. 'balanced': same as using use_llm. 'accurate': highest quality, slowest, preserves least positional information",
+        "enum": [
+          "fast",
+          "balanced",
+          "accurate"
+        ],
+        "title": "mode",
+        "type": "string",
+        "x-order": 10
+      },
+      "page_range": {
+        "description": "Page range to parse, comma separated like 0,5-10,20. Example: '0,2-4' will process pages 0, 2, 3, and 4. Cannot be specified if max_pages is set - these parameters are mutually exclusive",
+        "nullable": true,
+        "title": "Page Range",
+        "type": "string"
+      },
+      "page_schema": {
+        "description": "Structured extraction: Provide a JSON Schema to extract specific fields from your document. When provided, the model extracts only the fields you define and returns them in the 'extraction_schema_json' output field (as a JSON string containing your extracted data plus citation fields showing which parts of the document were used). The 'markdown' and 'json_data' fields will still contain the full document conversion. Example: {\"type\":\"object\",\"properties\":{\"invoice_number\":{\"type\":\"string\"},\"total\":{\"type\":\"number\"}}}. See: https://documentation.datalab.to/docs/recipes/structured-extraction/api-overview. Increases cost by 50%",
+        "nullable": true,
+        "title": "Page Schema",
+        "type": "string"
+      },
+      "paginate": {
+        "default": false,
+        "description": "Add page separators to the output. Each page will be separated by a horizontal rule containing the page number in the format: \\n\\n{PAGE_NUMBER}\\n{48 dashes}\\n\\n",
+        "title": "Paginate",
+        "type": "boolean"
+      },
+      "save_checkpoint": {
+        "default": false,
+        "description": "Save processing checkpoint for iterative refinement. Checkpoints can be used with the Marker Prompt API to apply custom rules without re-parsing the entire document. Only useful for advanced workflows",
+        "title": "Save Checkpoint",
+        "type": "boolean"
+      },
+      "segmentation_schema": {
+        "description": "JSON Schema for document segmentation. Define segment names and descriptions to identify and extract different sections of the document (e.g., 'Executive Summary', 'Financial Data'). Useful for splitting long documents by section. See: https://documentation.datalab.to/api-reference/marker",
+        "nullable": true,
+        "title": "Segmentation Schema",
+        "type": "string"
+      },
+      "skip_cache": {
+        "default": false,
+        "description": "Bypass the server-side cache and force re-processing. By default, identical requests are cached to save time and cost. Enable this to get fresh results",
+        "title": "Skip Cache",
+        "type": "boolean"
+      },
+      "strip_existing_ocr": {
+        "default": false,
+        "description": "Remove embedded OCR text layer from the PDF and re-run OCR from scratch. Some PDFs have low-quality embedded OCR text; this option lets you regenerate it. Ignored if force_ocr is enabled",
+        "title": "Strip Existing Ocr",
+        "type": "boolean"
+      },
+      "use_llm": {
+        "default": false,
+        "description": "Use an LLM to significantly improve accuracy for tables, forms, inline math, and layout detection. This merges tables across pages, handles complex layouts, and extracts form values. Will increase processing time",
+        "title": "Use Llm",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "file"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "extraction_schema_json": {
+        "nullable": true,
+        "title": "Extraction Schema Json",
+        "type": "string"
+      },
+      "images": {
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "nullable": true,
+        "title": "Images",
+        "type": "array"
+      },
+      "json_data": {
+        "additionalProperties": true,
+        "nullable": true,
+        "title": "Json Data",
+        "type": "object"
+      },
+      "markdown": {
+        "nullable": true,
+        "title": "Markdown",
+        "type": "string"
+      },
+      "metadata": {
+        "additionalProperties": true,
+        "nullable": true,
+        "title": "Metadata",
+        "type": "object"
+      },
+      "page_count": {
+        "title": "Page Count",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "page_count"
+    ],
+    "title": "MarkerOutput",
+    "type": "object"
+  }
+}

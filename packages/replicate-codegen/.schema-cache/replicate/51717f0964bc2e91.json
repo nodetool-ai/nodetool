@@ -1,0 +1,113 @@
+{
+  "modelId": "fofr/face-to-sticker",
+  "owner": "fofr",
+  "name": "face-to-sticker",
+  "version": "764d4827ea159608a07cdde8ddf1c6000019627515eb02b6b449695fd547e5ef",
+  "description": "Turn a face into a sticker",
+  "inputSchema": {
+    "properties": {
+      "height": {
+        "default": 1024,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 4
+      },
+      "image": {
+        "description": "An image of a person to be converted to a sticker",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "instant_id_strength": {
+        "default": 1,
+        "description": "How strong the InstantID will be.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Instant Id Strength",
+        "type": "number",
+        "x-order": 8
+      },
+      "ip_adapter_noise": {
+        "default": 0.5,
+        "description": "How much noise is added to the IP adapter input",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Ip Adapter Noise",
+        "type": "number",
+        "x-order": 10
+      },
+      "ip_adapter_weight": {
+        "default": 0.2,
+        "description": "How much the IP adapter will influence the image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Ip Adapter Weight",
+        "type": "number",
+        "x-order": 9
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want in the image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "prompt": {
+        "default": "a person",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt_strength": {
+        "default": 7,
+        "description": "Strength of the prompt. This is the CFG scale, higher numbers lead to stronger prompt, lower numbers will keep more of a likeness to the original.",
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Fix the random seed for reproducibility",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "steps": {
+        "default": 20,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "upscale": {
+        "default": false,
+        "description": "2x upscale the sticker",
+        "title": "Upscale",
+        "type": "boolean",
+        "x-order": 11
+      },
+      "upscale_steps": {
+        "default": 10,
+        "description": "Number of steps to upscale",
+        "title": "Upscale Steps",
+        "type": "integer",
+        "x-order": 12
+      },
+      "width": {
+        "default": 1024,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

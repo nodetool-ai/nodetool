@@ -21,8 +21,10 @@ import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
+import NodeDependencyWarning from "./NodeDependencyWarning";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
+import { hasNodeError } from "../../stores/ErrorStore";
 import useErrorStore from "../../stores/ErrorStore";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
@@ -636,7 +638,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Track error state for node dimension management
   const hasError = useErrorStore((state) =>
-    workflow_id !== undefined ? !!state.getError(workflow_id, id) : false
+    workflow_id !== undefined
+      ? hasNodeError(state.getError(workflow_id, id))
+      : false
   );
 
   // Force node re-measurement when content that affects height changes
@@ -688,6 +692,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onShowInputs={handleShowInputs}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
+      {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
+        <NodeDependencyWarning requiredRuntimes={metadata.required_runtimes} />
+      )}
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
       {!isOverlayVisible &&

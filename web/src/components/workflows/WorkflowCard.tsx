@@ -164,13 +164,13 @@ const cardStyles = (theme: Theme) =>
     }
   });
 
-const WorkflowCard: React.FC<WorkflowCardProps> = ({
+const WorkflowCard = ({
   workflow,
   matchedNodes,
   nodesOnlySearch,
   isLoading,
   onClick
-}) => {
+}: WorkflowCardProps) => {
   const theme = useTheme();
 
   const handleClick = useCallback(() => {

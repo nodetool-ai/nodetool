@@ -38,6 +38,8 @@ import EditorStatusBar from "../textEditor/EditorStatusBar";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import ChatView from "../chat/containers/ChatView";
+import SnippetSidebar from "./SnippetSidebar";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
 import type { LanguageModel } from "../../stores/ApiTypes";
@@ -86,6 +88,7 @@ interface TextEditorModalProps {
   propertyName: string;
   propertyDescription?: string;
   language?: string;
+  nodeType?: string;
   readOnly?: boolean;
   isLoading?: boolean;
   showToolbar?: boolean;
@@ -454,6 +457,23 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.primary.main,
         background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
         boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15)`
+      },
+      "&.snippet-toggle": {
+        color: theme.vars.palette.primary.light,
+        border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`,
+        "&:hover": {
+          color: theme.vars.palette.primary.main,
+          background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
+          border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.7)`,
+          boxShadow: `0 0 10px rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`
+        },
+        "&.active": {
+          color: theme.vars.palette.primary.main,
+          background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.22)`,
+          border: `1px solid ${theme.vars.palette.primary.main}`,
+          boxShadow: `0 0 8px rgba(${theme.vars.palette.primary.mainChannel} / 0.3)`
+        }
       }
     },
     ".resize-handle": {
@@ -546,6 +566,7 @@ const TextEditorModal = ({
   propertyName,
   propertyDescription,
   language: defaultLanguage = "",
+  nodeType = "",
   readOnly = false,
   isLoading = false,
   showToolbar = true,
@@ -610,6 +631,9 @@ const TextEditorModal = ({
   const [currentText, setCurrentText] = useState(value || "");
   const [language, setLanguage] = useState(defaultLanguage || "");
 
+  // Snippet sidebar state
+  const [snippetSidebarVisible, setSnippetSidebarVisible] = useState(false);
+
   // Editor command function refs – using refs avoids re-renders when the
   // underlying functions are recreated in the child component on every mount.
   const undoFnRef = useRef<(() => void) | null>(null);
@@ -650,10 +674,13 @@ const TextEditorModal = ({
     createNewThread
   } = useChatIntegration({
     isCodeEditor,
+    language,
+    nodeType,
     monacoRef,
     getSelectedTextFnRef,
     replaceSelectionFnRef,
     setAllTextFnRef,
+    insertTextFnRef,
     setCurrentText,
     currentText
   });
@@ -887,6 +914,19 @@ const TextEditorModal = ({
                         onClick={handleMonacoFormat}
                       >
                         <FormatAlignLeftIcon />
+                      </button>
+                    </Tooltip>
+                  )}
+                  {!readOnly && (language === "javascript" || language === "typescript") && (
+                    <Tooltip
+                      enterDelay={TOOLTIP_ENTER_DELAY}
+                      title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
+                    >
+                      <button
+                        className={`button-ghost snippet-toggle ${snippetSidebarVisible ? "active" : ""}`}
+                        onClick={() => setSnippetSidebarVisible((v) => !v)}
+                      >
+                        <DataObjectIcon />
                       </button>
                     </Tooltip>
                   )}
@@ -1125,6 +1165,10 @@ const TextEditorModal = ({
                     </LexicalComposer>
                   )}
                 </div>
+                <SnippetSidebar
+                  monacoRef={monacoRef}
+                  visible={isCodeEditor && snippetSidebarVisible}
+                />
                 {assistantVisible && (
                   <div className="assistant-pane">
                     <NewChatButton onNewThread={() => void createNewThread()} />

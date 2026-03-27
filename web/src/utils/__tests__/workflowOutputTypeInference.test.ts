@@ -55,7 +55,6 @@ describe("workflowOutputTypeInference", () => {
     layout: "default",
     properties: [],
     outputs,
-    the_model_info: {},
     recommended_models: [],
     basic_fields: [],
     is_dynamic: false,

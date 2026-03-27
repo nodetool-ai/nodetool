@@ -1,0 +1,235 @@
+{
+  "modelId": "fewjative/ultimate-sd-upscale",
+  "owner": "fewjative",
+  "name": "ultimate-sd-upscale",
+  "version": "5daf1012d946160622cd1bd45ed8f12d9675d24659276ccfe24804035f3b3ad7",
+  "description": "Ultimate SD Upscale with ControlNet Tile",
+  "inputSchema": {
+    "properties": {
+      "cfg": {
+        "default": 8,
+        "description": "CFG",
+        "title": "Cfg",
+        "type": "number",
+        "x-order": 9
+      },
+      "controlnet_strength": {
+        "default": 1,
+        "description": "ControlNet Strength",
+        "title": "Controlnet Strength",
+        "type": "number",
+        "x-order": 6
+      },
+      "denoise": {
+        "default": 0.2,
+        "description": "Denoise",
+        "title": "Denoise",
+        "type": "number",
+        "x-order": 12
+      },
+      "force_uniform_tiles": {
+        "default": true,
+        "description": "Force Uniform Tiles",
+        "title": "Force Uniform Tiles",
+        "type": "boolean",
+        "x-order": 23
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "mask_blur": {
+        "default": 8,
+        "description": "Mask Blur",
+        "title": "Mask Blur",
+        "type": "integer",
+        "x-order": 16
+      },
+      "mode_type": {
+        "default": "Linear",
+        "description": "Mode Type",
+        "enum": [
+          "Linear",
+          "Chess",
+          "None"
+        ],
+        "title": "mode_type",
+        "type": "string",
+        "x-order": 13
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "positive_prompt": {
+        "default": "Hey! Have a nice day :D",
+        "description": "Positive Prompt",
+        "title": "Positive Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "sampler_name": {
+        "default": "euler",
+        "description": "Sampler",
+        "enum": [
+          "euler",
+          "euler_ancestral",
+          "heun",
+          "dpm_2",
+          "dpm_2_ancestral",
+          "lms",
+          "dpm_fast",
+          "dpm_adaptive",
+          "dpmpp_2s_ancestral",
+          "dpmpp_sde",
+          "dpmpp_sde_gpu",
+          "dpmpp_2m",
+          "dpmpp_2m_sde",
+          "dpmpp_2m_sde_gpu",
+          "dpmpp_3m_sde",
+          "dpmpp_3m_sde_gpu",
+          "dpmpp",
+          "ddim",
+          "uni_pc",
+          "uni_pc_bh2"
+        ],
+        "title": "sampler_name",
+        "type": "string",
+        "x-order": 10
+      },
+      "scheduler": {
+        "default": "normal",
+        "description": "Scheduler",
+        "enum": [
+          "normal",
+          "karras",
+          "exponential",
+          "sgm_uniform",
+          "simple",
+          "ddim_uniform"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 11
+      },
+      "seam_fix_denoise": {
+        "default": 1,
+        "description": "Seam Fix Denoise",
+        "title": "Seam Fix Denoise",
+        "type": "number",
+        "x-order": 19
+      },
+      "seam_fix_mask_blur": {
+        "default": 8,
+        "description": "Seam Fix Mask Blur",
+        "title": "Seam Fix Mask Blur",
+        "type": "integer",
+        "x-order": 21
+      },
+      "seam_fix_mode": {
+        "default": "None",
+        "description": "Seam Fix Mode",
+        "enum": [
+          "None",
+          "Band Pass",
+          "Half Tile",
+          "Half Tile + Intersections"
+        ],
+        "title": "seam_fix_mode",
+        "type": "string",
+        "x-order": 18
+      },
+      "seam_fix_padding": {
+        "default": 16,
+        "description": "Seam Fix Padding",
+        "title": "Seam Fix Padding",
+        "type": "integer",
+        "x-order": 22
+      },
+      "seam_fix_width": {
+        "default": 64,
+        "description": "Seam Fix Width",
+        "title": "Seam Fix Width",
+        "type": "integer",
+        "x-order": 20
+      },
+      "seed": {
+        "description": "Sampling seed, leave Empty for Random",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "steps": {
+        "default": 20,
+        "description": "Steps",
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 8
+      },
+      "tile_height": {
+        "default": 512,
+        "description": "Tile Height",
+        "title": "Tile Height",
+        "type": "integer",
+        "x-order": 15
+      },
+      "tile_padding": {
+        "default": 32,
+        "description": "Tile Padding",
+        "title": "Tile Padding",
+        "type": "integer",
+        "x-order": 17
+      },
+      "tile_width": {
+        "default": 512,
+        "description": "Tile Width",
+        "title": "Tile Width",
+        "type": "integer",
+        "x-order": 14
+      },
+      "upscale_by": {
+        "default": 2,
+        "description": "Upscale By",
+        "title": "Upscale By",
+        "type": "number",
+        "x-order": 4
+      },
+      "upscaler": {
+        "default": "4x-UltraSharp",
+        "description": "Upscaler",
+        "enum": [
+          "4x_NMKD-Siax_200k",
+          "4x-UltraSharp",
+          "RealESRGAN_x4plus",
+          "RealESRGAN_x4plus_anime_6B"
+        ],
+        "title": "upscaler",
+        "type": "string",
+        "x-order": 3
+      },
+      "use_controlnet_tile": {
+        "default": true,
+        "description": "Use ControlNet Tile",
+        "title": "Use Controlnet Tile",
+        "type": "boolean",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

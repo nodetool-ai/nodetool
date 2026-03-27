@@ -4,7 +4,7 @@ title: "Installing NodeTool"
 description: "Step-by-step installation guide for Windows, macOS, and Linux."
 ---
 
-NodeTool includes a guided setup that handles dependencies automatically.
+NodeTool launches immediately after installation — no setup wizard required. Python, Conda, and AI engine dependencies are installed on demand through the app when you first need them.
 
 ---
 
@@ -12,9 +12,8 @@ NodeTool includes a guided setup that handles dependencies automatically.
 
 1. Download NodeTool from [nodetool.ai](https://nodetool.ai)
 2. Run the installer
-3. Choose where to install (default is fine)
-4. Wait for setup to complete (~5-10 minutes)
-5. Start building workflows!
+3. Launch NodeTool — the app opens right away
+4. Start building workflows!
 
 ---
 
@@ -116,28 +115,36 @@ The rule of thumb for Mac: **Your Model Size (GB) + 4GB (System) < Total RAM.**
 
 ## What Gets Installed
 
-NodeTool automatically sets up everything it needs to run. Here's what happens behind the scenes:
+NodeTool uses an on-demand installation approach — the app itself is lightweight and launches immediately. Additional components are downloaded automatically when you first use a feature that needs them.
 
-### Core Components
+### Core Components (installed with the app)
 
-- **Python Environment** – Self-contained Python installation (doesn't affect your system Python)
-- **AI Engines** – Tools for running AI models locally:
-  - **Ollama** – For language models
-  - **llama.cpp** – Optimized inference (GPU-accelerated where available)
-- **Dependencies** – All required libraries and packages
+- **Node.js Runtime** -- Self-contained Node.js installation (does not affect your system Node.js)
+- **NodeTool application** -- The visual editor, dashboard, and all core functionality
 
-### Why 20 GB?
+### On-Demand Components (installed automatically when needed)
+
+- **Python / Conda** -- Installed through the app UI when you first run a workflow that requires Python-based AI models
+- **AI Engines** -- Downloaded when you install or use specific model types:
+  - **Ollama** -- For language models
+  - **llama.cpp** -- Optimized inference (GPU-accelerated where available)
+- **Model-specific dependencies** -- Each model or node pack installs its own requirements
+
+### Disk Space
 
 NodeTool itself is small, but AI models can be large:
 
 | Component | Typical Size |
 |-----------|--------------|
-| NodeTool + Python environment | 2-4 GB |
+| NodeTool + Node.js runtime | 2-4 GB |
+| Python/Conda environment | ~3-5 GB (installed on demand) |
 | GPT-OSS (recommended LLM) | ~4 GB |
 | Flux (image generation) | ~12 GB |
-| **Total with recommended models** | ~20 GB |
+| **Total with recommended models** | ~25 GB |
 
 You can install fewer models to save space, or use cloud providers instead.
+
+> **Tip**: Use an SSD for faster AI model loading and workflow execution.
 
 ---
 
@@ -149,34 +156,16 @@ Visit [nodetool.ai](https://nodetool.ai) and click the download button for your 
 
 ### 2. Run the Installer
 
-Launch the downloaded file. NodeTool's setup wizard will guide you through the process.
+Launch the downloaded file and follow the platform-specific prompts (see [Platform-Specific Instructions](#platform-specific-instructions) below).
 
-### 3. Choose Installation Location
+### 3. Launch NodeTool
 
-You'll be asked where to install NodeTool's environment:
+Open NodeTool — the app starts immediately. No setup wizard or waiting.
 
-- **Default location** – Recommended for most users
-- **Custom folder** – Choose any location with enough free space
+### 4. Start Using
 
-> **Tip**: Use an SSD for faster AI model loading and workflow execution.
-
-### Select Optional Packages
-
-Choose additional features:
-
-- **Cloud AI Services** – OpenAI, Anthropic, Google integrations
-- **Document Processing** – PDF extraction, OCR
-- **Audio/Video Tools** – Media processing nodes
-
-Additional packages can be installed later from Settings → Packages.
-
-### 5. Wait for Download
-
-NodeTool downloads and sets up all components. Typically 5-10 minutes depending on internet connection.
-
-### 6. Launch NodeTool
-
-Once installation completes, NodeTool opens automatically. You're ready to start building!
+- **Cloud AI**: Go to **Settings → Providers**, add an API key, and start building workflows right away
+- **Local AI**: Open **Models → Model Manager** and install a model — NodeTool will automatically set up Python and any required dependencies the first time
 
 ---
 
@@ -185,8 +174,10 @@ Once installation completes, NodeTool opens automatically. You're ready to start
 ### First Launch
 
 1. **Firewall prompts**: Approve any requests – NodeTool runs a local server that needs network access
-2. **Model Manager**: Open **Models → Model Manager** to download AI models
-3. **Templates**: Check the Dashboard for ready-to-use workflow templates
+2. **Explore the Dashboard**: Browse ready-to-use workflow templates
+3. **Set up AI access**: Either add cloud API keys in **Settings → Providers**, or install local models from the **Models** panel
+
+> **On-demand setup**: The first time you run a workflow that needs local AI, NodeTool will prompt you to install the required Python environment. This is a one-time download (~3-5 GB) and happens automatically through the app UI.
 
 ### Sign In (Optional)
 
@@ -195,12 +186,12 @@ Once installation completes, NodeTool opens automatically. You're ready to start
 
 ### Install AI Models
 
-To run workflows locally, install some AI models:
+To run workflows with local AI models:
 
-1. Go to **Models → Model Manager**
-2. Install **GPT-OSS** for text generation
-3. Install **Flux** for image generation
-4. Or skip and use cloud providers with your API keys
+1. Open **Models** from the header bar
+2. Browse or search for models (e.g., **Flux** for images, **Llama** for text)
+3. Click to install — NodeTool handles all dependencies automatically
+4. Or skip local models and use cloud providers with your API keys
 
 ---
 
@@ -208,14 +199,15 @@ To run workflows locally, install some AI models:
 
 ### Common Installation Issues
 
-**Installation takes too long**
-- Large models take time to download
-- Check internet connection
-- Try pausing/resuming or restart the installer
+**On-demand Python/Conda setup fails**
+- Check internet connection — the environment download requires ~3-5 GB
+- Restart NodeTool and try again — partial downloads resume automatically
+- Check disk space — you need at least 5 GB free for the Python environment
+- On macOS, ensure you've approved any permission prompts
 
 **Not enough disk space**
 - Free up space or choose a different installation location
-- Use cloud providers instead of local models
+- Use cloud providers instead of local models to skip Python environment setup entirely
 
 **GPU not detected**
 - Update GPU drivers
@@ -271,12 +263,9 @@ You should see your GPU model and driver version. NodeTool requires:
 - If multiple versions exist, ensure your PATH points to the correct one
 - NodeTool's bundled environment usually handles this, but system conflicts can occur
 
-**"torch.cuda.is_available() returns False"**
-- Your PyTorch installation may not have CUDA support
-- NodeTool includes its own PyTorch; if using custom Python, install the CUDA version:
-  ```bash
-  pip install torch --index-url https://download.pytorch.org/whl/cu121
-  ```
+**GPU acceleration unavailable**
+- NodeTool delegates GPU workloads to external engines (Ollama, llama.cpp, ComfyUI). Ensure those engines have CUDA/Metal support enabled.
+- Verify your GPU driver version with `nvidia-smi`.
 
 #### Windows-Specific CUDA Issues
 
@@ -311,7 +300,7 @@ Security software can interfere with NodeTool's local server and AI model execut
 **Norton, McAfee, Bitdefender, etc.**
 - Add NodeTool to your antivirus's trusted/excluded programs list
 - Temporarily disable real-time scanning during installation
-- Some AV software blocks Python processes – whitelist `python.exe` in NodeTool's folder
+- Some AV software blocks Node.js processes -- whitelist `node.exe` in NodeTool's folder
 
 #### Firewall Configuration
 
@@ -335,35 +324,28 @@ sudo ufw allow 7777/tcp
 
 ---
 
-### Python Environment Issues
+### Runtime Environment Issues
 
-NodeTool includes its own Python environment, but system Python can sometimes conflict.
+NodeTool includes its own Node.js runtime, but system-level conflicts can occasionally occur.
 
-#### "Python not found" or "Module not found"
+#### "Module not found" or startup errors
 
-- NodeTool uses a bundled Python – this error usually means installation incomplete
+- NodeTool uses a bundled runtime -- this error usually means installation is incomplete
 - Try reinstalling NodeTool, ensuring the installer completes fully
-- Check that you're launching NodeTool from the correct location
+- Check that you are launching NodeTool from the correct location
 
-#### Conflicting Python Environments
-
-If you have Anaconda, Miniconda, or other Python distributions:
-
-- **Don't activate conda** before running NodeTool – it uses its own Python
-- If issues persist, temporarily rename or move your conda installation to test
-- Check your PATH doesn't override NodeTool's Python
-
-#### Virtual Environment Issues (for developers)
+#### Development Setup (for contributors)
 
 If running NodeTool from source:
 ```bash
-# Create fresh environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-.venv\Scripts\activate     # Windows
-
 # Install dependencies
-pip install -e .
+npm install
+
+# Build all packages
+npm run build
+
+# Start the development server
+npm run dev
 ```
 
 ---

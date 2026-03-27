@@ -1,0 +1,137 @@
+{
+  "modelId": "wan-video/wan-2.2-i2v-fast",
+  "owner": "wan-video",
+  "name": "wan-2.2-i2v-fast",
+  "version": "4eaf2b01d3bf70d8a2e00b219efeb7cb415855ad18b7dacdc4cae664a73a6eea",
+  "description": "A very fast and cheap PrunaAI optimized version of Wan 2.2 A14B image-to-video",
+  "inputSchema": {
+    "properties": {
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated video.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 10
+      },
+      "frames_per_second": {
+        "default": 16,
+        "description": "Frames per second. Note that the pricing of this model is based on the video duration at 16 fps",
+        "maximum": 30,
+        "minimum": 5,
+        "title": "Frames Per Second",
+        "type": "integer",
+        "x-order": 5
+      },
+      "go_fast": {
+        "default": true,
+        "description": "Go fast",
+        "title": "Go Fast",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "image": {
+        "description": "Input image to generate video from.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "interpolate_output": {
+        "default": false,
+        "description": "Interpolate the generated video to 30 FPS using ffmpeg",
+        "title": "Interpolate Output",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "last_image": {
+        "description": "Optional last image to condition the video generation. If provided, creates smoother transitions between frames.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Last Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "lora_scale_transformer": {
+        "default": 1,
+        "description": "Determines how strongly the transformer LoRA should be applied.",
+        "title": "Lora Scale Transformer",
+        "type": "number",
+        "x-order": 12
+      },
+      "lora_scale_transformer_2": {
+        "default": 1,
+        "description": "Determines how strongly the transformer_2 LoRA should be applied.",
+        "title": "Lora Scale Transformer 2",
+        "type": "number",
+        "x-order": 14
+      },
+      "lora_weights_transformer": {
+        "description": "Load LoRA weights for the HIGH transformer. Supports arbitrary .safetensors URLs from the Internet (for example, 'https://huggingface.co/TheRaf7/instagirl-v2/resolve/main/Instagirlv2.0_hinoise.safetensors')",
+        "nullable": true,
+        "title": "Lora Weights Transformer",
+        "type": "string",
+        "x-order": 11
+      },
+      "lora_weights_transformer_2": {
+        "description": "Load LoRA weights for the LOW transformer_2. Supports arbitrary .safetensors URLs from the Internet. Can be different from transformer LoRA. (for example, 'https://huggingface.co/TheRaf7/instagirl-v2/resolve/main/Instagirlv2.0_lownoise.safetensors')",
+        "nullable": true,
+        "title": "Lora Weights Transformer 2",
+        "type": "string",
+        "x-order": 13
+      },
+      "num_frames": {
+        "default": 81,
+        "description": "Number of video frames. 81 frames give the best results",
+        "maximum": 121,
+        "minimum": 81,
+        "title": "Num Frames",
+        "type": "integer",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Prompt for video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resolution": {
+        "default": "480p",
+        "description": "Resolution of video. 16:9 corresponds to 832x480px, and 9:16 is 480x832px",
+        "enum": [
+          "480p",
+          "720p"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 4
+      },
+      "sample_shift": {
+        "default": 12,
+        "description": "Sample shift factor",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Sample Shift",
+        "type": "number",
+        "x-order": 8
+      },
+      "seed": {
+        "description": "Random seed. Leave blank for random",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 9
+      }
+    },
+    "required": [
+      "prompt",
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

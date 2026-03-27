@@ -1,0 +1,39 @@
+{
+  "modelId": "andreasjansson/llama-2-13b-embeddings",
+  "owner": "andreasjansson",
+  "name": "llama-2-13b-embeddings",
+  "version": "7115a4c65b86815e31412e53de1211c520164c190945a84c425b59dccbc47148",
+  "description": "Llama2 13B with embedding output",
+  "inputSchema": {
+    "properties": {
+      "prompt_separator": {
+        "default": "\n\n",
+        "description": "Separator between prompts",
+        "title": "Prompt Separator",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompts": {
+        "description": "List of prompts, separated by prompt_separator. Maximum 100 prompts per prediction.",
+        "title": "Prompts",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "prompts"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "items": {
+        "type": "number"
+      },
+      "type": "array"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

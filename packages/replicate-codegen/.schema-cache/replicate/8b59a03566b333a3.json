@@ -1,0 +1,48 @@
+{
+  "modelId": "bytedance/latentsync",
+  "owner": "bytedance",
+  "name": "latentsync",
+  "version": "637ce1919f807ca20da3a448ddc2743535d2853649574cd52a933120e9b9e293",
+  "description": "LatentSync: generate high-quality lip sync animations",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Input audio to ",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "guidance_scale": {
+        "default": 1,
+        "description": "Guidance scale",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 2
+      },
+      "seed": {
+        "default": 0,
+        "description": "Set to 0 for Random seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 3
+      },
+      "video": {
+        "description": "Input video",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

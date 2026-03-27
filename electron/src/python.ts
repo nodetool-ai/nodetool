@@ -4,7 +4,7 @@ import * as os from "os";
 import { app, dialog } from "electron";
 import * as path from "path";
 
-import { getPythonPath, getProcessEnv, getUVPath } from "./config";
+import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
@@ -30,6 +30,11 @@ interface ValidationResult {
   valid: boolean;
   errors: string[];
 }
+
+const PACKAGE_INDEX_URL =
+  "https://nodetool-ai.github.io/nodetool-registry/simple/";
+const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
+const REQUIRED_PYTHON_PACKAGES = ["nodetool-core"] as const;
 
 /**
  * Verify write permissions for critical paths
@@ -68,16 +73,24 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
 }
 
 /**
- * Check if the Python environment is installed
- * Verifies both Python and uv executables exist to detect partial/corrupted installs
+ * Check if the conda environment is installed
+ * Verifies the Node.js executable exists in the conda environment
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
 
+  // In dev mode, skip the conda env check — the system node is used directly
+  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+    logMessage("Dev mode detected, skipping conda environment check");
+    return true;
+  }
+
+  let nodeExecutablePath: string | null = null;
   let pythonExecutablePath: string | null = null;
   let uvExecutablePath: string | null = null;
-  
+
   try {
+    nodeExecutablePath = getNodePath();
     pythonExecutablePath = getPythonPath();
     uvExecutablePath = getUVPath();
   } catch (error) {
@@ -89,19 +102,33 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     return false;
   }
 
+  logMessage(`Node executable path: ${nodeExecutablePath}`);
   logMessage(`Python executable path: ${pythonExecutablePath}`);
   logMessage(`UV executable path: ${uvExecutablePath}`);
 
-  // Check Python and UV executables in parallel
-  const [pythonExists, uvExists] = await Promise.all([
-    fs.access(pythonExecutablePath).then(
+  const [nodeExists, pythonExists, uvExists] = await Promise.all([
+    fs.access(nodeExecutablePath).then(
       () => {
-        logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
+        logMessage(`Node executable found at ${nodeExecutablePath}`);
         return true;
       },
       (error) => {
         logMessage(
-          `✗ Python executable not found at ${pythonExecutablePath}`,
+          `Node executable not found at ${nodeExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+    fs.access(pythonExecutablePath).then(
+      () => {
+        logMessage(`Python executable found at ${pythonExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `Python executable not found at ${pythonExecutablePath}`,
           "error",
         );
         logMessage(`Access error: ${error}`, "error");
@@ -110,32 +137,78 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     ),
     fs.access(uvExecutablePath).then(
       () => {
-        logMessage(`✓ UV executable found at ${uvExecutablePath}`);
+        logMessage(`UV executable found at ${uvExecutablePath}`);
         return true;
       },
       (error) => {
         logMessage(
-          `✗ UV executable not found at ${uvExecutablePath} - environment appears incomplete`,
+          `UV executable not found at ${uvExecutablePath}`,
           "error",
         );
         logMessage(`Access error: ${error}`, "error");
-        logMessage("Will trigger reinstallation to complete the environment setup");
         return false;
       }
     ),
   ]);
 
-  return pythonExists && uvExists;
+  if (!nodeExists || !pythonExists || !uvExists) {
+    return false;
+  }
+
+  const workerImportable = await canImportNodeToolWorker(pythonExecutablePath);
+  if (!workerImportable) {
+    logMessage(
+      `Python worker import check failed for ${pythonExecutablePath}; environment appears incomplete`,
+      "error",
+    );
+  }
+
+  return workerImportable;
 }
 
-/**
- * Convert npm/semver version to PEP 440 (Python) version format
- * e.g., "0.6.2-rc.9" -> "0.6.2rc9"
- */
+async function canImportNodeToolWorker(
+  pythonExecutablePath: string
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const proc = spawn(
+      pythonExecutablePath,
+      ["-c", "import nodetool.worker"],
+      {
+        stdio: "ignore",
+        env: getProcessEnv(),
+      }
+    );
+
+    proc.on("exit", (code) => {
+      resolve(code === 0);
+    });
+
+    proc.on("error", (error) => {
+      logMessage(
+        `Failed to run Python worker import check: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        "error",
+      );
+      resolve(false);
+    });
+  });
+}
+
 function convertToPep440Version(npmVersion: string): string {
-  // Remove the '-' before prerelease tags and '.' within them
-  // npm: 0.6.2-rc.9 -> pip: 0.6.2rc9
   return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
+}
+
+function normalizePythonPackageName(packageName: string): string {
+  const trimmed = packageName.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  if (!trimmed.includes("/")) {
+    return trimmed;
+  }
+  const [, resolvedName = ""] = trimmed.split("/", 2);
+  return resolvedName || trimmed;
 }
 
 /**
@@ -217,6 +290,49 @@ async function updateCondaEnvironment(
     logMessage(`Failed to update Pip packages: ${error.message}`, "error");
     throw error;
   }
+}
+
+async function installRequiredPythonPackages(
+  additionalPackages: string[] = []
+): Promise<void> {
+  emitBootMessage("Installing Nodetool Python packages...");
+
+  const uvExecutable = getUVPath();
+  const appVersion = app.getVersion();
+  const pinnedVersion = convertToPep440Version(appVersion);
+  const packageSpecs = Array.from(
+    new Set(
+      [...REQUIRED_PYTHON_PACKAGES, ...additionalPackages]
+        .map(normalizePythonPackageName)
+        .filter(Boolean)
+        .map((pkg) => `${pkg}==${pinnedVersion}`)
+    )
+  );
+
+  const installCommand: string[] = [
+    uvExecutable,
+    "pip",
+    "install",
+    "--prerelease=allow",
+    "--index-url",
+    PYPI_SIMPLE_INDEX_URL,
+    "--extra-index-url",
+    PACKAGE_INDEX_URL,
+    "--index-strategy",
+    "unsafe-best-match",
+    "--system",
+    ...packageSpecs,
+  ];
+
+  const torchIndexUrl = getTorchIndexUrl();
+  if (torchIndexUrl) {
+    installCommand.push("--extra-index-url", torchIndexUrl);
+  }
+
+  logMessage(
+    `Installing required Python packages pinned to ${pinnedVersion}: ${packageSpecs.join(", ")}`
+  );
+  await runCommand(installCommand);
 }
 
 /**
@@ -343,7 +459,7 @@ function getDefaultInstallLocation(): string {
 export {
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
-  updateCondaEnvironment,
+  installRequiredPythonPackages,
   getDefaultInstallLocation,
   runCommand,
   isOllamaInstalled,

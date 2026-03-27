@@ -19,7 +19,7 @@ import {
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
-import useErrorStore from "./ErrorStore";
+import useErrorStore, { normalizeNodeError } from "./ErrorStore";
 import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
@@ -206,11 +206,6 @@ export const handleUpdate = (
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
   const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
 
-  if (window.__UPDATES__ === undefined) {
-    window.__UPDATES__ = [];
-  }
-
-  window.__UPDATES__.push(data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
@@ -305,11 +300,10 @@ export const handleUpdate = (
       workflowName: workflow.name,
       nodeId: update.node_id,
       nodeName: update.node_name,
-      content: `Output: ${
-        typeof update.value === "string"
+      content: `Output: ${typeof update.value === "string"
           ? update.value
           : JSON.stringify(update.value)
-      }`,
+        }`,
       severity: "info",
       timestamp: Date.now()
     });
@@ -329,7 +323,11 @@ export const handleUpdate = (
       | undefined;
 
     if (job.status === "running" || job.status === "queued") {
-      newState = "running";
+      // Don't overwrite an error state from a node_update with a stale "running" job_update
+      const currentState = runnerStore.getState().state;
+      if (currentState !== "error") {
+        newState = "running";
+      }
     } else if (job.status === "suspended") {
       newState = "suspended";
     } else if (job.status === "paused") {
@@ -468,6 +466,8 @@ export const handleUpdate = (
 
   if (data.type === "preview_update") {
     const preview = data as PreviewUpdate;
+    const currentPreview = useResultsStore.getState().getPreview(workflow.id, preview.node_id);
+    console.log("[workflowUpdates] preview_update", { nodeId: preview.node_id, value: preview.value, currentPreview, willAppend: currentPreview !== undefined });
     setPreview(workflow.id, preview.node_id, preview.value, true);
   }
 
@@ -480,17 +480,18 @@ export const handleUpdate = (
       return;
     }
 
-    if (update.error) {
-      log.error("WorkflowRunner update error", update.error);
+    const normalizedNodeError = normalizeNodeError(update.error);
+    if (normalizedNodeError) {
+      log.error("WorkflowRunner update error", normalizedNodeError);
       runner.addNotification({
         type: "error",
         alert: true,
-        content: update.error
+        content: String(normalizedNodeError)
       });
       runnerStore.setState({ state: "error" });
       endExecution(workflow.id, update.node_id);
       setStatus(workflow.id, update.node_id, update.status);
-      setError(workflow.id, update.node_id, update.error);
+      setError(workflow.id, update.node_id, normalizedNodeError);
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,

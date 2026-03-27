@@ -310,6 +310,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
     event.stopPropagation();
   }, []);
 
+
   const open = Boolean(anchorEl);
   
   return (

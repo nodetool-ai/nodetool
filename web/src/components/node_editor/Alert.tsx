@@ -163,7 +163,7 @@ const Alert: React.FC = memo(() => {
     Notification[]
   >([]);
 
-  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
+  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement | null>>>({});
   const [_show, setShow] = useState<Record<string, boolean>>({});
   // Store timeout IDs in a ref so they persist across effect re-runs
   const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>[]>>(new Map());

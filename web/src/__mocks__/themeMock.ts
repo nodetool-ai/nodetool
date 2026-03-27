@@ -222,6 +222,68 @@ const mockTheme = createTheme({
   defaultColor: "#9e9e9e"
 };
 
+// Add theme.alpha() method for MUI v7 CSS variables mode
+(mockTheme as any).alpha = (color: string, opacity: number) => {
+  // If color already has rgba, return as-is with adjusted alpha
+  if (color && color.startsWith("rgba")) return color;
+  // For CSS var references or hex colors, return rgba fallback
+  return `rgba(255, 255, 255, ${opacity})`;
+};
+
+// Add theme.getColorSchemeSelector() for MUI v7 CSS variables mode
+(mockTheme as any).getColorSchemeSelector = (scheme: string) => `&[data-color-scheme="${scheme}"]`;
+
+// Add color channels for MUI v7 alpha() function used by ButtonGroup, OutlinedInput, etc.
+(mockTheme as any).vars.palette.ButtonGroup = {
+  inheritContainedBg: "rgba(255, 255, 255, 0.08)",
+  inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)",
+};
+(mockTheme as any).vars.palette.common.onBackground = "#ffffff";
+(mockTheme as any).vars.palette.common.onBackgroundChannel = "255 255 255";
+(mockTheme as any).vars.palette.common.background = "#000000";
+(mockTheme as any).vars.palette.common.backgroundChannel = "0 0 0";
+(mockTheme as any).vars.palette.primary.mainChannel = "119 180 230";
+(mockTheme as any).vars.palette.primary.darkChannel = "90 154 206";
+(mockTheme as any).vars.palette.primary.lightChannel = "156 204 232";
+(mockTheme as any).vars.palette.primary.contrastText = "#000000";
+(mockTheme as any).vars.palette.primary.contrastTextChannel = "0 0 0";
+(mockTheme as any).vars.palette.secondary.mainChannel = "156 39 176";
+(mockTheme as any).vars.palette.error.mainChannel = "244 67 54";
+(mockTheme as any).vars.palette.warning.mainChannel = "255 152 0";
+(mockTheme as any).vars.palette.info.mainChannel = "33 150 243";
+(mockTheme as any).vars.palette.success.mainChannel = "76 175 80";
+(mockTheme as any).vars.palette.text.primaryChannel = "255 255 255";
+(mockTheme as any).vars.palette.text.secondaryChannel = "189 189 189";
+(mockTheme as any).vars.palette.text.disabledChannel = "158 158 158";
+(mockTheme as any).vars.palette.action.hoverOpacity = 0.08;
+(mockTheme as any).vars.palette.action.selectedOpacity = 0.16;
+(mockTheme as any).vars.palette.action.disabledOpacity = 0.38;
+(mockTheme as any).vars.palette.action.focusOpacity = 0.12;
+(mockTheme as any).vars.palette.action.activatedOpacity = 0.12;
+(mockTheme as any).vars.palette.FilledInput = {
+  bg: "rgba(255, 255, 255, 0.09)",
+  hoverBg: "rgba(255, 255, 255, 0.13)",
+  disabledBg: "rgba(255, 255, 255, 0.12)",
+};
+(mockTheme as any).vars.palette.TableCell = {
+  border: "rgba(81, 81, 81, 1)",
+};
+(mockTheme as any).vars.palette.Tooltip = {
+  bg: "rgba(97, 97, 97, 0.92)",
+};
+(mockTheme as any).vars.palette.OutlinedInput = {
+  border: "rgba(255, 255, 255, 0.23)",
+  hoverBorder: "#ffffff",
+};
+
+// Add opacity vars for MUI InputBase component
+(mockTheme as any).vars.opacity = {
+  inputPlaceholder: 0.42,
+  inputUnderline: 0.42,
+  switchTrackDisabled: 0.12,
+  switchTrack: 0.38,
+};
+
 // Ensure components overrides exist for MUI that reference theme.components
 (mockTheme as any).components = {
   ...((mockTheme as any).components || {}),

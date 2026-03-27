@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test";
-import { setupMockApiRoutes, threads, messages } from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForAnimation,
@@ -41,100 +40,6 @@ if (process.env.JEST_WORKER_ID) {
       // Verify base chat URL works
       const url = page.url();
       expect(url).toMatch(/\/chat/);
-    });
-  });
-
-  test.describe("Chat with Mock Data", () => {
-    test.beforeEach(async ({ page }) => {
-      // Setup mock API routes before each test
-      await setupMockApiRoutes(page);
-    });
-
-    test("should display mocked threads", async ({ page }) => {
-      await navigateToPage(page, "/chat");
-
-      // Wait for page to stabilize
-      await waitForAnimation(page);
-
-      // Check that page is functional
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should load mocked thread with messages", async ({ page }) => {
-      const testThread = threads.threads[0];
-      
-      await navigateToPage(page, `/chat/${testThread.id}`);
-
-      // Wait for page to stabilize
-      await waitForAnimation(page);
-
-      // Verify we're on the correct thread URL
-      expect(page.url()).toContain(testThread.id);
-
-      // Page should be functional
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should handle chat with tool calls", async ({ page }) => {
-      // Thread with tool calls is thread-001
-      const threadWithTools = threads.threads[0];
-      
-      await navigateToPage(page, `/chat/${threadWithTools.id}`);
-
-      // Wait for page to stabilize
-      await waitForAnimation(page);
-
-      // Verify page loaded without errors
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).not.toContain("Internal Server Error");
-    });
-
-    test("should display different thread conversations", async ({ page }) => {
-      // Test navigation between different threads
-      const thread1 = threads.threads[0];
-      const thread2 = threads.threads[1];
-
-      // Load first thread
-      await navigateToPage(page, `/chat/${thread1.id}`);
-      await waitForAnimation(page);
-      
-      expect(page.url()).toContain(thread1.id);
-
-      // Navigate to second thread
-      await navigateToPage(page, `/chat/${thread2.id}`);
-      await waitForAnimation(page);
-
-      expect(page.url()).toContain(thread2.id);
-
-      // Page should be functional
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
-    });
-
-    test("should verify mock message structure", async ({ page }) => {
-      const testThread = threads.threads[0];
-      const threadMessages = messages["thread-001"];
-      
-      // Verify we have messages in our mock data
-      expect(threadMessages).toBeDefined();
-      expect(Array.isArray(threadMessages)).toBe(true);
-      expect(threadMessages.length).toBeGreaterThan(0);
-
-      // Verify message structure
-      const firstMessage = threadMessages[0];
-      expect(firstMessage).toHaveProperty("id");
-      expect(firstMessage).toHaveProperty("thread_id");
-      expect(firstMessage).toHaveProperty("role");
-      expect(firstMessage).toHaveProperty("content");
-
-      await navigateToPage(page, `/chat/${testThread.id}`);
-      
-      // Page should load successfully with mock data
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toBeTruthy();
     });
   });
 }

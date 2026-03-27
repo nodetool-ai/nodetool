@@ -1,0 +1,37 @@
+{
+  "name": "@nodetool/deploy",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/config": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*",
+    "@nodetool/security": "*",
+    "@nodetool/storage": "*",
+    "js-yaml": "^4.1.0",
+    "ssh2": "^1.15.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/ssh2": "^1.15.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

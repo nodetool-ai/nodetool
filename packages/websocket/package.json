@@ -1,0 +1,57 @@
+{
+  "name": "@nodetool/websocket",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Unified websocket runner for workflow and chat operations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build:all": "node ../../scripts/build-websocket-workspaces.mjs",
+    "build:stale": "node ../../scripts/build-stale-websocket-workspaces.mjs",
+    "dev": "node ../../scripts/run-websocket-dev.mjs server",
+    "dev:fast": "node ../../scripts/run-websocket-dev.mjs server stale",
+    "test-ui": "node ../../scripts/run-websocket-dev.mjs test-ui",
+    "devserver": "npm run test-ui",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@fastify/static": "^9.0.0",
+    "@fastify/websocket": "^11.0.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@nodetool/agents": "*",
+    "@nodetool/auth": "*",
+    "@nodetool/base-nodes": "*",
+    "@nodetool/config": "*",
+    "@nodetool/dsl": "*",
+    "@nodetool/elevenlabs-nodes": "*",
+    "@nodetool/fal-nodes": "*",
+    "@nodetool/huggingface": "*",
+    "@nodetool/kernel": "*",
+    "@nodetool/models": "*",
+    "@nodetool/node-sdk": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/replicate-nodes": "*",
+    "@nodetool/runtime": "*",
+    "@nodetool/security": "*",
+    "@nodetool/vectorstore": "*",
+    "fastify": "^5.2.0",
+    "msgpackr": "^1.11.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

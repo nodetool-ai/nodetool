@@ -1,0 +1,26 @@
+{
+  "modelId": "lucataco/speaker-diarization",
+  "owner": "lucataco",
+  "name": "speaker-diarization",
+  "version": "718182bfdc7c91943c69ed0ac18ebe99a76fdde67ccd01fced347d8c3b8c15a6",
+  "description": "Segments an audio recording based on who is speaking (on A100)",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "default": "https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3",
+        "description": "Audio file",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

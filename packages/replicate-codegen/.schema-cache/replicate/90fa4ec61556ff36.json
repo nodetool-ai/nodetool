@@ -1,0 +1,64 @@
+{
+  "modelId": "google/veo-2",
+  "owner": "google",
+  "name": "veo-2",
+  "version": "af8ebddc406d877a89d631dbbcba24b31692e0f9819639299b1d5def12dd7c95",
+  "description": "State of the art video generation model. Veo 2 can faithfully follow simple and complex instructions, and convincingly simulates real-world physics as well as a wide range of visual styles.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Video aspect ratio",
+        "enum": [
+          "16:9",
+          "9:16"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "duration": {
+        "default": 5,
+        "description": "Video duration in seconds",
+        "enum": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Omit for random generations",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

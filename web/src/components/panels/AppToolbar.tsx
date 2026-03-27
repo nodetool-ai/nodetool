@@ -505,6 +505,10 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 
   const state = useWebsocketRunner((state) => state.state);
   const isWorkflowRunning = state === "running";
+  const isBusy =
+    state === "running" ||
+    state === "connecting" ||
+    state === "connected";
 
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
@@ -522,7 +526,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
   }, []);
 
   const handleRun = useCallback(async () => {
-    if (!isWorkflowRunning) {
+    if (!isBusy) {
       const currentState = nodeStore.getState();
       const currentWorkflow = currentState.getWorkflow();
       const shouldRunViaComfy =
@@ -547,7 +551,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       }
     }, 100);
   }, [
-    isWorkflowRunning,
+    isBusy,
     run,
     workflow,
     nodeStore,
@@ -556,13 +560,13 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
   ]);
 
   // Keyboard shortcuts for run (Ctrl+Enter / Cmd+Enter)
-  useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
-  useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
+  useCombo(["control", "enter"], handleRun, true, !isBusy);
+  useCombo(["meta", "enter"], handleRun, true, !isBusy);
 
   return (
     <Tooltip
       title={
-        isWorkflowRunning
+        isBusy
           ? "Workflow is currently running..."
           : getShortcutTooltip("runWorkflow")
       }
@@ -571,10 +575,10 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       <span>
         <Button
           className={`action-button run-stop-button run-workflow ${
-            isWorkflowRunning ? "running" : ""
+            isBusy ? "running" : ""
           }`}
           onClick={handleRun}
-          disabled={isWorkflowRunning}
+          disabled={isBusy}
           tabIndex={-1}
         >
           {state === "connecting" || state === "connected" ? (
@@ -600,8 +604,13 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 });
 
 const StopWorkflowButton = memo(function StopWorkflowButton() {
-  const { isWorkflowRunning, cancel } = useWebsocketRunner((state) => ({
-    isWorkflowRunning: state.state === "running",
+  const { canStop, cancel } = useWebsocketRunner((state) => ({
+    canStop:
+      state.state === "running" ||
+      state.state === "paused" ||
+      state.state === "suspended" ||
+      state.state === "connecting" ||
+      state.state === "connected",
     cancel: state.cancel
   }));
 
@@ -610,7 +619,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
   }, [cancel]);
 
   // Keyboard shortcut for stop (Escape)
-  useCombo(["escape"], handleCancel, true, isWorkflowRunning);
+  useCombo(["escape"], handleCancel, true, canStop);
 
   return (
     <Tooltip
@@ -619,7 +628,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     >
       <Button
         className={`action-button run-stop-button stop-workflow ${
-          !isWorkflowRunning ? "disabled" : "running"
+          !canStop ? "disabled" : "running"
         }`}
         onClick={handleCancel}
         tabIndex={-1}

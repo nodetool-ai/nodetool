@@ -1,16 +1,8 @@
 import { z } from "zod";
+import { uiAddNodeParams, positionInputSchema, nodePropertySchema } from "@nodetool/protocol";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
-
-const nodePropertySchema = z.record(z.string(), z.any());
-
-const xyPositionSchema = z.object({
-  x: z.number(),
-  y: z.number()
-});
-
-const positionInputSchema = z.union([xyPositionSchema, z.string()]);
+import { resolveWorkflowId } from "./workflow";
 
 const nodeInputSchema = z.object({
   id: z.string(),
@@ -23,12 +15,7 @@ const nodeInputSchema = z.object({
 const addNodeParametersSchema = z
   .object({
     node: nodeInputSchema.optional(),
-    id: z.string().optional(),
-    type: z.string().optional(),
-    node_type: z.string().optional(),
-    position: positionInputSchema.optional(),
-    properties: nodePropertySchema.optional(),
-    workflow_id: optionalWorkflowIdSchema
+    ...uiAddNodeParams
   })
   .refine(
     (data) => {
@@ -159,6 +146,37 @@ FrontendToolRegistry.register({
         selectable: true
       }
     });
+
+    // Build warnings for required properties that are still empty/default
+    const warnings: string[] = [];
+    const providedProps = (node ?? flatArgs as Record<string, any>)?.properties as
+      | Record<string, unknown>
+      | undefined;
+    for (const property of metadata.properties) {
+      if (!property.required) continue;
+      const wasExplicitlyProvided =
+        providedProps !== undefined && property.name in providedProps;
+      if (wasExplicitlyProvided) continue;
+
+      const value = nodeInput.properties![property.name];
+      if (
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        (typeof value === "object" &&
+          !Array.isArray(value) &&
+          value !== null &&
+          Object.keys(value).length === 0)
+      ) {
+        warnings.push(
+          `Required property '${property.name}' is not set. Use ui_update_node_data to set it.`
+        );
+      }
+    }
+
+    if (warnings.length > 0) {
+      return { ok: true, warnings };
+    }
     return { ok: true };
   }
 });

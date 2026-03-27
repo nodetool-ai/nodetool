@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useRef } from "react";
 import { css } from "@emotion/react";
-import { useTheme, alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import ImageView from "./ImageView";
 import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
@@ -21,14 +22,11 @@ const styles = (theme: Theme) =>
     },
     ".messages li .tool-call": {
       fontFamily: theme.fontFamily2,
-      background: `linear-gradient(135deg, ${alpha(
-        theme.vars.palette.primary.dark,
-        0.35
-      )} 0%, ${alpha(theme.vars.palette.primary.main, 0.12)} 100%)`,
-      border: `1px solid ${alpha(theme.vars.palette.primary.main, 0.35)}`,
+      background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.darkChannel} / 0.35) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.12) 100%)`,
+      border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`,
       borderRadius: "14px",
       padding: "0.9em 1.1em",
-      boxShadow: `0 8px 16px ${alpha(theme.vars.palette.common.black, 0.18)}`,
+      boxShadow: "0 8px 16px rgba(0 0 0 / 0.18)",
       position: "relative",
       overflow: "hidden"
     },
@@ -36,10 +34,7 @@ const styles = (theme: Theme) =>
       content: '""',
       position: "absolute",
       inset: "0",
-      background: `linear-gradient(140deg, ${alpha(
-        theme.vars.palette.primary.main,
-        0.2
-      )} 0%, transparent 60%)`,
+      background: `linear-gradient(140deg, rgba(${theme.vars.palette.primary.mainChannel} / 0.2) 0%, transparent 60%)`,
       pointerEvents: "none"
     },
     ".messages li .tool-call__header": {
@@ -54,7 +49,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       fontWeight: 700,
       color: theme.vars.palette.primary.main,
-      backgroundColor: alpha(theme.vars.palette.primary.main, 0.15),
+      backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.15)`,
       padding: "0.2em 0.55em",
       borderRadius: "999px"
     },
@@ -72,7 +67,7 @@ const styles = (theme: Theme) =>
       zIndex: 1
     },
     ".messages li .tool-call__message pre": {
-      backgroundColor: alpha(theme.vars.palette.common.black, 0.35),
+      backgroundColor: "rgba(0 0 0 / 0.35)",
       borderRadius: "10px",
       padding: "0.75em",
       marginTop: "0.8em",
@@ -181,7 +176,7 @@ const MessageView = (msg: Message) => {
           if (c.type === "text") {
             return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
           } else if (c.type === "image_url") {
-            return <img key={c.image?.uri} src={c.image?.uri} alt="" draggable={false} />;
+            return <ImageView key={c.image?.uri} source={c.image?.uri} />;
           } else {
             return <></>;
           }

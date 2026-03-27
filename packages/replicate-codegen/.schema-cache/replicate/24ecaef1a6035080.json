@@ -1,0 +1,87 @@
+{
+  "modelId": "bria/image-3.2",
+  "owner": "bria",
+  "name": "image-3.2",
+  "version": "cd4f78ccda1eb0983e504cfa1e58cfbd8edc8999ea9da87e1ac2ee541c205450",
+  "description": "Commercial-ready, trained entirely on licensed data, text-to-image model. With only 4B parameters provides exceptional aesthetics and text rendering. Evaluated to be on par to other leading models in the market",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for expansion. Either aspect_ratio or canvas_size with original_image_size/location must be provided. Can be a predefined string like '1:1', '16:9' etc. or a custom float between 0.5 and 3.0",
+        "enum": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "enhance_image": {
+        "default": false,
+        "description": "Enhance image details and clarity",
+        "nullable": true,
+        "title": "Enhance Image",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "guidance_scale": {
+        "description": "Guidance scale (1-10)",
+        "maximum": 5,
+        "minimum": 3,
+        "nullable": true,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "description": "Negative prompt for image generation",
+        "nullable": true,
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_enhancement": {
+        "default": false,
+        "description": "Enhance prompt for more creative output",
+        "nullable": true,
+        "title": "Prompt Enhancement",
+        "type": "boolean",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

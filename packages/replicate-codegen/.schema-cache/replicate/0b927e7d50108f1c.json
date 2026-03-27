@@ -1,0 +1,28 @@
+{
+  "modelId": "xinntao/esrgan",
+  "owner": "xinntao",
+  "name": "esrgan",
+  "version": "c263265e04b16fda1046d1828997fc27b46610647a3348df1c72fbffbdbac912",
+  "description": "Image 4x super-resolution",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Low-resolution input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

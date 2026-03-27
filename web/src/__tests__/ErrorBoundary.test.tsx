@@ -33,7 +33,8 @@ describe("ErrorBoundary", () => {
   // We test that the reload button exists and can be clicked, but we don't test
   // that it actually calls window.location.reload() since that's browser behavior
 
-  it("renders error message when error is an Error instance", () => {
+  it("renders error message when error is an Error instance", async () => {
+    const user = userEvent.setup();
     const testError = new Error("Test error message");
     mockUseRouteError.mockReturnValue(testError);
 
@@ -43,10 +44,12 @@ describe("ErrorBoundary", () => {
       </ThemeProvider>
     );
 
+    await user.click(screen.getByRole("button", { name: /show details/i }));
     expect(screen.getByText("Test error message")).toBeInTheDocument();
   });
 
-  it("renders stack trace when error is an Error instance", () => {
+  it("renders stack trace when error is an Error instance", async () => {
+    const user = userEvent.setup();
     const testError = new Error("Test error");
     testError.stack = "Error: Test error\n  at TestComponent";
     mockUseRouteError.mockReturnValue(testError);
@@ -57,6 +60,7 @@ describe("ErrorBoundary", () => {
       </ThemeProvider>
     );
 
+    await user.click(screen.getByRole("button", { name: /show details/i }));
     const stackTrace = screen.getByText((content, element) => {
       return !!(element?.className?.includes("error-stack-trace") &&
         content.includes("Error: Test error"));
@@ -64,7 +68,8 @@ describe("ErrorBoundary", () => {
     expect(stackTrace).toBeInTheDocument();
   });
 
-  it("renders unknown error message for non-Error objects", () => {
+  it("renders unknown error message for non-Error objects", async () => {
+    const user = userEvent.setup();
     mockUseRouteError.mockReturnValue({ code: 404 });
 
     render(
@@ -73,12 +78,14 @@ describe("ErrorBoundary", () => {
       </ThemeProvider>
     );
 
+    await user.click(screen.getByRole("button", { name: /show details/i }));
     expect(
       screen.getByText(/An unknown error occurred.*code.*404/i)
     ).toBeInTheDocument();
   });
 
-  it("renders no stack trace message for non-Error objects", () => {
+  it("renders no stack trace message for non-Error objects", async () => {
+    const user = userEvent.setup();
     mockUseRouteError.mockReturnValue("string error");
 
     render(
@@ -87,6 +94,7 @@ describe("ErrorBoundary", () => {
       </ThemeProvider>
     );
 
+    await user.click(screen.getByRole("button", { name: /show details/i }));
     expect(screen.getByText("No stack trace available")).toBeInTheDocument();
   });
 
@@ -123,7 +131,7 @@ describe("ErrorBoundary", () => {
     // jsdom's Location.reload() is read-only and cannot be mocked
   });
 
-  it("displays forum link", () => {
+  it("displays Discord link", () => {
     const testError = new Error("Test error");
     mockUseRouteError.mockReturnValue(testError);
 
@@ -133,10 +141,10 @@ describe("ErrorBoundary", () => {
       </ThemeProvider>
     );
 
-    const forumLink = screen.getByRole("link", { name: /forum/i });
-    expect(forumLink).toBeInTheDocument();
-    expect(forumLink).toHaveAttribute("href", "https://forum.nodetool.ai");
-    expect(forumLink).toHaveAttribute("target", "_blank");
+    const discordLink = screen.getByRole("link", { name: /discord/i });
+    expect(discordLink).toBeInTheDocument();
+    expect(discordLink).toHaveAttribute("href", "https://discord.gg/GQqBKAWD");
+    expect(discordLink).toHaveAttribute("target", "_blank");
   });
 
   it("displays logo", () => {
@@ -154,7 +162,8 @@ describe("ErrorBoundary", () => {
     expect(logo).toHaveAttribute("src", "/logo192.png");
   });
 
-  it("renders CopyButton with stack trace", () => {
+  it("renders CopyButton with stack trace", async () => {
+    const user = userEvent.setup();
     const testError = new Error("Test error");
     testError.stack = "Error: Test error\n  at TestComponent\n  at line 42";
     mockUseRouteError.mockReturnValue(testError);
@@ -165,6 +174,7 @@ describe("ErrorBoundary", () => {
       </ThemeProvider>
     );
 
+    await user.click(screen.getByRole("button", { name: /show details/i }));
     expect(screen.getByTestId("copy-button")).toBeInTheDocument();
     expect(screen.getByTestId("copy-button")).toHaveTextContent(
       /Copy: Error: Test error/

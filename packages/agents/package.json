@@ -1,0 +1,45 @@
+{
+  "name": "@nodetool/agents",
+  "version": "0.1.0",
+  "description": "Agent system for planning and executing multi-step LLM tasks",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/config": "*",
+    "@nodetool/models": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*",
+    "@types/mailparser": "^3.4.6",
+    "cheerio": "^1.2.0",
+    "csv-parse": "^6.2.1",
+    "dayjs": "^1.11.20",
+    "imapflow": "^1.2.12",
+    "js-tiktoken": "^1.0.18",
+    "lodash-es": "^4.17.23",
+    "mailparser": "^3.9.3",
+    "pdf-parse": "^1.1.4",
+    "validator": "^13.15.26"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^20.0.0",
+    "@types/validator": "^13.15.10",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

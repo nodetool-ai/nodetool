@@ -1,22 +1,36 @@
 import { test, expect } from "@playwright/test";
-import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import { BACKEND_API_URL } from "./support/backend";
 import {
   navigateToPage,
   waitForEditorReady,
   waitForAnimation,
 } from "./helpers/waitHelpers";
 
-// Pre-defined mock workflow ID for testing
-const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
-
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Workflow Editor", () => {
-    // Shared setup for all tests
-    test.beforeEach(async ({ page }) => {
-      await setupMockApiRoutes(page);
+    let workflowId: string;
+
+    test.beforeAll(async ({ request }) => {
+      const res = await request.post(`${BACKEND_API_URL}/workflows/`, {
+        data: {
+          name: `e2e-editor-${Date.now()}`,
+          description: "E2E workflow editor test",
+          access: "private",
+        },
+      });
+      const workflow = await res.json();
+      workflowId = workflow.id;
+    });
+
+    test.afterAll(async ({ request }) => {
+      if (workflowId) {
+        await request
+          .delete(`${BACKEND_API_URL}/workflows/${workflowId}`)
+          .catch(() => {});
+      }
     });
 
     test.describe("Workflow Creation", () => {
@@ -24,10 +38,10 @@ if (process.env.JEST_WORKER_ID) {
         page
       }) => {
         // Navigate to the editor with the workflow
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Verify we're on the editor page
-        await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_ID}`));
+        await expect(page).toHaveURL(new RegExp(`/editor/${workflowId}`));
 
         // Check that the editor loaded without errors
         const bodyText = await page.textContent("body");
@@ -43,7 +57,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should display editor toolbar and controls", async ({
         page
       }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Wait for editor to be ready
         await waitForEditorReady(page);
@@ -58,7 +72,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle workflow save action", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Wait for editor to be ready
         await waitForEditorReady(page);
@@ -79,7 +93,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Editor Canvas", () => {
       test("should allow panning the canvas", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Wait for the ReactFlow canvas
         await waitForEditorReady(page);
@@ -110,7 +124,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should support zoom controls", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Wait for the canvas
         await waitForEditorReady(page);
@@ -131,7 +145,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Menu", () => {
       test("should open node menu on right-click", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Wait for the canvas
         await waitForEditorReady(page);
@@ -149,7 +163,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should open node menu with keyboard shortcut", async ({
         page
       }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Wait for the canvas
         await waitForEditorReady(page);
@@ -175,14 +189,14 @@ if (process.env.JEST_WORKER_ID) {
 
         const responseHandler = (response: any) => {
           const url = response.url();
-          if (url.includes(`/api/workflows/${MOCK_WORKFLOW_ID}`)) {
+          if (url.includes(`/api/workflows/${workflowId}`)) {
             apiCalls.push(url);
           }
         };
 
         page.on("response", responseHandler);
 
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
+        await navigateToPage(page, `/editor/${workflowId}`);
 
         // Wait for the editor to load
         await waitForEditorReady(page);

@@ -1,0 +1,68 @@
+{
+  "modelId": "openai/sora-2",
+  "owner": "openai",
+  "name": "sora-2",
+  "version": "763a9321f615f4867b1d7a2d53666200da21f71da358b12c9b25e0127edae014",
+  "description": "OpenAI's Flagship video generation with synced audio",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "portrait",
+        "description": "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720",
+        "enum": [
+          "portrait",
+          "landscape"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "input_reference": {
+        "description": "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Input Reference",
+        "type": "string",
+        "x-order": 2
+      },
+      "openai_api_key": {
+        "description": "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI.",
+        "format": "password",
+        "nullable": true,
+        "title": "Openai Api Key",
+        "type": "string",
+        "writeOnly": true,
+        "x-cog-secret": true,
+        "x-order": 0
+      },
+      "prompt": {
+        "description": "A text description of the video to generate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seconds": {
+        "default": 4,
+        "description": "Duration of the video in seconds",
+        "enum": [
+          4,
+          8,
+          12
+        ],
+        "title": "seconds",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

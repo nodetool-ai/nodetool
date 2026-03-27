@@ -1,0 +1,193 @@
+{
+  "modelId": "ideogram-ai/ideogram-character",
+  "owner": "ideogram-ai",
+  "name": "ideogram-character",
+  "version": "1f8e198263a0d8171b76c55907c294e933e1e7d55e2d0c54f319c0e4a42c723d",
+  "description": "Generate consistent characters from a single reference image. Outputs can be in many styles. You can also use inpainting to add your character to an existing image.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio. Ignored if a resolution or inpainting image is given.",
+        "enum": [
+          "1:3",
+          "3:1",
+          "1:2",
+          "2:1",
+          "9:16",
+          "16:9",
+          "10:16",
+          "16:10",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "1:1"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "character_reference_image": {
+        "description": "An image to use as a character reference.",
+        "format": "uri",
+        "title": "Character Reference Image",
+        "type": "string"
+      },
+      "image": {
+        "description": "An image file to use for inpainting. You must also use a mask.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string"
+      },
+      "magic_prompt_option": {
+        "default": "Auto",
+        "description": "Magic Prompt will interpret your prompt and optimize it to maximize variety and quality of the images generated. You can also use it to write prompts in different languages.",
+        "enum": [
+          "Auto",
+          "On",
+          "Off"
+        ],
+        "title": "magic_prompt_option",
+        "type": "string",
+        "x-order": 6
+      },
+      "mask": {
+        "description": "A black and white image. Black pixels are inpainted, white pixels are preserved. The mask will be resized to match the image size.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Mask",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "rendering_speed": {
+        "default": "Default",
+        "description": "Rendering speed. Turbo for faster and cheaper generation, quality for higher quality and more expensive generation, default for balanced.",
+        "enum": [
+          "Default",
+          "Turbo",
+          "Quality"
+        ],
+        "title": "rendering_speed",
+        "type": "string",
+        "x-order": 1
+      },
+      "resolution": {
+        "default": "None",
+        "description": "Resolution. Overrides aspect ratio. Ignored if an inpainting image is given.",
+        "enum": [
+          "None",
+          "512x1536",
+          "576x1408",
+          "576x1472",
+          "576x1536",
+          "640x1344",
+          "640x1408",
+          "640x1472",
+          "640x1536",
+          "704x1152",
+          "704x1216",
+          "704x1280",
+          "704x1344",
+          "704x1408",
+          "704x1472",
+          "736x1312",
+          "768x1088",
+          "768x1216",
+          "768x1280",
+          "768x1344",
+          "800x1280",
+          "832x960",
+          "832x1024",
+          "832x1088",
+          "832x1152",
+          "832x1216",
+          "832x1248",
+          "864x1152",
+          "896x960",
+          "896x1024",
+          "896x1088",
+          "896x1120",
+          "896x1152",
+          "960x832",
+          "960x896",
+          "960x1024",
+          "960x1088",
+          "1024x832",
+          "1024x896",
+          "1024x960",
+          "1024x1024",
+          "1088x768",
+          "1088x832",
+          "1088x896",
+          "1088x960",
+          "1120x896",
+          "1152x704",
+          "1152x832",
+          "1152x864",
+          "1152x896",
+          "1216x704",
+          "1216x768",
+          "1216x832",
+          "1248x832",
+          "1280x704",
+          "1280x768",
+          "1280x800",
+          "1312x736",
+          "1344x640",
+          "1344x704",
+          "1344x768",
+          "1408x576",
+          "1408x640",
+          "1408x704",
+          "1472x576",
+          "1472x640",
+          "1472x704",
+          "1536x512",
+          "1536x576",
+          "1536x640"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 5
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "maximum": 2147483647,
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "style_type": {
+        "default": "Auto",
+        "description": "The character style type. Auto, Fiction, or Realistic.",
+        "enum": [
+          "Auto",
+          "Fiction",
+          "Realistic"
+        ],
+        "title": "style_type",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt",
+      "character_reference_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -9,6 +9,6 @@ conda-lock lock \
   --platform linux-aarch64 \
   --platform win-64 \
   --kind env \
-  --filename-template electron/resources/environment-{platform}
+  --filename-template electron/resources/environment-{platform}.lock.yml
 
 cp environment.yml electron/resources/environment.lock.yml

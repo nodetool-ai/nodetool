@@ -8,7 +8,6 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
 import { Container, Tooltip } from "@mui/material";
 import useMetadataStore from "../../stores/MetadataStore";
-import { hexToRgba } from "../../utils/ColorUtils";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
 import { findOutputHandle } from "../../utils/handleUtils";
@@ -25,7 +24,7 @@ const styles = (theme: Theme) =>
     minHeight: "20px !important",
     overflow: "visible",
     border: `1px solid ${theme.vars.palette.grey[400]}`,
-    backgroundColor: hexToRgba(theme.vars.palette.c_node_bg as string, 0.8),
+    backgroundColor: rerouteBackground(theme, 0.8),
     backdropFilter: theme.vars.palette.glass.blur,
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     borderRadius: "50%",

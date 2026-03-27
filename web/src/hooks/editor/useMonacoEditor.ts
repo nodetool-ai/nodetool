@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import * as monaco from "monaco-editor";
 
 // Configure Monaco loader to use local files instead of CDN
@@ -25,7 +25,7 @@ type MonacoComponent = (props: {
   width?: string | number;
   height?: string | number;
   onMount?: (editor: monaco.editor.IStandaloneCodeEditor, monaco: typeof import("monaco-editor")) => void;
-}) => JSX.Element;
+}) => React.JSX.Element;
 
 /**
  * Result object containing Monaco editor state and functions.

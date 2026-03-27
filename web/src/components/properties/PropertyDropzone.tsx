@@ -18,6 +18,7 @@ import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import log from "loglevel";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -110,6 +111,11 @@ const PropertyDropzone = ({
         letterSpacing: "1px",
         fontSize: "10px",
         color: theme.vars.palette.grey[500]
+      },
+      ".dropzone .image-preview-surface": {
+        ...alphaSurfaceBg,
+        borderRadius: "4px",
+        overflow: "hidden"
       },
       ".dropzone img": {
         width: "100%",
@@ -309,7 +315,7 @@ const PropertyDropzone = ({
         }
 
         // Use contentType for consistency
-        const file = new File([fileData.buffer], fileName, { type: contentType });
+        const file = new File([fileData.buffer as BlobPart], fileName, { type: contentType });
 
         // Upload the file as an asset
         uploadAssetFn({
@@ -347,7 +353,7 @@ const PropertyDropzone = ({
               open={openViewer}
               onClose={handleCloseViewer}
             />
-            <div style={{ position: "relative" }}>
+            <div className="image-preview-surface" style={{ position: "relative" }}>
               <img
                 ref={imageRef}
                 src={asset?.get_url || uri || ""}

@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       transition: "all 0.2s ease",
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
-      backgroundColor: alpha(theme.vars.palette.common.black, 0.2),
+      backgroundColor: alpha(theme.palette.common.black, 0.2),
       borderRadius: "6px",
       display: "flex",
       flexDirection: "column",
@@ -97,7 +97,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": {
         outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-        backgroundColor: alpha(theme.vars.palette.common.black, 0.3)
+        backgroundColor: alpha(theme.palette.common.black, 0.3)
       },
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],

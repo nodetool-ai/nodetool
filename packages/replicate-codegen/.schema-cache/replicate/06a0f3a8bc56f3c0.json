@@ -1,0 +1,102 @@
+{
+  "modelId": "sdxl-based/consistent-character",
+  "owner": "sdxl-based",
+  "name": "consistent-character",
+  "version": "9c77a3c2f884193fcee4d89645f02a0b9def9434f9e03cb98460456b831c8772",
+  "description": "Create images of a given character in different poses",
+  "inputSchema": {
+    "properties": {
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 9
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want to see in your image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "number_of_images_per_pose": {
+        "default": 1,
+        "description": "The number of images to generate for each pose.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Number Of Images Per Pose",
+        "type": "integer",
+        "x-order": 4
+      },
+      "number_of_outputs": {
+        "default": 3,
+        "description": "The number of images to generate.",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Number Of Outputs",
+        "type": "integer",
+        "x-order": 3
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 6
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "default": "A headshot photo",
+        "description": "Describe the subject. Include clothes and hairstyle for more consistency.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "randomise_poses": {
+        "default": true,
+        "description": "Randomise the poses used.",
+        "title": "Randomise Poses",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "seed": {
+        "description": "Set a seed for reproducibility. Random by default.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 8
+      },
+      "subject": {
+        "description": "An image of a person. Best images are square close ups of a face, but they do not have to be.",
+        "format": "uri",
+        "title": "Subject",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-type": "iterator"
+  }
+}

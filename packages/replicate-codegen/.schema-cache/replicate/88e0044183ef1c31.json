@@ -1,0 +1,40 @@
+{
+  "modelId": "arielreplicate/robust_video_matting",
+  "owner": "arielreplicate",
+  "name": "robust_video_matting",
+  "version": "73d2128a371922d5d1abf0712a1d974be0e4e2358cc1218e4e34714767232bac",
+  "description": "extract foreground of a video",
+  "inputSchema": {
+    "properties": {
+      "input_video": {
+        "description": "Video to segment.",
+        "format": "uri",
+        "title": "Input Video",
+        "type": "string",
+        "x-order": 0
+      },
+      "output_type": {
+        "default": "green-screen",
+        "description": "An enumeration.",
+        "enum": [
+          "green-screen",
+          "alpha-mask",
+          "foreground-mask"
+        ],
+        "title": "output_type",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "input_video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}
