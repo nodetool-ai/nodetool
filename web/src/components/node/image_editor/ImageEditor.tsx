@@ -29,6 +29,11 @@ import {
     applyAdjustments,
     mergeCanvases
 } from "./canvasUtils";
+import {
+    invertMask,
+    selectAll,
+    isMaskEmpty
+} from "./selectionMask";
 import type {
     EditTool,
     EditAction,
@@ -36,6 +41,7 @@ import type {
     ShapeSettings,
     TextSettings,
     AdjustmentSettings,
+    SelectionSettings,
     CropRegion,
     Point,
     HistoryEntry
@@ -44,7 +50,8 @@ import {
     DEFAULT_BRUSH_SETTINGS,
     DEFAULT_SHAPE_SETTINGS,
     DEFAULT_TEXT_SETTINGS,
-    DEFAULT_ADJUSTMENTS
+    DEFAULT_ADJUSTMENTS,
+    DEFAULT_SELECTION_SETTINGS
 } from "./types";
 import log from "loglevel";
 
@@ -177,6 +184,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
     const [cropRegion, setCropRegion] = useState<CropRegion | null>(null);
     const [isCropping, setIsCropping] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [selectionSettings, setSelectionSettings] = useState<SelectionSettings>(DEFAULT_SELECTION_SETTINGS);
+    const [hasSelection, setHasSelection] = useState(false);
 
     // History for undo/redo
     const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -296,6 +305,22 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
         []
     );
 
+    // Handle selection settings change
+    const handleSelectionSettingsChange = useCallback(
+        (settings: Partial<SelectionSettings>) => {
+            setSelectionSettings((prev) => ({ ...prev, ...settings }));
+        },
+        []
+    );
+
+    // Handle selection change from canvas
+    const handleSelectionChange = useCallback(
+        (mask: Uint8Array | null) => {
+            setHasSelection(mask !== null && !isMaskEmpty(mask));
+        },
+        []
+    );
+
     // Handle editor actions
     const handleAction = useCallback(
         (action: EditAction) => {
@@ -386,7 +411,31 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                     setZoom(1);
                     setHistory([]);
                     setHistoryIndex(-1);
+                    canvasRef.current.setSelectionMask(null);
+                    setHasSelection(false);
                     break;
+
+                case "select-all": {
+                    const allMask = selectAll(imageCanvas.width, imageCanvas.height);
+                    canvasRef.current.setSelectionMask(allMask);
+                    setHasSelection(true);
+                    break;
+                }
+
+                case "deselect":
+                    canvasRef.current.setSelectionMask(null);
+                    setHasSelection(false);
+                    break;
+
+                case "invert-selection": {
+                    const currentMask = canvasRef.current.getSelectionMask();
+                    if (currentMask) {
+                        const inverted = invertMask(currentMask);
+                        canvasRef.current.setSelectionMask(inverted);
+                        setHasSelection(!isMaskEmpty(inverted));
+                    }
+                    break;
+                }
             }
         },
         [cropRegion, saveToHistory]
@@ -590,15 +639,18 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                     brushSettings={brushSettings}
                     shapeSettings={shapeSettings}
                     textSettings={textSettings}
+                    selectionSettings={selectionSettings}
                     adjustments={adjustments}
                     zoom={zoom}
                     isCropping={isCropping}
+                    hasSelection={hasSelection}
                     canUndo={canUndo}
                     canRedo={canRedo}
                     onToolChange={handleToolChange}
                     onBrushSettingsChange={handleBrushSettingsChange}
                     onShapeSettingsChange={handleShapeSettingsChange}
                     onTextSettingsChange={handleTextSettingsChange}
+                    onSelectionSettingsChange={handleSelectionSettingsChange}
                     onAdjustmentsChange={handleAdjustmentsChange}
                     onAction={handleAction}
                     onZoomChange={handleZoomChange}
@@ -615,6 +667,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                         brushSettings={brushSettings}
                         shapeSettings={shapeSettings}
                         textSettings={textSettings}
+                        selectionSettings={selectionSettings}
                         adjustments={adjustments}
                         zoom={zoom}
                         pan={pan}
@@ -624,6 +677,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                         onPanChange={handlePanChange}
                         onCropRegionChange={setCropRegion}
                         onImageChange={handleImageChange}
+                        onSelectionChange={handleSelectionChange}
                     />
                 </div>
             </div>

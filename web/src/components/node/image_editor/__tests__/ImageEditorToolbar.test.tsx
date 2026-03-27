@@ -50,13 +50,14 @@ jest.mock("../../../../stores/KeyPressedStore", () => ({
 }));
 
 import ImageEditorToolbar from "../ImageEditorToolbar";
-import { DEFAULT_BRUSH_SETTINGS, DEFAULT_ADJUSTMENTS, DEFAULT_SHAPE_SETTINGS, DEFAULT_TEXT_SETTINGS } from "../types";
+import { DEFAULT_BRUSH_SETTINGS, DEFAULT_ADJUSTMENTS, DEFAULT_SHAPE_SETTINGS, DEFAULT_TEXT_SETTINGS, DEFAULT_SELECTION_SETTINGS } from "../types";
 
 describe("ImageEditorToolbar", () => {
   const mockOnToolChange = jest.fn();
   const mockOnBrushSettingsChange = jest.fn();
   const mockOnShapeSettingsChange = jest.fn();
   const mockOnTextSettingsChange = jest.fn();
+  const mockOnSelectionSettingsChange = jest.fn();
   const mockOnAdjustmentsChange = jest.fn();
   const mockOnAction = jest.fn();
   const mockOnZoomChange = jest.fn();
@@ -68,15 +69,18 @@ describe("ImageEditorToolbar", () => {
     brushSettings: DEFAULT_BRUSH_SETTINGS,
     shapeSettings: DEFAULT_SHAPE_SETTINGS,
     textSettings: DEFAULT_TEXT_SETTINGS,
+    selectionSettings: DEFAULT_SELECTION_SETTINGS,
     adjustments: DEFAULT_ADJUSTMENTS,
     zoom: 1,
     isCropping: false,
+    hasSelection: false,
     canUndo: false,
     canRedo: false,
     onToolChange: mockOnToolChange,
     onBrushSettingsChange: mockOnBrushSettingsChange,
     onShapeSettingsChange: mockOnShapeSettingsChange,
     onTextSettingsChange: mockOnTextSettingsChange,
+    onSelectionSettingsChange: mockOnSelectionSettingsChange,
     onAdjustmentsChange: mockOnAdjustmentsChange,
     onAction: mockOnAction,
     onZoomChange: mockOnZoomChange,
@@ -172,5 +176,25 @@ describe("ImageEditorToolbar", () => {
     expect(screen.getByText("Font Size")).toBeInTheDocument();
     expect(screen.getByText("Bold")).toBeInTheDocument();
     expect(screen.getByText("Italic")).toBeInTheDocument();
+  });
+
+  it("shows selection settings when marquee-rect tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="marquee-rect" />);
+    expect(screen.getByText("Selection Settings")).toBeInTheDocument();
+    expect(screen.getByText("Feather")).toBeInTheDocument();
+    expect(screen.getByText("Smooth")).toBeInTheDocument();
+  });
+
+  it("shows selection settings with tolerance for magic-wand tool", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="magic-wand" />);
+    expect(screen.getByText("Selection Settings")).toBeInTheDocument();
+    expect(screen.getByText("Tolerance")).toBeInTheDocument();
+    expect(screen.getByText("Feather")).toBeInTheDocument();
+    expect(screen.getByText("Smooth")).toBeInTheDocument();
+  });
+
+  it("shows selection settings when lasso tool is active", () => {
+    render(<ImageEditorToolbar {...defaultProps} tool="lasso" />);
+    expect(screen.getByText("Selection Settings")).toBeInTheDocument();
   });
 });

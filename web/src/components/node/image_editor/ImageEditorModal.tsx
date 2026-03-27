@@ -37,6 +37,7 @@ import type {
   AdjustmentSettings,
   ShapeSettings,
   TextSettings,
+  SelectionSettings,
   CropRegion,
   Point,
   HistoryEntry
@@ -45,8 +46,14 @@ import {
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_ADJUSTMENTS,
   DEFAULT_SHAPE_SETTINGS,
-  DEFAULT_TEXT_SETTINGS
+  DEFAULT_TEXT_SETTINGS,
+  DEFAULT_SELECTION_SETTINGS
 } from "./types";
+import {
+  invertMask,
+  selectAll,
+  isMaskEmpty
+} from "./selectionMask";
 import log from "loglevel";
 
 const styles = (theme: Theme) =>
@@ -181,6 +188,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   const [cropRegion, setCropRegion] = useState<CropRegion | null>(null);
   const [isCropping, setIsCropping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectionSettings, setSelectionSettings] = useState<SelectionSettings>(DEFAULT_SELECTION_SETTINGS);
+  const [hasSelection, setHasSelection] = useState(false);
 
   // History for undo/redo
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -301,6 +310,22 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     []
   );
 
+  // Handle selection settings change
+  const handleSelectionSettingsChange = useCallback(
+    (settings: Partial<SelectionSettings>) => {
+      setSelectionSettings((prev) => ({ ...prev, ...settings }));
+    },
+    []
+  );
+
+  // Handle selection change from canvas
+  const handleSelectionChange = useCallback(
+    (mask: Uint8Array | null) => {
+      setHasSelection(mask !== null && !isMaskEmpty(mask));
+    },
+    []
+  );
+
   // Handle editor actions
   const handleAction = useCallback(
     (action: EditAction) => {
@@ -387,7 +412,31 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
           setZoom(1);
           setHistory([]);
           setHistoryIndex(-1);
+          canvasRef.current.setSelectionMask(null);
+          setHasSelection(false);
           break;
+
+        case "select-all": {
+          const allMask = selectAll(imageCanvas.width, imageCanvas.height);
+          canvasRef.current.setSelectionMask(allMask);
+          setHasSelection(true);
+          break;
+        }
+
+        case "deselect":
+          canvasRef.current.setSelectionMask(null);
+          setHasSelection(false);
+          break;
+
+        case "invert-selection": {
+          const currentMask = canvasRef.current.getSelectionMask();
+          if (currentMask) {
+            const inverted = invertMask(currentMask);
+            canvasRef.current.setSelectionMask(inverted);
+            setHasSelection(!isMaskEmpty(inverted));
+          }
+          break;
+        }
       }
     },
     [cropRegion, saveToHistory]
@@ -592,15 +641,18 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             brushSettings={brushSettings}
             shapeSettings={shapeSettings}
             textSettings={textSettings}
+            selectionSettings={selectionSettings}
             adjustments={adjustments}
             zoom={zoom}
             isCropping={isCropping}
+            hasSelection={hasSelection}
             canUndo={canUndo}
             canRedo={canRedo}
             onToolChange={handleToolChange}
             onBrushSettingsChange={handleBrushSettingsChange}
             onShapeSettingsChange={handleShapeSettingsChange}
             onTextSettingsChange={handleTextSettingsChange}
+            onSelectionSettingsChange={handleSelectionSettingsChange}
             onAdjustmentsChange={handleAdjustmentsChange}
             onAction={handleAction}
             onZoomChange={handleZoomChange}
@@ -617,6 +669,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
               brushSettings={brushSettings}
               shapeSettings={shapeSettings}
               textSettings={textSettings}
+              selectionSettings={selectionSettings}
               adjustments={adjustments}
               zoom={zoom}
               pan={pan}
@@ -626,6 +679,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
               onPanChange={handlePanChange}
               onCropRegionChange={setCropRegion}
               onImageChange={handleImageChange}
+              onSelectionChange={handleSelectionChange}
             />
           </div>
         </div>

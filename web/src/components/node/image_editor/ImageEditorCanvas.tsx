@@ -19,7 +19,8 @@ import type {
   BrushSettings,
   AdjustmentSettings,
   ShapeSettings,
-  TextSettings
+  TextSettings,
+  SelectionSettings
 } from "./types";
 import {
   loadImage,
@@ -30,6 +31,20 @@ import {
   drawShape,
   drawArrow
 } from "./canvasUtils";
+import {
+  createMask,
+  fillRect,
+  fillEllipse,
+  fillPolygon,
+  magicWandSelect,
+  combineMasks,
+  featherMask,
+  smoothMaskBorders,
+  drawSelectionOverlay,
+  isMaskEmpty,
+  invertMask,
+  selectAll
+} from "./selectionMask";
 import log from "loglevel";
 
 const styles = (theme: Theme) =>
@@ -66,6 +81,9 @@ const styles = (theme: Theme) =>
       },
       "&.tool-rectangle, &.tool-ellipse, &.tool-line, &.tool-arrow": {
         cursor: "crosshair"
+      },
+      "&.tool-marquee-rect, &.tool-marquee-ellipse, &.tool-lasso, &.tool-magic-wand": {
+        cursor: "crosshair"
       }
     },
     ".overlay-canvas": {
@@ -100,6 +118,8 @@ const styles = (theme: Theme) =>
 export interface ImageEditorCanvasRef {
   getImageCanvas: () => HTMLCanvasElement | null;
   getDrawingCanvas: () => HTMLCanvasElement | null;
+  getSelectionMask: () => Uint8Array | null;
+  setSelectionMask: (mask: Uint8Array | null) => void;
   resetToOriginal: () => void;
   refresh: () => void;
 }
@@ -110,6 +130,7 @@ interface ImageEditorCanvasProps {
   brushSettings: BrushSettings;
   shapeSettings: ShapeSettings;
   textSettings: TextSettings;
+  selectionSettings: SelectionSettings;
   adjustments: AdjustmentSettings;
   zoom: number;
   pan: Point;
@@ -119,6 +140,7 @@ interface ImageEditorCanvasProps {
   onPanChange: (pan: Point) => void;
   onCropRegionChange: (region: CropRegion | null) => void;
   onImageChange: () => void;
+  onSelectionChange: (mask: Uint8Array | null) => void;
 }
 
 const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProps>(
@@ -129,6 +151,7 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
       brushSettings,
       shapeSettings,
       textSettings,
+      selectionSettings,
       adjustments,
       zoom,
       pan,
@@ -137,7 +160,8 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
       onZoomChange,
       onPanChange,
       onCropRegionChange,
-      onImageChange
+      onImageChange,
+      onSelectionChange
     },
     ref
   ) => {
@@ -161,11 +185,22 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
     const [textInputPos, setTextInputPos] = useState<Point | null>(null);
     const [textInputValue, setTextInputValue] = useState("");
     const textInputRef = useRef<HTMLTextAreaElement>(null);
+    // Selection state
+    const selectionMaskRef = useRef<Uint8Array | null>(null);
+    const [lassoPoints, setLassoPoints] = useState<Point[]>([]);
+    const marchingAntsOffsetRef = useRef(0);
+    const marchingAntsTimerRef = useRef<number | null>(null);
 
     // Expose methods to parent
     useImperativeHandle(ref, () => ({
       getImageCanvas: () => imageCanvasRef.current,
       getDrawingCanvas: () => drawingCanvasRef.current,
+      getSelectionMask: () => selectionMaskRef.current,
+      setSelectionMask: (mask: Uint8Array | null) => {
+        selectionMaskRef.current = mask;
+        onSelectionChange(mask);
+        render();
+      },
       resetToOriginal: () => {
         if (originalImageRef.current && imageCanvasRef.current) {
           const ctx = imageCanvasRef.current.getContext("2d");
@@ -277,6 +312,22 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
           imgCanvas.height,
           zoom,
           pan
+        );
+      }
+
+      // Draw selection overlay (marching ants)
+      const mask = selectionMaskRef.current;
+      if (mask && !isMaskEmpty(mask)) {
+        drawSelectionOverlay(
+          overlayCtx,
+          mask,
+          imgCanvas.width,
+          imgCanvas.height,
+          canvas.width,
+          canvas.height,
+          zoom,
+          pan,
+          marchingAntsOffsetRef.current
         );
       }
     }, [zoom, pan, adjustments, isCropping, cropRegion]);
@@ -391,6 +442,27 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
     useEffect(() => {
       render();
     }, [render, imageSize]);
+
+    // Marching ants animation
+    useEffect(() => {
+      const animate = () => {
+        marchingAntsOffsetRef.current = (marchingAntsOffsetRef.current + 1) % 8;
+        render();
+        marchingAntsTimerRef.current = window.requestAnimationFrame(animate);
+      };
+
+      const mask = selectionMaskRef.current;
+      if (mask && !isMaskEmpty(mask)) {
+        marchingAntsTimerRef.current = window.requestAnimationFrame(animate);
+      }
+
+      return () => {
+        if (marchingAntsTimerRef.current !== null) {
+          window.cancelAnimationFrame(marchingAntsTimerRef.current);
+          marchingAntsTimerRef.current = null;
+        }
+      };
+    }, [render]);
 
     // Get mouse position on canvas
     const getCanvasPoint = useCallback((e: React.MouseEvent): Point => {
@@ -530,9 +602,60 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
             setShapeStart(imagePoint);
             setShapeEnd(imagePoint);
             break;
+
+          case "marquee-rect":
+          case "marquee-ellipse":
+            setShapeStart(imagePoint);
+            setShapeEnd(imagePoint);
+            break;
+
+          case "lasso":
+            setLassoPoints([imagePoint]);
+            break;
+
+          case "magic-wand":
+            if (imageCanvasRef.current) {
+              const imgCtx = imageCanvasRef.current.getContext("2d");
+              if (imgCtx) {
+                const imgData = imgCtx.getImageData(
+                  0, 0,
+                  imageCanvasRef.current.width,
+                  imageCanvasRef.current.height
+                );
+                const sx = Math.floor(imagePoint.x);
+                const sy = Math.floor(imagePoint.y);
+                let incoming = magicWandSelect(imgData, sx, sy, selectionSettings.tolerance);
+
+                // Apply feather / smooth
+                if (selectionSettings.smoothRadius > 0) {
+                  incoming = smoothMaskBorders(
+                    incoming,
+                    imageCanvasRef.current.width,
+                    imageCanvasRef.current.height,
+                    selectionSettings.smoothRadius
+                  );
+                }
+                if (selectionSettings.featherRadius > 0) {
+                  incoming = featherMask(
+                    incoming,
+                    imageCanvasRef.current.width,
+                    imageCanvasRef.current.height,
+                    selectionSettings.featherRadius
+                  );
+                }
+
+                const existing = selectionMaskRef.current
+                  ?? createMask(imageCanvasRef.current.width, imageCanvasRef.current.height);
+                const combined = combineMasks(existing, incoming, selectionSettings.mode);
+                selectionMaskRef.current = combined;
+                onSelectionChange(combined);
+                render();
+              }
+            }
+            break;
         }
       },
-      [tool, getCanvasPoint, getImagePoint, drawLine, onCropRegionChange, shapeSettings.fillColor, render, onImageChange]
+      [tool, getCanvasPoint, getImagePoint, drawLine, onCropRegionChange, shapeSettings.fillColor, selectionSettings, render, onImageChange, onSelectionChange]
     );
 
     const handleMouseMove = useCallback(
@@ -607,6 +730,36 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
                 }
               }
             }
+            break;
+
+          case "marquee-rect":
+          case "marquee-ellipse":
+            if (shapeStart) {
+              setShapeEnd(imagePoint);
+              // Draw preview on overlay
+              if (overlayCanvasRef.current && mainCanvasRef.current && imageCanvasRef.current) {
+                const overlayCtx = overlayCanvasRef.current.getContext("2d");
+                if (overlayCtx) {
+                  overlayCtx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+                  drawShape(
+                    overlayCtx,
+                    tool === "marquee-rect" ? "rectangle" : "ellipse",
+                    shapeStart,
+                    imagePoint,
+                    { strokeColor: "#ffffff", fillColor: "transparent", strokeWidth: 1, filled: false },
+                    zoom,
+                    pan,
+                    mainCanvasRef.current,
+                    imageCanvasRef.current.width,
+                    imageCanvasRef.current.height
+                  );
+                }
+              }
+            }
+            break;
+
+          case "lasso":
+            setLassoPoints(prev => [...prev, imagePoint]);
             break;
         }
       },
@@ -686,6 +839,63 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
         render();
       }
 
+      // Finalize selection tools
+      if ((tool === "marquee-rect" || tool === "marquee-ellipse") && shapeStart && shapeEnd && imageCanvasRef.current) {
+        const w = imageCanvasRef.current.width;
+        const h = imageCanvasRef.current.height;
+
+        let incoming: Uint8Array;
+        if (tool === "marquee-rect") {
+          incoming = fillRect(w, h, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y);
+        } else {
+          incoming = fillEllipse(w, h, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y);
+        }
+
+        // Apply feather / smooth
+        if (selectionSettings.smoothRadius > 0) {
+          incoming = smoothMaskBorders(incoming, w, h, selectionSettings.smoothRadius);
+        }
+        if (selectionSettings.featherRadius > 0) {
+          incoming = featherMask(incoming, w, h, selectionSettings.featherRadius);
+        }
+
+        const existing = selectionMaskRef.current ?? createMask(w, h);
+        const combined = combineMasks(existing, incoming, selectionSettings.mode);
+        selectionMaskRef.current = combined;
+        onSelectionChange(combined);
+
+        // Clear overlay
+        if (overlayCanvasRef.current) {
+          const overlayCtx = overlayCanvasRef.current.getContext("2d");
+          if (overlayCtx) {
+            overlayCtx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+          }
+        }
+        render();
+      }
+
+      // Finalize lasso
+      if (tool === "lasso" && lassoPoints.length >= 3 && imageCanvasRef.current) {
+        const w = imageCanvasRef.current.width;
+        const h = imageCanvasRef.current.height;
+
+        let incoming = fillPolygon(w, h, lassoPoints);
+
+        if (selectionSettings.smoothRadius > 0) {
+          incoming = smoothMaskBorders(incoming, w, h, selectionSettings.smoothRadius);
+        }
+        if (selectionSettings.featherRadius > 0) {
+          incoming = featherMask(incoming, w, h, selectionSettings.featherRadius);
+        }
+
+        const existing = selectionMaskRef.current ?? createMask(w, h);
+        const combined = combineMasks(existing, incoming, selectionSettings.mode);
+        selectionMaskRef.current = combined;
+        onSelectionChange(combined);
+        render();
+      }
+      setLassoPoints([]);
+
       setIsMouseDown(false);
       setDragStart(null);
       setCropStart(null);
@@ -697,7 +907,7 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
       if (tool === "draw" || tool === "erase") {
         onImageChange();
       }
-    }, [tool, shapeStart, shapeEnd, shapeSettings, onImageChange, render]);
+    }, [tool, shapeStart, shapeEnd, shapeSettings, selectionSettings, lassoPoints, onImageChange, onSelectionChange, render]);
 
     const handleMouseLeave = useCallback(() => {
       if (isMouseDown) {

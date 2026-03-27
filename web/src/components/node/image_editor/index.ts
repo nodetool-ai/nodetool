@@ -9,3 +9,4 @@ export { default as ImageEditorCanvas } from "./ImageEditorCanvas";
 
 export * from "./types";
 export * from "./canvasUtils";
+export * from "./selectionMask";
