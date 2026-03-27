@@ -45,6 +45,24 @@ export interface StackProps extends Omit<BoxProps, 'display' | 'flexDirection'> 
  *   <TextField label="Email" />
  * </Stack>
  */
+/**
+ * Generates a stable key for a React child element.
+ * Uses the child's existing key if available, otherwise generates a stable unique identifier.
+ */
+const getChildKey = (child: React.ReactNode, index: number): string | number => {
+  if (React.isValidElement(child)) {
+    // Use child's key if it exists
+    if (child.key) {
+      return child.key;
+    }
+    // Generate a stable key based on element type and index
+    const type = typeof child.type === "string" ? child.type : (child.type as any)?.displayName || (child.type as any)?.name || "component";
+    return `${type}-${index}`;
+  }
+  // Fallback to index for non-element children
+  return index;
+};
+
 export const Stack: React.FC<StackProps> = ({
   spacing = 0,
   padding,
@@ -71,7 +89,7 @@ export const Stack: React.FC<StackProps> = ({
     >
       {divider
         ? childArray.map((child, index) => (
-            <React.Fragment key={index}>
+            <React.Fragment key={getChildKey(child, index)}>
               {child}
               {index < childArray.length - 1 && (
                 <Box sx={{ my: theme.spacing(spacing / 2) }}>
