@@ -11,7 +11,7 @@ import React, { memo, forwardRef, useCallback } from "react";
 import { IconButton, Tooltip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -71,7 +71,7 @@ export interface CloseButtonProps {
   /**
    * Additional sx styles
    */
-  sx?: object;
+  sx?: SxProps<Theme>;
   /**
    * Tab index for keyboard navigation
    * @default 0

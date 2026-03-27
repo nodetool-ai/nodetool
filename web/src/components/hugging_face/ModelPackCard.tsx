@@ -227,6 +227,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
 
         <IconButton
           onClick={handleToggleExpanded}
+          aria-label={expanded ? "Collapse model pack details" : "Expand model pack details"}
           sx={{
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.3s"

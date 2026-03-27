@@ -35,7 +35,7 @@ interface VersionDiffProps {
   newVersionNumber: number;
 }
 
-const renderPropertyChange = (change: PropertyChange, index: number) => {
+const renderPropertyChange = (change: PropertyChange) => {
   const formatValue = (value: unknown): string => {
     if (value === null || value === undefined) {
       return "null";
@@ -48,7 +48,7 @@ const renderPropertyChange = (change: PropertyChange, index: number) => {
 
   return (
     <Box
-      key={index}
+      key={change.key}
       sx={{
         display: "flex",
         alignItems: "flex-start",
@@ -161,8 +161,8 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = ({
       </Box>
     </AccordionSummary>
     <AccordionDetails sx={{ pt: 0 }}>
-      {nodeChange.changes.map((change, index) =>
-        renderPropertyChange(change, index)
+      {nodeChange.changes.map((change) =>
+        renderPropertyChange(change)
       )}
     </AccordionDetails>
   </Accordion>
@@ -286,11 +286,11 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
             Connection Changes
           </Typography>
           <List dense disablePadding>
-            {diff.addedEdges.map((edge, index) => (
-              <EdgeDiffItem key={`added-${edge.source}-${edge.target}-${index}`} edge={edge} type="added" />
+            {diff.addedEdges.map((edge) => (
+              <EdgeDiffItem key={`added-${edge.source}-${edge.target}`} edge={edge} type="added" />
             ))}
-            {diff.removedEdges.map((edge, index) => (
-              <EdgeDiffItem key={`removed-${edge.source}-${edge.target}-${index}`} edge={edge} type="removed" />
+            {diff.removedEdges.map((edge) => (
+              <EdgeDiffItem key={`removed-${edge.source}-${edge.target}`} edge={edge} type="removed" />
             ))}
           </List>
         </>

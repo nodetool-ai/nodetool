@@ -1083,7 +1083,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         selectedModel: state.selectedModel,
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
-      } as unknown as GlobalChatState),
+      }) as GlobalChatState,
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
         if (state) {

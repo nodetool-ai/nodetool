@@ -148,6 +148,8 @@ export interface SketchCanvasProps {
   className?: string;
   /** Called when the pointer leaves the canvas area (e.g. refresh layer thumbnails off the hot path). */
   onCanvasLeave?: () => void;
+  /** Called when an image file is dropped onto the canvas. */
+  onDropImage?: (file: File) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -179,7 +181,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onAutoPickLayer,
       foregroundColor,
       className: rootClassName,
-      onCanvasLeave
+      onCanvasLeave,
+      onDropImage
     } = props;
 
     const theme = useTheme();
@@ -327,6 +330,31 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       clearLayerTransformPreview
     });
 
+    // ─── Drag-and-drop image import ─────────────────────────────────
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+      if (e.dataTransfer.types.includes("Files")) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }
+    }, []);
+
+    const handleDrop = useCallback(
+      (e: React.DragEvent) => {
+        e.preventDefault();
+        if (!onDropImage) {
+          return;
+        }
+        const file = Array.from(e.dataTransfer.files).find((f) =>
+          f.type.startsWith("image/")
+        );
+        if (file) {
+          onDropImage(file);
+        }
+      },
+      [onDropImage]
+    );
+
     // ─── Imperative handle ──────────────────────────────────────────────
 
     useCanvasImperativeHandle({
@@ -373,6 +401,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onMouseMove={pointerHandlers.handleMouseMove}
         onMouseLeave={pointerHandlers.handleMouseLeave}
         onContextMenu={pointerHandlers.handleContextMenu}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         <canvas
           ref={bootstrapDisplayRef}

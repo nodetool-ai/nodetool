@@ -320,6 +320,7 @@ const SecretsMenu = memo(() => {
                               size="small"
                               onClick={handleOpenEditDialog(secret)}
                               disabled={updateMutation.isPending}
+                              aria-label={`Update secret ${secret.key}`}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -330,6 +331,7 @@ const SecretsMenu = memo(() => {
                               color="error"
                               onClick={handleDeleteClick(secret.key)}
                               disabled={deleteMutation.isPending}
+                              aria-label={`Delete secret ${secret.key}`}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -392,6 +394,7 @@ const SecretsMenu = memo(() => {
                               size="small"
                               onClick={handleOpenEditDialog(secret)}
                               disabled={updateMutation.isPending}
+                              aria-label={`Set secret ${secret.key}`}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>

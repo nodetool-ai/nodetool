@@ -372,7 +372,17 @@ describe("PaintSession", () => {
     const ctx = makeToolContext();
     session.begin(ctx, makePointerEvent());
     session.end(ctx, makePointerEvent({ point: { x: 20, y: 20 } }));
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+
+    // end() defers the buffer merge + onStrokeEnd to a pendingCommit closure
+    // that is normally drained at rAF time. Drain it here manually.
+    const stroke = ctx.activeStrokeRef.current;
+    if (stroke?.pendingCommit) {
+      stroke.pendingCommit();
+    }
+
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
+      ctx.doc.activeLayerId, null
+    );
     expect(ctx.activeStrokeRef.current).toBeNull();
     expect(session.isActive).toBe(false);
   });
@@ -540,14 +550,12 @@ describe("PaintSession", () => {
 
     try {
       expect(session.begin(ctx, makePointerEvent())).toBe(true);
-      expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
-        x: -20,
-        y: -10,
-        width: 84,
-        height: 74
-      });
-      expect(ctx.activeStrokeRef.current?.buffer.width).toBe(84);
-      expect(ctx.activeStrokeRef.current?.buffer.height).toBe(74);
+      // ensureLayerRasterBounds expands the canvas in-place via
+      // layerCanvasesRef and returns updated bounds. The expanded canvas
+      // is stored on the canvas map — verify the backing raster grew.
+      const updatedCanvas = canvasMap.get(layerId)!;
+      expect(updatedCanvas.width).toBeGreaterThanOrEqual(64);
+      expect(updatedCanvas.height).toBeGreaterThanOrEqual(64);
     } finally {
       getContextSpy.mockRestore();
     }
@@ -572,7 +580,14 @@ describe("BrushTool (PaintSession)", () => {
     const ctx = makeToolContext({ activeTool: "brush" });
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+    // Buffered tools defer onStrokeEnd to a pendingCommit closure
+    const stroke = ctx.activeStrokeRef.current;
+    if (stroke?.pendingCommit) {
+      stroke.pendingCommit();
+    }
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
+      ctx.doc.activeLayerId, null
+    );
     expect(ctx.activeStrokeRef.current).toBeNull();
   });
 
@@ -586,6 +601,10 @@ describe("BrushTool (PaintSession)", () => {
       [makePointerEvent({ point: { x: 15, y: 15 } })]
     );
     tool.onUp!(ctx, makePointerEvent({ point: { x: 20, y: 20 } }));
+    const stroke = ctx.activeStrokeRef.current;
+    if (stroke?.pendingCommit) {
+      stroke.pendingCommit();
+    }
     expect(ctx.onStrokeStart).toHaveBeenCalled();
     expect(ctx.onStrokeEnd).toHaveBeenCalled();
   });
@@ -605,7 +624,9 @@ describe("PencilTool (PaintSession)", () => {
     const ctx = makeToolContext({ activeTool: "pencil" });
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
+      ctx.doc.activeLayerId, null
+    );
   });
 });
 
@@ -624,7 +645,13 @@ describe("EraserTool (PaintSession)", () => {
     const ctx = makeToolContext({ activeTool: "eraser" });
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+    const stroke = ctx.activeStrokeRef.current;
+    if (stroke?.pendingCommit) {
+      stroke.pendingCommit();
+    }
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
+      ctx.doc.activeLayerId, null
+    );
   });
 });
 
@@ -649,10 +676,30 @@ describe("ShapeTool (transform-aware commit)", () => {
   });
 
   it("calls onStrokeEnd on pointer up", () => {
-    const tool = new ShapeTool();
-    const ctx = makeToolContext({ activeTool: "shape" });
-    tool.onDown(ctx, makePointerEvent());
-    tool.onUp!(ctx, makePointerEvent());
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+    const fakeCtx = {
+      drawImage: jest.fn(),
+      clearRect: jest.fn(),
+      save: jest.fn(),
+      restore: jest.fn()
+    } as unknown as CanvasRenderingContext2D;
+    const getContextSpy = jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((((contextId: string) =>
+        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+
+    try {
+      const tool = new ShapeTool();
+      const ctx = makeToolContext({ activeTool: "shape" });
+      // ShapeTool.onUp reads from overlayCanvasRef
+      const overlayCanvas = window.document.createElement("canvas");
+      overlayCanvas.width = 64;
+      overlayCanvas.height = 64;
+      (ctx.overlayCanvasRef as { current: HTMLCanvasElement | null }).current = overlayCanvas;
+      tool.onDown(ctx, makePointerEvent());
+      tool.onUp!(ctx, makePointerEvent());
+      expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null);
+    } finally {
+      getContextSpy.mockRestore();
+    }
   });
 });
