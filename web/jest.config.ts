@@ -40,7 +40,8 @@ export default {
     "^.*contexts/WorkflowManagerContext$": "<rootDir>/src/__mocks__/WorkflowManagerContext.tsx",
     "^react-pdf$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-pdf/.*$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts"
+    "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^wavesurfer\\.js$": "<rootDir>/src/__mocks__/wavesurfer.ts"
   },
   setupFiles: ["<rootDir>/jest.setup.js"],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
