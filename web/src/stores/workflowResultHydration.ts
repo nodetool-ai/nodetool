@@ -124,7 +124,7 @@ export const hydrateWorkflowResultsFromAssets = async (
     const setOutputResult = useResultsStore.getState().setOutputResult;
 
     for (const nodeId in grouped) {
-      if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) continue;
+      if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) {continue;}
       const nodeResults = grouped[nodeId];
       const value = nodeResults.length === 1 ? nodeResults[0] : nodeResults;
       setOutputResult(workflowId, nodeId, value);

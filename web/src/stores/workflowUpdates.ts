@@ -565,7 +565,7 @@ export const handleUpdate = (
           update.node_type === "kie.DynamicKie";
 
         for (const key in update.properties) {
-          if (!Object.prototype.hasOwnProperty.call(update.properties, key)) continue;
+          if (!Object.prototype.hasOwnProperty.call(update.properties, key)) {continue;}
           const value = update.properties[key];
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
             // Dynamic schema node inputs are user-editable between runs;
