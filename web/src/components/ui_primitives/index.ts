@@ -280,3 +280,29 @@ export type { SkeletonProps } from "./Skeleton";
 
 export { DrawerPanel } from "./DrawerPanel";
 export type { DrawerPanelProps } from "./DrawerPanel";
+
+// Phase 4 - Additional primitives
+
+export { Checkbox } from "./Checkbox";
+export type { CheckboxProps } from "./Checkbox";
+
+export { ContextMenu } from "./ContextMenu";
+export type { ContextMenuProps } from "./ContextMenu";
+
+export { TextInput } from "./TextInput";
+export type { TextInputProps } from "./TextInput";
+
+export { DataTable } from "./DataTable";
+export type { DataTableProps, DataTableColumn } from "./DataTable";
+
+export { ButtonGroup } from "./ButtonGroup";
+export type { ButtonGroupProps } from "./ButtonGroup";
+
+export { ToggleGroup, ToggleOption } from "./ToggleGroup";
+export type { ToggleGroupProps, ToggleOptionProps } from "./ToggleGroup";
+
+export { Surface } from "./Surface";
+export type { SurfaceProps } from "./Surface";
+
+export { Autocomplete } from "./Autocomplete";
+export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";
