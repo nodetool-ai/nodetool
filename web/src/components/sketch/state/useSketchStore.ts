@@ -182,6 +182,13 @@ export interface SketchStore {
   toggleGroupCollapsed: (groupId: string) => void;
   moveLayerToGroup: (layerId: string, groupId: string | null) => void;
   ungroupLayer: (groupId: string) => void;
+  /** Contiguous sibling raster/mask layers → new group (same parent). */
+  groupLayers: (layerIds: string[]) => void;
+
+  // ─── Layer multi-select (layers panel) ────────────────────────────────────
+  /** Cleared whenever a single layer is chosen exclusively (normal click). */
+  selectedLayerIds: string[];
+  toggleLayerInSelection: (layerId: string) => void;
 
   // ─── Foreground / Background Colors ───────────────────────────────────────
   foregroundColor: string;
@@ -261,13 +268,15 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   symmetryMode: "off" as SymmetryMode,
   symmetryRays: SYMMETRY_DEFAULT_RAYS,
   panelsHidden: false,
+  selectedLayerIds: [] as string[],
 
   // ─── Document Actions ─────────────────────────────────────────────────
   setDocument: (doc: SketchDocument) => {
     set({
       document: normalizeSketchDocument(doc),
       history: [],
-      historyIndex: -1
+      historyIndex: -1,
+      selectedLayerIds: []
     });
   },
 
@@ -279,7 +288,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       pan: { x: 0, y: 0 },
       isDrawing: false,
       history: [],
-      historyIndex: -1
+      historyIndex: -1,
+      selectedLayerIds: []
     });
   },
 
@@ -442,8 +452,39 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   // ─── Layer Actions ────────────────────────────────────────────────────
   setActiveLayer: (layerId: string) =>
     set((state) => ({
-      document: { ...state.document, activeLayerId: layerId }
+      document: { ...state.document, activeLayerId: layerId },
+      selectedLayerIds: []
     })),
+
+  toggleLayerInSelection: (layerId: string) =>
+    set((state) => {
+      const layer = state.document.layers.find((l) => l.id === layerId);
+      if (!layer) {
+        return state;
+      }
+      const { document, selectedLayerIds } = state;
+      let base =
+        selectedLayerIds.length > 0
+          ? selectedLayerIds.filter((id) => document.layers.some((l) => l.id === id))
+          : [document.activeLayerId];
+      if (!base.includes(document.activeLayerId)) {
+        base = [document.activeLayerId];
+      }
+      const pos = base.indexOf(layerId);
+      let next: string[];
+      if (pos >= 0) {
+        next = base.filter((id) => id !== layerId);
+        if (next.length === 0) {
+          next = [layerId];
+        }
+      } else {
+        next = [...base, layerId];
+      }
+      return {
+        document: { ...document, activeLayerId: layerId },
+        selectedLayerIds: next.length >= 2 ? next : []
+      };
+    }),
 
   addLayer: (name?: string, type: "raster" | "mask" = "raster") => {
     const { width, height } = get().document.canvas;
@@ -467,7 +508,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
-        }
+        },
+        selectedLayerIds: []
       };
     });
     return layer.id;
@@ -500,6 +542,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       const newActiveId =
         idsToRemove.has(activeLayerId) ? newLayers[newLayers.length - 1].id : activeLayerId;
       const newMaskId = maskLayerId && idsToRemove.has(maskLayerId) ? null : maskLayerId;
+      const nextSelection = state.selectedLayerIds.filter((id) => !idsToRemove.has(id));
       return {
         document: {
           ...state.document,
@@ -510,7 +553,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
-        }
+        },
+        selectedLayerIds: nextSelection.length >= 2 ? nextSelection : []
       };
     }),
 
@@ -541,7 +585,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
-        }
+        },
+        selectedLayerIds: []
       };
     }),
 
@@ -558,7 +603,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
-        }
+        },
+        selectedLayerIds: []
       };
     }),
 
@@ -750,7 +796,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
-        }
+        },
+        selectedLayerIds: []
       };
     }),
 
@@ -778,7 +825,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
-        }
+        },
+        selectedLayerIds: []
       };
     }),
 
@@ -801,7 +849,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             ...state.document.metadata,
             updatedAt: new Date().toISOString()
           }
-        }
+        },
+        selectedLayerIds: []
       };
     });
     return group.id;
@@ -837,7 +886,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
               ? { ...l, parentId: groupId ?? undefined }
               : l
           )
-        })
+        }),
+        selectedLayerIds: []
       };
     }),
 
@@ -858,7 +908,58 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
           ...state.document,
           layers: newLayers,
           activeLayerId: newActiveId
-        })
+        }),
+        selectedLayerIds: []
+      };
+    }),
+
+  groupLayers: (layerIds: string[]) =>
+    set((state) => {
+      const unique = [...new Set(layerIds)];
+      if (unique.length < 2) {
+        return state;
+      }
+      const { layers } = state.document;
+      const selected = unique
+        .map((id) => layers.find((l) => l.id === id))
+        .filter((l): l is Layer => !!l && l.type !== "group");
+      if (selected.length < 2) {
+        return state;
+      }
+      const parentKey = selected[0].parentId ?? null;
+      if (!selected.every((l) => (l.parentId ?? null) === parentKey)) {
+        return state;
+      }
+      const indices = selected.map((l) => layers.indexOf(l)).sort((a, b) => a - b);
+      for (let i = 1; i < indices.length; i++) {
+        if (indices[i] !== indices[i - 1] + 1) {
+          return state;
+        }
+      }
+      const minI = indices[0];
+      const maxI = indices[indices.length - 1];
+      const groupName = `Group ${layers.filter((l) => l.type === "group").length + 1}`;
+      const group: Layer = {
+        ...createDefaultGroupLayer(groupName),
+        parentId: parentKey ?? undefined
+      };
+      const before = layers.slice(0, minI);
+      const middle = layers.slice(minI, maxI + 1).map((l) =>
+        selected.some((s) => s.id === l.id) ? { ...l, parentId: group.id } : l
+      );
+      const after = layers.slice(maxI + 1);
+      const newLayers = [...before, group, ...middle, ...after];
+      return {
+        document: withUpdatedDocumentTimestamp({
+          ...state.document,
+          layers: newLayers,
+          activeLayerId: group.id,
+          metadata: {
+            ...state.document.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        }),
+        selectedLayerIds: []
       };
     }),
 

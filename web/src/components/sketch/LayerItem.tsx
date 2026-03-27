@@ -25,7 +25,7 @@ import { getLayerDataImageUrl } from "./serialization";
 /** Base left padding for the layer row (px). */
 const BASE_PADDING = 8;
 /** Additional left padding per nesting depth level (px). */
-const DEPTH_INDENT = 16;
+const DEPTH_INDENT = 20;
 
 /** Where a dragged layer will be inserted relative to the drop target. */
 export type DropPosition = "before" | "after" | "into" | null;
@@ -34,13 +34,16 @@ export interface LayerItemProps {
   layer: Layer;
   realIdx: number;
   depth?: number;
-  isActive: boolean;
+  /** Layer that receives paint and tool edits. */
+  isPaintTarget: boolean;
+  /** Highlight row (multi-select or single active). */
+  isRowSelected: boolean;
   isMask: boolean;
   isIsolated: boolean;
   dropPosition: DropPosition;
   editingLayerId: string | null;
   editName: string;
-  onSelectLayer: (layerId: string) => void;
+  onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
   onToggleIsolateLayer: (layerId: string) => void;
   onToggleExposedInput: (layerId: string) => void;
@@ -61,13 +64,14 @@ const LayerItem: React.FC<LayerItemProps> = ({
   layer,
   realIdx,
   depth = 0,
-  isActive,
+  isPaintTarget,
+  isRowSelected,
   isMask,
   isIsolated,
   dropPosition,
   editingLayerId,
   editName,
-  onSelectLayer,
+  onLayerRowClick,
   onToggleVisibility,
   onToggleIsolateLayer,
   onToggleExposedInput,
@@ -85,6 +89,12 @@ const LayerItem: React.FC<LayerItemProps> = ({
 }) => {
   const isGroup = layer.type === "group";
   const thumbnailSrc = isGroup ? null : getLayerDataImageUrl(layer.data);
+  const rowClass =
+    `layer-item${isPaintTarget ? " active" : ""}` +
+    `${isMask ? " mask-layer" : ""}` +
+    `${isIsolated ? " isolated" : ""}` +
+    `${isGroup ? " group-layer" : ""}` +
+    `${isRowSelected && !isPaintTarget ? " selected-secondary" : ""}`;
 
   const dropIndicatorSx = (() => {
     switch (dropPosition) {
@@ -106,7 +116,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   return (
     <Box>
       <Box
-        className={`layer-item${isActive ? " active" : ""}${isMask ? " mask-layer" : ""}${isIsolated ? " isolated" : ""}${isGroup ? " group-layer" : ""}`}
+        className={rowClass}
         draggable
         onDragStart={(e) => {
           const t = e.target as HTMLElement;
@@ -120,7 +130,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
         onDragLeave={onDragLeave}
         onDrop={() => onDrop(realIdx)}
         onDragEnd={onDragEnd}
-        onClick={() => onSelectLayer(layer.id)}
+        onClick={(e) => onLayerRowClick(e, layer.id)}
         sx={{
           pl: `${BASE_PADDING + depth * DEPTH_INDENT}px`,
           ...dropIndicatorSx
@@ -149,7 +159,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <FolderIcon
             sx={{
               fontSize: "1.25rem",
-              color: isActive ? "primary.contrastText" : "grey.400",
+              color: isPaintTarget ? "primary.contrastText" : "grey.400",
               flexShrink: 0,
               mr: "2px"
             }}

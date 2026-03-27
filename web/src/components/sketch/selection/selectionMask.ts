@@ -6,13 +6,16 @@ import type { Point, Selection } from "../types";
 
 const THRESH = 128;
 
+const ANT_ON = "#aaa";
+const ANT_OFF = "#000";
+
 /**
- * Marching-ants cell size in **document** pixels. The overlay uses CSS
- * `scale(zoom)`, so one bitmap pixel already spans `zoom` CSS pixels — do not
- * enlarge cells when zoom >= 1. When zoomed out, coarsen so the pattern stays
- * visible after shrink.
+ * Coarsened cell size for zoomed-out views.  The overlay canvas is at document
+ * resolution and CSS-scaled by `zoom`, so one bitmap pixel already spans `zoom`
+ * screen pixels.  At zoom >= 1, cells are 1 doc pixel (1:1 with the grid).
+ * When zoomed out (zoom < 1), cells are enlarged so the pattern stays visible.
  */
-function selectionOutlineCellSize(zoom: number): number {
+function antCellSize(zoom: number): number {
   const z = Math.max(0.02, Math.min(zoom, 64));
   if (z >= 1) {
     return 1;
@@ -27,28 +30,28 @@ function bresenhamPlot(
   y1: number,
   plot: (x: number, y: number) => void
 ): void {
-  let x0r = Math.round(x0);
-  let y0r = Math.round(y0);
-  const x1r = Math.round(x1);
-  const y1r = Math.round(y1);
-  const dx = Math.abs(x1r - x0r);
-  const dy = Math.abs(y1r - y0r);
-  const sx = x0r < x1r ? 1 : -1;
-  const sy = y0r < y1r ? 1 : -1;
+  let cx = Math.round(x0);
+  let cy = Math.round(y0);
+  const ex = Math.round(x1);
+  const ey = Math.round(y1);
+  const dx = Math.abs(ex - cx);
+  const dy = Math.abs(ey - cy);
+  const sx = cx < ex ? 1 : -1;
+  const sy = cy < ey ? 1 : -1;
   let err = dx - dy;
   for (;;) {
-    plot(x0r, y0r);
-    if (x0r === x1r && y0r === y1r) {
+    plot(cx, cy);
+    if (cx === ex && cy === ey) {
       break;
     }
     const e2 = 2 * err;
     if (e2 > -dy) {
       err -= dy;
-      x0r += sx;
+      cx += sx;
     }
     if (e2 < dx) {
       err += dx;
-      y0r += sy;
+      cy += sy;
     }
   }
 }
@@ -513,9 +516,9 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
 }
 
 /**
- * Marching ants along an open polyline (lasso in progress). Integer fillRects on
- * the document pixel grid stay sharp when the overlay is CSS-scaled; `phase`
- * drives the checker crawl.
+ * Marching ants along an open polyline (lasso in progress).
+ * Uses integer fillRects on the document pixel grid — stays crisp when the
+ * overlay is CSS-scaled.  `phase` drives the checker crawl.
  */
 export function drawSelectionPolylineOutline(
   ctx: CanvasRenderingContext2D,
@@ -526,39 +529,39 @@ export function drawSelectionPolylineOutline(
   if (points.length < 2) {
     return;
   }
-  const cell = selectionOutlineCellSize(zoom);
-  const drawn = new Set<string>();
+  const cell = antCellSize(zoom);
+  const drawn = new Set<number>();
 
   const plot = (x: number, y: number): void => {
     if (cell <= 1) {
-      const on = ((x + y + phase) >> 2) % 2 === 0;
-      ctx.fillStyle = on ? "#ffffff" : "#000000";
+      ctx.fillStyle = ((x + y + phase) >> 2) % 2 === 0 ? ANT_ON : ANT_OFF;
       ctx.fillRect(x, y, 1, 1);
       return;
     }
-    const qx = Math.floor(x / cell);
-    const qy = Math.floor(y / cell);
-    const key = `${qx},${qy}`;
+    const qx = (x / cell) | 0;
+    const qy = (y / cell) | 0;
+    const key = qy * 0x10000 + qx;
     if (drawn.has(key)) {
       return;
     }
     drawn.add(key);
-    const on = ((qx + qy + phase) & 1) === 0;
-    ctx.fillStyle = on ? "#ffffff" : "#000000";
+    ctx.fillStyle = ((qx + qy + phase) & 1) === 0 ? ANT_ON : ANT_OFF;
     ctx.fillRect(qx * cell, qy * cell, cell, cell);
   };
 
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i];
-    const b = points[i + 1];
-    bresenhamPlot(a.x, a.y, b.x, b.y, plot);
+    bresenhamPlot(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y, plot);
   }
   ctx.restore();
 }
 
-/** Marching ants on mask edges (document pixels; `phase` animates the checker). */
+/**
+ * Marching ants on mask boundary edges.
+ * Each selected pixel adjacent to an unselected pixel (or canvas border) is an
+ * edge pixel.  Drawn as integer fillRects for crisp rendering at any zoom.
+ */
 export function drawSelectionMaskOutline(
   ctx: CanvasRenderingContext2D,
   mask: Selection,
@@ -566,53 +569,32 @@ export function drawSelectionMaskOutline(
   zoom = 1
 ): void {
   const { width: w, height: h, data } = mask;
-  const cell = selectionOutlineCellSize(zoom);
+  const cell = antCellSize(zoom);
 
   ctx.save();
   ctx.imageSmoothingEnabled = false;
 
-  const isEdge = (x: number, y: number, idx: number): boolean =>
-    x === 0 ||
-    y === 0 ||
-    x === w - 1 ||
-    y === h - 1 ||
-    data[idx - 1] < THRESH ||
-    data[idx + 1] < THRESH ||
-    data[idx - w] < THRESH ||
-    data[idx + w] < THRESH;
-
   if (cell <= 1) {
-    for (let y = 1; y < h - 1; y++) {
+    for (let y = 0; y < h; y++) {
       const row = y * w;
-      for (let x = 1; x < w - 1; x++) {
+      for (let x = 0; x < w; x++) {
         const idx = row + x;
-        if (data[idx] < THRESH || !isEdge(x, y, idx)) {
+        if (data[idx] < THRESH) {
           continue;
         }
-        ctx.fillStyle = ((x + y + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
-    // Border rows/columns (always edge if selected)
-    for (let x = 0; x < w; x++) {
-      if (data[x] >= THRESH) {
-        ctx.fillStyle = ((x + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
-        ctx.fillRect(x, 0, 1, 1);
-      }
-      const last = (h - 1) * w + x;
-      if (data[last] >= THRESH) {
-        ctx.fillStyle = ((x + h - 1 + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
-        ctx.fillRect(x, h - 1, 1, 1);
-      }
-    }
-    for (let y = 1; y < h - 1; y++) {
-      if (data[y * w] >= THRESH) {
-        ctx.fillStyle = ((y + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
-        ctx.fillRect(0, y, 1, 1);
-      }
-      if (data[y * w + w - 1] >= THRESH) {
-        ctx.fillStyle = ((w - 1 + y + phase) >> 2) % 2 === 0 ? "#fff" : "#000";
-        ctx.fillRect(w - 1, y, 1, 1);
+        if (
+          x === 0 ||
+          y === 0 ||
+          x === w - 1 ||
+          y === h - 1 ||
+          data[idx - 1] < THRESH ||
+          data[idx + 1] < THRESH ||
+          data[idx - w] < THRESH ||
+          data[idx + w] < THRESH
+        ) {
+          ctx.fillStyle = ((x + y + phase) >> 2) % 2 === 0 ? ANT_ON : ANT_OFF;
+          ctx.fillRect(x, y, 1, 1);
+        }
       }
     }
     ctx.restore();
@@ -625,18 +607,28 @@ export function drawSelectionMaskOutline(
     const row = y * w;
     for (let x = 0; x < w; x++) {
       const idx = row + x;
-      if (data[idx] < THRESH || !isEdge(x, y, idx)) {
+      if (data[idx] < THRESH) {
         continue;
       }
-      const qx = (x / cell) | 0;
-      const qy = (y / cell) | 0;
-      const qi = qy * cw + qx;
-      if (drawn[qi]) {
-        continue;
+      if (
+        x === 0 ||
+        y === 0 ||
+        x === w - 1 ||
+        y === h - 1 ||
+        data[idx - 1] < THRESH ||
+        data[idx + 1] < THRESH ||
+        data[idx - w] < THRESH ||
+        data[idx + w] < THRESH
+      ) {
+        const qx = (x / cell) | 0;
+        const qy = (y / cell) | 0;
+        const qi = qy * cw + qx;
+        if (!drawn[qi]) {
+          drawn[qi] = 1;
+          ctx.fillStyle = ((qx + qy + phase) & 1) === 0 ? ANT_ON : ANT_OFF;
+          ctx.fillRect(qx * cell, qy * cell, cell, cell);
+        }
       }
-      drawn[qi] = 1;
-      ctx.fillStyle = ((qx + qy + phase) & 1) === 0 ? "#fff" : "#000";
-      ctx.fillRect(qx * cell, qy * cell, cell, cell);
     }
   }
   ctx.restore();

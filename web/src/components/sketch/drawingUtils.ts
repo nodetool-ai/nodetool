@@ -420,8 +420,9 @@ export function drawCheckerboard(
 /**
  * Minimum zoom level at which the pixel grid becomes visible.
  * Below this zoom each pixel is too small for grid lines to be useful.
+ * 2× (200%) matches common “zoom in to pixel-edit” without requiring extreme zoom.
  */
-export const PIXEL_GRID_MIN_ZOOM = 4;
+export const PIXEL_GRID_MIN_ZOOM = 2;
 
 /**
  * Draws a thin semi-transparent white grid on the overlay canvas at every

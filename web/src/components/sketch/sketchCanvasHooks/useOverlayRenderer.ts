@@ -210,9 +210,9 @@ export function useOverlayRenderer({
     lassoPointsRef
   ]);
 
-  // Clear gradient preview when switching tools
+  // Clear overlay preview when switching tools (skip for tools that draw their own overlay on activate)
   useEffect(() => {
-    if (activeTool !== "gradient") {
+    if (activeTool !== "gradient" && activeTool !== "transform") {
       clearOverlay();
       drawSelectionOverlay();
     }

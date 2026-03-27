@@ -542,6 +542,16 @@ export function usePointerHandlers({
         return;
       }
 
+      if (activeTool === "transform") {
+        const handler = getToolHandler(activeTool);
+        const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
+        if (started) {
+          isDrawingRef.current = true;
+        }
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+
       if (activeTool === "crop") {
         const pt = screenToCanvas(e.clientX, e.clientY);
         cropStartRef.current = pt;
@@ -955,6 +965,12 @@ export function usePointerHandlers({
         return;
       }
 
+      if (activeTool === "transform") {
+        const handler = getToolHandler(activeTool);
+        handler.onMove?.(toolCtxRef.current, buildToolPointerEvent(e), []);
+        return;
+      }
+
       if (isShapeTool(activeTool)) {
         const handler = getToolHandler(activeTool);
         handler.onMove?.(toolCtxRef.current, buildToolPointerEvent(e), []);
@@ -1216,6 +1232,12 @@ export function usePointerHandlers({
       }
       if (activeTool === "clone_stamp") {
         clonePaintOffsetRef.current = null;
+      }
+
+      if (activeTool === "transform") {
+        const handler = getToolHandler(activeTool);
+        handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
+        return;
       }
 
       if (isShapeTool(activeTool)) {
@@ -1568,6 +1590,20 @@ export function usePointerHandlers({
     },
     [onContextMenu]
   );
+
+  // ─── Tool activation lifecycle ────────────────────────────────────
+  const prevActiveToolRef = useRef(activeTool);
+  useEffect(() => {
+    const prev = prevActiveToolRef.current;
+    if (prev === activeTool) {
+      return;
+    }
+    const prevHandler = getToolHandler(prev);
+    prevHandler.onDeactivate?.(toolCtxRef.current);
+    const nextHandler = getToolHandler(activeTool);
+    nextHandler.onActivate?.(toolCtxRef.current);
+    prevActiveToolRef.current = activeTool;
+  }, [activeTool]);
 
   return {
     handlePointerDown,

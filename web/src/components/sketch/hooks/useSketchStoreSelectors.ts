@@ -41,6 +41,8 @@ export function useSketchStoreSelectors() {
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
+  const selectedLayerIds = useSketchStore((s) => s.selectedLayerIds);
+  const toggleLayerInSelection = useSketchStore((s) => s.toggleLayerInSelection);
   const addLayer = useSketchStore((s) => s.addLayer);
   const removeLayer = useSketchStore((s) => s.removeLayer);
   const duplicateLayer = useSketchStore((s) => s.duplicateLayer);
@@ -70,6 +72,7 @@ export function useSketchStoreSelectors() {
   const toggleGroupCollapsed = useSketchStore((s) => s.toggleGroupCollapsed);
   const moveLayerToGroup = useSketchStore((s) => s.moveLayerToGroup);
   const ungroupLayer = useSketchStore((s) => s.ungroupLayer);
+  const groupLayers = useSketchStore((s) => s.groupLayers);
   const foregroundColor = useSketchStore((s) => s.foregroundColor);
   const backgroundColor = useSketchStore((s) => s.backgroundColor);
   const setForegroundColor = useSketchStore((s) => s.setForegroundColor);
@@ -129,6 +132,8 @@ export function useSketchStoreSelectors() {
     setZoom,
     setPan,
     setActiveLayer,
+    selectedLayerIds,
+    toggleLayerInSelection,
     addLayer,
     removeLayer,
     duplicateLayer,
@@ -158,6 +163,7 @@ export function useSketchStoreSelectors() {
     toggleGroupCollapsed,
     moveLayerToGroup,
     ungroupLayer,
+    groupLayers,
     foregroundColor: safeForegroundColor,
     backgroundColor: safeBackgroundColor,
     setForegroundColor,

@@ -866,6 +866,71 @@ export function buildVisibleLayerTree(layers: Layer[]): Array<{ layer: Layer; de
   return result;
 }
 
+function layerHiddenByCollapsedAncestor(
+  layers: Layer[],
+  layer: Layer,
+  collapsedGroupIds: Set<string>
+): boolean {
+  let current: Layer | undefined = layer;
+  while (current?.parentId) {
+    if (collapsedGroupIds.has(current.parentId)) {
+      return true;
+    }
+    current = layers.find((l) => l.id === current!.parentId);
+  }
+  return false;
+}
+
+/**
+ * Layer panel order: composite top → bottom, with each group row immediately above
+ * its children (children indented one level deeper). Respects collapsed groups.
+ */
+export function buildLayersPanelRows(layers: Layer[]): Array<{ layer: Layer; depth: number }> {
+  const collapsedGroupIds = new Set(
+    layers.filter((l) => l.type === "group" && l.collapsed).map((l) => l.id)
+  );
+  const result: Array<{ layer: Layer; depth: number }> = [];
+
+  function emitGroup(group: Layer, depth: number): void {
+    if (layerHiddenByCollapsedAncestor(layers, group, collapsedGroupIds)) {
+      return;
+    }
+    result.push({ layer: group, depth });
+    if (group.type === "group" && group.collapsed) {
+      return;
+    }
+    const children = getChildLayers(layers, group.id);
+    children.sort((a, b) => layers.indexOf(b) - layers.indexOf(a));
+    for (const child of children) {
+      if (layerHiddenByCollapsedAncestor(layers, child, collapsedGroupIds)) {
+        continue;
+      }
+      if (child.type === "group") {
+        emitGroup(child, depth + 1);
+      } else {
+        result.push({ layer: child, depth: depth + 1 });
+      }
+    }
+  }
+
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const L = layers[i];
+    if (layerHiddenByCollapsedAncestor(layers, L, collapsedGroupIds)) {
+      continue;
+    }
+    if (L.parentId) {
+      continue;
+    }
+    if (L.type === "group") {
+      emitGroup(L, 0);
+    } else {
+      result.push({ layer: L, depth: 0 });
+    }
+  }
+
+  return result;
+}
+
 /** Create a default group layer. */
 export function createDefaultGroupLayer(name: string): Layer {
   return {

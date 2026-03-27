@@ -55,8 +55,8 @@ describe("drawPixelGrid", () => {
     expect(ctx.lineTo).toHaveBeenCalledTimes(16);
   });
 
-  it("PIXEL_GRID_MIN_ZOOM is 4", () => {
-    expect(PIXEL_GRID_MIN_ZOOM).toBe(4);
+  it("PIXEL_GRID_MIN_ZOOM is 2", () => {
+    expect(PIXEL_GRID_MIN_ZOOM).toBe(2);
   });
 });
 

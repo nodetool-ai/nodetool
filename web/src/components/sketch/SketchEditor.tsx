@@ -137,7 +137,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     addGroup: store.addGroup,
     toggleGroupCollapsed: store.toggleGroupCollapsed,
     moveLayerToGroup: store.moveLayerToGroup,
-    ungroupLayer: store.ungroupLayer
+    ungroupLayer: store.ungroupLayer,
+    groupLayers: store.groupLayers
   });
 
   // ─── Canvas actions ─────────────────────────────────────────────────
@@ -417,9 +418,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           onForegroundColorChange={handleFgColorChange}
           layers={store.document.layers}
           activeLayerId={store.document.activeLayerId}
+          selectedLayerIds={store.selectedLayerIds}
           maskLayerId={store.document.maskLayerId}
           isolatedLayerId={store.isolatedLayerId}
           onSelectLayer={store.setActiveLayer}
+          onToggleLayerInSelection={store.toggleLayerInSelection}
           onToggleVisibility={layerActions.handleToggleVisibility}
           onAddLayer={layerActions.handleAddLayer}
           onRemoveLayer={layerActions.handleRemoveLayer}
@@ -443,6 +446,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           onToggleGroupCollapsed={layerActions.handleToggleGroupCollapsed}
           onMoveLayerToGroup={layerActions.handleMoveLayerToGroup}
           onUngroupLayer={layerActions.handleUngroupLayer}
+          onGroupSelectedLayers={layerActions.handleGroupSelectedLayers}
+          onDeleteSelectedLayers={layerActions.handleDeleteSelectedLayers}
         />
       )}
 

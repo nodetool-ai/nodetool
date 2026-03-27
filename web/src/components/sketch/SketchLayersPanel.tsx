@@ -135,6 +135,10 @@ const styles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.primary.dark,
         color: theme.vars.palette.primary.contrastText
       },
+      "&.selected-secondary": {
+        backgroundColor: theme.vars.palette.grey[700],
+        boxShadow: `inset 0 0 0 1px ${theme.vars.palette.primary.light}`
+      },
       "&.mask-layer": {
         outline: `2px solid ${theme.vars.palette.warning.main}`,
         outlineOffset: "-2px"
@@ -208,9 +212,12 @@ export interface SketchLayersPanelProps {
   onForegroundColorChange: (color: string) => void;
   layers: Layer[];
   activeLayerId: string;
+  /** When length ≥ 2, rows use multi-select highlighting (Ctrl/Cmd+click). */
+  selectedLayerIds: string[];
   maskLayerId: string | null;
   isolatedLayerId: string | null;
   onSelectLayer: (layerId: string) => void;
+  onToggleLayerInSelection: (layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
   onAddLayer: (fillColor?: string | null) => void;
   onRemoveLayer: (layerId: string) => void;
@@ -234,6 +241,8 @@ export interface SketchLayersPanelProps {
   onToggleGroupCollapsed: (groupId: string) => void;
   onMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
   onUngroupLayer: (groupId: string) => void;
+  onGroupSelectedLayers: () => void;
+  onDeleteSelectedLayers: () => void;
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
@@ -241,9 +250,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onForegroundColorChange,
   layers,
   activeLayerId,
+  selectedLayerIds,
   maskLayerId,
   isolatedLayerId,
   onSelectLayer,
+  onToggleLayerInSelection,
   onToggleVisibility,
   onAddLayer,
   onRemoveLayer,
@@ -266,7 +277,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onAddGroup,
   onToggleGroupCollapsed,
   onMoveLayerToGroup,
-  onUngroupLayer
+  onUngroupLayer,
+  onGroupSelectedLayers,
+  onDeleteSelectedLayers
 }) => {
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -325,6 +338,17 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const handleCancelRename = useCallback(() => {
     setEditingLayerId(null);
   }, []);
+
+  const handleLayerRowClick = useCallback(
+    (e: React.MouseEvent, layerId: string) => {
+      if (e.metaKey || e.ctrlKey) {
+        onToggleLayerInSelection(layerId);
+      } else {
+        onSelectLayer(layerId);
+      }
+    },
+    [onSelectLayer, onToggleLayerInSelection]
+  );
 
   // ─── Drag-and-drop layer reordering (tree-aware) ───────────────
   const handleDragStart = useCallback(
@@ -442,6 +466,62 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       <Typography className="section-label sketch-layers-panel__title">
         Layers
       </Typography>
+      <Typography
+        sx={{
+          fontSize: "0.62rem",
+          color: "grey.500",
+          lineHeight: 1.35,
+          mb: 0.5
+        }}
+      >
+        Ctrl+click (⌘+click) layers to multi-select. Wrap as group only works for adjacent
+        layers with the same parent. Pixel grid appears from 200% zoom.
+      </Typography>
+
+      {selectedLayerIds.length >= 2 ? (
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 0.5,
+            py: 0.5,
+            px: 0.5,
+            mb: 0.5,
+            borderRadius: 1,
+            bgcolor: "grey.900",
+            border: 1,
+            borderColor: "grey.700"
+          }}
+        >
+          <Typography sx={{ fontSize: "0.65rem", color: "grey.400", mr: 0.5 }}>
+            {selectedLayerIds.length} selected
+          </Typography>
+          <Tooltip title="Group selected layers (must be adjacent siblings)">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onGroupSelectedLayers}
+              startIcon={<CreateNewFolderIcon sx={{ fontSize: "1rem !important" }} />}
+              sx={{ fontSize: "0.65rem", py: 0, minHeight: 26 }}
+            >
+              Group
+            </Button>
+          </Tooltip>
+          <Tooltip title="Delete selected layers">
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              onClick={onDeleteSelectedLayers}
+              startIcon={<DeleteIcon sx={{ fontSize: "1rem !important" }} />}
+              sx={{ fontSize: "0.65rem", py: 0, minHeight: 26 }}
+            >
+              Delete
+            </Button>
+          </Tooltip>
+        </Box>
+      ) : null}
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions">
@@ -522,7 +602,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <AddIcon sx={{ fontSize: "14px", color: theme.vars.palette.grey[300] }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add Group">
+          <Tooltip title="New empty layer group (folder)">
             <IconButton
               size="small"
               onClick={() => onAddGroup()}
@@ -540,6 +620,23 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </Tooltip>
         </Box>
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => onAddGroup()}
+          sx={{
+            fontSize: "0.65rem",
+            py: 0.25,
+            px: 0.5,
+            minHeight: 0,
+            color: "grey.400",
+            justifyContent: "flex-start",
+            textTransform: "none",
+            "&:hover": { color: "grey.200", bgcolor: "grey.800" }
+          }}
+        >
+          + New empty group
+        </Button>
         <Box
           sx={{
             display: "flex",
@@ -647,19 +744,25 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           const reversed = [...visibleTree].reverse();
           return reversed.map(({ layer, depth }) => {
             const realIdx = layers.indexOf(layer);
+            const isPaintTarget = layer.id === activeLayerId;
+            const isRowSelected =
+              selectedLayerIds.length >= 2
+                ? selectedLayerIds.includes(layer.id)
+                : layer.id === activeLayerId;
             return (
               <LayerItem
                 key={layer.id}
                 layer={layer}
                 realIdx={realIdx}
                 depth={depth}
-                isActive={layer.id === activeLayerId}
+                isPaintTarget={isPaintTarget}
+                isRowSelected={isRowSelected}
                 isMask={layer.id === maskLayerId}
                 isIsolated={layer.id === isolatedLayerId}
                 dropPosition={dropTarget?.realIdx === realIdx ? dropTarget.position : null}
                 editingLayerId={editingLayerId}
                 editName={editName}
-                onSelectLayer={onSelectLayer}
+                onLayerRowClick={handleLayerRowClick}
                 onToggleVisibility={onToggleVisibility}
                 onToggleIsolateLayer={onToggleIsolateLayer}
                 onToggleExposedInput={onToggleExposedInput}

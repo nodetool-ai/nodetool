@@ -33,6 +33,7 @@ export interface UseLayerActionsParams {
   toggleGroupCollapsed: (groupId: string) => void;
   moveLayerToGroup: (layerId: string, groupId: string | null) => void;
   ungroupLayer: (groupId: string) => void;
+  groupLayers: (layerIds: string[]) => void;
 }
 
 export function useLayerActions({
@@ -57,7 +58,8 @@ export function useLayerActions({
   addGroup,
   toggleGroupCollapsed,
   moveLayerToGroup,
-  ungroupLayer
+  ungroupLayer,
+  groupLayers
 }: UseLayerActionsParams) {
   const handleAddLayer = useCallback(
     (fillColor?: string | null) => {
@@ -294,6 +296,39 @@ export function useLayerActions({
     [pushHistory, ungroupLayer]
   );
 
+  const handleGroupSelectedLayers = useCallback(() => {
+    const ids = useSketchStore.getState().selectedLayerIds;
+    if (ids.length < 2) {
+      return;
+    }
+    pushHistory("group layers");
+    groupLayers(ids);
+  }, [pushHistory, groupLayers]);
+
+  const handleDeleteSelectedLayers = useCallback(() => {
+    const ids = [...useSketchStore.getState().selectedLayerIds];
+    if (ids.length < 2) {
+      return;
+    }
+    const layerIds = new Set(document.layers.map((l) => l.id));
+    const toRemove = ids.filter((id) => layerIds.has(id));
+    if (toRemove.length === 0) {
+      return;
+    }
+    if (document.layers.length - toRemove.length < 1) {
+      return;
+    }
+    pushHistory("remove layers");
+    const sorted = [...toRemove].sort(
+      (a, b) =>
+        document.layers.findIndex((l) => l.id === b) -
+        document.layers.findIndex((l) => l.id === a)
+    );
+    for (const id of sorted) {
+      removeLayer(id);
+    }
+  }, [document.layers, pushHistory, removeLayer]);
+
   return {
     handleAddLayer,
     handleRemoveLayer,
@@ -314,6 +349,8 @@ export function useLayerActions({
     handleAddGroup,
     handleToggleGroupCollapsed,
     handleMoveLayerToGroup,
-    handleUngroupLayer
+    handleUngroupLayer,
+    handleGroupSelectedLayers,
+    handleDeleteSelectedLayers
   };
 }

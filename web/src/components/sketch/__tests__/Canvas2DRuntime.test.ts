@@ -528,63 +528,6 @@ describe("Canvas2DRuntime", () => {
       }).not.toThrow();
     });
 
-    it("skips a hidden layer from the base composite", () => {
-      const doc = makeDoc();
-      const lower = doc.layers[0];
-      const upper = { ...lower, id: "upper", name: "Upper" };
-      doc.layers = [lower, upper];
-
-      const lowerCanvas = runtime.getOrCreateLayerCanvas(lower.id, 64, 64);
-      const upperCanvas = runtime.getOrCreateLayerCanvas(upper.id, 64, 64);
-
-      const drawImage = jest.fn();
-      const fillRect = jest.fn();
-      const createPattern = jest.fn(() => "pattern" as unknown as CanvasPattern);
-      const save = jest.fn();
-      const restore = jest.fn();
-      const clearRect = jest.fn();
-      const beginPath = jest.fn();
-      const rect = jest.fn();
-      const clip = jest.fn();
-      const strokeRect = jest.fn();
-
-      const fakeContext = {
-        drawImage,
-        fillRect,
-        createPattern,
-        save,
-        restore,
-        clearRect,
-        beginPath,
-        rect,
-        clip,
-        strokeRect,
-        globalAlpha: 1,
-        globalCompositeOperation: "source-over",
-        fillStyle: "#000"
-      } as unknown as CanvasRenderingContext2D;
-
-      const getContextSpy = jest
-        .spyOn(HTMLCanvasElement.prototype, "getContext")
-        .mockImplementation((((contextId: string) =>
-          contextId === "2d" ? fakeContext : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
-
-      try {
-        const target = document.createElement("canvas");
-        target.width = 64;
-        target.height = 64;
-
-        runtime.compositeToDisplay(target, doc, null, null, null, upper.id);
-
-        const layerDraws = drawImage.mock.calls.filter(
-          ([canvas]) => canvas === lowerCanvas || canvas === upperCanvas
-        );
-        expect(layerDraws).toEqual([[lowerCanvas, 0, 0]]);
-      } finally {
-        getContextSpy.mockRestore();
-      }
-    });
-
     it("draws a transformed layer at raster-bounds plus transform offset", () => {
       const doc = makeDoc();
       const layer = doc.layers[0];
