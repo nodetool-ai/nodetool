@@ -4,7 +4,8 @@ import React, {
     memo,
     useState,
     useCallback,
-    useRef
+    useRef,
+    useEffect
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -191,8 +192,32 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
 
-    // Handle escape key
-    useCombo(["escape"], onClose);
+    const onCloseRef = useRef(onClose);
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
+    // Escape: avoid the global useCombo "escape" slot (only one listener can win app-wide).
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== "Escape") {
+                return;
+            }
+            const t = e.target;
+            if (
+                t instanceof HTMLTextAreaElement &&
+                t.closest(".image-editor-root")
+            ) {
+                return;
+            }
+            e.preventDefault();
+            onCloseRef.current();
+        };
+        window.addEventListener("keydown", onKeyDown, { capture: true });
+        return () => {
+            window.removeEventListener("keydown", onKeyDown, { capture: true });
+        };
+    }, []);
 
     // Handle undo
     useCombo(["ctrl", "z"], useCallback(() => {
@@ -596,7 +621,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
     const canRedo = historyIndex < history.length - 1;
 
     return (
-        <div css={styles(theme)}>
+        <div css={styles(theme)} className="image-editor-root">
             {/* Header */}
             <div className="editor-header">
                 <div className="editor-title">

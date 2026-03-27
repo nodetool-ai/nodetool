@@ -4,7 +4,8 @@ import React, {
   memo,
   useState,
   useCallback,
-  useRef
+  useRef,
+  useEffect
 } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
@@ -195,8 +196,31 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  // Handle escape key
-  useCombo(["escape"], onClose);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") {
+        return;
+      }
+      const t = e.target;
+      if (
+        t instanceof HTMLTextAreaElement &&
+        t.closest(".image-editor-root")
+      ) {
+        return;
+      }
+      e.preventDefault();
+      onCloseRef.current();
+    };
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
+    };
+  }, []);
 
   // Handle undo
   useCombo(["ctrl", "z"], useCallback(() => {
@@ -598,7 +622,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   const content = (
     <div css={styles(theme)}>
-      <div className="modal-overlay">
+      <div className="modal-overlay image-editor-root">
         {/* Header */}
         <div className="modal-header">
           <div className="modal-title">
