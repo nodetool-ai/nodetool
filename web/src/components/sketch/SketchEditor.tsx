@@ -30,7 +30,7 @@ import SketchToolbar from "./SketchToolbar";
 import SketchToolTopBar from "./SketchToolTopBar";
 import SketchLayersPanel from "./SketchLayersPanel";
 import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
-import type { SketchDocument } from "./types";
+import type { SketchDocument, SketchTool } from "./types";
 import { isShapeTool } from "./types";
 import {
   useSketchStoreSelectors,
@@ -94,6 +94,15 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
   const hasActiveSelection = useMemo(
     () => selectionHasAnyPixels(store.selection),
     [store.selection]
+  );
+
+  /** Pointer/cursor routing: spring-loaded Ctrl/Cmd+drag move without changing `activeTool`. */
+  const interactionTool = useMemo<SketchTool>(
+    () =>
+      store.transientMoveModifierHeld && store.activeTool !== "move"
+        ? "move"
+        : store.activeTool,
+    [store.transientMoveModifierHeld, store.activeTool]
   );
 
   const activeLayerTransform = useMemo(() => {
@@ -382,6 +391,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
               className="sketch-editor__canvas"
               document={store.document}
               activeTool={store.activeTool}
+              interactionTool={interactionTool}
               zoom={store.zoom}
               pan={store.pan}
               mirrorX={store.mirrorX}

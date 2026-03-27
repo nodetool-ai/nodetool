@@ -36,7 +36,9 @@ import {
   SelectToolMode,
   parseColorToRgba,
   rgbaToCss,
-  colorToHex6
+  colorToHex6,
+  DEFAULT_PRESSURE_MIN_SCALE,
+  DEFAULT_PRESSURE_CURVE
 } from "./types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -250,6 +252,49 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
               Both
             </ToggleButton>
           </ToggleButtonGroup>
+          <Box className="setting-row">
+            <Typography
+              className="setting-label"
+              title="Size/opacity at minimum pressure (lower = thinner light strokes, wider thin-to-thick range)"
+            >
+              Light end
+            </Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0.02}
+              max={0.55}
+              step={0.01}
+              value={settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE}
+              onChange={(_, v) => onChange({ pressureMinScale: v as number })}
+            />
+            <Typography className="setting-value">
+              {Math.round(
+                (settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE) * 100
+              )}
+              %
+            </Typography>
+          </Box>
+          <Box className="setting-row">
+            <Typography
+              className="setting-label"
+              title="Pressure exponent before mapping: 1 = linear; higher = need firmer pressure for full size"
+            >
+              Curve
+            </Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0.5}
+              max={2.5}
+              step={0.05}
+              value={settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE}
+              onChange={(_, v) => onChange({ pressureCurve: v as number })}
+            />
+            <Typography className="setting-value">
+              {(settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE).toFixed(2)}
+            </Typography>
+          </Box>
         </Box>
       )}
       {(settings.brushType === "round" ||
@@ -380,6 +425,49 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
               Both
             </ToggleButton>
           </ToggleButtonGroup>
+          <Box className="setting-row">
+            <Typography
+              className="setting-label"
+              title="Size/opacity at minimum pressure (lower = thinner light strokes, wider thin-to-thick range)"
+            >
+              Light end
+            </Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0.02}
+              max={0.55}
+              step={0.01}
+              value={settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE}
+              onChange={(_, v) => onChange({ pressureMinScale: v as number })}
+            />
+            <Typography className="setting-value">
+              {Math.round(
+                (settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE) * 100
+              )}
+              %
+            </Typography>
+          </Box>
+          <Box className="setting-row">
+            <Typography
+              className="setting-label"
+              title="Pressure exponent before mapping: 1 = linear; higher = need firmer pressure for full size"
+            >
+              Curve
+            </Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0.5}
+              max={2.5}
+              step={0.05}
+              value={settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE}
+              onChange={(_, v) => onChange({ pressureCurve: v as number })}
+            />
+            <Typography className="setting-value">
+              {(settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE).toFixed(2)}
+            </Typography>
+          </Box>
         </Box>
       )}
       <Box className="setting-row">

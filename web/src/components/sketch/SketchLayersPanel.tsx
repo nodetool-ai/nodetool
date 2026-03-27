@@ -114,6 +114,8 @@ const styles = (theme: Theme) =>
     minWidth: SKETCH_SIZE.panelWidth,
     maxWidth: SKETCH_SIZE.panelWidth,
     flexShrink: 0,
+    minHeight: 0,
+    maxHeight: "100%",
     overflowY: "auto",
     "& .section-label": {
       fontSize: SKETCH_FONT.md,
@@ -696,8 +698,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
       <Divider />
 
-      {/* Layer list (rendered top to bottom = last to first in array, tree-aware) */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+      {/* Layer list: cap height (~half viewport) so many layers scroll without stretching the panel */}
+      <Box
+        className="sketch-layers-panel__layer-list-scroll"
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "2px",
+          minHeight: 0,
+          maxHeight: "50vh",
+          overflowY: "auto"
+        }}
+      >
         {buildLayersPanelRows(layers).map(({ layer, depth }) => {
           const realIdx = layers.indexOf(layer);
           const isPaintTarget = layer.id === activeLayerId;

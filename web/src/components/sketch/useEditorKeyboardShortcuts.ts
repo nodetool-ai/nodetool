@@ -170,7 +170,7 @@ export function useEditorKeyboardShortcuts(
 
       if (!e.repeat && isMoveSpringModifierPhysicalKey(e)) {
         e.preventDefault();
-        useSketchStore.getState().moveSpringOnKeyDown();
+        useSketchStore.getState().setTransientMoveModifierHeld(true);
         return;
       }
 
@@ -502,7 +502,7 @@ export function useEditorKeyboardShortcuts(
       e.stopPropagation();
 
       if (isMoveSpringModifierPhysicalKey(e) && !moveSpringModifierStillHeld(e)) {
-        useSketchStore.getState().moveSpringOnKeyUp();
+        useSketchStore.getState().setTransientMoveModifierHeld(false);
       }
 
       if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
@@ -524,7 +524,7 @@ export function useEditorKeyboardShortcuts(
     };
 
     const blurHandler = () => {
-      useSketchStore.getState().moveSpringOnKeyUp();
+      useSketchStore.getState().setTransientMoveModifierHeld(false);
     };
 
     window.addEventListener("keydown", keydownHandler, true);
@@ -534,7 +534,7 @@ export function useEditorKeyboardShortcuts(
       window.removeEventListener("keydown", keydownHandler, true);
       window.removeEventListener("keyup", keyupHandler, true);
       window.removeEventListener("blur", blurHandler);
-      useSketchStore.getState().moveSpringOnKeyUp();
+      useSketchStore.getState().setTransientMoveModifierHeld(false);
       if (nudgeRafRef.current !== null) {
         cancelAnimationFrame(nudgeRafRef.current);
         nudgeRafRef.current = null;

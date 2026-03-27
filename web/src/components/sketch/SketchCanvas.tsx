@@ -137,6 +137,8 @@ export interface SketchCanvasRef {
 export interface SketchCanvasProps {
   document: SketchDocument;
   activeTool: SketchTool;
+  /** Effective tool for pointer hit-testing and cursor (e.g. spring move while `activeTool` stays brush). */
+  interactionTool: SketchTool;
   zoom: number;
   pan: Point;
   mirrorX: boolean;
@@ -190,6 +192,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const {
       document: doc,
       activeTool,
+      interactionTool,
       zoom,
       pan,
       mirrorX,
@@ -316,6 +319,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const overlay = useOverlayRenderer({
       doc,
       activeTool,
+      interactionTool,
       zoom,
       pan,
       selection,
@@ -334,6 +338,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const pointerHandlers = usePointerHandlers({
       doc,
       activeTool,
+      interactionTool,
       zoom,
       pan,
       mirrorX,
@@ -450,14 +455,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // Determine cursor style based on tool
     const cursorStyle =
-      activeTool === "move" || activeTool === "transform"
+      interactionTool === "move" || interactionTool === "transform"
         ? "move"
-        : activeTool === "crop" || activeTool === "select"
+        : interactionTool === "crop" || interactionTool === "select"
           ? "crosshair"
-          : activeTool === "brush" ||
-              activeTool === "pencil" ||
-              activeTool === "eraser" ||
-              activeTool === "blur"
+          : interactionTool === "brush" ||
+              interactionTool === "pencil" ||
+              interactionTool === "eraser" ||
+              interactionTool === "blur"
             ? "none"
             : "crosshair";
 

@@ -28,6 +28,8 @@ import {
 export interface UseOverlayRendererParams {
   doc: SketchDocument;
   activeTool: SketchTool;
+  /** Cursor / brush preview: follows pointer routing (e.g. move while toolbar tool stays brush). */
+  interactionTool: SketchTool;
   zoom: number;
   pan: Point;
   selection?: Selection | null;
@@ -57,6 +59,7 @@ export interface UseOverlayRendererResult {
 export function useOverlayRenderer({
   doc,
   activeTool,
+  interactionTool,
   zoom,
   pan,
   selection,
@@ -427,11 +430,11 @@ export function useOverlayRenderer({
 
       // Only show brush cursor for brush/pencil/eraser/blur/clone_stamp tools
       if (
-        activeTool !== "brush" &&
-        activeTool !== "pencil" &&
-        activeTool !== "eraser" &&
-        activeTool !== "blur" &&
-        activeTool !== "clone_stamp"
+        interactionTool !== "brush" &&
+        interactionTool !== "pencil" &&
+        interactionTool !== "eraser" &&
+        interactionTool !== "blur" &&
+        interactionTool !== "clone_stamp"
       ) {
         return;
       }
@@ -441,7 +444,7 @@ export function useOverlayRenderer({
       let angle = 0;
       let hardnessScale = 1;
       let isPencilHighZoom = false;
-      if (activeTool === "brush") {
+      if (interactionTool === "brush") {
         size = doc.toolSettings.brush.size;
         roundness = doc.toolSettings.brush.roundness;
         angle = doc.toolSettings.brush.angle;
@@ -459,12 +462,12 @@ export function useOverlayRenderer({
           // Show the approximate 25% opacity contour as the cursor edge
           hardnessScale = innerStop + (1 - innerStop) * 0.5;
         }
-      } else if (activeTool === "pencil") {
+      } else if (interactionTool === "pencil") {
         size = doc.toolSettings.pencil.size;
         isPencilHighZoom = zoom >= PIXEL_GRID_MIN_ZOOM;
-      } else if (activeTool === "blur") {
+      } else if (interactionTool === "blur") {
         size = doc.toolSettings.blur.size;
-      } else if (activeTool === "clone_stamp") {
+      } else if (interactionTool === "clone_stamp") {
         size = doc.toolSettings.cloneStamp.size;
       } else {
         const eraser = doc.toolSettings.eraser;
@@ -572,17 +575,12 @@ export function useOverlayRenderer({
       ctx.fill();
     },
     [
-      activeTool,
-      doc.toolSettings.brush.size,
-      doc.toolSettings.brush.roundness,
-      doc.toolSettings.brush.angle,
-      doc.toolSettings.brush.hardness,
-      doc.toolSettings.brush.brushType,
-      doc.toolSettings.pencil.size,
-      doc.toolSettings.eraser.size,
-      doc.toolSettings.eraser.mode,
-      doc.toolSettings.blur.size,
-      doc.toolSettings.cloneStamp.size,
+      interactionTool,
+      doc.toolSettings.brush,
+      doc.toolSettings.pencil,
+      doc.toolSettings.eraser,
+      doc.toolSettings.blur,
+      doc.toolSettings.cloneStamp,
       zoom,
       cursorCanvasRef,
       containerRef,

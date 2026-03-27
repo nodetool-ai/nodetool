@@ -21,6 +21,7 @@ import {
 export function useSketchStoreSelectors() {
   const document = useSketchStore((s) => s.document);
   const activeTool = useSketchStore((s) => s.activeTool);
+  const transientMoveModifierHeld = useSketchStore((s) => s.transientMoveModifierHeld);
   const zoom = useSketchStore((s) => s.zoom);
   const pan = useSketchStore((s) => s.pan);
   const setDocument = useSketchStore((s) => s.setDocument);
@@ -114,6 +115,7 @@ export function useSketchStoreSelectors() {
   return {
     document,
     activeTool,
+    transientMoveModifierHeld,
     zoom,
     pan,
     setDocument,

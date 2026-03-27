@@ -126,10 +126,10 @@ export interface SketchStore {
   document: SketchDocument;
   activeTool: SketchTool;
   /**
-   * While non-null, the user is spring-loaded on the move tool (Ctrl held on
-   * Win/Linux, Cmd on Mac). Cleared by `setActiveTool` or `moveSpringOnKeyUp`.
+   * True while Ctrl (Win/Linux) or Cmd (Mac) is held for spring-loaded move on
+   * the canvas without changing `activeTool` (toolbar / tool settings unchanged).
    */
-  moveSpringBackup: SketchTool | null;
+  transientMoveModifierHeld: boolean;
   zoom: number;
   pan: Point;
   isDrawing: boolean;
@@ -144,8 +144,7 @@ export interface SketchStore {
 
   // ─── Tool Actions ─────────────────────────────────────────────────────────
   setActiveTool: (tool: SketchTool) => void;
-  moveSpringOnKeyDown: () => void;
-  moveSpringOnKeyUp: () => void;
+  setTransientMoveModifierHeld: (held: boolean) => void;
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setPencilSettings: (settings: Partial<PencilSettings>) => void;
   setEraserSettings: (settings: Partial<EraserSettings>) => void;
@@ -260,7 +259,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   // ─── Initial State ──────────────────────────────────────────────────────
   document: createDefaultDocument(),
   activeTool: "brush",
-  moveSpringBackup: null,
+  transientMoveModifierHeld: false,
   zoom: 1,
   pan: { x: 0, y: 0 },
   isDrawing: false,
@@ -286,7 +285,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       history: [],
       historyIndex: -1,
       selectedLayerIds: [],
-      moveSpringBackup: null
+      transientMoveModifierHeld: false
     });
   },
 
@@ -294,7 +293,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     set({
       document: createDefaultDocument(width, height),
       activeTool: "brush",
-      moveSpringBackup: null,
+      transientMoveModifierHeld: false,
       zoom: 1,
       pan: { x: 0, y: 0 },
       isDrawing: false,
@@ -305,32 +304,10 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   },
 
   // ─── Tool Actions ────────────────────────────────────────────────────
-  setActiveTool: (tool: SketchTool) =>
-    set({ activeTool: tool, moveSpringBackup: null }),
+  setActiveTool: (tool: SketchTool) => set({ activeTool: tool }),
 
-  moveSpringOnKeyDown: () =>
-    set((s) => {
-      if (s.moveSpringBackup != null || s.activeTool === "move") {
-        return s;
-      }
-      return {
-        ...s,
-        activeTool: "move",
-        moveSpringBackup: s.activeTool
-      };
-    }),
-
-  moveSpringOnKeyUp: () =>
-    set((s) => {
-      if (s.moveSpringBackup === null) {
-        return s;
-      }
-      const prev = s.moveSpringBackup;
-      if (s.activeTool === "move") {
-        return { ...s, activeTool: prev, moveSpringBackup: null };
-      }
-      return { ...s, moveSpringBackup: null };
-    }),
+  setTransientMoveModifierHeld: (held: boolean) =>
+    set({ transientMoveModifierHeld: held }),
 
   setBrushSettings: (settings: Partial<BrushSettings>) =>
     set((state) => ({

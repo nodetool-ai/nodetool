@@ -115,6 +115,18 @@ export type ShapeToolType = "line" | "rectangle" | "ellipse" | "arrow";
 
 export type BrushType = "round" | "soft" | "airbrush" | "spray";
 
+/**
+ * Default light-press scale (6% of full size at minimum pressure; see `strokePressureMultiplier` in drawingUtils).
+ * Lower = thinner light strokes and a wider thin→thick range (also adjustable per tool in settings).
+ */
+export const DEFAULT_PRESSURE_MIN_SCALE = 0.06;
+
+/**
+ * Raw pen pressure is raised to this power before mapping to `[pressureMinScale, 1]`.
+ * `1` = linear; values above 1 need firmer pressure to reach full size (more contrast in mid/high pressure).
+ */
+export const DEFAULT_PRESSURE_CURVE = 1;
+
 export interface BrushSettings {
   size: number;
   opacity: number;
@@ -123,6 +135,10 @@ export interface BrushSettings {
   brushType: BrushType;
   pressureSensitivity: boolean;
   pressureAffects: "size" | "opacity" | "both";
+  /** Light-press scale (typically 0.02–0.5). Defaults: {@link DEFAULT_PRESSURE_MIN_SCALE}. */
+  pressureMinScale: number;
+  /** Pressure response curve exponent (typically 0.5–2.5). Defaults: {@link DEFAULT_PRESSURE_CURVE}. */
+  pressureCurve: number;
   roundness: number; // 0.1 to 1.0 (1.0 = perfect circle)
   angle: number; // 0 to 360 degrees
   /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
@@ -135,6 +151,10 @@ export interface PencilSettings {
   color: string;
   pressureSensitivity: boolean;
   pressureAffects: "size" | "opacity" | "both";
+  /** @see {@link BrushSettings.pressureMinScale} */
+  pressureMinScale: number;
+  /** @see {@link BrushSettings.pressureCurve} */
+  pressureCurve: number;
   /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
   stabilizer: number;
 }
@@ -403,6 +423,8 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   brushType: "round",
   pressureSensitivity: true,
   pressureAffects: "both",
+  pressureMinScale: DEFAULT_PRESSURE_MIN_SCALE,
+  pressureCurve: DEFAULT_PRESSURE_CURVE,
   roundness: 1.0,
   angle: 0,
   stabilizer: 0
@@ -414,6 +436,8 @@ export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
   color: "#ffffff",
   pressureSensitivity: true,
   pressureAffects: "both",
+  pressureMinScale: DEFAULT_PRESSURE_MIN_SCALE,
+  pressureCurve: DEFAULT_PRESSURE_CURVE,
   stabilizer: 0
 };
 

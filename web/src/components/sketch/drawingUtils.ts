@@ -20,11 +20,32 @@ import type {
   GradientSettings,
   CloneStampSettings
 } from "./types";
-import { parseColorToRgba } from "./types";
+import {
+  parseColorToRgba,
+  DEFAULT_PRESSURE_MIN_SCALE,
+  DEFAULT_PRESSURE_CURVE
+} from "./types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
+/** @deprecated Prefer {@link DEFAULT_PRESSURE_MIN_SCALE} / per-tool `pressureMinScale`. */
 export const MIN_PRESSURE_FACTOR = 0.2;
+
+/**
+ * Map hardware pressure in [0, 1] to a size/opacity multiplier in [minScale, 1].
+ * Used by brush and pencil when pressure sensitivity is on.
+ */
+export function strokePressureMultiplier(
+  pressure: number,
+  minScale: number = DEFAULT_PRESSURE_MIN_SCALE,
+  curve: number = DEFAULT_PRESSURE_CURVE
+): number {
+  const m = Math.max(0.02, Math.min(1, minScale));
+  const c = Math.max(0.35, Math.min(3, curve));
+  const p = Math.max(0, Math.min(1, pressure));
+  const shaped = c === 1 ? p : Math.pow(p, c);
+  return m + (1 - m) * shaped;
+}
 
 /**
  * Pointer pressure is meaningful for pen/touch. Mouse uses a nominal value
@@ -547,7 +568,11 @@ export function drawBrushStroke(
     pressure !== undefined &&
     pressure > 0
   ) {
-    const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
+    const pressureFactor = strokePressureMultiplier(
+      pressure,
+      settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE,
+      settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE
+    );
     if (
       settings.pressureAffects === "size" ||
       settings.pressureAffects === "both"
@@ -572,7 +597,11 @@ export function drawBrushStroke(
     pressure > 0 &&
     (settings.pressureAffects === "opacity" ||
       settings.pressureAffects === "both")
-      ? Math.max(MIN_PRESSURE_FACTOR, pressure)
+      ? strokePressureMultiplier(
+          pressure,
+          settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE,
+          settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE
+        )
       : 1;
 
   const createBrushStamp = (
@@ -829,7 +858,11 @@ export function drawPencilStroke(
     pressure !== undefined &&
     pressure > 0;
   const pressureFactor = usePressure
-    ? Math.max(MIN_PRESSURE_FACTOR, pressure)
+    ? strokePressureMultiplier(
+        pressure,
+        settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE,
+        settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE
+      )
     : 1;
 
   let effectiveSize = settings.size;

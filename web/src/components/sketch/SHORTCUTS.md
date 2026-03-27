@@ -73,7 +73,8 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 - [ ] `Ctrl+T` free transform
 - [ ] `Enter` commit transform
 - [ ] `Ctrl+Shift+T` repeat last transform
-- [x] hold `Ctrl` / `Cmd` (Mac) to temporarily switch to move tool; release to restore the previous tool
+- [x] hold `Ctrl` / `Cmd` (Mac) for spring-loaded move (pointer acts like move tool; toolbar / tool settings stay on the current tool); release to stop
+- [x] `Ctrl+Alt` + drag (Mac: `Cmd+Option`) duplicate active layer and move the copy; with `Ctrl`/`Cmd` held, `Alt` does not pan the canvas
 - [ ] `Ctrl+Alt+Arrow` move duplicate of selection by 1 px
 - [ ] `Ctrl+Alt+Shift+Arrow` move duplicate of selection by 10 px
 
