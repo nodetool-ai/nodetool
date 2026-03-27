@@ -1375,7 +1375,7 @@ export function usePointerHandlers({
         selectStartRef.current = null;
         const cw = doc.canvas.width;
         const ch = doc.canvas.height;
-        if (w > 1 && h > 1 && onSelectionChange) {
+        if (w >= 1 && h >= 1 && onSelectionChange) {
           const overlay = rectSelectionMask(cw, ch, x, y, w, h);
           const mod = selectionDragModifiersRef.current;
           selectionDragModifiersRef.current = null;

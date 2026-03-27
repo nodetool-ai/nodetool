@@ -18,10 +18,7 @@ const TrashIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FlipIcon from "@mui/icons-material/Flip";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
-import MergeIcon from "@mui/icons-material/CallMerge";
-import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
 import CheckIcon from "@mui/icons-material/Check";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
 import { useSketchStore } from "./state";
@@ -199,31 +196,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
             )}
           </Menu>
 
-          <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
-
-          <Tooltip title="Clear Layer (Delete)">
-            <IconButton size="small" onClick={() => editorRef.current?.clearLayer()}>
-              <DeleteOutlineIcon sx={{ fontSize: "18px" }} />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Export PNG (Ctrl+S)">
             <IconButton size="small" onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: "18px" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Flip Layer Horizontal">
-            <IconButton size="small" onClick={() => editorRef.current?.flipHorizontal()}>
-              <FlipCameraAndroidIcon sx={{ fontSize: "18px" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Flip Layer Vertical">
-            <IconButton size="small" onClick={() => editorRef.current?.flipVertical()}>
-              <FlipCameraAndroidIcon sx={{ fontSize: "18px", transform: "rotate(90deg)" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Merge Down">
-            <IconButton size="small" onClick={() => editorRef.current?.mergeDown()}>
-              <MergeIcon sx={{ fontSize: "18px" }} />
             </IconButton>
           </Tooltip>
 

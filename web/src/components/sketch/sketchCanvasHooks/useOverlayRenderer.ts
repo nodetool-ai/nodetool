@@ -29,13 +29,14 @@ export interface UseOverlayRendererParams {
   doc: SketchDocument;
   activeTool: SketchTool;
   zoom: number;
+  pan: Point;
   selection?: Selection | null;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   shiftHeldRef: React.MutableRefObject<boolean>;
   altHeldRef: React.MutableRefObject<boolean>;
-  /** When non-null, the user is actively dragging a new selection — skip persistent overlay */
   selectStartRef: React.MutableRefObject<Point | null>;
   lassoPointsRef: React.MutableRefObject<Point[]>;
 }
@@ -57,8 +58,10 @@ export function useOverlayRenderer({
   doc,
   activeTool,
   zoom,
+  pan,
   selection,
   overlayCanvasRef,
+  selectionCanvasRef,
   cursorCanvasRef,
   containerRef,
   shiftHeldRef,
@@ -69,37 +72,48 @@ export function useOverlayRenderer({
 
   const antsPhaseRef = useRef(0);
 
-  // ─── Cursor canvas sizing ──────────────────────────────────────────
+  // ─── Screen-resolution canvas sizing (cursor + selection) ──────────
 
   useEffect(() => {
     const container = containerRef.current;
     const cursorCanvas = cursorCanvasRef.current;
-    if (!container || !cursorCanvas) {
+    const selCanvas = selectionCanvasRef.current;
+    if (!container) {
       return;
     }
 
-    const updateCursorCanvasSize = () => {
+    const updateScreenCanvasSize = () => {
       const width = container.clientWidth;
       const height = container.clientHeight;
-      if (cursorCanvas.width !== width) {
-        cursorCanvas.width = width;
+      if (cursorCanvas) {
+        if (cursorCanvas.width !== width) {
+          cursorCanvas.width = width;
+        }
+        if (cursorCanvas.height !== height) {
+          cursorCanvas.height = height;
+        }
       }
-      if (cursorCanvas.height !== height) {
-        cursorCanvas.height = height;
+      if (selCanvas) {
+        if (selCanvas.width !== width) {
+          selCanvas.width = width;
+        }
+        if (selCanvas.height !== height) {
+          selCanvas.height = height;
+        }
       }
     };
 
-    updateCursorCanvasSize();
+    updateScreenCanvasSize();
 
     const resizeObserver = new ResizeObserver(() => {
-      updateCursorCanvasSize();
+      updateScreenCanvasSize();
     });
     resizeObserver.observe(container);
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [containerRef, cursorCanvasRef]);
+  }, [containerRef, cursorCanvasRef, selectionCanvasRef]);
 
   // ─── Overlay helpers ───────────────────────────────────────────────
 
@@ -127,15 +141,59 @@ export function useOverlayRenderer({
     }
   }, [overlayCanvasRef, paintPixelGridOverlay]);
 
-  /** Marching ants for the committed mask, drawn under in-progress marquee/lasso previews. */
-  const paintExistingSelectionMaskOutline = useCallback(
-    (ctx: CanvasRenderingContext2D) => {
-      if (selection && selectionHasAnyPixels(selection)) {
-        drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
-      }
-    },
-    [selection, zoom]
-  );
+  // ─── Selection canvas helpers ──────────────────────────────────────
+  // The selection canvas is screen-resolution (sized to the container).
+  // We set up a transform so drawing code uses document coordinates, but
+  // the result is rendered at screen pixel density — crisp thin ants.
+
+  /** Get the selection canvas ctx with document→screen transform applied. */
+  const getSelectionCtx = useCallback((): CanvasRenderingContext2D | null => {
+    const selCanvas = selectionCanvasRef.current;
+    const container = containerRef.current;
+    if (!selCanvas || !container) {
+      return null;
+    }
+    const ctx = selCanvas.getContext("2d");
+    if (!ctx) {
+      return null;
+    }
+    ctx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+    const cx = container.clientWidth / 2;
+    const cy = container.clientHeight / 2;
+    ctx.setTransform(zoom, 0, 0, zoom, cx + pan.x, cy + pan.y);
+    const docW = doc.canvas.width;
+    const docH = doc.canvas.height;
+    ctx.translate(-docW / 2, -docH / 2);
+    return ctx;
+  }, [selectionCanvasRef, containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]);
+
+  const clearSelectionCanvas = useCallback(() => {
+    const selCanvas = selectionCanvasRef.current;
+    if (!selCanvas) {
+      return;
+    }
+    const ctx = selCanvas.getContext("2d");
+    if (ctx) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+    }
+  }, [selectionCanvasRef]);
+
+  /** Paint committed selection mask ants on the screen-res canvas. */
+  const paintSelectionAnts = useCallback(() => {
+    if (!selection || !selectionHasAnyPixels(selection)) {
+      clearSelectionCanvas();
+      return;
+    }
+    const ctx = getSelectionCtx();
+    if (!ctx) {
+      return;
+    }
+    ctx.save();
+    drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
+    ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }, [selection, zoom, getSelectionCtx, clearSelectionCanvas]);
 
   const drawSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
@@ -149,35 +207,32 @@ export function useOverlayRenderer({
     ctx.save();
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     paintPixelGridOverlay(ctx);
+    ctx.restore();
+
     if (selection && selectionHasAnyPixels(selection)) {
       if (!selectStartRef.current && lassoPointsRef.current.length === 0) {
-        drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
+        paintSelectionAnts();
+      } else {
+        clearSelectionCanvas();
       }
+    } else {
+      clearSelectionCanvas();
     }
-    ctx.restore();
-  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef, zoom, paintPixelGridOverlay]);
+  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef, paintPixelGridOverlay, paintSelectionAnts, clearSelectionCanvas]);
 
   const appendSelectionOverlay = useCallback(() => {
-    const overlay = overlayCanvasRef.current;
-    if (!overlay || !selection || !selectionHasAnyPixels(selection)) {
+    if (!selection || !selectionHasAnyPixels(selection)) {
       return;
     }
     if (selectStartRef.current || lassoPointsRef.current.length > 0) {
       return;
     }
-    const ctx = overlay.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    ctx.save();
-    paintExistingSelectionMaskOutline(ctx);
-    ctx.restore();
+    paintSelectionAnts();
   }, [
     selection,
-    overlayCanvasRef,
     selectStartRef,
     lassoPointsRef,
-    paintExistingSelectionMaskOutline
+    paintSelectionAnts
   ]);
 
   useEffect(() => {
@@ -197,7 +252,7 @@ export function useOverlayRenderer({
         return;
       }
       antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
-      drawSelectionOverlay();
+      paintSelectionAnts();
     }, 180);
     return () => {
       window.clearInterval(id);
@@ -205,7 +260,7 @@ export function useOverlayRenderer({
   }, [
     selection,
     activeTool,
-    drawSelectionOverlay,
+    paintSelectionAnts,
     selectStartRef,
     lassoPointsRef
   ]);
@@ -298,13 +353,15 @@ export function useOverlayRenderer({
       if (!overlay) {
         return;
       }
-      const ctx = overlay.getContext("2d");
-      if (!ctx) {
+      const ovCtx = overlay.getContext("2d");
+      if (!ovCtx) {
         return;
       }
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ctx);
-      paintExistingSelectionMaskOutline(ctx);
+      ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ovCtx);
+
+      paintSelectionAnts();
+
       const x = Math.min(start.x, end.x);
       const y = Math.min(start.y, end.y);
       const w = Math.abs(end.x - start.x);
@@ -312,10 +369,18 @@ export function useOverlayRenderer({
       if (w < 1 || h < 1) {
         return;
       }
+      const selCtx = getSelectionCtx();
+      if (!selCtx) {
+        return;
+      }
+      if (selection && selectionHasAnyPixels(selection)) {
+        drawSelectionMaskOutline(selCtx, selection, antsPhaseRef.current, zoom);
+      }
       const previewMask = rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
-      drawSelectionMaskOutline(ctx, previewMask, antsPhaseRef.current, zoom);
+      drawSelectionMaskOutline(selCtx, previewMask, antsPhaseRef.current, zoom);
+      selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },
-    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline, paintPixelGridOverlay]
+    [overlayCanvasRef, zoom, selection, paintSelectionAnts, getSelectionCtx, paintPixelGridOverlay]
   );
 
   const drawOverlayLassoPreview = useCallback(
@@ -324,20 +389,27 @@ export function useOverlayRenderer({
       if (!overlay) {
         return;
       }
-      const ctx = overlay.getContext("2d");
-      if (!ctx) {
+      const ovCtx = overlay.getContext("2d");
+      if (!ovCtx) {
         return;
       }
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ctx);
-      paintExistingSelectionMaskOutline(ctx);
+      ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+      paintPixelGridOverlay(ovCtx);
+
+      const selCtx = getSelectionCtx();
+      if (!selCtx) {
+        return;
+      }
+      if (selection && selectionHasAnyPixels(selection)) {
+        drawSelectionMaskOutline(selCtx, selection, antsPhaseRef.current, zoom);
+      }
       const path: Point[] = cursor ? [...points, cursor] : [...points];
-      if (path.length < 2) {
-        return;
+      if (path.length >= 2) {
+        drawSelectionPolylineOutline(selCtx, path, antsPhaseRef.current, zoom);
       }
-      drawSelectionPolylineOutline(ctx, path, antsPhaseRef.current, zoom);
+      selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },
-    [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline, paintPixelGridOverlay]
+    [overlayCanvasRef, zoom, selection, getSelectionCtx, paintPixelGridOverlay]
   );
 
   // ─── Cursor rendering ──────────────────────────────────────────────

@@ -37,7 +37,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference, buildVisibleLayerTree, getDescendantIds } from "./types";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import FlipCameraAndroidIcon from "@mui/icons-material/FlipCameraAndroid";
+import { Layer, BlendMode, CANVAS_PRESETS, summarizeLayerImageReference, buildLayersPanelRows, getDescendantIds } from "./types";
 import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
@@ -231,6 +233,9 @@ export interface SketchLayersPanelProps {
   onLayerOpacityChange: (layerId: string, opacity: number) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
+  onClearLayer: () => void;
+  onFlipHorizontal: () => void;
+  onFlipVertical: () => void;
   onMergeDown: () => void;
   onFlattenVisible: () => void;
   onTrimLayerToBounds: () => void;
@@ -268,6 +273,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onLayerOpacityChange,
   onLayerBlendModeChange,
   onRenameLayer,
+  onClearLayer,
+  onFlipHorizontal,
+  onFlipVertical,
   onMergeDown,
   onFlattenVisible,
   onTrimLayerToBounds,
@@ -454,6 +462,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   }, []);
 
   const activeLayer = layers.find((l) => l.id === activeLayerId);
+  const activeLayerFlatIndex = activeLayer ? layers.indexOf(activeLayer) : -1;
+  const canMergeDown = activeLayerFlatIndex > 0;
+  const pixelLayerCanvasActionsDisabled =
+    !activeLayer || activeLayer.locked || activeLayer.type === "group";
 
   return (
     <Box className="sketch-layers-panel" css={styles(theme)}>
@@ -477,51 +489,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         Ctrl+click (⌘+click) layers to multi-select. Wrap as group only works for adjacent
         layers with the same parent. Pixel grid appears from 200% zoom.
       </Typography>
-
-      {selectedLayerIds.length >= 2 ? (
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 0.5,
-            py: 0.5,
-            px: 0.5,
-            mb: 0.5,
-            borderRadius: 1,
-            bgcolor: "grey.900",
-            border: 1,
-            borderColor: "grey.700"
-          }}
-        >
-          <Typography sx={{ fontSize: "0.65rem", color: "grey.400", mr: 0.5 }}>
-            {selectedLayerIds.length} selected
-          </Typography>
-          <Tooltip title="Group selected layers (must be adjacent siblings)">
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={onGroupSelectedLayers}
-              startIcon={<CreateNewFolderIcon sx={{ fontSize: "1rem !important" }} />}
-              sx={{ fontSize: "0.65rem", py: 0, minHeight: 26 }}
-            >
-              Group
-            </Button>
-          </Tooltip>
-          <Tooltip title="Delete selected layers">
-            <Button
-              size="small"
-              color="error"
-              variant="outlined"
-              onClick={onDeleteSelectedLayers}
-              startIcon={<DeleteIcon sx={{ fontSize: "1rem !important" }} />}
-              sx={{ fontSize: "0.65rem", py: 0, minHeight: 26 }}
-            >
-              Delete
-            </Button>
-          </Tooltip>
-        </Box>
-      ) : null}
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions">
@@ -705,11 +672,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <LockIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Merge Down">
-            <IconButton size="small" onClick={onMergeDown}>
-              <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Trim Active Layer To Bounds">
             <IconButton
               size="small"
@@ -724,13 +686,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <LayersIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
-          {activeLayer?.type === "group" && (
-            <Tooltip title="Ungroup">
-              <IconButton size="small" onClick={() => onUngroupLayer(activeLayerId)}>
-                <FolderOpenIcon sx={{ fontSize: "1.125rem" }} />
-              </IconButton>
-            </Tooltip>
-          )}
         </Box>
       </Box>
 
@@ -738,49 +693,137 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
       {/* Layer list (rendered top to bottom = last to first in array, tree-aware) */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-        {(() => {
-          const visibleTree = buildVisibleLayerTree(layers);
-          // Reverse for rendering (top layer first in the panel)
-          const reversed = [...visibleTree].reverse();
-          return reversed.map(({ layer, depth }) => {
-            const realIdx = layers.indexOf(layer);
-            const isPaintTarget = layer.id === activeLayerId;
-            const isRowSelected =
-              selectedLayerIds.length >= 2
-                ? selectedLayerIds.includes(layer.id)
-                : layer.id === activeLayerId;
-            return (
-              <LayerItem
-                key={layer.id}
-                layer={layer}
-                realIdx={realIdx}
-                depth={depth}
-                isPaintTarget={isPaintTarget}
-                isRowSelected={isRowSelected}
-                isMask={layer.id === maskLayerId}
-                isIsolated={layer.id === isolatedLayerId}
-                dropPosition={dropTarget?.realIdx === realIdx ? dropTarget.position : null}
-                editingLayerId={editingLayerId}
-                editName={editName}
-                onLayerRowClick={handleLayerRowClick}
-                onToggleVisibility={onToggleVisibility}
-                onToggleIsolateLayer={onToggleIsolateLayer}
-                onToggleExposedInput={onToggleExposedInput}
-                onToggleExposedOutput={onToggleExposedOutput}
-                onStartRename={handleStartRename}
-                onFinishRename={handleFinishRename}
-                onEditNameChange={handleEditNameChange}
-                onCancelRename={handleCancelRename}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onDragEnd={handleDragEnd}
-                onToggleGroupCollapsed={onToggleGroupCollapsed}
-              />
-            );
-          });
-        })()}
+        {buildLayersPanelRows(layers).map(({ layer, depth }) => {
+          const realIdx = layers.indexOf(layer);
+          const isPaintTarget = layer.id === activeLayerId;
+          const isRowSelected =
+            selectedLayerIds.length >= 2
+              ? selectedLayerIds.includes(layer.id)
+              : layer.id === activeLayerId;
+          return (
+            <LayerItem
+              key={layer.id}
+              layer={layer}
+              realIdx={realIdx}
+              depth={depth}
+              isPaintTarget={isPaintTarget}
+              isRowSelected={isRowSelected}
+              isMask={layer.id === maskLayerId}
+              isIsolated={layer.id === isolatedLayerId}
+              dropPosition={dropTarget?.realIdx === realIdx ? dropTarget.position : null}
+              editingLayerId={editingLayerId}
+              editName={editName}
+              onLayerRowClick={handleLayerRowClick}
+              onToggleVisibility={onToggleVisibility}
+              onToggleIsolateLayer={onToggleIsolateLayer}
+              onToggleExposedInput={onToggleExposedInput}
+              onToggleExposedOutput={onToggleExposedOutput}
+              onStartRename={handleStartRename}
+              onFinishRename={handleFinishRename}
+              onEditNameChange={handleEditNameChange}
+              onCancelRename={handleCancelRename}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              onToggleGroupCollapsed={onToggleGroupCollapsed}
+            />
+          );
+        })}
+      </Box>
+
+      <Divider />
+
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 0.5,
+          minHeight: 30,
+          py: 0.25
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, minHeight: 30 }}>
+          {selectedLayerIds.length >= 2 ? (
+            <>
+              <Tooltip title="Group selected layers (adjacent siblings, same parent)">
+                <IconButton size="small" onClick={onGroupSelectedLayers}>
+                  <CreateNewFolderIcon sx={{ fontSize: "1.125rem" }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete selected layers">
+                <IconButton size="small" color="error" onClick={onDeleteSelectedLayers}>
+                  <DeleteIcon sx={{ fontSize: "1.125rem" }} />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : null}
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, minHeight: 30 }}>
+          {activeLayer?.type === "group" ? (
+            <Tooltip title="Ungroup">
+              <IconButton size="small" onClick={() => onUngroupLayer(activeLayerId)}>
+                <FolderOpenIcon sx={{ fontSize: "1.125rem" }} />
+              </IconButton>
+            </Tooltip>
+          ) : null}
+        </Box>
+      </Box>
+
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 0.25,
+          minHeight: 30,
+          py: 0.25,
+          "& .MuiIconButton-root": { width: 30, height: 30 }
+        }}
+      >
+        <Tooltip title="Clear Layer (Delete)">
+          <span>
+            <IconButton
+              size="small"
+              onClick={onClearLayer}
+              disabled={pixelLayerCanvasActionsDisabled}
+            >
+              <DeleteOutlineIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Flip Layer Horizontal">
+          <span>
+            <IconButton
+              size="small"
+              onClick={onFlipHorizontal}
+              disabled={pixelLayerCanvasActionsDisabled}
+            >
+              <FlipCameraAndroidIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Flip Layer Vertical">
+          <span>
+            <IconButton
+              size="small"
+              onClick={onFlipVertical}
+              disabled={pixelLayerCanvasActionsDisabled}
+            >
+              <FlipCameraAndroidIcon sx={{ fontSize: "1.125rem", transform: "rotate(90deg)" }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Merge Down">
+          <span>
+            <IconButton size="small" onClick={onMergeDown} disabled={!canMergeDown}>
+              <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </span>
+        </Tooltip>
       </Box>
 
       <Divider />

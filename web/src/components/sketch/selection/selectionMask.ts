@@ -10,50 +10,38 @@ const ANT_ON = "#aaa";
 const ANT_OFF = "#000";
 
 /**
- * Coarsened cell size for zoomed-out views.  The overlay canvas is at document
- * resolution and CSS-scaled by `zoom`, so one bitmap pixel already spans `zoom`
- * screen pixels.  At zoom >= 1, cells are 1 doc pixel (1:1 with the grid).
- * When zoomed out (zoom < 1), cells are enlarged so the pattern stays visible.
+ * Set up stroke style for marching ants on a screen-resolution canvas.
+ * The context already has a document→screen transform applied (scale = zoom).
+ * Line width and dash lengths are specified in document coordinates so that
+ * after the transform they appear as ~1 screen pixel wide with ~4px dashes.
  */
-function antCellSize(zoom: number): number {
-  const z = Math.max(0.02, Math.min(zoom, 64));
-  if (z >= 1) {
-    return 1;
-  }
-  return Math.max(1, Math.min(16, Math.ceil(1 / z)));
+function setupScreenAnts(
+  ctx: CanvasRenderingContext2D,
+  phase: number,
+  zoom: number
+): { dashLen: number; offset: number } {
+  const z = Math.max(0.02, zoom);
+  const lw = 1 / z;
+  const dashLen = 4 / z;
+  const offset = -((phase % 256) / 32) * dashLen * 2;
+  ctx.lineWidth = lw;
+  ctx.lineCap = "butt";
+  ctx.lineJoin = "miter";
+  ctx.setLineDash([dashLen, dashLen]);
+  return { dashLen, offset };
 }
 
-function bresenhamPlot(
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  plot: (x: number, y: number) => void
+function strokeDualAnts(
+  ctx: CanvasRenderingContext2D,
+  dashLen: number,
+  offset: number
 ): void {
-  let cx = Math.round(x0);
-  let cy = Math.round(y0);
-  const ex = Math.round(x1);
-  const ey = Math.round(y1);
-  const dx = Math.abs(ex - cx);
-  const dy = Math.abs(ey - cy);
-  const sx = cx < ex ? 1 : -1;
-  const sy = cy < ey ? 1 : -1;
-  let err = dx - dy;
-  for (;;) {
-    plot(cx, cy);
-    if (cx === ex && cy === ey) {
-      break;
-    }
-    const e2 = 2 * err;
-    if (e2 > -dy) {
-      err -= dy;
-      cx += sx;
-    }
-    if (e2 < dx) {
-      err += dx;
-      cy += sy;
-    }
-  }
+  ctx.strokeStyle = ANT_ON;
+  ctx.lineDashOffset = offset;
+  ctx.stroke();
+  ctx.strokeStyle = ANT_OFF;
+  ctx.lineDashOffset = offset + dashLen;
+  ctx.stroke();
 }
 
 export function createEmptyMask(width: number, height: number): Selection {
@@ -517,8 +505,8 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
 
 /**
  * Marching ants along an open polyline (lasso in progress).
- * Uses integer fillRects on the document pixel grid — stays crisp when the
- * overlay is CSS-scaled.  `phase` drives the checker crawl.
+ * Expects a context with a document→screen transform already applied so that
+ * strokes render at screen resolution (crisp 1px lines at any zoom).
  */
 export function drawSelectionPolylineOutline(
   ctx: CanvasRenderingContext2D,
@@ -529,38 +517,22 @@ export function drawSelectionPolylineOutline(
   if (points.length < 2) {
     return;
   }
-  const cell = antCellSize(zoom);
-  const drawn = new Set<number>();
-
-  const plot = (x: number, y: number): void => {
-    if (cell <= 1) {
-      ctx.fillStyle = ((x + y + phase) >> 2) % 2 === 0 ? ANT_ON : ANT_OFF;
-      ctx.fillRect(x, y, 1, 1);
-      return;
-    }
-    const qx = (x / cell) | 0;
-    const qy = (y / cell) | 0;
-    const key = qy * 0x10000 + qx;
-    if (drawn.has(key)) {
-      return;
-    }
-    drawn.add(key);
-    ctx.fillStyle = ((qx + qy + phase) & 1) === 0 ? ANT_ON : ANT_OFF;
-    ctx.fillRect(qx * cell, qy * cell, cell, cell);
-  };
-
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  for (let i = 0; i < points.length - 1; i++) {
-    bresenhamPlot(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y, plot);
+  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
   }
+  strokeDualAnts(ctx, dashLen, offset);
   ctx.restore();
 }
 
 /**
  * Marching ants on mask boundary edges.
- * Each selected pixel adjacent to an unselected pixel (or canvas border) is an
- * edge pixel.  Drawn as integer fillRects for crisp rendering at any zoom.
+ * Traces horizontal and vertical pixel-boundary contour segments (merged into
+ * runs) and strokes them.  Expects a context with a document→screen transform
+ * so lines render at screen pixel resolution regardless of zoom.
  */
 export function drawSelectionMaskOutline(
   ctx: CanvasRenderingContext2D,
@@ -569,72 +541,64 @@ export function drawSelectionMaskOutline(
   zoom = 1
 ): void {
   const { width: w, height: h, data } = mask;
-  const cell = antCellSize(zoom);
 
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
+  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
 
-  if (cell <= 1) {
-    for (let y = 0; y < h; y++) {
-      const row = y * w;
-      for (let x = 0; x < w; x++) {
-        const idx = row + x;
-        if (data[idx] < THRESH) {
-          continue;
-        }
-        if (
-          x === 0 ||
-          y === 0 ||
-          x === w - 1 ||
-          y === h - 1 ||
-          data[idx - 1] < THRESH ||
-          data[idx + 1] < THRESH ||
-          data[idx - w] < THRESH ||
-          data[idx + w] < THRESH
-        ) {
-          ctx.fillStyle = ((x + y + phase) >> 2) % 2 === 0 ? ANT_ON : ANT_OFF;
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
-    }
-    ctx.restore();
-    return;
-  }
+  ctx.beginPath();
 
-  const cw = Math.ceil(w / cell);
-  const drawn = new Uint8Array(cw * Math.ceil(h / cell));
-  for (let y = 0; y < h; y++) {
-    const row = y * w;
+  for (let y = 0; y <= h; y++) {
+    let runStart = -1;
     for (let x = 0; x < w; x++) {
-      const idx = row + x;
-      if (data[idx] < THRESH) {
-        continue;
-      }
-      if (
-        x === 0 ||
-        y === 0 ||
-        x === w - 1 ||
-        y === h - 1 ||
-        data[idx - 1] < THRESH ||
-        data[idx + 1] < THRESH ||
-        data[idx - w] < THRESH ||
-        data[idx + w] < THRESH
-      ) {
-        const qx = (x / cell) | 0;
-        const qy = (y / cell) | 0;
-        const qi = qy * cw + qx;
-        if (!drawn[qi]) {
-          drawn[qi] = 1;
-          ctx.fillStyle = ((qx + qy + phase) & 1) === 0 ? ANT_ON : ANT_OFF;
-          ctx.fillRect(qx * cell, qy * cell, cell, cell);
+      const above = y > 0 && data[(y - 1) * w + x] >= THRESH;
+      const below = y < h && data[y * w + x] >= THRESH;
+      if (above !== below) {
+        if (runStart < 0) {
+          runStart = x;
         }
+      } else if (runStart >= 0) {
+        ctx.moveTo(runStart, y);
+        ctx.lineTo(x, y);
+        runStart = -1;
       }
     }
+    if (runStart >= 0) {
+      ctx.moveTo(runStart, y);
+      ctx.lineTo(w, y);
+    }
   }
+
+  for (let x = 0; x <= w; x++) {
+    let runStart = -1;
+    for (let y = 0; y < h; y++) {
+      const left = x > 0 && data[y * w + x - 1] >= THRESH;
+      const right = x < w && data[y * w + x] >= THRESH;
+      if (left !== right) {
+        if (runStart < 0) {
+          runStart = y;
+        }
+      } else if (runStart >= 0) {
+        ctx.moveTo(x, runStart);
+        ctx.lineTo(x, y);
+        runStart = -1;
+      }
+    }
+    if (runStart >= 0) {
+      ctx.moveTo(x, runStart);
+      ctx.lineTo(x, h);
+    }
+  }
+
+  strokeDualAnts(ctx, dashLen, offset);
   ctx.restore();
 }
 
-/** Clip layer-space context to document selection (offset = document coord of layer 0,0). */
+/**
+ * Clip layer-space context to document selection.
+ * Uses `> 0` threshold so feathered edges (values 1–254) are included in the
+ * clip region.  The actual alpha modulation for feathered edges happens at
+ * stroke commit time via `applySelectionMaskAlpha`.
+ */
 export function clipContextToSelectionMask(
   ctx: CanvasRenderingContext2D,
   mask: Selection,
@@ -659,14 +623,14 @@ export function clipContextToSelectionMask(
         lx++;
         continue;
       }
-      if (data[rowOff + docX] < THRESH) {
+      if (data[rowOff + docX] === 0) {
         lx++;
         continue;
       }
       let lx2 = lx + 1;
       while (lx2 < lw) {
         const dx = lx2 + offsetX;
-        if (dx >= mw || data[rowOff + dx] < THRESH) {
+        if (dx >= mw || data[rowOff + dx] === 0) {
           break;
         }
         lx2++;
@@ -676,4 +640,52 @@ export function clipContextToSelectionMask(
     }
   }
   ctx.clip();
+}
+
+/**
+ * Modulate canvas pixel alpha by the selection mask.
+ * For each pixel, alpha is multiplied by `mask_value / 255`.
+ * Fully selected pixels (255) are unchanged; feathered edges get proportionally
+ * transparent; outside pixels (0) are erased.
+ */
+export function applySelectionMaskAlpha(
+  canvas: HTMLCanvasElement,
+  mask: Selection,
+  offsetX: number,
+  offsetY: number
+): void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const { width: mw, height: mh, data: mdata } = mask;
+  const imgData = ctx.getImageData(0, 0, cw, ch);
+  const pixels = imgData.data;
+
+  for (let ly = 0; ly < ch; ly++) {
+    const docY = ly + offsetY;
+    const inBounds = docY >= 0 && docY < mh;
+    const rowOff = inBounds ? docY * mw : 0;
+    for (let lx = 0; lx < cw; lx++) {
+      const docX = lx + offsetX;
+      let maskVal: number;
+      if (inBounds && docX >= 0 && docX < mw) {
+        maskVal = mdata[rowOff + docX];
+      } else {
+        maskVal = 0;
+      }
+      if (maskVal === 255) {
+        continue;
+      }
+      const pi = (ly * cw + lx) * 4 + 3;
+      if (maskVal === 0) {
+        pixels[pi] = 0;
+      } else {
+        pixels[pi] = (pixels[pi] * maskVal + 127) / 255 | 0;
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
 }

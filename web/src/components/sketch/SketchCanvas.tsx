@@ -247,6 +247,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Shared refs (created here to avoid circular deps between hooks) ─
     const containerRef = useRef<HTMLDivElement>(null);
+    const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
     const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
     const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
     const activeStrokeRef = useRef<ActiveStrokeInfo | null>(null);
@@ -303,8 +304,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       doc,
       activeTool,
       zoom,
+      pan,
       selection,
       overlayCanvasRef,
+      selectionCanvasRef,
       cursorCanvasRef,
       containerRef,
       shiftHeldRef,
@@ -492,6 +495,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           width={doc.canvas.width}
           height={doc.canvas.height}
           style={{ ...canvasStyle, pointerEvents: "none" }}
+        />
+        {/* Screen-resolution canvas for selection marching ants */}
+        <canvas
+          ref={selectionCanvasRef}
+          className="sketch-canvas__selection cursor-overlay"
         />
         {/* Cursor canvas for brush size preview */}
         <canvas
