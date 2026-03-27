@@ -12,7 +12,8 @@
  */
 
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
-import type { LayerContentBounds, SketchDocument } from "../types";
+import type { LayerContentBounds, Selection, SketchDocument } from "../types";
+import { selectionHasAnyPixels } from "../selection/selectionMask";
 import { blendModeToComposite, drawCheckerboard } from "../drawingUtils";
 import {
   getCanvasRasterBounds,
@@ -684,6 +685,114 @@ export class Canvas2DRuntime implements SketchRuntime {
     ctx.save();
     ctx.fillStyle = color;
     ctx.fillRect(x, y, width, height);
+    ctx.restore();
+  }
+
+  clearLayerBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection
+  ): void {
+    if (!selectionHasAnyPixels(mask)) {
+      return;
+    }
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    const lw = canvas.width;
+    const lh = canvas.height;
+    const { width: mw, height: mh, data } = mask;
+    const th = 128;
+    for (let ly = 0; ly < lh; ly++) {
+      const docY = ly + offsetY;
+      if (docY < 0 || docY >= mh) {
+        continue;
+      }
+      const rowOff = docY * mw;
+      let lx = 0;
+      while (lx < lw) {
+        const docX = lx + offsetX;
+        if (docX < 0 || docX >= mw) {
+          lx++;
+          continue;
+        }
+        if (data[rowOff + docX] < th) {
+          lx++;
+          continue;
+        }
+        let lx2 = lx + 1;
+        while (lx2 < lw) {
+          const dx = lx2 + offsetX;
+          if (dx >= mw || data[rowOff + dx] < th) {
+            break;
+          }
+          lx2++;
+        }
+        ctx.clearRect(lx, ly, lx2 - lx, 1);
+        lx = lx2;
+      }
+    }
+  }
+
+  fillLayerBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
+    color: string
+  ): void {
+    if (!selectionHasAnyPixels(mask)) {
+      return;
+    }
+    const canvas = this.layerCanvases.get(layerId);
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    const lw = canvas.width;
+    const lh = canvas.height;
+    const { width: mw, height: mh, data } = mask;
+    const th = 128;
+    ctx.save();
+    ctx.fillStyle = color;
+    for (let ly = 0; ly < lh; ly++) {
+      const docY = ly + offsetY;
+      if (docY < 0 || docY >= mh) {
+        continue;
+      }
+      const rowOff = docY * mw;
+      let lx = 0;
+      while (lx < lw) {
+        const docX = lx + offsetX;
+        if (docX < 0 || docX >= mw) {
+          lx++;
+          continue;
+        }
+        if (data[rowOff + docX] < th) {
+          lx++;
+          continue;
+        }
+        let lx2 = lx + 1;
+        while (lx2 < lw) {
+          const dx = lx2 + offsetX;
+          if (dx >= mw || data[rowOff + dx] < th) {
+            break;
+          }
+          lx2++;
+        }
+        ctx.fillRect(lx, ly, lx2 - lx, 1);
+        lx = lx2;
+      }
+    }
     ctx.restore();
   }
 

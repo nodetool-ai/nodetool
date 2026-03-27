@@ -8,7 +8,7 @@
  * It does NOT own the display canvas DOM element (React manages that).
  */
 
-import type { LayerContentBounds, SketchDocument } from "../types";
+import type { LayerContentBounds, Selection, SketchDocument } from "../types";
 
 // ─── Dirty rect for partial compositing ──────────────────────────────────────
 
@@ -123,6 +123,23 @@ export interface SketchRuntime {
     y: number,
     width: number,
     height: number,
+    color: string
+  ): void;
+
+  /** Clear pixels under the document-space selection mask (layer offset in doc space). */
+  clearLayerBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection
+  ): void;
+
+  /** Fill pixels under the selection mask with a solid color. */
+  fillLayerBySelectionMask(
+    layerId: string,
+    offsetX: number,
+    offsetY: number,
+    mask: Selection,
     color: string
   ): void;
 

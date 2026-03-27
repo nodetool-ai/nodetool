@@ -37,11 +37,24 @@ export type ColorMode = "hex" | "rgb" | "hsl";
 
 // ─── Selection ────────────────────────────────────────────────────────────────
 
+/**
+ * Document-space selection: one byte per canvas pixel (0–255).
+ * Values ≥ 128 are treated as selected for tools and marching ants.
+ */
 export interface Selection {
-  x: number;
-  y: number;
   width: number;
   height: number;
+  data: Uint8ClampedArray;
+}
+
+export type SelectToolMode = "rectangle" | "lasso" | "magic_wand";
+
+export interface SelectSettings {
+  mode: SelectToolMode;
+  /** 0–255, same perceptual scale as fill tolerance */
+  magicWandTolerance: number;
+  /** Pixels — used by “Feather” / “Smooth” post-actions */
+  featherRadius: number;
 }
 
 export interface LayerTransform {
@@ -161,6 +174,7 @@ export interface ToolSettings {
   blur: BlurSettings;
   gradient: GradientSettings;
   cloneStamp: CloneStampSettings;
+  select: SelectSettings;
 }
 
 // ─── Layer Types ──────────────────────────────────────────────────────────────
@@ -410,6 +424,12 @@ export const DEFAULT_CLONE_STAMP_SETTINGS: CloneStampSettings = {
   sampling: "active_layer"
 };
 
+export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
+  mode: "rectangle",
+  magicWandTolerance: 32,
+  featherRadius: 4
+};
+
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
   pencil: DEFAULT_PENCIL_SETTINGS,
@@ -418,7 +438,8 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   fill: DEFAULT_FILL_SETTINGS,
   blur: DEFAULT_BLUR_SETTINGS,
   gradient: DEFAULT_GRADIENT_SETTINGS,
-  cloneStamp: DEFAULT_CLONE_STAMP_SETTINGS
+  cloneStamp: DEFAULT_CLONE_STAMP_SETTINGS,
+  select: DEFAULT_SELECT_SETTINGS
 };
 
 export function generateLayerId(): string {
@@ -579,6 +600,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
       cloneStamp: {
         ...DEFAULT_CLONE_STAMP_SETTINGS,
         ...doc.toolSettings?.cloneStamp
+      },
+      select: {
+        ...DEFAULT_SELECT_SETTINGS,
+        ...doc.toolSettings?.select
       }
     },
     metadata: {

@@ -25,6 +25,7 @@ import {
   BlurSettings,
   GradientSettings,
   CloneStampSettings,
+  SelectSettings,
   BlendMode,
   LayerTransform,
   PushHistoryOptions,
@@ -36,6 +37,14 @@ import {
   getDescendantIds,
   MAX_HISTORY_SIZE
 } from "../types";
+import {
+  cloneSelectionMask,
+  createEmptyMask,
+  featherMaskAlpha,
+  invertMaskInPlace,
+  selectionHasAnyPixels,
+  smoothSelectionBorders
+} from "../selection/selectionMask";
 
 function withUpdatedDocumentTimestamp(document: SketchDocument): SketchDocument {
   return {
@@ -132,6 +141,7 @@ export interface SketchStore {
   setBlurSettings: (settings: Partial<BlurSettings>) => void;
   setGradientSettings: (settings: Partial<GradientSettings>) => void;
   setCloneStampSettings: (settings: Partial<CloneStampSettings>) => void;
+  setSelectSettings: (settings: Partial<SelectSettings>) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   setIsDrawing: (isDrawing: boolean) => void;
@@ -187,6 +197,8 @@ export interface SketchStore {
   selectAll: () => void;
   invertSelection: () => void;
   reselectLastSelection: () => void;
+  featherCurrentSelection: () => void;
+  smoothCurrentSelectionBorders: () => void;
 
   // ─── Layer Isolation ──────────────────────────────────────────────────────
   isolatedLayerId: string | null;
@@ -381,6 +393,21 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         toolSettings: {
           ...state.document.toolSettings,
           cloneStamp: { ...state.document.toolSettings.cloneStamp, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setSelectSettings: (settings: Partial<SelectSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          select: { ...state.document.toolSettings.select, ...settings }
         },
         metadata: {
           ...state.document.metadata,
@@ -886,36 +913,68 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   // ─── Selection ──────────────────────────────────────────────────────────
   setSelection: (sel: Selection | null) => {
     const current = get().selection;
-    // Store the last non-null selection for Ctrl+Shift+D reselect
     if (current && !sel) {
-      set({ selection: sel, lastSelection: current });
+      set({ selection: sel, lastSelection: cloneSelectionMask(current) });
     } else {
       set({ selection: sel });
     }
   },
   selectAll: () => {
     const state = get();
-    set({
-      selection: {
-        x: 0,
-        y: 0,
-        width: state.document.canvas.width,
-        height: state.document.canvas.height
-      }
-    });
+    const { width: cw, height: ch } = state.document.canvas;
+    const m = createEmptyMask(cw, ch);
+    m.data.fill(255);
+    set({ selection: m });
   },
   invertSelection: () => {
-    // With only rectangular selections, true inversion is not possible.
-    // Both cases (no selection, existing selection) select the full canvas
-    // as an approximation until non-rectangular selection support is added.
-    const { width: cw, height: ch } = get().document.canvas;
-    set({ selection: { x: 0, y: 0, width: cw, height: ch } });
+    const state = get();
+    const { width: cw, height: ch } = state.document.canvas;
+    const cur = state.selection;
+    if (cur && cur.width === cw && cur.height === ch) {
+      const copy = cloneSelectionMask(cur);
+      invertMaskInPlace(copy);
+      set({ selection: copy });
+      return;
+    }
+    if (!cur) {
+      const m = createEmptyMask(cw, ch);
+      m.data.fill(255);
+      set({ selection: m });
+      return;
+    }
+    const aligned = createEmptyMask(cw, ch);
+    for (let y = 0; y < Math.min(ch, cur.height); y++) {
+      for (let x = 0; x < Math.min(cw, cur.width); x++) {
+        aligned.data[y * cw + x] = cur.data[y * cur.width + x];
+      }
+    }
+    invertMaskInPlace(aligned);
+    set({ selection: aligned });
   },
   reselectLastSelection: () => {
     const last = get().lastSelection;
     if (last) {
-      set({ selection: last });
+      set({ selection: cloneSelectionMask(last) });
     }
+  },
+  featherCurrentSelection: () => {
+    const state = get();
+    const sel = state.selection;
+    if (!selectionHasAnyPixels(sel)) {
+      return;
+    }
+    const copy = cloneSelectionMask(sel!);
+    featherMaskAlpha(copy, state.document.toolSettings.select.featherRadius);
+    get().setSelection(copy);
+  },
+  smoothCurrentSelectionBorders: () => {
+    const sel = get().selection;
+    if (!selectionHasAnyPixels(sel)) {
+      return;
+    }
+    const copy = cloneSelectionMask(sel!);
+    smoothSelectionBorders(copy, 3);
+    get().setSelection(copy);
   },
 
   // ─── Layer Isolation ────────────────────────────────────────────────────
@@ -944,6 +1003,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   // ─── Canvas Resize ───────────────────────────────────────────────────────
   resizeCanvas: (width: number, height: number) =>
     set((state) => ({
+      selection: null,
+      lastSelection: null,
       document: {
         ...state.document,
         canvas: { ...state.document.canvas, width, height },
