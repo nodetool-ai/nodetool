@@ -170,7 +170,7 @@ export class NodeActor {
    * Gathers inputs per sync_mode, then runs process or genProcess.
    */
   private async _runBuffered(): Promise<void> {
-    const syncMode = this.node.sync_mode ?? "on_any";
+    const syncMode = this.node.sync_mode ?? "zip_all";
     const inputHandles = [...this.inbox["_buffers"].keys()].filter(
       (h) => h !== "__control__"
     );
@@ -302,7 +302,9 @@ export class NodeActor {
         // Drain any buffered data inputs before processing (replay)
         this._cacheBufferedDataInputs();
         const inputs = this._cachedInputs ?? {};
-        const merged = { ...inputs, ...this._currentControlProperties };
+        // Merge node properties as defaults (matching _executeWithInputs behavior)
+        const baseProps = this.node.properties ?? {};
+        const merged = { ...baseProps, ...inputs, ...this._currentControlProperties };
         const outputs = await this._executor.process(
           merged,
           this._executionContext

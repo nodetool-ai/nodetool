@@ -1,11 +1,14 @@
 ---
 layout: page
 title: "Configuration Guide"
+description: "Configure NodeTool settings, environment variables, secrets, and storage backends."
 ---
 
 
 
-NodeTool reads configuration from layered sources so local development, automated deployments, and production can share defaults with minimal duplication. The configuration helpers live in the `@nodetool/config` package (`settings.ts` and `environment.ts`).
+NodeTool uses a layered configuration system so local development, automated deployments, and production environments can share sensible defaults with minimal duplication. Settings are managed through the UI, CLI, environment variables, and YAML files — with secrets encrypted at rest.
+
+The configuration helpers live in the `@nodetool/config` package (`settings.ts` and `environment.ts`).
 
 ![Settings Dialog](assets/screenshots/settings-dialog.png)
 

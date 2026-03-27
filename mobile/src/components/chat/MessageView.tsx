@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Message, MessageContent } from '../../types';
@@ -30,8 +30,8 @@ function getTextContent(content: Message['content']): string {
 
   if (Array.isArray(content)) {
     return content
-      .filter((c: any) => c?.type === 'text')
-      .map((c: any) => c?.text || '')
+      .filter((c: MessageContent) => c?.type === 'text')
+      .map((c: MessageContent) => (c as any)?.text || '')
       .join('\n');
   }
 
@@ -47,7 +47,6 @@ function getTextContent(content: Message['content']): string {
 
 /**
  * Type guard: checks whether a plain object looks like a valid MessageContent item.
- * Used when Message.content arrives as Record<string, unknown>.
  */
 function isMessageContent(obj: unknown): obj is MessageContent {
   return typeof obj === 'object' && obj !== null && 'type' in obj && typeof (obj as Record<string, unknown>)['type'] === 'string';
@@ -67,7 +66,6 @@ function getContentItems(content: Message['content']): MessageContent[] {
     return content.filter((c): c is MessageContent => c !== null && c !== undefined);
   }
 
-  // Single object content — guard ensures it has a type discriminant
   if (isMessageContent(content)) {
     return [content];
   }
@@ -103,9 +101,10 @@ function formatTimestamp(dateStr: string | null | undefined): string {
 }
 
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
-  // All hooks must be called before any early returns
   const isUser = message.role === 'user';
   const { colors } = useTheme();
+
+  const textContent = getTextContent(message.content);
 
   /**
    * Copy message text to clipboard on long press
@@ -139,7 +138,6 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
   }
 
   const contentItems = getContentItems(message.content);
-  const textContent = getTextContent(message.content);
   const hasMedia = hasMediaContent(message.content);
   const timestamp = formatTimestamp(message.created_at);
 

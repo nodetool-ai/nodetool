@@ -1,13 +1,14 @@
 ---
 layout: page
 title: "Deployment Guide"
+description: "Deploy NodeTool to self-hosted servers, RunPod, or Google Cloud Run with a single configuration file."
 ---
 
 
 
-NodeTool supports multiple deployment targets driven by a single `deployment.yaml` configuration. The `nodetool deploy` command family builds container images, applies configuration, and manages the lifecycle of remote services across self-hosted hosts, RunPod serverless, and Google Cloud Run.
+Deploy your NodeTool workflows to production with a single configuration file. NodeTool supports multiple deployment targets — self-hosted servers, RunPod GPU instances, and Google Cloud Run — all managed through the `nodetool deploy` command family.
 
-For a practical full runbook (desktop, public, private, Docker/Podman, and workflow sync verification), see [End-to-End Deployment Guide](deployment-e2e-guide.md).
+The deploy commands build container images, apply configuration, and manage the full lifecycle of remote services. For a hands-on walkthrough covering desktop, public, private, Docker/Podman, and workflow sync verification, see the [End-to-End Deployment Guide](deployment-e2e-guide.md).
 
 ---
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,22 +29,36 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isConnected, setIsConnected] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // Debounce search input
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedQuery(text);
+    }, 300);
+  }, []);
 
   const filteredWorkflows = useMemo(() => {
-    if (!searchQuery.trim()) return workflows;
-    const query = searchQuery.toLowerCase();
+    if (!debouncedQuery.trim()) return workflows;
+    const query = debouncedQuery.toLowerCase();
     return workflows.filter(
       (w) =>
         w.name.toLowerCase().includes(query) ||
         (w.description && w.description.toLowerCase().includes(query))
     );
-  }, [workflows, searchQuery]);
-
+  }, [workflows, debouncedQuery]);
 
   const loadWorkflows = useCallback(async () => {
     try {
+      setLoadError(null);
       const data = await apiService.getWorkflows();
       const workflowsList = Array.isArray(data) ? data : (data?.workflows || []);
       setWorkflows(workflowsList);
@@ -52,11 +66,13 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
     } catch (error: any) {
       console.error('Failed to load workflows:', error);
       setIsConnected(false);
+      const errorMessage = error.message || 'Network Error';
+      setLoadError(errorMessage);
       Alert.alert(
-        'Error',
-        `Failed to load mini apps. Please check your server settings.\n\nError: ${error.message || 'Network Error'}`,
+        'Connection Error',
+        `Could not load mini apps.\n\n${errorMessage}`,
         [
-          { text: 'Go to Settings', onPress: () => navigation.navigate('Settings') },
+          { text: 'Settings', onPress: () => navigation.navigate('Settings') },
           { text: 'Retry', onPress: loadWorkflows },
         ]
       );
@@ -65,21 +81,27 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
     }
   }, [navigation]);
 
-  const initializeAndLoadWorkflows = useCallback(async () => {
-    try {
+  useEffect(() => {
+    const initialize = async () => {
       setIsLoading(true);
-      await apiService.loadApiHost();
-      console.log('API Host loaded:', apiService.getApiHost());
+      try {
+        await apiService.loadApiHost();
+      } catch (error) {
+        console.error('Failed to initialize:', error);
+      }
       await loadWorkflows();
-    } catch (error) {
-      console.error('Failed to initialize:', error);
-      setIsLoading(false);
-    }
+    };
+    initialize();
   }, [loadWorkflows]);
 
+  // Cleanup debounce timer
   useEffect(() => {
-    initializeAndLoadWorkflows();
-  }, [initializeAndLoadWorkflows]);
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -118,7 +140,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   if (isLoading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.text} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading mini apps...</Text>
       </View>
     );
@@ -127,11 +149,11 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[
-        styles.header, 
-        { 
-          backgroundColor: colors.surfaceHeader, 
+        styles.header,
+        {
+          backgroundColor: colors.surfaceHeader,
           borderBottomColor: colors.border,
-          paddingTop: insets.top + 10 
+          paddingTop: insets.top + 10
         }
       ]}>
         <View style={styles.titleRow}>
@@ -164,18 +186,33 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
       {workflows.length === 0 ? (
         <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
           <Ionicons name="apps-outline" size={64} color={colors.border} style={{ marginBottom: 16 }} />
-          <Text style={[styles.emptyText, { color: colors.text }]}>No mini apps found</Text>
-          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-            Make sure your server is running and configured correctly
+          <Text style={[styles.emptyText, { color: colors.text }]}>
+            {loadError ? 'Connection failed' : 'No mini apps found'}
           </Text>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('Settings')}
-            accessibilityRole="button"
-            accessibilityLabel="Go to Settings"
-          >
-            <Text style={styles.buttonText}>Go to Settings</Text>
-          </TouchableOpacity>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+            {loadError
+              ? 'Could not connect to the server. Check your settings and try again.'
+              : 'Make sure your server is running and configured correctly'}
+          </Text>
+          <View style={styles.emptyButtons}>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.primary }]}
+              onPress={loadWorkflows}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading"
+            >
+              <Ionicons name="refresh-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.buttonText}>Retry</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.buttonOutline, { borderColor: colors.border }]}
+              onPress={() => navigation.navigate('Settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Go to Settings"
+            >
+              <Text style={[styles.buttonOutlineText, { color: colors.text }]}>Settings</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <>
@@ -188,14 +225,14 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
                   placeholder="Search mini apps..."
                   placeholderTextColor={colors.textSecondary}
                   value={searchQuery}
-                  onChangeText={setSearchQuery}
+                  onChangeText={handleSearchChange}
                   autoCapitalize="none"
                   autoCorrect={false}
                   clearButtonMode="while-editing"
                   accessibilityLabel="Search mini apps"
                 />
                 {searchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Clear search">
+                  <TouchableOpacity onPress={() => { setSearchQuery(''); setDebouncedQuery(''); }} accessibilityLabel="Clear search">
                     <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
@@ -211,7 +248,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
               <RefreshControl
                 refreshing={isRefreshing}
                 onRefresh={handleRefresh}
-                tintColor={colors.text}
+                tintColor={colors.primary}
                 colors={[colors.primary]}
               />
             }
@@ -256,9 +293,6 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 8,
-  },
-  headerButtonText: {
-    fontSize: 16,
   },
   titleRow: {
     flexDirection: 'row',
@@ -309,10 +343,6 @@ const styles = StyleSheet.create({
   workflowDescription: {
     fontSize: 14,
   },
-  arrow: {
-    fontSize: 28,
-    marginLeft: 12,
-  },
   emptyText: {
     fontSize: 20,
     fontWeight: '600',
@@ -322,14 +352,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
+    lineHeight: 22,
+  },
+  emptyButtons: {
+    flexDirection: 'row',
+    gap: 12,
   },
   button: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   buttonText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonOutline: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  buttonOutlineText: {
     fontSize: 16,
     fontWeight: '600',
   },

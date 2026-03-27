@@ -5,6 +5,11 @@ type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
 type ProviderStreamItem = { type?: string; content?: unknown; delta?: unknown };
+type BinaryRef = { uri?: string; data?: Uint8Array | string; mimeType?: string };
+type MessageTextContent = { type: "text"; text: string };
+type MessageImageContent = { type: "image"; image: BinaryRef };
+type MessageAudioContent = { type: "audio"; audio: BinaryRef };
+type MessageContent = MessageTextContent | MessageImageContent | MessageAudioContent;
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value;
@@ -72,6 +77,51 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
   return rows;
 }
 
+function buildSchemaFromDynamicOutputs(outputs: unknown): Record<string, unknown> | null {
+  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+  for (const [name, spec] of Object.entries(outputs as Record<string, unknown>)) {
+    required.push(name);
+    const value = spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
+    const declared = typeof value.type === "string" ? value.type.toLowerCase() : "str";
+    let type = "string";
+    if (["int", "integer"].includes(declared)) type = "integer";
+    else if (["float", "number"].includes(declared)) type = "number";
+    else if (["bool", "boolean"].includes(declared)) type = "boolean";
+    else if (["list", "array"].includes(declared)) type = "array";
+    else if (["dict", "object"].includes(declared)) type = "object";
+    properties[name] = { type };
+  }
+  if (required.length === 0) return null;
+  return { type: "object", additionalProperties: false, required, properties };
+}
+
+function normalizeBinaryRef(value: unknown): BinaryRef | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const out: BinaryRef = {};
+  if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
+  if (record.data instanceof Uint8Array || typeof record.data === "string") out.data = record.data;
+  if (typeof record.mimeType === "string" && record.mimeType) out.mimeType = record.mimeType;
+  if (typeof record.mime_type === "string" && record.mime_type) out.mimeType = record.mime_type;
+  return out.uri || out.data ? out : null;
+}
+
+function buildMessageContent(
+  text: string,
+  image: unknown,
+  audio: unknown
+): string | MessageContent[] {
+  const imageRef = normalizeBinaryRef(image);
+  const audioRef = normalizeBinaryRef(audio);
+  if (!imageRef && !audioRef) return text;
+  const parts: MessageContent[] = [{ type: "text", text }];
+  if (imageRef) parts.push({ type: "image", image: imageRef });
+  if (audioRef) parts.push({ type: "audio", audio: audioRef });
+  return parts;
+}
+
 function getModelConfig(
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
@@ -114,65 +164,77 @@ function parseListItems(text: string): string[] {
   return matches.map((match) => normalizeWhitespace(match[1] ?? "")).filter((item) => item.length > 0);
 }
 
-function convertValue(column: ColumnSpec | undefined, raw: string): unknown {
-  const trimmed = raw.trim();
-  if (!trimmed || /^none$/i.test(trimmed) || /^null$/i.test(trimmed)) return null;
-  const kind = (column?.data_type ?? "").toLowerCase();
-  if (kind === "int" || kind === "integer") {
-    const value = Number.parseInt(trimmed, 10);
-    return Number.isFinite(value) ? value : trimmed;
-  }
-  if (kind === "float" || kind === "number") {
-    const value = Number.parseFloat(trimmed);
-    return Number.isFinite(value) ? value : trimmed;
-  }
-  return trimmed;
-}
 
-function parseMarkdownTable(text: string, columnsInput: unknown): Row[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("|") && line.endsWith("|"));
-  if (lines.length < 3) return [];
-
-  const header = lines[0]
-    .slice(1, -1)
-    .split("|")
-    .map((cell) => cell.trim());
-  const specs = parseColumnSpecs(columnsInput);
-  const columns =
-    specs.length > 0
-      ? header.map((name) => specs.find((spec) => spec.name === name) ?? { name })
-      : header.map((name) => ({ name }));
-
-  return lines
-    .slice(2)
-    .map((line) =>
-      line
-        .slice(1, -1)
-        .split("|")
-        .map((cell) => cell.trim())
-    )
-    .filter((cells) => cells.length >= header.length)
-    .map((cells) => {
-      const row: Row = {};
-      header.forEach((name, index) => {
-        row[name] = convertValue(columns[index], cells[index] ?? "");
-      });
-      return row;
-    });
-}
 
 function dataframeFromRows(rows: Row[], columnsInput: unknown): Record<string, unknown> {
-  const specs = parseColumnSpecs(columnsInput);
-  const names =
-    specs.length > 0 ? specs.map((column) => column.name) : rows.length > 0 ? Object.keys(rows[0]) : [];
+  const names = rows.length > 0 ? Object.keys(rows[0]) : parseColumnSpecs(columnsInput).map((s) => s.name);
   return {
     rows,
     columns: names.map((name) => ({ name })),
     data: rows.map((row) => names.map((name) => row[name] ?? null)),
   };
+}
+
+function parseCsv(text: string, specs: ColumnSpec[]): Row[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("```"));
+  if (lines.length < 2) return [];
+
+  const header = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map((line) => {
+    const cells = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? line.split(",");
+    const row: Row = {};
+    header.forEach((name, i) => {
+      const raw = (cells[i] ?? "").trim().replace(/^"|"$/g, "");
+      const spec = specs.find((s) => s.name === name);
+      const kind = (spec?.data_type ?? "").toLowerCase();
+      if (kind === "int" || kind === "integer") {
+        const n = Number.parseInt(raw, 10);
+        row[name] = Number.isFinite(n) ? n : raw;
+      } else if (kind === "float" || kind === "number") {
+        const n = Number.parseFloat(raw);
+        row[name] = Number.isFinite(n) ? n : raw;
+      } else {
+        row[name] = raw;
+      }
+    });
+    return row;
+  });
+}
+
+async function generateDataframeFromCsv(
+  context: ProcessingContext & {
+    runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
+  },
+  providerId: string,
+  modelId: string,
+  prompt: string,
+  columnsInput: unknown,
+  count: number,
+  maxTokens: number
+): Promise<Row[]> {
+  const specs = parseColumnSpecs(columnsInput);
+  const columnHint = specs.length > 0
+    ? `Use exactly these columns: ${specs.map((s) => s.name).join(", ")}.`
+    : "Choose appropriate columns for the data.";
+  const systemPrompt = `You are a data generator. Return ONLY a CSV with a header row and exactly ${count} data rows. No explanation, no markdown fences, no extra text. ${columnHint}`;
+  const result = await context.runProviderPrediction({
+    provider: providerId,
+    capability: "generate_message",
+    model: modelId,
+    params: {
+      model: modelId,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: maxTokens,
+    },
+  });
+  const content = asText((result as { content?: unknown }).content ?? result);
+  return parseCsv(content, specs);
 }
 
 async function generateProviderText(
@@ -191,7 +253,7 @@ async function generateProviderText(
     params: {
       model: modelId,
       messages: [{ role: "user", content: prompt }],
-      maxTokens,
+      max_tokens: maxTokens,
     },
   });
   if (result && typeof result === "object" && "content" in (result as Record<string, unknown>)) {
@@ -258,6 +320,24 @@ export class StructuredOutputGeneratorNode extends BaseNode {
   @prop({ type: "int", default: 4096, title: "Max Tokens", description: "The maximum number of tokens to generate.", min: 1, max: 16384 })
   declare max_tokens: any;
 
+  @prop({ type: "image", default: {
+  "type": "image",
+  "uri": "",
+  "asset_id": null,
+  "data": null,
+  "metadata": null
+}, title: "Image", description: "Optional image to include in the generation request." })
+  declare image: any;
+
+  @prop({ type: "audio", default: {
+  "type": "audio",
+  "uri": "",
+  "asset_id": null,
+  "data": null,
+  "metadata": null
+}, title: "Audio", description: "Optional audio to include in the generation request." })
+  declare audio: any;
+
 
 
 
@@ -265,23 +345,25 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const { providerId, modelId } = getModelConfig(this.serialize());
-    const schema = (this as any).schema;
-    if (schema && typeof schema === "object" && !Array.isArray(schema) && hasProviderSupport(context, providerId, modelId)) {
+    const schema = buildSchemaFromDynamicOutputs((this as any)._dynamic_outputs);
+    if (schema && hasProviderSupport(context, providerId, modelId)) {
       const instructions = asText(this.instructions ?? this.instructions ?? "");
       const extraContext = asText(this.context ?? this.context ?? "");
+      const systemPrompt = asText(this.system_prompt ?? "");
+      const userText = [instructions, extraContext].filter(Boolean).join("\n\n");
+      const messages: Array<{ role: string; content: unknown }> = [];
+      if (systemPrompt) {
+        messages.push({ role: "system", content: systemPrompt });
+      }
+      messages.push({ role: "user", content: buildMessageContent(userText, this.image, this.audio) });
       const result = await context.runProviderPrediction({
         provider: providerId,
         capability: "generate_message",
         model: modelId,
         params: {
           model: modelId,
-          messages: [
-            {
-              role: "user",
-              content: [instructions, extraContext].filter(Boolean).join("\n\n"),
-            },
-          ],
-          responseFormat: {
+          messages,
+          response_format: {
             type: "json_schema",
             json_schema: {
               name: "structured_output",
@@ -378,14 +460,15 @@ export class DataGeneratorNode extends BaseNode {
     const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
-      const providerText = await generateProviderText(
+      const rows = await generateDataframeFromCsv(
         context,
         providerId,
         modelId,
         [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(this.max_tokens ?? this.max_tokens ?? 256)
+        columnsInput,
+        count,
+        Number(this.max_tokens ?? 4096)
       );
-      const rows = parseMarkdownTable(providerText, columnsInput);
       if (rows.length > 0) {
         return { output: dataframeFromRows(rows, columnsInput) };
       }
@@ -395,28 +478,6 @@ export class DataGeneratorNode extends BaseNode {
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
-    const { providerId, modelId } = getModelConfig(this.serialize());
-    const columnsInput = this.columns ?? this.columns;
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const prompt = asText(this.prompt ?? this.prompt ?? "");
-      const inputText = asText(this.input_text ?? this.input_text ?? "");
-      const providerText = await streamProviderText(
-        context,
-        providerId,
-        modelId,
-        [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(this.max_tokens ?? this.max_tokens ?? 256)
-      );
-      const rows = parseMarkdownTable(providerText, columnsInput);
-      if (rows.length > 0) {
-        for (let i = 0; i < rows.length; i += 1) {
-          yield { record: rows[i], index: i, dataframe: null };
-        }
-        yield { record: null, index: null, dataframe: dataframeFromRows(rows, columnsInput) };
-        return;
-      }
-    }
-
     const full = await this.process(context);
     const rows = ((full.output as { rows?: unknown }).rows ?? []) as Row[];
     for (let i = 0; i < rows.length; i += 1) {
@@ -523,7 +584,7 @@ export class ChartGeneratorNode extends BaseNode {
             static readonly title = "Chart Generator";
             static readonly description = "LLM Agent to create Plotly Express charts based on natural language descriptions.\n    llm, data visualization, charts\n\n    Use cases:\n    - Generating interactive charts from natural language descriptions\n    - Creating data visualizations with minimal configuration\n    - Converting data analysis requirements into visual representations";
         static readonly metadataOutputTypes = {
-    output: "plotly_config"
+    output: "chart_config"
   };
           static readonly basicFields = [
   "prompt",
@@ -569,12 +630,51 @@ export class ChartGeneratorNode extends BaseNode {
     const keys = rows.length > 0 ? Object.keys(rows[0]) : [];
     const xKey = keys[0] ?? "x";
     const yKey = keys[1] ?? xKey;
-    const x = rows.map((r, i) => r[xKey] ?? i);
-    const y = rows.map((r, i) => r[yKey] ?? i);
     return {
       output: {
-        data: [{ type: "bar", x, y, name: prompt || "series" }],
-        layout: { title: prompt || "Generated Chart" },
+        type: "chart_config",
+        title: prompt || "Generated Chart",
+        x_label: xKey,
+        y_label: yKey,
+        legend: true,
+        data: {
+          type: "chart_data",
+          series: [
+            {
+              type: "bar",
+              x_column: xKey,
+              y_column: yKey,
+              label: prompt || "series",
+            },
+          ],
+          row: null,
+          col: null,
+          col_wrap: null,
+        },
+        height: null,
+        aspect: null,
+        x_lim: null,
+        y_lim: null,
+        x_scale: null,
+        y_scale: null,
+        legend_position: "auto",
+        palette: null,
+        hue_order: null,
+        hue_norm: null,
+        sizes: null,
+        size_order: null,
+        size_norm: null,
+        marginal_kws: null,
+        joint_kws: null,
+        diag_kind: null,
+        corner: false,
+        center: null,
+        vmin: null,
+        vmax: null,
+        cmap: null,
+        annot: false,
+        fmt: ".2g",
+        square: false,
       },
     };
   }

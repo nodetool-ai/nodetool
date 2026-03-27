@@ -4,9 +4,11 @@ title: "Models & Providers"
 description: "AI models and local vs cloud options."
 ---
 
+NodeTool gives you the flexibility to run AI models locally on your hardware or through cloud APIs — or both at the same time. This guide helps you choose the right approach and get set up.
+
 ## Local vs. Cloud
 
-NodeTool runs AI models locally or through cloud APIs.
+NodeTool runs AI models locally or through cloud APIs. Here's how they compare:
 
 ### Local Models
 
@@ -82,7 +84,7 @@ Access these models through NodeTool's **generic nodes**:
 1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
 2. **For Images**: Use `nodetool.image.TextToImage`
 3. **For 3D**: Use `nodetool.3d.TextTo3D` or `nodetool.3d.ImageTo3D`
-3. **Select Provider**: Click the model dropdown in the node properties
+4. **Select Provider**: Click the model dropdown in the node properties
 4. **Configure API**: Add provider API keys in `Settings → Providers`
 
 **Access via kie.ai (recommended for broad model support):**

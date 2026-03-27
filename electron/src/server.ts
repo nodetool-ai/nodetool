@@ -467,45 +467,50 @@ async function startServer(): Promise<void> {
     `Model service startup settings: ollama=${startupSettings.startOllamaOnStartup}, llama_cpp=${startupSettings.startLlamaCppOnStartup}`
   );
 
-  // Attempt to start Ollama if enabled on startup.
+  // Start model services and find backend port in parallel.
+  const modelServicePromises: Promise<void>[] = [];
+
   if (startupSettings.startOllamaOnStartup) {
-    try {
-        logMessage("Starting Ollama server...");
-        await startOllamaServer();
-        logMessage("Ollama server started successfully");
-    } catch (error) {
-        logMessage(
-        `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
-        "warn"
-        );
-        // Set default port even if Ollama failed to start
-        if (!serverState.ollamaPort) {
-        serverState.ollamaPort = 11435;
-        }
-    }
+    logMessage("Starting Ollama server...");
+    modelServicePromises.push(
+      startOllamaServer()
+        .then(() => logMessage("Ollama server started successfully"))
+        .catch((error) => {
+          logMessage(
+            `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
+            "warn"
+          );
+          if (!serverState.ollamaPort) {
+            serverState.ollamaPort = 11435;
+          }
+        })
+    );
   } else {
     logMessage("Skipping Ollama server startup (disabled in settings)");
   }
 
-  // Attempt to start llama-server if enabled on startup.
   if (startupSettings.startLlamaCppOnStartup) {
-    try {
-        logMessage("Starting llama-server...");
-        await startLlamaServer();
-        logMessage("llama-server started successfully");
-    } catch (error) {
-        logMessage(
-        `Failed to start llama-server: ${(error as Error).message}. Continuing without llama-server.`,
-        "warn"
-        );
-    }
+    logMessage("Starting llama-server...");
+    modelServicePromises.push(
+      startLlamaServer()
+        .then(() => logMessage("llama-server started successfully"))
+        .catch((error) => {
+          logMessage(
+            `Failed to start llama-server: ${(error as Error).message}. Continuing without llama-server.`,
+            "warn"
+          );
+        })
+    );
   } else {
     logMessage("Skipping llama-server startup (disabled in settings)");
   }
 
   const basePort = 7777;
   logMessage(`Finding available port starting from ${basePort}...`);
-  const selectedPort = await findAvailablePort(basePort);
+  const [selectedPort] = await Promise.all([
+    findAvailablePort(basePort),
+    ...modelServicePromises,
+  ]);
   serverState.serverPort = selectedPort;
   serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
   logMessage(`Selected port: ${selectedPort}`);

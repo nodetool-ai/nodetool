@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -31,22 +32,24 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   const [workflow, setWorkflow] = React.useState<Workflow | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const { colors } = useTheme();
-  
+
   // Use the workflow runner store
   const runnerStore = useWorkflowRunner(workflowId);
-  // Subscribe to store state
-  const state = runnerStore((state) => state.state);
-  const statusMessage = runnerStore((state) => state.statusMessage);
-  const runResults = runnerStore((state) => state.results);
-  const logs = runnerStore((state) => state.logs);
-  const run = runnerStore((state) => state.run);
-  const cleanup = runnerStore((state) => state.cleanup);
+  const state = runnerStore((s) => s.state);
+  const statusMessage = runnerStore((s) => s.statusMessage);
+  const runResults = runnerStore((s) => s.results);
+  const logs = runnerStore((s) => s.logs);
+  const run = runnerStore((s) => s.run);
+  const cancel = runnerStore((s) => s.cancel);
+  const cleanup = runnerStore((s) => s.cleanup);
 
   // Use the new hook for inputs
   const { inputDefinitions, inputValues, updateInputValue } = useMiniAppInputs(workflow);
 
   const isRunning = state === 'running' || state === 'connecting';
   const prevStateRef = React.useRef(state);
+  const isCompleted = state === 'completed';
+  const isError = state === 'error';
 
   const scrollViewRef = React.useRef<ScrollView>(null);
 
@@ -57,7 +60,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
       setWorkflow(data);
     } catch (error) {
       console.error('Failed to load workflow:', error);
-      Alert.alert('Error', 'Failed to load mini app');
+      Alert.alert('Error', 'Failed to load mini app. Check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -93,8 +96,8 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
 
     if (missingInputs.length > 0) {
       Alert.alert(
-        'Missing Inputs', 
-        `Please fill in the following fields:\n${missingInputs.map(i => i.data.label).join(', ')}`
+        'Missing Inputs',
+        `Please fill in: ${missingInputs.map(i => i.data.label).join(', ')}`
       );
       return;
     }
@@ -114,15 +117,15 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
         ) {
           let normalized = value;
           if (definition.kind === "integer") {
-             normalized = Math.round(value);
+            normalized = Math.round(value);
           }
-          
+
           if (definition.data.min !== undefined || definition.data.max !== undefined) {
-             const min = definition.data.min ?? -Infinity;
-             const max = definition.data.max ?? Infinity;
-             normalized = Math.min(Math.max(normalized, min), max);
+            const min = definition.data.min ?? -Infinity;
+            const max = definition.data.max ?? Infinity;
+            normalized = Math.min(Math.max(normalized, min), max);
           }
-          
+
           accumulator[definition.data.name] = normalized;
           return accumulator;
         }
@@ -142,10 +145,48 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     }
   };
 
+  const formattedResults = useMemo((): MiniAppResult[] => {
+    if (!runResults) return [];
+
+    if (Array.isArray(runResults)) {
+      return runResults.map((r, i) => ({
+        id: `res-${i}`,
+        nodeId: 'unknown',
+        nodeName: 'Output',
+        outputName: `Output ${i + 1}`,
+        outputType: typeof r === 'string' ? 'string' : 'unknown',
+        value: r,
+        receivedAt: Date.now()
+      }));
+    }
+
+    if (typeof runResults === 'object') {
+      return Object.entries(runResults as Record<string, unknown>).map(([key, val], i) => ({
+        id: `res-${i}`,
+        nodeId: key,
+        nodeName: key,
+        outputName: 'Output',
+        outputType: typeof val === 'string' ? 'string' : 'unknown',
+        value: val,
+        receivedAt: Date.now()
+      }));
+    }
+
+    return [{
+      id: 'res-single',
+      nodeId: 'output',
+      nodeName: 'Output',
+      outputName: 'Result',
+      outputType: typeof runResults,
+      value: runResults,
+      receivedAt: Date.now()
+    }];
+  }, [runResults]);
+
   if (isLoading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.text} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading...</Text>
       </View>
     );
@@ -154,18 +195,35 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   if (!workflow) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.error} style={{ marginBottom: 12 }} />
         <Text style={[styles.errorText, { color: colors.error }]}>Failed to load workflow</Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { borderColor: colors.border }]}
+          onPress={loadWorkflow}
+        >
+          <Ionicons name="refresh-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+          <Text style={[styles.retryText, { color: colors.primary }]}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
-        style={styles.scrollView} 
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
+        {/* Description */}
+        {workflow.description ? (
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            {workflow.description}
+          </Text>
+        ) : null}
+
+        {/* Inputs Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Inputs</Text>
           {inputDefinitions.length === 0 ? (
@@ -182,92 +240,80 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
           )}
         </View>
 
+        {/* Run / Cancel Button */}
         <TouchableOpacity
           style={[
-            styles.runButton, 
-            { backgroundColor: colors.primary },
-            isRunning && styles.runButtonDisabled
+            styles.runButton,
+            { backgroundColor: isRunning ? colors.error : colors.primary },
+            (isLoading) && styles.runButtonDisabled
           ]}
-          onPress={handleRun}
-          disabled={isRunning}
+          onPress={isRunning ? cancel : handleRun}
+          disabled={isLoading}
         >
           {isRunning ? (
-            <ActivityIndicator color="#fff" />
+            <View style={styles.buttonRow}>
+              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+              <Text style={styles.runButtonText}>Cancel</Text>
+            </View>
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={styles.buttonRow}>
               <Ionicons name="play" size={20} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.runButtonText}>Run Mini App</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        {/* Execution Status & Logs - Only show while running */}
+        {/* Status indicator */}
+        {(isCompleted || isError) && (
+          <View style={[
+            styles.statusBanner,
+            { backgroundColor: isCompleted ? colors.success + '15' : colors.error + '15' }
+          ]}>
+            <Ionicons
+              name={isCompleted ? 'checkmark-circle' : 'alert-circle'}
+              size={18}
+              color={isCompleted ? colors.success : colors.error}
+            />
+            <Text style={[
+              styles.statusBannerText,
+              { color: isCompleted ? colors.success : colors.error }
+            ]}>
+              {statusMessage || (isCompleted ? 'Completed successfully' : 'Execution failed')}
+            </Text>
+          </View>
+        )}
+
+        {/* Execution Logs - Show while running */}
         {isRunning && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Execution</Text>
             {statusMessage && (
-               <Text style={[styles.statusText, { color: colors.primary }]}>{statusMessage}</Text>
+              <Text style={[styles.statusText, { color: colors.primary }]}>{statusMessage}</Text>
             )}
             <View style={[styles.terminalContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-               <ScrollView 
-                  style={styles.terminalScroll} 
-                  nestedScrollEnabled
-                  onContentSizeChange={(_w, _h) => {
-                    scrollViewRef.current?.scrollTo({ y: 100000, animated: true }); 
-                  }}
-               >
-                  {logs.map((log, index) => (
-                     <Text key={index} style={[styles.terminalText, { color: colors.text }]}>
-                       <Text style={[styles.terminalPrompt, { color: colors.primary }]}>{'> '}</Text>
-                       {log}
-                     </Text>
-                  ))}
-               </ScrollView>
+              <FlatList
+                data={logs}
+                keyExtractor={(_item, index) => `log-${index}`}
+                renderItem={({ item: log }) => (
+                  <Text style={[styles.terminalText, { color: colors.text }]}>
+                    <Text style={[styles.terminalPrompt, { color: colors.primary }]}>{'> '}</Text>
+                    {log}
+                  </Text>
+                )}
+                nestedScrollEnabled
+                onContentSizeChange={() => {
+                  scrollViewRef.current?.scrollTo({ y: 100000, animated: true });
+                }}
+              />
             </View>
           </View>
         )}
 
-        {/* Results Section - Only show when finished */}
-        {!isRunning && runResults && (
+        {/* Results Section */}
+        {!isRunning && formattedResults.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Results</Text>
-            
-            <MiniAppResults 
-              results={(() => {
-                if (!runResults) {return [];}
-                if (Array.isArray(runResults)) {
-                   return runResults.map((r, i) => ({
-                      id: `res-${i}`,
-                      nodeId: 'unknown',
-                      nodeName: 'Output',
-                      outputName: `Output ${i+1}`,
-                      outputType: typeof r === 'string' ? 'string' : 'unknown',
-                      value: r,
-                      receivedAt: Date.now()
-                   })) as MiniAppResult[];
-                }
-                if (typeof runResults === 'object') {
-                  return Object.entries(runResults).map(([key, val], i) => ({
-                    id: `res-${i}`,
-                    nodeId: key,
-                    nodeName: key,
-                    outputName: 'Output',
-                    outputType: typeof val === 'string' ? 'string' : 'unknown',
-                    value: val,
-                    receivedAt: Date.now()
-                  })) as MiniAppResult[];
-                }
-                return [{
-                   id: 'res-single',
-                   nodeId: 'output',
-                   nodeName: 'Output',
-                   outputName: 'Result',
-                   outputType: typeof runResults,
-                   value: runResults,
-                   receivedAt: Date.now()
-                }] as MiniAppResult[];
-              })()} 
-            />
+            <MiniAppResults results={formattedResults} />
           </View>
         )}
       </ScrollView>
@@ -283,12 +329,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
+  },
+  description: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 20,
   },
   section: {
     marginBottom: 24,
@@ -302,15 +354,32 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   runButtonDisabled: {
     opacity: 0.6,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   runButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  statusBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
   statusText: {
     fontSize: 14,
@@ -322,6 +391,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 16,
+  },
+  retryText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
   noInputsText: {
     fontSize: 16,
@@ -333,11 +417,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 200,
   },
-  terminalScroll: {
-    flex: 1,
-  },
   terminalText: {
-    fontFamily: 'Menlo',
+    fontFamily: 'monospace',
     fontSize: 12,
     marginBottom: 4,
   },
