@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ListRenderItemInfo,
   RefreshControl,
+  Keyboard,
 } from 'react-native';
 import { Message } from '../../types';
 import { MessageView } from './MessageView';
@@ -101,6 +102,10 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       maxToRenderPerBatch={10}
       windowSize={10}
       initialNumToRender={15}
+      // Dismiss keyboard when scrolling
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
+      onScrollBeginDrag={() => Keyboard.dismiss()}
       // Prevent scroll jumping when new messages arrive
       onContentSizeChange={() => {
         if (messages.length > 0) {
