@@ -203,15 +203,13 @@ export function combineMasks(
   for (let i = 0; i < n; i++) {
     const b = out.data[i];
     const o = overlay.data[i];
-    const ob = o >= THRESH ? 255 : 0;
-    const bb = b >= THRESH ? 255 : 0;
     let v = 0;
     if (op === "add") {
-      v = Math.min(255, bb | ob);
+      v = Math.min(255, b + o);
     } else if (op === "subtract") {
-      v = ob >= THRESH ? 0 : bb;
+      v = Math.max(0, b - o);
     } else {
-      v = Math.min(bb, ob);
+      v = Math.min(b, o);
     }
     out.data[i] = v;
   }

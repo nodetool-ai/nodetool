@@ -242,8 +242,7 @@ export function useOverlayRenderer({
   useEffect(() => {
     if (
       !selection ||
-      !selectionHasAnyPixels(selection) ||
-      activeTool !== "select"
+      !selectionHasAnyPixels(selection)
     ) {
       return;
     }
@@ -259,7 +258,6 @@ export function useOverlayRenderer({
     };
   }, [
     selection,
-    activeTool,
     paintSelectionAnts,
     selectStartRef,
     lassoPointsRef

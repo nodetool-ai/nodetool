@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { createWithEqualityFn } from "zustand/traditional";
 
 export type TraceEventType =
   | "node_start"
@@ -39,7 +39,7 @@ export function traceEventId(): string {
   return `te-${++nextId}`;
 }
 
-const useTraceStore = create<TraceStoreState>((set, get) => ({
+const useTraceStore = createWithEqualityFn<TraceStoreState>()((set, get) => ({
   events: [],
   runStartTime: null,
   isRecording: false,

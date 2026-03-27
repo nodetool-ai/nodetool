@@ -15,7 +15,7 @@
 import type { SketchRuntime, ActiveStrokeInfo, DirtyRect } from "./types";
 import type { LayerContentBounds, Selection, SketchDocument } from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
-import { blendModeToComposite } from "../drawingUtils";
+import { blendModeToComposite, checkerboardDocumentCellPx } from "../drawingUtils";
 import type { BlendMode } from "../types";
 import { getLayerCompositeOffset } from "../painting/layerBounds";
 import {
@@ -482,8 +482,9 @@ export class WebGPURuntime implements SketchRuntime {
 
       if (this.checkerboardPipeline && this.checkerboardBindGroupLayout) {
         // Checkerboard uniforms: canvasSize, cellSize, pad, colorA, colorB
-        // cellSize is 8 / zoom so that after CSS scale(zoom) the visual size stays 8 screen px.
-        const effectiveCell = 8 / (this.zoom > 0 ? this.zoom : 1);
+        // Integer document cell size (see checkerboardDocumentCellPx) so GPU
+        // tiles match Canvas2D and stay even under CSS scale + pixelated view.
+        const effectiveCell = checkerboardDocumentCellPx(this.zoom);
         const uniformData = new Float32Array([
           fullW,
           fullH,

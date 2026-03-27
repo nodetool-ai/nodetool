@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { createWithEqualityFn } from "zustand/traditional";
 import { Asset, AssetWithPath } from "./ApiTypes";
 import { SizeFilterKey } from "../utils/formatUtils";
 
@@ -68,7 +68,8 @@ interface AssetGridState {
   setIsGlobalSearchMode: (mode: boolean) => void;
 }
 
-export const useAssetGridStore = create<AssetGridState>((set, get) => ({
+export const useAssetGridStore = createWithEqualityFn<AssetGridState>()(
+  (set, get) => ({
   assetItemSize: 2,
   sizeFilter: "all",
   viewMode: "grid",
@@ -145,4 +146,5 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   setIsGlobalSearchActive: (active) => set({ isGlobalSearchActive: active }),
   setGlobalSearchQuery: (query) => set({ globalSearchQuery: query }),
   setIsGlobalSearchMode: (mode) => set({ isGlobalSearchMode: mode })
-}));
+  })
+);

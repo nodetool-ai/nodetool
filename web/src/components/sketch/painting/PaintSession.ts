@@ -19,7 +19,7 @@
  * Overlay, cursor, and live preview stay on 2D by default.
  */
 
-import type { Point, Layer } from "../types";
+import type { Point, Layer, Selection } from "../types";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { PaintEngine } from "./PaintEngine";
 import type { ActiveStrokeInfo } from "../rendering";
@@ -30,6 +30,10 @@ import {
   getCanvasRasterBounds
 } from "./layerBounds";
 import { paintPressureForEngine } from "../drawingUtils";
+import {
+  applySelectionMaskAlpha,
+  selectionHasAnyPixels
+} from "../selection/selectionMask";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 
@@ -60,6 +64,9 @@ export class PaintSession {
 
   // ── Alpha lock ────────────────────────────────────────────────────
   private alphaSnapshot: ImageData | null = null;
+
+  // ── Feathered selection mask (captured at stroke begin) ──────────
+  private selectionMask: Selection | null = null;
 
   /** Snapshot of stroke buffer before the current Shift straight segment (for rubber-band updates). */
   private shiftRubberBandBase: HTMLCanvasElement | null = null;
@@ -139,6 +146,13 @@ export class PaintSession {
     this.active = true;
 
     this.engine.beginStroke();
+
+    // ── Capture selection mask for feathered-edge alpha modulation ──
+    if (ctx.selection && selectionHasAnyPixels(ctx.selection)) {
+      this.selectionMask = ctx.selection;
+    } else {
+      this.selectionMask = null;
+    }
 
     // ── Alpha-lock snapshot ──────────────────────────────────────────
     if (activeLayer.alphaLock) {
@@ -433,9 +447,22 @@ export class PaintSession {
       // pointer-up handler returns with zero blocking work.
       const capturedAlphaSnapshot = this.alphaSnapshot;
       const capturedDirtyRect = this.engine.getDirtyRect();
+      const capturedSelMask = this.selectionMask;
+      const capturedOffset = { ...this.mapper.offset };
       this.alphaSnapshot = null;
+      this.selectionMask = null;
 
       activeStroke.pendingCommit = () => {
+        // Apply feathered selection mask alpha to the stroke buffer
+        if (capturedSelMask) {
+          applySelectionMaskAlpha(
+            activeStroke.buffer,
+            capturedSelMask,
+            capturedOffset.x,
+            capturedOffset.y
+          );
+        }
+
         // Merge buffer → layer canvas (the expensive step)
         const layerCanvas = ctx.getOrCreateLayerCanvas(layer.id);
         const layerCtx = layerCanvas.getContext("2d");
@@ -517,6 +544,14 @@ export class PaintSession {
     ctx: ToolContext,
     stroke: ActiveStrokeInfo
   ): void {
+    if (this.selectionMask) {
+      applySelectionMaskAlpha(
+        stroke.buffer,
+        this.selectionMask,
+        this.mapper.offset.x,
+        this.mapper.offset.y
+      );
+    }
     const layerCanvas = ctx.layerCanvasesRef.current.get(stroke.layerId);
     if (layerCanvas) {
       const layerCtx = layerCanvas.getContext("2d");

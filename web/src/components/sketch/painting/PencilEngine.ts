@@ -3,8 +3,8 @@
  *
  * Wraps `drawPencilStroke` from drawingUtils. The pencil has no stabilizer,
  * uses per-branch distance-based stamping (like the brush) so stroke density
- * depends on path length, not pointer event rate, and draws directly onto the
- * layer canvas (no stroke buffer).
+ * depends on path length, not pointer event rate.  Uses a stroke buffer so
+ * feathered selection masks are properly applied at commit time.
  */
 
 import type { Point, PencilSettings } from "../types";
@@ -18,7 +18,7 @@ import type { DirtyRectTracker } from "../drawingUtils";
 export class PencilEngine implements PaintEngine {
   readonly engineId = "pencil";
   readonly compositeOp: EngineCompositeOp = "source-over";
-  readonly bufferMode: StrokeBufferMode = "direct";
+  readonly bufferMode: StrokeBufferMode = "buffered";
   readonly hasStabilizer = false;
   readonly dabOnDown = true;
 

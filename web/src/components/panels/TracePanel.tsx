@@ -234,14 +234,18 @@ const TracePanel: React.FC = () => {
         </Box>
         <Box sx={{ display: "flex", gap: 0.5 }}>
           <Tooltip title="Copy to clipboard" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton size="small" onClick={handleCopy} disabled={events.length === 0}>
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
+            <span>
+              <IconButton size="small" onClick={handleCopy} disabled={events.length === 0}>
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="Export as JSON" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton size="small" onClick={handleExport} disabled={events.length === 0}>
-              <FileDownloadIcon fontSize="small" />
-            </IconButton>
+            <span>
+              <IconButton size="small" onClick={handleExport} disabled={events.length === 0}>
+                <FileDownloadIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="Clear trace" enterDelay={TOOLTIP_ENTER_DELAY}>
             <IconButton size="small" onClick={clear}>

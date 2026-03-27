@@ -184,8 +184,18 @@ export function blendModeToComposite(
 // ─── Checkerboard ────────────────────────────────────────────────────────────
 
 let cachedCheckerboardTile: HTMLCanvasElement | null = null;
-/** The target visual cell size in screen pixels. */
+/** The target visual cell size in screen pixels (approximate after rounding). */
 const CHECKERBOARD_SCREEN_CELL = 8;
+
+/**
+ * Integer document pixels per checker cell so the alpha grid aligns with the
+ * canvas bitmap. A fractional `8/zoom` misaligns with `imageRendering: pixelated`
+ * and CSS scale, which makes tiles look uneven at many zoom levels.
+ */
+export function checkerboardDocumentCellPx(zoom: number | undefined): number {
+  const z = zoom != null && zoom > 0 ? zoom : 1;
+  return Math.max(1, Math.round(CHECKERBOARD_SCREEN_CELL / z));
+}
 const cloneMaskCache = new Map<string, Uint8ClampedArray>();
 const blurBrushMaskCache = new Map<string, Float32Array>();
 const blurOutputImageDataCache = new Map<string, ImageData>();
@@ -384,9 +394,11 @@ export function drawCheckerboard(
   height: number,
   zoom?: number
 ): void {
-  // Build a 2×2-cell tile at a fixed pixel size; we'll use a pattern
-  // transform to scale it so the visual cell size stays constant on screen.
+  // Build a 2×2-cell tile; scale the pattern so each cell spans an integer
+  // number of document pixels (`cellDoc`), keeping tiles uniform on the bitmap.
   const tileCell = CHECKERBOARD_SCREEN_CELL;
+  const cellDoc = checkerboardDocumentCellPx(zoom);
+  const patternScale = cellDoc / tileCell;
   if (!cachedCheckerboardTile) {
     cachedCheckerboardTile = document.createElement("canvas");
     cachedCheckerboardTile.width = tileCell * 2;
@@ -402,11 +414,8 @@ export function drawCheckerboard(
   }
   const pattern = ctx.createPattern(cachedCheckerboardTile, "repeat");
   if (pattern) {
-    // Scale the pattern so each cell is `tileCell / zoom` document pixels.
-    // After CSS `scale(zoom)` the result is `tileCell` screen pixels — constant.
-    const s = 1 / (zoom && zoom > 0 ? zoom : 1);
-    if (s !== 1 && typeof DOMMatrix !== "undefined" && pattern.setTransform) {
-      pattern.setTransform(new DOMMatrix().scaleSelf(s, s));
+    if (typeof DOMMatrix !== "undefined" && pattern.setTransform) {
+      pattern.setTransform(new DOMMatrix().scaleSelf(patternScale, patternScale));
     }
     ctx.fillStyle = pattern;
     ctx.fillRect(0, 0, width, height);

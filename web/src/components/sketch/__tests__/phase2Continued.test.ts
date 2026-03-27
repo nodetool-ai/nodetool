@@ -377,7 +377,22 @@ describe("Phase 2 Continued Features", () => {
 
 // ─── Checkerboard resolution independence ────────────────────────────────
 
-import { drawCheckerboard } from "../drawingUtils";
+import { drawCheckerboard, checkerboardDocumentCellPx } from "../drawingUtils";
+
+describe("checkerboardDocumentCellPx", () => {
+  it("uses integer document cells so tiles align to the bitmap", () => {
+    expect(checkerboardDocumentCellPx(1)).toBe(8);
+    expect(checkerboardDocumentCellPx(2)).toBe(4);
+    expect(checkerboardDocumentCellPx(1.5)).toBe(5);
+    expect(checkerboardDocumentCellPx(3)).toBe(3);
+  });
+
+  it("treats invalid zoom like 1", () => {
+    expect(checkerboardDocumentCellPx(undefined)).toBe(8);
+    expect(checkerboardDocumentCellPx(0)).toBe(8);
+    expect(checkerboardDocumentCellPx(-1)).toBe(8);
+  });
+});
 
 describe("drawCheckerboard resolution independence", () => {
   // jsdom doesn't provide a real CanvasRenderingContext2D, so we mock it
@@ -428,9 +443,8 @@ describe("drawCheckerboard resolution independence", () => {
     ).not.toThrow();
   });
 
-  it("uses the pattern's setTransform when zoom != 1 and DOMMatrix is available", () => {
-    // DOMMatrix is not available in jsdom, so the pattern.setTransform path
-    // is skipped.  We only verify the fallback still fills the area.
+  it("fills the rect when DOMMatrix is unavailable (jsdom)", () => {
+    // DOMMatrix is not available in jsdom, so pattern.setTransform is skipped.
     drawCheckerboard(mockCtx as unknown as CanvasRenderingContext2D, 200, 150, 2);
     expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 0, 200, 150);
   });

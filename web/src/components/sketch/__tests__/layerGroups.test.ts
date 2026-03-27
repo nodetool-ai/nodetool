@@ -14,6 +14,7 @@ import {
   getLayerDepth,
   getDescendantIds,
   buildVisibleLayerTree,
+  buildLayersPanelRows,
   Layer
 } from "../types";
 
@@ -159,6 +160,52 @@ describe("Layer Tree Helpers", () => {
     const tree = buildVisibleLayerTree(layers);
     expect(tree).toHaveLength(3);
     expect(tree.map((t) => t.layer.id)).toEqual(["root1", "group1", "root2"]);
+  });
+
+  it("buildLayersPanelRows orders composite top first with group above its children", () => {
+    const layers = makeLayers();
+    const rows = buildLayersPanelRows(layers);
+    expect(rows.map((r) => r.layer.id)).toEqual(["root2", "group1", "child2", "child1", "root1"]);
+    expect(rows.map((r) => r.depth)).toEqual([0, 0, 1, 1, 0]);
+  });
+
+  it("buildLayersPanelRows omits children when group is collapsed", () => {
+    const layers = makeLayers();
+    layers[1].collapsed = true;
+    const rows = buildLayersPanelRows(layers);
+    expect(rows.map((r) => r.layer.id)).toEqual(["root2", "group1", "root1"]);
+    expect(rows.map((r) => r.depth)).toEqual([0, 0, 0]);
+  });
+
+  it("buildLayersPanelRows nests subgroups under parent group row", () => {
+    const layers: Layer[] = [
+      {
+        id: "root", name: "Root", type: "raster", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 }
+      },
+      {
+        id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        collapsed: false
+      },
+      {
+        id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        parentId: "g1", collapsed: false
+      },
+      {
+        id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        parentId: "g2"
+      }
+    ];
+    const rows = buildLayersPanelRows(layers);
+    expect(rows.map((r) => r.layer.id)).toEqual(["g1", "g2", "deep", "root"]);
+    expect(rows.map((r) => r.depth)).toEqual([0, 1, 2, 0]);
   });
 });
 
