@@ -43,6 +43,14 @@ const HIT_EPSILON = -0.02;
 // updating the local hue from external color changes to avoid jumps.
 const MIN_SV_FOR_HUE_SYNC = 0.01;
 
+function normalizeHueDeg(h: number): number {
+  let x = h % 360;
+  if (x < 0) {
+    x += 360;
+  }
+  return x;
+}
+
 // ─── Geometry helpers ────────────────────────────────────────────────────────
 
 /** Equilateral triangle in a fixed orientation (hue vertex at top). Geometry is independent of hue. */
@@ -149,6 +157,9 @@ function paintTriangle(ctx: CanvasRenderingContext2D, hueDeg: number) {
         data[idx + 3] = 255;
       } else {
         const idx = ((py - minY) * w + (px - minX)) * 4;
+        data[idx] = 0;
+        data[idx + 1] = 0;
+        data[idx + 2] = 0;
         data[idx + 3] = 0;
       }
     }
@@ -218,8 +229,12 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   onColorChange
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const ringCanvasRef = useRef<HTMLCanvasElement | null>(null);   // offscreen cache
+  const ringCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const triangleCacheRef = useRef<{ hueKey: number; canvas: HTMLCanvasElement } | null>(null);
   const dragTarget = useRef<DragTarget>(null);
+  const localHueRef = useRef(0);
+  const pendingEmitRef = useRef<{ h: number; s: number; v: number } | null>(null);
+  const rafEmitRef = useRef<number | null>(null);
 
   // ─── Parse color to HSV ──────────────────────────────────────────
   const { r, g, b, a } = parseColorToRgba(color);
