@@ -618,4 +618,6 @@ const WorkflowAssistantChat: React.FC = () => {
   );
 };
 
+WorkflowAssistantChat.displayName = "WorkflowAssistantChat";
+
 export default memo(WorkflowAssistantChat);

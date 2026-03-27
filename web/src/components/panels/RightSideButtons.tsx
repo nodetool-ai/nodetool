@@ -77,4 +77,6 @@ const RightSideButtons: React.FC = () => {
   );
 };
 
+RightSideButtons.displayName = "RightSideButtons";
+
 export default memo(RightSideButtons);
