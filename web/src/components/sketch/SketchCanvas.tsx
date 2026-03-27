@@ -219,7 +219,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           existing.y === transform.y &&
           (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
           (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
-          (existing.rotation ?? 0) === (transform.rotation ?? 0)
+          Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
         ) {
           return current;
         }

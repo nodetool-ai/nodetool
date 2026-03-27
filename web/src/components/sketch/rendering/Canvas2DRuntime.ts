@@ -275,9 +275,9 @@ export class Canvas2DRuntime implements SketchRuntime {
     compositeOffset: { x: number; y: number },
     layer: { transform: { scaleX?: number; scaleY?: number; rotation?: number } }
   ): void {
-    const sx = layer.transform?.scaleX ?? 1;
-    const sy = layer.transform?.scaleY ?? 1;
-    const rot = layer.transform?.rotation ?? 0;
+    const sx = layer.transform.scaleX ?? 1;
+    const sy = layer.transform.scaleY ?? 1;
+    const rot = layer.transform.rotation ?? 0;
 
     if (sx !== 1 || sy !== 1 || rot !== 0) {
       const cx = compositeOffset.x + source.width / 2;
