@@ -323,7 +323,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       layerCanvasesRef,
       mousePositionRef,
       activeStrokeRef,
-      compositingBackend: backend,
       getOrCreateLayerCanvas,
       invalidateLayer,
       redraw,

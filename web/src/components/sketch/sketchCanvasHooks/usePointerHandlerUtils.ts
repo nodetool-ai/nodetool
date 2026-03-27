@@ -44,8 +44,6 @@ import {
 } from "../selection/selectionMask";
 
 export interface UsePointerHandlerUtilsParams {
-  /** When `canvas2d`, the display composite already includes the merged active stroke — skip overlay preview to avoid double-applying layer opacity. */
-  compositingBackend: "webgpu" | "canvas2d";
   zoom: number;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -66,7 +64,6 @@ export interface UsePointerHandlerUtilsParams {
 }
 
 export function usePointerHandlerUtils({
-  compositingBackend,
   zoom,
   displayCanvasRef,
   overlayCanvasRef,
@@ -416,58 +413,16 @@ export function usePointerHandlerUtils({
     if (!ctx) {
       return;
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.filter = "none";
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.imageSmoothingEnabled = false;
-
-    if (compositingBackend === "canvas2d") {
-      // Display composite already merges stroke into the active layer at layer opacity.
-      // Drawing the same merge again on the overlay stacks alpha and dims the layer.
-      return;
-    }
-
-    const activeStroke = activeStrokeRef.current;
-    if (!activeStroke) {
-      return;
-    }
-
-    const layer = doc.layers.find((candidate) => candidate.id === activeStroke.layerId);
-    const layerCanvas = layerCanvasesRef.current.get(activeStroke.layerId);
-    if (!layer || !layerCanvas) {
-      return;
-    }
-
-    const compositeOffset = getLayerCompositeOffset(layer, {
-      width: layerCanvas.width,
-      height: layerCanvas.height
-    }, layerCanvas);
-    const temp = window.document.createElement("canvas");
-    temp.width = layerCanvas.width;
-    temp.height = layerCanvas.height;
-    const tempCtx = temp.getContext("2d");
-    if (!tempCtx) {
-      return;
-    }
-    tempCtx.imageSmoothingEnabled = false;
-
-    tempCtx.drawImage(layerCanvas, 0, 0);
-    tempCtx.save();
-    tempCtx.globalAlpha = activeStroke.opacity;
-    tempCtx.globalCompositeOperation = activeStroke.compositeOp;
-    tempCtx.drawImage(activeStroke.buffer, 0, 0);
-    tempCtx.restore();
-
-    ctx.save();
-    ctx.globalAlpha = layer.opacity;
-    ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode);
-    ctx.drawImage(temp, compositeOffset.x, compositeOffset.y);
-    ctx.restore();
-  }, [
-    compositingBackend,
-    overlayCanvasRef,
-    activeStrokeRef,
-    doc.layers,
-    layerCanvasesRef
-  ]);
+    // Buffered stroke is merged into the display target (Canvas2D composite or
+    // WebGPU upload). Never paint the same merge here — it stacks with the
+    // display and reads as wrong opacity / double compositing.
+  }, [overlayCanvasRef]);
 
   return {
     // Clone stamp state refs

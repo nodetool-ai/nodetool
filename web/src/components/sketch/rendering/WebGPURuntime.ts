@@ -69,6 +69,10 @@ export class WebGPURuntime implements SketchRuntime {
   // ── Layer textures ───────────────────────────────────────────────────
   private layerTextures = new Map<string, GPUTexture>();
 
+  /** CPU merge (layer + stroke buffer) uploaded each frame while a buffered stroke is active. */
+  private strokeMergeCpuCanvas: HTMLCanvasElement | null = null;
+  private strokeMergeTexture: GPUTexture | null = null;
+
   // ── CPU-side fallback for readback & layer pixel ops ─────────────────
   private cpuRuntime: Canvas2DRuntime;
   private layerCanvases: Map<string, HTMLCanvasElement>;
@@ -364,15 +368,82 @@ export class WebGPURuntime implements SketchRuntime {
     this.markLayerDirty(layerId);
   }
 
+  /**
+   * Rasterize layer canvas + stroke buffer on CPU (same as Canvas2DRuntime) and
+   * upload to a transient GPU texture for compositing.
+   */
+  private uploadStrokeMergePreview(stroke: ActiveStrokeInfo): GPUTexture | null {
+    const layerCanvas = this.layerCanvases.get(stroke.layerId);
+    if (!layerCanvas || layerCanvas.width <= 0 || layerCanvas.height <= 0) {
+      return null;
+    }
+    if (!layerCanvas.getContext("2d")) {
+      return null;
+    }
+    if (!stroke.buffer.getContext("2d")) {
+      return null;
+    }
+    const w = layerCanvas.width;
+    const h = layerCanvas.height;
+    if (
+      !this.strokeMergeCpuCanvas ||
+      this.strokeMergeCpuCanvas.width !== w ||
+      this.strokeMergeCpuCanvas.height !== h
+    ) {
+      this.strokeMergeCpuCanvas = document.createElement("canvas");
+      this.strokeMergeCpuCanvas.width = w;
+      this.strokeMergeCpuCanvas.height = h;
+    }
+    const sctx = this.strokeMergeCpuCanvas.getContext("2d");
+    if (!sctx) {
+      return null;
+    }
+    sctx.setTransform(1, 0, 0, 1, 0, 0);
+    sctx.globalAlpha = 1;
+    sctx.globalCompositeOperation = "source-over";
+    sctx.clearRect(0, 0, w, h);
+    sctx.drawImage(layerCanvas, 0, 0);
+    sctx.save();
+    sctx.globalAlpha = stroke.opacity;
+    sctx.globalCompositeOperation = stroke.compositeOp;
+    sctx.drawImage(stroke.buffer, 0, 0);
+    sctx.restore();
+
+    if (
+      !this.strokeMergeTexture ||
+      this.strokeMergeTexture.width !== w ||
+      this.strokeMergeTexture.height !== h
+    ) {
+      if (this.strokeMergeTexture) {
+        this.strokeMergeTexture.destroy();
+      }
+      this.strokeMergeTexture = this.device.createTexture({
+        label: "stroke-merge-preview",
+        size: { width: w, height: h },
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT
+      });
+    }
+    this.device.queue.copyExternalImageToTexture(
+      { source: this.strokeMergeCpuCanvas, flipY: false },
+      { texture: this.strokeMergeTexture },
+      { width: w, height: h }
+    );
+    return this.strokeMergeTexture;
+  }
+
   // ─── SketchRuntime: Compositing ──────────────────────────────────────
 
   compositeToDisplay(
     targetCanvas: HTMLCanvasElement,
     doc: SketchDocument,
     isolatedLayerId: string | null | undefined,
-    _activeStroke: ActiveStrokeInfo | null,
+    activeStroke: ActiveStrokeInfo | null,
     dirtyRect?: DirtyRect | null,
-    hiddenLayerId?: string | null
+    _hiddenLayerId?: string | null
   ): void {
     // Ensure context is configured for this canvas
     this.configureContext(targetCanvas);
@@ -448,9 +519,9 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     // ── Pass 2: Layer compositing ─────────────────────────────────────
-    // Live paint preview is owned by the separate 2D overlay. WebGPU only
-    // composites committed layer content here, optionally skipping the active
-    // layer so the overlay can render the merged preview in its place.
+    const mergeTex =
+      activeStroke != null ? this.uploadStrokeMergePreview(activeStroke) : null;
+
     for (const layer of doc.layers) {
       if (!layer.visible) {
         continue;
@@ -458,15 +529,18 @@ export class WebGPURuntime implements SketchRuntime {
       if (isolatedLayerId && layer.id !== isolatedLayerId) {
         continue;
       }
-      if (hiddenLayerId && layer.id === hiddenLayerId) {
-        continue;
-      }
 
       const layerTexture = this.layerTextures.get(layer.id);
       if (!layerTexture) {
         continue;
       }
-      this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH);
+      const drawTex =
+        mergeTex != null &&
+        activeStroke != null &&
+        layer.id === activeStroke.layerId
+          ? mergeTex
+          : layerTexture;
+      this.compositeLayerGPU(encoder, textureView, layer, fullW, fullH, drawTex);
     }
 
     // ── Pass 3: Border ────────────────────────────────────────────────
@@ -522,13 +596,14 @@ export class WebGPURuntime implements SketchRuntime {
       contentBounds?: { x?: number; y?: number; width?: number; height?: number };
     },
     canvasW: number,
-    canvasH: number
+    canvasH: number,
+    sourceTexture?: GPUTexture
   ): void {
     if (!this.layerPipeline || !this.layerBindGroupLayout) {
       return;
     }
 
-    const layerTexture = this.layerTextures.get(layer.id);
+    const layerTexture = sourceTexture ?? this.layerTextures.get(layer.id);
     if (!layerTexture) {
       return;
     }

@@ -226,20 +226,19 @@ export function useCompositing({
             })
           }
         : doc;
-      // WebGPU owns committed content only. Live paint preview is drawn on the
-      // separate 2D overlay, so the base composite hides the active layer while
-      // a stroke is in progress to avoid double-drawing it underneath.
-      const activeStroke =
-        backend === "webgpu" ? null : activeStrokeRef.current;
-      const hiddenLayerId =
-        backend === "webgpu" ? activeStrokeRef.current?.layerId ?? null : null;
+      // Buffered stroke preview: Canvas2D merges layer+stroke in compositeToDisplay.
+      // WebGPU uploads the same CPU merge into a temp texture (see WebGPURuntime)
+      // so the whole stack stays on one surface — never hide a layer and repaint
+      // it on the 2D overlay (browser blending vs GPU premultiplied looks like
+      // wrong / “double” opacity).
+      const activeStroke = activeStrokeRef.current;
       rt.compositeToDisplay(
         targetCanvas,
         compositeDoc,
         isolatedLayerId ?? null,
         activeStroke,
         dirtyRect,
-        hiddenLayerId
+        null
       );
     },
     // Include `backend` so that this callback (and the redraw/requestRedraw
@@ -301,9 +300,17 @@ export function useCompositing({
       }
       pendingDirtyRef.current = null;
       isFullRedrawRef.current = false;
+      // Brush/eraser use a stroke buffer (activeStrokeRef). Clipped composites
+      // only repaint a sub-rect; merging layer+buffer for the active layer then
+      // stacks incorrectly with the rest of the frame and reads as washed-out /
+      // wrong layer opacity. Pencil is "direct" and keeps dirty redraws.
+      if (activeStrokeRef.current != null) {
+        compositeToDisplay(null);
+        return;
+      }
       compositeToDisplay({ x, y, w, h });
     },
-    [compositeToDisplay]
+    [compositeToDisplay, activeStrokeRef]
   );
 
   /**
@@ -366,7 +373,8 @@ export function useCompositing({
             pending();
           }
 
-          if (isFull || !dirty) {
+          const liveBufferedStroke = activeStrokeRef.current != null;
+          if (isFull || !dirty || liveBufferedStroke) {
             compositeToDisplayRef.current(null);
           } else {
             compositeToDisplayRef.current(dirty);
