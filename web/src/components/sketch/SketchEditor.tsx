@@ -32,12 +32,15 @@ import SketchLayersPanel from "./SketchLayersPanel";
 import { useEditorKeyboardShortcuts } from "./useEditorKeyboardShortcuts";
 import type { SketchDocument, SketchTool } from "./types";
 import { isShapeTool } from "./types";
+import { getToolHandler } from "./tools";
+import type { SegmentTool } from "./tools/SegmentTool";
 import {
   useSketchStoreSelectors,
   useHistoryActions,
   useLayerActions,
   useCanvasActions,
-  useColorActions
+  useColorActions,
+  useSegmentation
 } from "./hooks";
 import { selectionHasAnyPixels } from "./selection/selectionMask";
 
@@ -186,6 +189,25 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setShapeSettings: store.setShapeSettings,
     setGradientSettings: store.setGradientSettings
   });
+
+  // ─── Segmentation actions ──────────────────────────────────────────
+  const segmentation = useSegmentation({
+    canvasRef,
+    pushHistory: store.pushHistory
+  });
+
+  const handleRunSegmentation = useCallback(() => {
+    const handler = getToolHandler("segment") as SegmentTool;
+    segmentation.runSegmentation(
+      [...handler.getPointPrompts()],
+      handler.getBoxPrompt()
+    );
+  }, [segmentation]);
+
+  const handleClearSegmentPrompts = useCallback(() => {
+    const handler = getToolHandler("segment") as SegmentTool;
+    handler.clearPrompts();
+  }, []);
 
   // ─── Cancel adjustment preview if tool changes away from "adjust" ──
   const prevAdjustToolRef = useRef(store.activeTool);
@@ -378,6 +400,14 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onTransformCommit={canvasActions.handleTransformCommit}
             onTransformCancel={canvasActions.handleTransformCancel}
             onTransformReset={canvasActions.handleTransformReset}
+            segmentSettings={store.toolSettings.segment}
+            onSegmentSettingsChange={store.setSegmentSettings}
+            segmentationStatus={segmentation.status}
+            onRunSegmentation={handleRunSegmentation}
+            onApplySegmentResult={segmentation.applyResult}
+            onDiscardSegmentResult={segmentation.discardResult}
+            onCancelSegmentation={segmentation.cancelSegmentation}
+            onClearSegmentPrompts={handleClearSegmentPrompts}
           />
         )}
 
@@ -510,6 +540,14 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onTransformCommit={canvasActions.handleTransformCommit}
         onTransformCancel={canvasActions.handleTransformCancel}
         onTransformReset={canvasActions.handleTransformReset}
+        segmentSettings={store.toolSettings.segment}
+        onSegmentSettingsChange={store.setSegmentSettings}
+        segmentationStatus={segmentation.status}
+        onRunSegmentation={handleRunSegmentation}
+        onApplySegmentResult={segmentation.applyResult}
+        onDiscardSegmentResult={segmentation.discardResult}
+        onCancelSegmentation={segmentation.cancelSegmentation}
+        onClearSegmentPrompts={handleClearSegmentPrompts}
         onSwapColors={store.swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}

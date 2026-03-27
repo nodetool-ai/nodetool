@@ -21,7 +21,9 @@ import {
   BlurSettings,
   GradientSettings,
   CloneStampSettings,
-  SelectSettings
+  SelectSettings,
+  SegmentSettings,
+  SegmentationStatus
 } from "./types";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
 
@@ -105,6 +107,14 @@ export interface SketchToolTopBarProps {
   onTransformCommit?: () => void;
   onTransformCancel?: () => void;
   onTransformReset?: () => void;
+  segmentSettings?: SegmentSettings;
+  onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
+  segmentationStatus?: SegmentationStatus;
+  onRunSegmentation?: () => void;
+  onApplySegmentResult?: () => void;
+  onDiscardSegmentResult?: () => void;
+  onCancelSegmentation?: () => void;
+  onClearSegmentPrompts?: () => void;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -143,7 +153,15 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   transformRotation,
   onTransformCommit,
   onTransformCancel,
-  onTransformReset
+  onTransformReset,
+  segmentSettings,
+  onSegmentSettingsChange,
+  segmentationStatus,
+  onRunSegmentation,
+  onApplySegmentResult,
+  onDiscardSegmentResult,
+  onCancelSegmentation,
+  onClearSegmentPrompts
 }) => {
   const theme = useTheme();
 
@@ -186,6 +204,14 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onTransformCommit={onTransformCommit}
         onTransformCancel={onTransformCancel}
         onTransformReset={onTransformReset}
+        segmentSettings={segmentSettings}
+        onSegmentSettingsChange={onSegmentSettingsChange}
+        segmentationStatus={segmentationStatus}
+        onRunSegmentation={onRunSegmentation}
+        onApplySegmentResult={onApplySegmentResult}
+        onDiscardSegmentResult={onDiscardSegmentResult}
+        onCancelSegmentation={onCancelSegmentation}
+        onClearSegmentPrompts={onClearSegmentPrompts}
       />
     </Box>
   );

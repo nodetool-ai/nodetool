@@ -35,6 +35,7 @@ export function useSketchStoreSelectors() {
   const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
   const setCloneStampSettings = useSketchStore((s) => s.setCloneStampSettings);
   const setSelectSettings = useSketchStore((s) => s.setSelectSettings);
+  const setSegmentSettings = useSketchStore((s) => s.setSegmentSettings);
   const featherCurrentSelection = useSketchStore((s) => s.featherCurrentSelection);
   const smoothCurrentSelectionBorders = useSketchStore(
     (s) => s.smoothCurrentSelectionBorders
@@ -129,6 +130,7 @@ export function useSketchStoreSelectors() {
     setGradientSettings,
     setCloneStampSettings,
     setSelectSettings,
+    setSegmentSettings,
     featherCurrentSelection,
     smoothCurrentSelectionBorders,
     setZoom,
