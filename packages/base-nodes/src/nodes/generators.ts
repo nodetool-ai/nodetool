@@ -114,65 +114,79 @@ function parseListItems(text: string): string[] {
   return matches.map((match) => normalizeWhitespace(match[1] ?? "")).filter((item) => item.length > 0);
 }
 
-function convertValue(column: ColumnSpec | undefined, raw: string): unknown {
-  const trimmed = raw.trim();
-  if (!trimmed || /^none$/i.test(trimmed) || /^null$/i.test(trimmed)) return null;
-  const kind = (column?.data_type ?? "").toLowerCase();
-  if (kind === "int" || kind === "integer") {
-    const value = Number.parseInt(trimmed, 10);
-    return Number.isFinite(value) ? value : trimmed;
-  }
-  if (kind === "float" || kind === "number") {
-    const value = Number.parseFloat(trimmed);
-    return Number.isFinite(value) ? value : trimmed;
-  }
-  return trimmed;
-}
 
-function parseMarkdownTable(text: string, columnsInput: unknown): Row[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("|") && line.endsWith("|"));
-  if (lines.length < 3) return [];
-
-  const header = lines[0]
-    .slice(1, -1)
-    .split("|")
-    .map((cell) => cell.trim());
-  const specs = parseColumnSpecs(columnsInput);
-  const columns =
-    specs.length > 0
-      ? header.map((name) => specs.find((spec) => spec.name === name) ?? { name })
-      : header.map((name) => ({ name }));
-
-  return lines
-    .slice(2)
-    .map((line) =>
-      line
-        .slice(1, -1)
-        .split("|")
-        .map((cell) => cell.trim())
-    )
-    .filter((cells) => cells.length >= header.length)
-    .map((cells) => {
-      const row: Row = {};
-      header.forEach((name, index) => {
-        row[name] = convertValue(columns[index], cells[index] ?? "");
-      });
-      return row;
-    });
-}
 
 function dataframeFromRows(rows: Row[], columnsInput: unknown): Record<string, unknown> {
-  const specs = parseColumnSpecs(columnsInput);
-  const names =
-    specs.length > 0 ? specs.map((column) => column.name) : rows.length > 0 ? Object.keys(rows[0]) : [];
+  const names = rows.length > 0 ? Object.keys(rows[0]) : parseColumnSpecs(columnsInput).map((s) => s.name);
   return {
     rows,
     columns: names.map((name) => ({ name })),
     data: rows.map((row) => names.map((name) => row[name] ?? null)),
   };
+}
+
+function buildRowSchema(specs: ColumnSpec[]): Record<string, unknown> {
+  if (specs.length === 0) {
+    return { type: "object", additionalProperties: true };
+  }
+  const properties: Record<string, unknown> = {};
+  for (const spec of specs) {
+    const kind = (spec.data_type ?? "").toLowerCase();
+    let jsonType: string;
+    if (kind === "int" || kind === "integer") jsonType = "integer";
+    else if (kind === "float" || kind === "number") jsonType = "number";
+    else if (kind === "bool" || kind === "boolean") jsonType = "boolean";
+    else jsonType = "string";
+    properties[spec.name] = { type: jsonType };
+  }
+  return { type: "object", properties, required: specs.map((s) => s.name) };
+}
+
+async function generateDataframeWithToolCall(
+  context: ProcessingContext & {
+    runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
+  },
+  providerId: string,
+  modelId: string,
+  prompt: string,
+  columnsInput: unknown,
+  count: number,
+  maxTokens: number
+): Promise<Row[]> {
+  const specs = parseColumnSpecs(columnsInput);
+  const rowSchema = buildRowSchema(specs);
+  const tool = {
+    name: "create_dataframe",
+    description: "Create a dataframe with the requested data rows.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        rows: {
+          type: "array",
+          description: `Array of ${count} data rows`,
+          items: rowSchema,
+        },
+      },
+      required: ["rows"],
+    },
+  };
+  const result = await context.runProviderPrediction({
+    provider: providerId,
+    capability: "generate_message",
+    model: modelId,
+    params: {
+      model: modelId,
+      messages: [{ role: "user", content: prompt }],
+      tools: [tool],
+      tool_choice: "create_dataframe",
+      max_tokens: maxTokens,
+    },
+  });
+  const msg = result as { toolCalls?: Array<{ name: string; args: Record<string, unknown> }> };
+  const call = msg.toolCalls?.find((tc) => tc.name === "create_dataframe");
+  const rows = call?.args?.rows;
+  if (Array.isArray(rows)) return rows as Row[];
+  return [];
 }
 
 async function generateProviderText(
@@ -191,7 +205,7 @@ async function generateProviderText(
     params: {
       model: modelId,
       messages: [{ role: "user", content: prompt }],
-      maxTokens,
+      max_tokens: maxTokens,
     },
   });
   if (result && typeof result === "object" && "content" in (result as Record<string, unknown>)) {
@@ -378,14 +392,15 @@ export class DataGeneratorNode extends BaseNode {
     const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
-      const providerText = await generateProviderText(
+      const rows = await generateDataframeWithToolCall(
         context,
         providerId,
         modelId,
         [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(this.max_tokens ?? this.max_tokens ?? 256)
+        columnsInput,
+        count,
+        Number(this.max_tokens ?? 4096)
       );
-      const rows = parseMarkdownTable(providerText, columnsInput);
       if (rows.length > 0) {
         return { output: dataframeFromRows(rows, columnsInput) };
       }
@@ -395,28 +410,6 @@ export class DataGeneratorNode extends BaseNode {
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
-    const { providerId, modelId } = getModelConfig(this.serialize());
-    const columnsInput = this.columns ?? this.columns;
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const prompt = asText(this.prompt ?? this.prompt ?? "");
-      const inputText = asText(this.input_text ?? this.input_text ?? "");
-      const providerText = await streamProviderText(
-        context,
-        providerId,
-        modelId,
-        [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(this.max_tokens ?? this.max_tokens ?? 256)
-      );
-      const rows = parseMarkdownTable(providerText, columnsInput);
-      if (rows.length > 0) {
-        for (let i = 0; i < rows.length; i += 1) {
-          yield { record: rows[i], index: i, dataframe: null };
-        }
-        yield { record: null, index: null, dataframe: dataframeFromRows(rows, columnsInput) };
-        return;
-      }
-    }
-
     const full = await this.process(context);
     const rows = ((full.output as { rows?: unknown }).rows ?? []) as Row[];
     for (let i = 0; i < rows.length; i += 1) {
