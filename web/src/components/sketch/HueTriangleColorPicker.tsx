@@ -35,9 +35,20 @@ const TRI_R = INNER_R - 4;          // triangle inscribed radius (leave 4 px gap
 const CX = WIDGET_SIZE / 2;
 const CY = WIDGET_SIZE / 2;
 
+// Epsilon for anti-aliased triangle fill (tight boundary for pixel accuracy)
+const PAINT_EPSILON = -0.005;
+// Larger epsilon for pointer hit-testing (generous for better UX on edges)
+const HIT_EPSILON = -0.02;
+
+// When S or V is below this threshold the hue is ambiguous, so we skip
+// updating the local hue from external color changes to avoid jumps.
+const MIN_SV_FOR_HUE_SYNC = 0.01;
+
 // ─── Geometry helpers ────────────────────────────────────────────────────────
 
-/** Equilateral-triangle vertices rotated so V0 points at `hueAngle`. */
+/** Equilateral-triangle vertices rotated so V0 points at `hueAngle`.
+ *  v0 = hue vertex (S=1, V=1), v1 = white vertex (S=0, V=1), v2 = black vertex (S=0, V=0).
+ *  v0 points toward the selected hue on the ring; v1 and v2 form the opposite edge. */
 function triVerts(hueDeg: number): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
   const hRad = (hueDeg - 90) * Math.PI / 180;       // -90 so 0° points up
   const v0 = { x: CX + TRI_R * Math.cos(hRad), y: CY + TRI_R * Math.sin(hRad) };
@@ -124,7 +135,7 @@ function paintTriangle(ctx: CanvasRenderingContext2D, hueDeg: number) {
   for (let py = minY; py <= maxY; py++) {
     for (let px = minX; px <= maxX; px++) {
       const { u, v, w: bw } = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
-      if (u >= -0.005 && v >= -0.005 && bw >= -0.005) {
+      if (u >= PAINT_EPSILON && v >= PAINT_EPSILON && bw >= PAINT_EPSILON) {
         // inside triangle (tiny epsilon for anti-alias)
         const cu = Math.max(0, u);
         const cv = Math.max(0, v);
@@ -224,7 +235,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
       const hsv = rgbToHsv(parsed.r, parsed.g, parsed.b);
       hsvRef.current = hsv;
       // Only update hue when color has meaningful saturation/value
-      if (hsv.s > 0.01 && hsv.v > 0.01) {
+      if (hsv.s > MIN_SV_FOR_HUE_SYNC && hsv.v > MIN_SV_FOR_HUE_SYNC) {
         setLocalHue(hsv.h);
       }
     }
@@ -277,7 +288,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     // Check inside triangle
     const [v0, v1, v2] = triVerts(localHue);
     const { u, v, w } = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
-    if (u >= -0.02 && v >= -0.02 && w >= -0.02) { return "triangle"; }
+    if (u >= HIT_EPSILON && v >= HIT_EPSILON && w >= HIT_EPSILON) { return "triangle"; }
 
     // If close to the ring but not quite, treat as ring
     if (dist > TRI_R) { return "ring"; }

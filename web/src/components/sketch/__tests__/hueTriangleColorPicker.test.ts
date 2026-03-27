@@ -8,7 +8,7 @@ import {
 /**
  * Unit tests for the math helpers used by HueTriangleColorPicker.
  * The component itself relies on canvas APIs (not available in jsdom),
- * so we test the colour-conversion round-trips that underpin the picker.
+ * so we test the color-conversion round-trips that underpin the picker.
  */
 
 // ─── Barycentric helpers (inlined from component for testability) ─────
