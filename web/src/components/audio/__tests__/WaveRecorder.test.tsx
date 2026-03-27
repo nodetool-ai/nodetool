@@ -45,7 +45,7 @@ const mockHandleInputDeviceChange = jest.fn();
 const mockSetError = jest.fn();
 
 const mockUseWaveRecorder = jest.fn(() => ({
-  error: null,
+  error: null as string | null,
   setError: mockSetError,
   micRef: { current: null },
   handleRecord: mockHandleRecord,
