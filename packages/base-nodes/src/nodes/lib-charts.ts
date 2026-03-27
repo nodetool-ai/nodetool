@@ -69,6 +69,9 @@ export class ChartRendererLibNode extends BaseNode {
   })
   declare data: any;
 
+  @prop({ type: "str", default: "#ffffff", title: "Background Color", description: "Background color of the chart (CSS color string)." })
+  declare background_color: any;
+
   @prop({ type: "bool", default: true, title: "Despine", description: "Whether to remove top and right spines." })
   declare despine: any;
 
@@ -157,7 +160,8 @@ export class ChartRendererLibNode extends BaseNode {
       },
     };
 
-    const canvas = new ChartJSNodeCanvas({ width, height });
+    const backgroundColor = String(this.background_color ?? "#ffffff");
+    const canvas = new ChartJSNodeCanvas({ width, height, backgroundColour: backgroundColor });
     const buffer = await canvas.renderToBuffer(chartConfig as Parameters<typeof canvas.renderToBuffer>[0]);
     const data = Buffer.from(buffer).toString("base64");
 
