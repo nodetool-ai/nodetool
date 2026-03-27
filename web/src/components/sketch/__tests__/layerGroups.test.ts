@@ -385,3 +385,109 @@ describe("Backward Compatibility", () => {
     expect(normalized.layers[0].collapsed).toBe(false);
   });
 });
+
+describe("Tree-aware drag-and-drop", () => {
+  it("buildVisibleLayerTree shows nested groups with correct depths", () => {
+    const layers: Layer[] = [
+      {
+        id: "root", name: "Root", type: "raster", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 }
+      },
+      {
+        id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        collapsed: false
+      },
+      {
+        id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        parentId: "g1", collapsed: false
+      },
+      {
+        id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        parentId: "g2"
+      }
+    ];
+    const tree = buildVisibleLayerTree(layers);
+    expect(tree).toHaveLength(4);
+    expect(tree[0].depth).toBe(0); // root
+    expect(tree[1].depth).toBe(0); // g1
+    expect(tree[2].depth).toBe(1); // g2 inside g1
+    expect(tree[3].depth).toBe(2); // deep inside g2
+  });
+
+  it("collapsing a parent group hides all nested descendants", () => {
+    const layers: Layer[] = [
+      {
+        id: "g1", name: "Group 1", type: "group", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        collapsed: true
+      },
+      {
+        id: "g2", name: "Sub Group", type: "group", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+        parentId: "g1", collapsed: false
+      },
+      {
+        id: "deep", name: "Deep", type: "raster", visible: true, opacity: 1,
+        locked: false, alphaLock: false, blendMode: "normal", data: null,
+        transform: { x: 0, y: 0 }, contentBounds: { x: 0, y: 0, width: 100, height: 100 },
+        parentId: "g2"
+      }
+    ];
+    const tree = buildVisibleLayerTree(layers);
+    // Only g1 should be visible; children and grandchildren hidden
+    expect(tree).toHaveLength(1);
+    expect(tree[0].layer.id).toBe("g1");
+  });
+
+  it("moveLayerToGroup moves layer between groups", () => {
+    let g1Id: string;
+    let g2Id: string;
+    let childId: string;
+    act(() => {
+      g1Id = useSketchStore.getState().addGroup("Group 1");
+    });
+    act(() => {
+      g2Id = useSketchStore.getState().addGroup("Group 2");
+    });
+    act(() => {
+      childId = useSketchStore.getState().addLayer("Child");
+    });
+    // Move child into group 1
+    act(() => {
+      useSketchStore.getState().moveLayerToGroup(childId!, g1Id!);
+    });
+    expect(useSketchStore.getState().document.layers.find((l) => l.id === childId!)?.parentId).toBe(g1Id!);
+
+    // Move child from group 1 to group 2
+    act(() => {
+      useSketchStore.getState().moveLayerToGroup(childId!, g2Id!);
+    });
+    expect(useSketchStore.getState().document.layers.find((l) => l.id === childId!)?.parentId).toBe(g2Id!);
+  });
+
+  it("reorderLayers moves layers in the flat array", () => {
+    act(() => {
+      useSketchStore.getState().addLayer("Layer A");
+    });
+    act(() => {
+      useSketchStore.getState().addLayer("Layer B");
+    });
+    const layers = useSketchStore.getState().document.layers;
+    const ids = layers.map((l) => l.id);
+    // Move last layer to first position
+    act(() => {
+      useSketchStore.getState().reorderLayers(layers.length - 1, 0);
+    });
+    const newIds = useSketchStore.getState().document.layers.map((l) => l.id);
+    expect(newIds[0]).toBe(ids[ids.length - 1]);
+  });
+});

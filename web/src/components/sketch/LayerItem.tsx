@@ -27,6 +27,9 @@ const BASE_PADDING = 8;
 /** Additional left padding per nesting depth level (px). */
 const DEPTH_INDENT = 16;
 
+/** Where a dragged layer will be inserted relative to the drop target. */
+export type DropPosition = "before" | "after" | "into" | null;
+
 export interface LayerItemProps {
   layer: Layer;
   realIdx: number;
@@ -34,7 +37,7 @@ export interface LayerItemProps {
   isActive: boolean;
   isMask: boolean;
   isIsolated: boolean;
-  isDragOver: boolean;
+  dropPosition: DropPosition;
   editingLayerId: string | null;
   editName: string;
   onSelectLayer: (layerId: string) => void;
@@ -61,7 +64,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   isActive,
   isMask,
   isIsolated,
-  isDragOver,
+  dropPosition,
   editingLayerId,
   editName,
   onSelectLayer,
@@ -83,6 +86,23 @@ const LayerItem: React.FC<LayerItemProps> = ({
   const isGroup = layer.type === "group";
   const thumbnailSrc = isGroup ? null : getLayerDataImageUrl(layer.data);
 
+  const dropIndicatorSx = (() => {
+    switch (dropPosition) {
+      case "before":
+        return { borderTop: "2px solid", borderTopColor: "primary.main" };
+      case "after":
+        return { borderBottom: "2px solid", borderBottomColor: "primary.main" };
+      case "into":
+        return {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: "-2px"
+        };
+      default:
+        return {};
+    }
+  })();
+
   return (
     <Box>
       <Box
@@ -103,12 +123,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
         onClick={() => onSelectLayer(layer.id)}
         sx={{
           pl: `${BASE_PADDING + depth * DEPTH_INDENT}px`,
-          ...(isDragOver
-            ? {
-                borderTop: "2px solid",
-                borderTopColor: "primary.main"
-              }
-            : {})
+          ...dropIndicatorSx
         }}
       >
         {/* Group expand/collapse toggle */}
