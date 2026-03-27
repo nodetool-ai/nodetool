@@ -31,6 +31,7 @@ import {
 } from "./sketchCanvasHooks";
 import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
+import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,10 @@ export interface SketchCanvasProps {
   onCanvasLeave?: () => void;
   /** Called when an image file is dropped onto the canvas. */
   onDropImage?: (file: File) => void;
+  /** Called once when the user begins dragging a canvas resize handle (use for history snapshot). */
+  onCanvasResizeStart?: () => void;
+  /** Called on every pointer-move while dragging a canvas resize handle. */
+  onCanvasResize?: (width: number, height: number) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -182,7 +187,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       foregroundColor,
       className: rootClassName,
       onCanvasLeave,
-      onDropImage
+      onDropImage,
+      onCanvasResizeStart,
+      onCanvasResize
     } = props;
 
     const theme = useTheme();
@@ -440,6 +447,17 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           ref={cursorCanvasRef}
           className="sketch-canvas__cursor cursor-overlay"
         />
+        {/* Canvas resize handles (edges + corners) */}
+        {onCanvasResize && (
+          <SketchCanvasResizeHandles
+            canvasWidth={doc.canvas.width}
+            canvasHeight={doc.canvas.height}
+            zoom={zoom}
+            pan={pan}
+            onResizeStart={onCanvasResizeStart}
+            onResize={onCanvasResize}
+          />
+        )}
         {/* Canvas info bar */}
         <Box
           className="sketch-canvas__info-bar"
