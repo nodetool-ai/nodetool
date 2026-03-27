@@ -564,18 +564,20 @@ export const handleUpdate = (
           update.node_type === "fal.DynamicFal" ||
           update.node_type === "kie.DynamicKie";
 
-        Object.entries(update.properties).forEach(([key, value]) => {
+        for (const key in update.properties) {
+          if (!Object.prototype.hasOwnProperty.call(update.properties, key)) continue;
+          const value = update.properties[key];
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
             // Dynamic schema node inputs are user-editable between runs;
             // backend echoes execution-time values that can be stale.
             if (isDynamicSchemaNode) {
-              return;
+              continue;
             }
             nextDynamic[key] = value;
           } else {
             nextStatic[key] = value;
           }
-        });
+        }
 
         state.updateNodeData(update.node_id, {
           properties: nextStatic,
