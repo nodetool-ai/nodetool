@@ -22,8 +22,12 @@ const SettingsSidebar = ({
   onSectionClick
 }: SettingsSidebarProps) => {
   const handleItemClick = useCallback(
-    (sectionId: string) => () => {
-      onSectionClick(sectionId);
+    (event: React.MouseEvent) => {
+      const target = event.currentTarget as HTMLElement;
+      const sectionId = target.dataset.sectionId;
+      if (sectionId) {
+        onSectionClick(sectionId);
+      }
     },
     [onSectionClick]
   );
@@ -36,10 +40,11 @@ const SettingsSidebar = ({
           {section.items.map((item, itemIndex) => (
             <div
               key={`${item.id}-${itemIndex}`}
+              data-section-id={item.id}
               className={`settings-sidebar-item ${
                 activeSection === item.id ? "active" : ""
               }`}
-              onClick={handleItemClick(item.id)}
+              onClick={handleItemClick}
             >
               {item.label}
             </div>

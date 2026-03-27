@@ -158,17 +158,34 @@ const SecretsMenu = memo(() => {
     setOpenDialog(false);
   };
 
-  const handleOpenEditDialog = useCallback((secret: SecretResponse) => (_event: React.MouseEvent) => {
+  const handleOpenEditDialog = useCallback((event: React.MouseEvent) => {
+    const target = event.currentTarget as HTMLElement;
+    const secretKey = target.dataset.secretKey;
+    if (!secretKey) {
+      return;
+    }
+
+    const secret = safeSecrets.find((s: SecretResponse) => s.key === secretKey);
+    if (!secret) {
+      return;
+    }
+
     setEditingSecret(secret);
     setFormData({
       key: secret.key,
       value: ""
     });
     setOpenDialog(true);
-  }, []);
+  }, [safeSecrets]);
 
-  const handleDeleteClick = useCallback((key: string) => (_event: React.MouseEvent) => {
-    setSecretToDelete(key);
+  const handleDeleteClick = useCallback((event: React.MouseEvent) => {
+    const target = event.currentTarget as HTMLElement;
+    const secretKey = target.dataset.secretKey;
+    if (!secretKey) {
+      return;
+    }
+
+    setSecretToDelete(secretKey);
     setDeleteDialogOpen(true);
   }, []);
 
@@ -318,7 +335,8 @@ const SecretsMenu = memo(() => {
                           <Tooltip title="Update secret">
                             <IconButton
                               size="small"
-                              onClick={handleOpenEditDialog(secret)}
+                              onClick={handleOpenEditDialog}
+                              data-secret-key={secret.key}
                               disabled={updateMutation.isPending}
                               aria-label={`Update secret ${secret.key}`}
                             >
@@ -329,7 +347,8 @@ const SecretsMenu = memo(() => {
                             <IconButton
                               size="small"
                               color="error"
-                              onClick={handleDeleteClick(secret.key)}
+                              onClick={handleDeleteClick}
+                              data-secret-key={secret.key}
                               disabled={deleteMutation.isPending}
                               aria-label={`Delete secret ${secret.key}`}
                             >
@@ -392,7 +411,8 @@ const SecretsMenu = memo(() => {
                           <Tooltip title="Set secret">
                             <IconButton
                               size="small"
-                              onClick={handleOpenEditDialog(secret)}
+                              onClick={handleOpenEditDialog}
+                              data-secret-key={secret.key}
                               disabled={updateMutation.isPending}
                               aria-label={`Set secret ${secret.key}`}
                             >
