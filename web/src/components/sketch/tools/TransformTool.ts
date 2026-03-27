@@ -395,8 +395,6 @@ export class TransformTool implements ToolHandler {
     const h = bounds.height * sy;
     const cx = bounds.x + w / 2;
     const cy = bounds.y + h / 2;
-    const left = cx - w / 2;
-    const top = cy - h / 2;
 
     oc.save();
     oc.translate(cx, cy);
