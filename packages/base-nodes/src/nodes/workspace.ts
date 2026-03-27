@@ -78,7 +78,9 @@ export class GetWorkspaceDirNode extends BaseNode {
         static readonly metadataOutputTypes = {
     output: "str"
   };
-  
+
+  @prop({ type: "str", default: "", title: "Workspace Dir", description: "The workspace directory" })
+  declare workspace_dir: any;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: workspaceDirFrom(this.serialize()) };

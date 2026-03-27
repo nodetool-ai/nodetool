@@ -52,11 +52,13 @@ describe("lib.pedalboard audio effects", () => {
   const audio = makeTestAudio();
 
   it("Bitcrush produces audio output with data", async () => {
-    const result = await new BitcrushNode().process({
+    const node = new BitcrushNode();
+    node.assign({
       audio,
       bit_depth: 8,
       sample_rate_reduction: 2,
     });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
     expect(typeof output.data).toBe("string");
@@ -64,10 +66,12 @@ describe("lib.pedalboard audio effects", () => {
   });
 
   it("Distortion produces audio output with data", async () => {
-    const result = await new DistortionNode().process({
+    const node = new DistortionNode();
+    node.assign({
       audio,
       drive_db: 20,
     });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
     expect(typeof output.data).toBe("string");
@@ -75,52 +79,64 @@ describe("lib.pedalboard audio effects", () => {
   });
 
   it("Limiter produces audio output with data", async () => {
-    const result = await new LimiterNode().process({
+    const node = new LimiterNode();
+    node.assign({
       audio,
       threshold_db: -6,
       release_ms: 100,
     });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
     expect(typeof output.data).toBe("string");
   });
 
   it("Compress produces audio output with data", async () => {
-    const result = await new CompressNode().process({
+    const node = new CompressNode();
+    node.assign({
       audio,
       threshold: -10,
       ratio: 4,
       attack: 5,
       release: 50,
     });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
     expect(typeof output.data).toBe("string");
   });
 
   it("Reverb produces audio output with data", async () => {
-    const result = await new ReverbNode().process({
+    const node = new ReverbNode();
+    node.assign({
       audio,
       room_scale: 0.5,
       damping: 0.5,
       wet_level: 0.3,
       dry_level: 0.7,
     });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
     expect(typeof output.data).toBe("string");
   });
 
-  it("NoiseGate stub throws error", async () => {
-    await expect(
-      new NoiseGateNode().process({ audio })
-    ).rejects.toThrow("not yet implemented");
+  it("NoiseGate produces audio output with data", async () => {
+    const node = new NoiseGateNode();
+    node.assign({ audio });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toHaveProperty("data");
+    expect(typeof output.data).toBe("string");
   });
 
-  it("Phaser stub throws error", async () => {
-    await expect(
-      new PhaserNode().process({ audio })
-    ).rejects.toThrow("not yet implemented");
+  it("Phaser produces audio output with data", async () => {
+    const node = new PhaserNode();
+    node.assign({ audio });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toHaveProperty("data");
+    expect(typeof output.data).toBe("string");
   });
 });
 
@@ -131,11 +147,13 @@ describe("lib.librosa spectral analysis", () => {
   const audio = makeTestAudio(0.5, 440);
 
   it("STFT returns NdArray output with data", async () => {
-    const result = await new STFTNode().process({
+    const node = new STFTNode();
+    node.assign({
       audio,
       n_fft: 2048,
       hop_length: 512,
     });
+    const result = await node.process();
     const output = result.output as { data: number[][] };
     expect(output).toHaveProperty("data");
     expect(Array.isArray(output.data)).toBe(true);
@@ -147,7 +165,8 @@ describe("lib.librosa spectral analysis", () => {
 
   it("MelSpectrogram returns 2D array with n_mels rows", async () => {
     const nMels = 64;
-    const result = await new MelSpectrogramNode().process({
+    const node = new MelSpectrogramNode();
+    node.assign({
       audio,
       n_fft: 2048,
       hop_length: 512,
@@ -155,38 +174,45 @@ describe("lib.librosa spectral analysis", () => {
       fmin: 0,
       fmax: 8000,
     });
+    const result = await node.process();
     const output = result.output as { data: number[][] };
     expect(output.data.length).toBe(nMels);
   });
 
   it("MFCC returns 2D array with n_mfcc rows", async () => {
     const nMfcc = 13;
-    const result = await new MFCCNode().process({
+    const node = new MFCCNode();
+    node.assign({
       audio,
       n_mfcc: nMfcc,
       n_fft: 2048,
       hop_length: 512,
     });
+    const result = await node.process();
     const output = result.output as { data: number[][] };
     expect(output.data.length).toBe(nMfcc);
   });
 
   it("ChromaSTFT returns 12 chroma bins", async () => {
-    const result = await new ChromaSTFTNode().process({
+    const node = new ChromaSTFTNode();
+    node.assign({
       audio,
       n_fft: 2048,
       hop_length: 512,
     });
+    const result = await node.process();
     const output = result.output as { data: number[][] };
     expect(output.data.length).toBe(12);
   });
 
   it("SpectralCentroid returns array of numbers", async () => {
-    const result = await new SpectralCentroidNode().process({
+    const node = new SpectralCentroidNode();
+    node.assign({
       audio,
       n_fft: 2048,
       hop_length: 512,
     });
+    const result = await node.process();
     const output = result.output as { data: number[] };
     expect(Array.isArray(output.data)).toBe(true);
     expect(output.data.length).toBeGreaterThan(0);
@@ -195,21 +221,25 @@ describe("lib.librosa spectral analysis", () => {
   });
 
   it("SpectralContrast returns 7 bands", async () => {
-    const result = await new SpectralContrastNode().process({
+    const node = new SpectralContrastNode();
+    node.assign({
       audio,
       n_fft: 2048,
       hop_length: 512,
     });
+    const result = await node.process();
     const output = result.output as { data: number[][] };
     expect(output.data.length).toBe(7);
   });
 
-  it("GriffinLim stub throws error", async () => {
-    await expect(
-      new GriffinLimNode().process({
-        magnitude_spectrogram: { data: [[1, 2], [3, 4]] },
-      })
-    ).rejects.toThrow("not implemented");
+  it("GriffinLim produces output with data", async () => {
+    const node = new GriffinLimNode();
+    node.assign({
+      magnitude_spectrogram: { data: [[1, 2], [3, 4]] },
+    });
+    const result = await node.process();
+    const output = result.output as { data: unknown[] };
+    expect(output).toHaveProperty("data");
   });
 
   it("DetectOnsets returns array of onset times", async () => {
@@ -242,10 +272,12 @@ describe("lib.librosa spectral analysis", () => {
     }
     const burstAudio = { type: "audio", uri: "", data: buffer.toString("base64") };
 
-    const result = await new DetectOnsetsNode().process({
+    const node = new DetectOnsetsNode();
+    node.assign({
       audio: burstAudio,
       hop_length: 512,
     });
+    const result = await node.process();
     const output = result.output as { data: number[] };
     expect(Array.isArray(output.data)).toBe(true);
     // Should detect at least one onset
@@ -257,11 +289,13 @@ describe("lib.librosa spectral analysis", () => {
   });
 
   it("SegmentAudioByOnsets segments audio at given times", async () => {
-    const result = await new SegmentAudioByOnsetsNode().process({
+    const node = new SegmentAudioByOnsetsNode();
+    node.assign({
       audio,
       onsets: { data: [0.0, 0.2] },
       min_segment_length: 0.05,
     });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>[];
     expect(Array.isArray(output)).toBe(true);
     expect(output.length).toBeGreaterThan(0);
@@ -273,17 +307,21 @@ describe("lib.librosa spectral analysis", () => {
   });
 
   it("STFT returns empty data for audio without data", async () => {
-    const result = await new STFTNode().process({
+    const node = new STFTNode();
+    node.assign({
       audio: {},
     });
+    const result = await node.process();
     const output = result.output as { data: unknown[] };
     expect(output.data).toEqual([]);
   });
 
   it("SpectralCentroid returns empty data for audio without data", async () => {
-    const result = await new SpectralCentroidNode().process({
+    const node = new SpectralCentroidNode();
+    node.assign({
       audio: {},
     });
+    const result = await node.process();
     const output = result.output as { data: unknown[] };
     expect(output.data).toEqual([]);
   });

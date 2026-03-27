@@ -47,8 +47,6 @@ import {
   isRefSet,
 } from "../../src/nodes/kie-base.js";
 
-// Helper: standard secrets input
-const secrets = { _secrets: { KIE_API_KEY: "test-api-key" } };
 const audioRef = { uri: "file:///test/audio.mp3", data: "audio-data" };
 
 function metadataDefaults(NodeCls: any) {
@@ -110,11 +108,9 @@ describe("GenerateMusicNode", () => {
   });
 
   it("non-custom mode: succeeds with prompt", async () => {
-    const node = new GenerateMusicNode();
-    const result = await node.process({
-      ...secrets,
-      prompt: "a chill lo-fi beat",
-    });
+    const node = new (GenerateMusicNode as any)();
+    node.assign({ prompt: "a chill lo-fi beat" });
+    const result = await node.process();
     expect(kieExecuteSunoTask).toHaveBeenCalledTimes(1);
     expect(kieExecuteTask).not.toHaveBeenCalled();
     const call = vi.mocked(kieExecuteSunoTask).mock.calls[0];
@@ -123,71 +119,66 @@ describe("GenerateMusicNode", () => {
       customMode: false,
       prompt: "a chill lo-fi beat",
     });
-    expect(result).toEqual({ output: { data: "c3Vub2RhdGE=" } });
+    expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
   it("non-custom mode: throws on empty prompt", async () => {
-    const node = new GenerateMusicNode();
-    await expect(node.process({ ...secrets, prompt: "" })).rejects.toThrow(
+    const node = new (GenerateMusicNode as any)();
+    node.assign({ prompt: "" });
+    await expect(node.process()).rejects.toThrow(
       "prompt is required"
     );
   });
 
   it("custom mode: requires style and title", async () => {
-    const node = new GenerateMusicNode();
-    await expect(
-      node.process({
-        ...secrets,
-        custom_mode: true,
-        prompt: "lyrics",
-        style: "",
-        title: "My Song",
-      })
-    ).rejects.toThrow("style is required in custom mode");
+    const node = new (GenerateMusicNode as any)();
+    node.assign({
+      custom_mode: true,
+      prompt: "lyrics",
+      style: "",
+      title: "My Song",
+    });
+    await expect(node.process()).rejects.toThrow("style is required in custom mode");
 
-    await expect(
-      node.process({
-        ...secrets,
-        custom_mode: true,
-        prompt: "lyrics",
-        style: "pop",
-        title: "",
-      })
-    ).rejects.toThrow("title is required in custom mode");
+    const node2 = new (GenerateMusicNode as any)();
+    node2.assign({
+      custom_mode: true,
+      prompt: "lyrics",
+      style: "pop",
+      title: "",
+    });
+    await expect(node2.process()).rejects.toThrow("title is required in custom mode");
   });
 
   it("custom mode with vocals: requires prompt", async () => {
-    const node = new GenerateMusicNode();
-    await expect(
-      node.process({
-        ...secrets,
-        custom_mode: true,
-        instrumental: false,
-        style: "pop",
-        title: "My Song",
-        prompt: "",
-      })
-    ).rejects.toThrow("prompt required in custom mode with vocals");
+    const node = new (GenerateMusicNode as any)();
+    node.assign({
+      custom_mode: true,
+      instrumental: false,
+      style: "pop",
+      title: "My Song",
+      prompt: "",
+    });
+    await expect(node.process()).rejects.toThrow("prompt required in custom mode with vocals");
   });
 
   it("custom mode instrumental: succeeds without prompt", async () => {
-    const node = new GenerateMusicNode();
-    const result = await node.process({
-      ...secrets,
+    const node = new (GenerateMusicNode as any)();
+    node.assign({
       custom_mode: true,
       instrumental: true,
       style: "jazz",
       title: "Jazzy Tune",
       prompt: "",
     });
+    const result = await node.process();
     expect(kieExecuteSunoTask).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ output: { data: "c3Vub2RhdGE=" } });
+    expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
   it("custom mode sends optional fields only when non-empty", async () => {
-    const node = new GenerateMusicNode();
-    await node.process({
-      ...secrets,
+    const node = new (GenerateMusicNode as any)();
+    node.assign({
       custom_mode: true,
       instrumental: true,
       style: "rock",
@@ -200,6 +191,7 @@ describe("GenerateMusicNode", () => {
       audio_weight: 2,
       persona_id: "p123",
     });
+    await node.process();
 
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
@@ -214,9 +206,8 @@ describe("GenerateMusicNode", () => {
   });
 
   it("custom mode omits optional fields when empty/zero", async () => {
-    const node = new GenerateMusicNode();
-    await node.process({
-      ...secrets,
+    const node = new (GenerateMusicNode as any)();
+    node.assign({
       custom_mode: true,
       instrumental: true,
       style: "rock",
@@ -229,6 +220,7 @@ describe("GenerateMusicNode", () => {
       audio_weight: 0,
       persona_id: "",
     });
+    await node.process();
 
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
@@ -243,8 +235,9 @@ describe("GenerateMusicNode", () => {
   });
 
   it("uses kieExecuteSunoTask, not kieExecuteTask", async () => {
-    const node = new GenerateMusicNode();
-    await node.process({ ...secrets, prompt: "test" });
+    const node = new (GenerateMusicNode as any)();
+    node.assign({ prompt: "test" });
+    await node.process();
     expect(kieExecuteSunoTask).toHaveBeenCalledTimes(1);
     expect(kieExecuteTask).not.toHaveBeenCalled();
   });
@@ -261,42 +254,39 @@ describe("ExtendMusicNode", () => {
     expectMetadataDefaults(ExtendMusicNode);
   });
 
-  it("throws when audio is not set", async () => {
-    const node = new ExtendMusicNode();
-    await expect(
-      node.process({ ...secrets, audio: null })
-    ).rejects.toThrow("audio is required");
+  it("throws when audio_id is not set", async () => {
+    const node = new (ExtendMusicNode as any)();
+    node.assign({ audio_id: "" });
+    await expect(node.process()).rejects.toThrow("audio_id is required");
   });
 
-  it("succeeds with valid audio input", async () => {
-    const node = new ExtendMusicNode();
-    const result = await node.process({
-      ...secrets,
-      audio: audioRef,
+  it("succeeds with valid audio_id input", async () => {
+    const node = new (ExtendMusicNode as any)();
+    node.assign({
+      audio_id: "audio_123",
       prompt: "continue with drums",
       style: "rock",
       continue_at: 30,
     });
+    const result = await node.process();
 
-    expect(uploadAudioInput).toHaveBeenCalledWith("test-api-key", audioRef);
     expect(kieExecuteSunoTask).toHaveBeenCalledTimes(1);
 
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
       unknown
     >;
-    expect(payload.audio_url).toBe(
-      "https://uploaded.example.com/audio.mp3"
-    );
+    expect(payload.audio_id).toBe("audio_123");
     expect(payload.continue_at).toBe(30);
     expect(payload.continue).toBe(true);
     expect(payload.customMode).toBe(true);
-    expect(result).toEqual({ output: { data: "c3Vub2RhdGE=" } });
+    expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
   it("uses kieExecuteSunoTask", async () => {
-    const node = new ExtendMusicNode();
-    await node.process({ ...secrets, audio: audioRef });
+    const node = new (ExtendMusicNode as any)();
+    node.assign({ audio_id: "audio_123" });
+    await node.process();
     expect(kieExecuteSunoTask).toHaveBeenCalled();
     expect(kieExecuteTask).not.toHaveBeenCalled();
   });
@@ -314,20 +304,19 @@ describe("CoverAudioNode", () => {
   });
 
   it("throws when audio is not set", async () => {
-    const node = new CoverAudioNode();
-    await expect(
-      node.process({ ...secrets, audio: null })
-    ).rejects.toThrow("audio is required");
+    const node = new (CoverAudioNode as any)();
+    node.assign({ audio: null });
+    await expect(node.process()).rejects.toThrow("audio is required");
   });
 
   it("succeeds with valid audio input", async () => {
-    const node = new CoverAudioNode();
-    const result = await node.process({
-      ...secrets,
+    const node = new (CoverAudioNode as any)();
+    node.assign({
       audio: audioRef,
       prompt: "jazz cover",
       style: "jazz",
     });
+    const result = await node.process();
 
     expect(uploadAudioInput).toHaveBeenCalledWith("test-api-key", audioRef);
     expect(kieExecuteSunoTask).toHaveBeenCalledTimes(1);
@@ -340,16 +329,16 @@ describe("CoverAudioNode", () => {
     expect(payload.audio_url).toBe(
       "https://uploaded.example.com/audio.mp3"
     );
-    expect(result).toEqual({ output: { data: "c3Vub2RhdGE=" } });
+    expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
   it("sends vocalGender when provided", async () => {
-    const node = new CoverAudioNode();
-    await node.process({
-      ...secrets,
+    const node = new (CoverAudioNode as any)();
+    node.assign({
       audio: audioRef,
       vocal_gender: "female",
     });
+    await node.process();
 
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
@@ -359,12 +348,12 @@ describe("CoverAudioNode", () => {
   });
 
   it("omits vocalGender when empty", async () => {
-    const node = new CoverAudioNode();
-    await node.process({
-      ...secrets,
+    const node = new (CoverAudioNode as any)();
+    node.assign({
       audio: audioRef,
       vocal_gender: "",
     });
+    await node.process();
 
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
@@ -386,20 +375,19 @@ describe("AddInstrumentalNode", () => {
   });
 
   it("throws when audio is not set", async () => {
-    const node = new AddInstrumentalNode();
-    await expect(
-      node.process({ ...secrets, audio: null })
-    ).rejects.toThrow("audio is required");
+    const node = new (AddInstrumentalNode as any)();
+    node.assign({ audio: null });
+    await expect(node.process()).rejects.toThrow("audio is required");
   });
 
   it("succeeds with valid audio input", async () => {
-    const node = new AddInstrumentalNode();
-    const result = await node.process({
-      ...secrets,
+    const node = new (AddInstrumentalNode as any)();
+    node.assign({
       audio: audioRef,
-      prompt: "add piano",
-      style: "classical",
+      tags: "add piano",
+      title: "classical",
     });
+    const result = await node.process();
 
     expect(uploadAudioInput).toHaveBeenCalledWith("test-api-key", audioRef);
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
@@ -408,12 +396,13 @@ describe("AddInstrumentalNode", () => {
     >;
     expect(payload.add_instrumental).toBe(true);
     expect(payload.instrumental).toBe(true);
-    expect(result).toEqual({ output: { data: "c3Vub2RhdGE=" } });
+    expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
   it("uses kieExecuteSunoTask", async () => {
-    const node = new AddInstrumentalNode();
-    await node.process({ ...secrets, audio: audioRef });
+    const node = new (AddInstrumentalNode as any)();
+    node.assign({ audio: audioRef });
+    await node.process();
     expect(kieExecuteSunoTask).toHaveBeenCalled();
     expect(kieExecuteTask).not.toHaveBeenCalled();
   });
@@ -431,20 +420,19 @@ describe("AddVocalsNode", () => {
   });
 
   it("throws when audio is not set", async () => {
-    const node = new AddVocalsNode();
-    await expect(
-      node.process({ ...secrets, audio: null })
-    ).rejects.toThrow("audio is required");
+    const node = new (AddVocalsNode as any)();
+    node.assign({ audio: null });
+    await expect(node.process()).rejects.toThrow("audio is required");
   });
 
   it("succeeds with valid audio input", async () => {
-    const node = new AddVocalsNode();
-    const result = await node.process({
-      ...secrets,
+    const node = new (AddVocalsNode as any)();
+    node.assign({
       audio: audioRef,
       prompt: "sing along",
       style: "pop",
     });
+    const result = await node.process();
 
     expect(uploadAudioInput).toHaveBeenCalledWith("test-api-key", audioRef);
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
@@ -453,16 +441,16 @@ describe("AddVocalsNode", () => {
     >;
     expect(payload.add_vocals).toBe(true);
     expect(payload.instrumental).toBe(false);
-    expect(result).toEqual({ output: { data: "c3Vub2RhdGE=" } });
+    expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
   it("sends vocalGender when provided", async () => {
-    const node = new AddVocalsNode();
-    await node.process({
-      ...secrets,
+    const node = new (AddVocalsNode as any)();
+    node.assign({
       audio: audioRef,
       vocal_gender: "male",
     });
+    await node.process();
 
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
@@ -472,12 +460,12 @@ describe("AddVocalsNode", () => {
   });
 
   it("omits vocalGender when empty", async () => {
-    const node = new AddVocalsNode();
-    await node.process({
-      ...secrets,
+    const node = new (AddVocalsNode as any)();
+    node.assign({
       audio: audioRef,
       vocal_gender: "",
     });
+    await node.process();
 
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
@@ -500,25 +488,31 @@ describe("ReplaceMusicSectionNode", () => {
     expectMetadataDefaults(ReplaceMusicSectionNode);
   });
 
-  it("throws when audio is not set", async () => {
-    const node = new ReplaceMusicSectionNode();
-    await expect(
-      node.process({ ...secrets, audio: null })
-    ).rejects.toThrow("audio is required");
+  it("throws when task_id is not set", async () => {
+    const node = new (ReplaceMusicSectionNode as any)();
+    node.assign({ task_id: "", audio_id: "audio_123" });
+    await expect(node.process()).rejects.toThrow("task_id is required");
   });
 
-  it("succeeds with valid audio and time range", async () => {
-    const node = new ReplaceMusicSectionNode();
-    const result = await node.process({
-      ...secrets,
-      audio: audioRef,
-      prompt: "replace with guitar solo",
-      style: "rock",
-      start_time: 10,
-      end_time: 45,
-    });
+  it("throws when audio_id is not set", async () => {
+    const node = new (ReplaceMusicSectionNode as any)();
+    node.assign({ task_id: "task_123", audio_id: "" });
+    await expect(node.process()).rejects.toThrow("audio_id is required");
+  });
 
-    expect(uploadAudioInput).toHaveBeenCalledWith("test-api-key", audioRef);
+  it("succeeds with valid task_id, audio_id and time range", async () => {
+    const node = new (ReplaceMusicSectionNode as any)();
+    node.assign({
+      task_id: "task_123",
+      audio_id: "audio_456",
+      prompt: "replace with guitar solo",
+      tags: "rock",
+      infill_start_s: 10,
+      infill_end_s: 45,
+    });
+    const result = await node.process();
+
+    expect(kieExecuteSunoTask).toHaveBeenCalledTimes(1);
     const payload = vi.mocked(kieExecuteSunoTask).mock.calls[0][1] as Record<
       string,
       unknown
@@ -526,15 +520,15 @@ describe("ReplaceMusicSectionNode", () => {
     expect(payload.replace_section).toBe(true);
     expect(payload.start_time).toBe(10);
     expect(payload.end_time).toBe(45);
-    expect(payload.audio_url).toBe(
-      "https://uploaded.example.com/audio.mp3"
-    );
-    expect(result).toEqual({ output: { data: "c3Vub2RhdGE=" } });
+    expect(payload.task_id).toBe("task_123");
+    expect(payload.audio_id).toBe("audio_456");
+    expect(result).toEqual({ output: { type: "audio", data: "c3Vub2RhdGE=" } });
   });
 
   it("uses kieExecuteSunoTask", async () => {
-    const node = new ReplaceMusicSectionNode();
-    await node.process({ ...secrets, audio: audioRef });
+    const node = new (ReplaceMusicSectionNode as any)();
+    node.assign({ task_id: "task_123", audio_id: "audio_456" });
+    await node.process();
     expect(kieExecuteSunoTask).toHaveBeenCalled();
     expect(kieExecuteTask).not.toHaveBeenCalled();
   });
@@ -554,27 +548,19 @@ describe("ElevenLabsTextToSpeechNode", () => {
   });
 
   it("throws when text is empty", async () => {
-    const node = new ElevenLabsTextToSpeechNode();
-    await expect(
-      node.process({ ...secrets, text: "", voice_id: "v1" })
-    ).rejects.toThrow("text is required");
+    const node = new (ElevenLabsTextToSpeechNode as any)();
+    node.assign({ text: "" });
+    await expect(node.process()).rejects.toThrow("text is required");
   });
 
-  it("throws when voice_id is empty", async () => {
-    const node = new ElevenLabsTextToSpeechNode();
-    await expect(
-      node.process({ ...secrets, text: "Hello world", voice_id: "" })
-    ).rejects.toThrow("voice_id is required");
-  });
-
-  it("succeeds with valid text and voice_id", async () => {
-    const node = new ElevenLabsTextToSpeechNode();
-    const result = await node.process({
-      ...secrets,
+  it("succeeds with valid text and voice", async () => {
+    const node = new (ElevenLabsTextToSpeechNode as any)();
+    node.assign({
       text: "Hello world",
-      voice_id: "voice_abc",
-      model_id: "eleven_turbo_v2",
+      voice: "voice_abc",
+      model: "text-to-speech-turbo-2-5",
     });
+    const result = await node.process();
 
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -582,24 +568,24 @@ describe("ElevenLabsTextToSpeechNode", () => {
       {
         text: "Hello world",
         voice_id: "voice_abc",
-        model_id: "eleven_turbo_v2",
+        model_id: "text-to-speech-turbo-2-5",
       }
     );
     expect(kieExecuteSunoTask).not.toHaveBeenCalled();
-    expect(result).toEqual({ output: { data: "YXVkaW9kYXRh" } });
+    expect(result).toEqual({ output: { type: "audio", data: "YXVkaW9kYXRh" } });
   });
 
-  it("uses default model_id when not specified", async () => {
-    const node = new ElevenLabsTextToSpeechNode();
-    await node.process({
-      ...secrets,
+  it("uses default model when not specified", async () => {
+    const node = new (ElevenLabsTextToSpeechNode as any)();
+    node.assign({
       text: "Hi",
-      voice_id: "v1",
+      voice: "v1",
     });
+    await node.process();
 
     const call = vi.mocked(kieExecuteTask).mock.calls[0];
     expect((call[2] as Record<string, unknown>).model_id).toBe(
-      "eleven_multilingual_v2"
+      "text-to-speech-turbo-2-5"
     );
   });
 });
@@ -618,18 +604,15 @@ describe("ElevenLabsAudioIsolationNode", () => {
   });
 
   it("throws when audio is not set", async () => {
-    const node = new ElevenLabsAudioIsolationNode();
-    await expect(
-      node.process({ ...secrets, audio: null })
-    ).rejects.toThrow("audio is required");
+    const node = new (ElevenLabsAudioIsolationNode as any)();
+    node.assign({ audio: null });
+    await expect(node.process()).rejects.toThrow("audio is required");
   });
 
   it("succeeds with valid audio input", async () => {
-    const node = new ElevenLabsAudioIsolationNode();
-    const result = await node.process({
-      ...secrets,
-      audio: audioRef,
-    });
+    const node = new (ElevenLabsAudioIsolationNode as any)();
+    node.assign({ audio: audioRef });
+    const result = await node.process();
 
     expect(uploadAudioInput).toHaveBeenCalledWith("test-api-key", audioRef);
     expect(kieExecuteTask).toHaveBeenCalledWith(
@@ -637,12 +620,13 @@ describe("ElevenLabsAudioIsolationNode", () => {
       "elevenlabs/audio-isolation",
       { audio_url: "https://uploaded.example.com/audio.mp3" }
     );
-    expect(result).toEqual({ output: { data: "YXVkaW9kYXRh" } });
+    expect(result).toEqual({ output: { type: "audio", data: "YXVkaW9kYXRh" } });
   });
 
   it("uses kieExecuteTask, not kieExecuteSunoTask", async () => {
-    const node = new ElevenLabsAudioIsolationNode();
-    await node.process({ ...secrets, audio: audioRef });
+    const node = new (ElevenLabsAudioIsolationNode as any)();
+    node.assign({ audio: audioRef });
+    await node.process();
     expect(kieExecuteTask).toHaveBeenCalled();
     expect(kieExecuteSunoTask).not.toHaveBeenCalled();
   });
@@ -662,20 +646,19 @@ describe("ElevenLabsSoundEffectNode", () => {
   });
 
   it("throws when text is empty", async () => {
-    const node = new ElevenLabsSoundEffectNode();
-    await expect(
-      node.process({ ...secrets, text: "" })
-    ).rejects.toThrow("text is required");
+    const node = new (ElevenLabsSoundEffectNode as any)();
+    node.assign({ text: "" });
+    await expect(node.process()).rejects.toThrow("text is required");
   });
 
   it("succeeds with valid text", async () => {
-    const node = new ElevenLabsSoundEffectNode();
-    const result = await node.process({
-      ...secrets,
+    const node = new (ElevenLabsSoundEffectNode as any)();
+    node.assign({
       text: "thunder crash",
       duration_seconds: 5,
       prompt_influence: 0.8,
     });
+    const result = await node.process();
 
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -686,16 +669,16 @@ describe("ElevenLabsSoundEffectNode", () => {
         duration_seconds: 5,
       }
     );
-    expect(result).toEqual({ output: { data: "YXVkaW9kYXRh" } });
+    expect(result).toEqual({ output: { type: "audio", data: "YXVkaW9kYXRh" } });
   });
 
   it("omits duration_seconds when zero", async () => {
-    const node = new ElevenLabsSoundEffectNode();
-    await node.process({
-      ...secrets,
+    const node = new (ElevenLabsSoundEffectNode as any)();
+    node.assign({
       text: "rain",
       duration_seconds: 0,
     });
+    await node.process();
 
     const taskInput = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<
       string,
@@ -705,12 +688,12 @@ describe("ElevenLabsSoundEffectNode", () => {
   });
 
   it("includes duration_seconds when positive", async () => {
-    const node = new ElevenLabsSoundEffectNode();
-    await node.process({
-      ...secrets,
+    const node = new (ElevenLabsSoundEffectNode as any)();
+    node.assign({
       text: "rain",
       duration_seconds: 10,
     });
+    await node.process();
 
     const taskInput = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<
       string,
@@ -734,19 +717,18 @@ describe("ElevenLabsSpeechToTextNode", () => {
   });
 
   it("throws when audio is not set", async () => {
-    const node = new ElevenLabsSpeechToTextNode();
-    await expect(
-      node.process({ ...secrets, audio: null })
-    ).rejects.toThrow("audio is required");
+    const node = new (ElevenLabsSpeechToTextNode as any)();
+    node.assign({ audio: null });
+    await expect(node.process()).rejects.toThrow("audio is required");
   });
 
   it("succeeds with valid audio input", async () => {
-    const node = new ElevenLabsSpeechToTextNode();
-    const result = await node.process({
-      ...secrets,
+    const node = new (ElevenLabsSpeechToTextNode as any)();
+    node.assign({
       audio: audioRef,
       language_code: "fr",
     });
+    const result = await node.process();
 
     expect(uploadAudioInput).toHaveBeenCalledWith("test-api-key", audioRef);
     expect(kieExecuteTask).toHaveBeenCalledWith(
@@ -757,15 +739,13 @@ describe("ElevenLabsSpeechToTextNode", () => {
         language_code: "fr",
       }
     );
-    expect(result).toEqual({ output: { data: "YXVkaW9kYXRh" } });
+    expect(result).toEqual({ output: "YXVkaW9kYXRh" });
   });
 
   it("uses the serialized default language_code when omitted", async () => {
-    const node = new ElevenLabsSpeechToTextNode();
-    await node.process({
-      ...secrets,
-      audio: audioRef,
-    });
+    const node = new (ElevenLabsSpeechToTextNode as any)();
+    node.assign({ audio: audioRef });
+    await node.process();
 
     const taskInput = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<
       string,
@@ -788,45 +768,43 @@ describe("ElevenLabsV3DialogueNode", () => {
     expectMetadataDefaults(ElevenLabsV3DialogueNode);
   });
 
-  it("throws when script is empty", async () => {
-    const node = new ElevenLabsV3DialogueNode();
-    await expect(
-      node.process({ ...secrets, script: "" })
-    ).rejects.toThrow("script is required");
+  it("throws when text is empty", async () => {
+    const node = new (ElevenLabsV3DialogueNode as any)();
+    node.assign({ text: "" });
+    await expect(node.process()).rejects.toThrow("script is required");
   });
 
-  it("succeeds with valid script", async () => {
-    const voices = { Alice: "voice_1", Bob: "voice_2" };
-    const node = new ElevenLabsV3DialogueNode();
-    const result = await node.process({
-      ...secrets,
-      script: "Alice: Hello!\nBob: Hi!",
-      voice_assignments: voices,
+  it("succeeds with valid text", async () => {
+    const node = new (ElevenLabsV3DialogueNode as any)();
+    node.assign({
+      text: "Alice: Hello!\nBob: Hi!",
+      voice: "voice_1",
     });
+    const result = await node.process();
 
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "elevenlabs/v3-dialogue",
       {
         script: "Alice: Hello!\nBob: Hi!",
-        voice_assignments: voices,
+        voice_assignments: "voice_1",
       }
     );
     expect(kieExecuteSunoTask).not.toHaveBeenCalled();
-    expect(result).toEqual({ output: { data: "YXVkaW9kYXRh" } });
+    expect(result).toEqual({ output: { type: "audio", data: "YXVkaW9kYXRh" } });
   });
 
-  it("sends empty voice_assignments when not provided", async () => {
-    const node = new ElevenLabsV3DialogueNode();
-    await node.process({
-      ...secrets,
-      script: "Narrator: Once upon a time...",
+  it("sends default voice when not provided", async () => {
+    const node = new (ElevenLabsV3DialogueNode as any)();
+    node.assign({
+      text: "Narrator: Once upon a time...",
     });
+    await node.process();
 
     const taskInput = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<
       string,
       unknown
     >;
-    expect(taskInput.voice_assignments).toEqual({});
+    expect(taskInput.voice_assignments).toBe("Rachel");
   });
 });

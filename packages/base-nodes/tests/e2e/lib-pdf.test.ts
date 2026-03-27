@@ -1,15 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  GetPageCountPdfPlumberNode,
-  ExtractTextPdfPlumberNode,
-  ExtractPageMetadataPdfPlumberNode,
-  ExtractTablesPdfPlumberNode,
-  ExtractImagesPdfPlumberNode,
-  ExtractTextPyMuPdfNode,
-  ExtractMarkdownPyMuPdfNode,
-  ExtractTextBlocksPyMuPdfNode,
-  ExtractTextWithStylePyMuPdfNode,
-  ExtractTablesPyMuPdfNode,
+  PdfPageCountNode,
+  PdfExtractTextNode,
+  PdfPageMetadataNode,
+  PdfExtractTablesNode,
+  PdfExtractMarkdownNode,
+  PdfExtractTextBlocksNode,
+  PdfExtractStyledTextNode,
 } from "../../src/index.js";
 
 // Minimal valid PDF with text content (single page, "Hello World" text)
@@ -75,98 +72,97 @@ function makeTwoPagePdf(): string {
 const singlePagePdf = { data: makeTestPdf() };
 const twoPagePdf = { data: makeTwoPagePdf() };
 
-describe("lib.pdfplumber nodes", () => {
-  it("GetPageCount returns page count", async () => {
-    const result = await new GetPageCountPdfPlumberNode().process({ pdf: singlePagePdf });
+describe("lib.pdf nodes", () => {
+  it("PageCount returns page count", async () => {
+    const node1 = new PdfPageCountNode();
+    node1.assign({ pdf: singlePagePdf });
+    const result = await node1.process();
     expect(result.output).toBe(1);
 
-    const result2 = await new GetPageCountPdfPlumberNode().process({ pdf: twoPagePdf });
+    const node2 = new PdfPageCountNode();
+    node2.assign({ pdf: twoPagePdf });
+    const result2 = await node2.process();
     expect(result2.output).toBe(2);
   });
 
   it("ExtractText extracts text from PDF", async () => {
-    const result = await new ExtractTextPdfPlumberNode().process({
+    const node = new PdfExtractTextNode();
+    node.assign({
       pdf: singlePagePdf,
       start_page: 0,
       end_page: 0,
     });
+    const result = await node.process();
     expect(result.output).toContain("Hello World");
   });
 
   it("ExtractText with page range", async () => {
-    const result = await new ExtractTextPdfPlumberNode().process({
+    const node = new PdfExtractTextNode();
+    node.assign({
       pdf: twoPagePdf,
       start_page: 0,
       end_page: 1,
     });
+    const result = await node.process();
     const text = String(result.output);
     expect(text).toContain("Page One");
     expect(text).toContain("Page Two");
   });
 
-  it("ExtractPageMetadata returns page dimensions", async () => {
-    const result = await new ExtractPageMetadataPdfPlumberNode().process({
+  it("PageMetadata returns page dimensions", async () => {
+    const node = new PdfPageMetadataNode();
+    node.assign({
       pdf: singlePagePdf,
       start_page: 0,
       end_page: 0,
     });
+    const result = await node.process();
     const pages = result.output as Array<Record<string, unknown>>;
     expect(pages).toHaveLength(1);
-    expect(pages[0].page_number).toBe(1);
+    expect(pages[0].page).toBe(0);
     expect(pages[0].width).toBe(612);
     expect(pages[0].height).toBe(792);
-    expect(pages[0].bbox).toEqual([0, 0, 612, 792]);
   });
 
   it("ExtractTables returns array (may be empty for simple PDFs)", async () => {
-    const result = await new ExtractTablesPdfPlumberNode().process({
+    const node = new PdfExtractTablesNode();
+    node.assign({
       pdf: singlePagePdf,
       start_page: 0,
       end_page: 0,
     });
+    const result = await node.process();
     expect(Array.isArray(result.output)).toBe(true);
   });
 
-  it("ExtractImages returns empty array (stub)", async () => {
-    const result = await new ExtractImagesPdfPlumberNode().process({
-      pdf: singlePagePdf,
-    });
-    expect(result.output).toEqual([]);
-  });
-
   it("throws on missing PDF data", async () => {
+    const node = new PdfPageCountNode();
+    node.assign({ pdf: {} });
     await expect(
-      new GetPageCountPdfPlumberNode().process({ pdf: {} })
+      node.process()
     ).rejects.toThrow("No PDF data or URI provided");
-  });
-});
-
-describe("lib.pymupdf nodes", () => {
-  it("ExtractText extracts text", async () => {
-    const result = await new ExtractTextPyMuPdfNode().process({
-      pdf: singlePagePdf,
-      start_page: 0,
-      end_page: -1,
-    });
-    expect(String(result.output)).toContain("Hello World");
   });
 
   it("ExtractMarkdown produces markdown output", async () => {
-    const result = await new ExtractMarkdownPyMuPdfNode().process({
+    const node = new PdfExtractMarkdownNode();
+    node.assign({
       pdf: singlePagePdf,
       start_page: 0,
       end_page: -1,
     });
+    const result = await node.process();
     expect(typeof result.output).toBe("string");
     expect(String(result.output).length).toBeGreaterThan(0);
   });
 
   it("ExtractTextBlocks returns blocks with bboxes", async () => {
-    const result = await new ExtractTextBlocksPyMuPdfNode().process({
+    const node = new PdfExtractTextBlocksNode();
+    node.assign({
       pdf: singlePagePdf,
       start_page: 0,
       end_page: -1,
     });
+    const result = await node.process();
     const blocks = result.output as Array<Record<string, unknown>>;
     expect(Array.isArray(blocks)).toBe(true);
     if (blocks.length > 0) {
@@ -176,12 +172,14 @@ describe("lib.pymupdf nodes", () => {
     }
   });
 
-  it("ExtractTextWithStyle returns styled text items", async () => {
-    const result = await new ExtractTextWithStylePyMuPdfNode().process({
+  it("ExtractStyledText returns styled text items", async () => {
+    const node = new PdfExtractStyledTextNode();
+    node.assign({
       pdf: singlePagePdf,
       start_page: 0,
       end_page: -1,
     });
+    const result = await node.process();
     const items = result.output as Array<Record<string, unknown>>;
     expect(Array.isArray(items)).toBe(true);
     if (items.length > 0) {
@@ -193,28 +191,34 @@ describe("lib.pymupdf nodes", () => {
   });
 
   it("ExtractTables returns array", async () => {
-    const result = await new ExtractTablesPyMuPdfNode().process({
+    const node = new PdfExtractTablesNode();
+    node.assign({
       pdf: singlePagePdf,
       start_page: 0,
       end_page: -1,
     });
+    const result = await node.process();
     expect(Array.isArray(result.output)).toBe(true);
   });
 
   it("respects page range on multi-page PDF", async () => {
-    const page1 = await new ExtractTextPyMuPdfNode().process({
+    const node1 = new PdfExtractTextNode();
+    node1.assign({
       pdf: twoPagePdf,
       start_page: 0,
       end_page: 0,
     });
+    const page1 = await node1.process();
     expect(String(page1.output)).toContain("Page One");
     expect(String(page1.output)).not.toContain("Page Two");
 
-    const page2 = await new ExtractTextPyMuPdfNode().process({
+    const node2 = new PdfExtractTextNode();
+    node2.assign({
       pdf: twoPagePdf,
       start_page: 1,
       end_page: 1,
     });
+    const page2 = await node2.process();
     expect(String(page2.output)).toContain("Page Two");
     expect(String(page2.output)).not.toContain("Page One");
   });

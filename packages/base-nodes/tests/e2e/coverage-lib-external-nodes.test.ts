@@ -100,7 +100,7 @@ function testHandler(req: http.IncomingMessage, res: http.ServerResponse) {
 describe("lib.browser.WebFetch (coverage)", () => {
   it("fetches HTML page", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new WebFetchLibNode().process({ url: baseUrl });
+      const result = await (() => { const _n = new WebFetchLibNode(); _n.assign({ url: baseUrl }); return _n.process(); })();
       expect(String(result.output)).toContain("Hello Browser");
     });
   });
@@ -109,9 +109,9 @@ describe("lib.browser.WebFetch (coverage)", () => {
 describe("lib.browser.DownloadFile (coverage)", () => {
   it("downloads content as base64 bytes", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new DownloadFileLibNode().process({
+      const result = await (() => { const _n = new DownloadFileLibNode(); _n.assign({
         url: `${baseUrl}/page2`,
-      });
+      }); return _n.process(); })();
       const output = result.output as { __bytes__: string };
       expect(output.__bytes__).toBeDefined();
       expect(output.__bytes__.length).toBeGreaterThan(0);
@@ -137,7 +137,7 @@ describe("lib.browser.DownloadFile (coverage)", () => {
 describe("lib.browser.Browser (playwright)", () => {
   it("fetches page content and returns markdown + metadata", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserLibNode().process({ url: baseUrl });
+      const result = await (() => { const _n = new BrowserLibNode(); _n.assign({ url: baseUrl }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(String(result.content)).toContain("Hello Browser");
       const meta = result.metadata as { title: string };
@@ -146,7 +146,7 @@ describe("lib.browser.Browser (playwright)", () => {
   }, 30_000);
 
   it("throws on empty URL", async () => {
-    await expect(new BrowserLibNode().process({ url: "" })).rejects.toThrow(
+    await expect((() => { const _n = new BrowserLibNode(); _n.assign({ url: "" }); return _n.process(); })()).rejects.toThrow(
       "URL is required"
     );
   });
@@ -155,7 +155,7 @@ describe("lib.browser.Browser (playwright)", () => {
 describe("lib.browser.Screenshot (playwright)", () => {
   it("takes a full-page screenshot", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new ScreenshotLibNode().process({ url: baseUrl });
+      const result = await (() => { const _n = new ScreenshotLibNode(); _n.assign({ url: baseUrl }); return _n.process(); })();
       expect(result.success).toBe(true);
       const output = result.output as { type: string; data: string };
       expect(output.type).toBe("image");
@@ -166,10 +166,10 @@ describe("lib.browser.Screenshot (playwright)", () => {
 
   it("takes a screenshot of a specific selector", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new ScreenshotLibNode().process({
+      const result = await (() => { const _n = new ScreenshotLibNode(); _n.assign({
         url: baseUrl,
         selector: "h1",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       const output = result.output as { type: string; data: string };
       expect(output.data.length).toBeGreaterThan(0);
@@ -178,7 +178,7 @@ describe("lib.browser.Screenshot (playwright)", () => {
 
   it("throws on empty URL", async () => {
     await expect(
-      new ScreenshotLibNode().process({ url: "" })
+      (() => { const _n = new ScreenshotLibNode(); _n.assign({ url: "" }); return _n.process(); })()
     ).rejects.toThrow("URL is required");
   });
 });
@@ -186,10 +186,10 @@ describe("lib.browser.Screenshot (playwright)", () => {
 describe("lib.browser.BrowserNavigation (playwright)", () => {
   it("goto action returns success", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "goto",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(result.action).toBe("goto");
     });
@@ -197,10 +197,10 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("reload action returns success", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "reload",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(result.action).toBe("reload");
     });
@@ -208,11 +208,11 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("click action clicks an element", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "click",
         selector: "a",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(result.action).toBe("click");
     });
@@ -220,12 +220,12 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("extract text from selector", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "extract",
         selector: "#info",
         extract_type: "text",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(String(result.extracted)).toContain("paragraph text");
     });
@@ -233,12 +233,12 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("extract html from selector", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "extract",
         selector: "#info",
         extract_type: "html",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(String(result.extracted)).toContain("<p");
     });
@@ -246,12 +246,12 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("extract value from input element", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "extract",
         selector: "#myinput",
         extract_type: "value",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(result.extracted).toBe("input_value");
     });
@@ -259,13 +259,13 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("extract attribute from element", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "extract",
         selector: "#myinput",
         extract_type: "attribute",
         attribute: "data-custom",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(result.extracted).toBe("attr_val");
     });
@@ -273,11 +273,11 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("extract html from full page (no selector)", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "extract",
         extract_type: "html",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(String(result.extracted)).toContain("Hello Browser");
     });
@@ -285,11 +285,11 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("extract text from full page (no selector)", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "extract",
         extract_type: "text",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(String(result.extracted)).toContain("Hello Browser");
     });
@@ -298,10 +298,10 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
   it("back action (no prior navigation — just runs)", async () => {
     await withServer(testHandler, async (baseUrl) => {
       // back/forward on a fresh page won't fail, just returns success
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "back",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(result.action).toBe("back");
     });
@@ -309,10 +309,10 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("forward action", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "forward",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
       expect(result.action).toBe("forward");
     });
@@ -320,18 +320,18 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 
   it("wait_for option waits for selector", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new BrowserNavigationLibNode().process({
+      const result = await (() => { const _n = new BrowserNavigationLibNode(); _n.assign({
         url: baseUrl,
         action: "goto",
         wait_for: "h1",
-      });
+      }); return _n.process(); })();
       expect(result.success).toBe(true);
     });
   }, 30_000);
 
   it("throws on goto with empty URL", async () => {
     await expect(
-      new BrowserNavigationLibNode().process({ action: "goto", url: "" })
+      (() => { const _n = new BrowserNavigationLibNode(); _n.assign({ action: "goto", url: "" }); return _n.process(); })()
     ).rejects.toThrow("URL is required for goto action");
   });
 });
@@ -339,7 +339,7 @@ describe("lib.browser.BrowserNavigation (playwright)", () => {
 describe("lib.browser.SpiderCrawl (coverage)", () => {
   it("crawls with url_pattern filter", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new SpiderCrawlLibNode().process({
+      const result = await (() => { const _n = new SpiderCrawlLibNode(); _n.assign({
         start_url: baseUrl,
         max_depth: 2,
         max_pages: 10,
@@ -348,7 +348,7 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
         delay_ms: 0,
         timeout: 5000,
         url_pattern: "page2",
-      });
+      }); return _n.process(); })();
       const pages = result.output as Array<Record<string, unknown>>;
       // url_pattern "page2" means only URLs matching "page2" are crawled.
       // The start URL does NOT match "page2", so it's skipped.
@@ -360,7 +360,7 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
 
   it("crawls with delay_ms > 0", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new SpiderCrawlLibNode().process({
+      const result = await (() => { const _n = new SpiderCrawlLibNode(); _n.assign({
         start_url: baseUrl,
         max_depth: 1,
         max_pages: 3,
@@ -368,7 +368,7 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
         include_html: false,
         delay_ms: 10, // small delay to exercise the branch
         timeout: 5000,
-      });
+      }); return _n.process(); })();
       const pages = result.output as Array<Record<string, unknown>>;
       expect(pages.length).toBeGreaterThanOrEqual(1);
     });
@@ -387,13 +387,13 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
     }
     const baseUrl = `http://127.0.0.1:${address.port}`;
     try {
-      const result = await new SpiderCrawlLibNode().process({
+      const result = await (() => { const _n = new SpiderCrawlLibNode(); _n.assign({
         start_url: baseUrl,
         max_depth: 0,
         max_pages: 1,
         delay_ms: 0,
         timeout: 2000,
-      });
+      }); return _n.process(); })();
       const pages = result.output as Array<Record<string, unknown>>;
       expect(pages.length).toBe(1);
       expect(pages[0].status_code).toBe(0);
@@ -427,14 +427,14 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
         }
       },
       async (baseUrl) => {
-        const result = await new SpiderCrawlLibNode().process({
+        const result = await (() => { const _n = new SpiderCrawlLibNode(); _n.assign({
           start_url: baseUrl,
           max_depth: 1,
           max_pages: 10,
           same_domain_only: true,
           delay_ms: 0,
           timeout: 5000,
-        });
+        }); return _n.process(); })();
         const pages = result.output as Array<Record<string, unknown>>;
         const urls = pages.map((p) => String(p.url));
         // Should NOT have javascript:, mailto:, or tel: URLs
@@ -468,14 +468,14 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
         }
       },
       async (baseUrl) => {
-        const result = await new SpiderCrawlLibNode().process({
+        const result = await (() => { const _n = new SpiderCrawlLibNode(); _n.assign({
           start_url: baseUrl,
           max_depth: 1,
           max_pages: 10,
           same_domain_only: false,
           delay_ms: 0,
           timeout: 5000,
-        });
+        }); return _n.process(); })();
         const pages = result.output as Array<Record<string, unknown>>;
         // Should have crawled at least the start page and page2
         expect(pages.length).toBeGreaterThanOrEqual(1);
@@ -505,14 +505,14 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
         }
       },
       async (baseUrl) => {
-        const result = await new SpiderCrawlLibNode().process({
+        const result = await (() => { const _n = new SpiderCrawlLibNode(); _n.assign({
           start_url: baseUrl,
           max_depth: 1,
           max_pages: 10,
           same_domain_only: true,
           delay_ms: 0,
           timeout: 5000,
-        });
+        }); return _n.process(); })();
         const pages = result.output as Array<Record<string, unknown>>;
         const urls = pages.map((p) => String(p.url));
         expect(urls.every((u) => !u.includes("example.com"))).toBe(true);
@@ -528,7 +528,7 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
 describe("lib.mail.SendEmail", () => {
   it("throws on missing recipient", async () => {
     await expect(
-      new SendEmailLibNode().process({
+      (() => { const _n = new SendEmailLibNode(); _n.assign({
         smtp_server: "localhost",
         smtp_port: 9999,
         username: "",
@@ -536,14 +536,14 @@ describe("lib.mail.SendEmail", () => {
         to_address: "",
         subject: "test",
         body: "test",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Recipient email address is required");
   });
 
   it("throws on connection failure with invalid SMTP", async () => {
     // Use a port that won't have an SMTP server
     await expect(
-      new SendEmailLibNode().process({
+      (() => { const _n = new SendEmailLibNode(); _n.assign({
         smtp_server: "127.0.0.1",
         smtp_port: 19999,
         username: "",
@@ -552,7 +552,7 @@ describe("lib.mail.SendEmail", () => {
         to_address: "recipient@test.com",
         subject: "test",
         body: "test body",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow();
   }, 15_000);
 });
@@ -560,7 +560,7 @@ describe("lib.mail.SendEmail", () => {
 describe("lib.mail.GmailSearch (stub)", () => {
   it("throws credentials error", async () => {
     await expect(
-      new GmailSearchLibNode().process({})
+      new GmailSearchLibNode().process()
     ).rejects.toThrow("Google OAuth2/IMAP credentials");
   });
 });
@@ -568,7 +568,7 @@ describe("lib.mail.GmailSearch (stub)", () => {
 describe("lib.mail.AddLabel (stub)", () => {
   it("throws credentials error", async () => {
     await expect(
-      new AddLabelLibNode().process({ message_id: "abc", label: "test" })
+      (() => { const _n = new AddLabelLibNode(); _n.assign({ message_id: "abc", label: "test" }); return _n.process(); })()
     ).rejects.toThrow("Google OAuth2/IMAP credentials");
   });
 });
@@ -576,7 +576,7 @@ describe("lib.mail.AddLabel (stub)", () => {
 describe("lib.mail.MoveToArchive (stub)", () => {
   it("throws credentials error", async () => {
     await expect(
-      new MoveToArchiveLibNode().process({ message_id: "abc" })
+      (() => { const _n = new MoveToArchiveLibNode(); _n.assign({ message_id: "abc" }); return _n.process(); })()
     ).rejects.toThrow("Google OAuth2/IMAP credentials");
   });
 });
@@ -588,138 +588,138 @@ describe("lib.mail.MoveToArchive (stub)", () => {
 describe("lib.supabase (no credentials)", () => {
   it("Select throws on missing table_name", async () => {
     await expect(
-      new SelectLibNode().process({ supabase_url: "", supabase_key: "" })
+      (() => { const _n = new SelectLibNode(); _n.assign({ supabase_url: "", supabase_key: "" }); return _n.process(); })()
     ).rejects.toThrow("table_name cannot be empty");
   });
 
   it("Select throws on missing credentials", async () => {
     await expect(
-      new SelectLibNode().process({
+      (() => { const _n = new SelectLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 
   it("Insert throws on missing table_name", async () => {
     await expect(
-      new SupabaseInsertLibNode().process({
+      (() => { const _n = new SupabaseInsertLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("table_name cannot be empty");
   });
 
   it("Insert throws on missing credentials", async () => {
     await expect(
-      new SupabaseInsertLibNode().process({
+      (() => { const _n = new SupabaseInsertLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         records: [{ a: 1 }],
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 
   it("Update throws on missing table_name", async () => {
     await expect(
-      new SupabaseUpdateLibNode().process({
+      (() => { const _n = new SupabaseUpdateLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("table_name cannot be empty");
   });
 
   it("Update throws on empty values", async () => {
     await expect(
-      new SupabaseUpdateLibNode().process({
+      (() => { const _n = new SupabaseUpdateLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         values: {},
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("values cannot be empty");
   });
 
   it("Update throws on missing credentials", async () => {
     await expect(
-      new SupabaseUpdateLibNode().process({
+      (() => { const _n = new SupabaseUpdateLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         values: { x: 1 },
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 
   it("Delete throws on missing table_name", async () => {
     await expect(
-      new SupabaseDeleteLibNode().process({
+      (() => { const _n = new SupabaseDeleteLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("table_name cannot be empty");
   });
 
   it("Delete throws when no filters provided", async () => {
     await expect(
-      new SupabaseDeleteLibNode().process({
+      (() => { const _n = new SupabaseDeleteLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         filters: [],
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("At least one filter is required");
   });
 
   it("Delete throws on missing credentials", async () => {
     await expect(
-      new SupabaseDeleteLibNode().process({
+      (() => { const _n = new SupabaseDeleteLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         filters: [["id", "eq", 1]],
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 
   it("Upsert throws on missing table_name", async () => {
     await expect(
-      new SupabaseUpsertLibNode().process({
+      (() => { const _n = new SupabaseUpsertLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("table_name cannot be empty");
   });
 
   it("Upsert throws on missing credentials", async () => {
     await expect(
-      new SupabaseUpsertLibNode().process({
+      (() => { const _n = new SupabaseUpsertLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         records: [{ a: 1 }],
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 
   it("RPC throws on missing function name", async () => {
     await expect(
-      new SupabaseRPCLibNode().process({
+      (() => { const _n = new SupabaseRPCLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("function cannot be empty");
   });
 
   it("RPC throws on missing credentials", async () => {
     await expect(
-      new SupabaseRPCLibNode().process({
+      (() => { const _n = new SupabaseRPCLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         function: "my_func",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 
@@ -727,23 +727,23 @@ describe("lib.supabase (no credentials)", () => {
     // When records is a non-array object, it should be wrapped in an array.
     // It will still throw on missing creds, but the wrapping logic is exercised.
     await expect(
-      new SupabaseInsertLibNode().process({
+      (() => { const _n = new SupabaseInsertLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         records: { a: 1 },
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 
   it("Upsert handles single record (non-array) input", async () => {
     await expect(
-      new SupabaseUpsertLibNode().process({
+      (() => { const _n = new SupabaseUpsertLibNode(); _n.assign({
         supabase_url: "",
         supabase_key: "",
         table_name: "test",
         records: { a: 1 },
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow("Supabase URL and key are required");
   });
 });
@@ -766,7 +766,7 @@ describe("lib-compat", () => {
 describe("lib.ocr.PaddleOCR", () => {
   it("throws when image has no data or uri", async () => {
     await expect(
-      new PaddleOCRLibNode().process({ image: { type: "image" } })
+      (() => { const _n = new PaddleOCRLibNode(); _n.assign({ image: { type: "image" } }); return _n.process(); })()
     ).rejects.toThrow("Image must have either data or uri");
   });
 
@@ -783,10 +783,10 @@ describe("lib.ocr.PaddleOCR", () => {
     const pngBuffer = await sharp(Buffer.from(svgText)).png().toBuffer();
     const base64Data = pngBuffer.toString("base64");
 
-    const result = await new PaddleOCRLibNode().process({
+    const result = await (() => { const _n = new PaddleOCRLibNode(); _n.assign({
       image: { type: "image", data: base64Data },
       language: "en",
-    });
+    }); return _n.process(); })();
 
     // The OCR result should have boxes and text fields
     expect(result).toHaveProperty("boxes");
@@ -798,10 +798,10 @@ describe("lib.ocr.PaddleOCR", () => {
 
   it("accepts a URI-based image (error path for invalid URI)", async () => {
     await expect(
-      new PaddleOCRLibNode().process({
+      (() => { const _n = new PaddleOCRLibNode(); _n.assign({
         image: { type: "image", uri: "file:///nonexistent/image.png" },
         language: "en",
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow();
   }, 30_000);
 
@@ -819,10 +819,10 @@ describe("lib.ocr.PaddleOCR", () => {
     // tesseract.js will attempt to load fra trained data; it may succeed or fail
     // depending on environment, but the language mapping code is exercised.
     try {
-      const result = await new PaddleOCRLibNode().process({
+      const result = await (() => { const _n = new PaddleOCRLibNode(); _n.assign({
         image: { type: "image", data: b64 },
         language: "fr",
-      });
+      }); return _n.process(); })();
       expect(result).toHaveProperty("text");
     } catch {
       // Expected — fra traineddata may not be available
@@ -837,17 +837,17 @@ describe("lib.ocr.PaddleOCR", () => {
 describe("lib.markitdown.ConvertToMarkdown", () => {
   it("throws when no document URI or data", async () => {
     await expect(
-      new ConvertToMarkdownLibNode().process({ document: {} })
+      (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({ document: {} }); return _n.process(); })()
     ).rejects.toThrow("A document URI or data is required");
   });
 
   it("converts HTML data to markdown", async () => {
-    const result = await new ConvertToMarkdownLibNode().process({
+    const result = await (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
       document: {
         uri: "",
         data: "<h1>Title</h1><p>Paragraph text</p>",
       },
-    });
+    }); return _n.process(); })();
     const output = result.output as { type: string; data: string };
     expect(output.type).toBe("document");
     expect(output.data).toContain("Title");
@@ -855,12 +855,12 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
   });
 
   it("passes plain text data through as-is", async () => {
-    const result = await new ConvertToMarkdownLibNode().process({
+    const result = await (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
       document: {
         uri: "",
         data: "Just plain text without any HTML tags",
       },
-    });
+    }); return _n.process(); })();
     const output = result.output as { type: string; data: string };
     expect(output.data).toBe("Just plain text without any HTML tags");
   });
@@ -874,9 +874,9 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
     );
 
     try {
-      const result = await new ConvertToMarkdownLibNode().process({
+      const result = await (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
         document: { uri: `file://${filePath}` },
-      });
+      }); return _n.process(); })();
       const output = result.output as { type: string; data: string };
       expect(output.data).toContain("From File");
       expect(output.data).toContain("File content");
@@ -891,9 +891,9 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
     await fs.writeFile(filePath, "Plain file content no HTML");
 
     try {
-      const result = await new ConvertToMarkdownLibNode().process({
+      const result = await (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
         document: { uri: `file://${filePath}` },
-      });
+      }); return _n.process(); })();
       const output = result.output as { type: string; data: string };
       expect(output.data).toBe("Plain file content no HTML");
     } finally {
@@ -910,9 +910,9 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
     );
 
     try {
-      const result = await new ConvertToMarkdownLibNode().process({
+      const result = await (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
         document: { uri: filePath },
-      });
+      }); return _n.process(); })();
       const output = result.output as { type: string; data: string };
       expect(output.data).toContain("Bold");
     } finally {
@@ -922,17 +922,17 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
 
   it("throws for .docx URI that does not exist", async () => {
     await expect(
-      new ConvertToMarkdownLibNode().process({
+      (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
         document: { uri: "/nonexistent/file.docx" },
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow();
   });
 
   it("handles file:// prefix for .docx URI (error on missing file)", async () => {
     await expect(
-      new ConvertToMarkdownLibNode().process({
+      (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
         document: { uri: "file:///nonexistent/file.docx" },
-      })
+      }); return _n.process(); })()
     ).rejects.toThrow();
   });
 
@@ -958,9 +958,9 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
     await fs.writeFile(filePath, buffer);
 
     try {
-      const result = await new ConvertToMarkdownLibNode().process({
+      const result = await (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
         document: { uri: filePath },
-      });
+      }); return _n.process(); })();
       const output = result.output as { type: string; data: string };
       expect(output.type).toBe("document");
       expect(output.data).toContain("Hello from DOCX");
@@ -990,9 +990,9 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
     await fs.writeFile(filePath, buffer);
 
     try {
-      const result = await new ConvertToMarkdownLibNode().process({
+      const result = await (() => { const _n = new ConvertToMarkdownLibNode(); _n.assign({
         document: { uri: `file://${filePath}` },
-      });
+      }); return _n.process(); })();
       const output = result.output as { type: string; data: string };
       expect(output.type).toBe("document");
       expect(output.data).toContain("DOCX via file URI");
