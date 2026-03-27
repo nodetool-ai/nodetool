@@ -1,5 +1,6 @@
 ---
 layout: home
+description: "NodeTool documentation — build AI workflows visually. Connect nodes to generate images, process documents, build agents, and automate tasks. Run locally or deploy to the cloud."
 ---
 
 <section class="home-hero">
@@ -20,7 +21,7 @@ layout: home
 
 ## Start Here
 
-NodeTool is a visual workflow builder for AI pipelines—connect nodes for images, video, text, data, and automation. Run locally or deploy to RunPod, Cloud Run, or self-hosted servers.
+NodeTool is a visual workflow builder for AI pipelines — connect nodes to process images, video, text, data, and more. Run everything locally for maximum privacy, or deploy to RunPod, Cloud Run, or your own servers.
 
 ### Who uses NodeTool?
 
@@ -87,10 +88,10 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> — install for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux or Qwen Image, or use cloud services.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-beginner-workflow-end-to-end">Try a template workflow</a> — explore examples, press Run, watch results stream.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-3--save-and-re-run-it-from-global-chat">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-4--turn-it-into-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux or Qwen Image, or add cloud API keys.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-your-first-workflow">Try a template workflow</a> — explore examples, press Run, watch results stream in real-time.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-3--customize-and-iterate">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-4--share-as-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>
 </ol>
 
 ### Choose your path

@@ -4,22 +4,22 @@ title: "Key Concepts"
 description: "Core concepts for building workflows in NodeTool."
 ---
 
-Understand how NodeTool works.
+Understand the core ideas behind NodeTool so you can build workflows confidently.
 
 ---
 
 ## What NodeTool Does
 
-NodeTool is a visual workflow builder for AI. Think of it like:
-- **Photoshop layers** - but for AI operations
-- **Video editing timeline** - arrange processing steps
-- **Building blocks** - connect pieces to make something work
+NodeTool is a visual workflow builder for AI. Instead of writing code, you connect building blocks (called **nodes**) to create powerful AI pipelines. Think of it like:
+- **Photoshop layers** — but for AI operations instead of image edits
+- **A video editing timeline** — arrange processing steps in sequence
+- **LEGO blocks** — snap pieces together to make something work
 
-**Why use it:**
-- **Private** - Data stays local unless you use cloud services
-- **Unlimited** - Local models have no subscription fees
-- **Transparent** - See every step as it runs
-- **Flexible** - Mix local and cloud providers
+**Why use NodeTool:**
+- **Private** — Data stays on your machine unless you choose to use cloud services
+- **Unlimited** — Local models have no per-use fees or subscription costs
+- **Transparent** — See every step execute and inspect intermediate results in real-time
+- **Flexible** — Mix local and cloud providers in the same workflow
 
 ---
 
@@ -27,26 +27,31 @@ NodeTool is a visual workflow builder for AI. Think of it like:
 
 ### Nodes
 
-A **node** does one thing:
+A **node** is a single building block that performs one specific task:
 
-- **Image Generator** - Makes images from text
-- **Color Adjustment** - Changes image colors
-- **Audio Transcription** - Converts speech to text
+| Node | What It Does | Example Use |
+|------|-------------|-------------|
+| **Image Generator** | Creates images from text descriptions | "A sunset over mountains" → image |
+| **Agent** | Plans and executes multi-step tasks | "Summarize this document" → structured summary |
+| **TextToSpeech** | Converts text to spoken audio | Blog post → narrated audio file |
+| **Filter** | Filters data based on conditions | Remove items that don't match criteria |
 
 Every node has:
-- **Inputs** - Data coming in
-- **Outputs** - Results going out
-- **Settings** - Options you can change
+- **Inputs** (left side) — Data coming in, shown as colored circles
+- **Outputs** (right side) — Results going out, also colored circles
+- **Settings** — Configuration options visible when you click the node
 
 ### Workflows
 
-A **workflow** is nodes connected together. When you run it:
-1. Data enters through input nodes
-2. Each node processes and passes data forward
-3. Results show in preview or output nodes
+A **workflow** is a collection of nodes connected together to accomplish a task. When you click **Run**:
+1. Data enters through **input nodes** (left side of the canvas)
+2. Each node processes data and passes results forward through connections
+3. Final results appear in **preview** or **output nodes** (right side)
 
-**Example workflow:**
-Write story → Generate characters → Create portraits → Combine into video
+**Example workflows:**
+- **Image generation:** Text prompt → AI Image Generator → Save to file
+- **Document Q&A:** Upload PDF → Index chunks → Search → Generate answer
+- **Content pipeline:** Write story → Generate characters → Create portraits → Combine into video
 
 ### Connections
 
@@ -91,10 +96,15 @@ An AI **model** is a trained program for a specific task:
 
 ### Local vs. Cloud
 
-- **Local** - Runs on your machine. Free, private, unlimited. Needs disk space and power.
-- **Cloud** - Runs on remote servers. Fast, needs internet, costs per use.
+| | Local Models | Cloud Models |
+|--|-------------|-------------|
+| **Cost** | Free after download | Pay per use |
+| **Privacy** | Data stays on your machine | Data sent to provider servers |
+| **Speed** | Depends on your hardware | Generally fast |
+| **Internet** | Works offline | Requires connection |
+| **Setup** | Download models (4–20 GB each) | Just add an API key |
 
-NodeTool supports both. Use local for privacy. Add cloud for more capabilities.
+NodeTool supports both — and you can mix them in the same workflow. Use local models for privacy-sensitive tasks and cloud models when you need the latest capabilities or don't have powerful hardware.
 
 ---
 
@@ -116,11 +126,11 @@ NodeTool supports both. Use local for privacy. Add cloud for more capabilities.
 
 ## How Workflows Run
 
-When you click **Run**:
+When you click **Run** (or press `Ctrl/⌘ + Enter`):
 
-1. **Check dependencies** — figure out which nodes depend on what
-2. **Process in order** — run nodes when their inputs are ready (independent nodes run in parallel)
-3. **Stream results** — show progress live when possible
+1. **Check dependencies** — NodeTool analyzes which nodes depend on what
+2. **Process in order** — nodes run as soon as their inputs are ready (independent nodes run **in parallel** automatically)
+3. **Stream results** — progress is shown live, so you see output as it's generated
 4. **Display outputs** — final results appear in output and preview nodes
 
 {% mermaid %}

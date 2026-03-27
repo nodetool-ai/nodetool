@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "API Reference"
+description: "REST, WebSocket, and OpenAI-compatible API endpoints for NodeTool workflows, chat, and model access."
 ---
 
 

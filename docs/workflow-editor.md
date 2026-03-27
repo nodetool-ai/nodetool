@@ -4,9 +4,9 @@ title: "Workflow Editor"
 description: "Build AI workflows visually."
 ---
 
-Build workflows by connecting nodes.
+The Workflow Editor is where you build, test, and refine AI workflows. This page covers everything from basic canvas navigation to advanced features like node bypass and auto layout.
 
-> **New?** Start with [Getting Started](getting-started.md).
+> **New to NodeTool?** Start with the [Getting Started](getting-started.md) guide to run your first workflow, then come back here to learn the editor in depth.
 
 ---
 
@@ -107,7 +107,7 @@ Nodes show outputs on canvas:
 
 ## Connections
 
-Show data flow.
+Connections are the lines between nodes that show how data flows through your workflow. Data always flows **left to right** — from output ports (right side of a node) to input ports (left side of another node).
 
 ### Make Connections
 
@@ -353,23 +353,25 @@ The professional color picker appears when selecting colors in properties:
 
 ### Design Principles
 
-1. **Left to right**: Data flows left to right
-2. **Preview often**: Add Preview nodes for intermediate results
-3. **Name clearly**: Rename nodes to describe their purpose
-4. **Group logically**: Keep related nodes together
+1. **Left to right** — Arrange nodes so data flows left to right across the canvas for readability
+2. **Preview often** — Add Preview nodes after each major step to inspect intermediate results
+3. **Name clearly** — Rename nodes (double-click the header) to describe their purpose, e.g., "Resize to 512px" instead of "Resize"
+4. **Group logically** — Keep related nodes together and use Groups (`Ctrl/⌘ + G`) to visually organize complex workflows
 
 ### Debugging
 
-- **Add Preview nodes** between steps
-- **Check connections** – verify data types match
-- **Look at errors** – nodes show error messages
-- **Test incrementally** – run partial workflows first
+- **Add Preview nodes** between steps to see exactly what data each node produces
+- **Check connections** — verify data types match (connection colors indicate type)
+- **Look at node borders** — red = error, yellow = running, green = completed
+- **Test incrementally** — bypass downstream nodes and run partial workflows to isolate problems
+- **Use the Inspector** — press `i` to see detailed error messages and validation warnings
 
 ### Performance
 
-- **Local models** – slower but work offline
-- **Cloud models** – faster, require internet
-- **Streaming nodes** – show progress during execution
+- **Local models** — slower but work offline and are free to use
+- **Cloud models** — faster response times, require internet and API keys
+- **Streaming nodes** — show progress during long-running operations (look for the streaming indicator)
+- **Parallel branches** — NodeTool automatically runs independent branches in parallel for faster execution
 
 ---
 
