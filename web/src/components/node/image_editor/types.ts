@@ -23,7 +23,7 @@ export type SelectionMode = "replace" | "add" | "subtract" | "intersect";
 
 export interface SelectionSettings {
   mode: SelectionMode;
-  /** Magic-wand colour tolerance 0–255. */
+  /** Magic-wand color tolerance 0–255. */
   tolerance: number;
   /** Feather radius in pixels (0 = none). */
   featherRadius: number;

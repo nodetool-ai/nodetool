@@ -142,7 +142,7 @@ describe("selectionMask", () => {
   });
 
   describe("magicWandSelect", () => {
-    it("selects contiguous pixels of similar colour", () => {
+    it("selects contiguous pixels of similar color", () => {
       // Create a 5x5 uniform red image
       const w = 5;
       const h = 5;
@@ -154,7 +154,7 @@ describe("selectionMask", () => {
         data[i * 4 + 3] = 255; // A
       }
       // Make one pixel different
-      data[12 * 4] = 0;      // pixel (2,2) is black-ish
+      data[12 * 4] = 0;      // pixel (2,2) is black
       data[12 * 4 + 1] = 0;
       data[12 * 4 + 2] = 0;
 
@@ -163,7 +163,7 @@ describe("selectionMask", () => {
 
       // (0,0) should be selected since it's the seed
       expect(mask[0]).toBe(255);
-      // (2,2) should NOT be selected (different colour)
+      // (2,2) should NOT be selected (different color)
       expect(mask[12]).toBe(0);
     });
 

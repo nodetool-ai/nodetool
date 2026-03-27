@@ -236,8 +236,8 @@ export const fillPolygon = (
 /* ------------------------------------------------------------------ */
 
 /**
- * Flood-fill select all contiguous pixels whose colour is within
- * `tolerance` of the seed pixel's colour.
+ * Flood-fill select all contiguous pixels whose color is within
+ * `tolerance` of the seed pixel's color.
  */
 export const magicWandSelect = (
   imageData: ImageData,
