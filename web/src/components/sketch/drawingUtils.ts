@@ -26,6 +26,9 @@ import { parseColorToRgba } from "./types";
 
 export const MIN_PRESSURE_FACTOR = 0.2;
 
+/** Tool opacity at or above this is treated as fully opaque (no pressure fade). */
+const PENCIL_FULL_OPACITY_THRESHOLD = 0.999;
+
 function adjustSpacingForHardness(
   baseSpacing: number,
   hardness: number,
@@ -713,73 +716,57 @@ export function drawPencilStroke(
   settings: PencilSettings,
   ctx: CanvasRenderingContext2D,
   pressure: number | undefined,
-  dirtyRect: DirtyRectTracker
+  dirtyRect: DirtyRectTracker,
+  stampState?: StrokeStampState
 ): void {
+  const pressureFactor =
+    pressure !== undefined && pressure > 0
+      ? Math.max(MIN_PRESSURE_FACTOR, pressure)
+      : 1;
+
   let effectiveSize = settings.size;
-  let effectiveOpacity = settings.opacity;
   if (pressure !== undefined && pressure > 0) {
-    const pressureFactor = Math.max(MIN_PRESSURE_FACTOR, pressure);
     effectiveSize = settings.size * pressureFactor;
+  }
+
+  const fullOpaque = settings.opacity >= PENCIL_FULL_OPACITY_THRESHOLD;
+  let effectiveOpacity: number;
+  if (fullOpaque) {
+    effectiveOpacity = 1;
+  } else if (pressure !== undefined && pressure > 0) {
     effectiveOpacity = settings.opacity * pressureFactor;
+  } else {
+    effectiveOpacity = settings.opacity;
   }
 
-  const markDirtyRect = (start: Point, end: Point, radius: number) => {
-    expandDirtyRectFromPoints(
-      dirtyRect,
-      start,
-      end,
-      Math.max(2, radius + 2)
-    );
-  };
-
-  // True 1px anti-aliased pencil: use a crisp hairline stroke.
-  // Coordinates are snapped to nearest pixel center (x+0.5) for
-  // consistent visual weight at any zoom level.
-  if (effectiveSize <= 1.5) {
-    ctx.save();
-    ctx.globalAlpha = effectiveOpacity;
-    ctx.globalCompositeOperation = "source-over";
-    ctx.strokeStyle = settings.color;
-    ctx.lineWidth = Math.max(0.5, effectiveSize);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.imageSmoothingEnabled = true;
-
-    // Snap to pixel grid for crisp lines at 1px
-    const snapX = (v: number) => Math.round(v - 0.5) + 0.5;
-    const snapY = (v: number) => Math.round(v - 0.5) + 0.5;
-
-    ctx.beginPath();
-    ctx.moveTo(snapX(from.x), snapY(from.y));
-    ctx.lineTo(snapX(to.x), snapY(to.y));
-    ctx.stroke();
-    ctx.restore();
-    markDirtyRect(from, to, 1);
-    return;
-  }
-
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const distance = Math.hypot(dx, dy);
   const spacing = Math.max(0.35, effectiveSize * 0.3);
-  const steps = Math.max(1, Math.ceil(distance / spacing));
-  const radius = Math.max(0.75, effectiveSize / 2);
+  const radius =
+    effectiveSize <= 1.5
+      ? Math.max(0.5, effectiveSize / 2)
+      : Math.max(0.75, effectiveSize / 2);
+
+  const markDab = (x: number, y: number) => {
+    expandDirtyRect(dirtyRect, x, y, Math.max(2, radius + 2));
+  };
 
   ctx.save();
   ctx.globalAlpha = effectiveOpacity;
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = settings.color;
   ctx.imageSmoothingEnabled = true;
-  for (let i = 0; i <= steps; i++) {
-    const t = steps === 0 ? 1 : i / steps;
-    const x = from.x + dx * t;
-    const y = from.y + dy * t;
+
+  const dabAt = (x: number, y: number) => {
+    const px = fullOpaque ? Math.round(x) : x;
+    const py = fullOpaque ? Math.round(y) : y;
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.arc(px, py, radius, 0, Math.PI * 2);
     ctx.fill();
-  }
+    markDab(px, py);
+  };
+
+  stampAlongStroke(from, to, spacing, dabAt, stampState);
+
   ctx.restore();
-  markDirtyRect(from, to, radius);
 }
 
 // ─── Blur Stroke ─────────────────────────────────────────────────────────────

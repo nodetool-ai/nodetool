@@ -58,6 +58,9 @@ export class PaintSession {
   // ── Alpha lock ────────────────────────────────────────────────────
   private alphaSnapshot: ImageData | null = null;
 
+  /** Snapshot of stroke buffer before the current Shift straight segment (for rubber-band updates). */
+  private shiftRubberBandBase: HTMLCanvasElement | null = null;
+
   constructor(engine: PaintEngine) {
     this.engine = engine;
   }
@@ -191,19 +194,23 @@ export class PaintSession {
 
     // ── Shift+click: straight line from last stroke end ──────────────
     if (ctx.shiftHeldRef.current && this.lastStrokeEnd) {
+      this.captureShiftRubberBandBase(ctx);
       const from = this.mapper.docToLayer(this.lastStrokeEnd);
       const localPt = this.mapper.docToLayer(pt);
       this.drawStraightLine(ctx, paintCtx, from, localPt);
-    } else if (this.engine.dabOnDown) {
-      // Initial dab (e.g. pencil)
-      const localPt = this.mapper.docToLayer(pt);
-      ctx.withMirror(
-        paintCtx,
-        (f, t, c, branchIdx) =>
-          this.engine.evaluate(f, t, c, this.currentPressure, branchIdx),
-        localPt,
-        localPt
-      );
+    } else {
+      this.shiftRubberBandBase = null;
+      if (this.engine.dabOnDown) {
+        // Initial dab (e.g. pencil)
+        const localPt = this.mapper.docToLayer(pt);
+        ctx.withMirror(
+          paintCtx,
+          (f, t, c, branchIdx) =>
+            this.engine.evaluate(f, t, c, this.currentPressure, branchIdx),
+          localPt,
+          localPt
+        );
+      }
     }
 
     if (hasSelClip) {
@@ -238,6 +245,43 @@ export class PaintSession {
 
     const offset = this.mapper.offset;
     const hasSelClip = ctx.clipSelectionForOffset(paintCtx, offset);
+
+    const useShiftRubber =
+      ctx.shiftHeldRef.current &&
+      this.lastStrokeEnd &&
+      this.shiftRubberBandBase &&
+      this.engine.bufferMode === "buffered" &&
+      ctx.activeStrokeRef.current;
+
+    if (useShiftRubber) {
+      const stroke = ctx.activeStrokeRef.current!;
+      const base = this.shiftRubberBandBase;
+      const bctx = stroke.buffer.getContext("2d");
+      if (bctx && base.width === stroke.buffer.width && base.height === stroke.buffer.height) {
+        for (const ep of coalescedPoints) {
+          const pt = ep.point;
+          if (
+            !this.hasMoved &&
+            this.lastPoint &&
+            (pt.x !== this.lastPoint.x || pt.y !== this.lastPoint.y)
+          ) {
+            this.hasMoved = true;
+          }
+          this.currentPressure = ep.pressure || 0.5;
+          bctx.clearRect(0, 0, stroke.buffer.width, stroke.buffer.height);
+          bctx.drawImage(base, 0, 0);
+          const from = this.mapper.docToLayer(this.lastStrokeEnd);
+          const to = this.mapper.docToLayer(pt);
+          this.drawStraightLine(ctx, bctx, from, to);
+          this.lastPoint = pt;
+        }
+        if (hasSelClip) {
+          paintCtx.restore();
+        }
+        ctx.requestRedraw();
+        return;
+      }
+    }
 
     for (const ep of coalescedPoints) {
       const pt = ep.point;
@@ -301,6 +345,8 @@ export class PaintSession {
     if (!this.active || !this.layer) {
       return;
     }
+
+    this.shiftRubberBandBase = null;
 
     // Save stroke endpoint for Shift+click straight line
     this.lastStrokeEnd = event.point;
@@ -494,6 +540,31 @@ export class PaintSession {
     }
     // No stabilizer — use the raw last point (guaranteed non-null during move)
     return this.mapper.docToLayer(this.lastPoint!);
+  }
+
+  /** Copy stroke buffer before drawing the current Shift straight segment. */
+  private captureShiftRubberBandBase(ctx: ToolContext): void {
+    const stroke = ctx.activeStrokeRef.current;
+    if (!stroke || this.engine.bufferMode !== "buffered") {
+      return;
+    }
+    const b = stroke.buffer;
+    if (!this.shiftRubberBandBase) {
+      this.shiftRubberBandBase = document.createElement("canvas");
+    }
+    if (
+      this.shiftRubberBandBase.width !== b.width ||
+      this.shiftRubberBandBase.height !== b.height
+    ) {
+      this.shiftRubberBandBase.width = b.width;
+      this.shiftRubberBandBase.height = b.height;
+    }
+    const bc = this.shiftRubberBandBase.getContext("2d");
+    if (!bc) {
+      return;
+    }
+    bc.clearRect(0, 0, b.width, b.height);
+    bc.drawImage(b, 0, 0);
   }
 
   /** Draw a straight line between two layer-local points. */

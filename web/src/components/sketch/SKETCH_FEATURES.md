@@ -59,7 +59,8 @@
 - [x] rename the editor/node from "Sketch Input" to "Image Editor"
 - [x] import image into current layer by drop from outside and paste command
 - [ ] add groupable layers as tree structure with drag and drop support, expand / close option
-- [ ] better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view
+- [ ] better cursor and pixel-workflow affordances such as grid overlay, snap-to-pixel, and crisp high-zoom view.
+- [ ] improve selection mask to be able to select 1 pixel width exactly on close zoom
 - [-] make the canvas resizable from edges/corners with a solid interaction model
 
 ### PHASE 5 - FX LAYER

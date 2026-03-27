@@ -86,6 +86,7 @@ export interface UsePointerHandlersParams {
   requestDirtyRedraw: (x: number, y: number, w: number, h: number) => void;
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
+  appendSelectionOverlay: () => void;
   drawOverlayShape: (start: Point, end: Point) => void;
   drawOverlayGradient: (start: Point, end: Point) => void;
   drawOverlayCrop: (start: Point, end: Point) => void;
@@ -164,6 +165,7 @@ export function usePointerHandlers({
   requestDirtyRedraw: _requestDirtyRedraw,
   clearOverlay,
   drawSelectionOverlay,
+  appendSelectionOverlay,
   drawOverlayShape,
   drawOverlayGradient,
   drawOverlayCrop,
@@ -1368,8 +1370,16 @@ export function usePointerHandlers({
       if (activeTool === "brush" || activeTool === "pencil" || activeTool === "eraser") {
         const handler = getToolHandler(activeTool);
         handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
-        clearOverlay();
-        drawSelectionOverlay();
+        // Shift-line continuation keeps `activeStrokeRef` until the next non-shift
+        // stroke; WebGPU hides the active layer while it is set, so the 2D overlay
+        // must keep showing the merged preview — do not clear it in that case.
+        if (activeStrokeRef.current) {
+          drawActiveStrokePreview();
+          appendSelectionOverlay();
+        } else {
+          clearOverlay();
+          drawSelectionOverlay();
+        }
         return;
       }
 
@@ -1445,6 +1455,9 @@ export function usePointerHandlers({
       getOrCreateLayerCanvas,
       clearOverlay,
       drawSelectionOverlay,
+      appendSelectionOverlay,
+      drawActiveStrokePreview,
+      activeStrokeRef,
       redraw,
       screenToCanvas,
       onSelectionChange,

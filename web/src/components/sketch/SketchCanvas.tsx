@@ -331,6 +331,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       requestDirtyRedraw,
       clearOverlay: overlay.clearOverlay,
       drawSelectionOverlay: overlay.drawSelectionOverlay,
+      appendSelectionOverlay: overlay.appendSelectionOverlay,
       drawOverlayShape: overlay.drawOverlayShape,
       drawOverlayGradient: overlay.drawOverlayGradient,
       drawOverlayCrop: overlay.drawOverlayCrop,

@@ -18,24 +18,10 @@ import {
 } from "../drawingUtils";
 import {
   drawSelectionMaskOutline,
+  drawSelectionPolylineOutline,
+  rectSelectionMask,
   selectionHasAnyPixels
 } from "../selection/selectionMask";
-
-// ─── Constants ──────────────────────────────────────────────────────────────
-const SELECTION_DASH_BASE = 4;
-
-/** Document-space stroke metrics so selection UI stays ~constant on screen (CSS scale = zoom). */
-function selectionOverlayDocStroke(zoom: number): {
-  lineWidth: number;
-  dash: number;
-  dashOffset: number;
-} {
-  const z = Math.max(0.02, Math.min(zoom, 64));
-  const docPerScreen = 1 / z;
-  const lineWidth = Math.max(1, Math.min(10, Math.ceil(docPerScreen)));
-  const dash = Math.max(3, Math.min(24, Math.round(SELECTION_DASH_BASE * docPerScreen)));
-  return { lineWidth, dash, dashOffset: dash / 2 };
-}
 
 export interface UseOverlayRendererParams {
   doc: SketchDocument;
@@ -55,6 +41,8 @@ export interface UseOverlayRendererParams {
 export interface UseOverlayRendererResult {
   clearOverlay: () => void;
   drawSelectionOverlay: () => void;
+  /** Draw marching ants on top without clearing (e.g. after `drawActiveStrokePreview`). */
+  appendSelectionOverlay: () => void;
   drawOverlayShape: (start: Point, end: Point) => void;
   drawOverlayGradient: (start: Point, end: Point) => void;
   drawOverlayCrop: (start: Point, end: Point) => void;
@@ -151,6 +139,29 @@ export function useOverlayRenderer({
     drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
     ctx.restore();
   }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef, zoom]);
+
+  const appendSelectionOverlay = useCallback(() => {
+    const overlay = overlayCanvasRef.current;
+    if (!overlay || !selection || !selectionHasAnyPixels(selection)) {
+      return;
+    }
+    if (selectStartRef.current || lassoPointsRef.current.length > 0) {
+      return;
+    }
+    const ctx = overlay.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.save();
+    paintExistingSelectionMaskOutline(ctx);
+    ctx.restore();
+  }, [
+    selection,
+    overlayCanvasRef,
+    selectStartRef,
+    lassoPointsRef,
+    paintExistingSelectionMaskOutline
+  ]);
 
   useEffect(() => {
     drawSelectionOverlay();
@@ -280,16 +291,8 @@ export function useOverlayRenderer({
       if (w < 1 || h < 1) {
         return;
       }
-      const { lineWidth, dash, dashOffset } = selectionOverlayDocStroke(zoom);
-      ctx.save();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = lineWidth;
-      ctx.setLineDash([dash, dash]);
-      ctx.strokeRect(x, y, w, h);
-      ctx.strokeStyle = "#000000";
-      ctx.lineDashOffset = dashOffset;
-      ctx.strokeRect(x, y, w, h);
-      ctx.restore();
+      const previewMask = rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
+      drawSelectionMaskOutline(ctx, previewMask, antsPhaseRef.current, zoom);
     },
     [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline]
   );
@@ -310,21 +313,7 @@ export function useOverlayRenderer({
       if (path.length < 2) {
         return;
       }
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      for (let i = 1; i < path.length; i++) {
-        ctx.lineTo(path[i].x, path[i].y);
-      }
-      const { lineWidth, dash, dashOffset } = selectionOverlayDocStroke(zoom);
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = lineWidth;
-      ctx.setLineDash([dash, dash]);
-      ctx.stroke();
-      ctx.strokeStyle = "#000000";
-      ctx.lineDashOffset = dashOffset;
-      ctx.stroke();
-      ctx.restore();
+      drawSelectionPolylineOutline(ctx, path, antsPhaseRef.current, zoom);
     },
     [overlayCanvasRef, zoom, paintExistingSelectionMaskOutline]
   );
@@ -446,6 +435,7 @@ export function useOverlayRenderer({
   return {
     clearOverlay,
     drawSelectionOverlay,
+    appendSelectionOverlay,
     drawOverlayShape,
     drawOverlayGradient,
     drawOverlayCrop,

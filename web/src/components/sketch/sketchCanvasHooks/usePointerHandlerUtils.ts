@@ -414,6 +414,7 @@ export function usePointerHandlerUtils({
       return;
     }
     ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.imageSmoothingEnabled = false;
 
     const activeStroke = activeStrokeRef.current;
     if (!activeStroke) {
@@ -437,6 +438,7 @@ export function usePointerHandlerUtils({
     if (!tempCtx) {
       return;
     }
+    tempCtx.imageSmoothingEnabled = false;
 
     tempCtx.drawImage(layerCanvas, 0, 0);
     tempCtx.save();

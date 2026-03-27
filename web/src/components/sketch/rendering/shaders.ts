@@ -83,9 +83,12 @@ fn fs_layer(@location(0) uv: vec2f) -> @location(0) vec4f {
   if (sampleUV.x < 0.0 || sampleUV.x >= 1.0 || sampleUV.y < 0.0 || sampleUV.y >= 1.0) {
     return vec4f(0.0, 0.0, 0.0, 0.0);
   }
-  let dims = vec2f(textureDimensions(layerTexture));
-  let texel = vec2i(sampleUV * dims);
-  let color = textureLoad(layerTexture, texel, 0);
+  let dimsU = textureDimensions(layerTexture);
+  let dimsF = vec2f(f32(dimsU.x), f32(dimsU.y));
+  let tf = sampleUV * dimsF;
+  let tx = i32(clamp(floor(tf.x), 0.0, max(dimsF.x - 1.0, 0.0)));
+  let ty = i32(clamp(floor(tf.y), 0.0, max(dimsF.y - 1.0, 0.0)));
+  let color = textureLoad(layerTexture, vec2i(tx, ty), 0);
   return vec4f(color.rgb, color.a * opacity);
 }
 `;

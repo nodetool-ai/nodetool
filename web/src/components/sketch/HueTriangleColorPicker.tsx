@@ -27,6 +27,9 @@ import {
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 const WIDGET_SIZE = 180;
+/** Floating preview while dragging hue ring or triangle: fixed to viewport, left of the wheel (does not affect panel width). */
+const PREVIEW_SWATCH_SIZE = 52;
+const PREVIEW_GAP = 6;
 const RING_WIDTH = 16;
 const OUTER_R = WIDGET_SIZE / 2;
 const INNER_R = OUTER_R - RING_WIDTH;
@@ -232,8 +235,14 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   const ringCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const triangleCacheRef = useRef<{ hueKey: number; canvas: HTMLCanvasElement } | null>(null);
   const dragTarget = useRef<DragTarget>(null);
-  const pendingEmitRef = useRef<{ h: number; s: number; v: number } | null>(null);
-  const rafEmitRef = useRef<number | null>(null);
+  /** Latest SV while dragging the triangle; committed to store on pointer up only. */
+  const triangleDragSvRef = useRef<{ s: number; v: number }>({ s: 0, v: 0 });
+  /** Only set while pointer is down on hue ring or triangle; `null` = preview hidden. */
+  const [trianglePreviewScreen, setTrianglePreviewScreen] = useState<{
+    css: string;
+    left: number;
+    top: number;
+  } | null>(null);
 
   // ─── Parse color to HSV ──────────────────────────────────────────
   const { r, g, b, a } = parseColorToRgba(color);
@@ -358,21 +367,27 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     return baryToSV(clamped.u, clamped.v, clamped.w);
   }, [hsv.s, hsv.v]);
 
-  const flushEmit = useCallback(() => {
-    rafEmitRef.current = null;
-    const p = pendingEmitRef.current;
-    if (p == null) { return; }
-    pendingEmitRef.current = null;
-    const { r: nr, g: ng, b: nb } = hsvToRgb(p.h, p.s, p.v);
-    onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
-  }, [a, onColorChange]);
+  const previewCssFromHsv = useCallback(
+    (h: number, s: number, v: number) => {
+      const { r: nr, g: ng, b: nb } = hsvToRgb(h, s, v);
+      return rgbaToCss({ r: nr, g: ng, b: nb, a });
+    },
+    [a]
+  );
 
-  const scheduleEmit = useCallback((h: number, s: number, v: number) => {
-    pendingEmitRef.current = { h, s, v };
-    if (rafEmitRef.current === null) {
-      rafEmitRef.current = requestAnimationFrame(flushEmit);
+  const placeTrianglePreviewFloating = useCallback((css: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
     }
-  }, [flushEmit]);
+    const rect = canvas.getBoundingClientRect();
+    const size = PREVIEW_SWATCH_SIZE;
+    setTrianglePreviewScreen({
+      css,
+      left: rect.left - PREVIEW_GAP - size,
+      top: rect.top + rect.height / 2 - size / 2
+    });
+  }, []);
 
   // ─── Mouse handlers ─────────────────────────────────────────────
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -387,14 +402,15 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
       const newHue = pointerToHue(e.clientX, e.clientY);
       localHueRef.current = newHue;
       setLocalHue(newHue);
+      placeTrianglePreviewFloating(previewCssFromHsv(newHue, hsv.s, hsv.v));
       repaint(newHue, hsv.s, hsv.v);
-      scheduleEmit(newHue, hsv.s, hsv.v);
     } else if (target === "triangle") {
       const { s, val } = pointerToSV(e.clientX, e.clientY);
+      triangleDragSvRef.current = { s, v: val };
+      placeTrianglePreviewFloating(previewCssFromHsv(localHue, s, val));
       repaint(localHue, s, val);
-      scheduleEmit(localHue, s, val);
     }
-  }, [hitTest, pointerToHue, pointerToSV, localHue, hsv.s, hsv.v, repaint, scheduleEmit]);
+  }, [hitTest, pointerToHue, pointerToSV, localHue, hsv.s, hsv.v, repaint, previewCssFromHsv, placeTrianglePreviewFloating]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (dragTarget.current === null) { return; }
@@ -403,30 +419,40 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     if (dragTarget.current === "ring") {
       const newHue = pointerToHue(e.clientX, e.clientY);
       localHueRef.current = newHue;
+      placeTrianglePreviewFloating(previewCssFromHsv(newHue, hsv.s, hsv.v));
       repaint(newHue, hsv.s, hsv.v);
-      scheduleEmit(newHue, hsv.s, hsv.v);
     } else if (dragTarget.current === "triangle") {
       const { s, val } = pointerToSV(e.clientX, e.clientY);
-      repaint(localHueRef.current, s, val);
-      scheduleEmit(localHueRef.current, s, val);
+      triangleDragSvRef.current = { s, v: val };
+      const h = localHueRef.current;
+      placeTrianglePreviewFloating(previewCssFromHsv(h, s, val));
+      repaint(h, s, val);
     }
-  }, [pointerToHue, pointerToSV, hsv.s, hsv.v, repaint, scheduleEmit]);
+  }, [pointerToHue, pointerToSV, hsv.s, hsv.v, repaint, previewCssFromHsv, placeTrianglePreviewFloating]);
 
-  const endPointerDrag = useCallback((e: React.PointerEvent) => {
-    if (rafEmitRef.current !== null) {
-      cancelAnimationFrame(rafEmitRef.current);
-      rafEmitRef.current = null;
-    }
-    flushEmit();
-    if (dragTarget.current === "ring") {
-      setLocalHue(localHueRef.current);
-    }
-    dragTarget.current = null;
-    const canvas = canvasRef.current;
-    if (canvas?.hasPointerCapture(e.pointerId)) {
-      canvas.releasePointerCapture(e.pointerId);
-    }
-  }, [flushEmit]);
+  const endPointerDrag = useCallback(
+    (e: React.PointerEvent) => {
+      const ending = dragTarget.current;
+      if (ending === "triangle") {
+        const { s, v: val } = triangleDragSvRef.current;
+        const h = localHueRef.current;
+        const { r: nr, g: ng, b: nb } = hsvToRgb(h, s, val);
+        onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
+      } else if (ending === "ring") {
+        const h = localHueRef.current;
+        const { r: nr, g: ng, b: nb } = hsvToRgb(h, hsv.s, hsv.v);
+        onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
+        setLocalHue(h);
+      }
+      dragTarget.current = null;
+      setTrianglePreviewScreen(null);
+      const canvas = canvasRef.current;
+      if (canvas?.hasPointerCapture(e.pointerId)) {
+        canvas.releasePointerCapture(e.pointerId);
+      }
+    },
+    [a, hsv.s, hsv.v, onColorChange]
+  );
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     endPointerDrag(e);
@@ -437,31 +463,54 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   }, [endPointerDrag]);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        py: "4px"
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        width={WIDGET_SIZE}
-        height={WIDGET_SIZE}
-        style={{
-          width: `${WIDGET_SIZE}px`,
-          height: `${WIDGET_SIZE}px`,
-          cursor: "crosshair",
-          touchAction: "none"
+    <>
+      {trianglePreviewScreen ? (
+        <Box
+          aria-hidden
+          sx={{
+            position: "fixed",
+            left: trianglePreviewScreen.left,
+            top: trianglePreviewScreen.top,
+            width: PREVIEW_SWATCH_SIZE,
+            height: PREVIEW_SWATCH_SIZE,
+            zIndex: (theme) => theme.zIndex.tooltip,
+            boxSizing: "border-box",
+            borderRadius: 1,
+            border: 1,
+            borderColor: "divider",
+            backgroundColor: trianglePreviewScreen.css,
+            pointerEvents: "none",
+            boxShadow: 2
+          }}
+        />
+      ) : null}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+          py: "4px",
+          position: "relative"
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-      />
-    </Box>
+      >
+        <canvas
+          ref={canvasRef}
+          width={WIDGET_SIZE}
+          height={WIDGET_SIZE}
+          style={{
+            width: `${WIDGET_SIZE}px`,
+            height: `${WIDGET_SIZE}px`,
+            cursor: "crosshair",
+            touchAction: "none"
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+        />
+      </Box>
+    </>
   );
 };
 

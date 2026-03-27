@@ -473,6 +473,85 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
  * Marching-ants outline on mask edges. `zoom` is the canvas CSS scale so we can
  * draw thicker dashes in document space (~constant size on screen when zoomed out).
  */
+function bresenhamPlot(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  plot: (x: number, y: number) => void
+): void {
+  let x0r = Math.round(x0);
+  let y0r = Math.round(y0);
+  const x1r = Math.round(x1);
+  const y1r = Math.round(y1);
+  const dx = Math.abs(x1r - x0r);
+  const dy = Math.abs(y1r - y0r);
+  const sx = x0r < x1r ? 1 : -1;
+  const sy = y0r < y1r ? 1 : -1;
+  let err = dx - dy;
+  for (;;) {
+    plot(x0r, y0r);
+    if (x0r === x1r && y0r === y1r) {
+      break;
+    }
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0r += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0r += sy;
+    }
+  }
+}
+
+/**
+ * Crisp marching-ants along an open polyline (lasso in progress).
+ * Matches `drawSelectionMaskOutline` phase / zoom-thickening rules.
+ */
+export function drawSelectionPolylineOutline(
+  ctx: CanvasRenderingContext2D,
+  points: Point[],
+  phase: number,
+  zoom = 1
+): void {
+  if (points.length < 2) {
+    return;
+  }
+  const z = Math.max(0.02, Math.min(zoom, 64));
+  const cell = Math.max(1, Math.min(16, Math.ceil(1 / z)));
+  const drawn = new Set<string>();
+
+  const plot = (x: number, y: number): void => {
+    if (cell <= 1) {
+      const on = ((x + y + phase) >> 2) % 2 === 0;
+      ctx.fillStyle = on ? "#ffffff" : "#000000";
+      ctx.fillRect(x, y, 1, 1);
+      return;
+    }
+    const qx = Math.floor(x / cell);
+    const qy = Math.floor(y / cell);
+    const key = `${qx},${qy}`;
+    if (drawn.has(key)) {
+      return;
+    }
+    drawn.add(key);
+    const on = ((qx + qy + phase) & 1) === 0;
+    ctx.fillStyle = on ? "#ffffff" : "#000000";
+    ctx.fillRect(qx * cell, qy * cell, cell, cell);
+  };
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    bresenhamPlot(a.x, a.y, b.x, b.y, plot);
+  }
+  ctx.restore();
+}
+
 export function drawSelectionMaskOutline(
   ctx: CanvasRenderingContext2D,
   mask: Selection,
@@ -482,6 +561,9 @@ export function drawSelectionMaskOutline(
   const { width: w, height: h, data } = mask;
   const z = Math.max(0.02, Math.min(zoom, 64));
   const cell = Math.max(1, Math.min(16, Math.ceil(1 / z)));
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
 
   if (cell <= 1) {
     for (let y = 0; y < h; y++) {
@@ -508,6 +590,7 @@ export function drawSelectionMaskOutline(
         ctx.fillRect(x, y, 1, 1);
       }
     }
+    ctx.restore();
     return;
   }
 
@@ -543,6 +626,7 @@ export function drawSelectionMaskOutline(
       ctx.fillRect(qx * cell, qy * cell, cell, cell);
     }
   }
+  ctx.restore();
 }
 
 export function clipContextToSelectionMask(
