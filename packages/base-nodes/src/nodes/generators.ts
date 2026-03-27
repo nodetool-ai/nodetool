@@ -5,6 +5,11 @@ type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
 type ProviderStreamItem = { type?: string; content?: unknown; delta?: unknown };
+type BinaryRef = { uri?: string; data?: Uint8Array | string; mimeType?: string };
+type MessageTextContent = { type: "text"; text: string };
+type MessageImageContent = { type: "image"; image: BinaryRef };
+type MessageAudioContent = { type: "audio"; audio: BinaryRef };
+type MessageContent = MessageTextContent | MessageImageContent | MessageAudioContent;
 
 function asText(value: unknown): string {
   if (typeof value === "string") return value;
@@ -70,6 +75,31 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
     rows.push(row);
   }
   return rows;
+}
+
+function normalizeBinaryRef(value: unknown): BinaryRef | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const out: BinaryRef = {};
+  if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
+  if (record.data instanceof Uint8Array || typeof record.data === "string") out.data = record.data;
+  if (typeof record.mimeType === "string" && record.mimeType) out.mimeType = record.mimeType;
+  if (typeof record.mime_type === "string" && record.mime_type) out.mimeType = record.mime_type;
+  return out.uri || out.data ? out : null;
+}
+
+function buildMessageContent(
+  text: string,
+  image: unknown,
+  audio: unknown
+): string | MessageContent[] {
+  const imageRef = normalizeBinaryRef(image);
+  const audioRef = normalizeBinaryRef(audio);
+  if (!imageRef && !audioRef) return text;
+  const parts: MessageContent[] = [{ type: "text", text }];
+  if (imageRef) parts.push({ type: "image", image: imageRef });
+  if (audioRef) parts.push({ type: "audio", audio: audioRef });
+  return parts;
 }
 
 function getModelConfig(
@@ -270,6 +300,24 @@ export class StructuredOutputGeneratorNode extends BaseNode {
   @prop({ type: "int", default: 4096, title: "Max Tokens", description: "The maximum number of tokens to generate.", min: 1, max: 16384 })
   declare max_tokens: any;
 
+  @prop({ type: "image", default: {
+  "type": "image",
+  "uri": "",
+  "asset_id": null,
+  "data": null,
+  "metadata": null
+}, title: "Image", description: "Optional image to include in the generation request." })
+  declare image: any;
+
+  @prop({ type: "audio", default: {
+  "type": "audio",
+  "uri": "",
+  "asset_id": null,
+  "data": null,
+  "metadata": null
+}, title: "Audio", description: "Optional audio to include in the generation request." })
+  declare audio: any;
+
 
 
 
@@ -281,6 +329,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
     if (schema && typeof schema === "object" && !Array.isArray(schema) && hasProviderSupport(context, providerId, modelId)) {
       const instructions = asText(this.instructions ?? this.instructions ?? "");
       const extraContext = asText(this.context ?? this.context ?? "");
+      const userText = [instructions, extraContext].filter(Boolean).join("\n\n");
       const result = await context.runProviderPrediction({
         provider: providerId,
         capability: "generate_message",
@@ -290,7 +339,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
           messages: [
             {
               role: "user",
-              content: [instructions, extraContext].filter(Boolean).join("\n\n"),
+              content: buildMessageContent(userText, this.image, this.audio),
             },
           ],
           responseFormat: {
