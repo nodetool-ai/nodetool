@@ -66,34 +66,34 @@ function makeShortSine(): { uri: string; data: string } {
 
 describe("AmplitudeToDB", () => {
   it("converts amplitude 1.0 to 0 dB", async () => {
-    const res = await new AmplitudeToDBNode().process({
-      tensor: { data: [1.0] },
-    });
+    const node = new AmplitudeToDBNode();
+    node.assign({ tensor: { data: [1.0] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(0, 5);
   });
 
   it("converts amplitude 0.5 to ~-6.02 dB", async () => {
-    const res = await new AmplitudeToDBNode().process({
-      tensor: { data: [0.5] },
-    });
+    const node = new AmplitudeToDBNode();
+    node.assign({ tensor: { data: [0.5] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(20 * Math.log10(0.5), 5);
   });
 
   it("handles 2D arrays", async () => {
-    const res = await new AmplitudeToDBNode().process({
-      tensor: { data: [[1.0, 10.0], [0.1]] },
-    });
+    const node = new AmplitudeToDBNode();
+    node.assign({ tensor: { data: [[1.0, 10.0], [0.1]] } });
+    const res = await node.process();
     const out = res.output as { data: number[][] };
     expect(out.data[0][0]).toBeCloseTo(0, 5);
     expect(out.data[0][1]).toBeCloseTo(20, 5);
   });
 
   it("clamps near-zero values", async () => {
-    const res = await new AmplitudeToDBNode().process({
-      tensor: { data: [0] },
-    });
+    const node = new AmplitudeToDBNode();
+    node.assign({ tensor: { data: [0] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     // 20 * log10(1e-10) = -200
     expect(out.data[0]).toBeCloseTo(-200, 0);
@@ -102,26 +102,26 @@ describe("AmplitudeToDB", () => {
 
 describe("DBToAmplitude", () => {
   it("converts 0 dB to amplitude 1.0", async () => {
-    const res = await new DBToAmplitudeNode().process({
-      tensor: { data: [0] },
-    });
+    const node = new DBToAmplitudeNode();
+    node.assign({ tensor: { data: [0] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(1.0, 5);
   });
 
   it("converts -6.02 dB to ~0.5", async () => {
     const db = 20 * Math.log10(0.5);
-    const res = await new DBToAmplitudeNode().process({
-      tensor: { data: [db] },
-    });
+    const node = new DBToAmplitudeNode();
+    node.assign({ tensor: { data: [db] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(0.5, 4);
   });
 
   it("converts 20 dB to amplitude 10", async () => {
-    const res = await new DBToAmplitudeNode().process({
-      tensor: { data: [20] },
-    });
+    const node = new DBToAmplitudeNode();
+    node.assign({ tensor: { data: [20] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(10, 4);
   });
@@ -129,25 +129,25 @@ describe("DBToAmplitude", () => {
 
 describe("PowerToDB", () => {
   it("converts power 1.0 to 0 dB", async () => {
-    const res = await new PowerToDBNode().process({
-      tensor: { data: [1.0] },
-    });
+    const node = new PowerToDBNode();
+    node.assign({ tensor: { data: [1.0] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(0, 5);
   });
 
   it("converts power 100 to 20 dB", async () => {
-    const res = await new PowerToDBNode().process({
-      tensor: { data: [100] },
-    });
+    const node = new PowerToDBNode();
+    node.assign({ tensor: { data: [100] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(20, 5);
   });
 
   it("clamps near-zero values", async () => {
-    const res = await new PowerToDBNode().process({
-      tensor: { data: [0] },
-    });
+    const node = new PowerToDBNode();
+    node.assign({ tensor: { data: [0] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(-100, 0);
   });
@@ -155,25 +155,25 @@ describe("PowerToDB", () => {
 
 describe("DBToPower", () => {
   it("converts 0 dB to power 1.0", async () => {
-    const res = await new DBToPowerNode().process({
-      tensor: { data: [0] },
-    });
+    const node = new DBToPowerNode();
+    node.assign({ tensor: { data: [0] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(1.0, 5);
   });
 
   it("converts 10 dB to power 10", async () => {
-    const res = await new DBToPowerNode().process({
-      tensor: { data: [10] },
-    });
+    const node = new DBToPowerNode();
+    node.assign({ tensor: { data: [10] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(10, 4);
   });
 
   it("converts 20 dB to power 100", async () => {
-    const res = await new DBToPowerNode().process({
-      tensor: { data: [20] },
-    });
+    const node = new DBToPowerNode();
+    node.assign({ tensor: { data: [20] } });
+    const res = await node.process();
     const out = res.output as { data: number[] };
     expect(out.data[0]).toBeCloseTo(100, 3);
   });
@@ -182,12 +182,12 @@ describe("DBToPower", () => {
 describe("AmplitudeToDB <-> DBToAmplitude roundtrip", () => {
   it("roundtrips correctly", async () => {
     const values = [0.01, 0.1, 0.5, 1.0, 2.0, 10.0];
-    const dbRes = await new AmplitudeToDBNode().process({
-      tensor: { data: values },
-    });
-    const ampRes = await new DBToAmplitudeNode().process({
-      tensor: dbRes.output as { data: number[] },
-    });
+    const dbNode = new AmplitudeToDBNode();
+    dbNode.assign({ tensor: { data: values } });
+    const dbRes = await dbNode.process();
+    const ampNode = new DBToAmplitudeNode();
+    ampNode.assign({ tensor: dbRes.output as { data: number[] } });
+    const ampRes = await ampNode.process();
     const out = (ampRes.output as { data: number[] }).data;
     for (let i = 0; i < values.length; i++) {
       expect(out[i]).toBeCloseTo(values[i], 4);
@@ -198,12 +198,12 @@ describe("AmplitudeToDB <-> DBToAmplitude roundtrip", () => {
 describe("PowerToDB <-> DBToPower roundtrip", () => {
   it("roundtrips correctly", async () => {
     const values = [0.01, 0.1, 1.0, 10.0, 100.0];
-    const dbRes = await new PowerToDBNode().process({
-      tensor: { data: values },
-    });
-    const powRes = await new DBToPowerNode().process({
-      tensor: dbRes.output as { data: number[] },
-    });
+    const dbNode = new PowerToDBNode();
+    dbNode.assign({ tensor: { data: values } });
+    const dbRes = await dbNode.process();
+    const powNode = new DBToPowerNode();
+    powNode.assign({ tensor: dbRes.output as { data: number[] } });
+    const powRes = await powNode.process();
     const out = (powRes.output as { data: number[] }).data;
     for (let i = 0; i < values.length; i++) {
       expect(out[i]).toBeCloseTo(values[i], 4);
@@ -213,9 +213,9 @@ describe("PowerToDB <-> DBToPower roundtrip", () => {
 
 describe("PlotSpectrogram", () => {
   it("returns empty output for empty spectrogram", async () => {
-    const res = await new PlotSpectrogramNode().process({
-      tensor: { data: [] },
-    });
+    const node = new PlotSpectrogramNode();
+    node.assign({ tensor: { data: [] } });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBe("");
   });
@@ -225,9 +225,9 @@ describe("PlotSpectrogram", () => {
     const spec = Array.from({ length: 4 }, (_, r) =>
       Array.from({ length: 8 }, (_, c) => r * 8 + c)
     );
-    const res = await new PlotSpectrogramNode().process({
-      tensor: { data: spec },
-    });
+    const node = new PlotSpectrogramNode();
+    node.assign({ tensor: { data: spec } });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data.length).toBeGreaterThan(0);
     // Verify it decodes to valid PNG (starts with PNG signature)
@@ -242,14 +242,18 @@ describe("PlotSpectrogram", () => {
 describe("GainNode_", () => {
   it("returns audio ref with data when given valid audio", async () => {
     const audio = makeShortSine();
-    const res = await new GainNode_().process({ audio, gain_db: 0 });
+    const node = new GainNode_();
+    node.assign({ audio, gain_db: 0 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     expect(out.data.length).toBeGreaterThan(0);
   });
 
   it("passes through when no audio data", async () => {
-    const res = await new GainNode_().process({ audio: {}, gain_db: 6 });
+    const node = new GainNode_();
+    node.assign({ audio: {}, gain_db: 6 });
+    const res = await node.process();
     expect(res.output).toEqual({});
   });
 });
@@ -257,12 +261,14 @@ describe("GainNode_", () => {
 describe("DelayNode_", () => {
   it("produces output longer than input (extra echoes)", async () => {
     const audio = makeShortSine();
-    const res = await new DelayNode_().process({
+    const node = new DelayNode_();
+    node.assign({
       audio,
       delay_seconds: 0.01,
       feedback: 0.3,
       mix: 0.5,
     });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     // Delay output should be longer due to echo tail
@@ -273,10 +279,9 @@ describe("DelayNode_", () => {
 describe("HighPassFilterNode", () => {
   it("returns audio ref with data", async () => {
     const audio = makeShortSine();
-    const res = await new HighPassFilterNode().process({
-      audio,
-      cutoff_frequency_hz: 200,
-    });
+    const node = new HighPassFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 200 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     expect(out.data.length).toBeGreaterThan(0);
@@ -286,10 +291,9 @@ describe("HighPassFilterNode", () => {
 describe("LowPassFilterNode", () => {
   it("returns audio ref with data", async () => {
     const audio = makeShortSine();
-    const res = await new LowPassFilterNode().process({
-      audio,
-      cutoff_frequency_hz: 2000,
-    });
+    const node = new LowPassFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 2000 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
   });
@@ -298,11 +302,9 @@ describe("LowPassFilterNode", () => {
 describe("HighShelfFilterNode", () => {
   it("returns audio ref with data", async () => {
     const audio = makeShortSine();
-    const res = await new HighShelfFilterNode().process({
-      audio,
-      cutoff_frequency_hz: 3000,
-      gain_db: 6,
-    });
+    const node = new HighShelfFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 3000, gain_db: 6 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
   });
@@ -311,11 +313,9 @@ describe("HighShelfFilterNode", () => {
 describe("LowShelfFilterNode", () => {
   it("returns audio ref with data", async () => {
     const audio = makeShortSine();
-    const res = await new LowShelfFilterNode().process({
-      audio,
-      cutoff_frequency_hz: 300,
-      gain_db: -3,
-    });
+    const node = new LowShelfFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 300, gain_db: -3 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
   });
@@ -324,11 +324,9 @@ describe("LowShelfFilterNode", () => {
 describe("PeakFilterNode", () => {
   it("returns audio ref with data", async () => {
     const audio = makeShortSine();
-    const res = await new PeakFilterNode().process({
-      audio,
-      cutoff_frequency_hz: 1000,
-      q_factor: 2.0,
-    });
+    const node = new PeakFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 1000, q_factor: 2.0 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
   });
@@ -338,13 +336,15 @@ describe("PeakFilterNode", () => {
 
 describe("OscillatorLibNode", () => {
   it("generates sine wave audio", async () => {
-    const res = await new OscillatorLibNode().process({
+    const node = new OscillatorLibNode();
+    node.assign({
       waveform: "sine",
       frequency: 440,
       amplitude: 0.5,
       duration: 0.1,
       sample_rate: 8000,
     });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     expect(out.data.length).toBeGreaterThan(0);
@@ -355,27 +355,27 @@ describe("OscillatorLibNode", () => {
 
   it("generates all waveform types", async () => {
     for (const waveform of ["sine", "square", "sawtooth", "triangle"]) {
-      const res = await new OscillatorLibNode().process({
+      const node = new OscillatorLibNode();
+      node.assign({
         waveform,
         frequency: 440,
         amplitude: 0.5,
         duration: 0.05,
         sample_rate: 8000,
       });
+      const res = await node.process();
       const out = res.output as { uri: string; data: string };
       expect(out.data.length).toBeGreaterThan(0);
     }
   });
 
   it("respects duration parameter", async () => {
-    const short = await new OscillatorLibNode().process({
-      duration: 0.05,
-      sample_rate: 8000,
-    });
-    const long = await new OscillatorLibNode().process({
-      duration: 0.2,
-      sample_rate: 8000,
-    });
+    const shortNode = new OscillatorLibNode();
+    shortNode.assign({ duration: 0.05, sample_rate: 8000 });
+    const short = await shortNode.process();
+    const longNode = new OscillatorLibNode();
+    longNode.assign({ duration: 0.2, sample_rate: 8000 });
+    const long = await longNode.process();
     const shortData = (short.output as { data: string }).data;
     const longData = (long.output as { data: string }).data;
     expect(longData.length).toBeGreaterThan(shortData.length);
@@ -384,11 +384,9 @@ describe("OscillatorLibNode", () => {
 
 describe("WhiteNoiseLibNode", () => {
   it("generates non-empty audio", async () => {
-    const res = await new WhiteNoiseLibNode().process({
-      amplitude: 0.5,
-      duration: 0.1,
-      sample_rate: 8000,
-    });
+    const node = new WhiteNoiseLibNode();
+    node.assign({ amplitude: 0.5, duration: 0.1, sample_rate: 8000 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     const buf = Buffer.from(out.data, "base64");
@@ -398,11 +396,9 @@ describe("WhiteNoiseLibNode", () => {
 
 describe("PinkNoiseLibNode", () => {
   it("generates non-empty audio", async () => {
-    const res = await new PinkNoiseLibNode().process({
-      amplitude: 0.5,
-      duration: 0.1,
-      sample_rate: 8000,
-    });
+    const node = new PinkNoiseLibNode();
+    node.assign({ amplitude: 0.5, duration: 0.1, sample_rate: 8000 });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     const buf = Buffer.from(out.data, "base64");
@@ -412,7 +408,8 @@ describe("PinkNoiseLibNode", () => {
 
 describe("FM_SynthesisLibNode", () => {
   it("generates FM synthesis audio", async () => {
-    const res = await new FM_SynthesisLibNode().process({
+    const node = new FM_SynthesisLibNode();
+    node.assign({
       carrier_freq: 440,
       modulator_freq: 110,
       modulation_index: 5,
@@ -420,6 +417,7 @@ describe("FM_SynthesisLibNode", () => {
       duration: 0.1,
       sample_rate: 8000,
     });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     const buf = Buffer.from(out.data, "base64");
@@ -430,22 +428,26 @@ describe("FM_SynthesisLibNode", () => {
 describe("EnvelopeLibNode", () => {
   it("applies envelope to oscillator output", async () => {
     // First generate audio
-    const oscRes = await new OscillatorLibNode().process({
+    const oscNode = new OscillatorLibNode();
+    oscNode.assign({
       waveform: "sine",
       frequency: 440,
       amplitude: 1.0,
       duration: 0.1,
       sample_rate: 8000,
     });
+    const oscRes = await oscNode.process();
     const audio = oscRes.output;
 
-    const res = await new EnvelopeLibNode().process({
+    const node = new EnvelopeLibNode();
+    node.assign({
       audio,
       attack: 0.02,
       decay: 0.03,
       release: 0.05,
       peak_amplitude: 1.0,
     });
+    const res = await node.process();
     const out = res.output as { uri: string; data: string };
     expect(out.data).toBeTruthy();
     const buf = Buffer.from(out.data, "base64");
@@ -453,7 +455,9 @@ describe("EnvelopeLibNode", () => {
   });
 
   it("passes through when no audio data", async () => {
-    const res = await new EnvelopeLibNode().process({ audio: {} });
+    const node = new EnvelopeLibNode();
+    node.assign({ audio: {} });
+    const res = await node.process();
     expect(res.output).toEqual({});
   });
 });

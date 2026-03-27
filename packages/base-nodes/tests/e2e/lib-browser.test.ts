@@ -72,7 +72,9 @@ function testHandler(req: http.IncomingMessage, res: http.ServerResponse) {
 describe("lib.browser.WebFetch", () => {
   it("fetches HTML and converts to markdown", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new WebFetchLibNode().process({ url: baseUrl });
+      const node = new WebFetchLibNode();
+      node.assign({ url: baseUrl });
+      const result = await node.process();
       const output = String(result.output);
       expect(output).toContain("Hello Browser");
       expect(output).toContain("paragraph text");
@@ -81,10 +83,9 @@ describe("lib.browser.WebFetch", () => {
 
   it("uses selector to extract specific elements", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new WebFetchLibNode().process({
-        url: baseUrl,
-        selector: "h1",
-      });
+      const node = new WebFetchLibNode();
+      node.assign({ url: baseUrl, selector: "h1" });
+      const result = await node.process();
       const output = String(result.output);
       expect(output).toContain("Hello Browser");
       expect(output).not.toContain("paragraph text");
@@ -93,24 +94,26 @@ describe("lib.browser.WebFetch", () => {
 
   it("returns raw text for non-HTML content", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new WebFetchLibNode().process({
-        url: `${baseUrl}/plain.txt`,
-      });
+      const node = new WebFetchLibNode();
+      node.assign({ url: `${baseUrl}/plain.txt` });
+      const result = await node.process();
       expect(result.output).toBe("plain text content");
     });
   });
 
   it("throws on empty URL", async () => {
-    await expect(new WebFetchLibNode().process({ url: "" })).rejects.toThrow(
-      "URL is required"
-    );
+    const node = new WebFetchLibNode();
+    node.assign({ url: "" });
+    await expect(node.process()).rejects.toThrow("URL is required");
   });
 
   it("throws on non-existent selector", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      await expect(
-        new WebFetchLibNode().process({ url: baseUrl, selector: "#nonexistent" })
-      ).rejects.toThrow("No elements found matching selector");
+      const node = new WebFetchLibNode();
+      node.assign({ url: baseUrl, selector: "#nonexistent" });
+      await expect(node.process()).rejects.toThrow(
+        "No elements found matching selector"
+      );
     });
   });
 });
@@ -118,9 +121,9 @@ describe("lib.browser.WebFetch", () => {
 describe("lib.browser.DownloadFile", () => {
   it("downloads binary content as base64", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new DownloadFileLibNode().process({
-        url: `${baseUrl}/binary`,
-      });
+      const node = new DownloadFileLibNode();
+      node.assign({ url: `${baseUrl}/binary` });
+      const result = await node.process();
       const output = result.output as { __bytes__: string };
       expect(output.__bytes__).toBeDefined();
       const buf = Buffer.from(output.__bytes__, "base64");
@@ -131,9 +134,9 @@ describe("lib.browser.DownloadFile", () => {
 
   it("downloads text content as base64", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new DownloadFileLibNode().process({
-        url: `${baseUrl}/plain.txt`,
-      });
+      const node = new DownloadFileLibNode();
+      node.assign({ url: `${baseUrl}/plain.txt` });
+      const result = await node.process();
       const output = result.output as { __bytes__: string };
       const decoded = Buffer.from(output.__bytes__, "base64").toString("utf-8");
       expect(decoded).toBe("plain text content");
@@ -141,16 +144,17 @@ describe("lib.browser.DownloadFile", () => {
   });
 
   it("throws on empty URL", async () => {
-    await expect(new DownloadFileLibNode().process({ url: "" })).rejects.toThrow(
-      "URL is required"
-    );
+    const node = new DownloadFileLibNode();
+    node.assign({ url: "" });
+    await expect(node.process()).rejects.toThrow("URL is required");
   });
 });
 
 describe("lib.browser.SpiderCrawl", () => {
   it("crawls pages following links", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new SpiderCrawlLibNode().process({
+      const node = new SpiderCrawlLibNode();
+      node.assign({
         start_url: baseUrl,
         max_depth: 2,
         max_pages: 10,
@@ -159,6 +163,7 @@ describe("lib.browser.SpiderCrawl", () => {
         delay_ms: 0,
         timeout: 5000,
       });
+      const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
       expect(pages.length).toBeGreaterThanOrEqual(2);
       const urls = pages.map((p) => p.url);
@@ -181,7 +186,8 @@ describe("lib.browser.SpiderCrawl", () => {
 
   it("respects max_depth=0", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new SpiderCrawlLibNode().process({
+      const node = new SpiderCrawlLibNode();
+      node.assign({
         start_url: baseUrl,
         max_depth: 0,
         max_pages: 10,
@@ -190,6 +196,7 @@ describe("lib.browser.SpiderCrawl", () => {
         delay_ms: 0,
         timeout: 5000,
       });
+      const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
       expect(pages).toHaveLength(1);
       expect(pages[0].url).toBe(baseUrl);
@@ -198,7 +205,8 @@ describe("lib.browser.SpiderCrawl", () => {
 
   it("includes HTML when requested", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new SpiderCrawlLibNode().process({
+      const node = new SpiderCrawlLibNode();
+      node.assign({
         start_url: baseUrl,
         max_depth: 0,
         max_pages: 1,
@@ -206,6 +214,7 @@ describe("lib.browser.SpiderCrawl", () => {
         delay_ms: 0,
         timeout: 5000,
       });
+      const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
       expect(pages[0].html).toContain("Hello Browser");
     });
@@ -213,7 +222,8 @@ describe("lib.browser.SpiderCrawl", () => {
 
   it("respects max_pages limit", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new SpiderCrawlLibNode().process({
+      const node = new SpiderCrawlLibNode();
+      node.assign({
         start_url: baseUrl,
         max_depth: 10,
         max_pages: 2,
@@ -221,6 +231,7 @@ describe("lib.browser.SpiderCrawl", () => {
         delay_ms: 0,
         timeout: 5000,
       });
+      const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
       expect(pages.length).toBeLessThanOrEqual(2);
     });
@@ -228,7 +239,8 @@ describe("lib.browser.SpiderCrawl", () => {
 
   it("respects exclude_pattern", async () => {
     await withServer(testHandler, async (baseUrl) => {
-      const result = await new SpiderCrawlLibNode().process({
+      const node = new SpiderCrawlLibNode();
+      node.assign({
         start_url: baseUrl,
         max_depth: 2,
         max_pages: 10,
@@ -237,6 +249,7 @@ describe("lib.browser.SpiderCrawl", () => {
         delay_ms: 0,
         timeout: 5000,
       });
+      const result = await node.process();
       const pages = result.output as Array<Record<string, unknown>>;
       const urls = pages.map((p) => String(p.url));
       expect(urls.every((u) => !u.includes("page3"))).toBe(true);
@@ -244,8 +257,8 @@ describe("lib.browser.SpiderCrawl", () => {
   });
 
   it("throws on empty start_url", async () => {
-    await expect(
-      new SpiderCrawlLibNode().process({ start_url: "" })
-    ).rejects.toThrow("start_url is required");
+    const node = new SpiderCrawlLibNode();
+    node.assign({ start_url: "" });
+    await expect(node.process()).rejects.toThrow("start_url is required");
   });
 });
