@@ -265,6 +265,7 @@ export function useCanvasActions({
 
   // ─── Stroke handlers ───────────────────────────────────────────────
   const handleStrokeStart = useCallback(() => {
+    canvasRef.current?.drainPendingStrokeCommit();
     const activeLayerId = document.activeLayerId;
     const isTransformOnlyGesture = isTransformOnlyTool(activeTool);
     const activeLayerSnapshot =

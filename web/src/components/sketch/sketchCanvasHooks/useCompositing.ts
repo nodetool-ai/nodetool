@@ -50,6 +50,12 @@ export interface UseCompositingResult {
   requestRedraw: () => void;
   /** Schedule a partial redraw over only the changed region (faster for large canvases). */
   requestDirtyRedraw: (x: number, y: number, w: number, h: number) => void;
+  /**
+   * Run any deferred stroke merge immediately (same as start of compositing rAF).
+   * Needed before layer snapshots e.g. undo history, when the next stroke starts
+   * before the scheduled rAF has fired.
+   */
+  drainPendingStrokeCommit: () => void;
 }
 
 export function useCompositing({
@@ -307,6 +313,15 @@ export function useCompositing({
     [compositeToDisplay, activeStrokeRef]
   );
 
+  const drainPendingStrokeCommit = useCallback(() => {
+    const stroke = activeStrokeRef.current;
+    const pending = stroke?.pendingCommit;
+    if (pending) {
+      stroke!.pendingCommit = null;
+      pending();
+    }
+  }, [activeStrokeRef]);
+
   /**
    * Batched redraw using requestAnimationFrame.
    * During active drawing, multiple pointer move events can fire per frame.
@@ -325,15 +340,11 @@ export function useCompositing({
         // Drain any pending stroke buffer merge BEFORE compositing.
         // This defers the GPU→CPU drawImage stall out of the pointer-up
         // handler so the cursor is never blocked by it.
-        const pending = activeStrokeRef.current?.pendingCommit;
-        if (pending) {
-          activeStrokeRef.current!.pendingCommit = null;
-          pending();
-        }
+        drainPendingStrokeCommit();
         compositeToDisplayRef.current(null);
       });
     }
-  }, [activeStrokeRef]);
+  }, [activeStrokeRef, drainPendingStrokeCommit]);
 
   /**
    * Schedule a partial redraw over a dirty region.
@@ -361,11 +372,7 @@ export function useCompositing({
           isFullRedrawRef.current = false;
 
           // Drain pending stroke buffer merge before compositing.
-          const pending = activeStrokeRef.current?.pendingCommit;
-          if (pending) {
-            activeStrokeRef.current!.pendingCommit = null;
-            pending();
-          }
+          drainPendingStrokeCommit();
 
           const liveBufferedStroke = activeStrokeRef.current != null;
           if (isFull || !dirty || liveBufferedStroke) {
@@ -376,7 +383,7 @@ export function useCompositing({
         });
       }
     },
-    [mergePendingDirtyRect, activeStrokeRef]
+    [mergePendingDirtyRect, activeStrokeRef, drainPendingStrokeCommit]
   );
 
   // ─── Initialize layer canvases from document data ───────────────────
@@ -478,6 +485,7 @@ export function useCompositing({
     redraw,
     redrawDirty,
     requestRedraw,
-    requestDirtyRedraw
+    requestDirtyRedraw,
+    drainPendingStrokeCommit
   };
 }

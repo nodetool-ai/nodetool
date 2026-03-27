@@ -128,6 +128,8 @@ export interface SketchCanvasRef {
   nudgeLayer: (layerId: string, dx: number, dy: number) => void;
   /** Full display composite (layer visibility, opacity, blend, isolation). */
   redrawDisplay: () => void;
+  /** Merge deferred stroke buffer onto the layer if pointer-up rAF has not run yet. */
+  drainPendingStrokeCommit: () => void;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -280,7 +282,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       redraw,
       redrawDirty,
       requestRedraw,
-      requestDirtyRedraw
+      requestDirtyRedraw,
+      drainPendingStrokeCommit
     } = useCompositing({
       doc,
       zoom,
@@ -413,7 +416,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       runtime,
       displayCanvasRef,
       overlayCanvasRef,
-      redraw
+      redraw,
+      drainPendingStrokeCommit
     });
 
     // ─── Document-space cursor tracking ─────────────────────────────────

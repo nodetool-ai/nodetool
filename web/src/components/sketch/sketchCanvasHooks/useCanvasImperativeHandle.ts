@@ -21,6 +21,7 @@ export interface UseCanvasImperativeHandleParams {
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   redraw: () => void;
+  drainPendingStrokeCommit: () => void;
 }
 
 export function useCanvasImperativeHandle({
@@ -29,7 +30,8 @@ export function useCanvasImperativeHandle({
   runtime,
   displayCanvasRef,
   overlayCanvasRef,
-  redraw
+  redraw,
+  drainPendingStrokeCommit
 }: UseCanvasImperativeHandleParams): void {
   useImperativeHandle(
     ref,
@@ -169,12 +171,16 @@ export function useCanvasImperativeHandle({
       },
       redrawDisplay: () => {
         redraw();
+      },
+      drainPendingStrokeCommit: () => {
+        drainPendingStrokeCommit();
       }
     }),
     [
       doc,
       runtime,
       redraw,
+      drainPendingStrokeCommit,
       displayCanvasRef,
       overlayCanvasRef
     ]

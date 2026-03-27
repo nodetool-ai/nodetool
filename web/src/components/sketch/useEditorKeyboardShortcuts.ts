@@ -21,7 +21,7 @@ import type {
 type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
 /** True on macOS / iOS / iPadOS-style platforms where Cmd replaces Ctrl for spring shortcuts. */
-function useMetaForMoveSpring(): boolean {
+function isAppleLikePlatform(): boolean {
   if (typeof navigator === "undefined") {
     return false;
   }
@@ -30,15 +30,14 @@ function useMetaForMoveSpring(): boolean {
 
 /** Physical Ctrl (Win/Linux) or Cmd (Mac) key for spring-loaded move tool. */
 function isMoveSpringModifierPhysicalKey(e: KeyboardEvent): boolean {
-  const apple = useMetaForMoveSpring();
-  if (apple) {
+  if (isAppleLikePlatform()) {
     return e.code === "MetaLeft" || e.code === "MetaRight";
   }
   return e.code === "ControlLeft" || e.code === "ControlRight";
 }
 
 function moveSpringModifierStillHeld(e: KeyboardEvent): boolean {
-  return useMetaForMoveSpring()
+  return isAppleLikePlatform()
     ? e.getModifierState("Meta")
     : e.getModifierState("Control");
 }

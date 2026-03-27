@@ -114,18 +114,33 @@ export class PaintSession {
       return false;
     }
 
+    this.layer = activeLayer;
+    this.strokePointerType = event.nativeEvent.pointerType;
+
     // Detect shift-line continuation: an existing buffer on the same layer
     // that was intentionally kept alive by a previous end() call.
-    const existing = ctx.activeStrokeRef.current;
+    const existingAtStart = ctx.activeStrokeRef.current;
     const isShiftContinuation =
-      existing &&
-      existing.layerId === activeLayer.id &&
+      existingAtStart &&
+      existingAtStart.layerId === activeLayer.id &&
       ctx.shiftHeldRef.current &&
       this.lastStrokeEnd &&
       this.engine.bufferMode === "buffered";
 
-    this.layer = activeLayer;
-    this.strokePointerType = event.nativeEvent.pointerType;
+    // Merge previous stroke onto the layer before the undo snapshot.
+    // 1) Deferred pointer-up merge may not have run yet (rAF ordering vs next down).
+    const strokePendingCommit = existingAtStart?.pendingCommit;
+    if (strokePendingCommit && existingAtStart) {
+      existingAtStart.pendingCommit = null;
+      strokePendingCommit();
+    }
+    // 2) Shift-chain buffer lives on the stroke canvas until the next non-shift begin.
+    if (this.engine.bufferMode === "buffered" && !isShiftContinuation) {
+      const leftover = ctx.activeStrokeRef.current;
+      if (leftover) {
+        this.flushShiftBuffer(ctx, leftover);
+      }
+    }
 
     // Only push a history entry for the first stroke in a shift-chain.
     if (!isShiftContinuation) {
@@ -182,15 +197,7 @@ export class PaintSession {
       // stroke left its buffer alive (shift-line continuation).  This
       // keeps consecutive shift+click line segments in the same
       // compositing pass so opacity doesn't stack at crossings.
-      const existing = ctx.activeStrokeRef.current;
-
       if (!isShiftContinuation) {
-        // Flush any leftover buffer from a prior shift-chain that ended
-        // (e.g. user released Shift then clicked again).
-        if (existing) {
-          this.flushShiftBuffer(ctx, existing);
-        }
-
         const buffer = window.document.createElement("canvas");
         buffer.width = layerCanvas.width;
         buffer.height = layerCanvas.height;
