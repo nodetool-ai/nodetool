@@ -283,7 +283,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         />
       );
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [
     dynamicProperties,
     connectedEdges,
@@ -291,6 +290,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     id,
     nodeType,
     layout,
+    data,
     editableDynamicInputs,
     findNode,
     getMetadata
