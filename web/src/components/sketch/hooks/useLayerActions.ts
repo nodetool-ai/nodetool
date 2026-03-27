@@ -29,6 +29,10 @@ export interface UseLayerActionsParams {
   toggleLayerExposedOutput: (layerId: string) => void;
   mergeLayerDown: (upperLayerId: string) => void;
   flattenVisible: () => void;
+  addGroup: (name?: string) => string;
+  toggleGroupCollapsed: (groupId: string) => void;
+  moveLayerToGroup: (layerId: string, groupId: string | null) => void;
+  ungroupLayer: (groupId: string) => void;
 }
 
 export function useLayerActions({
@@ -49,7 +53,11 @@ export function useLayerActions({
   toggleLayerExposedInput,
   toggleLayerExposedOutput,
   mergeLayerDown,
-  flattenVisible
+  flattenVisible,
+  addGroup,
+  toggleGroupCollapsed,
+  moveLayerToGroup,
+  ungroupLayer
 }: UseLayerActionsParams) {
   const handleAddLayer = useCallback(
     (fillColor?: string | null) => {
@@ -254,6 +262,37 @@ export function useLayerActions({
     }
   }, [pushHistory, flattenVisible, updateLayerData, canvasRef]);
 
+  const handleAddGroup = useCallback(
+    (name?: string) => {
+      pushHistory("add group");
+      addGroup(name);
+    },
+    [pushHistory, addGroup]
+  );
+
+  const handleToggleGroupCollapsed = useCallback(
+    (groupId: string) => {
+      toggleGroupCollapsed(groupId);
+    },
+    [toggleGroupCollapsed]
+  );
+
+  const handleMoveLayerToGroup = useCallback(
+    (layerId: string, groupId: string | null) => {
+      pushHistory("move layer to group");
+      moveLayerToGroup(layerId, groupId);
+    },
+    [pushHistory, moveLayerToGroup]
+  );
+
+  const handleUngroupLayer = useCallback(
+    (groupId: string) => {
+      pushHistory("ungroup");
+      ungroupLayer(groupId);
+    },
+    [pushHistory, ungroupLayer]
+  );
+
   return {
     handleAddLayer,
     handleRemoveLayer,
@@ -270,6 +309,10 @@ export function useLayerActions({
     handleFlipHorizontal,
     handleFlipVertical,
     handleMergeDown,
-    handleFlattenVisible
+    handleFlattenVisible,
+    handleAddGroup,
+    handleToggleGroupCollapsed,
+    handleMoveLayerToGroup,
+    handleUngroupLayer
   };
 }

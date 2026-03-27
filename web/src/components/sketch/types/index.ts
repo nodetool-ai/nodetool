@@ -165,7 +165,7 @@ export interface ToolSettings {
 
 // ─── Layer Types ──────────────────────────────────────────────────────────────
 
-export type LayerType = "raster" | "mask";
+export type LayerType = "raster" | "mask" | "group";
 
 export type BlendMode =
   | "normal"
@@ -225,6 +225,10 @@ export interface Layer {
    * The layer may stay `locked` for painting while still allowing move/nudge transforms.
    */
   imageReference?: LayerImageReference | null;
+  /** ID of the parent group layer. `undefined` or `null` means root level. */
+  parentId?: string | null;
+  /** For group layers: whether child layers are collapsed (hidden) in the panel. */
+  collapsed?: boolean;
 }
 
 // ─── Color Swatches ───────────────────────────────────────────────────────────
@@ -306,6 +310,8 @@ export interface LayerStructureSnapshot {
   exposedAsInput?: boolean;
   exposedAsOutput?: boolean;
   imageReference?: LayerImageReference | null;
+  parentId?: string | null;
+  collapsed?: boolean;
 }
 
 export type HistoryRestoreMode = "full" | "structure-only";
@@ -505,6 +511,8 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         blendMode: layer.blendMode ?? "normal",
         data: layer.data ?? null,
         imageReference: layer.imageReference ?? undefined,
+        parentId: layer.parentId ?? undefined,
+        collapsed: layer.collapsed ?? false,
         transform: {
           x: layer.transform?.x ?? 0,
           y: layer.transform?.y ?? 0
@@ -588,6 +596,88 @@ export function isShapeTool(tool: SketchTool): boolean {
 /** Check if a tool is a painting tool (supports Alt+click eyedropper) */
 export function isPaintingTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser" || tool === "fill" || tool === "clone_stamp" || tool === "blur";
+}
+
+// ─── Layer Group Helpers ──────────────────────────────────────────────────────
+
+/** Returns the children of a given group layer (or root if parentId is null). */
+export function getChildLayers(layers: Layer[], parentId: string | null | undefined): Layer[] {
+  return layers.filter((l) =>
+    parentId ? l.parentId === parentId : !l.parentId
+  );
+}
+
+/** Returns the nesting depth of a layer in the tree (0 for root). */
+export function getLayerDepth(layers: Layer[], layerId: string): number {
+  let depth = 0;
+  let current = layers.find((l) => l.id === layerId);
+  while (current?.parentId) {
+    depth++;
+    current = layers.find((l) => l.id === current!.parentId);
+    if (depth > 20) { break; } // prevent infinite loops in corrupt data
+  }
+  return depth;
+}
+
+/** Recursively collect all descendant IDs of a group (children, grandchildren, etc.) */
+export function getDescendantIds(layers: Layer[], groupId: string): string[] {
+  const ids: string[] = [];
+  const children = layers.filter((l) => l.parentId === groupId);
+  for (const child of children) {
+    ids.push(child.id);
+    if (child.type === "group") {
+      ids.push(...getDescendantIds(layers, child.id));
+    }
+  }
+  return ids;
+}
+
+/**
+ * Build a flat rendering order that respects the tree structure.
+ * Returns layers in the same order as the flat array but annotated
+ * with their depth. Layers whose ancestor group is collapsed are excluded.
+ */
+export function buildVisibleLayerTree(layers: Layer[]): Array<{ layer: Layer; depth: number }> {
+  const result: Array<{ layer: Layer; depth: number }> = [];
+  const collapsedGroupIds = new Set(
+    layers.filter((l) => l.type === "group" && l.collapsed).map((l) => l.id)
+  );
+
+  for (const layer of layers) {
+    const depth = getLayerDepth(layers, layer.id);
+    // Check if any ancestor group is collapsed
+    let hidden = false;
+    let current: Layer | undefined = layer;
+    while (current?.parentId) {
+      if (collapsedGroupIds.has(current.parentId)) {
+        hidden = true;
+        break;
+      }
+      current = layers.find((l) => l.id === current!.parentId);
+    }
+    if (!hidden) {
+      result.push({ layer, depth });
+    }
+  }
+  return result;
+}
+
+/** Create a default group layer. */
+export function createDefaultGroupLayer(name: string): Layer {
+  return {
+    id: generateLayerId(),
+    name,
+    type: "group",
+    visible: true,
+    opacity: 1,
+    locked: false,
+    alphaLock: false,
+    blendMode: "normal",
+    data: null,
+    transform: { x: 0, y: 0 },
+    contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+    collapsed: false
+  };
 }
 
 // ─── Edit Action Kind ─────────────────────────────────────────────────────

@@ -60,6 +60,10 @@ export function useSketchStoreSelectors() {
   const canRedo = useSketchStore((s) => s.canRedo);
   const mergeLayerDown = useSketchStore((s) => s.mergeLayerDown);
   const flattenVisible = useSketchStore((s) => s.flattenVisible);
+  const addGroup = useSketchStore((s) => s.addGroup);
+  const toggleGroupCollapsed = useSketchStore((s) => s.toggleGroupCollapsed);
+  const moveLayerToGroup = useSketchStore((s) => s.moveLayerToGroup);
+  const ungroupLayer = useSketchStore((s) => s.ungroupLayer);
   const foregroundColor = useSketchStore((s) => s.foregroundColor);
   const backgroundColor = useSketchStore((s) => s.backgroundColor);
   const setForegroundColor = useSketchStore((s) => s.setForegroundColor);
@@ -140,6 +144,10 @@ export function useSketchStoreSelectors() {
     canRedo,
     mergeLayerDown,
     flattenVisible,
+    addGroup,
+    toggleGroupCollapsed,
+    moveLayerToGroup,
+    ungroupLayer,
     foregroundColor: safeForegroundColor,
     backgroundColor: safeBackgroundColor,
     setForegroundColor,

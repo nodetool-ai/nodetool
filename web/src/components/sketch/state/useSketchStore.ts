@@ -31,7 +31,9 @@ import {
   createDefaultDocument,
   normalizeSketchDocument,
   createDefaultLayer,
+  createDefaultGroupLayer,
   generateLayerId,
+  getDescendantIds,
   MAX_HISTORY_SIZE
 } from "../types";
 
@@ -159,6 +161,12 @@ export interface SketchStore {
   toggleLayerExposedOutput: (layerId: string) => void;
   mergeLayerDown: (layerId: string) => void;
   flattenVisible: () => void;
+
+  // ─── Group Layer Actions ──────────────────────────────────────────────────
+  addGroup: (name?: string) => string;
+  toggleGroupCollapsed: (groupId: string) => void;
+  moveLayerToGroup: (layerId: string, groupId: string | null) => void;
+  ungroupLayer: (groupId: string) => void;
 
   // ─── Foreground / Background Colors ───────────────────────────────────────
   foregroundColor: string;
@@ -436,10 +444,26 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       if (layers.length <= 1) {
         return state; // Don't remove last layer
       }
-      const newLayers = layers.filter((l) => l.id !== layerId);
+      const removed = layers.find((l) => l.id === layerId);
+      const parentId = removed?.parentId ?? undefined;
+      // When removing a group, also remove its descendants
+      const idsToRemove = new Set([layerId]);
+      if (removed?.type === "group") {
+        for (const id of getDescendantIds(layers, layerId)) {
+          idsToRemove.add(id);
+        }
+      }
+      let newLayers = layers
+        .filter((l) => !idsToRemove.has(l.id))
+        // Re-parent direct children of a non-group removed layer (edge case)
+        .map((l) => l.parentId === layerId ? { ...l, parentId } : l);
+      if (newLayers.length === 0) {
+        // Don't remove all layers — keep at least the first non-removed or restore one
+        newLayers = layers.slice(0, 1);
+      }
       const newActiveId =
-        activeLayerId === layerId ? newLayers[newLayers.length - 1].id : activeLayerId;
-      const newMaskId = maskLayerId === layerId ? null : maskLayerId;
+        idsToRemove.has(activeLayerId) ? newLayers[newLayers.length - 1].id : activeLayerId;
+      const newMaskId = maskLayerId && idsToRemove.has(maskLayerId) ? null : maskLayerId;
       return {
         document: {
           ...state.document,
@@ -715,6 +739,86 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         }
+      };
+    }),
+
+  // ─── Group Layer Actions ───────────────────────────────────────────────
+  addGroup: (name?: string) => {
+    const group = createDefaultGroupLayer(
+      name || `Group ${get().document.layers.filter((l) => l.type === "group").length + 1}`
+    );
+    set((state) => {
+      const layers = state.document.layers;
+      const activeIdx = layers.findIndex((l) => l.id === state.document.activeLayerId);
+      const insertAt = activeIdx >= 0 ? activeIdx + 1 : layers.length;
+      const newLayers = [...layers.slice(0, insertAt), group, ...layers.slice(insertAt)];
+      return {
+        document: {
+          ...state.document,
+          layers: newLayers,
+          activeLayerId: group.id,
+          metadata: {
+            ...state.document.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      };
+    });
+    return group.id;
+  },
+
+  toggleGroupCollapsed: (groupId: string) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        layers: state.document.layers.map((l) =>
+          l.id === groupId && l.type === "group"
+            ? { ...l, collapsed: !l.collapsed }
+            : l
+        )
+      }
+    })),
+
+  moveLayerToGroup: (layerId: string, groupId: string | null) =>
+    set((state) => {
+      const layer = state.document.layers.find((l) => l.id === layerId);
+      if (!layer) { return state; }
+      // Prevent moving a group into itself or its own descendants
+      if (groupId && layerId === groupId) { return state; }
+      if (groupId && layer.type === "group") {
+        const descendantIds = getDescendantIds(state.document.layers, layerId);
+        if (descendantIds.includes(groupId)) { return state; }
+      }
+      return {
+        document: withUpdatedDocumentTimestamp({
+          ...state.document,
+          layers: state.document.layers.map((l) =>
+            l.id === layerId
+              ? { ...l, parentId: groupId ?? undefined }
+              : l
+          )
+        })
+      };
+    }),
+
+  ungroupLayer: (groupId: string) =>
+    set((state) => {
+      const group = state.document.layers.find((l) => l.id === groupId);
+      if (!group || group.type !== "group") { return state; }
+      const parentId = group.parentId ?? undefined;
+      // Move all children to the parent level
+      const newLayers = state.document.layers
+        .map((l) => l.parentId === groupId ? { ...l, parentId } : l)
+        .filter((l) => l.id !== groupId);
+      const newActiveId = state.document.activeLayerId === groupId
+        ? (newLayers.length > 0 ? newLayers[newLayers.length - 1].id : state.document.activeLayerId)
+        : state.document.activeLayerId;
+      return {
+        document: withUpdatedDocumentTimestamp({
+          ...state.document,
+          layers: newLayers,
+          activeLayerId: newActiveId
+        })
       };
     }),
 
