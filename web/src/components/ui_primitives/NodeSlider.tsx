@@ -10,7 +10,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { forwardRef, useMemo, memo } from "react";
+import { forwardRef, useMemo, memo } from "react";
 import { Slider, SliderProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";

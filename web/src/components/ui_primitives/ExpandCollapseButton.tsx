@@ -12,7 +12,7 @@
  * />
  */
 
-import React, { forwardRef, memo } from "react";
+import { forwardRef, memo } from "react";
 import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
