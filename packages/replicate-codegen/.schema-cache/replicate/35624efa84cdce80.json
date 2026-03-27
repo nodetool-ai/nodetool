@@ -1,0 +1,109 @@
+{
+  "modelId": "cjwbw/sadtalker",
+  "owner": "cjwbw",
+  "name": "sadtalker",
+  "version": "a519cc0cfebaaeade068b23899165a11ec76aaa1d2b313d40d214f204ec957a3",
+  "description": "Stylized Audio-Driven Single Image Talking Face Animation",
+  "inputSchema": {
+    "properties": {
+      "driven_audio": {
+        "description": "Upload the driven audio, accepts .wav and .mp4 file",
+        "format": "uri",
+        "title": "Driven Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "expression_scale": {
+        "default": 1,
+        "description": " a larger value will make the expression motion stronger",
+        "title": "Expression Scale",
+        "type": "number",
+        "x-order": 4
+      },
+      "facerender": {
+        "default": "facevid2vid",
+        "description": "Choose face render",
+        "enum": [
+          "facevid2vid",
+          "pirender"
+        ],
+        "title": "facerender",
+        "type": "string",
+        "x-order": 8
+      },
+      "pose_style": {
+        "default": 0,
+        "description": "Pose style",
+        "maximum": 45,
+        "minimum": 0,
+        "title": "Pose Style",
+        "type": "integer",
+        "x-order": 3
+      },
+      "preprocess": {
+        "default": "crop",
+        "description": "Choose how to preprocess the images",
+        "enum": [
+          "crop",
+          "resize",
+          "full",
+          "extcrop",
+          "extfull"
+        ],
+        "title": "preprocess",
+        "type": "string",
+        "x-order": 6
+      },
+      "size_of_image": {
+        "default": 256,
+        "description": "Face model resolution",
+        "enum": [
+          256,
+          512
+        ],
+        "title": "size_of_image",
+        "type": "integer",
+        "x-order": 7
+      },
+      "source_image": {
+        "description": "Upload the source image, it can be video.mp4 or picture.png",
+        "format": "uri",
+        "title": "Source Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "still_mode": {
+        "default": true,
+        "description": "Still Mode (fewer head motion, works with preprocess 'full')",
+        "title": "Still Mode",
+        "type": "boolean",
+        "x-order": 9
+      },
+      "use_enhancer": {
+        "default": false,
+        "description": "Use GFPGAN as Face enhancer",
+        "title": "Use Enhancer",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "use_eyeblink": {
+        "default": true,
+        "description": "Use eye blink",
+        "title": "Use Eyeblink",
+        "type": "boolean",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "source_image",
+      "driven_audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

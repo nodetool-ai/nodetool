@@ -37,6 +37,8 @@ jest.mock("../settings", () => ({
 
 jest.mock("../python", () => ({
   getDefaultInstallLocation: jest.fn(),
+  installRequiredPythonPackages: jest.fn(),
+  runCommand: jest.fn(),
 }));
 
 describe("installer promptForInstallLocation", () => {
@@ -44,7 +46,7 @@ describe("installer promptForInstallLocation", () => {
     jest.clearAllMocks();
   });
 
-  it("sends prompt to renderer and resolves with location and packages", async () => {
+  it("sends prompt to renderer and resolves with location and modelBackend", async () => {
     (getDefaultInstallLocation as jest.Mock).mockReturnValue("/default/path");
     let handler: any;
     (createIpcMainHandler as jest.Mock).mockImplementation((_channel, fn) => {
@@ -53,27 +55,30 @@ describe("installer promptForInstallLocation", () => {
 
     const promise = promptForInstallLocation({
       location: "/default/path",
-      packages: ["pkg1"],
+      modelBackend: "ollama",
     });
 
     expect(BrowserWindow.getFocusedWindow).toHaveBeenCalled();
     expect(browserWindowMock.webContents.send).toHaveBeenCalledWith(
       "install-location-prompt",
-      { defaultPath: "/default/path", packages: ["pkg1"] }
+      { defaultPath: "/default/path" }
     );
 
-    await handler({} as any, { location: "/chosen", packages: ["pkg"] });
-    const result = await promise;
-    expect(updateSettings).toHaveBeenCalledWith({
-      CONDA_ENV: "/chosen",
-      PYTHON_PACKAGES: ["pkg"],
-      MODEL_BACKEND: "ollama",
-      START_OLLAMA_ON_STARTUP: true,
-      START_LLAMA_CPP_ON_STARTUP: false,
+    await handler({} as any, {
+      location: "/chosen",
+      modelBackend: "ollama",
+      startOllamaOnStartup: true,
+      startLlamaCppOnStartup: false,
     });
+    const result = await promise;
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        CONDA_ENV: "/chosen",
+        MODEL_BACKEND: "ollama",
+      })
+    );
     expect(result).toMatchObject({
       location: "/chosen",
-      packages: ["pkg"],
       modelBackend: "ollama",
     });
   });
@@ -86,7 +91,7 @@ describe("installer promptForInstallLocation", () => {
     });
 
     const promise = promptForInstallLocation();
-    await handler({}, { location: "/loc", packages: [] });
+    await handler({}, { location: "/loc", modelBackend: "ollama" });
     await promise;
 
     expect(createIpcMainHandler).toHaveBeenCalledWith(

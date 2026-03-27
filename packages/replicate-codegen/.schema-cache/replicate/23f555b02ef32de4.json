@@ -1,0 +1,123 @@
+{
+  "modelId": "fofr/pulid-base",
+  "owner": "fofr",
+  "name": "pulid-base",
+  "version": "65ea75658bf120abbbdacab07e89e78a74a6a1b1f504349f4c4e3b01a655ee7a",
+  "description": "Use a face to make images. Uses SDXL fine-tuned checkpoints.",
+  "inputSchema": {
+    "properties": {
+      "checkpoint_model": {
+        "default": "general - dreamshaperXL_alpha2Xl10",
+        "description": "Model to use for the generation",
+        "enum": [
+          "general - albedobaseXL_v21",
+          "general - dreamshaperXL_alpha2Xl10",
+          "animated - starlightXLAnimated_v3",
+          "animated - pixlAnimeCartoonComic_v10",
+          "realistic - rundiffusionXL_beta",
+          "realistic - RealVisXL_V4.0",
+          "realistic - sdxlUnstableDiffusers_nihilmania",
+          "cinematic - CinematicRedmond"
+        ],
+        "title": "checkpoint_model",
+        "type": "string",
+        "x-order": 5
+      },
+      "face_image": {
+        "description": "The face image to use for the generation",
+        "format": "uri",
+        "title": "Face Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "face_style": {
+        "default": "high-fidelity",
+        "description": "Style of the face",
+        "enum": [
+          "high-fidelity",
+          "stylized"
+        ],
+        "title": "face_style",
+        "type": "string",
+        "x-order": 6
+      },
+      "height": {
+        "default": 1024,
+        "description": "Height of the output image (ignored if structure image given)",
+        "title": "Height",
+        "type": "integer",
+        "x-order": 4
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want to see in your image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "number_of_images": {
+        "default": 1,
+        "description": "Number of images to generate",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Number Of Images",
+        "type": "integer",
+        "x-order": 7
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 8
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 9
+      },
+      "prompt": {
+        "default": "A photo of a person",
+        "description": "You might need to include a gender in the prompt to get the desired result",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Set a seed for reproducibility. Random by default.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "width": {
+        "default": 1024,
+        "description": "Width of the output image (ignored if structure image given)",
+        "title": "Width",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "face_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

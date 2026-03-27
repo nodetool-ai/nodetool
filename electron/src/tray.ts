@@ -3,7 +3,7 @@ import path from "path";
 import { promises as fs } from "fs";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
-import { createPackageManagerWindow, createWindow, createLogViewerWindow, createSettingsWindow } from "./window";
+import { createPackageManagerWindow, createWindow, createLogViewerWindow, createSettingsWindow, handleActivation } from "./window";
 import { execSync } from "child_process";
 import {
   stopServer,
@@ -287,30 +287,8 @@ function setupWindowsTrayEvents(tray: Electron.Tray): void {
   });
 }
 
-/**
- * Focuses the NodeTool window or creates a new one if none exists.
- * Handles platform-specific window focusing behavior.
- */
-function focusNodeTool(): void {
-  const visibleWindows = BrowserWindow.getAllWindows().filter(
-    (w) => !w.isDestroyed() && w.isVisible()
-  );
-
-  if (visibleWindows.length === 0) {
-    createWindow();
-  } else if (process.platform === "darwin") {
-    const mainWindow = getMainWindow();
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-    } else {
-      createWindow();
-    }
-  }
-}
+/** Focuses the NodeTool window or creates a new one if none exists. */
+const focusNodeTool = handleActivation;
 
 /**
  * Gets menu items for the close behavior settings.

@@ -1,0 +1,32 @@
+{
+  "name": "@nodetool/kernel",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Workflow kernel: Graph model, NodeInbox, and Actor runtime",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/config": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

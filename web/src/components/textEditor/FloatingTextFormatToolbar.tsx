@@ -8,7 +8,7 @@ import {
   SELECTION_CHANGE_COMMAND,
   COMMAND_PRIORITY_LOW
 } from "lexical";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
@@ -93,7 +93,7 @@ function getDOMRangeRect(nativeSelection: Selection, rootElement: HTMLElement) {
   return rect;
 }
 
-export function FloatingTextFormatToolbar(): JSX.Element | null {
+export function FloatingTextFormatToolbar(): React.JSX.Element | null {
   const [editor] = useLexicalComposerContext();
   const [isText, setIsText] = useState(false);
   const [isBold, setIsBold] = useState(false);

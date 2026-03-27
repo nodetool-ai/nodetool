@@ -1,15 +1,13 @@
 import { z } from "zod";
+import { uiDeleteNodeParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
+import { resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_delete_node",
   description: "Delete a node from the workflow graph.",
   requireUserConsent: true,
-  parameters: z.object({
-    node_id: z.string(),
-    workflow_id: optionalWorkflowIdSchema
-  }),
+  parameters: z.object(uiDeleteNodeParams),
   async execute({ node_id, workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);

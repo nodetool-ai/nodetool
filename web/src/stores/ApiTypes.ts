@@ -40,6 +40,8 @@ export type WorkflowToolList = components["schemas"]["WorkflowToolList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
 
 // Workflow version types using API schema types
+export type WorkflowVersionSaveType = "manual" | "autosave" | "checkpoint" | "restore";
+
 export interface WorkflowVersion {
   id: string;
   workflow_id: string;
@@ -48,7 +50,7 @@ export interface WorkflowVersion {
   name?: string;
   description?: string;
   is_pinned?: boolean;
-  save_type?: "manual" | "autosave" | "checkpoint" | "restore";
+  save_type?: WorkflowVersionSaveType;
   graph: Graph;
 }
 
@@ -77,7 +79,17 @@ export interface NodeMetadata extends BaseNodeMetadata {
     }>;
   };
   model_packs?: ModelPack[];
+  the_model_info?: {
+    cover_image_url?: string;
+    [key: string]: unknown;
+  };
+  /**
+   * Runtime packages this node depends on (e.g. "ffmpeg", "python", "ollama").
+   * Populated by the backend from node metadata; used to show install prompts.
+   */
+  required_runtimes?: string[];
 }
+export type SettingWithValue = components["schemas"]["SettingWithValue"];
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
 export type Message = components["schemas"]["Message"];
 export type Prediction = components["schemas"]["Prediction"];

@@ -1,0 +1,113 @@
+{
+  "modelId": "fofr/face-to-many",
+  "owner": "fofr",
+  "name": "face-to-many",
+  "version": "a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
+  "description": "Turn a face into 3D, emoji, pixel art, video game, claymation or toy",
+  "inputSchema": {
+    "properties": {
+      "control_depth_strength": {
+        "default": 0.8,
+        "description": "Strength of depth controlnet. The bigger this is, the more controlnet affects the output.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Control Depth Strength",
+        "type": "number",
+        "x-order": 6
+      },
+      "custom_lora_url": {
+        "description": "URL to a Replicate custom LoRA. Must be in the format https://replicate.delivery/pbxt/[id]/trained_model.tar or https://pbxt.replicate.delivery/[id]/trained_model.tar",
+        "title": "Custom Lora Url",
+        "type": "string",
+        "x-order": 9
+      },
+      "denoising_strength": {
+        "default": 0.65,
+        "description": "How much of the original image to keep. 1 is the complete destruction of the original image, 0 is the original image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Denoising Strength",
+        "type": "number",
+        "x-order": 4
+      },
+      "image": {
+        "description": "An image of a person to be converted",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "instant_id_strength": {
+        "default": 1,
+        "description": "How strong the InstantID will be.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Instant Id Strength",
+        "type": "number",
+        "x-order": 7
+      },
+      "lora_scale": {
+        "default": 1,
+        "description": "How strong the LoRA will be",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Lora Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want in the image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "prompt": {
+        "default": "a person",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "prompt_strength": {
+        "default": 4.5,
+        "description": "Strength of the prompt. This is the CFG scale, higher numbers lead to stronger prompt, lower numbers will keep more of a likeness to the original.",
+        "maximum": 20,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 5
+      },
+      "seed": {
+        "description": "Fix the random seed for reproducibility",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 8
+      },
+      "style": {
+        "default": "3D",
+        "description": "Style to convert to",
+        "enum": [
+          "3D",
+          "Emoji",
+          "Video game",
+          "Pixels",
+          "Clay",
+          "Toy"
+        ],
+        "title": "style",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

@@ -58,19 +58,45 @@ const propertyInputContainerStyles = (theme: Theme) =>
       position: "relative"
     },
 
-    // ACTION ICONS
+    // ACTION ICONS — hidden by default, shown on hover
+    ".action-icons": {
+      position: "absolute",
+      right: 4,
+      top: "50%",
+      transform: "translateY(-50%)",
+      display: "flex",
+      alignItems: "center",
+      gap: 2,
+      opacity: 0,
+      transition: "opacity 0.15s ease",
+      zIndex: 1,
+      background: theme.vars.palette.background.paper,
+      borderRadius: "4px",
+      padding: "2px 4px",
+      boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
+    },
+
     "&:hover .action-icons": {
       opacity: 1
     },
 
     ".action-icon": {
-      fontSize: "1.2em",
+      fontSize: "0.9em",
       cursor: "pointer",
-      margin: "0.2em 0.2em 0.2em 0.5em"
+      padding: 2,
+      borderRadius: "3px",
+      color: theme.vars.palette.text.secondary,
+      transition: "color 0.15s ease, background 0.15s ease",
+      "&:hover": {
+        color: theme.vars.palette.text.primary,
+        background: theme.vars.palette.action.hover,
+      },
     },
 
     ".action-icon.close": {
-      margin: "0.2em 0.5em 0.2em 0"
+      "&:hover": {
+        color: theme.vars.palette.error.main,
+      },
     },
 
     // INPUT FORM

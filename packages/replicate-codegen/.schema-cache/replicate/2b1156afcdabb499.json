@@ -1,0 +1,27 @@
+{
+  "modelId": "abiruyt/text-extract-ocr",
+  "owner": "abiruyt",
+  "name": "text-extract-ocr",
+  "version": "a524caeaa23495bc9edc805ab08ab5fe943afd3febed884a4f3747aa32e9cd61",
+  "description": "A simple OCR Model that can easily extract text from an image.",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Image to process",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

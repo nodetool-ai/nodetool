@@ -35,7 +35,7 @@ export const useDragHandling = (
   setState: React.Dispatch<React.SetStateAction<NumberInputState>>,
   inputIsFocused: boolean,
   setInputIsFocused: (focused: boolean) => void,
-  containerRef: React.RefObject<HTMLDivElement>,
+  containerRef: React.RefObject<HTMLDivElement | null>,
   dragStateRef: React.MutableRefObject<NumberInputState>,
   setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>
 ) => {

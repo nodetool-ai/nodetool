@@ -69,6 +69,7 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
 export const ALL_PROVIDERS = [
   "openai",
   "anthropic",
+  "claude_agent",
   "gemini",
   "replicate",
   "ollama",

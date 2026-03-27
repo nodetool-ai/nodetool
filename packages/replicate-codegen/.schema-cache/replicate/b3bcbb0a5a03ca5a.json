@@ -1,0 +1,96 @@
+{
+  "modelId": "grandlineai/instant-id-artistic",
+  "owner": "grandlineai",
+  "name": "instant-id-artistic",
+  "version": "9cad10c7870bac9d6b587f406aef28208f964454abff5c4152f7dec9b0212a9a",
+  "description": "InstantID : Zero-shot Identity-Preserving Generation in Seconds. Using Dreamshaper-XL as the base model to encourage artistic generations",
+  "inputSchema": {
+    "properties": {
+      "controlnet_conditioning_scale": {
+        "default": 0.8,
+        "description": "Scale for ControlNet conditioning",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Controlnet Conditioning Scale",
+        "type": "number",
+        "x-order": 6
+      },
+      "guidance_scale": {
+        "default": 5,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 8
+      },
+      "height": {
+        "default": 640,
+        "description": "Height of output image",
+        "maximum": 2048,
+        "minimum": 512,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 4
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "ip_adapter_scale": {
+        "default": 0.8,
+        "description": "Scale for IP adapter",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Ip Adapter Scale",
+        "type": "number",
+        "x-order": 5
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Input Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "default": "analog film photo of a man. faded film, desaturated, 35mm photo, grainy, vignette, vintage, Kodachrome, Lomography, stained, highly detailed, found footage, masterpiece, best quality",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "width": {
+        "default": 640,
+        "description": "Width of output image",
+        "maximum": 2048,
+        "minimum": 512,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "modelId": "black-forest-labs/flux-fill-pro",
+  "owner": "black-forest-labs",
+  "name": "flux-fill-pro",
+  "version": "2d4197724d8ed13cc78191e794ebbe6aeedcfe4c5b36f464794732d5ccb9735f",
+  "description": "Professional inpainting and outpainting model with state-of-the-art performance. Edit or extend images with natural, seamless results.",
+  "inputSchema": {
+    "properties": {
+      "guidance": {
+        "default": 60,
+        "description": "Controls the balance between adherence to the text prompt and image quality/diversity. Higher values make the output more closely match the prompt but may reduce overall image quality. Lower values allow for more creative freedom but might produce results less relevant to the prompt.",
+        "maximum": 100,
+        "minimum": 1.5,
+        "title": "Guidance",
+        "type": "number"
+      },
+      "image": {
+        "description": "The image to inpaint. Can contain an alpha mask. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string"
+      },
+      "mask": {
+        "description": "A black-and-white image that describes the part of the image to inpaint. Black areas will be preserved while white areas will be inpainted. Must have the same size as image. Optional if you provide an alpha mask in the original image. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string"
+      },
+      "outpaint": {
+        "default": "None",
+        "description": "A quick option for outpainting an input image. Mask will be ignored.",
+        "enum": [
+          "None",
+          "Zoom out 1.5x",
+          "Zoom out 2x",
+          "Make square",
+          "Left outpaint",
+          "Right outpaint",
+          "Top outpaint",
+          "Bottom outpaint"
+        ],
+        "title": "outpaint",
+        "type": "string",
+        "x-order": 3
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output images.",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 9
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_upsampling": {
+        "default": false,
+        "description": "Automatically modify the prompt for more creative generation",
+        "title": "Prompt Upsampling",
+        "type": "boolean"
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 1 is most strict and 6 is most permissive",
+        "maximum": 6,
+        "minimum": 1,
+        "title": "Safety Tolerance",
+        "type": "integer"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer"
+      },
+      "steps": {
+        "default": 50,
+        "description": "Number of diffusion steps. Higher values yield finer details but increase processing time.",
+        "maximum": 50,
+        "minimum": 15,
+        "title": "Steps",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt",
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

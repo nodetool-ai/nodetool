@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { uiSearchNodesParams } from "@nodetool/protocol";
 import { computeSearchResults } from "../../../utils/nodeSearch";
 import { FrontendToolRegistry } from "../frontendTools";
 
@@ -31,15 +32,12 @@ type SearchNodesArgs = {
 FrontendToolRegistry.register({
   name: "ui_search_nodes",
   description:
-    "Search available node types from metadata store by query/type filters.",
+    "Search available node types from metadata store by query/type filters.\n\nCommon nodes by category (use these as starting points before searching):\n- Text-to-Image: kie.image.Flux2FlexTextToImage, kie.image.FluxProTextToImage\n- LLM/Generators: nodetool.generators.ListGenerator, nodetool.generators.TextGenerator\n- Control Flow: nodetool.control.ForEach, nodetool.control.If, nodetool.control.Switch\n- Constants: nodetool.constant.String, nodetool.constant.Integer, nodetool.constant.Float\n- Code: nodetool.code.Code (replaces text, math, list, dict, date, uuid, http, json nodes)\n- Image: nodetool.image.Composite, nodetool.image.Resize, nodetool.image.SaveImage\n\nSearch tips: Use broad category terms with limit=20. Multiple words are searched independently and combined.",
   parameters: z.object({
-    query: z.string(),
-    input_type: z.string().optional(),
-    output_type: z.string().optional(),
+    ...uiSearchNodesParams,
     strict_match: booleanLikeOptional,
     include_properties: booleanLikeOptional,
     include_outputs: booleanLikeOptional,
-    limit: z.number().min(1).max(100).optional()
   }),
   async execute(args: SearchNodesArgs, ctx) {
     const state = ctx.getState();

@@ -1,0 +1,51 @@
+{
+  "modelId": "salesforce/blip",
+  "owner": "salesforce",
+  "name": "blip",
+  "version": "2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746",
+  "description": "Generate image captions",
+  "inputSchema": {
+    "properties": {
+      "caption": {
+        "description": "Type caption for the input image for image text matching task.",
+        "title": "Caption",
+        "type": "string",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "question": {
+        "description": "Type question for the input image for visual question answering task.",
+        "title": "Question",
+        "type": "string",
+        "x-order": 2
+      },
+      "task": {
+        "default": "image_captioning",
+        "description": "Choose a task.",
+        "enum": [
+          "image_captioning",
+          "visual_question_answering",
+          "image_text_matching"
+        ],
+        "title": "task",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

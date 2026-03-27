@@ -52,7 +52,6 @@ const createMockNode = (
   is_streaming_output: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false,
-  the_model_info: {},
   required_settings: [],
 });
 
@@ -150,11 +149,11 @@ describe("useModelCompatibility", () => {
           [{ repo_id: "flux-model", tags: ["pytorch", "text-to-image", "diffusion"] }],
           [{ name: "model", type: { type: "hf.flux", optional: false, values: null, type_args: [], type_name: null } }]
         ),
-        // Chroma node - vector database (should NOT match Flux models)
-        "chroma.node": createMockNode(
-          "vector.chroma.QueryText",
+        // Vector node - vector database (should NOT match Flux models)
+        "vector.node": createMockNode(
+          "vector.QueryText",
           "Query Text",
-          "vector.chroma",
+          "vector",
           // The Chroma node recommends embedding models, not image models
           [{ repo_id: "sentence-transformers/all-MiniLM-L6-v2", tags: ["pytorch", "feature-extraction"] }],
           [{ name: "collection", type: { type: "collection", optional: false, values: null, type_args: [], type_name: null } }]
@@ -179,8 +178,8 @@ describe("useModelCompatibility", () => {
         ...compatibility.compatible.map((n) => n.nodeType),
       ];
 
-      // Chroma node should NOT be in the matches
-      expect(matchedNodeTypes).not.toContain("vector.chroma.QueryText");
+      // Vector node should NOT be in the matches
+      expect(matchedNodeTypes).not.toContain("vector.QueryText");
       // Flux node could be in matches (if matched by type)
       expect(matchedNodeTypes).toContain("huggingface.text_to_image.Flux");
     });

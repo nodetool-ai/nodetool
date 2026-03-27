@@ -76,8 +76,9 @@ function handleWebSocketMessage(
   console.log('WebSocket message received:', data.type);
 
   if (state.status === 'stopping') {
-    // Only process certain messages while stopping
-    if (!['generation_stopped', 'error', 'job_update'].includes(data.type)) {
+    // Only process certain messages while stopping; messages without a type are ignored
+    const msgType = data.type ?? '';
+    if (!['generation_stopped', 'error', 'job_update'].includes(msgType)) {
       return;
     }
   }
@@ -223,10 +224,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   connect: async () => {
     const state = get();
 
+    // Prevent duplicate connection attempts
+    if (state.status === 'connecting') {
+      console.log('Connection already in progress, skipping');
+      return;
+    }
+
     // Clean up existing connection
     if (state.wsManager) {
       state.wsManager.destroy();
     }
+
+    set({ status: 'connecting' });
 
     // Get WebSocket URL from API service
     const wsUrl = apiService.getWebSocketUrl('/ws/chat');

@@ -10,7 +10,7 @@ title: "Execution Strategies"
 NodeTool supports multiple execution strategies through the `JobExecutionManager`:
 
 - **Threaded** — lowest overhead; runs inside the API process for fast dev feedback.
-- **Subprocess** — isolates Python state per job while staying on the host.
+- **Subprocess** — isolates runtime state per job while staying on the host.
 - **Docker** — strongest isolation with configurable CPU/GPU/memory limits.
 
 Use `ENV=test` to automatically select in-memory storage and test-ready defaults.
@@ -24,7 +24,7 @@ Use `ENV=test` to automatically select in-memory storage and test-ready defaults
 
 ## Subprocess Execution
 
-- Starts a Python child process per job to isolate imports and state.
+- Starts a child process per job to isolate imports and state.
 - Good for heavier CPU tasks without Docker overhead.
 - Communicates progress via pipes; streaming is supported.
 - Honor graceful shutdown by handling SIGTERM in long-running nodes.
@@ -53,9 +53,9 @@ Use `ENV=test` to automatically select in-memory storage and test-ready defaults
 
 ## Testing
 
-- Threaded/Subprocess: `pytest -q tests/workflows/test_threaded_job_execution.py` and `tests/workflows/test_subprocess_job_execution.py`.
-- Docker: `pytest -q tests/workflows/test_docker_job_execution.py` and `tests/workflows/test_docker_runners_e2e.py` (requires Docker and optional GPU).
-- Use `pytest --cov=src` for coverage; add workflow fixtures in `tests/conftest.py`.
+- Threaded/Subprocess: `vitest run tests/workflows/test_threaded_job_execution.test.ts` and `tests/workflows/test_subprocess_job_execution.test.ts`.
+- Docker: `vitest run tests/workflows/test_docker_job_execution.test.ts` and `tests/workflows/test_docker_runners_e2e.test.ts` (requires Docker and optional GPU).
+- Use `vitest run --coverage` for coverage; add workflow fixtures in `tests/setup.ts`.
 
 ## Troubleshooting
 

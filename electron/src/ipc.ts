@@ -23,6 +23,7 @@ import {
   IpcChannels,
   IpcEvents,
   IpcResponse,
+  RuntimePackageId,
   WindowCloseAction,
 } from "./types.d";
 import {
@@ -45,6 +46,10 @@ import {
   validateRepoId,
   searchNodes,
   checkExpectedPackageVersions,
+  getRuntimePackageStatuses,
+  installRuntimePackage,
+  getCondaInstallLocation,
+  RUNTIME_PACKAGE_IDS,
 } from "./packageManager";
 import {
   openModelDirectory,
@@ -927,6 +932,45 @@ export function initializeIpcHandlers(): void {
     logMessage("Checking expected package versions");
     return await checkExpectedPackageVersions();
   });
+
+  // Runtime package handlers
+  createIpcMainHandler(IpcChannels.RUNTIME_PACKAGE_STATUSES, async () => {
+    logMessage("Fetching runtime package statuses");
+    return await getRuntimePackageStatuses();
+  });
+
+  createIpcMainHandler(
+    IpcChannels.RUNTIME_PACKAGE_INSTALL,
+    async (_event, data: { packageId: string; installLocation?: string }) => {
+      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+        return { success: false, message: `Unknown package ID: ${data.packageId}` };
+      }
+      logMessage(`Installing runtime package: ${data.packageId}`);
+      return await installRuntimePackage(
+        data.packageId as RuntimePackageId,
+        data.installLocation,
+      );
+    },
+  );
+
+  createIpcMainHandler(IpcChannels.RUNTIME_GET_INSTALL_LOCATION, async () => {
+    return getCondaInstallLocation();
+  });
+
+  createIpcMainHandler(
+    IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION,
+    async () => {
+      const { filePaths, canceled } = await dialog.showOpenDialog({
+        properties: ["openDirectory", "createDirectory"],
+        title: "Select folder for the conda environment",
+        buttonLabel: "Select Folder",
+      });
+      if (canceled || !filePaths?.[0]) {
+        return null;
+      }
+      return path.join(filePaths[0], "nodetool-env");
+    },
+  );
 
   // Log viewer handlers
   createIpcMainHandler(IpcChannels.GET_LOGS, async () => {

@@ -43,7 +43,7 @@ The capability system uses introspection to automatically detect which features 
 
 ### Language Model Providers
 
-#### <img src="assets/icons/openai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="OpenAI" /> OpenAI (`openai_provider.py`)
+#### <img src="assets/icons/openai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="OpenAI" /> OpenAI (`openai-provider.ts`)
 
 **Capabilities:** Language models (GPT-4, GPT-3.5), Image generation (DALL-E), Speech services
 
@@ -60,7 +60,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ Text-to-speech (TTS)
 - ✅ Speech-to-text (Whisper)
 
-#### <img src="assets/icons/anthropic.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Anthropic" /> Anthropic (`anthropic_provider.py`)
+#### <img src="assets/icons/anthropic.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Anthropic" /> Anthropic (`anthropic-provider.ts`)
 
 **Capabilities:** Claude language models, Advanced reasoning
 
@@ -74,7 +74,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ Multimodal inputs (vision)
 - ✅ JSON mode (via tool use)
 
-#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Gemini (`gemini_provider.py`)
+#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Gemini (`gemini-provider.ts`)
 
 **Capabilities:** Gemini language models, Multimodal AI, Video generation
 
@@ -87,7 +87,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ JSON mode
 - ✅ Video generation (Veo 2, Veo 3)
 
-#### <img src="assets/icons/ollama.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Ollama" /> Ollama (`ollama_provider.py`)
+#### <img src="assets/icons/ollama.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Ollama" /> Ollama (`ollama-provider.ts`)
 
 **Capabilities:** Local/self-hosted models, Open-source models
 
@@ -109,7 +109,7 @@ The capability system uses introspection to automatically detect which features 
 - Textual fallback mechanism available for incompatible models
 - Models must be pulled via `ollama pull` before use
 
-#### <img src="assets/icons/vllm.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="vLLM" /> vLLM (`vllm_provider.py`)
+#### <img src="assets/icons/vllm.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="vLLM" /> vLLM (`vllm-provider.ts`)
 
 **Capabilities:** Self-hosted inference, OpenAI-compatible API
 
@@ -124,7 +124,7 @@ The capability system uses introspection to automatically detect which features 
 
 ### Image Generation Providers
 
-#### <img src="assets/icons/huggingface.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace (`huggingface_provider.py`)
+#### <img src="assets/icons/huggingface.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace (`huggingface-provider.ts`)
 
 **Capabilities:** Diverse model ecosystem, Multiple hosted services, 500,000+ models
 
@@ -493,17 +493,17 @@ Generic nodes map parameters to provider-specific formats:
 
 **TextToImage mapping:**
 
-```python
-TextToImageParams(
-    prompt="...",           # → All providers
-    negative_prompt="...",  # → HuggingFace, Gemini (ignored by DALL-E)
-    width=1024,            # → HuggingFace (mapped to size for DALL-E)
-    height=1024,           # → HuggingFace (mapped to size for DALL-E)
-    guidance_scale=7.5,    # → HuggingFace (not used by DALL-E)
-    num_inference_steps=30,# → HuggingFace (not used by DALL-E)
-    seed=42,               # → HuggingFace (not supported by DALL-E)
-    scheduler="...",       # → HuggingFace-specific
-)
+```typescript
+const params: TextToImageParams = {
+  prompt: "...",             // -> All providers
+  negative_prompt: "...",    // -> HuggingFace, Gemini (ignored by DALL-E)
+  width: 1024,              // -> HuggingFace (mapped to size for DALL-E)
+  height: 1024,             // -> HuggingFace (mapped to size for DALL-E)
+  guidance_scale: 7.5,      // -> HuggingFace (not used by DALL-E)
+  num_inference_steps: 30,  // -> HuggingFace (not used by DALL-E)
+  seed: 42,                 // -> HuggingFace (not supported by DALL-E)
+  scheduler: "...",          // -> HuggingFace-specific
+};
 ```
 
 If a provider does not support a parameter (e.g., negative prompt for DALL-E), NodeTool automatically ignores or
@@ -511,14 +511,14 @@ remaps it.
 
 **TextToVideo mapping:**
 
-```python
-TextToVideoParams(
-    prompt="...",          # → All providers
-    aspect_ratio="16:9",   # → Provider-specific interpretation
-    resolution="720p",     # → Provider-specific interpretation
-    num_frames=60,         # → Provider-specific (duration mapping)
-    guidance_scale=7.5,    # → Provider-specific
-)
+```typescript
+const params: TextToVideoParams = {
+  prompt: "...",           // -> All providers
+  aspect_ratio: "16:9",   // -> Provider-specific interpretation
+  resolution: "720p",     // -> Provider-specific interpretation
+  num_frames: 60,         // -> Provider-specific (duration mapping)
+  guidance_scale: 7.5,    // -> Provider-specific
+};
 ```
 
 ### Best Practices
@@ -591,68 +591,90 @@ TextToVideoParams(
 
 To add a new provider:
 
-1. **Create provider class** in `src/nodetool/providers/`
+1. **Create provider class** in `packages/runtime/src/providers/`
 
-```python
-from nodetool.providers.base import BaseProvider, register_provider
-from nodetool.metadata.types import Provider as ProviderEnum
+```typescript
+import { BaseProvider } from "@nodetool/runtime";
+import { registerProvider } from "@nodetool/runtime";
+import type { Message, LanguageModel, ProviderId } from "@nodetool/runtime";
 
-@register_provider(ProviderEnum.YourProvider)
-class YourProvider(BaseProvider):
-    def __init__(self, api_key: str = None):
-        super().__init__()
-        self.api_key = api_key or get_env_variable("YOUR_PROVIDER_API_KEY")
+export class YourProvider extends BaseProvider {
+  private apiKey: string;
 
-    async def generate_message(self, messages, model, **kwargs):
-        # Implement message generation
-        pass
+  constructor(kwargs: Record<string, unknown> = {}) {
+    super("your_provider" as ProviderId);
+    this.apiKey =
+      (kwargs.YOUR_PROVIDER_API_KEY as string) ??
+      process.env.YOUR_PROVIDER_API_KEY ??
+      "";
+  }
 
-    async def get_available_language_models(self):
-        # Return list of available models
-        return []
+  static requiredSecrets(): string[] {
+    return ["YOUR_PROVIDER_API_KEY"];
+  }
+
+  async *generateMessages(
+    messages: Message[],
+    model: string
+  ): AsyncIterable<ProviderStreamItem> {
+    // Implement streaming message generation
+  }
+
+  async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    return [];
+  }
+}
 ```
 
-2. **Register in `__init__.py`**
+2. **Register in `packages/runtime/src/providers/index.ts`**
 
-```python
-def import_providers():
-    # ... existing imports
-    from nodetool.providers import your_provider
+```typescript
+import { YourProvider } from "./your-provider.js";
+export { YourProvider };
 ```
 
-3. **Add to Provider enum** in `nodetool/metadata/types.py`
+3. **Register the provider** in `packages/runtime/src/providers/provider-registry.ts`
 
-1. **Add configuration** to `.env.example`
+```typescript
+registerProvider("your_provider", YourProvider, {
+  YOUR_PROVIDER_API_KEY: process.env.YOUR_PROVIDER_API_KEY,
+});
+```
 
-1. **Document** in this file
+4. **Add provider ID** to the `ProviderId` union in `packages/runtime/src/providers/types.ts`
+
+5. **Add configuration** to `.env.example`
+
+6. **Document** in this file
 
 ## Testing Providers
 
 Test your provider implementation:
 
 ```bash
-pytest tests/providers/test_your_provider.py -v
+vitest run tests/providers/your-provider.test.ts
 ```
 
 Example test structure:
 
-```python
-import pytest
-from nodetool.providers import get_provider
-from nodetool.metadata.types import Provider, Message
+```typescript
+import { describe, it, expect } from "vitest";
+import { getProvider } from "@nodetool/runtime";
+import type { Message } from "@nodetool/runtime";
 
-@pytest.mark.asyncio
-async def test_generate_message():
-    provider = get_provider(Provider.YourProvider)
-    messages = [Message(role="user", content="Hello")]
+describe("YourProvider", () => {
+  it("should generate a message", async () => {
+    const provider = await getProvider("your_provider");
+    const messages: Message[] = [{ role: "user", content: "Hello" }];
 
-    response = await provider.generate_message(
-        messages=messages,
-        model="your-model-id"
-    )
+    const chunks: ProviderStreamItem[] = [];
+    for await (const chunk of provider.generateMessages(messages, "your-model-id")) {
+      chunks.push(chunk);
+    }
 
-    assert response.content
-    assert response.role == "assistant"
+    expect(chunks.length).toBeGreaterThan(0);
+  });
+});
 ```
 
 ## See Also

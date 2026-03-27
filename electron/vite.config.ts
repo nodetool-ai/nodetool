@@ -41,6 +41,14 @@ const builtins = [
 // All modules to externalize for preload
 const externalModules = ["electron", "electron/common", ...builtins];
 
+// Main process also needs runtime node_modules externalized
+const mainExternalModules = [
+  ...externalModules,
+  "@anthropic-ai/claude-agent-sdk",
+  "@nodetool/protocol",
+  "zod",
+];
+
 export default defineConfig({
   base: "./",
   plugins: [
@@ -53,7 +61,7 @@ export default defineConfig({
             outDir: "dist-electron",
             emptyOutDir: true,
             rollupOptions: {
-              external: externalModules,
+              external: mainExternalModules,
               output: {
                 format: "cjs",
                 entryFileNames: "[name].js",

@@ -1,0 +1,80 @@
+{
+  "modelId": "black-forest-labs/flux-depth-pro",
+  "owner": "black-forest-labs",
+  "name": "flux-depth-pro",
+  "version": "0e370dce5fdf15aa8b5fe2491474be45628756e8fba97574bfb3bcab46d09fff",
+  "description": "Professional depth-aware image generation. Edit images while preserving spatial relationships.",
+  "inputSchema": {
+    "properties": {
+      "control_image": {
+        "description": "Image to use as control input. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "title": "Control Image",
+        "type": "string"
+      },
+      "guidance": {
+        "default": 30,
+        "description": "Controls the balance between adherence to the text as well as image prompt and image quality/diversity. Higher values make the output more closely match the prompt but may reduce overall image quality. Lower values allow for more creative freedom but might produce results less relevant to the prompt.",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Guidance",
+        "type": "number"
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output images.",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 7
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_upsampling": {
+        "default": false,
+        "description": "Automatically modify the prompt for more creative generation",
+        "title": "Prompt Upsampling",
+        "type": "boolean"
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 1 is most strict and 6 is most permissive",
+        "maximum": 6,
+        "minimum": 1,
+        "title": "Safety Tolerance",
+        "type": "integer"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "steps": {
+        "default": 50,
+        "description": "Number of diffusion steps. Higher values yield finer details but increase processing time.",
+        "maximum": 50,
+        "minimum": 15,
+        "title": "Steps",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt",
+      "control_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

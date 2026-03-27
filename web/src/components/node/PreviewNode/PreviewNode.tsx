@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Handle, NodeProps, Position } from "@xyflow/react";
+import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -227,6 +227,19 @@ const getOutputFromResult = (result: any) => {
   return result;
 };
 
+const isEditorGraphSnapshot = (value: unknown): boolean => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as {
+    nodes?: unknown;
+    edges?: unknown;
+  };
+
+  return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
+};
+
 const getCopySource = (value: any): any => {
   if (value === null || value === undefined) {
     return value;
@@ -286,22 +299,59 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const [isContentFocused, setIsContentFocused] = useState(false);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
+  const { getEdges } = useReactFlow();
 
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
   );
 
-  const previewOutput = useMemo(() => getOutputFromResult(result), [result]);
+  const incomingValueEdge = useMemo(
+    () =>
+      getEdges().find(
+        (edge) => edge.target === props.id && edge.targetHandle === "value"
+      ),
+    [getEdges, props.id, result]
+  );
+
+  const sourceNodeValue = useResultsStore((state) => {
+    const sourceNodeId = incomingValueEdge?.source;
+    if (!sourceNodeId) {
+      return undefined;
+    }
+
+    return (
+      state.getOutputResult(props.data.workflow_id, sourceNodeId) ??
+      state.getResult(props.data.workflow_id, sourceNodeId) ??
+      state.getPreview(props.data.workflow_id, sourceNodeId)
+    );
+  });
+
+  const displayResult = useMemo(() => {
+    if (result === undefined) {
+      return sourceNodeValue;
+    }
+
+    if (isEditorGraphSnapshot(result) && sourceNodeValue !== undefined) {
+      return sourceNodeValue;
+    }
+
+    return result;
+  }, [result, sourceNodeValue]);
+
+  const previewOutput = useMemo(
+    () => getOutputFromResult(displayResult),
+    [displayResult]
+  );
 
   const memoizedOutputRenderer = useMemo(() => {
-    return result !== undefined ? (
-      <OutputRenderer value={result} showTextActions={false} />
+    return displayResult !== undefined ? (
+      <OutputRenderer value={displayResult} showTextActions={false} />
     ) : null;
-  }, [result]);
+  }, [displayResult]);
 
   const copyPayloadSource = useMemo(
-    () => getCopySource(previewOutput ?? result ?? null),
-    [previewOutput, result]
+    () => getCopySource(previewOutput ?? displayResult ?? null),
+    [previewOutput, displayResult]
   );
 
   const handleAddToAssets = useCallback(async () => {
@@ -332,7 +382,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       await downloadPreviewAssets({
         nodeId: props.id,
         previewValue: previewOutput,
-        rawResult: result
+        rawResult: displayResult
       });
       addNotification({
         type: "success",
@@ -345,7 +395,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         content: "Failed to start download"
       });
     }
-  }, [previewOutput, result, props.id, addNotification]);
+  }, [previewOutput, displayResult, props.id, addNotification]);
 
   const handleContentFocus = useCallback(() => {
     setIsContentFocused(true);
@@ -376,7 +426,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   );
 
   const isSingleImageOrVideo = useMemo(() => {
-    if (result === null || result === undefined) {
+    if (displayResult === null || displayResult === undefined) {
       return false;
     }
     const checkType = (item: any): boolean => {
@@ -387,14 +437,14 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       return false;
     };
     // Only consider it "single" if it's not an array or array with 1 item
-    if (Array.isArray(result)) {
-      return result.length === 1 && checkType(result[0]);
+    if (Array.isArray(displayResult)) {
+      return displayResult.length === 1 && checkType(displayResult[0]);
     }
-    return checkType(result);
-  }, [result]);
+    return checkType(displayResult);
+  }, [displayResult]);
 
   const isScrollable =
-    isContentFocused && result !== undefined && !isSingleImageOrVideo;
+    isContentFocused && displayResult !== undefined && !isSingleImageOrVideo;
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
@@ -437,8 +487,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             iconBaseColor={theme.vars.palette.primary.main}
             showIcon={false}
             workflowId={props.data.workflow_id}
+            hideLogs={true}
           />
-          {!result && (
+          {!displayResult && (
             <Typography className="hint">
               Displays any data from connected nodes
             </Typography>

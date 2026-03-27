@@ -1,0 +1,138 @@
+{
+  "modelId": "meta/musicgen",
+  "owner": "meta",
+  "name": "musicgen",
+  "version": "671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb",
+  "description": "Generate music from a prompt or melody",
+  "inputSchema": {
+    "properties": {
+      "classifier_free_guidance": {
+        "default": 3,
+        "description": "Increases the influence of inputs on the output. Higher values produce lower-varience outputs that adhere more closely to inputs.",
+        "title": "Classifier Free Guidance",
+        "type": "integer",
+        "x-order": 12
+      },
+      "continuation": {
+        "default": false,
+        "description": "If `True`, generated music will continue from `input_audio`. Otherwise, generated music will mimic `input_audio`'s melody.",
+        "title": "Continuation",
+        "type": "boolean",
+        "x-order": 4
+      },
+      "continuation_end": {
+        "description": "End time of the audio file to use for continuation. If -1 or None, will default to the end of the audio clip.",
+        "minimum": 0,
+        "title": "Continuation End",
+        "type": "integer",
+        "x-order": 6
+      },
+      "continuation_start": {
+        "default": 0,
+        "description": "Start time of the audio file to use for continuation.",
+        "minimum": 0,
+        "title": "Continuation Start",
+        "type": "integer",
+        "x-order": 5
+      },
+      "duration": {
+        "default": 8,
+        "description": "Duration of the generated audio in seconds.",
+        "title": "Duration",
+        "type": "integer",
+        "x-order": 3
+      },
+      "input_audio": {
+        "description": "An audio file that will influence the generated music. If `continuation` is `True`, the generated music will be a continuation of the audio file. Otherwise, the generated music will mimic the audio file's melody.",
+        "format": "uri",
+        "title": "Input Audio",
+        "type": "string",
+        "x-order": 2
+      },
+      "model_version": {
+        "default": "stereo-melody-large",
+        "description": "Model to use for generation",
+        "enum": [
+          "stereo-melody-large",
+          "stereo-large",
+          "melody-large",
+          "large"
+        ],
+        "title": "model_version",
+        "type": "string",
+        "x-order": 0
+      },
+      "multi_band_diffusion": {
+        "default": false,
+        "description": "If `True`, the EnCodec tokens will be decoded with MultiBand Diffusion. Only works with non-stereo models.",
+        "title": "Multi Band Diffusion",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "normalization_strategy": {
+        "default": "loudness",
+        "description": "Strategy for normalizing audio.",
+        "enum": [
+          "loudness",
+          "clip",
+          "peak",
+          "rms"
+        ],
+        "title": "normalization_strategy",
+        "type": "string",
+        "x-order": 8
+      },
+      "output_format": {
+        "default": "wav",
+        "description": "Output format for generated audio.",
+        "enum": [
+          "wav",
+          "mp3"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 13
+      },
+      "prompt": {
+        "description": "A description of the music you want to generate.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Seed for random number generator. If None or -1, a random seed will be used.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 14
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Controls the 'conservativeness' of the sampling process. Higher temperature means more diversity.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 11
+      },
+      "top_k": {
+        "default": 250,
+        "description": "Reduces sampling to the k most likely tokens.",
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 9
+      },
+      "top_p": {
+        "default": 0,
+        "description": "Reduces sampling to tokens with cumulative probability of p. When set to  `0` (default), top_k sampling is used.",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 10
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

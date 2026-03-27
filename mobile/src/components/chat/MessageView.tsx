@@ -2,10 +2,19 @@
  * Individual message view component.
  * Renders user or assistant messages with appropriate styling.
  * Supports text, images, videos, audio, and documents.
+ * Long-press to copy message text.
  */
 
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { Ionicons } from '@expo/vector-icons';
 import { Message, MessageContent } from '../../types';
 import { ChatMarkdown } from './ChatMarkdown';
 import { MessageContentRenderer } from './MessageContentRenderer';
@@ -27,8 +36,8 @@ function getTextContent(content: Message['content']): string {
 
   if (Array.isArray(content)) {
     return content
-      .filter((c: any) => c?.type === 'text')
-      .map((c: any) => c?.text || '')
+      .filter((c: MessageContent) => c?.type === 'text')
+      .map((c: MessageContent) => (c as any)?.text || '')
       .join('\n');
   }
 
@@ -40,6 +49,13 @@ function getTextContent(content: Message['content']): string {
   }
 
   return '';
+}
+
+/**
+ * Type guard: checks whether a plain object looks like a valid MessageContent item.
+ */
+function isMessageContent(obj: unknown): obj is MessageContent {
+  return typeof obj === 'object' && obj !== null && 'type' in obj && typeof (obj as Record<string, unknown>)['type'] === 'string';
 }
 
 /**
@@ -56,9 +72,8 @@ function getContentItems(content: Message['content']): MessageContent[] {
     return content.filter((c): c is MessageContent => c !== null && c !== undefined);
   }
 
-  // Single object content
-  if (typeof content === 'object' && 'type' in content) {
-    return [content as MessageContent];
+  if (isMessageContent(content)) {
+    return [content];
   }
 
   return [];
@@ -73,10 +88,18 @@ function hasMediaContent(content: Message['content']): boolean {
 }
 
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
-  // All hooks must be called before any early returns
   const isUser = message.role === 'user';
-  const { mode } = useTheme();
-  
+  const { colors } = useTheme();
+
+  const textContent = getTextContent(message.content);
+
+  const handleCopyMessage = useCallback(async () => {
+    if (textContent) {
+      await Clipboard.setStringAsync(textContent);
+      Alert.alert('Copied', 'Message copied to clipboard');
+    }
+  }, [textContent]);
+
   /**
    * Render text content (used as callback for MessageContentRenderer)
    */
@@ -84,10 +107,10 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
     if (!text) { return null; }
 
     if (isUser) {
-      return <Text key={index} style={[styles.userText, { color: '#2A2A2A' }]}>{text}</Text>;
+      return <Text key={index} style={[styles.userText, { color: colors.userBubbleText }]}>{text}</Text>;
     }
     return <ChatMarkdown key={index} content={text} />;
-  }, [isUser]);
+  }, [isUser, colors.userBubbleText]);
 
   // Return null for system and tool messages as they should not be displayed
   if (message.role === 'system' || message.role === 'tool') {
@@ -95,7 +118,6 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
   }
 
   const contentItems = getContentItems(message.content);
-  const textContent = getTextContent(message.content);
   const hasMedia = hasMediaContent(message.content);
 
   /**
@@ -103,7 +125,7 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
    */
   const renderSimpleMessage = () => {
     if (isUser) {
-      return <Text style={[styles.userText, { color: '#2A2A2A' }]}>{textContent}</Text>;
+      return <Text style={[styles.userText, { color: colors.userBubbleText }]}>{textContent}</Text>;
     }
     return <ChatMarkdown content={textContent} />;
   };
@@ -132,17 +154,31 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
         styles.container,
         isUser ? styles.userContainer : styles.assistantContainer,
       ]}
+      accessibilityRole="text"
+      accessibilityLabel={`${isUser ? 'You' : 'Assistant'}: ${textContent}`}
     >
       <View
         style={[
           styles.bubble,
           isUser
-            ? [styles.userBubble, { backgroundColor: '#EFEFEF' }]
-            : [styles.assistantBubble, { backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.05)' }],
+            ? [styles.userBubble, { backgroundColor: colors.userBubbleBg }]
+            : [styles.assistantBubble, { backgroundColor: colors.assistantBubbleBg }],
         ]}
       >
         {hasMedia ? renderMixedContent() : renderSimpleMessage()}
       </View>
+      {/* Copy button for assistant messages */}
+      {!isUser && textContent.length > 0 && (
+        <TouchableOpacity
+          style={styles.copyButton}
+          onPress={handleCopyMessage}
+          accessibilityLabel="Copy message"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="copy-outline" size={14} color={colors.textSecondary} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -174,6 +210,12 @@ const styles = StyleSheet.create({
   userText: {
     fontSize: 15,
     lineHeight: 22,
+  },
+  copyButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 2,
+    opacity: 0.6,
   },
 });
 

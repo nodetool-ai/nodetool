@@ -1,0 +1,83 @@
+{
+  "modelId": "tencent/hunyuan-video",
+  "owner": "tencent",
+  "name": "hunyuan-video",
+  "version": "6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f",
+  "description": "A state-of-the-art text-to-video generation model capable of creating high-quality videos with realistic motion from text descriptions",
+  "inputSchema": {
+    "properties": {
+      "embedded_guidance_scale": {
+        "default": 6,
+        "description": "Guidance scale",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Embedded Guidance Scale",
+        "type": "number",
+        "x-order": 5
+      },
+      "fps": {
+        "default": 24,
+        "description": "Frames per second of the output video",
+        "minimum": 1,
+        "title": "Fps",
+        "type": "integer",
+        "x-order": 6
+      },
+      "height": {
+        "default": 480,
+        "description": "Height of the video in pixels (must be divisible by 16)",
+        "maximum": 1280,
+        "minimum": 16,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 2
+      },
+      "infer_steps": {
+        "default": 50,
+        "description": "Number of denoising steps",
+        "minimum": 1,
+        "title": "Infer Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt": {
+        "default": "A cat walks on the grass, realistic style",
+        "description": "The prompt to guide the video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed (leave empty for random)",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "video_length": {
+        "default": 129,
+        "description": "Number of frames to generate (must be 4k+1, ex: 49 or 129)",
+        "maximum": 200,
+        "minimum": 1,
+        "title": "Video Length",
+        "type": "integer",
+        "x-order": 3
+      },
+      "width": {
+        "default": 864,
+        "description": "Width of the video in pixels (must be divisible by 16)",
+        "maximum": 1280,
+        "minimum": 16,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

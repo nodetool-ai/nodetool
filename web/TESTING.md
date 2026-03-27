@@ -155,16 +155,12 @@ web/tests/e2e/
 
 E2E tests require:
 
-1. **Python environment with nodetool**: The backend server needs to be available
+1. **TypeScript backend packages built**: The backend server needs to be compiled
 2. **Node.js dependencies**: For the frontend
 
 ```bash
-# Setup conda environment (one time)
-conda env update -f environment.yml --prune
-conda activate nodetool
-
-# Install nodetool core and base (one time)
-uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+# Build the TypeScript backend packages (one time, from repo root)
+npm run build:packages
 
 # Install Playwright browsers (one time)
 npx playwright install --with-deps chromium
@@ -260,16 +256,15 @@ The E2E workflow (`.github/workflows/e2e.yml`) runs automatically on:
 - Pull requests to `main` branch (when web files change)
 
 The workflow:
-1. Sets up Python 3.11 with conda
-2. Installs nodetool-core and nodetool-base
-3. Sets up Node.js 20
-4. Installs web dependencies
-5. Installs Playwright browsers
-6. Starts nodetool server in the background (`nodetool serve --port 7777`)
-7. Waits for the server to be ready
-8. Runs Playwright tests (which start the frontend server)
-9. Stops the nodetool server
-10. Uploads test reports, results, and server logs as artifacts on failure
+1. Sets up Node.js 20
+2. Installs all npm dependencies
+3. Builds the TypeScript backend packages (`npm run build:packages`)
+4. Installs Playwright browsers
+5. Starts the TypeScript backend server in the background (`node packages/websocket/dist/server.js`)
+6. Waits for the server to be ready
+7. Runs Playwright tests (which start the frontend server)
+8. Stops the backend server
+9. Uploads test reports, results, and server logs as artifacts on failure
 
 ### Debugging E2E Test Failures in CI
 

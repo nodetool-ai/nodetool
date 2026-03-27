@@ -125,7 +125,7 @@ export const useRealtimeAudioPlayback = ({
           srcIndex += channels * 2;
         }
         const floatData = int16ToFloat32(channelData);
-        buffer.copyToChannel(floatData, ch);
+        buffer.copyToChannel(floatData as Float32Array<ArrayBuffer>, ch);
       }
       const source = ctx.createBufferSource();
       source.buffer = buffer;

@@ -1,0 +1,90 @@
+{
+  "modelId": "black-forest-labs/flux-1.1-pro-ultra",
+  "owner": "black-forest-labs",
+  "name": "flux-1.1-pro-ultra",
+  "version": "5ea10f739af9f6d4002fae9aee4c15be14c3c8d7f8b309e634bf68df09159863",
+  "description": "FLUX1.1 [pro] in ultra and raw modes. Images are up to 4 megapixels. Use raw mode for realism.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for the generated image",
+        "enum": [
+          "21:9",
+          "16:9",
+          "3:2",
+          "4:3",
+          "5:4",
+          "1:1",
+          "4:5",
+          "3:4",
+          "2:3",
+          "9:16",
+          "9:21"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 3
+      },
+      "image_prompt": {
+        "description": "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "title": "Image Prompt",
+        "type": "string"
+      },
+      "image_prompt_strength": {
+        "default": 0.1,
+        "description": "Blend between the prompt and the image prompt.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Image Prompt Strength",
+        "type": "number"
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output images.",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 7
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "raw": {
+        "default": false,
+        "description": "Generate less processed, more natural-looking images",
+        "title": "Raw",
+        "type": "boolean"
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 1 is most strict and 6 is most permissive",
+        "maximum": 6,
+        "minimum": 1,
+        "title": "Safety Tolerance",
+        "type": "integer"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

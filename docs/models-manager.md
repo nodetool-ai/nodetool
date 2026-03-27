@@ -1,33 +1,88 @@
 ---
 layout: page
 title: "Models Manager"
+description: "Browse, download, and manage AI models for your NodeTool workflows."
 ---
 
-The **Models Manager** helps you keep track of the AI models available on your system.
+The **Models Manager** helps you browse, download, and manage AI models available on your system.
 
-### Opening the manager
+---
 
-- Click the **Models** icon on app header.
-- A dialog appears showing downloaded and recommended models.
+## Opening the Manager
 
-### Browsing your models
+Click the **Models** icon in the app header to open the Models Manager dialog. It shows all downloaded models, recommended models, and available models from configured providers.
 
-- Filter models by type using the list on the left.
-- Search by name or repository to quickly find what you need.
-- Toggle between grid and list layouts for a different view.
+---
 
-Filters include: LLM, VLM, Embedding, Image Gen, Video Gen, Audio Gen, TTS, ASR, Reranker.
+## Browsing Models
 
-### Managing files
+### Filter by Type
 
-- Click **Download** to fetch a model to your local cache.
-- Use **Show in Explorer** to open the model folder on your computer.
-- Press **Delete** to remove a model you no longer need.
-- Select **README** on Hugging Face models to read documentation.
+Use the type filters on the left to narrow the list:
 
-Many nodes specify recommended and required models. The Models Manager shows these under “Recommended” with direct
-install links.
+| Filter | Model Type | Example Use |
+|--------|-----------|-------------|
+| **LLM** | Large Language Models | Text generation, chat, reasoning |
+| **VLM** | Vision-Language Models | Image understanding, visual Q&A |
+| **Embedding** | Embedding Models | Vector search, similarity matching |
+| **Image Gen** | Image Generation | Text-to-image, image-to-image |
+| **Video Gen** | Video Generation | Text-to-video, image-to-video |
+| **Audio Gen** | Audio Generation | Music, sound effects |
+| **TTS** | Text-to-Speech | Voice synthesis, narration |
+| **ASR** | Automatic Speech Recognition | Transcription, dictation |
+| **Reranker** | Reranking Models | Search result refinement |
 
-Model availability from cloud providers depends on your API keys in Settings.
+### Search and Sort
 
-Downloads continue while you navigate. The bottom bar shows total progress and allows reopening the Downloads dialog.
+- **Search by name** or repository to quickly find specific models
+- Toggle between **grid** and **list** layouts
+- **Favorites** -- Star frequently used models for quick access
+- **Recent** -- See models you've used recently
+
+---
+
+## Downloading Models
+
+1. Find the model you want in the browser
+2. Click **Download** to start fetching it to your local cache
+3. Track progress in the **Downloads** bar at the bottom of the screen
+
+### Download Details
+
+- Downloads continue in the background while you navigate the app
+- The bottom bar shows total progress, speed, and estimated time remaining
+- Click the Downloads bar to expand and see individual file progress
+- Downloads automatically retry on network failures (up to 5 attempts with exponential backoff)
+
+### Storage Location
+
+Downloaded models are stored in your local HuggingFace cache (`~/.cache/huggingface/`) or provider-specific locations (e.g., `~/.ollama/` for Ollama models).
+
+---
+
+## Managing Models
+
+### Per-Model Actions
+
+- **Download** -- Fetch a model to your local cache
+- **Delete** -- Remove a model you no longer need to free disk space
+- **Show in Explorer** -- Open the model folder on your computer
+- **README** -- Read the model's documentation on Hugging Face
+
+### Recommended Models
+
+Many workflow nodes specify recommended or required models. The Models Manager highlights these under a **Recommended** section with direct install links, so you can quickly get the models your workflows need.
+
+### Cloud Provider Models
+
+Models from cloud providers (OpenAI, Anthropic, Google, etc.) appear in the manager based on your configured API keys. These don't require downloading -- they run remotely when you use them in workflows.
+
+Configure API keys in **Settings > Providers**. See [Models & Providers](models-and-providers.md) for setup details.
+
+---
+
+## Next Steps
+
+- [Models & Providers](models-and-providers.md) -- Configure providers and API keys
+- [Installation](installation.md#hardware-requirements-by-task) -- Hardware requirements for local models
+- [HuggingFace Integration](huggingface.md) -- Browse and use HuggingFace models

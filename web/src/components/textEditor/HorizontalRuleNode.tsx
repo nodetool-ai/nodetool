@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import React from "react";
 import { css } from "@emotion/react";
 import {
   DecoratorNode,
@@ -34,7 +35,7 @@ function HorizontalRuleComponent() {
   return <hr css={hrStyles} />;
 }
 
-export class HorizontalRuleNode extends DecoratorNode<JSX.Element> {
+export class HorizontalRuleNode extends DecoratorNode<React.JSX.Element> {
   static getType(): string {
     return "horizontal-rule";
   }
@@ -85,7 +86,7 @@ export class HorizontalRuleNode extends DecoratorNode<JSX.Element> {
     return false;
   }
 
-  decorate(): JSX.Element {
+  decorate(): React.JSX.Element {
     return <HorizontalRuleComponent />;
   }
 }

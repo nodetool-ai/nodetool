@@ -1,0 +1,80 @@
+{
+  "modelId": "kwaivgi/kling-v2.5-turbo-pro",
+  "owner": "kwaivgi",
+  "name": "kling-v2.5-turbo-pro",
+  "version": "18f41bfca7f1997ce37b04b407152c385c9159095681a6f5a4ff47718bc25a57",
+  "description": "Kling 2.5 Turbo Pro: Unlock pro-level text-to-video and image-to-video creation with smooth motion, cinematic depth, and remarkable prompt adherence.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Aspect ratio of the video. Ignored if start_image is provided.",
+        "enum": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "duration": {
+        "default": 5,
+        "description": "Duration of the video in seconds",
+        "enum": [
+          5,
+          10
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 5
+      },
+      "end_image": {
+        "description": "Last frame of the video",
+        "format": "uri",
+        "title": "End Image",
+        "type": "string",
+        "x-order": 3
+      },
+      "image": {
+        "deprecated": true,
+        "description": "Deprecated: Use start_image instead.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 6
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want to see in the video",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "start_image": {
+        "description": "First frame of the video",
+        "format": "uri",
+        "title": "Start Image",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

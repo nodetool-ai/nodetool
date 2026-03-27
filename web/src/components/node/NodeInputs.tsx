@@ -154,8 +154,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     [data?.dynamic_properties]
   );
 
-  const basicInputs: JSX.Element[] = [];
-  const advancedInputs: JSX.Element[] = [];
+  const basicInputs: React.JSX.Element[] = [];
+  const advancedInputs: React.JSX.Element[] = [];
 
   const findNode = useNodes((state) => state.findNode);
 

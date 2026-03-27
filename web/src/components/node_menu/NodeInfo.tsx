@@ -7,8 +7,6 @@ import { Typography, Divider, Tooltip } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useQuery } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
@@ -186,28 +184,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     [nodeMetadata, searchTerm]
   );
 
-  const fetchReplicateStatus = useCallback(async () => {
-    if (nodeMetadata.node_type.startsWith("replicate.")) {
-      const { data, error } = await client.GET("/api/nodes/replicate_status", {
-        params: {
-          query: {
-            node_type: nodeMetadata.node_type
-          }
-        }
-      });
-      if (error) {
-        return "unknown";
-      }
-      return data;
-    }
-    return "unknown";
-  }, [nodeMetadata]);
-
-  const { data: replicateStatus, isLoading } = useQuery({
-    queryKey: ["replicateStatus", nodeMetadata.node_type],
-    queryFn: fetchReplicateStatus
-  });
-
   const handleTagClick = useCallback(
     (tag: string) => () => {
       setSearchTerm(tag.trim());
@@ -237,16 +213,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}
         </Typography>
-      </div>
-      <div
-        className="status-container"
-        style={{ minHeight: replicateStatus !== "unknown" ? "1em" : "0" }}
-      >
-        {replicateStatus !== "unknown" && (
-          <Typography className={`replicate-status ${replicateStatus}`}>
-            {replicateStatus}
-          </Typography>
-        )}
       </div>
       <div className="node-description">
         <HighlightText

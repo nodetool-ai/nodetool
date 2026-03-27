@@ -219,3 +219,90 @@ export type { SpacingValue } from "./spacing";
 // Keyboard shortcuts display
 export { KeyboardShortcutCard } from "./KeyboardShortcutCard";
 export type { KeyboardShortcutCardProps, ShortcutItem } from "./KeyboardShortcutCard";
+
+// New primitives - Phase 2
+
+export { TruncatedText } from "./TruncatedText";
+export type { TruncatedTextProps } from "./TruncatedText";
+
+export { ScrollArea } from "./ScrollArea";
+export type { ScrollAreaProps } from "./ScrollArea";
+
+export { Divider } from "./Divider";
+export type { DividerProps } from "./Divider";
+
+export { Chip } from "./Chip";
+export type { ChipProps } from "./Chip";
+
+export { AlertBanner } from "./AlertBanner";
+export type { AlertBannerProps } from "./AlertBanner";
+
+export { TabGroup, TabPanel } from "./TabGroup";
+export type { TabGroupProps, TabPanelProps, TabItem } from "./TabGroup";
+
+export { FormField } from "./FormField";
+export type { FormFieldProps } from "./FormField";
+
+export { SectionHeader } from "./SectionHeader";
+export type { SectionHeaderProps } from "./SectionHeader";
+
+export { ColorSwatch } from "./ColorSwatch";
+export type { ColorSwatchProps } from "./ColorSwatch";
+
+export { Overlay } from "./Overlay";
+export type { OverlayProps } from "./Overlay";
+
+export { ResponsiveImage } from "./ResponsiveImage";
+export type { ResponsiveImageProps } from "./ResponsiveImage";
+
+// Phase 3 - Additional primitives
+
+export { Tooltip } from "./Tooltip";
+export type { TooltipProps } from "./Tooltip";
+
+export { Popover } from "./Popover";
+export type { PopoverProps, PopoverPlacement } from "./Popover";
+
+export { CollapsibleSection } from "./CollapsibleSection";
+export type { CollapsibleSectionProps } from "./CollapsibleSection";
+
+export { ListGroup, ListItemRow } from "./ListGroup";
+export type { ListGroupProps, ListItemRowProps } from "./ListGroup";
+
+export { Toast } from "./Toast";
+export type { ToastProps } from "./Toast";
+
+export { TextLink } from "./TextLink";
+export type { TextLinkProps } from "./TextLink";
+
+export { Skeleton } from "./Skeleton";
+export type { SkeletonProps } from "./Skeleton";
+
+export { DrawerPanel } from "./DrawerPanel";
+export type { DrawerPanelProps } from "./DrawerPanel";
+
+// Phase 4 - Additional primitives
+
+export { Checkbox } from "./Checkbox";
+export type { CheckboxProps } from "./Checkbox";
+
+export { ContextMenu } from "./ContextMenu";
+export type { ContextMenuProps } from "./ContextMenu";
+
+export { TextInput } from "./TextInput";
+export type { TextInputProps } from "./TextInput";
+
+export { DataTable } from "./DataTable";
+export type { DataTableProps, DataTableColumn } from "./DataTable";
+
+export { ButtonGroup } from "./ButtonGroup";
+export type { ButtonGroupProps } from "./ButtonGroup";
+
+export { ToggleGroup, ToggleOption } from "./ToggleGroup";
+export type { ToggleGroupProps, ToggleOptionProps } from "./ToggleGroup";
+
+export { Surface } from "./Surface";
+export type { SurfaceProps } from "./Surface";
+
+export { Autocomplete } from "./Autocomplete";
+export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";

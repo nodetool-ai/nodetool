@@ -1,0 +1,107 @@
+{
+  "modelId": "resemble-ai/chatterbox-turbo",
+  "owner": "resemble-ai",
+  "name": "chatterbox-turbo",
+  "version": "95c87b883ff3e842a1643044dff67f9d204f70a80228f24ff64bffe4a4b917d4",
+  "description": "The fastest open source TTS model without sacrificing quality.",
+  "inputSchema": {
+    "properties": {
+      "reference_audio": {
+        "description": "Reference audio file for voice cloning (optional). Must be longer than 5 seconds. If provided, overrides the voice selection.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Reference Audio",
+        "type": "string",
+        "x-order": 2
+      },
+      "repetition_penalty": {
+        "default": 1.2,
+        "description": "Penalizes token repetition. Higher values reduce repetition.",
+        "maximum": 2,
+        "minimum": 1,
+        "title": "Repetition Penalty",
+        "type": "number",
+        "x-order": 6
+      },
+      "seed": {
+        "description": "Random seed for reproducible results. Leave blank for random generation.",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "temperature": {
+        "default": 0.8,
+        "description": "Controls randomness in generation. Higher values produce more varied speech.",
+        "maximum": 2,
+        "minimum": 0.05,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 3
+      },
+      "text": {
+        "description": "Text to synthesize into speech (maximum 500 characters).\n\nSupported paralinguistic tags you can include in your text:\n[clear throat], [sigh], [sush], [cough], [groan], [sniff], [gasp], [chuckle], [laugh]\n\nExample: \"Oh, that's hilarious! [chuckle] Let me tell you more.\"",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      },
+      "top_k": {
+        "default": 1000,
+        "description": "Top-k sampling. Limits vocabulary to top k tokens at each step.",
+        "maximum": 2000,
+        "minimum": 1,
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 5
+      },
+      "top_p": {
+        "default": 0.95,
+        "description": "Nucleus sampling threshold. Lower values make output more focused.",
+        "maximum": 1,
+        "minimum": 0.5,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 4
+      },
+      "voice": {
+        "default": "Andy",
+        "description": "Pre-made voice to use for synthesis. Ignored if reference_audio is provided.",
+        "enum": [
+          "Aaron",
+          "Abigail",
+          "Anaya",
+          "Andy",
+          "Archer",
+          "Brian",
+          "Chloe",
+          "Dylan",
+          "Emmanuel",
+          "Ethan",
+          "Evelyn",
+          "Gavin",
+          "Gordon",
+          "Ivan",
+          "Laura",
+          "Lucy",
+          "Madison",
+          "Marisol",
+          "Meera",
+          "Walter"
+        ],
+        "title": "voice",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

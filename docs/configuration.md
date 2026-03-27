@@ -1,11 +1,14 @@
 ---
 layout: page
 title: "Configuration Guide"
+description: "Configure NodeTool settings, environment variables, secrets, and storage backends."
 ---
 
 
 
-NodeTool reads configuration from layered sources so local development, automated deployments, and production can share defaults with minimal duplication. The configuration helpers live in `src/nodetool/config/settings.py` and `src/nodetool/config/environment.py`.
+NodeTool uses a layered configuration system so local development, automated deployments, and production environments can share sensible defaults with minimal duplication. Settings are managed through the UI, CLI, environment variables, and YAML files — with secrets encrypted at rest.
+
+The configuration helpers live in the `@nodetool/config` package (`settings.ts` and `environment.ts`).
 
 ![Settings Dialog](assets/screenshots/settings-dialog.png)
 
@@ -26,7 +29,7 @@ This hierarchy allows committed defaults, per-environment overrides, and develop
 - `nodetool settings show [--secrets]` – print the current values in a Rich table.
 - `nodetool settings edit [--secrets]` – open the YAML file in `$EDITOR`. Files are created on first use.
 
-Settings metadata (description, grouping) is registered via `register_setting()` and `register_secret()` in `src/nodetool/config/settings.py`. New environment variables should be declared there so they automatically appear in CLI tables and `.env.example`.
+Settings metadata (description, grouping) is registered via `registerSetting()` in `@nodetool/config`. New environment variables should be declared there so they automatically appear in CLI tables and `.env.example`.
 
 ### File Locations
 
@@ -39,7 +42,7 @@ Settings metadata (description, grouping) is registered via `register_setting()`
 
 ## Secret Storage and Master Key
 
-Secrets saved through the CLI are encrypted before being written to disk. The master key management logic in `src/nodetool/security/master_key.py` retrieves or creates a key in this order:
+Secrets saved through the CLI are encrypted before being written to disk. The master key management logic retrieves or creates a key in this order:
 
 1. `SECRETS_MASTER_KEY` environment variable.
 2. AWS Secrets Manager if `AWS_SECRETS_MASTER_KEY_NAME` is set.
@@ -53,7 +56,7 @@ For shared deployments you **must** pre-provision the master key (via `SECRETS_M
 1. Export the master key once and set it on every server instance:
 
    ```bash
-   export SECRETS_MASTER_KEY="$(nodetool python -c 'from nodetool.security.master_key import MasterKeyManager; import asyncio; print(asyncio.run(MasterKeyManager.get_master_key()))')"
+   export SECRETS_MASTER_KEY="$(nodetool secrets master-key)"
    ```
 
    (or copy the value from your deployment pipeline/secrets manager)
@@ -72,7 +75,7 @@ For shared deployments you **must** pre-provision the master key (via `SECRETS_M
 
 `Environment.is_production()` and `Environment.is_test()` determine which services to instantiate:
 
-- Production and any environment with S3 credentials default to S3-backed storage (see `ResourceScope.get_asset_storage()` in `src/nodetool/runtime/resources.py`).
+- Production and any environment with S3 credentials default to S3-backed storage (see `ResourceScope.get_asset_storage()` in `@nodetool/runtime`).
 - Tests automatically provision in-memory storage and isolated SQLite databases.
 - `ENV` defaults to `development` and can be switched with `Environment.set_env()` or the `ENV` environment variable.
 
@@ -80,10 +83,10 @@ For shared deployments you **must** pre-provision the master key (via `SECRETS_M
 
 When adding a feature that requires configuration:
 
-1. Register the variable in `src/nodetool/config/settings.py` via `register_setting()` or `register_secret()` to document it and surface it in CLI tables.
+1. Register the variable in `@nodetool/config` via `registerSetting()` to document it and surface it in CLI tables.
 2. Update `.env.example` with the new entry.
-3. Reference the variable using `Environment.get("YOUR_ENV_VAR")` to respect the hierarchy.
-4. If the value is required, supply `default=NOT_GIVEN` (see `get_value()` in `src/nodetool/config/settings.py`) so missing keys raise a descriptive error.
+3. Reference the variable using `getEnv("YOUR_ENV_VAR")` from `@nodetool/config` to respect the hierarchy.
+4. If the value is required, use `requireEnv("YOUR_ENV_VAR")` so missing keys raise a descriptive error.
 
 ## Recommended Workflow
 

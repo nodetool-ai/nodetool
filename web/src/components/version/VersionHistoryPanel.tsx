@@ -55,7 +55,7 @@ const getGraphSizeBytes = (graph: Graph): number => {
 
 const getSaveType = (version: WorkflowVersion): SaveType => {
   if (version.save_type && ["manual", "autosave", "checkpoint", "restore"].includes(version.save_type)) {
-    return version.save_type;
+    return version.save_type as SaveType;
   }
   if (!version.name) {return "autosave";}
   const lower = version.name.toLowerCase();

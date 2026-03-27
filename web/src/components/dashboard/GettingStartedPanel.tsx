@@ -505,7 +505,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
             >
               <FlexRow gap={3} align="flex-start">
                 <Box className="step-icon-container">
-                  {React.cloneElement(step.icon as React.ReactElement, {
+                  {React.cloneElement(step.icon as React.ReactElement<{ className?: string }>, {
                     className: "step-icon"
                   })}
                 </Box>

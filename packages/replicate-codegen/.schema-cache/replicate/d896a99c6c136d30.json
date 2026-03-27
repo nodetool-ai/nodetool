@@ -1,0 +1,65 @@
+{
+  "modelId": "bria/increase-resolution",
+  "owner": "bria",
+  "name": "increase-resolution",
+  "version": "53f1c804909dba21ec57397ac0193347ff8d425a0c3ed77b1ba30bf03ef1bf35",
+  "description": "Bria Increase resolution upscales the resolution of any image. It increases resolution using a dedicated upscaling method that preserves the original image content without regeneration.",
+  "inputSchema": {
+    "properties": {
+      "content_moderation": {
+        "default": false,
+        "description": "Enable content moderation",
+        "title": "Content Moderation",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "desired_increase": {
+        "default": 2,
+        "description": "Resolution multiplier (scale factor). Possible values are 2 or 4. Maximum total area is 8192x8192 pixels",
+        "enum": [
+          2,
+          4
+        ],
+        "title": "desired_increase",
+        "type": "integer",
+        "x-order": 2
+      },
+      "image": {
+        "description": "Image file",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "image_url": {
+        "description": "Image URL",
+        "nullable": true,
+        "title": "Image Url",
+        "type": "string",
+        "x-order": 1
+      },
+      "preserve_alpha": {
+        "default": true,
+        "description": "Preserve alpha channel in output. When true, maintains original transparency. When false, output is fully opaque.",
+        "title": "Preserve Alpha",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "sync": {
+        "default": true,
+        "description": "Synchronous response mode",
+        "title": "Sync",
+        "type": "boolean",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

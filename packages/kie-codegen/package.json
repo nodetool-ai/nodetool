@@ -1,0 +1,22 @@
+{
+  "name": "@nodetool/kie-codegen",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code generator for Kie.ai nodes",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "generate": "tsx src/generate.ts",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@nodetool/node-sdk": "*",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  }
+}

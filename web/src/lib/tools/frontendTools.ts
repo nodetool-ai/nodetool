@@ -10,7 +10,7 @@ export type ZodOrJsonSchema = ZodType | JsonSchema;
  * Type guard to check if a schema has a _def property with typeName method.
  * This is needed for accessing Zod's internal type information.
  */
-function hasZodDef(schema: unknown): schema is { _def: { typeName(): string; type?: ZodTypeAny; innerType?: ZodTypeAny; shape?: () => Record<string, ZodTypeAny>; options?: ZodTypeAny[]; value?: unknown; valueType?: ZodTypeAny; schema?: ZodTypeAny; values?: readonly unknown[] } } {
+function hasZodDef(schema: unknown): schema is { _def: { typeName: string; type?: ZodTypeAny; innerType?: ZodTypeAny; shape?: () => Record<string, ZodTypeAny>; options?: ZodTypeAny[]; value?: unknown; valueType?: ZodTypeAny; schema?: ZodTypeAny; values?: readonly unknown[] } } {
   return typeof schema === "object" && schema !== null && "_def" in schema;
 }
 
@@ -78,7 +78,7 @@ function isZodSchema(schema: ZodOrJsonSchema): schema is ZodType {
 function zodToJsonSchema(schema: ZodType): JsonSchema {
   if (hasZodDef(schema)) {
     const def = schema._def;
-    switch (def.typeName()) {
+    switch (def.typeName) {
       case "ZodString":
         return { type: "string" };
       case "ZodNumber":
@@ -102,8 +102,7 @@ function zodToJsonSchema(schema: ZodType): JsonSchema {
           properties[key] = zodToJsonSchema(fieldSchema);
           const fieldDef = hasZodDef(fieldSchema) ? fieldSchema._def : undefined;
           const isDefault =
-            fieldDef && typeof fieldDef?.typeName === "function" &&
-            fieldDef.typeName() === "ZodDefault";
+            fieldDef && fieldDef.typeName === "ZodDefault";
           if (
             !fieldSchema.isOptional() &&
             !fieldSchema.isNullable() &&
