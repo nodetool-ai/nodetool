@@ -199,32 +199,25 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
     [gradient, onChange, selectedStopIndex]
   );
 
-  const handleStopClick = useCallback(
-    (index: number) => () => {
-      setSelectedStopIndex(index);
+  // Handle stop marker click using data attribute to avoid creating new functions in map
+  const handleStopMarkerClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const indexStr = event.currentTarget.dataset.stopIndex;
+      if (indexStr !== undefined) {
+        setSelectedStopIndex(parseInt(indexStr, 10));
+      }
     },
     []
   );
 
-  const handleApplyCurrentColor = useCallback(
-    (index: number) => () => {
-      handleStopColorChange(index, currentColor);
-    },
-    [handleStopColorChange, currentColor]
-  );
+  // Handle stop marker drag using data attribute to avoid creating new functions in map
+  const handleStopMarkerMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const container = event.currentTarget.parentElement;
+      const indexStr = event.currentTarget.dataset.stopIndex;
+      if (!container || indexStr === undefined) { return; }
 
-  const handleRemoveStopClick = useCallback(
-    (index: number) => () => {
-      removeStop(index);
-    },
-    [removeStop]
-  );
-
-  const handleStopDrag = useCallback(
-    (index: number, e: React.MouseEvent) => {
-      const container = e.currentTarget.parentElement;
-      if (!container) { return; }
-
+      const index = parseInt(indexStr, 10);
       setSelectedStopIndex(index);
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -243,6 +236,49 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
       document.addEventListener("mouseup", handleMouseUp);
     },
     [handleStopPositionChange]
+  );
+
+  // Handle stop color TextField change
+  const handleStopColorInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (selectedStopIndex !== null) {
+        handleStopColorChange(selectedStopIndex, event.target.value);
+      }
+    },
+    [selectedStopIndex, handleStopColorChange]
+  );
+
+  // Handle stop position TextField change
+  const handleStopPositionInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (selectedStopIndex !== null) {
+        const value = Math.max(0, Math.min(100, parseInt(event.target.value) || 0));
+        handleStopPositionChange(selectedStopIndex, value);
+      }
+    },
+    [selectedStopIndex, handleStopPositionChange]
+  );
+
+  // Handle apply current color button click using data attribute
+  const handleApplyColorButtonClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const indexStr = event.currentTarget.dataset.stopIndex;
+      if (indexStr !== undefined) {
+        handleStopColorChange(parseInt(indexStr, 10), currentColor);
+      }
+    },
+    [handleStopColorChange, currentColor]
+  );
+
+  // Handle remove stop button click using data attribute
+  const handleRemoveStopButtonClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const indexStr = event.currentTarget.dataset.stopIndex;
+      if (indexStr !== undefined) {
+        removeStop(parseInt(indexStr, 10));
+      }
+    },
+    [removeStop]
   );
 
   const copyToClipboard = useCallback(() => {
@@ -300,13 +336,14 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           {gradient.stops.map((stop, index) => (
             <div
               key={`${stop.position}-${stop.color}`}
+              data-stop-index={index}
               className={`stop-marker ${selectedStopIndex === index ? "selected" : ""}`}
               style={{
                 left: `${stop.position}%`,
                 backgroundColor: stop.color
               }}
-              onMouseDown={(e) => handleStopDrag(index, e)}
-              onClick={handleStopClick(index)}
+              onMouseDown={handleStopMarkerMouseDown}
+              onClick={handleStopMarkerClick}
             />
           ))}
         </div>
@@ -319,7 +356,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             size="small"
             label="Color"
             value={selectedStop.color}
-            onChange={(e) => handleStopColorChange(selectedStopIndex, e.target.value)}
+            onChange={handleStopColorInputChange}
             sx={{ width: "100px" }}
           />
           <TextField
@@ -327,12 +364,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             label="Position"
             type="number"
             value={selectedStop.position}
-            onChange={(e) =>
-              handleStopPositionChange(
-                selectedStopIndex,
-                Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
-              )
-            }
+            onChange={handleStopPositionInputChange}
             InputProps={{
               endAdornment: <Typography variant="caption">%</Typography>
             }}
@@ -342,7 +374,8 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             <Button
               size="small"
               variant="outlined"
-              onClick={handleApplyCurrentColor(selectedStopIndex)}
+              data-stop-index={selectedStopIndex}
+              onClick={handleApplyColorButtonClick}
               sx={{ minWidth: "auto", px: 1 }}
             >
               Apply
@@ -351,7 +384,8 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           <Tooltip title="Remove stop">
             <IconButton
               size="small"
-              onClick={handleRemoveStopClick(selectedStopIndex)}
+              data-stop-index={selectedStopIndex}
+              onClick={handleRemoveStopButtonClick}
               disabled={gradient.stops.length <= 2}
             >
               <DeleteIcon fontSize="small" />
