@@ -85,8 +85,8 @@ export const createWorkflowRunnerStore = (
     messageHandler: (workflow: Workflow, data: MsgpackData) => {
       const state = get();
 
-      if ((data as Record<string, unknown>).message) {
-        set({ logs: appendLog(state.logs, `[${data.type}] ${(data as Record<string, unknown>).message}`) });
+      if ((data as unknown as Record<string, unknown>).message) {
+        set({ logs: appendLog(state.logs, `[${data.type}] ${(data as unknown as Record<string, unknown>).message}`) });
       }
 
       switch (data.type) {
