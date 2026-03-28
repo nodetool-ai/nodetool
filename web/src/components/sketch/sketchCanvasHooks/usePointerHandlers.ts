@@ -62,12 +62,12 @@ import {
 } from "../pointerPen";
 
 /**
- * Wheel zoom smoothing: lerp factor per frame is interpolated between these
- * based on how far animated zoom is from the target — fast catch-up when far,
- * softer when close.
+ * Wheel zoom smoothing: lerp factor per frame blends between min (near target)
+ * and max (far) using relative error — lazy overall motion, a bit quicker when
+ * the gap is large so stacked wheel events still land without feeling snappy.
  */
-const WHEEL_ZOOM_SMOOTH_MIN = 0.38;
-const WHEEL_ZOOM_SMOOTH_MAX = 0.92;
+const WHEEL_ZOOM_SMOOTH_MIN = 0.26;
+const WHEEL_ZOOM_SMOOTH_MAX = 0.72;
 
 /** Rect/ellipse marquee: require this much document-space drag (px) before committing a mask. */
 const MARQUEE_MIN_DRAG_DOC_PX = 1;
@@ -1822,9 +1822,10 @@ export function usePointerHandlers({
         const zT = zoomWheelTargetRef.current;
         const denom = Math.max(Math.abs(z0), Math.abs(zT), 1e-6);
         const relErr = Math.abs(zT - z0) / denom;
-        const k = Math.min(1, relErr * 2.2);
+        const k = Math.min(1, relErr * 1.45);
         const alpha =
-          WHEEL_ZOOM_SMOOTH_MIN + (WHEEL_ZOOM_SMOOTH_MAX - WHEEL_ZOOM_SMOOTH_MIN) * k;
+          WHEEL_ZOOM_SMOOTH_MIN +
+          (WHEEL_ZOOM_SMOOTH_MAX - WHEEL_ZOOM_SMOOTH_MIN) * k * k;
         let z1 = z0 + (zT - z0) * alpha;
         const snapEps = 1e-5;
         if (Math.abs(zT - z1) < snapEps) {
