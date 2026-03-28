@@ -112,7 +112,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setZoom(100);
       });
-      expect(useSketchStore.getState().zoom).toBe(32);
+      expect(useSketchStore.getState().zoom).toBe(48);
     });
   });
 

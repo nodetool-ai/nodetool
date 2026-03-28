@@ -195,7 +195,7 @@ describe("Zoom speed", () => {
     expect(zoomedOut).toBeCloseTo(1 / 1.3, 5);
   });
 
-  it("store setZoom should clamp between 0.1 and 32", () => {
+  it("store setZoom should clamp between 0.1 and 48", () => {
     act(() => {
       useSketchStore.getState().setZoom(0.01);
     });
@@ -204,7 +204,7 @@ describe("Zoom speed", () => {
     act(() => {
       useSketchStore.getState().setZoom(100);
     });
-    expect(useSketchStore.getState().zoom).toBe(32);
+    expect(useSketchStore.getState().zoom).toBe(48);
 
     act(() => {
       useSketchStore.getState().setZoom(2.5);

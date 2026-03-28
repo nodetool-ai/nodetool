@@ -518,13 +518,19 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ...(bootstrapPhaseActive ? { opacity: 0 } : {})
           }}
         />
-        {/* Overlay canvas for shape/gradient/crop preview */}
+        {/* Overlay canvas for shape/gradient/crop preview + pixel grid.
+            Use auto (not pixelated): grid strokes are 1/zoom doc-units wide; with
+            pixelated upscaling they vanish when zoomed in. */}
         <canvas
           ref={overlayCanvasRef}
           className="sketch-canvas__overlay"
           width={doc.canvas.width}
           height={doc.canvas.height}
-          style={{ ...canvasStyle, pointerEvents: "none" }}
+          style={{
+            ...canvasStyle,
+            pointerEvents: "none",
+            imageRendering: "auto"
+          }}
         />
         {/* Screen-resolution canvas for selection marching ants */}
         <canvas
