@@ -24,6 +24,13 @@ async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
   return items;
 }
 
+/** Patch a node so that workspace_dir appears in serialize() output */
+function withWorkspace<T extends { serialize: () => Record<string, unknown> }>(node: T, workspace: string): T {
+  const origSerialize = node.serialize.bind(node);
+  node.serialize = () => ({ ...origSerialize(), workspace_dir: workspace });
+  return node;
+}
+
 describe("workspace/document parity", () => {
   it("matches workspace path validation rules from the Python tests", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "nodetool-ws-parity-"));
@@ -45,33 +52,36 @@ describe("workspace/document parity", () => {
     await mkdir(path.join(workspace, "subdir"));
     await writeFile(path.join(workspace, "subdir", "nested.txt"), "nested");
 
-    const listNode = new ListWorkspaceFilesNode();
-    const files = await collectGen(listNode.genProcess({ workspace_dir: workspace, path: ".", pattern: "*.txt" }));
+    const listNode = withWorkspace(new ListWorkspaceFilesNode(), workspace);
+    Object.assign(listNode, { path: ".", pattern: "*.txt" });
+    const files = await collectGen(listNode.genProcess());
     expect(files.map((item) => item.file).sort()).toEqual(["file1.txt", "file2.txt"]);
 
-    const recursiveFiles = await collectGen(
-      listNode.genProcess({ workspace_dir: workspace, path: ".", pattern: "*.txt", recursive: true }),
-    );
+    Object.assign(listNode, { path: ".", pattern: "*.txt", recursive: true });
+    const recursiveFiles = await collectGen(listNode.genProcess());
     expect(recursiveFiles.map((item) => item.file).sort()).toEqual([
       "file1.txt",
       "file2.txt",
       path.join("subdir", "nested.txt"),
     ]);
 
-    const writeNode = new WriteTextFileNode();
-    const readNode = new ReadTextFileNode();
-    await writeNode.process({ workspace_dir: workspace, path: "sub/deep/file.txt", content: "nested content" });
-    expect(await readNode.process({ workspace_dir: workspace, path: "sub/deep/file.txt" })).toEqual({
+    const writeNode = withWorkspace(new WriteTextFileNode(), workspace);
+    const readNode = withWorkspace(new ReadTextFileNode(), workspace);
+    Object.assign(writeNode, { path: "sub/deep/file.txt", content: "nested content" });
+    await writeNode.process();
+    Object.assign(readNode, { path: "sub/deep/file.txt" });
+    expect(await readNode.process()).toEqual({
       output: "nested content",
     });
 
     await writeFile(path.join(workspace, "append.txt"), "First line\n");
-    await writeNode.process({
+    Object.assign(writeNode, {
       workspace_dir: workspace,
       path: "append.txt",
       content: "Second line",
       append: true,
     });
+    await writeNode.process();
     expect(await readFile(path.join(workspace, "append.txt"), "utf8")).toBe("First line\nSecond line");
   });
 
@@ -80,15 +90,15 @@ describe("workspace/document parity", () => {
     const docPath = path.join(root, "notes.txt");
     await writeFile(docPath, "hello document");
 
-    const loaded = await new LoadDocumentFileNode().process({ path: docPath });
+    const loaded = await Object.assign(new LoadDocumentFileNode(), { path: docPath }).process();
     expect(typeof loaded.output.data).toBe("string");
     expect(loaded.output.uri).toBe(`file://${docPath}`);
 
     const savedPath = path.join(root, "copy.txt");
-    await new SaveDocumentFileNode().process({
+    await Object.assign(new SaveDocumentFileNode(), {
       path: savedPath,
       document: loaded.output,
-    });
+    }).process();
     expect(await readFile(savedPath, "utf8")).toBe("hello document");
 
     await writeFile(path.join(root, "a.txt"), "a");
@@ -98,27 +108,29 @@ describe("workspace/document parity", () => {
     await writeFile(path.join(root, "sub", "deep.md"), "# Deep");
 
     const listNode = new ListDocumentsNode();
-    const direct = await collectGen(listNode.genProcess({ folder: root, pattern: "*.txt" }));
+    Object.assign(listNode, { folder: root, pattern: "*.txt" });
+    const direct = await collectGen(listNode.genProcess());
     expect(direct).toHaveLength(3);
     expect(direct.every((item) => String(item.document?.uri).endsWith(".txt"))).toBe(true);
 
-    const recursive = await collectGen(listNode.genProcess({ folder: root, recursive: true, pattern: "*.md" }));
+    Object.assign(listNode, { folder: root, recursive: true, pattern: "*.md" });
+    const recursive = await collectGen(listNode.genProcess());
     expect(recursive).toHaveLength(1);
     expect(String(recursive[0]?.document?.uri)).toContain("deep.md");
   });
 
   it("matches Python-style recursive and markdown split metadata", async () => {
-    const recursiveChunks = await collectGen(
-      new SplitRecursivelyNode().genProcess({
-        document: {
-          uri: "test-doc",
-          text: "First line\nSecond line\nThird line",
-        },
-        chunk_size: 5,
-        chunk_overlap: 0,
-        separators: ["\n\n", "\n", "."],
-      }),
-    );
+    const splitRecNode = new SplitRecursivelyNode();
+    Object.assign(splitRecNode, {
+      document: {
+        uri: "test-doc",
+        text: "First line\nSecond line\nThird line",
+      },
+      chunk_size: 5,
+      chunk_overlap: 0,
+      separators: ["\n\n", "\n", "."],
+    });
+    const recursiveChunks = await collectGen(splitRecNode.genProcess());
 
     expect(recursiveChunks).toEqual([
       { chunk: "First line", text: "First line", source_id: "test-doc:0", start_index: 0 },
@@ -126,16 +138,16 @@ describe("workspace/document parity", () => {
       { chunk: "\nThird line", text: "\nThird line", source_id: "test-doc:2", start_index: 22 },
     ]);
 
-    const markdownChunks = await collectGen(
-      new SplitMarkdownNode().genProcess({
-        document: {
-          uri: "test-md-doc",
-          text: "# Header 1\nContent 1\n## Header 2\nContent 2",
-        },
-        headers_to_split_on: [["#", "Header 1"], ["##", "Header 2"]],
-        strip_headers: true,
-      }),
-    );
+    const splitMdNode = new SplitMarkdownNode();
+    Object.assign(splitMdNode, {
+      document: {
+        uri: "test-md-doc",
+        text: "# Header 1\nContent 1\n## Header 2\nContent 2",
+      },
+      headers_to_split_on: [["#", "Header 1"], ["##", "Header 2"]],
+      strip_headers: true,
+    });
+    const markdownChunks = await collectGen(splitMdNode.genProcess());
 
     expect(markdownChunks).toEqual([
       { chunk: "Content 1", text: "Content 1", source_id: "test-md-doc", start_index: 0 },

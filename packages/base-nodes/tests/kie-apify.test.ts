@@ -65,42 +65,65 @@ describe("ApifyWebScraperNode", () => {
     const node = new ApifyWebScraperNode();
     const items = [{ url: "https://example.com", title: "Example" }];
     mockRunActor(items);
-    const result = await node.process({
-      start_urls: ["https://example.com"],
-      ...secrets,
+
+    node.assign({
+      start_urls: ["https://example.com"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual(items);
   });
 
   it("throws when start_urls is empty", async () => {
     const node = new ApifyWebScraperNode();
+
+    node.assign({
+      start_urls: []
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({ start_urls: [], ...secrets })
+      node.process()
     ).rejects.toThrow("start_urls is required");
   });
 
   it("throws when API key missing", async () => {
     const node = new ApifyWebScraperNode();
+
+    node.assign({
+      start_urls: ["https://example.com"]
+    });
+
     await expect(
-      node.process({ start_urls: ["https://example.com"] })
+      node.process()
     ).rejects.toThrow("APIFY_API_KEY not configured");
   });
 
   it("throws on API error", async () => {
     const node = new ApifyWebScraperNode();
     mockFetch.mockResolvedValueOnce(jsonResponse("forbidden", 403));
+
+    node.assign({
+      start_urls: ["https://example.com"]
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({ start_urls: ["https://example.com"], ...secrets })
+      node.process()
     ).rejects.toThrow("Apify API error (403)");
   });
 
   it("returns empty array when no datasetId", async () => {
     const node = new ApifyWebScraperNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ data: { id: "run1" } }));
-    const result = await node.process({
-      start_urls: ["https://example.com"],
-      ...secrets,
+
+    node.assign({
+      start_urls: ["https://example.com"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([]);
   });
 
@@ -111,10 +134,13 @@ describe("ApifyWebScraperNode", () => {
         jsonResponse({ data: { id: "run1", defaultDatasetId: "ds1" } })
       )
       .mockResolvedValueOnce(jsonResponse("not found", 404));
-    const result = await node.process({
-      start_urls: ["https://example.com"],
-      ...secrets,
+
+    node.assign({
+      start_urls: ["https://example.com"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([]);
   });
 
@@ -122,9 +148,12 @@ describe("ApifyWebScraperNode", () => {
     process.env.APIFY_API_KEY = "env-key";
     const node = new ApifyWebScraperNode();
     mockRunActor([]);
-    const result = await node.process({
-      start_urls: ["https://example.com"],
+
+    node.assign({
+      start_urls: ["https://example.com"]
     });
+
+    const result = await node.process();
     expect(result.output).toEqual([]);
   });
 });
@@ -136,28 +165,42 @@ describe("ApifyGoogleSearchScraperNode", () => {
     const node = new ApifyGoogleSearchScraperNode();
     const items = [{ title: "Result 1", url: "https://example.com" }];
     mockRunActor(items);
-    const result = await node.process({
-      queries: ["test query"],
-      ...secrets,
+
+    node.assign({
+      queries: ["test query"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual(items);
   });
 
   it("throws when queries empty", async () => {
     const node = new ApifyGoogleSearchScraperNode();
+
+    node.assign({
+      queries: []
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({ queries: [], ...secrets })
+      node.process()
     ).rejects.toThrow("queries is required");
   });
 
   it("clamps results_per_page to valid range", async () => {
     const node = new ApifyGoogleSearchScraperNode();
     mockRunActor([]);
-    await node.process({
+
+    node.assign({
       queries: ["test"],
-      results_per_page: 5, // below MIN_RESULTS_PER_PAGE
-      ...secrets,
+
+      // below MIN_RESULTS_PER_PAGE
+      results_per_page: 5
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    await node.process();
     // Verify the fetch was called (no error)
     expect(mockFetch).toHaveBeenCalled();
   });
@@ -170,27 +213,40 @@ describe("ApifyInstagramScraperNode", () => {
     const node = new ApifyInstagramScraperNode();
     const items = [{ username: "test_user", posts: 10 }];
     mockRunActor(items);
-    const result = await node.process({
-      usernames: ["test_user"],
-      ...secrets,
+
+    node.assign({
+      usernames: ["test_user"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual(items);
   });
 
   it("returns items with hashtags", async () => {
     const node = new ApifyInstagramScraperNode();
     mockRunActor([{ tag: "coding" }]);
-    const result = await node.process({
-      hashtags: ["coding"],
-      ...secrets,
+
+    node.assign({
+      hashtags: ["coding"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ tag: "coding" }]);
   });
 
   it("throws when both usernames and hashtags empty", async () => {
     const node = new ApifyInstagramScraperNode();
+
+    node.assign({
+      usernames: [],
+      hashtags: []
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({ usernames: [], hashtags: [], ...secrets })
+      node.process()
     ).rejects.toThrow("Either usernames or hashtags is required");
   });
 });
@@ -202,31 +258,40 @@ describe("ApifyAmazonScraperNode", () => {
     const node = new ApifyAmazonScraperNode();
     const items = [{ title: "Product", price: "$10" }];
     mockRunActor(items);
-    const result = await node.process({
-      search_queries: ["laptop"],
-      ...secrets,
+
+    node.assign({
+      search_queries: ["laptop"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual(items);
   });
 
   it("returns products from product URLs", async () => {
     const node = new ApifyAmazonScraperNode();
     mockRunActor([{ title: "Item" }]);
-    const result = await node.process({
-      product_urls: ["https://amazon.com/dp/123"],
-      ...secrets,
+
+    node.assign({
+      product_urls: ["https://amazon.com/dp/123"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ title: "Item" }]);
   });
 
   it("throws when both search_queries and product_urls empty", async () => {
     const node = new ApifyAmazonScraperNode();
+
+    node.assign({
+      search_queries: [],
+      product_urls: []
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({
-        search_queries: [],
-        product_urls: [],
-        ...secrets,
-      })
+      node.process()
     ).rejects.toThrow("Either search_queries or product_urls is required");
   });
 });
@@ -237,42 +302,54 @@ describe("ApifyYouTubeScraperNode", () => {
   it("returns results from search queries", async () => {
     const node = new ApifyYouTubeScraperNode();
     mockRunActor([{ title: "Video 1" }]);
-    const result = await node.process({
-      search_queries: ["cats"],
-      ...secrets,
+
+    node.assign({
+      search_queries: ["cats"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ title: "Video 1" }]);
   });
 
   it("returns results from video URLs", async () => {
     const node = new ApifyYouTubeScraperNode();
     mockRunActor([{ title: "Video" }]);
-    const result = await node.process({
-      video_urls: ["https://youtube.com/watch?v=abc"],
-      ...secrets,
+
+    node.assign({
+      video_urls: ["https://youtube.com/watch?v=abc"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ title: "Video" }]);
   });
 
   it("returns results from channel URLs", async () => {
     const node = new ApifyYouTubeScraperNode();
     mockRunActor([{ channel: "test" }]);
-    const result = await node.process({
-      channel_urls: ["https://youtube.com/@testchannel"],
-      ...secrets,
+
+    node.assign({
+      channel_urls: ["https://youtube.com/@testchannel"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ channel: "test" }]);
   });
 
   it("throws when all input arrays empty", async () => {
     const node = new ApifyYouTubeScraperNode();
+
+    node.assign({
+      search_queries: [],
+      video_urls: [],
+      channel_urls: []
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({
-        search_queries: [],
-        video_urls: [],
-        channel_urls: [],
-        ...secrets,
-      })
+      node.process()
     ).rejects.toThrow(
       "At least one of search_queries, video_urls, or channel_urls is required"
     );
@@ -285,42 +362,54 @@ describe("ApifyTwitterScraperNode", () => {
   it("returns tweets from search terms", async () => {
     const node = new ApifyTwitterScraperNode();
     mockRunActor([{ text: "tweet content" }]);
-    const result = await node.process({
-      search_terms: ["AI"],
-      ...secrets,
+
+    node.assign({
+      search_terms: ["AI"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ text: "tweet content" }]);
   });
 
   it("returns tweets from usernames", async () => {
     const node = new ApifyTwitterScraperNode();
     mockRunActor([{ text: "user tweet" }]);
-    const result = await node.process({
-      usernames: ["elonmusk"],
-      ...secrets,
+
+    node.assign({
+      usernames: ["elonmusk"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ text: "user tweet" }]);
   });
 
   it("returns tweets from tweet URLs", async () => {
     const node = new ApifyTwitterScraperNode();
     mockRunActor([{ text: "specific tweet" }]);
-    const result = await node.process({
-      tweet_urls: ["https://twitter.com/user/status/123"],
-      ...secrets,
+
+    node.assign({
+      tweet_urls: ["https://twitter.com/user/status/123"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ text: "specific tweet" }]);
   });
 
   it("throws when all inputs empty", async () => {
     const node = new ApifyTwitterScraperNode();
+
+    node.assign({
+      search_terms: [],
+      usernames: [],
+      tweet_urls: []
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({
-        search_terms: [],
-        usernames: [],
-        tweet_urls: [],
-        ...secrets,
-      })
+      node.process()
     ).rejects.toThrow(
       "At least one of search_terms, usernames, or tweet_urls is required"
     );
@@ -333,42 +422,54 @@ describe("ApifyLinkedInScraperNode", () => {
   it("returns profiles from profile URLs", async () => {
     const node = new ApifyLinkedInScraperNode();
     mockRunActor([{ name: "John" }]);
-    const result = await node.process({
-      profile_urls: ["https://linkedin.com/in/john"],
-      ...secrets,
+
+    node.assign({
+      profile_urls: ["https://linkedin.com/in/john"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ name: "John" }]);
   });
 
   it("returns results from company URLs", async () => {
     const node = new ApifyLinkedInScraperNode();
     mockRunActor([{ company: "Acme" }]);
-    const result = await node.process({
-      company_urls: ["https://linkedin.com/company/acme"],
-      ...secrets,
+
+    node.assign({
+      company_urls: ["https://linkedin.com/company/acme"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ company: "Acme" }]);
   });
 
   it("returns results from job search URLs", async () => {
     const node = new ApifyLinkedInScraperNode();
     mockRunActor([{ job: "Engineer" }]);
-    const result = await node.process({
-      job_search_urls: ["https://linkedin.com/jobs/search?q=engineer"],
-      ...secrets,
+
+    node.assign({
+      job_search_urls: ["https://linkedin.com/jobs/search?q=engineer"]
     });
+
+    node.setDynamic("_secrets", secrets._secrets);
+    const result = await node.process();
     expect(result.output).toEqual([{ job: "Engineer" }]);
   });
 
   it("throws when all inputs empty", async () => {
     const node = new ApifyLinkedInScraperNode();
+
+    node.assign({
+      profile_urls: [],
+      company_urls: [],
+      job_search_urls: []
+    });
+
+    node.setDynamic("_secrets", secrets._secrets);
     await expect(
-      node.process({
-        profile_urls: [],
-        company_urls: [],
-        job_search_urls: [],
-        ...secrets,
-      })
+      node.process()
     ).rejects.toThrow(
       "At least one of profile_urls, company_urls, or job_search_urls is required"
     );

@@ -46,26 +46,28 @@ describe("ChatComplete", () => {
 
   it("throws without API key", async () => {
     const node = new ChatComplete();
-    await expect(node.process({ prompt: "hi" })).rejects.toThrow(
+    node.assign({ prompt: "hi" });
+    await expect(node.process()).rejects.toThrow(
       /Mistral API key/i
     );
   });
 
   it("throws when prompt is empty", async () => {
     const node = new ChatComplete();
-    await expect(
-      node.process({ prompt: "", _secrets: { MISTRAL_API_KEY: "k" } })
-    ).rejects.toThrow(/Prompt cannot be empty/i);
+    node.assign({ prompt: "" });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Prompt cannot be empty/i);
   });
 
   it("calls chat/completions and returns output", async () => {
     mockChatResponse("Hello back!");
 
     const node = new ChatComplete();
-    const result = await node.process({
-      prompt: "Hello",
-      _secrets: { MISTRAL_API_KEY: "test-key" },
+    node.assign({
+      prompt: "Hello"
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "test-key" });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, opts] = mockFetch.mock.calls[0];
@@ -84,11 +86,12 @@ describe("ChatComplete", () => {
     mockChatResponse("response");
 
     const node = new ChatComplete();
-    await node.process({
+    node.assign({
       prompt: "Hello",
-      system_prompt: "You are helpful",
-      _secrets: { MISTRAL_API_KEY: "k" },
+      system_prompt: "You are helpful"
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.messages).toHaveLength(2);
@@ -104,9 +107,9 @@ describe("ChatComplete", () => {
     });
 
     const node = new ChatComplete();
-    await expect(
-      node.process({ prompt: "hi", _secrets: { MISTRAL_API_KEY: "k" } })
-    ).rejects.toThrow(/Mistral API error 429/);
+    node.assign({ prompt: "hi" });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Mistral API error 429/);
   });
 });
 
@@ -133,11 +136,12 @@ describe("CodeComplete", () => {
     mockChatResponse("completed code");
 
     const node = new CodeComplete();
-    await node.process({
+    node.assign({
       prompt: "def hello():",
-      suffix: "  return result",
-      _secrets: { MISTRAL_API_KEY: "k" },
+      suffix: "  return result"
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.mistral.ai/v1/fim/completions");
@@ -151,10 +155,11 @@ describe("CodeComplete", () => {
     mockChatResponse("code output");
 
     const node = new CodeComplete();
-    await node.process({
-      prompt: "Write a sort function",
-      _secrets: { MISTRAL_API_KEY: "k" },
+    node.assign({
+      prompt: "Write a sort function"
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.mistral.ai/v1/chat/completions");
@@ -181,9 +186,9 @@ describe("Embedding (Mistral)", () => {
 
   it("throws when input is empty", async () => {
     const node = new Embedding();
-    await expect(
-      node.process({ input: "", _secrets: { MISTRAL_API_KEY: "k" } })
-    ).rejects.toThrow(/Input text cannot be empty/i);
+    node.assign({ input: "" });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Input text cannot be empty/i);
   });
 
   it("returns embedding data with shape", async () => {
@@ -195,10 +200,11 @@ describe("Embedding (Mistral)", () => {
     });
 
     const node = new Embedding();
-    const result = await node.process({
-      input: "test",
-      _secrets: { MISTRAL_API_KEY: "k" },
+    node.assign({
+      input: "test"
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    const result = await node.process();
 
     const output = result.output as Record<string, unknown>;
     expect(output.data).toEqual([0.1, 0.2, 0.3]);
@@ -219,11 +225,12 @@ describe("Embedding (Mistral)", () => {
     });
 
     const node = new Embedding();
-    const result = await node.process({
+    node.assign({
       input: "abcdefgh",
-      chunk_size: 4,
-      _secrets: { MISTRAL_API_KEY: "k" },
+      chunk_size: 4
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    const result = await node.process();
 
     const output = result.output as Record<string, unknown>;
     const data = output.data as number[];
@@ -251,20 +258,21 @@ describe("ImageToText (Mistral)", () => {
 
   it("throws when image has no data or uri", async () => {
     const node = new ImageToText();
-    await expect(
-      node.process({ image: {}, _secrets: { MISTRAL_API_KEY: "k" } })
-    ).rejects.toThrow(/Image is required/i);
+    node.assign({ image: {} });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Image is required/i);
   });
 
   it("sends image as data URI and returns text", async () => {
     mockChatResponse("A cat sitting on a mat");
 
     const node = new ImageToText();
-    const result = await node.process({
+    node.assign({
       image: { data: "abc123" },
-      prompt: "What is this?",
-      _secrets: { MISTRAL_API_KEY: "k" },
+      prompt: "What is this?"
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    const result = await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.model).toBe("pixtral-large-latest");
@@ -280,10 +288,11 @@ describe("ImageToText (Mistral)", () => {
     mockChatResponse("description");
 
     const node = new ImageToText();
-    await node.process({
-      image: { uri: "https://example.com/img.png" },
-      _secrets: { MISTRAL_API_KEY: "k" },
+    node.assign({
+      image: { uri: "https://example.com/img.png" }
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const imgUrl = body.messages[0].content[0].image_url.url;
@@ -309,19 +318,20 @@ describe("OCR (Mistral)", () => {
 
   it("throws when image has no data or uri", async () => {
     const node = new OCR();
-    await expect(
-      node.process({ image: {}, _secrets: { MISTRAL_API_KEY: "k" } })
-    ).rejects.toThrow(/Image is required/i);
+    node.assign({ image: {} });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Image is required/i);
   });
 
   it("extracts text from image", async () => {
     mockChatResponse("Extracted document text");
 
     const node = new OCR();
-    const result = await node.process({
-      image: { data: "imgdata" },
-      _secrets: { MISTRAL_API_KEY: "k" },
+    node.assign({
+      image: { data: "imgdata" }
     });
+    node.setDynamic("_secrets", { MISTRAL_API_KEY: "k" });
+    const result = await node.process();
 
     expect(result.output).toBe("Extracted document text");
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);

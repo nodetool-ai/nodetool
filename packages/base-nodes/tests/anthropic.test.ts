@@ -22,37 +22,35 @@ describe("ClaudeAgentNode", () => {
 
   it("throws on empty prompt", async () => {
     const node = new ClaudeAgentNode();
-    await expect(
-      node.process({
-        prompt: "",
-        _secrets: { ANTHROPIC_API_KEY: "key" },
-      })
-    ).rejects.toThrow("Prompt is required");
+    node.assign({
+      prompt: ""
+    });
+    node.setDynamic("_secrets", { ANTHROPIC_API_KEY: "key" });
+    await expect(node.process()).rejects.toThrow("Prompt is required");
   });
 
   it("throws when API key is missing", async () => {
     const node = new ClaudeAgentNode();
-    await expect(node.process({ prompt: "hello" })).rejects.toThrow(
+    node.assign({ prompt: "hello" });
+    await expect(node.process()).rejects.toThrow(
       "ANTHROPIC_API_KEY is not configured"
     );
   });
 
   it("throws when claude-agent-sdk is not installed", async () => {
     const node = new ClaudeAgentNode();
-    await expect(
-      node.process({
-        prompt: "hello",
-        _secrets: { ANTHROPIC_API_KEY: "test-key" },
-      })
-    ).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
+    node.assign({
+      prompt: "hello"
+    });
+    node.setDynamic("_secrets", { ANTHROPIC_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
   });
 
   it("uses env var for API key", async () => {
     process.env.ANTHROPIC_API_KEY = "env-key";
     const node = new ClaudeAgentNode();
     // Will fail on SDK import, but shouldn't fail on API key check
-    await expect(
-      node.process({ prompt: "hello" })
-    ).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
+    node.assign({ prompt: "hello" });
+    await expect(node.process()).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
   });
 });

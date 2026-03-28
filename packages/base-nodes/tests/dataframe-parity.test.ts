@@ -22,11 +22,13 @@ import {
   ToListNode,
 } from "../src/index.js";
 
-async function run<T extends { process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> }>(
+async function run<T extends { assign(inputs: Record<string, unknown>): void; process(): Promise<Record<string, unknown>> }>(
   NodeClass: new () => T,
   inputs: Record<string, unknown>,
 ) {
-  return new NodeClass().process(inputs);
+  const node = new NodeClass();
+  node.assign(inputs);
+  return node.process();
 }
 
 async function runWorkflow(nodes: NodeDescriptor[], edges: Edge[]) {

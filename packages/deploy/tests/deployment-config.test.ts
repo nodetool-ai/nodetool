@@ -17,9 +17,6 @@ import {
   NginxConfigSchema,
   DockerDeploymentSchema,
   dockerDeploymentGetServerUrl,
-  SSHDeploymentSchema,
-  LocalDeploymentSchema,
-  shellDeploymentGetServerUrl,
   RunPodBuildConfigSchema,
   RunPodImageConfigSchema,
   runPodImageConfigFullName,
@@ -56,10 +53,11 @@ import {
 describe("DeploymentType", () => {
   it("has all expected values", () => {
     expect(DeploymentType.DOCKER).toBe("docker");
-    expect(DeploymentType.SSH).toBe("ssh");
-    expect(DeploymentType.LOCAL).toBe("local");
     expect(DeploymentType.RUNPOD).toBe("runpod");
     expect(DeploymentType.GCP).toBe("gcp");
+    expect(DeploymentType.FLY).toBe("fly");
+    expect(DeploymentType.RAILWAY).toBe("railway");
+    expect(DeploymentType.HUGGINGFACE).toBe("huggingface");
   });
 });
 
@@ -362,90 +360,6 @@ describe("dockerDeploymentGetServerUrl", () => {
   });
 });
 
-// ============================================================================
-// SSHDeploymentSchema
-// ============================================================================
-
-describe("SSHDeploymentSchema", () => {
-  it("parses valid SSH deployment", () => {
-    const result = SSHDeploymentSchema.parse({
-      host: "10.0.0.1",
-      ssh: { user: "deploy" },
-      port: 8000,
-    });
-    expect(result.type).toBe("ssh");
-    expect(result.ssh.user).toBe("deploy");
-    expect(result.port).toBe(8000);
-  });
-
-  it("rejects missing ssh config", () => {
-    expect(() =>
-      SSHDeploymentSchema.parse({ host: "h", port: 8000 })
-    ).toThrow();
-  });
-});
-
-// ============================================================================
-// LocalDeploymentSchema
-// ============================================================================
-
-describe("LocalDeploymentSchema", () => {
-  it("defaults host to localhost", () => {
-    const result = LocalDeploymentSchema.parse({ port: 8000 });
-    expect(result.type).toBe("local");
-    expect(result.host).toBe("localhost");
-  });
-});
-
-// ============================================================================
-// shellDeploymentGetServerUrl
-// ============================================================================
-
-describe("shellDeploymentGetServerUrl", () => {
-  it("returns http URL with port when no nginx", () => {
-    const d = SSHDeploymentSchema.parse({
-      host: "myhost",
-      ssh: { user: "root" },
-      port: 8000,
-    });
-    expect(shellDeploymentGetServerUrl(d)).toBe("http://myhost:8000");
-  });
-
-  it("returns https URL when nginx enabled with SSL", () => {
-    const d = SSHDeploymentSchema.parse({
-      host: "myhost",
-      ssh: { user: "root" },
-      port: 8000,
-      nginx: {
-        enabled: true,
-        ssl_cert_path: "/cert.pem",
-        ssl_key_path: "/key.pem",
-        https_port: 443,
-      },
-    });
-    expect(shellDeploymentGetServerUrl(d)).toBe("https://myhost:443");
-  });
-
-  it("returns http URL via nginx when no SSL", () => {
-    const d = SSHDeploymentSchema.parse({
-      host: "myhost",
-      ssh: { user: "root" },
-      port: 8000,
-      nginx: { enabled: true },
-    });
-    expect(shellDeploymentGetServerUrl(d)).toBe("http://myhost:80");
-  });
-
-  it("returns direct port URL when nginx disabled", () => {
-    const d = SSHDeploymentSchema.parse({
-      host: "myhost",
-      ssh: { user: "root" },
-      port: 8000,
-      nginx: { enabled: false },
-    });
-    expect(shellDeploymentGetServerUrl(d)).toBe("http://myhost:8000");
-  });
-});
 
 // ============================================================================
 // RunPod Schemas
@@ -684,7 +598,7 @@ describe("DefaultsConfigSchema", () => {
 describe("DeploymentConfigSchema", () => {
   it("parses empty object with defaults", () => {
     const result = DeploymentConfigSchema.parse({});
-    expect(result.version).toBe("1.0");
+    expect(result.version).toBe("2.0");
     expect(result.defaults.chat_provider).toBe("llama_cpp");
     expect(result.deployments).toEqual({});
   });
@@ -693,7 +607,7 @@ describe("DeploymentConfigSchema", () => {
 describe("parseDeploymentConfig", () => {
   it("parses empty object", () => {
     const result = parseDeploymentConfig({});
-    expect(result.version).toBe("1.0");
+    expect(result.version).toBe("2.0");
     expect(result.deployments).toEqual({});
   });
 
@@ -709,20 +623,6 @@ describe("parseDeploymentConfig", () => {
       },
     });
     expect(result.deployments.prod.type).toBe("docker");
-  });
-
-  it("normalizes legacy 'root' type to 'ssh'", () => {
-    const result = parseDeploymentConfig({
-      deployments: {
-        legacy: {
-          type: "root",
-          host: "server1",
-          ssh: { user: "root" },
-          port: 8000,
-        },
-      },
-    });
-    expect(result.deployments.legacy.type).toBe("ssh");
   });
 
   it("rejects null input", () => {

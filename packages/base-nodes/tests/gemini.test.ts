@@ -41,19 +41,19 @@ describe("GroundedSearchNode", () => {
 
   it("throws without API key", async () => {
     const node = new GroundedSearchNode();
-    await expect(node.process({ query: "test" })).rejects.toThrow(
+    node.assign({ query: "test" });
+    await expect(node.process()).rejects.toThrow(
       /GEMINI_API_KEY/i
     );
   });
 
   it("throws when query is empty", async () => {
     const node = new GroundedSearchNode();
-    await expect(
-      node.process({
-        query: "",
-        _secrets: { GEMINI_API_KEY: "test-key" },
-      })
-    ).rejects.toThrow(/query is required/i);
+    node.assign({
+      query: ""
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow(/query is required/i);
   });
 
   it("calls API and returns results with sources", async () => {
@@ -74,10 +74,11 @@ describe("GroundedSearchNode", () => {
     });
 
     const node = new GroundedSearchNode();
-    const result = await node.process({
-      query: "test query",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      query: "test query"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, opts] = mockFetch.mock.calls[0];
@@ -99,12 +100,11 @@ describe("GroundedSearchNode", () => {
     });
 
     const node = new GroundedSearchNode();
-    await expect(
-      node.process({
-        query: "test",
-        _secrets: { GEMINI_API_KEY: "test-key" },
-      })
-    ).rejects.toThrow(/Gemini API error 400/);
+    node.assign({
+      query: "test"
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow(/Gemini API error 400/);
   });
 
   it("throws when no candidates returned", async () => {
@@ -114,12 +114,11 @@ describe("GroundedSearchNode", () => {
     });
 
     const node = new GroundedSearchNode();
-    await expect(
-      node.process({
-        query: "test",
-        _secrets: { GEMINI_API_KEY: "test-key" },
-      })
-    ).rejects.toThrow(/No response/);
+    node.assign({
+      query: "test"
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow(/No response/);
   });
 
   it("deduplicates sources by URL", async () => {
@@ -142,10 +141,11 @@ describe("GroundedSearchNode", () => {
     });
 
     const node = new GroundedSearchNode();
-    const result = await node.process({
-      query: "test",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      query: "test"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
     expect((result.sources as unknown[]).length).toBe(2);
   });
 });
@@ -172,16 +172,17 @@ describe("EmbeddingNode (Gemini)", () => {
 
   it("throws without API key", async () => {
     const node = new EmbeddingNode();
-    await expect(node.process({ input: "hello" })).rejects.toThrow(
+    node.assign({ input: "hello" });
+    await expect(node.process()).rejects.toThrow(
       /GEMINI_API_KEY/i
     );
   });
 
   it("throws when input is empty", async () => {
     const node = new EmbeddingNode();
-    await expect(
-      node.process({ input: "", _secrets: { GEMINI_API_KEY: "k" } })
-    ).rejects.toThrow(/Input text is required/i);
+    node.assign({ input: "" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Input text is required/i);
   });
 
   it("calls embedContent and returns values", async () => {
@@ -193,10 +194,11 @@ describe("EmbeddingNode (Gemini)", () => {
     });
 
     const node = new EmbeddingNode();
-    const result = await node.process({
-      input: "hello",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      input: "hello"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url] = mockFetch.mock.calls[0];
@@ -227,9 +229,9 @@ describe("ImageGenerationNode", () => {
 
   it("throws when prompt is empty", async () => {
     const node = new ImageGenerationNode();
-    await expect(
-      node.process({ prompt: "", _secrets: { GEMINI_API_KEY: "k" } })
-    ).rejects.toThrow(/prompt cannot be empty/i);
+    node.assign({ prompt: "" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/prompt cannot be empty/i);
   });
 
   it("uses predict endpoint for imagen models", async () => {
@@ -241,10 +243,11 @@ describe("ImageGenerationNode", () => {
     });
 
     const node = new ImageGenerationNode();
-    const result = await node.process({
-      prompt: "a cat",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      prompt: "a cat"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain(":predict");
@@ -268,11 +271,12 @@ describe("ImageGenerationNode", () => {
     });
 
     const node = new ImageGenerationNode();
-    const result = await node.process({
+    node.assign({
       prompt: "a dog",
-      model: "gemini-2.0-flash",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+      model: "gemini-2.0-flash"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain(":generateContent");
@@ -288,13 +292,12 @@ describe("ImageGenerationNode", () => {
     });
 
     const node = new ImageGenerationNode();
-    await expect(
-      node.process({
-        prompt: "bad content",
-        model: "gemini-2.0-flash",
-        _secrets: { GEMINI_API_KEY: "test-key" },
-      })
-    ).rejects.toThrow(/Prohibited content/);
+    node.assign({
+      prompt: "bad content",
+      model: "gemini-2.0-flash"
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow(/Prohibited content/);
   });
 });
 
@@ -321,9 +324,9 @@ describe("TextToVideoGeminiNode", () => {
 
   it("throws when prompt is empty", async () => {
     const node = new TextToVideoGeminiNode();
-    await expect(
-      node.process({ prompt: "", _secrets: { GEMINI_API_KEY: "k" } })
-    ).rejects.toThrow(/prompt is required/i);
+    node.assign({ prompt: "" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/prompt is required/i);
   });
 
   it("handles immediate done response", async () => {
@@ -338,10 +341,11 @@ describe("TextToVideoGeminiNode", () => {
     });
 
     const node = new TextToVideoGeminiNode();
-    const result = await node.process({
-      prompt: "a sunset",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      prompt: "a sunset"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     expect((result.output as Record<string, unknown>).data).toBe(
       "videobase64"
@@ -373,10 +377,11 @@ describe("TextToVideoGeminiNode", () => {
     const node = new TextToVideoGeminiNode();
     // Override setTimeout to be instant for testing
     vi.useFakeTimers();
-    const promise = node.process({
-      prompt: "a sunset",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      prompt: "a sunset"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const promise = node.process();
     // Advance timers for the polling delays
     await vi.advanceTimersByTimeAsync(5000);
     await vi.advanceTimersByTimeAsync(5000);
@@ -410,12 +415,11 @@ describe("ImageToVideoGeminiNode", () => {
 
   it("throws when image is not provided", async () => {
     const node = new ImageToVideoGeminiNode();
-    await expect(
-      node.process({
-        image: {},
-        _secrets: { GEMINI_API_KEY: "k" },
-      })
-    ).rejects.toThrow(/image is required/i);
+    node.assign({
+      image: {}
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/image is required/i);
   });
 
   it("calls API with image data", async () => {
@@ -431,10 +435,11 @@ describe("ImageToVideoGeminiNode", () => {
 
     const node = new ImageToVideoGeminiNode();
     const b64data = Buffer.from("fake-png").toString("base64");
-    const result = await node.process({
-      image: { data: b64data, uri: "x", asset_id: "1" },
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      image: { data: b64data, uri: "x", asset_id: "1" }
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -466,9 +471,9 @@ describe("TextToSpeechGeminiNode", () => {
 
   it("throws when text is empty", async () => {
     const node = new TextToSpeechGeminiNode();
-    await expect(
-      node.process({ text: "", _secrets: { GEMINI_API_KEY: "k" } })
-    ).rejects.toThrow(/text cannot be empty/i);
+    node.assign({ text: "" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/text cannot be empty/i);
   });
 
   it("returns WAV audio data", async () => {
@@ -487,10 +492,11 @@ describe("TextToSpeechGeminiNode", () => {
     });
 
     const node = new TextToSpeechGeminiNode();
-    const result = await node.process({
-      text: "Hello world",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      text: "Hello world"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     const output = result.output as Record<string, unknown>;
     expect(output.data).toBeDefined();
@@ -518,11 +524,12 @@ describe("TextToSpeechGeminiNode", () => {
     });
 
     const node = new TextToSpeechGeminiNode();
-    await node.process({
+    node.assign({
       text: "Hello",
-      style_prompt: "Speak slowly",
-      _secrets: { GEMINI_API_KEY: "test-key" },
+      style_prompt: "Speak slowly"
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.contents[0].parts[0].text).toBe("Speak slowly: Hello");
@@ -550,12 +557,11 @@ describe("TranscribeGeminiNode", () => {
 
   it("throws when audio is not provided", async () => {
     const node = new TranscribeGeminiNode();
-    await expect(
-      node.process({
-        audio: {},
-        _secrets: { GEMINI_API_KEY: "k" },
-      })
-    ).rejects.toThrow(/Audio file is required/i);
+    node.assign({
+      audio: {}
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Audio file is required/i);
   });
 
   it("transcribes audio and returns text", async () => {
@@ -575,10 +581,11 @@ describe("TranscribeGeminiNode", () => {
     // WAV magic bytes for mime detection
     const wavHeader = Buffer.from([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]);
     const node = new TranscribeGeminiNode();
-    const result = await node.process({
-      audio: { data: wavHeader.toString("base64"), uri: "x" },
-      _secrets: { GEMINI_API_KEY: "test-key" },
+    node.assign({
+      audio: { data: wavHeader.toString("base64"), uri: "x" }
     });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process();
 
     expect(result.output).toBe("Hello world");
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);

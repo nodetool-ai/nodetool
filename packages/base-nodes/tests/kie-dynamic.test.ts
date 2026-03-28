@@ -58,39 +58,59 @@ describe("KieAINode static metadata", () => {
 
   it("defaults returns the current serialized metadata fields", () => {
     const node = new KieAINode();
-    expect(node.serialize()).toEqual({ timeout_seconds: 0, model_info: "" });
+    expect(node.serialize()).toEqual({ model_info: 0 });
   });
 });
 
 describe("KieAINode validation", () => {
   it("throws on empty model_info", async () => {
     const node = new KieAINode();
+
+    node.assign({
+      model_info: ""
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({ model_info: "", _secrets: { KIE_API_KEY: "k" } })
+      node.process()
     ).rejects.toThrow("model_info is empty");
   });
 
   it("throws on whitespace-only model_info", async () => {
     const node = new KieAINode();
+
+    node.assign({
+      model_info: "   "
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({ model_info: "   ", _secrets: { KIE_API_KEY: "k" } })
+      node.process()
     ).rejects.toThrow("model_info is empty");
   });
 
   it("throws on missing API key", async () => {
     const node = new KieAINode();
+
+    node.assign({
+      model_info: "some docs"
+    });
+
     await expect(
-      node.process({ model_info: "some docs" })
+      node.process()
     ).rejects.toThrow("KIE_API_KEY is not configured");
   });
 
   it("throws when model_info has no model ID", async () => {
     const node = new KieAINode();
+
+    node.assign({
+      model_info: "Some text without model identifier"
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({
-        model_info: "Some text without model identifier",
-        _secrets: { KIE_API_KEY: "k" },
-      })
+      node.process()
     ).rejects.toThrow("Could not find model ID");
   });
 });
@@ -129,10 +149,13 @@ describe("KieAINode process with mocked API", () => {
   it("processes image model and returns image output", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: DOCS_IMAGE_MODEL,
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
     expect((result.image as { data: string }).data).toBeTruthy();
   });
@@ -140,10 +163,13 @@ describe("KieAINode process with mocked API", () => {
   it("processes video model and returns video output", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: DOCS_VIDEO_MODEL,
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: DOCS_VIDEO_MODEL
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.video).toBeDefined();
     expect((result.video as { data: string }).data).toBeTruthy();
   });
@@ -151,10 +177,13 @@ describe("KieAINode process with mocked API", () => {
   it("processes audio model and returns audio output", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: DOCS_AUDIO_MODEL,
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: DOCS_AUDIO_MODEL
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.audio).toBeDefined();
     expect((result.audio as { data: string }).data).toBeTruthy();
   });
@@ -162,10 +191,13 @@ describe("KieAINode process with mocked API", () => {
   it("sends correct model ID to createTask", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    await node.process({
-      model_info: DOCS_IMAGE_MODEL,
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    await node.process();
     const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
       String(c[0]).includes("createTask")
     );
@@ -178,9 +210,12 @@ describe("KieAINode process with mocked API", () => {
     setupSuccessfulKieApi();
     process.env.KIE_API_KEY = "env-api-key";
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: DOCS_IMAGE_MODEL,
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
     });
+
+    const result = await node.process();
     expect(result.image).toBeDefined();
   });
 
@@ -188,10 +223,13 @@ describe("KieAINode process with mocked API", () => {
     setupSuccessfulKieApi();
     process.env.KIE_API_KEY = "env-key";
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: DOCS_IMAGE_MODEL,
-      _secrets: { KIE_API_KEY: "secrets-key" },
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "secrets-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
     // Verify the Authorization header uses secrets-key
     const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
@@ -203,10 +241,13 @@ describe("KieAINode process with mocked API", () => {
   it("result data is base64 encoded", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: DOCS_IMAGE_MODEL,
-      _secrets: { KIE_API_KEY: "k" },
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
+    const result = await node.process();
     const data = (result.image as { data: string }).data;
     // [1, 2, 3] -> base64 "AQID"
     expect(data).toBe("AQID");
@@ -215,10 +256,13 @@ describe("KieAINode process with mocked API", () => {
   it("model ID extracted from 'model' JSON field", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: `"model": "dalle/text2image"`,
-      _secrets: { KIE_API_KEY: "k" },
+
+    node.assign({
+      model_info: `"model": "dalle/text2image"`
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
+    const result = await node.process();
     // "dalle" doesn't match video/audio keywords -> image
     expect(result.image).toBeDefined();
     const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
@@ -328,11 +372,14 @@ describe("KieAINode parseInputParams and full process", () => {
   it("parses input params from docs with all field types", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: FULL_DOCS,
-      prompt: "test prompt",
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: FULL_DOCS
     });
+    (node as any).prompt = "test prompt";
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
     // Verify the createTask call includes the prompt
     const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
@@ -346,25 +393,30 @@ describe("KieAINode parseInputParams and full process", () => {
   it("throws when required param is missing", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
+
+    node.assign({
+      model_info: FULL_DOCS
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
     await expect(
-      node.process({
-        model_info: FULL_DOCS,
-        // prompt is required but not provided
-        _secrets: { KIE_API_KEY: "test-key" },
-      })
+      node.process()
     ).rejects.toThrow("Missing required input: prompt");
   });
 
   it("passes file URL params through", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: FULL_DOCS,
-      prompt: "test",
-      image_url: "https://example.com/img.png",
-      image_urls: ["https://a.com/1.png", "https://b.com/2.png"],
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: FULL_DOCS
     });
+    (node as any).prompt = "test";
+    (node as any).image_url = "https://example.com/img.png";
+    (node as any).image_urls = ["https://a.com/1.png", "https://b.com/2.png"];
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
     const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
       String(c[0]).includes("createTask")
@@ -376,11 +428,14 @@ describe("KieAINode parseInputParams and full process", () => {
   it("extracts model ID from Model name format", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: `Model name, format: \`custom/my-model\`\n### input Object Parameters\n---`,
-      prompt: "test",
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: `Model name, format: \`custom/my-model\`\n### input Object Parameters\n---`
     });
+    (node as any).prompt = "test";
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
     const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
       String(c[0]).includes("createTask")
@@ -392,20 +447,26 @@ describe("KieAINode parseInputParams and full process", () => {
   it("infers video output type", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: `| **Format** | \`kling/video-gen\` |\n---`,
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: `| **Format** | \`kling/video-gen\` |\n---`
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.video).toBeDefined();
   });
 
   it("infers audio output type", async () => {
     setupSuccessfulKieApi();
     const node = new KieAINode();
-    const result = await node.process({
-      model_info: `| **Format** | \`suno/music-gen\` |\n---`,
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: `| **Format** | \`suno/music-gen\` |\n---`
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.audio).toBeDefined();
   });
 
@@ -414,11 +475,14 @@ describe("KieAINode parseInputParams and full process", () => {
     const node = new KieAINode();
     // Docs with a block that has no name match (just whitespace/empty)
     const docs = `| **Format** | \`test/model\` |\n### input Object Parameters\n####\n#### prompt\n- **Type**: \`string\`\n- **Required**: Yes\n- **Description**: text\n---`;
-    const result = await node.process({
-      model_info: docs,
-      prompt: "hi",
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: docs
     });
+    (node as any).prompt = "hi";
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
   });
 
@@ -433,11 +497,14 @@ describe("KieAINode parseInputParams and full process", () => {
 - **Description**: Upload your file here
 - **Default Value**: \`\`
 ---`;
-    const result = await node.process({
-      model_info: docs,
-      my_file: "https://example.com/file.png",
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: docs
     });
+    (node as any).my_file = "https://example.com/file.png";
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
     const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
       String(c[0]).includes("createTask")
@@ -451,10 +518,13 @@ describe("KieAINode parseInputParams and full process", () => {
     const node = new KieAINode();
     // Docs with boolean param default = "false"
     const docs = `| **Format** | \`test/boolmodel\` |\n### input Object Parameters\n#### enabled\n- **Type**: \`boolean\`\n- **Required**: No\n- **Default Value**: \`false\`\n- **Description**: flag\n---`;
-    const result = await node.process({
-      model_info: docs,
-      _secrets: { KIE_API_KEY: "test-key" },
+
+    node.assign({
+      model_info: docs
     });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.image).toBeDefined();
   });
 });
@@ -465,11 +535,14 @@ describe("KieAINode API error handling", () => {
       jsonResponse({ code: 401, message: "Unauthorized" })
     );
     const node = new KieAINode();
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "bad-key" });
     await expect(
-      node.process({
-        model_info: DOCS_IMAGE_MODEL,
-        _secrets: { KIE_API_KEY: "bad-key" },
-      })
+      node.process()
     ).rejects.toThrow("Unauthorized");
   });
 
@@ -488,11 +561,14 @@ describe("KieAINode API error handling", () => {
       return jsonResponse({}, 404);
     });
     const node = new KieAINode();
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({
-        model_info: DOCS_IMAGE_MODEL,
-        _secrets: { KIE_API_KEY: "k" },
-      })
+      node.process()
     ).rejects.toThrow("Task failed");
   });
 
@@ -501,11 +577,14 @@ describe("KieAINode API error handling", () => {
       jsonResponse({ data: {} }, 500)
     );
     const node = new KieAINode();
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({
-        model_info: DOCS_IMAGE_MODEL,
-        _secrets: { KIE_API_KEY: "k" },
-      })
+      node.process()
     ).rejects.toThrow("Submit failed");
   });
 
@@ -514,11 +593,14 @@ describe("KieAINode API error handling", () => {
       jsonResponse({ code: 200, data: {} })
     );
     const node = new KieAINode();
+
+    node.assign({
+      model_info: DOCS_IMAGE_MODEL
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({
-        model_info: DOCS_IMAGE_MODEL,
-        _secrets: { KIE_API_KEY: "k" },
-      })
+      node.process()
     ).rejects.toThrow("No taskId");
   });
 });

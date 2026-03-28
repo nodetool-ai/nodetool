@@ -65,6 +65,54 @@ export const registerReplicateNodes = (_reg?: unknown) => {};
 // dsl
 export const workflowToDsl = (_graph?: unknown, _opts?: unknown) => "// generated DSL";
 
+/**
+ * Minimal stub for @nodetool/dsl run().
+ * Evaluates constant nodes and propagates values through edges to output nodes.
+ */
+export async function run(wf: { nodes: any[]; edges: any[] }): Promise<Record<string, unknown>> {
+  // nodeOutputs maps nodeId -> { slotName: value }
+  const nodeOutputs = new Map<string, Record<string, unknown>>();
+
+  // First pass: collect constant node values (they have no upstream edges)
+  for (const node of wf.nodes) {
+    if (node.type?.startsWith("nodetool.constant.")) {
+      nodeOutputs.set(node.id, { output: node.data?.value });
+    }
+  }
+
+  // Propagate values through edges (simple single-pass for acyclic graphs)
+  for (const node of wf.nodes) {
+    if (nodeOutputs.has(node.id)) continue;
+    const incoming: Record<string, unknown> = { ...node.data };
+    for (const edge of wf.edges) {
+      if (edge.target === node.id) {
+        const src = nodeOutputs.get(edge.source);
+        if (src) {
+          incoming[edge.targetHandle] = src[edge.sourceHandle];
+        }
+      }
+    }
+    // For output nodes, expose incoming value as "output"
+    if (node.type?.startsWith("nodetool.output.")) {
+      nodeOutputs.set(node.id, { output: incoming.value });
+    } else {
+      nodeOutputs.set(node.id, incoming);
+    }
+  }
+
+  // Collect results from output nodes
+  const results: Record<string, unknown> = {};
+  for (const node of wf.nodes) {
+    if (node.type?.startsWith("nodetool.output.")) {
+      const vals = nodeOutputs.get(node.id);
+      if (vals) {
+        results[node.id] = vals.output;
+      }
+    }
+  }
+  return results;
+}
+
 // chat
 export type Message = { role: string; content: string };
 export type ProviderStreamItem = { type: string };

@@ -13,6 +13,12 @@ const audioFromDataUri = {
   data: `data:audio/wav;base64,${WAV_BASE64}`,
 };
 
+/** Helper: create a node, assign properties, then call process(). */
+function makeNode(props: Record<string, unknown> = {}): SpeechToTextNode {
+  const node = new SpeechToTextNode(props);
+  return node;
+}
+
 describe("SpeechToTextNode", () => {
   const originalApiKey = process.env.ELEVENLABS_API_KEY;
 
@@ -40,8 +46,8 @@ describe("SpeechToTextNode", () => {
   });
 
   it("transcribes audio from a data URI", async () => {
-    const node = new SpeechToTextNode();
-    const result = await node.process({ audio: audioFromDataUri });
+    const node = makeNode({ audio: audioFromDataUri });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledOnce();
     const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
@@ -62,11 +68,9 @@ describe("SpeechToTextNode", () => {
 
   it("uses API key from _secrets context", async () => {
     delete process.env.ELEVENLABS_API_KEY;
-    const node = new SpeechToTextNode();
-    await node.process({
-      audio: audioFromDataUri,
-      _secrets: { ELEVENLABS_API_KEY: "from-secrets" },
-    });
+    const node = makeNode({ audio: audioFromDataUri });
+    node.setDynamic("_secrets", { ELEVENLABS_API_KEY: "from-secrets" });
+    await node.process();
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(
@@ -76,23 +80,23 @@ describe("SpeechToTextNode", () => {
 
   it("throws when API key is missing", async () => {
     delete process.env.ELEVENLABS_API_KEY;
-    const node = new SpeechToTextNode();
+    const node = makeNode({ audio: audioFromDataUri });
     await expect(
-      node.process({ audio: audioFromDataUri }),
+      node.process(),
     ).rejects.toThrow("ELEVENLABS_API_KEY");
   });
 
   it("throws when audio input is missing", async () => {
-    const node = new SpeechToTextNode();
-    await expect(node.process({ audio: {} })).rejects.toThrow(
+    const node = makeNode({ audio: {} });
+    await expect(node.process()).rejects.toThrow(
       "Audio input is required",
     );
   });
 
   it("throws on invalid audio data URI", async () => {
-    const node = new SpeechToTextNode();
+    const node = makeNode({ audio: { data: "not-a-data-uri" } });
     await expect(
-      node.process({ audio: { data: "not-a-data-uri" } }),
+      node.process(),
     ).rejects.toThrow("Invalid audio data URI");
   });
 
@@ -119,10 +123,8 @@ describe("SpeechToTextNode", () => {
         }),
       });
 
-    const node = new SpeechToTextNode();
-    const result = await node.process({
-      audio: { uri: "https://example.com/audio.wav" },
-    });
+    const node = makeNode({ audio: { uri: "https://example.com/audio.wav" } });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(mockFetch.mock.calls[0][0]).toBe("https://example.com/audio.wav");
@@ -134,18 +136,18 @@ describe("SpeechToTextNode", () => {
       ok: false,
       text: async () => "Bad Request",
     });
-    const node = new SpeechToTextNode();
+    const node = makeNode({ audio: audioFromDataUri });
     await expect(
-      node.process({ audio: audioFromDataUri }),
+      node.process(),
     ).rejects.toThrow("ElevenLabs API error");
   });
 
   it("includes language_code in form when specified", async () => {
-    const node = new SpeechToTextNode();
-    await node.process({
+    const node = makeNode({
       audio: audioFromDataUri,
       language_code: "es",
     });
+    await node.process();
 
     // Verify by checking FormData – easier through the body type
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];

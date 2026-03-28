@@ -360,8 +360,8 @@ describe("UnifiedWebSocketRunner: receiveMessages loop", () => {
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
-    // Text mode: responses go to sentText as JSON
-    const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
+    // Default mode is binary, so responses go to sentBytes as msgpack
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     expect(sent.some((m) => m.error === "invalid_message")).toBe(true);
     await runner.disconnect();
   });
@@ -377,8 +377,8 @@ describe("UnifiedWebSocketRunner: receiveMessages loop", () => {
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
-    // Text mode: responses go to sentText as JSON
-    const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
+    // Default mode is binary, so responses go to sentBytes as msgpack
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     expect(sent.some((m) => m.error === "Unknown command")).toBe(true);
     await runner.disconnect();
   });
@@ -578,8 +578,8 @@ describe("UnifiedWebSocketRunner: command error handling in receiveMessages", ()
     ws.queue.push({ type: "websocket.disconnect" });
 
     await runner.receiveMessages();
-    // Text mode: responses go to sentText as JSON
-    const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
+    // Default mode is binary, so responses go to sentBytes as msgpack
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     expect(sent.some((m) => m.error === "invalid_command")).toBe(true);
 
     vi.restoreAllMocks();

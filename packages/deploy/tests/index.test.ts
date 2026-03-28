@@ -39,7 +39,6 @@ describe("deploy index exports", () => {
 
     // self-hosted
     expect(mod.DockerDeployer).toBeDefined();
-    expect(mod.SSHDeployer).toBeDefined();
     expect(mod.LocalExecutor).toBeDefined();
     expect(mod.safeShellQuote).toBeDefined();
     expect(mod.isLocalhost).toBeDefined();
@@ -81,8 +80,6 @@ describe("deploy index exports", () => {
 
     // configure
     expect(mod.configureDocker).toBeDefined();
-    expect(mod.configureSSH).toBeDefined();
-    expect(mod.configureLocal).toBeDefined();
     expect(mod.configureRunPod).toBeDefined();
     expect(mod.configureGCP).toBeDefined();
 
