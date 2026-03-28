@@ -90,7 +90,7 @@ describe("AnimatedAssistantIcon", () => {
     expect(() => unmount()).not.toThrow();
     
     // Remount should work
-    const { _container2 } = renderWithTheme(<AnimatedAssistantIcon />);
+    renderWithTheme(<AnimatedAssistantIcon />);
     expect(screen.getByTestId("svg-file-icon")).toBeInTheDocument();
   });
 
@@ -100,7 +100,7 @@ describe("AnimatedAssistantIcon", () => {
     expect(svg1).toHaveAttribute("width", "32");
     cleanup();
 
-    const { _container2 } = renderWithTheme(<AnimatedAssistantIcon width={100} height={100} />);
+    const { container: container2 } = renderWithTheme(<AnimatedAssistantIcon width={100} height={100} />);
     const svg2 = container2.querySelector("[data-testid='svg-file-icon'] svg") as SVGElement;
     expect(svg2).toHaveAttribute("width", "100");
   });

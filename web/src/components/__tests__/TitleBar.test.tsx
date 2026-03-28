@@ -19,17 +19,7 @@ const mockWindowControls = {
   close: jest.fn(),
 };
 
-declare global {
-  interface Window {
-    api?: {
-      windowControls?: {
-        minimize?: () => void;
-        maximize?: () => void;
-        close?: () => void;
-      };
-    };
-  }
-}
+// window.api type is declared globally in electron preload types
 
 describe("TitleBar", () => {
   beforeEach(() => {
@@ -74,7 +64,7 @@ describe("TitleBar", () => {
 
   it("should call window.api.windowControls.minimize when minimize button is clicked", async () => {
     const user = userEvent.setup();
-    window.api = { windowControls: mockWindowControls };
+    (window as any).api = { windowControls: mockWindowControls };
 
     render(<TitleBar />);
 
@@ -86,7 +76,7 @@ describe("TitleBar", () => {
 
   it("should call window.api.windowControls.maximize when maximize button is clicked", async () => {
     const user = userEvent.setup();
-    window.api = { windowControls: mockWindowControls };
+    (window as any).api = { windowControls: mockWindowControls };
 
     render(<TitleBar />);
 
@@ -98,7 +88,7 @@ describe("TitleBar", () => {
 
   it("should call window.api.windowControls.close when close button is clicked", async () => {
     const user = userEvent.setup();
-    window.api = { windowControls: mockWindowControls };
+    (window as any).api = { windowControls: mockWindowControls };
 
     render(<TitleBar />);
 
@@ -121,7 +111,7 @@ describe("TitleBar", () => {
 
   it("should handle missing windowControls gracefully", async () => {
     const user = userEvent.setup();
-    window.api = {};
+    (window as any).api = {};
 
     render(<TitleBar />);
 
