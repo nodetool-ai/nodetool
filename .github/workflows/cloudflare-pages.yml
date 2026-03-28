@@ -1,0 +1,61 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "web/**"
+      - "packages/protocol/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Web App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Build @nodetool/protocol
+        run: |
+          cd packages/protocol
+          npm install
+          npm run build
+
+      - name: Link @nodetool/protocol into web
+        run: |
+          mkdir -p web/node_modules/@nodetool
+          ln -s "$(pwd)/packages/protocol" web/node_modules/@nodetool/protocol
+
+      - name: Build web app
+        run: |
+          cd web
+          npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: nodetool
+          directory: web/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
