@@ -466,8 +466,6 @@ export const handleUpdate = (
 
   if (data.type === "preview_update") {
     const preview = data as PreviewUpdate;
-    const currentPreview = useResultsStore.getState().getPreview(workflow.id, preview.node_id);
-    console.log("[workflowUpdates] preview_update", { nodeId: preview.node_id, value: preview.value, currentPreview, willAppend: currentPreview !== undefined });
     setPreview(workflow.id, preview.node_id, preview.value, true);
   }
 
