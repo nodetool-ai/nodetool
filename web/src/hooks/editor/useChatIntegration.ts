@@ -98,9 +98,13 @@ export function useChatIntegration(params: {
           replaceAll(text);
         }
       } else {
-        replaceSelectionFnRef.current?.(text) ??
-          setAllTextFnRef.current?.(text) ??
+        if (replaceSelectionFnRef.current) {
+          replaceSelectionFnRef.current(text);
+        } else if (setAllTextFnRef.current) {
+          setAllTextFnRef.current(text);
+        } else {
           setCurrentText(text);
+        }
       }
     };
 

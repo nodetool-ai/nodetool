@@ -134,7 +134,7 @@ export const TabPanel: React.FC<TabPanelProps> = ({
   sx,
   ...props
 }) => {
-  if (value !== activeValue) return null;
+  if (value !== activeValue) {return null;}
 
   return (
     <Box

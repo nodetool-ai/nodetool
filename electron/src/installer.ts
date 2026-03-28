@@ -12,6 +12,7 @@ import path from "path";
 import {
   readSettings,
   updateSettings,
+  updateSetting,
   getModelServiceStartupDefaults,
 } from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
@@ -901,7 +902,6 @@ async function installCondaPackageBySpec(
  * Set the conda environment install location in settings.
  */
 function setCondaInstallLocation(location: string): void {
-  const { updateSetting } = require("./settings") as typeof import("./settings");
   updateSetting("CONDA_ENV", location);
   logMessage(`Conda environment location set to: ${location}`);
 }
@@ -914,7 +914,7 @@ function setCondaInstallLocation(location: string): void {
 async function ensureCondaEnvironment(
   installLocation?: string,
 ): Promise<string> {
-  let condaEnvPath = installLocation || getCondaEnvPath();
+  const condaEnvPath = installLocation || getCondaEnvPath();
 
   // Check if env already exists
   if (await fileExists(path.join(condaEnvPath, "conda-meta"))) {

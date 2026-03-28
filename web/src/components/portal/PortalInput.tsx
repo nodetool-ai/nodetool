@@ -74,7 +74,7 @@ const PortalInput: React.FC<PortalInputProps> = ({
 
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
-    if (!trimmed || disabled) return;
+    if (!trimmed || disabled) {return;}
     onSend(trimmed);
     setValue("");
     if (textareaRef.current) {

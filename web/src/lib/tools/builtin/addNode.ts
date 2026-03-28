@@ -153,10 +153,10 @@ FrontendToolRegistry.register({
       | Record<string, unknown>
       | undefined;
     for (const property of metadata.properties) {
-      if (!property.required) continue;
+      if (!property.required) {continue;}
       const wasExplicitlyProvided =
         providedProps !== undefined && property.name in providedProps;
-      if (wasExplicitlyProvided) continue;
+      if (wasExplicitlyProvided) {continue;}
 
       const value = nodeInput.properties![property.name];
       if (

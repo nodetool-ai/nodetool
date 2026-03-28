@@ -191,7 +191,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
   // Filter snippets
   const filtered = useMemo(() => {
     let results = CODE_SNIPPETS;
-    if (category) results = results.filter((s) => s.category === category);
+    if (category) {results = results.filter((s) => s.category === category);}
     if (search.trim()) {
       const q = search.toLowerCase();
       results = results.filter(
@@ -213,7 +213,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
   const insertSnippet = useCallback(
     (snippet: CodeSnippet) => {
       const editor = monacoRef.current;
-      if (!editor) return;
+      if (!editor) {return;}
       const selection = editor.getSelection();
       if (selection) {
         editor.executeEdits("snippet", [
@@ -267,7 +267,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
     [filtered, focusedIndex, insertSnippet]
   );
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <div css={styles(theme)} onKeyDown={handleKeyDown}>

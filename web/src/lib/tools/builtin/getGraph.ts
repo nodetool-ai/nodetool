@@ -15,7 +15,7 @@ const INPUT_OR_STRUCTURAL_PREFIXES = [
 ];
 
 function isInputOrStructural(nodeType: string | undefined): boolean {
-  if (!nodeType) return false;
+  if (!nodeType) {return false;}
   return INPUT_OR_STRUCTURAL_PREFIXES.some((prefix) =>
     nodeType.startsWith(prefix)
   );
@@ -28,7 +28,7 @@ function isInputOrStructural(nodeType: string | undefined): boolean {
 const OUTPUT_PREFIXES = ["nodetool.output."];
 
 function isOutputNode(nodeType: string | undefined): boolean {
-  if (!nodeType) return false;
+  if (!nodeType) {return false;}
   return OUTPUT_PREFIXES.some((prefix) => nodeType.startsWith(prefix));
 }
 
@@ -71,16 +71,16 @@ function validateGraph(
 
   for (const node of nodes) {
     const nodeType = node.type;
-    if (!nodeType) continue;
+    if (!nodeType) {continue;}
 
     // Look up metadata for this node type
     const meta = (nodeMetadata as Record<string, { properties?: Array<{ name: string; required: boolean; type: { type: string; optional: boolean }; default?: unknown }> }>)[nodeType];
-    if (!meta || !meta.properties) continue;
+    if (!meta || !meta.properties) {continue;}
 
     const nodeLabel = `${nodeType} (${node.id})`;
 
     for (const prop of meta.properties) {
-      if (!prop.required) continue;
+      if (!prop.required) {continue;}
 
       const isConnected = connectedInputs.has(`${node.id}::${prop.name}`);
 

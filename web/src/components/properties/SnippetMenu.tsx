@@ -147,7 +147,7 @@ const SnippetMenu = ({
   const insertSnippet = useCallback(
     (snippet: CodeSnippet) => {
       const editor = monacoRef.current;
-      if (!editor) return;
+      if (!editor) {return;}
 
       const selection = editor.getSelection();
       if (selection) {
