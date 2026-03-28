@@ -17,8 +17,7 @@ import {
   DialogContentText,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip,
-  CircularProgress
+  Tooltip
 } from "@mui/material";
 import {
   Compare as CompareIcon,
@@ -32,7 +31,7 @@ import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import PanelHeadline from "../ui/PanelHeadline";
-import { CloseButton, DialogActionButtons } from "../ui_primitives";
+import { CloseButton, DialogActionButtons, FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
 import log from "loglevel";
 
 interface VersionHistoryPanelProps {
@@ -233,29 +232,24 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           backgroundColor: "var(--palette-background-default)",
           width: "100%",
           height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
           p: 3
         }}
       >
-        <CircularProgress size={32} sx={{ mb: 2 }} />
-        <Typography color="text.secondary">Loading versions...</Typography>
+        <FlexColumn align="center" justify="center" fullHeight>
+          <LoadingSpinner size="medium" text="Loading versions..." />
+        </FlexColumn>
       </Paper>
     );
   }
 
   if (error) {
     return (
-      <Box
+      <FlexColumn
+        padding={3}
         sx={{
           backgroundColor: "var(--palette-background-default)",
           width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          p: 3
+          height: "100%"
         }}
       >
         <PanelHeadline
@@ -264,11 +258,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
           }
         />
-        <Typography color="error">Failed to load versions</Typography>
-        <Typography variant="caption" color="text.secondary">
-          {String(error)}
-        </Typography>
-        </Box>
+        <Text color="error">Failed to load versions</Text>
+        <Text size="tiny" color="secondary">{String(error)}</Text>
+      </FlexColumn>
     );
   }
 

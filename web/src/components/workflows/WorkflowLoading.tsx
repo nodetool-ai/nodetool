@@ -1,7 +1,7 @@
 import React from "react";
-import { CircularProgress, Typography, Box } from "@mui/material";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useWorkflow } from "../../serverState/useWorkflow";
+import { FlexRow, LoadingSpinner, Text } from "../ui_primitives";
 
 interface WorkflowLoadingProps {
   workflowId: string;
@@ -17,19 +17,19 @@ export const WorkflowLoading: React.FC<WorkflowLoadingProps> = ({
   }
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 2, p: 2 }}>
+    <FlexRow gap={2} align="center" padding={2}>
       {isLoading && (
         <>
-          <CircularProgress size={24} />
-          <Typography>Loading workflow...</Typography>
+          <LoadingSpinner size="small" />
+          <Text>Loading workflow...</Text>
         </>
       )}
       {error && (
         <>
           <ErrorOutlineRounded color="error" />
-          <Typography color="error">{(error as Error).message}</Typography>
+          <Text color="error">{(error as Error).message}</Text>
         </>
       )}
-    </Box>
+    </FlexRow>
   );
 };

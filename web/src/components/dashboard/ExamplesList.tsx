@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { Box, Typography } from "@mui/material";
+import { EditorButton, LoadingSpinner, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
@@ -129,21 +129,15 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
 
   return (
     <Box className="examples-list" css={styles(theme)}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}
-      >
+      <FlexRow justify="space-between" align="center">
         <Typography variant="h3" className="section-title">
           Templates
         </Typography>
-      </Box>
+      </FlexRow>
       <Box className="content-scrollable">
         {isLoadingTemplates ? (
           <Box className="loading-container">
-            <CircularProgress />
+            <LoadingSpinner size="large" />
           </Box>
         ) : (
           <Box className="example-grid">
@@ -156,7 +150,7 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">
-                    <CircularProgress size={30} />
+                    <LoadingSpinner size="medium" />
                   </Box>
                 )}
                 <img
