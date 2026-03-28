@@ -83,10 +83,12 @@ jobs:
           node-version: "20"
 
       - name: Install all workspace dependencies
-        run: npm install
+        run: npm install --ignore-scripts
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
       - name: Rebuild native modules
-        run: npm rebuild
+        run: npm rebuild better-sqlite3 || true
 
       - name: Build packages
         run: npm run build:packages
