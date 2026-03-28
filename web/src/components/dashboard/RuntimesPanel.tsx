@@ -8,6 +8,7 @@ import { css } from "@emotion/react";
 import { useTheme, Theme } from "@mui/material/styles";
 import { getIsElectronDetails } from "../../utils/browser";
 import { FlexColumn, FlexRow, Card, Text, Caption } from "../ui_primitives";
+import log from "loglevel";
 
 interface RuntimeStatus {
   id: string;
@@ -79,7 +80,7 @@ const RuntimesPanel: React.FC = () => {
       setRuntimes(statuses);
       setInstallLocation(location);
     } catch (err) {
-      console.error("Failed to load runtime statuses:", err);
+      log.error("Failed to load runtime statuses:", err);
     } finally {
       setLoading(false);
     }
@@ -124,7 +125,7 @@ const RuntimesPanel: React.FC = () => {
       const selected = await api.packages.selectInstallLocation();
       if (selected) setInstallLocation(selected);
     } catch (err) {
-      console.error("Failed to select location:", err);
+      log.error("Failed to select location:", err);
     }
   }, []);
 
