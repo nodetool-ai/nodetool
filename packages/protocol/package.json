@@ -4,7 +4,7 @@
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "node -e \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\" && tsc",
     "test": "vitest run",
@@ -21,7 +21,7 @@
   "exports": {
     ".": {
       "development": "./src/index.ts",
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }

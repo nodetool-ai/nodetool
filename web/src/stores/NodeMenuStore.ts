@@ -560,10 +560,9 @@ export const useNodeMenuStore = createNodeMenuStore();
 export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });
 
 export const __setNodeToolsMenuStore = (
-  state: Partial<NodeMenuStore>,
-  replace?: boolean
+  state: Partial<NodeMenuStore>
 ) => {
-  useNodeToolsMenuStore.setState(state, replace);
+  useNodeToolsMenuStore.setState(state);
 };
 
 export default useNodeMenuStore;
