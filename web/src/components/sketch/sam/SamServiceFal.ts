@@ -2,7 +2,7 @@
  * SamServiceFal – real FAL AI backend integration for SAM 2 segmentation.
  *
  * Calls the fal-ai/sam2/image endpoint via its REST queue API.
- * The API key is retrieved from the NodetoolSecretsStore at call time.
+ * FAL_API_KEY is loaded via GET /api/settings/secrets/FAL_API_KEY?decrypt=true (not in list payload).
  *
  * This service handles:
  * - Model availability checking (via queue health)
@@ -14,6 +14,7 @@
 import type { SamService, SamModelInfo, SegmentationRequest, SegmentationResponse } from "./SamService";
 import { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./SamService";
 import type { SegmentationMask } from "../types";
+import useSecretsStore from "../../../stores/SecretsStore";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -75,21 +76,13 @@ interface FalSam2Result {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Get the FAL API key from the NodetoolSecretsStore.
- * Returns null if the key is not set.
+ * Load FAL_API_KEY via GET /api/settings/secrets/{key}?decrypt=true.
+ * The secrets list endpoint never includes decrypted values (metadata only).
  */
-function getFalApiKey(): string | null {
+async function resolveFalApiKey(): Promise<string | null> {
   try {
-    // Dynamic import to avoid circular deps — works because zustand stores are singletons
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const useSecretsStore = require("../../../stores/SecretsStore").default;
-    const secrets = useSecretsStore.getState().secrets;
-    const falSecret = secrets.find(
-      (s: { key: string; value?: string }) => s.key === "FAL_API_KEY"
-    );
-    return falSecret?.value ?? null;
+    return await useSecretsStore.getState().fetchDecryptedSecret("FAL_API_KEY");
   } catch {
-    // Store not available (e.g., in tests)
     return null;
   }
 }
@@ -169,7 +162,7 @@ async function uploadToFal(
 
 export class SamServiceFal implements SamService {
   async checkModelAvailability(): Promise<SamModelInfo> {
-    const apiKey = getFalApiKey();
+    const apiKey = await resolveFalApiKey();
 
     if (!apiKey) {
       return {
@@ -214,7 +207,7 @@ export class SamServiceFal implements SamService {
     request: SegmentationRequest,
     signal?: AbortSignal
   ): Promise<SegmentationResponse> {
-    const apiKey = getFalApiKey();
+    const apiKey = await resolveFalApiKey();
     if (!apiKey) {
       throw new Error("FAL_API_KEY not configured");
     }

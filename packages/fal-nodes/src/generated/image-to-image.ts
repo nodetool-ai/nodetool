@@ -7,6 +7,7 @@ import {
   isRefSet,
   assetToFalUrl,
   imageToDataUrl,
+  normalizeSam3ImageNodeOutput,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -6433,7 +6434,7 @@ editing, transformation, image-to-image, img2img`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-3/image", args);
-    return res as Record<string, unknown>;
+    return normalizeSam3ImageNodeOutput(res as Record<string, unknown>);
   }
 }
 

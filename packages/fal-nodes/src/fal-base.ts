@@ -171,3 +171,68 @@ export function removeNulls(obj: Record<string, unknown>): void {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// FAL media payloads → NodeTool image refs (Preview / edges expect ImageRef)
+// ---------------------------------------------------------------------------
+
+function makeEmptyImageRef(): Record<string, unknown> {
+  return {
+    type: "image",
+    uri: "",
+    asset_id: null,
+    data: null,
+    metadata: null,
+  };
+}
+
+/**
+ * Map a FAL file object `{ url, width, height, content_type? }` to an ImageRef.
+ */
+export function falMediaPayloadToImageRef(payload: unknown): Record<string, unknown> {
+  const empty = makeEmptyImageRef();
+  if (!payload || typeof payload !== "object") {
+    return empty;
+  }
+  const url = (payload as { url?: unknown }).url;
+  if (typeof url === "string" && url.length > 0) {
+    return { ...empty, uri: url };
+  }
+  return empty;
+}
+
+function stringifyOutputField(value: unknown): string {
+  if (value == null) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value);
+}
+
+/**
+ * Normalize fal-ai/sam-3/image response: primary `image` plus optional `masks`
+ * are FAL media dicts; NodeTool expects ImageRef-shaped objects on those handles.
+ */
+export function normalizeSam3ImageNodeOutput(
+  res: Record<string, unknown>
+): Record<string, unknown> {
+  const images = res.images;
+  const primary =
+    res.image ??
+    (Array.isArray(images) && images.length > 0 ? images[0] : undefined);
+
+  const masksRaw = res.masks;
+  const masks = Array.isArray(masksRaw)
+    ? masksRaw.map((m) => falMediaPayloadToImageRef(m))
+    : [];
+
+  return {
+    image: falMediaPayloadToImageRef(primary),
+    metadata: stringifyOutputField(res.metadata),
+    masks,
+    scores: stringifyOutputField(res.scores),
+    boxes: stringifyOutputField(res.boxes),
+  };
+}

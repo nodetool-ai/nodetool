@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
@@ -684,7 +685,7 @@ export class SketchInputNode extends BaseNode {
   })
   declare mask: any;
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(_context?: ProcessingContext): Promise<Record<string, unknown>> {
     const emptyImage = {
       type: "image",
       uri: "",
