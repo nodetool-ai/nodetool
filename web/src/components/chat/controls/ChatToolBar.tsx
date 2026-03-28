@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
-import { AgentModeToggle } from "../composer/AgentModeToggle";
+import { AgentModeSelector } from "../composer/AgentModeSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
@@ -184,12 +184,12 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
       {/* Spacer to push agent toggle to the right */}
       {!embedded && <div className="toolbar-spacer" />}
 
-      {/* Agent Mode Toggle */}
+      {/* Agent Mode Selector */}
       {hasAgentSection && (
         <>
           <div className="toolbar-divider" />
           <Box className="toolbar-group">
-            <AgentModeToggle
+            <AgentModeSelector
               agentMode={agentMode || false}
               onToggle={onAgentModeToggle}
             />
