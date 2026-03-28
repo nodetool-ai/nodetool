@@ -13,6 +13,8 @@ interface ContextMenuItemProps {
   IconComponent?: ReactElement;
   tooltip?: ReactNode;
   addButtonClassName?: string;
+  /** Extra class on the outer wrapper (e.g. for tests or menu-scoped styling). */
+  rootClassName?: string;
   controlElement?: ReactElement;
 }
 
@@ -93,11 +95,16 @@ const ContextMenuItem = memo(function ContextMenuItem({
   IconComponent,
   tooltip,
   addButtonClassName,
+  rootClassName,
   controlElement
 }: ContextMenuItemProps) {
   const theme = useTheme();
+  const rootClass =
+    rootClassName != null && rootClassName !== ""
+      ? `context-menu-item ${rootClassName}`
+      : "context-menu-item";
   return (
-    <div className="context-menu-item" css={styles(theme)}>
+    <div className={rootClass} css={styles(theme)}>
       {tooltip && (
         <Tooltip
           css={styles(theme)}

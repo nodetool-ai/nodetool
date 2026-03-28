@@ -52,6 +52,7 @@ const NodeContextMenu: React.FC = () => {
     conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"
+        rootClassName="node-context-menu__remove-from-group"
         onClick={handleRemoveFromGroup}
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
@@ -60,6 +61,7 @@ const NodeContextMenu: React.FC = () => {
     ),
     <ContextMenuItem
       key="duplicate"
+      rootClassName="node-context-menu__duplicate"
       onClick={handlers.handleDuplicate}
       label="Duplicate"
       IconComponent={<QueueIcon />}
@@ -74,6 +76,7 @@ const NodeContextMenu: React.FC = () => {
     />,
     <ContextMenuItem
       key="duplicate-vertical"
+      rootClassName="node-context-menu__duplicate-vertical"
       onClick={handlers.handleDuplicateVertical}
       label="Duplicate Vertical"
       IconComponent={<SouthIcon />}
@@ -88,6 +91,7 @@ const NodeContextMenu: React.FC = () => {
     />,
     <ContextMenuItem
       key="run-from-here"
+      rootClassName="node-context-menu__run-from-here"
       onClick={handlers.handleRunFromHere}
       label={conditions.isWorkflowRunning ? "Running..." : "Run From Here"}
       IconComponent={<PlayArrowIcon />}
@@ -96,6 +100,7 @@ const NodeContextMenu: React.FC = () => {
     />,
     <ContextMenuItem
       key="toggle-bypass"
+      rootClassName="node-context-menu__toggle-bypass"
       onClick={handlers.handleToggleBypass}
       label={conditions.isBypassed ? "Enable Node" : "Bypass Node"}
       IconComponent={conditions.isBypassed ? <PowerSettingsNewIcon /> : <BlockIcon />}
@@ -112,6 +117,7 @@ const NodeContextMenu: React.FC = () => {
     />,
     <ContextMenuItem
       key="toggle-comment"
+      rootClassName="node-context-menu__toggle-comment"
       onClick={handlers.handleToggleComment}
       label={conditions.hasCommentTitle ? "Remove Comment" : "Add Comment"}
       IconComponent={<EditIcon />}
@@ -124,6 +130,7 @@ const NodeContextMenu: React.FC = () => {
     conditions.canConvertToInput && (
       <ContextMenuItem
         key="convert-to-input"
+        rootClassName="node-context-menu__convert-to-input"
         onClick={handlers.handleConvertToInput}
         label="Convert to Input Node"
         IconComponent={<SwapHorizIcon />}
@@ -133,6 +140,7 @@ const NodeContextMenu: React.FC = () => {
     conditions.canConvertToConstant && (
       <ContextMenuItem
         key="convert-to-constant"
+        rootClassName="node-context-menu__convert-to-constant"
         onClick={handlers.handleConvertToConstant}
         label="Convert to Constant Node"
         IconComponent={<SwapHorizIcon />}
@@ -141,6 +149,7 @@ const NodeContextMenu: React.FC = () => {
     ),
     <ContextMenuItem
       key="show-templates"
+      rootClassName="node-context-menu__show-templates"
       onClick={handlers.handleFindTemplates}
       label="Show Templates"
       IconComponent={<SearchIcon />}
@@ -148,12 +157,18 @@ const NodeContextMenu: React.FC = () => {
     />,
     <ContextMenuItem
       key="select-all"
+      rootClassName="node-context-menu__select-all-same-type"
       onClick={handlers.handleSelectAllSameType}
-      label={`Select all ${""} nodes`}
+      label={`Select all ${node?.type ?? "same type"} nodes`}
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,
-    <MenuItem key="sync-mode" disabled sx={{ py: 0.5, minHeight: "unset" }}>
+    <MenuItem
+      key="sync-mode"
+      className="node-context-menu__sync-mode-header"
+      disabled
+      sx={{ py: 0.5, minHeight: "unset" }}
+    >
       <ListItemText
         primary="Sync Mode"
         secondary="How inputs are coordinated"
@@ -163,6 +178,7 @@ const NodeContextMenu: React.FC = () => {
     </MenuItem>,
     <MenuItem
       key="sync-on-any"
+      className="node-context-menu__sync-on-any"
       selected={syncMode === "on_any"}
       onClick={handleSyncModeOnAny}
       sx={{ py: 0.5, minHeight: "unset" }}
@@ -179,6 +195,7 @@ const NodeContextMenu: React.FC = () => {
     </MenuItem>,
     <MenuItem
       key="sync-zip-all"
+      className="node-context-menu__sync-zip-all"
       selected={syncMode === "zip_all"}
       onClick={handleSyncModeZipAll}
       sx={{ py: 0.5, minHeight: "unset" }}
@@ -193,18 +210,21 @@ const NodeContextMenu: React.FC = () => {
         secondaryTypographyProps={{ fontSize: "0.7rem" }}
       />
     </MenuItem>,
-    <Divider key="divider-before-delete" />,
+    <Divider key="divider-before-delete" className="node-context-menu__divider-before-delete" />,
     <ContextMenuItem
       key="delete-node"
+      rootClassName="node-context-menu__delete-node"
+      addButtonClassName="delete"
       onClick={handlers.handleDeleteNode}
       label="Delete Node"
       IconComponent={<DeleteIcon />}
       tooltip="Delete this node"
     />,
-    isDevelopment && <Divider key="dev-divider" />,
+    isDevelopment && <Divider key="dev-divider" className="node-context-menu__divider-dev" />,
     isDevelopment && (
       <ContextMenuItem
         key="copy-nodedata"
+        rootClassName="node-context-menu__copy-node-data"
         onClick={handlers.handleCopyMetadataToClipboard}
         label="Copy NodeData"
         IconComponent={<DataArrayIcon />}

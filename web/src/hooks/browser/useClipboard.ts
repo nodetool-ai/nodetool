@@ -95,25 +95,39 @@ export const useClipboard = () => {
       const isValid = allowArbitrary ? true : validateData(data);
 
       setIsClipboardValid(isValid);
-      if (isValid) {
-        log.info("Attempting to write to clipboard.");
-        const outputData = formatJson
+      if (!isValid) {
+        return;
+      }
+
+      log.info("Attempting to write to clipboard.");
+      let outputData: string;
+      try {
+        outputData = formatJson
           ? JSON.stringify(JSON.parse(data), null, 2)
           : data;
+      } catch (err) {
+        log.error("writeClipboard: could not prepare text", err);
+        throw new Error("Clipboard content is not valid JSON");
+      }
 
-        if (isFirefox) {
-          setClipboardData(outputData);
-        }
+      if (isFirefox) {
         setClipboardData(outputData);
+      }
+      setClipboardData(outputData);
 
-        // Prefer new Electron API when available
+      try {
         if (window.api?.clipboard?.writeText) {
           await window.api.clipboard.writeText(outputData);
           log.info("Clipboard written via Electron clipboard API.");
-        } else {
+        } else if (navigator.clipboard?.writeText) {
           await navigator.clipboard.writeText(outputData);
           log.info("Clipboard written via navigator API.");
+        } else {
+          throw new Error("Clipboard API is not available");
         }
+      } catch (err) {
+        log.error("writeClipboard: write failed", err);
+        throw err;
       }
     },
     [isFirefox, setClipboardData, setIsClipboardValid, validateData]

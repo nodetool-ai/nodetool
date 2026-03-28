@@ -109,17 +109,43 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   }, [closeContextMenu, nodeId, toggleBypass]);
 
   const handleCopyMetadataToClipboard = useCallback(() => {
-    if (nodeId && nodeData) {
-      log.info("Copying node data to clipboard", nodeData);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Copied Node Data to Clipboard!"
-      });
-      writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
-      closeContextMenu();
+    if (!nodeId || !node) {
+      return;
     }
-  }, [nodeId, nodeData, addNotification, writeClipboard, closeContextMenu]);
+    const payload = node.data ?? {};
+    void (async () => {
+      let text: string;
+      try {
+        text = JSON.stringify(payload, null, 2);
+      } catch (err) {
+        log.error("Copy node data: JSON.stringify failed", err);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Could not serialize node data (possibly circular values)."
+        });
+        closeContextMenu();
+        return;
+      }
+      try {
+        await writeClipboard(text, true, false);
+        addNotification({
+          type: "info",
+          alert: true,
+          content: "Copied node data to clipboard."
+        });
+      } catch (err) {
+        log.error("Copy node data: clipboard write failed", err);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Could not write to the clipboard. Check permissions or try again."
+        });
+      } finally {
+        closeContextMenu();
+      }
+    })();
+  }, [nodeId, node, addNotification, writeClipboard, closeContextMenu]);
 
   const handleFindTemplates = useCallback(() => {
     const nodeType = node?.type || "";
