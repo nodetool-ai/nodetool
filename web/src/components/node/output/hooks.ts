@@ -105,7 +105,7 @@ export function useVideoSrc(value: unknown) {
     const videoValue = value as VideoValue | null;
     if (videoValue?.type === "video" && videoRef.current) {
       if (videoValue.data) {
-        const blob = new Blob([videoValue.data as unknown as BlobPart]);
+        const blob = new Blob([videoValue.data]);
         const url = URL.createObjectURL(blob);
         videoRef.current.src = url;
         return () => URL.revokeObjectURL(url);
@@ -141,7 +141,7 @@ export function useImageAssets(value: unknown) {
             const safeBytes: Uint8Array<ArrayBuffer> = new Uint8Array(
               imageItem.data as Uint8Array<ArrayBufferLike>
             );
-            const blob = new Blob([safeBytes as unknown as BlobPart], {
+            const blob = new Blob([safeBytes], {
               type: contentType
             });
             url = URL.createObjectURL(blob);

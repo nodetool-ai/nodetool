@@ -69,7 +69,7 @@ describe("FlexColumn", () => {
     );
     
     const flexColumn = container.firstChild as HTMLElement;
-    expect(flexColumn).toHaveStyle("background-color: rgb(255, 0, 0)");
+    expect(flexColumn).toHaveStyle({ backgroundColor: "red" });
   });
 
   it("enables wrapping when specified", () => {

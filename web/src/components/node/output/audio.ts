@@ -63,8 +63,7 @@ export function playPcm16Base64(
       srcIndex += channels * 2;
     }
     const floatData = int16ToFloat32(channelData);
-    const floatDataArray = new Float32Array(floatData.buffer as ArrayBuffer);
-    buffer.copyToChannel(floatDataArray, ch);
+    buffer.copyToChannel(floatData, ch);
   }
 
   const source = ctx.createBufferSource();

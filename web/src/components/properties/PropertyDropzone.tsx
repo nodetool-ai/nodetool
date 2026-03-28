@@ -309,7 +309,7 @@ const PropertyDropzone = ({
         }
 
         // Use contentType for consistency
-        const file = new File([fileData.buffer as unknown as BlobPart], fileName, { type: contentType });
+        const file = new File([fileData.buffer], fileName, { type: contentType });
 
         // Upload the file as an asset
         uploadAssetFn({

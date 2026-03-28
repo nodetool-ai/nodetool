@@ -29,22 +29,19 @@ jest.mock("../components/ui_primitives", () => ({
 }));
 
 describe("ErrorBoundary", () => {
-  const originalLocation = window.location;
+  const originalReload = window.location.reload;
 
   beforeEach(() => {
-    delete (window as any).location;
-    window.location = {
-      ...originalLocation,
-      assign: jest.fn(),
-      reload: jest.fn(),
-      replace: jest.fn(),
-      toString: () => 'http://localhost'
-    } as any;
+    // Mock window.location.reload
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: { reload: jest.fn() }
+    });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    window.location = originalLocation as any;
+    window.location.reload = originalReload;
   });
 
   it("renders error message when error is an Error instance", () => {
@@ -131,7 +128,7 @@ describe("ErrorBoundary", () => {
     const reloadButton = screen.getByRole("button", { name: /reload/i });
     await user.click(reloadButton);
 
-    expect(reloadButton).toBeInTheDocument();
+    expect(window.location.reload).toHaveBeenCalledTimes(1);
   });
 
   it("displays forum link", () => {

@@ -154,7 +154,7 @@ const RemoteSettings = () => {
   const fetchSettings = useRemoteSettingsStore((state) => state.fetchSettings);
   const storeSettingsByGroup = useRemoteSettingsStore((state) => state.settingsByGroup);
   const settings = useRemoteSettingsStore((state) => state.settings);
-  const { addNotification } = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   // HuggingFace OAuth state
   const [hfOAuthLoading, setHfOAuthLoading] = useState(false);
