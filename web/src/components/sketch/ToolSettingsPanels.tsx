@@ -128,6 +128,7 @@ interface SelectSettingsPanelProps {
   hasActiveSelection: boolean;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
+  onStrokeSelectionBorder: () => void;
 }
 
 // ─── BrushSettingsPanel ───────────────────────────────────────────────────
@@ -1108,7 +1109,8 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   onChange,
   hasActiveSelection,
   onFeatherSelection,
-  onSmoothSelectionBorders
+  onSmoothSelectionBorders,
+  onStrokeSelectionBorder
 }: SelectSettingsPanelProps) {
   return (
     <>
@@ -1165,6 +1167,18 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         />
         <Typography className="setting-value">{settings.featherRadius}</Typography>
       </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Border</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={1}
+          max={64}
+          value={settings.borderWidth}
+          onChange={(_, v) => onChange({ borderWidth: v as number })}
+        />
+        <Typography className="setting-value">{settings.borderWidth}</Typography>
+      </Box>
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
         <Button
           size="small"
@@ -1184,6 +1198,15 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         >
           Smooth
         </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={!hasActiveSelection}
+          onClick={onStrokeSelectionBorder}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+        >
+          Border
+        </Button>
       </Box>
       <Typography
         sx={{
@@ -1193,7 +1216,8 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           maxWidth: 320
         }}
       >
-        Shift+drag: add · Alt: subtract · Shift+Alt: intersect
+        Shift+drag: add · Alt: subtract · Shift+Alt: intersect · Border uses
+        foreground color
       </Typography>
     </>
   );
@@ -1229,6 +1253,7 @@ export interface ToolSettingsPanelProps {
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
+  onStrokeSelectionBorder: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -1268,6 +1293,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onSelectSettingsChange,
   onFeatherSelection,
   onSmoothSelectionBorders,
+  onStrokeSelectionBorder,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -1371,6 +1397,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         hasActiveSelection={hasActiveSelection}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
+        onStrokeSelectionBorder={onStrokeSelectionBorder}
       />
     );
   }

@@ -1,4 +1,5 @@
 import {
+  buildSelectionBorderStrokeMask,
   fillRectMask,
   createEmptyMask,
   marqueeRectFromDocPoints,
@@ -24,5 +25,21 @@ describe("marqueeRectFromDocPoints", () => {
     const fromHelper = rectSelectionMask(64, 64, r.x, r.y, r.w, r.h);
     const fromFloat = rectSelectionMask(64, 64, Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
     expect(fromHelper.data).toEqual(fromFloat.data);
+  });
+});
+
+describe("buildSelectionBorderStrokeMask", () => {
+  it("produces a ring around a solid rectangle (width 2)", () => {
+    const m = createEmptyMask(12, 12);
+    fillRectMask(m, 3, 3, 6, 6, 255);
+    const border = buildSelectionBorderStrokeMask(m, 2);
+    expect(border).not.toBeNull();
+    const { width: w, height: h, data } = border!;
+    expect(w).toBe(12);
+    expect(h).toBe(12);
+    // Center of rect should not be in the stroke
+    expect(data[6 * w + 6]).toBe(0);
+    // Top edge of selection (inside doc) should include stroke pixels
+    expect(data[3 * w + 5]).toBeGreaterThanOrEqual(128);
   });
 });

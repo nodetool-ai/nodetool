@@ -55,6 +55,8 @@ export interface SelectSettings {
   magicWandTolerance: number;
   /** Pixels — used by “Feather” / “Smooth” post-actions */
   featherRadius: number;
+  /** Stroke thickness (px) for “Border” — paints along the selection edge in the foreground color */
+  borderWidth: number;
 }
 
 export interface LayerTransform {
@@ -482,7 +484,8 @@ export const DEFAULT_CLONE_STAMP_SETTINGS: CloneStampSettings = {
 export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
   mode: "rectangle",
   magicWandTolerance: 32,
-  featherRadius: 4
+  featherRadius: 4,
+  borderWidth: 3
 };
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {

@@ -200,6 +200,7 @@ export interface SketchCanvasContextMenuProps {
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
+  onStrokeSelectionBorder: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -255,6 +256,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onSelectSettingsChange,
   onFeatherSelection,
   onSmoothSelectionBorders,
+  onStrokeSelectionBorder,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -517,6 +519,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               onSelectSettingsChange={onSelectSettingsChange}
               onFeatherSelection={onFeatherSelection}
               onSmoothSelectionBorders={onSmoothSelectionBorders}
+              onStrokeSelectionBorder={onStrokeSelectionBorder}
               onAdjustBrightnessChange={onAdjustBrightnessChange}
               onAdjustContrastChange={onAdjustContrastChange}
               onAdjustSaturationChange={onAdjustSaturationChange}

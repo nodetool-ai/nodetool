@@ -713,6 +713,133 @@ export function applySelectionMaskAlpha(
  * When `preview` is set and the mask has pixels, copies through a reusable
  * scratch canvas and runs `applySelectionMaskAlpha` so the preview matches commit.
  */
+function binaryDilateOnce8(
+  width: number,
+  height: number,
+  src: Uint8ClampedArray,
+  dst: Uint8ClampedArray
+): void {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (src[i] >= THRESH) {
+        dst[i] = 255;
+        continue;
+      }
+      let on = false;
+      for (let dy = -1; dy <= 1; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= height) {
+          continue;
+        }
+        for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= width) {
+            continue;
+          }
+          if (src[yy * width + xx] >= THRESH) {
+            on = true;
+            break;
+          }
+        }
+        if (on) {
+          break;
+        }
+      }
+      dst[i] = on ? 255 : 0;
+    }
+  }
+}
+
+function binaryErodeOnce8(
+  width: number,
+  height: number,
+  src: Uint8ClampedArray,
+  dst: Uint8ClampedArray
+): void {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (src[i] < THRESH) {
+        dst[i] = 0;
+        continue;
+      }
+      let all = true;
+      outer: for (let dy = -1; dy <= 1; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= height) {
+          all = false;
+          break;
+        }
+        for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= width || src[yy * width + xx] < THRESH) {
+            all = false;
+            break outer;
+          }
+        }
+      }
+      dst[i] = all ? 255 : 0;
+    }
+  }
+}
+
+function morphBinary8(
+  width: number,
+  height: number,
+  srcBinary: Uint8ClampedArray,
+  iterations: number,
+  mode: "dilate" | "erode"
+): Uint8ClampedArray {
+  const n = width * height;
+  let read = new Uint8ClampedArray(srcBinary);
+  if (iterations <= 0) {
+    return read;
+  }
+  let write = new Uint8ClampedArray(n);
+  const op = mode === "dilate" ? binaryDilateOnce8 : binaryErodeOnce8;
+  for (let k = 0; k < iterations; k++) {
+    op(width, height, read, write);
+    const tmp = read;
+    read = write;
+    write = tmp;
+  }
+  return read;
+}
+
+/**
+ * Pixels forming a stroke of approximately `strokeWidthPx` centered on the
+ * selection boundary (morphological dilate/erode band). Document space; same
+ * dimensions as `sel`. Returns null if empty.
+ */
+export function buildSelectionBorderStrokeMask(
+  sel: Selection,
+  strokeWidthPx: number
+): Selection | null {
+  if (!validateSelectionMask(sel) || !selectionHasAnyPixels(sel)) {
+    return null;
+  }
+  const wPx = Math.max(1, Math.min(64, Math.round(strokeWidthPx)));
+  const { width: w, height: h, data } = sel;
+  const n = w * h;
+  const orig = new Uint8ClampedArray(n);
+  for (let i = 0; i < n; i++) {
+    orig[i] = data[i] >= THRESH ? 255 : 0;
+  }
+  const rOut = Math.ceil(wPx / 2);
+  const rIn = Math.floor(wPx / 2);
+  const outer = morphBinary8(w, h, orig, rOut, "dilate");
+  const inner = morphBinary8(w, h, orig, rIn, "erode");
+  const strokeData = new Uint8ClampedArray(n);
+  for (let i = 0; i < n; i++) {
+    strokeData[i] = outer[i] >= THRESH && inner[i] < THRESH ? 255 : 0;
+  }
+  if (!selectionHasAnyPixels({ width: w, height: h, data: strokeData })) {
+    return null;
+  }
+  return { width: w, height: h, data: strokeData };
+}
+
 export function drawStrokeBufferForDisplayWithSelectionFeather(
   targetCtx: CanvasRenderingContext2D,
   buffer: HTMLCanvasElement,
