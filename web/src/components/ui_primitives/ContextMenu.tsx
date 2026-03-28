@@ -73,6 +73,11 @@ const ContextMenuInternal: React.FC<ContextMenuProps> = ({
 
   const anchorReference = position ? "anchorPosition" as const : undefined;
 
+  // Compute border radius with type guard since borderRadius can be string | number
+  const borderRadiusValue = typeof theme.shape.borderRadius === "number"
+    ? theme.shape.borderRadius / 4
+    : undefined;
+
   return (
     <MuiMenu
       anchorPosition={anchorPosition}
@@ -82,7 +87,7 @@ const ContextMenuInternal: React.FC<ContextMenuProps> = ({
         paper: {
           ...slotProps?.paper,
           sx: {
-            borderRadius: theme.shape.borderRadius / 4,
+            borderRadius: borderRadiusValue,
             maxHeight,
             minWidth,
             ...(compact && {
