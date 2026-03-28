@@ -362,8 +362,6 @@ window.api.installer.onLocationPrompt(async ({ defaultPath, packages }) => {
     chroma: "nodetool-ai/nodetool-chroma",
     comfy: "nodetool-ai/nodetool-comfy",
     data: "nodetool-ai/nodetool-lib-data",
-    elevenlabs: "nodetool-ai/nodetool-elevenlabs",
-    fal: "nodetool-ai/nodetool-fal",
     file: "nodetool-ai/nodetool-lib-file",
     google: "nodetool-ai/nodetool-google",
     huggingface: "nodetool-ai/nodetool-huggingface",
@@ -372,7 +370,6 @@ window.api.installer.onLocationPrompt(async ({ defaultPath, packages }) => {
     network: "nodetool-ai/nodetool-lib-network",
     ollama: "nodetool-ai/nodetool-ollama",
     openai: "nodetool-ai/nodetool-openai",
-    replicate: "nodetool-ai/nodetool-replicate",
   };
 
   let selectedPath = defaultPath;

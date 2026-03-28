@@ -18,10 +18,11 @@ import * as yaml from "js-yaml";
 
 export const DeploymentType = {
   DOCKER: "docker",
-  SSH: "ssh",
-  LOCAL: "local",
   RUNPOD: "runpod",
   GCP: "gcp",
+  FLY: "fly",
+  RAILWAY: "railway",
+  HUGGINGFACE: "huggingface",
 } as const;
 export type DeploymentType = (typeof DeploymentType)[keyof typeof DeploymentType];
 
@@ -119,6 +120,7 @@ export const SelfHostedStateSchema = z.object({
   container_name: z.string().nullable().optional().default(null),
   url: z.string().nullable().optional().default(null),
   container_hash: z.string().nullable().optional().default(null),
+  container_run_hash: z.string().nullable().optional().default(null),
 });
 export type SelfHostedState = z.infer<typeof SelfHostedStateSchema>;
 
@@ -191,59 +193,89 @@ export function dockerDeploymentGetServerUrl(d: DockerDeployment): string {
   return `http://${d.host}:${hostPort}`;
 }
 
-const BaseShellDeploymentFields = {
+export type SelfHostedDeployment = DockerDeployment;
+
+// ============================================================================
+// Platform-Specific State Schemas
+// ============================================================================
+
+export const FlyStateSchema = z.object({
+  last_deployed: z.string().nullable().optional().default(null),
+  status: DeploymentStatusEnum.default("unknown"),
+  url: z.string().nullable().optional().default(null),
+  app: z.string().nullable().optional().default(null),
+  region: z.string().nullable().optional().default(null),
+});
+export type FlyState = z.infer<typeof FlyStateSchema>;
+
+export const RailwayStateSchema = z.object({
+  last_deployed: z.string().nullable().optional().default(null),
+  status: DeploymentStatusEnum.default("unknown"),
+  url: z.string().nullable().optional().default(null),
+  project: z.string().nullable().optional().default(null),
+  service: z.string().nullable().optional().default(null),
+  image_tag: z.string().nullable().optional().default(null),
+});
+export type RailwayState = z.infer<typeof RailwayStateSchema>;
+
+export const HuggingFaceStateSchema = z.object({
+  last_deployed: z.string().nullable().optional().default(null),
+  status: DeploymentStatusEnum.default("unknown"),
+  repo: z.string().nullable().optional().default(null),
+  space_url: z.string().nullable().optional().default(null),
+});
+export type HuggingFaceState = z.infer<typeof HuggingFaceStateSchema>;
+
+// ============================================================================
+// Fly.io Deployment Schema
+// ============================================================================
+
+export const FlyDeploymentSchema = z.object({
+  type: z.literal("fly").default("fly"),
   enabled: z.boolean().default(true),
-  host: z.string(),
-  paths: withEmptyDefault(ServerPathsSchema),
-  persistent_paths: PersistentPathsSchema.optional(),
-  port: z.number().int(),
-  service_name: z.string().optional(),
-  gpu: z.string().optional(),
+  app: z.string(),
+  region: z.string().default("iad"),
+  image: z.string(), // path to nodetool-image.yaml
   environment: z.record(z.string(), z.string()).optional(),
-  workflows: z.array(z.string()).optional(),
-  server_auth_token: z.string().optional(),
-  nginx: NginxConfigSchema.optional(),
-  state: withEmptyDefault(SelfHostedStateSchema),
-} as const;
-
-export const SSHDeploymentSchema = z.object({
-  type: z.literal("ssh").default("ssh"),
-  ...BaseShellDeploymentFields,
-  ssh: SSHConfigSchema,
+  volumes: z.array(z.object({
+    name: z.string(),
+    mount: z.string(),
+    size: z.number().int().default(10),
+  })).optional(),
+  state: withEmptyDefault(FlyStateSchema),
 });
-export type SSHDeployment = z.infer<typeof SSHDeploymentSchema>;
+export type FlyDeployment = z.infer<typeof FlyDeploymentSchema>;
 
-export const LocalDeploymentSchema = z.object({
-  type: z.literal("local").default("local"),
-  ...BaseShellDeploymentFields,
-  host: z.string().default("localhost"),
+// ============================================================================
+// Railway Deployment Schema
+// ============================================================================
+
+export const RailwayDeploymentSchema = z.object({
+  type: z.literal("railway").default("railway"),
+  enabled: z.boolean().default(true),
+  project: z.string(),
+  service: z.string(),
+  image: z.string(),
+  environment: z.record(z.string(), z.string()).optional(),
+  state: withEmptyDefault(RailwayStateSchema),
 });
-export type LocalDeployment = z.infer<typeof LocalDeploymentSchema>;
+export type RailwayDeployment = z.infer<typeof RailwayDeploymentSchema>;
 
-/** Get server URL for a shell-based deployment. */
-export function shellDeploymentGetServerUrl(
-  d: SSHDeployment | LocalDeployment
-): string {
-  if (d.nginx) {
-    const nginx = d.nginx as { enabled: boolean; ssl_cert_path?: string; http_port: number; https_port: number };
-    if (nginx.enabled) {
-      if (nginx.ssl_cert_path) {
-        return `https://${d.host}:${nginx.https_port}`;
-      }
-      return `http://${d.host}:${nginx.http_port}`;
-    }
-  }
-  return `http://${d.host}:${d.port}`;
-}
+// ============================================================================
+// HuggingFace Spaces Deployment Schema
+// ============================================================================
 
-/** Backward-compatibility alias. */
-export const RootDeploymentSchema = SSHDeploymentSchema;
-export type RootDeployment = SSHDeployment;
-
-export type SelfHostedDeployment =
-  | DockerDeployment
-  | SSHDeployment
-  | LocalDeployment;
+export const HuggingFaceDeploymentSchema = z.object({
+  type: z.literal("huggingface").default("huggingface"),
+  enabled: z.boolean().default(true),
+  repo: z.string(),
+  space_type: z.literal("docker").default("docker"),
+  hardware: z.string().optional(),
+  image: z.string(),
+  environment: z.record(z.string(), z.string()).optional(),
+  state: withEmptyDefault(HuggingFaceStateSchema),
+});
+export type HuggingFaceDeployment = z.infer<typeof HuggingFaceDeploymentSchema>;
 
 // ============================================================================
 // RunPod Deployment Schemas
@@ -430,49 +462,25 @@ export type DefaultsConfig = z.infer<typeof DefaultsConfigSchema>;
  */
 const AnyDeploymentSchema = z.discriminatedUnion("type", [
   DockerDeploymentSchema,
-  SSHDeploymentSchema,
-  LocalDeploymentSchema,
   RunPodDeploymentSchema,
   GCPDeploymentSchema,
+  FlyDeploymentSchema,
+  RailwayDeploymentSchema,
+  HuggingFaceDeploymentSchema,
 ]);
 export type AnyDeployment = z.infer<typeof AnyDeploymentSchema>;
 
 export const DeploymentConfigSchema = z.object({
-  version: z.string().default("1.0"),
+  version: z.string().default("2.0"),
   defaults: withEmptyDefault(DefaultsConfigSchema),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   deployments: z.record(z.string(), AnyDeploymentSchema).default({} as any),
 });
 export type DeploymentConfig = z.infer<typeof DeploymentConfigSchema>;
 
-// ============================================================================
-// Pre-parse transform: normalize legacy "root" type to "ssh"
-// ============================================================================
-
-function normalizeLegacyRootType(data: unknown): unknown {
-  if (typeof data !== "object" || data === null) return data;
-  const obj = data as Record<string, unknown>;
-  const deployments = obj.deployments;
-  if (typeof deployments !== "object" || deployments === null) return data;
-
-  for (const deployment of Object.values(
-    deployments as Record<string, unknown>
-  )) {
-    if (
-      typeof deployment === "object" &&
-      deployment !== null &&
-      (deployment as Record<string, unknown>).type === "root"
-    ) {
-      (deployment as Record<string, unknown>).type = "ssh";
-    }
-  }
-  return data;
-}
-
 /** Parse and validate raw data into a DeploymentConfig. */
 export function parseDeploymentConfig(data: unknown): DeploymentConfig {
-  const normalized = normalizeLegacyRootType(data);
-  return DeploymentConfigSchema.parse(normalized);
+  return DeploymentConfigSchema.parse(data);
 }
 
 // ============================================================================
@@ -539,14 +547,10 @@ export async function loadDeploymentConfig(): Promise<DeploymentConfig> {
 
   const config = parseDeploymentConfig(data);
 
-  // Auto-generate server_auth_token for self-hosted deployments
+  // Auto-generate server_auth_token for Docker deployments
   let configUpdated = false;
   for (const deployment of Object.values(config.deployments)) {
-    if (
-      deployment.type === "docker" ||
-      deployment.type === "ssh" ||
-      deployment.type === "local"
-    ) {
+    if (deployment.type === "docker") {
       if (!deployment.server_auth_token) {
         deployment.server_auth_token = crypto
           .randomBytes(32)

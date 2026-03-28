@@ -15,7 +15,6 @@ function shellQuote(s: string): string {
 }
 import type {
   DockerDeployment,
-  SSHDeployment,
 } from "./deployment-config.js";
 
 // ============================================================================
@@ -120,7 +119,7 @@ export class RemoteUserManager {
   private readonly ssh: SSHConnectionHandle;
 
   constructor(
-    deployment: DockerDeployment | SSHDeployment,
+    deployment: DockerDeployment,
     usersFile: string,
     ssh: SSHConnectionHandle
   ) {

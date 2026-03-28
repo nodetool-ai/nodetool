@@ -232,7 +232,6 @@ async function updateCondaEnvironment(
     // Convert repo IDs to package names for wheel installation, pinned to app version
     const corePackages = [
       `nodetool-core==${pipVersion}`,
-      `nodetool-base==${pipVersion}`,
     ];
 
     // Convert additional packages from repo format to package names, pinned to app version
