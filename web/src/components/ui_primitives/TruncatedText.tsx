@@ -6,7 +6,7 @@
  * Replaces 116+ instances of manual textOverflow/ellipsis/nowrap patterns.
  */
 
-import React from "react";
+import { forwardRef } from "react";
 import { Typography, TypographyProps, Tooltip } from "@mui/material";
 
 export interface TruncatedTextProps extends TypographyProps {
@@ -37,7 +37,7 @@ export interface TruncatedTextProps extends TypographyProps {
  *   Hover to see the full text in a tooltip
  * </TruncatedText>
  */
-export const TruncatedText = React.forwardRef<HTMLSpanElement, TruncatedTextProps>(({
+export const TruncatedText = forwardRef<HTMLSpanElement, TruncatedTextProps>(({
   maxLines = 1,
   showTooltip = false,
   tooltipPlacement = "top",

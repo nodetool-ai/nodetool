@@ -6,7 +6,7 @@
  * Used in 8+ files that directly import MUI Alert.
  */
 
-import React from "react";
+import { forwardRef } from "react";
 import { Alert, AlertTitle, AlertProps as MuiAlertProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -44,7 +44,7 @@ export interface AlertBannerProps extends Omit<MuiAlertProps, 'variant'> {
  *   Saved successfully
  * </AlertBanner>
  */
-export const AlertBanner = React.forwardRef<HTMLDivElement, AlertBannerProps>(({
+export const AlertBanner = forwardRef<HTMLDivElement, AlertBannerProps>(({
   title,
   variant = "standard",
   compact = false,
