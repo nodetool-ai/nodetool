@@ -31,6 +31,7 @@ export { EraserTool } from "./EraserTool";
 export { BlurTool } from "./BlurTool";
 export { CloneStampTool } from "./CloneStampTool";
 export { AdjustTool } from "./AdjustTool";
+export { SegmentTool } from "./SegmentTool";
 
 import { EyedropperTool } from "./EyedropperTool";
 import { MoveTool } from "./MoveTool";
@@ -46,6 +47,7 @@ import { EraserTool } from "./EraserTool";
 import { BlurTool } from "./BlurTool";
 import { CloneStampTool } from "./CloneStampTool";
 import { AdjustTool } from "./AdjustTool";
+import { SegmentTool } from "./SegmentTool";
 
 // ─── Singleton tool handler cache ─────────────────────────────────────────────
 
@@ -107,6 +109,9 @@ export function getToolHandler(tool: SketchTool): ToolHandler {
       break;
     case "adjust":
       handler = new AdjustTool();
+      break;
+    case "segment":
+      handler = new SegmentTool();
       break;
     default:
       // Fallback: return a no-op handler

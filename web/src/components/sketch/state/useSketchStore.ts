@@ -26,6 +26,7 @@ import {
   GradientSettings,
   CloneStampSettings,
   SelectSettings,
+  SegmentSettings,
   BlendMode,
   LayerTransform,
   PushHistoryOptions,
@@ -154,6 +155,7 @@ export interface SketchStore {
   setGradientSettings: (settings: Partial<GradientSettings>) => void;
   setCloneStampSettings: (settings: Partial<CloneStampSettings>) => void;
   setSelectSettings: (settings: Partial<SelectSettings>) => void;
+  setSegmentSettings: (settings: Partial<SegmentSettings>) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   setIsDrawing: (isDrawing: boolean) => void;
@@ -436,6 +438,21 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         toolSettings: {
           ...state.document.toolSettings,
           select: { ...state.document.toolSettings.select, ...settings }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setSegmentSettings: (settings: Partial<SegmentSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          segment: { ...state.document.toolSettings.segment, ...settings }
         },
         metadata: {
           ...state.document.metadata,

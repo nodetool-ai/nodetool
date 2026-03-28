@@ -15,7 +15,8 @@ import {
   DEFAULT_BLUR_SETTINGS,
   DEFAULT_GRADIENT_SETTINGS,
   DEFAULT_CLONE_STAMP_SETTINGS,
-  DEFAULT_SELECT_SETTINGS
+  DEFAULT_SELECT_SETTINGS,
+  DEFAULT_SEGMENT_SETTINGS
 } from "../types";
 
 export function useSketchStoreSelectors() {
@@ -35,6 +36,7 @@ export function useSketchStoreSelectors() {
   const setGradientSettings = useSketchStore((s) => s.setGradientSettings);
   const setCloneStampSettings = useSketchStore((s) => s.setCloneStampSettings);
   const setSelectSettings = useSketchStore((s) => s.setSelectSettings);
+  const setSegmentSettings = useSketchStore((s) => s.setSegmentSettings);
   const featherCurrentSelection = useSketchStore((s) => s.featherCurrentSelection);
   const smoothCurrentSelectionBorders = useSketchStore(
     (s) => s.smoothCurrentSelectionBorders
@@ -106,7 +108,8 @@ export function useSketchStoreSelectors() {
     blur: { ...DEFAULT_BLUR_SETTINGS, ...document.toolSettings?.blur },
     gradient: { ...DEFAULT_GRADIENT_SETTINGS, ...document.toolSettings?.gradient },
     cloneStamp: { ...DEFAULT_CLONE_STAMP_SETTINGS, ...document.toolSettings?.cloneStamp },
-    select: { ...DEFAULT_SELECT_SETTINGS, ...document.toolSettings?.select }
+    select: { ...DEFAULT_SELECT_SETTINGS, ...document.toolSettings?.select },
+    segment: { ...DEFAULT_SEGMENT_SETTINGS, ...document.toolSettings?.segment }
   };
 
   const safeForegroundColor = foregroundColor || "#ffffff";
@@ -129,6 +132,7 @@ export function useSketchStoreSelectors() {
     setGradientSettings,
     setCloneStampSettings,
     setSelectSettings,
+    setSegmentSettings,
     featherCurrentSelection,
     smoothCurrentSelectionBorders,
     setZoom,

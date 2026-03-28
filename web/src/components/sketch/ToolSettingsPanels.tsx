@@ -34,6 +34,10 @@ import {
   CloneStampSampling,
   SelectSettings,
   SelectToolMode,
+  SegmentSettings,
+  SegmentPromptMode,
+  SegmentSourceLayerAction,
+  SegmentationStatus,
   parseColorToRgba,
   rgbaToCss,
   colorToHex6,
@@ -67,6 +71,8 @@ export function getToolSettingsLabel(tool: SketchTool): string {
       return "Selection";
     case "adjust":
       return "Adjustments";
+    case "segment":
+      return "Segment";
     case "shape":
       return "Shape";
     case "transform":
@@ -1199,6 +1205,281 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   );
 });
 
+// ─── SegmentSettingsPanel ──────────────────────────────────────────────────
+
+function promptModeHelpText(mode: SegmentPromptMode): string {
+  if (mode === "point") {
+    return "Click: include · Alt+click: exclude";
+  }
+  if (mode === "box") {
+    return "Drag to draw a bounding box";
+  }
+  return "Auto-detect prominent objects";
+}
+
+/** Returns a user-friendly status message for the current segmentation phase. */
+function getSegmentationStatusMessage(status: SegmentationStatus): string {
+  switch (status) {
+    case "checking-model":
+      return "Checking model…";
+    case "encoding":
+      return "Encoding image…";
+    case "inferring":
+      return "Segmenting…";
+    default:
+      return "Processing…";
+  }
+}
+
+interface SegmentSettingsPanelProps {
+  settings: SegmentSettings;
+  onChange: (settings: Partial<SegmentSettings>) => void;
+  segmentationStatus: SegmentationStatus;
+  onRunSegmentation: () => void;
+  onApplyResult: () => void;
+  onDiscardResult: () => void;
+  onCancelSegmentation: () => void;
+  onClearPrompts: () => void;
+}
+
+export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
+  settings,
+  onChange,
+  segmentationStatus,
+  onRunSegmentation,
+  onApplyResult,
+  onDiscardResult,
+  onCancelSegmentation,
+  onClearPrompts
+}: SegmentSettingsPanelProps) {
+  const isRunning =
+    segmentationStatus === "inferring" ||
+    segmentationStatus === "encoding" ||
+    segmentationStatus === "checking-model";
+  const isPreviewing = segmentationStatus === "previewing";
+
+  return (
+    <>
+      <ToggleButtonGroup
+        value={settings.promptMode}
+        exclusive
+        onChange={(_, v) => {
+          if (v) {
+            onChange({ promptMode: v as SegmentPromptMode });
+          }
+        }}
+        size="small"
+        sx={{ mb: "4px" }}
+      >
+        <ToggleButton value="point" sx={toggleButtonSmallSx}>
+          Point
+        </ToggleButton>
+        <ToggleButton value="box" sx={toggleButtonSmallSx}>
+          Box
+        </ToggleButton>
+        <ToggleButton value="auto" sx={toggleButtonSmallSx}>
+          Auto
+        </ToggleButton>
+      </ToggleButtonGroup>
+
+      <Box className="setting-row">
+        <Typography className="setting-label">Max Objects</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={1}
+          max={20}
+          value={settings.maxObjects}
+          onChange={(_, v) => onChange({ maxObjects: v as number })}
+        />
+        <Typography className="setting-value">{settings.maxObjects}</Typography>
+      </Box>
+
+      <Box className="setting-row">
+        <Typography className="setting-label">Confidence</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={1}
+          step={0.05}
+          value={settings.confidenceThreshold}
+          onChange={(_, v) =>
+            onChange({ confidenceThreshold: v as number })
+          }
+        />
+        <Typography className="setting-value">
+          {settings.confidenceThreshold.toFixed(2)}
+        </Typography>
+      </Box>
+
+      <Box className="setting-row">
+        <Typography className="setting-label">Min Size</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={10000}
+          step={100}
+          value={settings.minObjectSize}
+          onChange={(_, v) => onChange({ minObjectSize: v as number })}
+        />
+        <Typography className="setting-value">
+          {settings.minObjectSize}
+        </Typography>
+      </Box>
+
+      <Box className="setting-row">
+        <Typography className="setting-label">Feather</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={20}
+          step={1}
+          value={settings.maskFeather}
+          onChange={(_, v) => onChange({ maskFeather: v as number })}
+        />
+        <Typography className="setting-value">{settings.maskFeather}</Typography>
+      </Box>
+
+      <Box className="setting-row" sx={{ gap: "4px" }}>
+        <Typography className="setting-label">Source Layer</Typography>
+        <ToggleButtonGroup
+          value={settings.sourceLayerAction}
+          exclusive
+          onChange={(_, v) => {
+            if (v) {
+              onChange({ sourceLayerAction: v as SegmentSourceLayerAction });
+            }
+          }}
+          size="small"
+        >
+          <ToggleButton value="keep" sx={toggleButtonSmallSx}>
+            Keep
+          </ToggleButton>
+          <ToggleButton value="hide" sx={toggleButtonSmallSx}>
+            Hide
+          </ToggleButton>
+          <ToggleButton value="lock" sx={toggleButtonSmallSx}>
+            Lock
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      <FormControlLabel
+        control={
+          <Switch
+            size="small"
+            checked={settings.outputCutouts}
+            onChange={(e) => onChange({ outputCutouts: e.target.checked })}
+          />
+        }
+        label={
+          <Typography sx={{ fontSize: "0.6rem" }}>
+            {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
+          </Typography>
+        }
+        sx={{ mt: "2px", ml: 0 }}
+      />
+
+      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: "4px" }}>
+        {!isRunning && !isPreviewing && (
+          <>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={onRunSegmentation}
+              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+            >
+              Segment
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onClearPrompts}
+              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+            >
+              Clear
+            </Button>
+          </>
+        )}
+        {isRunning && (
+          <>
+            <Typography
+              sx={{
+                fontSize: "0.6rem",
+                color: "info.main",
+                lineHeight: 1.3,
+                mr: 0.5,
+                display: "flex",
+                alignItems: "center"
+              }}
+            >
+              {getSegmentationStatusMessage(segmentationStatus)}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              onClick={onCancelSegmentation}
+              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+            >
+              Cancel
+            </Button>
+          </>
+        )}
+        {isPreviewing && (
+          <>
+            <Button
+              size="small"
+              variant="contained"
+              color="success"
+              onClick={onApplyResult}
+              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+            >
+              Apply
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onDiscardResult}
+              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+            >
+              Discard
+            </Button>
+          </>
+        )}
+      </Box>
+
+      <Typography
+        sx={{
+          fontSize: "0.58rem",
+          color: "grey.500",
+          lineHeight: 1.3,
+          maxWidth: 320,
+          mt: "4px"
+        }}
+      >
+        {promptModeHelpText(settings.promptMode)}
+      </Typography>
+
+      {segmentationStatus === "error" && (
+        <Typography
+          sx={{
+            fontSize: "0.6rem",
+            color: "error.main",
+            lineHeight: 1.3,
+            mt: "2px"
+          }}
+        >
+          Segmentation failed. Check model availability and try again.
+        </Typography>
+      )}
+    </>
+  );
+});
+
 // ─── ToolSettingsPanel (dispatcher) ───────────────────────────────────────
 
 export interface ToolSettingsPanelProps {
@@ -1240,6 +1521,14 @@ export interface ToolSettingsPanelProps {
   onTransformCommit?: () => void;
   onTransformCancel?: () => void;
   onTransformReset?: () => void;
+  segmentSettings?: SegmentSettings;
+  onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
+  segmentationStatus?: SegmentationStatus;
+  onRunSegmentation?: () => void;
+  onApplySegmentResult?: () => void;
+  onDiscardSegmentResult?: () => void;
+  onCancelSegmentation?: () => void;
+  onClearSegmentPrompts?: () => void;
 }
 
 export const ToolSettingsPanel = memo(function ToolSettingsPanel({
@@ -1278,7 +1567,15 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   transformRotation,
   onTransformCommit,
   onTransformCancel,
-  onTransformReset
+  onTransformReset,
+  segmentSettings,
+  onSegmentSettingsChange,
+  segmentationStatus,
+  onRunSegmentation,
+  onApplySegmentResult,
+  onDiscardSegmentResult,
+  onCancelSegmentation,
+  onClearSegmentPrompts
 }: ToolSettingsPanelProps) {
   if (activeTool === "brush") {
     return (
@@ -1400,6 +1697,20 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         onSaturationChange={onAdjustSaturationChange ?? noop}
         onApply={onAdjustApply ?? noop}
         onCancel={onAdjustCancel ?? noop}
+      />
+    );
+  }
+  if (activeTool === "segment" && segmentSettings && onSegmentSettingsChange) {
+    return (
+      <SegmentSettingsPanel
+        settings={segmentSettings}
+        onChange={onSegmentSettingsChange}
+        segmentationStatus={segmentationStatus ?? "idle"}
+        onRunSegmentation={onRunSegmentation ?? noop}
+        onApplyResult={onApplySegmentResult ?? noop}
+        onDiscardResult={onDiscardSegmentResult ?? noop}
+        onCancelSegmentation={onCancelSegmentation ?? noop}
+        onClearPrompts={onClearSegmentPrompts ?? noop}
       />
     );
   }
