@@ -150,7 +150,7 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
 
   const handleSaveKey = useCallback(
     async (provider: Provider) => {
-      if (!keyValue.trim()) return;
+      if (!keyValue.trim()) {return;}
       setSaving(true);
       try {
         await updateSecret(provider.secretKey, keyValue.trim());
@@ -203,7 +203,7 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
                   value={keyValue}
                   onChange={(e) => setKeyValue(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveKey(provider);
+                    if (e.key === "Enter") {handleSaveKey(provider);}
                   }}
                   fullWidth
                   autoFocus

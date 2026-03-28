@@ -56,7 +56,7 @@ export const Overlay: React.FC<OverlayProps> = ({
 }) => {
   const theme = useTheme();
 
-  if (!open) return null;
+  if (!open) {return null;}
 
   return (
     <Box

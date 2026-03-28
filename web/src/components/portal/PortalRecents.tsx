@@ -65,11 +65,11 @@ function formatRelativeTime(dateStr: string): string {
   const then = new Date(dateStr).getTime();
   const diffMs = now - then;
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 60) return `${diffMin}m`;
+  if (diffMin < 60) {return `${diffMin}m`;}
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h`;
+  if (diffHr < 24) {return `${diffHr}h`;}
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d`;
+  if (diffDay < 7) {return `${diffDay}d`;}
   const diffWeek = Math.floor(diffDay / 7);
   return `${diffWeek}w`;
 }
@@ -118,7 +118,7 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
     return items.slice(0, 5);
   }, [workflows, threads]);
 
-  if (recentItems.length === 0) return null;
+  if (recentItems.length === 0) {return null;}
 
   return (
     <div css={styles(theme)}>

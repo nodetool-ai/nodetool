@@ -75,7 +75,7 @@ const PortalSearchResults: React.FC<PortalSearchResultsProps> = ({
   const theme = useTheme();
 
   const results = useMemo(() => {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < 2) {return [];}
 
     const q = query.toLowerCase();
     const matches: SearchResult[] = [];
@@ -95,7 +95,7 @@ const PortalSearchResults: React.FC<PortalSearchResultsProps> = ({
     return matches.slice(0, 5);
   }, [query, workflows, templates]);
 
-  if (results.length === 0) return null;
+  if (results.length === 0) {return null;}
 
   return (
     <div css={styles(theme)}>

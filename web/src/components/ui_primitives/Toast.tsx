@@ -67,7 +67,7 @@ const ToastInternal: React.FC<ToastProps> = ({
 }) => {
   const handleClose = useCallback(
     (_event?: React.SyntheticEvent | Event, reason?: string) => {
-      if (reason === "clickaway") return;
+      if (reason === "clickaway") {return;}
       onClose();
     },
     [onClose]

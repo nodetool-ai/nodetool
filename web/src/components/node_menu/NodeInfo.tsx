@@ -237,18 +237,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </Typography>
 
-      {nodeMetadata.the_model_info?.cover_image_url ? (
-        isLoading ? (
-          <div className="preview-image loading"></div>
-        ) : (
-          <img
-            className="preview-image"
-            src={nodeMetadata.the_model_info.cover_image_url as string}
-            alt={nodeMetadata.title}
-          />
-        )
-      ) : null}
-
       <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
 
       {showConnections && (

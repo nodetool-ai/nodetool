@@ -13,6 +13,12 @@ import { DATA_TYPES } from "../../config/data_types";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { hexToRgba } from "../../utils/ColorUtils";
+
+const rerouteBackground = (theme: Theme, alpha: number): string =>
+  theme.palette.mode === "dark"
+    ? `rgba(30 30 30 / ${alpha})`
+    : `rgba(255 255 255 / ${alpha})`;
 
 const styles = (theme: Theme) =>
   css({

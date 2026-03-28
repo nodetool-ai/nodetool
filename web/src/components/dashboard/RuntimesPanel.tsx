@@ -71,7 +71,7 @@ const RuntimesPanel: React.FC = () => {
 
   const loadStatuses = useCallback(async () => {
     const api = (window as any).api;
-    if (!api?.packages?.getRuntimeStatuses) return;
+    if (!api?.packages?.getRuntimeStatuses) {return;}
     try {
       const [statuses, location] = await Promise.all([
         api.packages.getRuntimeStatuses(),
@@ -93,7 +93,7 @@ const RuntimesPanel: React.FC = () => {
   const handleInstall = useCallback(
     async (packageId: string) => {
       const api = (window as any).api;
-      if (!api?.packages?.installRuntime) return;
+      if (!api?.packages?.installRuntime) {return;}
 
       setInstalling((prev) => new Set(prev).add(packageId));
       setError(null);
@@ -120,10 +120,10 @@ const RuntimesPanel: React.FC = () => {
 
   const handleChangeLocation = useCallback(async () => {
     const api = (window as any).api;
-    if (!api?.packages?.selectInstallLocation) return;
+    if (!api?.packages?.selectInstallLocation) {return;}
     try {
       const selected = await api.packages.selectInstallLocation();
-      if (selected) setInstallLocation(selected);
+      if (selected) {setInstallLocation(selected);}
     } catch (err) {
       log.error("Failed to select location:", err);
     }
