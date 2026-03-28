@@ -36,6 +36,7 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
       icon={<HelpIcon fontSize="small" />}
       tooltip={tooltipContent}
       tooltipPlacement="top"
+      ariaLabel={helpMode ? "Disable help mode" : "Enable help mode"}
       onClick={handleClick}
       disabled={disabled}
       size="small"

@@ -37,7 +37,7 @@ jobs:
           python-version: "3.11"
           environment-file: environment.yml
           activate-environment: nodetool
-          auto-activate-base: false
+          auto-activate: true
           miniforge-version: latest
 
       - name: Install nodetool-core and nodetool-base
@@ -143,7 +143,7 @@ jobs:
           python-version: "3.11"
           environment-file: environment.yml
           activate-environment: nodetool
-          auto-activate-base: false
+          auto-activate: true
           miniforge-version: latest
 
       - name: Install nodetool-core and nodetool-base
