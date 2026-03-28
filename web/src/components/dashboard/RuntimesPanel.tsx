@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { Box, Button, CircularProgress, Tooltip, Alert } from "@mui/material";
+import { Box, Button, Tooltip, Alert } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { css } from "@emotion/react";
 import { useTheme, Theme } from "@mui/material/styles";
 import { getIsElectronDetails } from "../../utils/browser";
-import { FlexColumn, FlexRow, Card, Text, Caption } from "../ui_primitives";
+import { FlexColumn, FlexRow, Card, Text, Caption, LoadingSpinner } from "../ui_primitives";
 import log from "loglevel";
 
 interface RuntimeStatus {
@@ -202,7 +202,7 @@ const RuntimesPanel: React.FC = () => {
       <Box className="scrollable-content" sx={{ mt: 2 }}>
         {loading ? (
           <FlexRow justify="center" sx={{ py: 4 }}>
-            <CircularProgress size={24} />
+            <LoadingSpinner size="small" />
           </FlexRow>
         ) : (
           <FlexColumn gap={3}>
@@ -249,7 +249,7 @@ const RuntimesPanel: React.FC = () => {
                           variant="outlined"
                           startIcon={
                             isInstalling ? (
-                              <CircularProgress size={14} />
+                              <LoadingSpinner size="small" />
                             ) : (
                               <DownloadIcon />
                             )
