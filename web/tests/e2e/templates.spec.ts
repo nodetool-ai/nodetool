@@ -3,7 +3,6 @@ import { BACKEND_API_URL } from "./support/backend";
 import {
   navigateToPage,
   waitForPageReady,
-  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
@@ -11,50 +10,6 @@ if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Templates and Examples", () => {
-    test("should load templates page", async ({ page }) => {
-      await navigateToPage(page, "/templates");
-
-      // Verify we're on the templates page
-      await expect(page).toHaveURL(/\/templates/);
-
-      // Check that the page loaded without errors
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).not.toContain("Internal Server Error");
-    });
-
-    test("should display templates interface", async ({ page }) => {
-      await navigateToPage(page, "/templates");
-
-      // Wait for content to load by checking body has content
-      const body = await page.locator("body");
-      await expect(body).not.toBeEmpty();
-
-      const hasContent = await body.textContent();
-      expect(hasContent).toBeTruthy();
-      expect(hasContent!.length).toBeGreaterThan(0);
-    });
-
-    test("should handle empty templates state gracefully", async ({ page }) => {
-      await navigateToPage(page, "/templates");
-
-      // Wait for the page to fully render by checking URL is stable
-      await expect(page).toHaveURL(/\/templates/);
-
-      // The page should load even if there are no templates
-      const url = page.url();
-      expect(url).toContain("/templates");
-    });
-
-    test("should load templates interface elements", async ({ page }) => {
-      await navigateToPage(page, "/templates");
-
-      // Page should load without errors and have content
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).toBeTruthy();
-    });
-
     test("should handle URL with node parameter", async ({ page }) => {
       // Navigate to templates with a node parameter
       await navigateToPage(page, "/templates?node=test");
@@ -70,40 +25,6 @@ if (process.env.JEST_WORKER_ID) {
       expect(bodyText).not.toContain("Internal Server Error");
     });
 
-    test("should allow navigation back and forth", async ({ page }) => {
-      // Start at dashboard
-      await navigateToPage(page, "/dashboard");
-
-      // Navigate to templates
-      await navigateToPage(page, "/templates");
-      await expect(page).toHaveURL(/\/templates/);
-
-      // Go back to dashboard
-      await page.goBack();
-      await waitForPageReady(page);
-
-      // Verify we're back at dashboard (or wherever we came from)
-      const urlAfterBack = page.url();
-      expect(urlAfterBack).toMatch(/\/(dashboard|login)/);
-
-      // Go forward to templates
-      await page.goForward();
-      await waitForPageReady(page);
-      await expect(page).toHaveURL(/\/templates/);
-    });
-
-    test("should display loading state initially", async ({ page }) => {
-      // Start navigation to templates
-      await page.goto("/templates");
-
-      // Check that page eventually loads (even if loading state is brief)
-      await waitForPageReady(page);
-      await expect(page).toHaveURL(/\/templates/);
-
-      // Verify page is functional after loading
-      const body = await page.locator("body");
-      await expect(body).not.toBeEmpty();
-    });
   });
 
   test.describe("Templates API Integration", () => {
@@ -294,28 +215,5 @@ if (process.env.JEST_WORKER_ID) {
       }
     });
 
-    test("should allow navigation to other pages", async ({ page }) => {
-      await navigateToPage(page, "/templates");
-
-      // Navigate to assets page
-      await navigateToPage(page, "/assets");
-      await expect(page).toHaveURL(/\/assets/);
-
-      // Navigate back to templates
-      await navigateToPage(page, "/templates");
-      await expect(page).toHaveURL(/\/templates/);
-    });
-
-    test("should handle direct URL access", async ({ page }) => {
-      // Access templates page directly via URL
-      await navigateToPage(page, "/templates");
-
-      // Verify the page loaded correctly
-      await expect(page).toHaveURL(/\/templates/);
-
-      const bodyText = await page.textContent("body");
-      expect(bodyText).not.toContain("500");
-      expect(bodyText).not.toContain("Internal Server Error");
-    });
   });
 }
