@@ -27,18 +27,11 @@ describe("MousePosition", () => {
     };
     
     // Set up global document mock
-    try {
-      Object.defineProperty(global, 'document', {
-        value: mockDocument,
-        writable: true,
-        configurable: true
-      });
-    } catch(_e) {
-      // In jsdom environment, document is already defined and non-configurable
-      // We'll mock the addEventListener/removeEventListener directly on the existing document
-      jest.spyOn(global.document, 'addEventListener').mockImplementation(mockAddEventListener as any);
-      jest.spyOn(global.document, 'removeEventListener').mockImplementation(mockRemoveEventListener as any);
-    }
+    Object.defineProperty(global, 'document', {
+      value: mockDocument,
+      writable: true,
+      configurable: true
+    });
 
     // Reset state between tests
     resetWiggleDetection();

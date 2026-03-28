@@ -125,7 +125,7 @@ describe("Container", () => {
         sx: { backgroundColor: "red" }
       });
       const box = container.firstChild as HTMLElement;
-      expect(box).toHaveStyle("background-color: rgb(255, 0, 0)");
+      expect(box).toHaveStyle({ backgroundColor: "red" });
     });
 
     it("merges custom sx with default styles", () => {
@@ -135,7 +135,7 @@ describe("Container", () => {
       });
       const box = container.firstChild as HTMLElement;
       expect(box).toHaveStyle({ padding: "32px" });
-      expect(box).toHaveStyle("background-color: rgb(255, 0, 0)");
+      expect(box).toHaveStyle({ backgroundColor: "red" });
     });
 
     it("passes through other Box props", () => {

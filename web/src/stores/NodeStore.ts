@@ -1212,8 +1212,12 @@ export const createNodeStore = (
             properties?: Record<string, any>
           ): Node<NodeData> => {
             const defaults: Record<string, any> = {};
-            for (const property of metadata.properties) {
-              defaults[property.name] = property.default;
+            if (metadata.properties) {
+              for (const property of metadata.properties) {
+                if (property.name) {
+                  defaults[property.name] = property.default;
+                }
+              }
             }
             if (properties) {
               for (const key in properties) {

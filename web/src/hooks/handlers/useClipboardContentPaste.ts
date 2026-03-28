@@ -426,7 +426,7 @@ export const useClipboardContentPaste = () => {
                   if (result) {
                     const fileName =
                       filePath.split(/[/\\]/).pop() || `file.${ext}`;
-                    const file = new File([result.buffer as unknown as BlobPart], fileName, {
+                    const file = new File([result.buffer], fileName, {
                       type: result.mimeType
                     });
 

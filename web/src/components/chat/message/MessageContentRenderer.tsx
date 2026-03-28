@@ -39,7 +39,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       }
 
       // Create new object URL
-      const newObjectUrl = URL.createObjectURL(new Blob([source as unknown as BlobPart], { type }));
+      const newObjectUrl = URL.createObjectURL(new Blob([source], { type }));
       objectUrlRef.current = newObjectUrl;
       return newObjectUrl;
     },
