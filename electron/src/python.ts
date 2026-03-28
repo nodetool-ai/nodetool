@@ -8,7 +8,7 @@ import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
-import { getTorchIndexUrlAsync } from "./torchPlatformCache";
+import { getTorchIndexUrl, getTorchIndexUrlAsync } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
