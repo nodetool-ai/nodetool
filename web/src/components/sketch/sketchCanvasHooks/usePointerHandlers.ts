@@ -696,6 +696,16 @@ export function usePointerHandlers({
         return;
       }
 
+      if (interactionTool === "segment") {
+        const handler = getToolHandler(interactionTool);
+        const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
+        if (started) {
+          isDrawingRef.current = true;
+        }
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+
       if (interactionTool === "crop") {
         const pt = screenToCanvas(e.clientX, e.clientY);
         cropStartRef.current = pt;
@@ -1179,6 +1189,12 @@ export function usePointerHandlers({
         return;
       }
 
+      if (interactionTool === "segment") {
+        const handler = getToolHandler(interactionTool);
+        handler.onMove?.(toolCtxRef.current, buildToolPointerEvent(e), []);
+        return;
+      }
+
       if (isShapeTool(interactionTool)) {
         const handler = getToolHandler(interactionTool);
         handler.onMove?.(toolCtxRef.current, buildToolPointerEvent(e), []);
@@ -1484,6 +1500,12 @@ export function usePointerHandlers({
       }
 
       if (interactionTool === "transform") {
+        const handler = getToolHandler(interactionTool);
+        handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
+        return;
+      }
+
+      if (interactionTool === "segment") {
         const handler = getToolHandler(interactionTool);
         handler.onUp?.(toolCtxRef.current, buildToolPointerEvent(e));
         return;

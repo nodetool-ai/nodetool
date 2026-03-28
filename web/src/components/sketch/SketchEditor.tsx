@@ -232,8 +232,15 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     ) {
       canvasActions.handleTransformCancel();
     }
+    // Auto-check model availability when switching to segment tool
+    if (
+      prevAdjustToolRef.current !== "segment" &&
+      store.activeTool === "segment"
+    ) {
+      segmentation.checkModel();
+    }
     prevAdjustToolRef.current = store.activeTool;
-  }, [store.activeTool, canvasActions]);
+  }, [store.activeTool, canvasActions, segmentation]);
 
   // ─── Seed global store from prop before SketchCanvas mounts ─────────
   const { setDocument } = store;

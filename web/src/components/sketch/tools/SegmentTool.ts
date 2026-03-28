@@ -146,17 +146,21 @@ export class SegmentTool implements ToolHandler {
     ctx.clearOverlay();
 
     oc.save();
-    // Apply zoom and pan so prompts are in canvas space
-    oc.setTransform(ctx.zoom, 0, 0, ctx.zoom, ctx.pan.x, ctx.pan.y);
+    // Overlay canvas is in document-pixel space (CSS handles zoom/pan).
+    // No manual zoom/pan transform needed.
 
     // Draw point prompts
+    // Point radius is in document pixels — divide by zoom so it appears
+    // a constant visual size (CSS scaling will re-apply the zoom).
+    const pointR = POINT_RADIUS / ctx.zoom;
+    const outlineW = 1.5 / ctx.zoom;
     for (const pt of this.pointPrompts) {
       oc.beginPath();
-      oc.arc(pt.x, pt.y, POINT_RADIUS / ctx.zoom, 0, Math.PI * 2);
+      oc.arc(pt.x, pt.y, pointR, 0, Math.PI * 2);
       oc.fillStyle = pt.label === "positive" ? POSITIVE_COLOR : NEGATIVE_COLOR;
       oc.fill();
       oc.strokeStyle = "#ffffff";
-      oc.lineWidth = 1.5 / ctx.zoom;
+      oc.lineWidth = outlineW;
       oc.stroke();
     }
 
