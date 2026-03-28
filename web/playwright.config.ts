@@ -64,6 +64,17 @@ export default defineConfig({
   timeout: process.env.CI ? 30_000 : 20_000,
   // Global timeout to account for parallel workers and retries
   globalTimeout: process.env.CI ? 40 * 60_000 : 0,
+  // Skip heavy tests on CI — these need real APIs, Python, or are for local profiling
+  ...(process.env.CI ? {
+    testIgnore: [
+      /.*-real\.spec\.ts$/,
+      /.*screenshots?\.spec\.ts$/,
+      /.*profiling\.spec\.ts$/,
+      /.*performance.*\.spec\.ts$/,
+      /.*debug-.*\.spec\.ts$/,
+      /.*global-chat-ollama\.spec\.ts$/,
+    ],
+  } : {}),
   use: {
     baseURL: FRONTEND_URL,
     trace: 'on-first-retry',
