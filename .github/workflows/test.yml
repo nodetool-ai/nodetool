@@ -8,6 +8,7 @@ on:
       - "web/**"
       - "electron/**"
       - "packages/**"
+      - "mobile/**"
   pull_request:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
       - "web/**"
       - "electron/**"
       - "packages/**"
+      - "mobile/**"
 
 jobs:
   web:
