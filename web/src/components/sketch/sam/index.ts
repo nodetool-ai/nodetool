@@ -12,3 +12,12 @@ export type {
   SegmentationRequest,
   SegmentationResponse
 } from "./SamService";
+
+export {
+  getMaskOverlayColor,
+  getMaskOutlineColor,
+  drawMaskBoundsOverlay,
+  drawMaskImageOverlay,
+  generateCutoutDataUrl,
+  generateSegmentationRunId
+} from "./segmentMaskOverlay";

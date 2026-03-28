@@ -17,7 +17,6 @@ import type {
   SegmentationResult,
   SegmentationMask,
   SegmentationStatus,
-  SegmentSettings,
   Layer,
   PushHistoryOptions
 } from "../types";
@@ -27,7 +26,7 @@ import {
   generateLayerId
 } from "../types";
 import { useSketchStore } from "../state";
-import { getSamService } from "../sam";
+import { getSamService, generateSegmentationRunId, DEFAULT_SAM_MODEL_ID } from "../sam";
 import type { SamModelInfo } from "../sam";
 
 export interface UseSegmentationParams {
@@ -131,10 +130,13 @@ export function useSegmentation({
           return;
         }
 
+        const runId = generateSegmentationRunId();
         const segResult: SegmentationResult = {
+          runId,
           sourceLayerId: doc.activeLayerId,
           masks: response.masks,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          modelId: DEFAULT_SAM_MODEL_ID
         };
 
         setResult(segResult);
@@ -169,6 +171,7 @@ export function useSegmentation({
 
     const store = useSketchStore.getState();
     const doc = store.document;
+    const settings = doc.toolSettings.segment;
 
     // Push history before making structural changes
     pushHistory("Segment Objects", undefined, {
@@ -178,12 +181,12 @@ export function useSegmentation({
     // Create the group layer
     const groupLayer = createDefaultGroupLayer("Segmented Objects");
 
-    // Create one raster layer per mask
+    // Create one raster layer per mask with segmentation metadata
     const maskLayers: Layer[] = result.masks.map(
       (mask: SegmentationMask, i: number) => {
         const layer = createDefaultLayer(
           mask.label || `Object ${i + 1}`,
-          "raster",
+          settings.outputCutouts ? "raster" : "mask",
           doc.canvas.width,
           doc.canvas.height
         );
@@ -191,6 +194,13 @@ export function useSegmentation({
         layer.parentId = groupLayer.id;
         layer.contentBounds = { ...mask.bounds };
         layer.transform = { x: 0, y: 0 };
+        layer.segmentationMeta = {
+          segmentationRunId: result.runId,
+          sourceLayerId: result.sourceLayerId,
+          modelId: result.modelId,
+          confidence: mask.confidence,
+          maskIndex: i
+        };
         return layer;
       }
     );
@@ -203,6 +213,14 @@ export function useSegmentation({
     const insertIdx = sourceIdx >= 0 ? sourceIdx + 1 : doc.layers.length;
 
     const newLayers = [...doc.layers];
+
+    // Apply source layer action
+    if (settings.sourceLayerAction === "hide" && sourceIdx >= 0) {
+      newLayers[sourceIdx] = { ...newLayers[sourceIdx], visible: false };
+    } else if (settings.sourceLayerAction === "lock" && sourceIdx >= 0) {
+      newLayers[sourceIdx] = { ...newLayers[sourceIdx], locked: true };
+    }
+
     newLayers.splice(insertIdx, 0, groupLayer, ...maskLayers);
 
     // Update document with new layers

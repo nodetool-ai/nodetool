@@ -36,6 +36,7 @@ import {
   SelectToolMode,
   SegmentSettings,
   SegmentPromptMode,
+  SegmentSourceLayerAction,
   SegmentationStatus,
   parseColorToRgba,
   rgbaToCss,
@@ -1252,6 +1253,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         <ToggleButton value="box" sx={toggleButtonSmallSx}>
           Box
         </ToggleButton>
+        <ToggleButton value="auto" sx={toggleButtonSmallSx}>
+          Auto
+        </ToggleButton>
       </ToggleButtonGroup>
 
       <Box className="setting-row">
@@ -1300,6 +1304,60 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           {settings.minObjectSize}
         </Typography>
       </Box>
+
+      <Box className="setting-row">
+        <Typography className="setting-label">Feather</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={20}
+          step={1}
+          value={settings.maskFeather}
+          onChange={(_, v) => onChange({ maskFeather: v as number })}
+        />
+        <Typography className="setting-value">{settings.maskFeather}</Typography>
+      </Box>
+
+      <Box className="setting-row" sx={{ gap: "4px" }}>
+        <Typography className="setting-label">Source Layer</Typography>
+        <ToggleButtonGroup
+          value={settings.sourceLayerAction}
+          exclusive
+          onChange={(_, v) => {
+            if (v) {
+              onChange({ sourceLayerAction: v as SegmentSourceLayerAction });
+            }
+          }}
+          size="small"
+        >
+          <ToggleButton value="keep" sx={toggleButtonSmallSx}>
+            Keep
+          </ToggleButton>
+          <ToggleButton value="hide" sx={toggleButtonSmallSx}>
+            Hide
+          </ToggleButton>
+          <ToggleButton value="lock" sx={toggleButtonSmallSx}>
+            Lock
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      <FormControlLabel
+        control={
+          <Switch
+            size="small"
+            checked={settings.outputCutouts}
+            onChange={(e) => onChange({ outputCutouts: e.target.checked })}
+          />
+        }
+        label={
+          <Typography sx={{ fontSize: "0.6rem" }}>
+            {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
+          </Typography>
+        }
+        sx={{ mt: "2px", ml: 0 }}
+      />
 
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: "4px" }}>
         {!isRunning && !isPreviewing && (
@@ -1367,7 +1425,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       >
         {settings.promptMode === "point"
           ? "Click: include · Alt+click: exclude"
-          : "Drag to draw a bounding box"}
+          : settings.promptMode === "box"
+            ? "Drag to draw a bounding box"
+            : "Auto-detect prominent objects"}
       </Typography>
 
       {segmentationStatus === "error" && (

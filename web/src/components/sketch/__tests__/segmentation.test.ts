@@ -3,10 +3,14 @@
  *
  * Covers:
  * - Segmentation types and defaults
- * - SegmentTool handler (point prompts, box prompts, overlay, lifecycle)
+ * - SegmentTool handler (point prompts, box prompts, auto mode, overlay, lifecycle)
  * - Tool factory registration
  * - SAM service stub
  * - Layer group creation from segmentation results
+ * - Layer metadata (segmentationMeta)
+ * - Source layer action (keep, hide, lock)
+ * - Mask overlay utilities
+ * - Keyboard shortcuts
  * - Settings panel label
  */
 
@@ -17,7 +21,8 @@ import {
   DEFAULT_TOOL_SETTINGS,
   createDefaultGroupLayer,
   createDefaultLayer,
-  generateLayerId
+  generateLayerId,
+  normalizeSketchDocument
 } from "../types";
 import type {
   SegmentSettings,
@@ -26,11 +31,18 @@ import type {
   SegmentationMask,
   SegmentationResult,
   SegmentationStatus,
-  SegmentPromptMode
+  SegmentPromptMode,
+  SegmentSourceLayerAction,
+  SegmentationLayerMeta
 } from "../types";
 import { SegmentTool } from "../tools/SegmentTool";
 import { getToolHandler } from "../tools";
 import { SamServiceStub, getSamService, setSamService } from "../sam";
+import {
+  getMaskOverlayColor,
+  getMaskOutlineColor,
+  generateSegmentationRunId
+} from "../sam";
 import type { SamModelInfo } from "../sam";
 import { getToolSettingsLabel } from "../ToolSettingsPanels";
 import { useSketchStore } from "../state";
@@ -43,7 +55,10 @@ describe("Segmentation types and defaults", () => {
       promptMode: "point",
       maxObjects: 5,
       minObjectSize: 100,
-      confidenceThreshold: 0.5
+      confidenceThreshold: 0.5,
+      sourceLayerAction: "keep",
+      maskFeather: 0,
+      outputCutouts: true
     });
   });
 
@@ -59,9 +74,9 @@ describe("Segmentation types and defaults", () => {
     expect(doc.toolSettings.segment.maxObjects).toBe(5);
   });
 
-  it("SegmentPromptMode accepts point and box", () => {
-    const modes: SegmentPromptMode[] = ["point", "box"];
-    expect(modes).toHaveLength(2);
+  it("SegmentPromptMode accepts point, box, and auto", () => {
+    const modes: SegmentPromptMode[] = ["point", "box", "auto"];
+    expect(modes).toHaveLength(3);
   });
 
   it("SegmentationStatus covers all states", () => {
@@ -485,5 +500,205 @@ describe("Store segment settings", () => {
     const stored = useSketchStore.getState().document;
     expect(stored.toolSettings.segment.maxObjects).toBe(10);
     expect(stored.toolSettings.segment.confidenceThreshold).toBe(0.8);
+  });
+
+  it("new segment settings fields survive normalization", () => {
+    const doc = createDefaultDocument();
+    doc.toolSettings.segment.sourceLayerAction = "hide";
+    doc.toolSettings.segment.maskFeather = 5;
+    doc.toolSettings.segment.outputCutouts = false;
+
+    act(() => {
+      useSketchStore.getState().setDocument(doc);
+    });
+
+    const stored = useSketchStore.getState().document;
+    expect(stored.toolSettings.segment.sourceLayerAction).toBe("hide");
+    expect(stored.toolSettings.segment.maskFeather).toBe(5);
+    expect(stored.toolSettings.segment.outputCutouts).toBe(false);
+  });
+
+  it("setSegmentSettings updates individual fields", () => {
+    act(() => {
+      useSketchStore.getState().setSegmentSettings({ maskFeather: 10 });
+    });
+
+    const stored = useSketchStore.getState().document;
+    expect(stored.toolSettings.segment.maskFeather).toBe(10);
+    expect(stored.toolSettings.segment.promptMode).toBe("point");
+  });
+});
+
+// ─── Auto Prompt Mode ─────────────────────────────────────────────────────────
+
+describe("SegmentTool auto mode", () => {
+  it("triggers notifyPromptsChanged on click in auto mode", () => {
+    const tool = new SegmentTool();
+    const ctx = makeToolContext();
+    ctx.doc.toolSettings.segment.promptMode = "auto";
+    const callback = jest.fn();
+    tool.onPromptsChanged = callback;
+
+    const result = tool.onDown(ctx, makePointerEvent({ point: { x: 50, y: 50 } }));
+    expect(result).toBe(true);
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not collect point prompts in auto mode", () => {
+    const tool = new SegmentTool();
+    const ctx = makeToolContext();
+    ctx.doc.toolSettings.segment.promptMode = "auto";
+
+    tool.onDown(ctx, makePointerEvent({ point: { x: 50, y: 50 } }));
+    expect(tool.getPointPrompts()).toHaveLength(0);
+  });
+});
+
+// ─── Source Layer Action ──────────────────────────────────────────────────────
+
+describe("Source layer action types", () => {
+  it("SegmentSourceLayerAction accepts keep, hide, and lock", () => {
+    const actions: SegmentSourceLayerAction[] = ["keep", "hide", "lock"];
+    expect(actions).toHaveLength(3);
+  });
+
+  it("DEFAULT_SEGMENT_SETTINGS defaults to keep", () => {
+    expect(DEFAULT_SEGMENT_SETTINGS.sourceLayerAction).toBe("keep");
+  });
+});
+
+// ─── Segmentation Layer Metadata ──────────────────────────────────────────────
+
+describe("Layer segmentation metadata", () => {
+  it("layers can store segmentationMeta", () => {
+    const layer = createDefaultLayer("Object 1", "raster", 512, 512);
+    const meta: SegmentationLayerMeta = {
+      segmentationRunId: "seg_123",
+      sourceLayerId: "layer_0",
+      modelId: "facebook/sam2-hiera-large",
+      confidence: 0.95,
+      maskIndex: 0
+    };
+    layer.segmentationMeta = meta;
+
+    expect(layer.segmentationMeta).toBeDefined();
+    expect(layer.segmentationMeta!.segmentationRunId).toBe("seg_123");
+    expect(layer.segmentationMeta!.confidence).toBe(0.95);
+    expect(layer.segmentationMeta!.maskIndex).toBe(0);
+  });
+
+  it("segmentationMeta is preserved through document normalization", () => {
+    const doc = createDefaultDocument(64, 64);
+    const layer = doc.layers[0];
+    layer.segmentationMeta = {
+      segmentationRunId: "seg_456",
+      sourceLayerId: "layer_0",
+      modelId: "test-model",
+      confidence: 0.8,
+      maskIndex: 1
+    };
+
+    const normalized = normalizeSketchDocument(doc);
+    const normalizedLayer = normalized.layers.find((l) => l.id === layer.id);
+    expect(normalizedLayer?.segmentationMeta).toBeDefined();
+    expect(normalizedLayer?.segmentationMeta?.segmentationRunId).toBe("seg_456");
+    expect(normalizedLayer?.segmentationMeta?.confidence).toBe(0.8);
+  });
+
+  it("layers without segmentationMeta default to undefined", () => {
+    const layer = createDefaultLayer("Normal Layer", "raster", 256, 256);
+    expect(layer.segmentationMeta).toBeUndefined();
+  });
+});
+
+// ─── SegmentationResult with runId ────────────────────────────────────────────
+
+describe("SegmentationResult with runId", () => {
+  it("includes runId and modelId fields", () => {
+    const result: SegmentationResult = {
+      runId: "seg_test_123",
+      sourceLayerId: "layer_0",
+      masks: [],
+      timestamp: Date.now(),
+      modelId: "facebook/sam2-hiera-large"
+    };
+    expect(result.runId).toBe("seg_test_123");
+    expect(result.modelId).toBe("facebook/sam2-hiera-large");
+  });
+});
+
+// ─── Mask Overlay Utilities ───────────────────────────────────────────────────
+
+describe("Mask overlay utilities", () => {
+  it("getMaskOverlayColor returns distinct colors for different indices", () => {
+    const c0 = getMaskOverlayColor(0);
+    const c1 = getMaskOverlayColor(1);
+    const c2 = getMaskOverlayColor(2);
+    expect(c0).not.toBe(c1);
+    expect(c1).not.toBe(c2);
+  });
+
+  it("getMaskOverlayColor wraps around for large indices", () => {
+    const c0 = getMaskOverlayColor(0);
+    const c8 = getMaskOverlayColor(8);
+    expect(c0).toBe(c8);
+  });
+
+  it("getMaskOutlineColor returns colors matching overlay palette", () => {
+    const outline = getMaskOutlineColor(0);
+    expect(outline).toBeTruthy();
+    expect(outline).toContain("rgba");
+  });
+
+  it("generateSegmentationRunId returns unique IDs", () => {
+    const id1 = generateSegmentationRunId();
+    const id2 = generateSegmentationRunId();
+    expect(id1).not.toBe(id2);
+    expect(id1).toMatch(/^seg_/);
+    expect(id2).toMatch(/^seg_/);
+  });
+});
+
+// ─── New Segment Settings Fields ──────────────────────────────────────────────
+
+describe("Extended segment settings", () => {
+  it("maskFeather defaults to 0", () => {
+    expect(DEFAULT_SEGMENT_SETTINGS.maskFeather).toBe(0);
+  });
+
+  it("outputCutouts defaults to true", () => {
+    expect(DEFAULT_SEGMENT_SETTINGS.outputCutouts).toBe(true);
+  });
+
+  it("sourceLayerAction defaults to keep", () => {
+    expect(DEFAULT_SEGMENT_SETTINGS.sourceLayerAction).toBe("keep");
+  });
+
+  it("settings partial update preserves existing fields", () => {
+    const settings: SegmentSettings = { ...DEFAULT_SEGMENT_SETTINGS };
+    const partial: Partial<SegmentSettings> = { 
+      maskFeather: 5, 
+      sourceLayerAction: "lock" 
+    };
+    const merged = { ...settings, ...partial };
+    expect(merged.maskFeather).toBe(5);
+    expect(merged.sourceLayerAction).toBe("lock");
+    expect(merged.promptMode).toBe("point");
+    expect(merged.maxObjects).toBe(5);
+    expect(merged.outputCutouts).toBe(true);
+  });
+
+  it("old documents without new fields get defaults from normalize", () => {
+    const doc = createDefaultDocument();
+    // Simulate old document missing new fields by deleting them
+    const toolSettings = doc.toolSettings.segment as Record<string, unknown>;
+    delete toolSettings.sourceLayerAction;
+    delete toolSettings.maskFeather;
+    delete toolSettings.outputCutouts;
+
+    const normalized = normalizeSketchDocument(doc);
+    expect(normalized.toolSettings.segment.sourceLayerAction).toBe("keep");
+    expect(normalized.toolSettings.segment.maskFeather).toBe(0);
+    expect(normalized.toolSettings.segment.outputCutouts).toBe(true);
   });
 });

@@ -210,7 +210,10 @@ export interface CloneStampSettings {
 // ─── Segmentation Types ───────────────────────────────────────────────────────
 
 /** Prompt mode for SAM-based segmentation. */
-export type SegmentPromptMode = "point" | "box";
+export type SegmentPromptMode = "point" | "box" | "auto";
+
+/** What to do with the source layer after segmentation is applied. */
+export type SegmentSourceLayerAction = "keep" | "hide" | "lock";
 
 /** A single point prompt for segmentation. */
 export interface SegmentPointPrompt {
@@ -246,12 +249,16 @@ export interface SegmentationMask {
 
 /** Full result from a segmentation inference run. */
 export interface SegmentationResult {
+  /** Unique identifier for this segmentation run. */
+  runId: string;
   /** Source layer that was segmented. */
   sourceLayerId: string;
   /** All masks returned by the model. */
   masks: SegmentationMask[];
   /** Timestamp of the segmentation run. */
   timestamp: number;
+  /** Model ID used for this run. */
+  modelId: string;
 }
 
 /** Progress state of a segmentation operation. */
@@ -266,7 +273,7 @@ export type SegmentationStatus =
 
 /** Settings for the segment tool. */
 export interface SegmentSettings {
-  /** Current prompt mode: point clicks or box drag. */
+  /** Current prompt mode: point clicks, box drag, or automatic separation. */
   promptMode: SegmentPromptMode;
   /** Maximum number of objects to return. */
   maxObjects: number;
@@ -274,6 +281,26 @@ export interface SegmentSettings {
   minObjectSize: number;
   /** Mask confidence threshold (0–1); masks below are discarded. */
   confidenceThreshold: number;
+  /** What to do with the source layer after applying segmentation. */
+  sourceLayerAction: SegmentSourceLayerAction;
+  /** Feather radius (px) applied to mask edges for smoother cutouts. 0 = off. */
+  maskFeather: number;
+  /** Whether the result should be cutout layers (true) or mask layers (false). */
+  outputCutouts: boolean;
+}
+
+/** Metadata stored on layers created by segmentation. */
+export interface SegmentationLayerMeta {
+  /** UUID linking all layers from one segmentation operation. */
+  segmentationRunId: string;
+  /** Layer ID that was segmented. */
+  sourceLayerId: string;
+  /** Model identifier used for segmentation. */
+  modelId: string;
+  /** Confidence score for this particular mask (0–1). */
+  confidence: number;
+  /** Mask index within the segmentation result. */
+  maskIndex: number;
 }
 
 export interface ToolSettings {
@@ -355,6 +382,8 @@ export interface Layer {
   parentId?: string | null;
   /** For group layers: whether child layers are collapsed (hidden) in the panel. */
   collapsed?: boolean;
+  /** Provenance metadata for layers created by SAM segmentation. */
+  segmentationMeta?: SegmentationLayerMeta | null;
 }
 
 // ─── Color Swatches ───────────────────────────────────────────────────────────
@@ -560,7 +589,10 @@ export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
   promptMode: "point",
   maxObjects: 5,
   minObjectSize: 100,
-  confidenceThreshold: 0.5
+  confidenceThreshold: 0.5,
+  sourceLayerAction: "keep",
+  maskFeather: 0,
+  outputCutouts: true
 };
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
@@ -741,6 +773,7 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         imageReference: layer.imageReference ?? undefined,
         parentId: layer.parentId ?? undefined,
         collapsed: layer.collapsed ?? false,
+        segmentationMeta: layer.segmentationMeta ?? undefined,
         transform: {
           x: layer.transform?.x ?? 0,
           y: layer.transform?.y ?? 0,

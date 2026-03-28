@@ -92,6 +92,12 @@ export class SegmentTool implements ToolHandler {
       return true;
     }
 
+    if (mode === "auto") {
+      // Auto mode doesn't collect prompts — clicking triggers segmentation
+      this.notifyPromptsChanged();
+      return true;
+    }
+
     return false;
   }
 
