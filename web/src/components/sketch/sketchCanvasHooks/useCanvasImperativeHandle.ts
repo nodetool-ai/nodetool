@@ -174,6 +174,9 @@ export function useCanvasImperativeHandle({
       },
       drainPendingStrokeCommit: () => {
         drainPendingStrokeCommit();
+      },
+      getOverlayCanvas: () => {
+        return overlayCanvasRef.current;
       }
     }),
     [

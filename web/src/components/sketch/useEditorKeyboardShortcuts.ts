@@ -384,6 +384,9 @@ export function useEditorKeyboardShortcuts(
             case "s":
               paramsRef.current.setActiveTool("clone_stamp");
               break;
+            case "w":
+              paramsRef.current.setActiveTool("segment");
+              break;
             case "m":
               paramsRef.current.setMirrorX(!useSketchStore.getState().mirrorX);
               break;

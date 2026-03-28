@@ -22,6 +22,7 @@ import GradientIcon from "@mui/icons-material/Gradient";
 import CropIcon from "@mui/icons-material/Crop";
 import TransformIcon from "@mui/icons-material/Transform";
 import TuneIcon from "@mui/icons-material/Tune";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import type { SketchTool } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -55,7 +56,8 @@ export const SHAPE_TOOLS: ToolDefinition[] = [
   { tool: "shape", label: "Shape", shortcut: "U", Icon: CategoryIcon, group: "shape" },
   { tool: "gradient", label: "Gradient", shortcut: "T", Icon: GradientIcon, group: "shape" },
   { tool: "crop", label: "Crop", shortcut: "C", Icon: CropIcon, group: "shape" },
-  { tool: "adjust", label: "Adjustments", shortcut: "J", Icon: TuneIcon, group: "shape" }
+  { tool: "adjust", label: "Adjustments", shortcut: "J", Icon: TuneIcon, group: "shape" },
+  { tool: "segment", label: "Segment", shortcut: "W", Icon: AutoAwesomeIcon, group: "shape" }
 ];
 
 export const ALL_TOOL_DEFINITIONS: ToolDefinition[] = [

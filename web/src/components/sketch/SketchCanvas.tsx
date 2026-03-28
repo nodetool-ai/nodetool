@@ -130,6 +130,8 @@ export interface SketchCanvasRef {
   redrawDisplay: () => void;
   /** Merge deferred stroke buffer onto the layer if pointer-up rAF has not run yet. */
   drainPendingStrokeCommit: () => void;
+  /** Get the overlay canvas element for external drawing (e.g. segmentation mask preview). */
+  getOverlayCanvas: () => HTMLCanvasElement | null;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────

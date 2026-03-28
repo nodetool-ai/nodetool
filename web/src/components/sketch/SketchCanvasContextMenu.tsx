@@ -26,6 +26,8 @@ import {
   GradientSettings,
   PencilSettings,
   SelectSettings,
+  SegmentSettings,
+  SegmentationStatus,
   ShapeSettings,
   SketchTool,
   isShapeTool
@@ -212,6 +214,14 @@ export interface SketchCanvasContextMenuProps {
   onTransformCommit?: () => void;
   onTransformCancel?: () => void;
   onTransformReset?: () => void;
+  segmentSettings?: SegmentSettings;
+  onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
+  segmentationStatus?: SegmentationStatus;
+  onRunSegmentation?: () => void;
+  onApplySegmentResult?: () => void;
+  onDiscardSegmentResult?: () => void;
+  onCancelSegmentation?: () => void;
+  onClearSegmentPrompts?: () => void;
   onSwapColors: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -268,6 +278,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onTransformCommit,
   onTransformCancel,
   onTransformReset,
+  segmentSettings,
+  onSegmentSettingsChange,
+  segmentationStatus,
+  onRunSegmentation,
+  onApplySegmentResult,
+  onDiscardSegmentResult,
+  onCancelSegmentation,
+  onClearSegmentPrompts,
   onSwapColors,
   onUndo,
   onRedo,
@@ -531,6 +549,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               onTransformCommit={onTransformCommit}
               onTransformCancel={onTransformCancel}
               onTransformReset={onTransformReset}
+              segmentSettings={segmentSettings}
+              onSegmentSettingsChange={onSegmentSettingsChange}
+              segmentationStatus={segmentationStatus}
+              onRunSegmentation={onRunSegmentation}
+              onApplySegmentResult={onApplySegmentResult}
+              onDiscardSegmentResult={onDiscardSegmentResult}
+              onCancelSegmentation={onCancelSegmentation}
+              onClearSegmentPrompts={onClearSegmentPrompts}
             />
           </Box>
         </Box>
