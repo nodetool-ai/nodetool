@@ -102,6 +102,11 @@ const PopoverInternal: React.FC<PopoverProps> = ({
   const theme = useTheme();
   const { anchorOrigin, transformOrigin } = PLACEMENT_MAP[placement];
 
+  // Compute border radius with type guard since borderRadius can be string | number
+  const borderRadiusValue = typeof theme.shape.borderRadius === "number"
+    ? theme.shape.borderRadius / 4
+    : undefined;
+
   return (
     <MuiPopover
       anchorOrigin={anchorOrigin}
@@ -111,7 +116,7 @@ const PopoverInternal: React.FC<PopoverProps> = ({
         paper: {
           ...slotProps?.paper,
           sx: {
-            borderRadius: theme.shape.borderRadius / 4,
+            borderRadius: borderRadiusValue,
             maxWidth,
             maxHeight,
             overflow: maxHeight ? "auto" : undefined,

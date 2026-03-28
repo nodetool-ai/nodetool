@@ -117,6 +117,11 @@ const ListItemRowInternal: React.FC<ListItemRowProps> = ({
 }) => {
   const theme = useTheme();
 
+  // Compute border radius with type guard since borderRadius can be string | number
+  const borderRadiusValue = typeof theme.shape.borderRadius === "number"
+    ? theme.shape.borderRadius / 8
+    : undefined;
+
   const content = (
     <>
       {icon && <ListItemIcon sx={{ minWidth: 36 }}>{icon}</ListItemIcon>}
@@ -133,7 +138,7 @@ const ListItemRowInternal: React.FC<ListItemRowProps> = ({
         <ListItemButton
           onClick={onClick}
           selected={selected}
-          sx={{ borderRadius: theme.shape.borderRadius / 8 }}
+          sx={{ borderRadius: borderRadiusValue }}
         >
           {content}
         </ListItemButton>
