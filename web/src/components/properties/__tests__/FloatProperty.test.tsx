@@ -149,7 +149,7 @@ describe("FloatProperty", () => {
             required_settings: []
         }
       }
-    }, true);
+    });
 
     renderWithTheme(
       <FloatProperty

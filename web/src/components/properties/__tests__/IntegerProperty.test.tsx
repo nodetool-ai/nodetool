@@ -149,7 +149,7 @@ describe("IntegerProperty", () => {
             required_settings: []
         }
       }
-    }, true);
+    });
 
     renderWithTheme(
       <IntegerProperty

@@ -6,7 +6,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
@@ -52,12 +52,11 @@ const NodeItem = memo(
         node.required_runtimes && node.required_runtimes.length > 0;
       // Combine multiple store selectors into one with shallow comparison to reduce re-renders
       const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
-        useMemo(() => (state) => ({
+        useShallow((state) => ({
           searchTerm: state.searchTerm,
           hoveredNode: state.hoveredNode,
           setHoveredNode: state.setHoveredNode
-        }), []),
-        shallow
+        }))
       );
       const isHovered = hoveredNode?.node_type === node.node_type;
       const isFavorite = useFavoriteNodesStore((state) =>

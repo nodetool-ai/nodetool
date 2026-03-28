@@ -10,7 +10,7 @@ import { Box, BoxProps, Collapse } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-export interface CollapsibleSectionProps extends Omit<BoxProps, "title"> {
+export interface CollapsibleSectionProps extends Omit<BoxProps, "title" | "onToggle"> {
   /** Section title or header content */
   title: React.ReactNode;
   /** Controlled open state (omit for uncontrolled) */

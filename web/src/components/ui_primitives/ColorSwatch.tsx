@@ -9,7 +9,7 @@ import React from "react";
 import { Box, BoxProps, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
-export interface ColorSwatchProps extends Omit<BoxProps, 'color'> {
+export interface ColorSwatchProps extends Omit<BoxProps, 'color' | 'onClick'> {
   /** Color value (any valid CSS color) */
   color: string;
   /** Swatch size in pixels */
