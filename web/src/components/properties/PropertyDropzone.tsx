@@ -342,6 +342,12 @@ const PropertyDropzone = ({
     }
   }, [handleNativeFilePicker, handleBrowserFilePicker]);
 
+  // Handle replace button click - prevent event propagation and open file picker
+  const handleReplaceClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleDropzoneClick();
+  }, [handleDropzoneClick]);
+
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
       case "image":
@@ -502,10 +508,7 @@ const PropertyDropzone = ({
                   <Tooltip title="Replace file">
                     <IconButton
                       className="asset-action-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDropzoneClick();
-                      }}
+                      onClick={handleReplaceClick}
                       size="small"
                     >
                       <FolderOpenIcon fontSize="small" />
