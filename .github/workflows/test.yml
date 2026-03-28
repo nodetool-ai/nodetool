@@ -79,6 +79,9 @@ jobs:
       - name: Install all workspace dependencies
         run: npm install
 
+      - name: Rebuild native modules
+        run: npm rebuild
+
       - name: Build packages
         run: npm run build:packages
 
