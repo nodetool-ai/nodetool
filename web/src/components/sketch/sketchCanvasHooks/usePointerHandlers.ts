@@ -26,6 +26,7 @@ import {
   floodFill as floodFillUtil
 } from "../drawingUtils";
 import type { ActiveStrokeInfo } from "./useCompositing";
+import { Canvas2DRuntime } from "../rendering";
 import { getToolHandler } from "../tools";
 import type {
   ToolContext,
@@ -141,6 +142,8 @@ export interface UsePointerHandlersParams {
     height: number
   ) => void;
   onEyedropperPick?: (color: string) => void;
+  /** Layer isolation (must match on-screen composite for wand / eyedropper readback). */
+  isolatedLayerId?: string | null;
   onSelectionChange?: (sel: Selection | null) => void;
   onAutoPickLayer?: (layerId: string) => void;
   foregroundColor?: string;
@@ -209,6 +212,7 @@ export function usePointerHandlers({
   onContextMenu,
   onCropComplete,
   onEyedropperPick,
+  isolatedLayerId,
   onSelectionChange,
   onAutoPickLayer,
   foregroundColor = "#000000",
@@ -258,6 +262,14 @@ export function usePointerHandlers({
   const lastStrokeEndRef = useRef<Point | null>(null);
   const currentPressureRef = useRef<number>(0.5);
   const paintLayerOffsetRef = useRef<Point>({ x: 0, y: 0 });
+
+  /**
+   * WebGPU uses a "webgpu" context on the display canvas, so getContext("2d") is null.
+   * Magic wand and eyedropper need RGBA; we composite once via Canvas2D onto this buffer
+   * (same shared layer map as the active runtime).
+   */
+  const displayReadbackCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const displayReadbackRuntimeRef = useRef<Canvas2DRuntime | null>(null);
 
   // Keep pan offset in sync
   useEffect(() => {
@@ -379,6 +391,76 @@ export function usePointerHandlers({
     }));
   };
 
+  const getFullCompositeImageData = useCallback((): ImageData | null => {
+    const cw = doc.canvas.width;
+    const ch = doc.canvas.height;
+    const display = displayCanvasRef.current;
+    if (display) {
+      const d2d = display.getContext("2d", { willReadFrequently: true });
+      if (d2d && display.width === cw && display.height === ch) {
+        return d2d.getImageData(0, 0, cw, ch);
+      }
+    }
+    let rb = displayReadbackCanvasRef.current;
+    if (!rb || rb.width !== cw || rb.height !== ch) {
+      rb = document.createElement("canvas");
+      rb.width = cw;
+      rb.height = ch;
+      displayReadbackCanvasRef.current = rb;
+    }
+    if (!displayReadbackRuntimeRef.current) {
+      displayReadbackRuntimeRef.current = new Canvas2DRuntime(
+        layerCanvasesRef.current
+      );
+    }
+    const rt = displayReadbackRuntimeRef.current;
+    rt.zoom = zoom;
+    rt.compositeToDisplay(
+      rb,
+      doc,
+      isolatedLayerId ?? null,
+      activeStrokeRef.current,
+      null
+    );
+    const rctx = rb.getContext("2d", { willReadFrequently: true });
+    return rctx ? rctx.getImageData(0, 0, cw, ch) : null;
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- displayCanvasRef, layerCanvasesRef, activeStrokeRef are stable
+  [doc, zoom, isolatedLayerId]);
+
+  const sampleRgbAtDocPoint = useCallback(
+    (clientX: number, clientY: number): { r: number; g: number; b: number } | null => {
+      const pt = screenToCanvas(clientX, clientY);
+      const x = Math.round(pt.x);
+      const y = Math.round(pt.y);
+      const display = displayCanvasRef.current;
+      if (
+        display &&
+        x >= 0 &&
+        x < display.width &&
+        y >= 0 &&
+        y < display.height
+      ) {
+        const ctx = display.getContext("2d", { willReadFrequently: true });
+        if (ctx) {
+          const pixel = ctx.getImageData(x, y, 1, 1).data;
+          return { r: pixel[0], g: pixel[1], b: pixel[2] };
+        }
+      }
+      const id = getFullCompositeImageData();
+      if (!id) {
+        return null;
+      }
+      if (x < 0 || y < 0 || x >= id.width || y >= id.height) {
+        return null;
+      }
+      const i = (y * id.width + x) * 4;
+      return { r: id.data[i], g: id.data[i + 1], b: id.data[i + 2] };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- displayCanvasRef is stable; read via .current
+    [screenToCanvas, getFullCompositeImageData]
+  );
+
   // ─── Pointer Down ──────────────────────────────────────────────────
 
   const handlePointerDown = useCallback(
@@ -419,19 +501,9 @@ export function usePointerHandlers({
         activeTool !== "clone_stamp" &&
         onEyedropperPick
       ) {
-        const displayCanvas = displayCanvasRef.current;
-        if (displayCanvas) {
-          const ctx = displayCanvas.getContext("2d");
-          if (ctx) {
-            const pt = screenToCanvas(e.clientX, e.clientY);
-            const pixel = ctx.getImageData(
-              Math.round(pt.x),
-              Math.round(pt.y),
-              1,
-              1
-            ).data;
-            onEyedropperPick(rgbToHex(pixel[0], pixel[1], pixel[2]));
-          }
+        const rgb = sampleRgbAtDocPoint(e.clientX, e.clientY);
+        if (rgb) {
+          onEyedropperPick(rgbToHex(rgb.r, rgb.g, rgb.b));
         }
         return;
       }
@@ -498,25 +570,15 @@ export function usePointerHandlers({
       }
 
       if (interactionTool === "eyedropper") {
-        const displayCanvas = displayCanvasRef.current;
-        if (displayCanvas) {
-          const ctx = displayCanvas.getContext("2d");
-          if (ctx) {
-            const pt = screenToCanvas(e.clientX, e.clientY);
-            const pixel = ctx.getImageData(
-              Math.round(pt.x),
-              Math.round(pt.y),
-              1,
-              1
-            ).data;
-            const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
-            containerRef.current?.dispatchEvent(
-              new CustomEvent("sketch-eyedropper", {
-                detail: { color: hex },
-                bubbles: true
-              })
-            );
-          }
+        const rgb = sampleRgbAtDocPoint(e.clientX, e.clientY);
+        if (rgb) {
+          const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+          containerRef.current?.dispatchEvent(
+            new CustomEvent("sketch-eyedropper", {
+              detail: { color: hex },
+              bubbles: true
+            })
+          );
         }
         return;
       }
@@ -627,11 +689,9 @@ export function usePointerHandlers({
           return;
         }
         if (mode === "magic_wand") {
-          const display = displayCanvasRef.current;
-          if (display && onSelectionChange) {
-            const dctx = display.getContext("2d");
-            if (dctx) {
-              const id = dctx.getImageData(0, 0, cw, ch);
+          if (onSelectionChange) {
+            const id = getFullCompositeImageData();
+            if (id) {
               const bin = magicWandFromRgba(
                 id,
                 pt.x,
@@ -959,7 +1019,6 @@ export function usePointerHandlers({
       getLayerPaintOffset,
       onSelectionChange,
       containerRef,
-      displayCanvasRef,
       layerCanvasesRef,
       onAutoPickLayer,
       activeStrokeRef,
@@ -981,7 +1040,9 @@ export function usePointerHandlers({
       clearLayerTransformPreview,
       lassoPointsRef,
       selectStartRef,
-      drawOverlayLassoPreview
+      drawOverlayLassoPreview,
+      getFullCompositeImageData,
+      sampleRgbAtDocPoint
     ]
   );
 

@@ -44,6 +44,9 @@ export function useSketchStoreSelectors() {
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
   const selectedLayerIds = useSketchStore((s) => s.selectedLayerIds);
   const toggleLayerInSelection = useSketchStore((s) => s.toggleLayerInSelection);
+  const selectLayerRangeInPanelOrder = useSketchStore(
+    (s) => s.selectLayerRangeInPanelOrder
+  );
   const addLayer = useSketchStore((s) => s.addLayer);
   const removeLayer = useSketchStore((s) => s.removeLayer);
   const duplicateLayer = useSketchStore((s) => s.duplicateLayer);
@@ -136,6 +139,7 @@ export function useSketchStoreSelectors() {
     setActiveLayer,
     selectedLayerIds,
     toggleLayerInSelection,
+    selectLayerRangeInPanelOrder,
     addLayer,
     removeLayer,
     duplicateLayer,

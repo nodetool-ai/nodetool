@@ -433,6 +433,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           isolatedLayerId={store.isolatedLayerId}
           onSelectLayer={store.setActiveLayer}
           onToggleLayerInSelection={store.toggleLayerInSelection}
+          onSelectLayerRangeInPanelOrder={store.selectLayerRangeInPanelOrder}
           onToggleVisibility={layerActions.handleToggleVisibility}
           onAddLayer={layerActions.handleAddLayer}
           onRemoveLayer={layerActions.handleRemoveLayer}

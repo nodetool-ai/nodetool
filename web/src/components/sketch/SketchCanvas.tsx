@@ -380,6 +380,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onContextMenu,
       onCropComplete,
       onEyedropperPick,
+      isolatedLayerId,
       onSelectionChange,
       onAutoPickLayer,
       foregroundColor,

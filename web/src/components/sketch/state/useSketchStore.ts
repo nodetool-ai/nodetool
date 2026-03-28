@@ -36,7 +36,8 @@ import {
   generateLayerId,
   getDescendantIds,
   isLayerCompositeVisible,
-  MAX_HISTORY_SIZE
+  MAX_HISTORY_SIZE,
+  buildLayersPanelRows
 } from "../types";
 import {
   cloneSelectionMask,
@@ -195,7 +196,14 @@ export interface SketchStore {
   // ─── Layer multi-select (layers panel) ────────────────────────────────────
   /** Cleared whenever a single layer is chosen exclusively (normal click). */
   selectedLayerIds: string[];
+  /**
+   * Layer id for Shift+click range: last row activated with plain click or Ctrl/Cmd+click.
+   * `null` → use `activeLayerId` as range start. Not updated by Shift range itself.
+   */
+  layerShiftRangeAnchorId: string | null;
   toggleLayerInSelection: (layerId: string) => void;
+  /** Shift+click: select all layers between anchor and `toLayerId` in panel row order. */
+  selectLayerRangeInPanelOrder: (toLayerId: string) => void;
 
   // ─── Foreground / Background Colors ───────────────────────────────────────
   foregroundColor: string;
@@ -277,6 +285,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   symmetryRays: SYMMETRY_DEFAULT_RAYS,
   panelsHidden: false,
   selectedLayerIds: [] as string[],
+  layerShiftRangeAnchorId: null as string | null,
 
   // ─── Document Actions ─────────────────────────────────────────────────
   setDocument: (doc: SketchDocument) => {
@@ -285,6 +294,7 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       history: [],
       historyIndex: -1,
       selectedLayerIds: [],
+      layerShiftRangeAnchorId: null,
       transientMoveModifierHeld: false
     });
   },
@@ -299,7 +309,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       isDrawing: false,
       history: [],
       historyIndex: -1,
-      selectedLayerIds: []
+      selectedLayerIds: [],
+      layerShiftRangeAnchorId: null
     });
   },
 
@@ -466,7 +477,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
   setActiveLayer: (layerId: string) =>
     set((state) => ({
       document: { ...state.document, activeLayerId: layerId },
-      selectedLayerIds: []
+      selectedLayerIds: [],
+      layerShiftRangeAnchorId: layerId
     })),
 
   toggleLayerInSelection: (layerId: string) =>
@@ -495,7 +507,37 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
       }
       return {
         document: { ...document, activeLayerId: layerId },
-        selectedLayerIds: next.length >= 2 ? next : []
+        selectedLayerIds: next.length >= 2 ? next : [],
+        layerShiftRangeAnchorId: layerId
+      };
+    }),
+
+  selectLayerRangeInPanelOrder: (toLayerId: string) =>
+    set((state) => {
+      const { document, layerShiftRangeAnchorId } = state;
+      const layers = document.layers;
+      if (!layers.some((l) => l.id === toLayerId)) {
+        return state;
+      }
+      const panelIds = buildLayersPanelRows(layers).map((r) => r.layer.id);
+      const anchorId =
+        layerShiftRangeAnchorId && layers.some((l) => l.id === layerShiftRangeAnchorId)
+          ? layerShiftRangeAnchorId
+          : document.activeLayerId;
+      const iAnchor = panelIds.indexOf(anchorId);
+      const iTo = panelIds.indexOf(toLayerId);
+      if (iAnchor < 0 || iTo < 0) {
+        return {
+          document: { ...document, activeLayerId: toLayerId },
+          selectedLayerIds: [] as string[]
+        };
+      }
+      const lo = Math.min(iAnchor, iTo);
+      const hi = Math.max(iAnchor, iTo);
+      const rangeIds = panelIds.slice(lo, hi + 1);
+      return {
+        document: { ...document, activeLayerId: toLayerId },
+        selectedLayerIds: rangeIds.length >= 2 ? rangeIds : []
       };
     }),
 
@@ -522,7 +564,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         },
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: layer.id
       };
     });
     return layer.id;
@@ -556,6 +599,9 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         idsToRemove.has(activeLayerId) ? newLayers[newLayers.length - 1].id : activeLayerId;
       const newMaskId = maskLayerId && idsToRemove.has(maskLayerId) ? null : maskLayerId;
       const nextSelection = state.selectedLayerIds.filter((id) => !idsToRemove.has(id));
+      const anchor = state.layerShiftRangeAnchorId;
+      const nextAnchor =
+        anchor && idsToRemove.has(anchor) ? null : anchor;
       return {
         document: {
           ...state.document,
@@ -567,7 +613,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         },
-        selectedLayerIds: nextSelection.length >= 2 ? nextSelection : []
+        selectedLayerIds: nextSelection.length >= 2 ? nextSelection : [],
+        layerShiftRangeAnchorId: nextAnchor
       };
     }),
 
@@ -599,7 +646,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         },
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: newLayer.id
       };
     }),
 
@@ -617,7 +665,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         },
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: null
       };
     }),
 
@@ -810,7 +859,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         },
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: newActiveId
       };
     }),
 
@@ -844,7 +894,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         },
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: flatLayer.id
       };
     }),
 
@@ -868,7 +919,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         },
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: group.id
       };
     });
     return group.id;
@@ -905,7 +957,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
               : l
           )
         }),
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: null
       };
     }),
 
@@ -927,7 +980,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
           layers: newLayers,
           activeLayerId: newActiveId
         }),
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: newActiveId
       };
     }),
 
@@ -977,7 +1031,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
             updatedAt: new Date().toISOString()
           }
         }),
-        selectedLayerIds: []
+        selectedLayerIds: [],
+        layerShiftRangeAnchorId: group.id
       };
     }),
 
