@@ -319,45 +319,6 @@ export function usePointerHandlers({
     panOffsetRef.current = pan;
   }, [pan]);
 
-  const zoomRef = useRef(zoom);
-  zoomRef.current = zoom;
-  const panRef = useRef(pan);
-  panRef.current = pan;
-
-  const zoomWheelRafRef = useRef<number | null>(null);
-  const zoomWheelAnimatedRef = useRef(zoom);
-  const zoomWheelTargetRef = useRef(zoom);
-  const zoomWheelPanRef = useRef<Point>({ x: pan.x, y: pan.y });
-  const zoomWheelOffsetRef = useRef<Point>({ x: 0, y: 0 });
-  const onZoomChangeRef = useRef(onZoomChange);
-  onZoomChangeRef.current = onZoomChange;
-  const onPanChangeRef = useRef(onPanChange);
-  onPanChangeRef.current = onPanChange;
-
-  useEffect(() => {
-    if (zoomWheelRafRef.current != null) {
-      const a = zoomWheelAnimatedRef.current;
-      const t = zoomWheelTargetRef.current;
-      if (Math.abs(zoom - a) > 1e-3 && Math.abs(zoom - t) > 1e-3) {
-        cancelAnimationFrame(zoomWheelRafRef.current);
-        zoomWheelRafRef.current = null;
-      }
-    }
-    if (zoomWheelRafRef.current == null) {
-      zoomWheelAnimatedRef.current = zoom;
-      zoomWheelTargetRef.current = zoom;
-    }
-  }, [zoom]);
-
-  useEffect(() => {
-    return () => {
-      if (zoomWheelRafRef.current != null) {
-        cancelAnimationFrame(zoomWheelRafRef.current);
-        zoomWheelRafRef.current = null;
-      }
-    };
-  }, []);
-
   // ─── Keyboard modifier tracking ─────────────────────────────────────
   const { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef } =
     useKeyboardModifiers({ isSpacePanningRef, isSizeDraggingRef });
@@ -1139,7 +1100,8 @@ export function usePointerHandlers({
       selectStartRef,
       drawOverlayLassoPreview,
       getFullCompositeImageData,
-      sampleRgbAtDocPoint
+      sampleRgbAtDocPoint,
+      selectionMoveAntsRef
     ]
   );
 
@@ -1467,7 +1429,6 @@ export function usePointerHandlers({
       drawOverlayLassoPreview,
       lassoPointsRef,
       selectStartRef,
-      onSelectionChange,
       setLayerTransformPreview,
       activeStrokeRef,
       invalidateLayer,
@@ -1475,7 +1436,11 @@ export function usePointerHandlers({
       strokeDirtyRectRef,
       drawCursor,
       containerRef,
-      mousePositionRef
+      mousePositionRef,
+      drawSelectionOverlay,
+      selectionMoveAntsRef,
+      shiftHeldRef,
+      altHeldRef
     ]
   );
 
@@ -1810,11 +1775,12 @@ export function usePointerHandlers({
       shiftHeldRef,
       altHeldRef,
       lassoPointsRef,
-      selectStartRef
+      selectStartRef,
+      selectionMoveAntsRef
     ]
   );
 
-  // ─── Wheel zoom (damped toward target via rAF for smoother steps) ──
+  // ─── Wheel zoom ────────────────────────────────────────────────────
 
   const handleZoomWheel = useCallback(
     (
@@ -1822,75 +1788,29 @@ export function usePointerHandlers({
     ) => {
       event.preventDefault();
       const factor = 1.3;
-      const delta = event.deltaY > 0 ? 1 / factor : factor;
-      const container = containerRef.current;
-      if (!container) {
-        return;
-      }
-
-      if (zoomWheelRafRef.current == null) {
-        const z = zoomRef.current;
-        zoomWheelAnimatedRef.current = z;
-        zoomWheelTargetRef.current = z;
-        zoomWheelPanRef.current = { ...panRef.current };
-      }
-
-      const rect = container.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      zoomWheelOffsetRef.current = {
-        x: mouseX - centerX - zoomWheelPanRef.current.x,
-        y: mouseY - centerY - zoomWheelPanRef.current.y
-      };
-
-      // Compound the *target* so rapid wheel events stack (not the lagging animated value).
-      zoomWheelTargetRef.current = Math.max(
+      const wheelDelta = event.deltaY > 0 ? 1 / factor : factor;
+      const newZoom = Math.max(
         SKETCH_ZOOM_MIN,
-        Math.min(SKETCH_ZOOM_MAX, zoomWheelTargetRef.current * delta)
+        Math.min(SKETCH_ZOOM_MAX, zoom * wheelDelta)
       );
-
-      const tick = () => {
-        const z0 = zoomWheelAnimatedRef.current;
-        const zT = zoomWheelTargetRef.current;
-        const denom = Math.max(Math.abs(z0), Math.abs(zT), 1e-6);
-        const relErr = Math.abs(zT - z0) / denom;
-        const k = Math.min(1, relErr * 1.45);
-        const alpha =
-          WHEEL_ZOOM_SMOOTH_MIN +
-          (WHEEL_ZOOM_SMOOTH_MAX - WHEEL_ZOOM_SMOOTH_MIN) * k * k;
-        let z1 = z0 + (zT - z0) * alpha;
-        const snapEps = 1e-5;
-        if (Math.abs(zT - z1) < snapEps) {
-          z1 = zT;
-        }
-        const ratio = z1 / z0;
-        const ox = zoomWheelOffsetRef.current.x;
-        const oy = zoomWheelOffsetRef.current.y;
-        zoomWheelPanRef.current = {
-          x: zoomWheelPanRef.current.x + ox * (1 - ratio),
-          y: zoomWheelPanRef.current.y + oy * (1 - ratio)
-        };
-        zoomWheelAnimatedRef.current = z1;
-        onZoomChangeRef.current(z1);
-        onPanChangeRef.current({
-          x: zoomWheelPanRef.current.x,
-          y: zoomWheelPanRef.current.y
+      const container = containerRef.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const offsetX = mouseX - centerX - pan.x;
+        const offsetY = mouseY - centerY - pan.y;
+        const zoomRatio = newZoom / zoom;
+        onPanChange({
+          x: pan.x + offsetX * (1 - zoomRatio),
+          y: pan.y + offsetY * (1 - zoomRatio)
         });
-
-        if (Math.abs(z1 - zT) < snapEps) {
-          zoomWheelRafRef.current = null;
-          return;
-        }
-        zoomWheelRafRef.current = requestAnimationFrame(tick);
-      };
-
-      if (zoomWheelRafRef.current == null) {
-        zoomWheelRafRef.current = requestAnimationFrame(tick);
       }
+      onZoomChange(newZoom);
     },
-    [containerRef]
+    [zoom, pan, onZoomChange, onPanChange, containerRef]
   );
 
   const handleWheel = useCallback(

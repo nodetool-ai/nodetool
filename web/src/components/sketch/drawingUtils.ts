@@ -455,11 +455,11 @@ export function drawCheckerboard(
 export const PIXEL_GRID_MIN_ZOOM = 2;
 
 /**
- * Draws a thin semi-transparent white grid on the overlay canvas at every
- * integer pixel boundary. Opacity ramps from a subtle value at
- * PIXEL_GRID_MIN_ZOOM up to full strength at PIXEL_GRID_MIN_ZOOM * 2 so the
- * grid is visible as soon as pixel-level editing makes sense (e.g. 200% zoom)
- * without a harsh pop-in.
+ * Draws a thin semi-transparent dark grid on the overlay canvas at every
+ * integer pixel boundary. Dark strokes read as pixel edges without lifting
+ * luminance (a white grid over the whole canvas made zoomed art look washed
+ * / brighter). Opacity ramps from PIXEL_GRID_MIN_ZOOM up to full strength at
+ * PIXEL_GRID_MIN_ZOOM * 2.
  *
  * The overlay matches document pixel size and is scaled with CSS `scale(zoom)`.
  * Line width is ~`1/zoom` doc units for ~1 CSS px; we clamp to at least 0.5 doc
@@ -482,13 +482,13 @@ export function drawPixelGrid(
       : (zoom - PIXEL_GRID_MIN_ZOOM) / (fadeEnd - PIXEL_GRID_MIN_ZOOM);
   // At exactly PIXEL_GRID_MIN_ZOOM, t === 0: use a visible floor (previous
   // formula multiplied by t and made the grid fully transparent at 200%).
-  const opacity = 0.12 + 0.14 * Math.min(1, Math.max(0, t));
+  const opacity = 0.16 + 0.18 * Math.min(1, Math.max(0, t));
 
   // Prefer ~1 CSS px after scale(zoom); floor width so sub-pixel strokes survive raster + upscale.
   const lw = Math.max(1 / zoom, 0.5);
 
   ctx.save();
-  ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+  ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
   ctx.lineWidth = lw;
 
   // Vertical lines

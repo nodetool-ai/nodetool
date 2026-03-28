@@ -49,6 +49,33 @@ function strokeDualAnts(
   ctx.stroke();
 }
 
+/**
+ * Wide, solid, semi-transparent strokes on the current path (same edge as ants).
+ * Renders in screen space via line widths in document units (÷ zoom).
+ * Draw before {@link strokeDualAnts} so the dashed outline stays the true pixel edge.
+ */
+function strokeSoftOuterSelectionHalo(
+  ctx: CanvasRenderingContext2D,
+  zoom: number
+): void {
+  const z = Math.max(0.02, zoom);
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.lineCap = "butt";
+  ctx.lineJoin = "miter";
+  const layers: readonly [screenPx: number, rgba: string][] = [
+    [12, "rgba(255, 255, 255, 0.08)"],
+    [7, "rgba(255, 255, 255, 0.12)"],
+    [4, "rgba(30, 30, 38, 0.07)"]
+  ];
+  for (const [screenPx, rgba] of layers) {
+    ctx.lineWidth = screenPx / z;
+    ctx.strokeStyle = rgba;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export function createEmptyMask(width: number, height: number): Selection {
   const n = width * height;
   return {
@@ -602,7 +629,8 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
 /**
  * Marching ants along an open polyline (lasso in progress).
  * Expects a context with a document→screen transform already applied so that
- * strokes render at screen resolution (~1px, ~2px when zoomed out).
+ * strokes render at screen resolution (~1px, ~2px when zoomed out), with a soft
+ * outer halo behind the dashed outline.
  */
 export function drawSelectionPolylineOutline(
   ctx: CanvasRenderingContext2D,
@@ -614,12 +642,13 @@ export function drawSelectionPolylineOutline(
     return;
   }
   ctx.save();
-  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
   for (let i = 1; i < points.length; i++) {
     ctx.lineTo(points[i].x, points[i].y);
   }
+  strokeSoftOuterSelectionHalo(ctx, zoom);
+  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
   strokeDualAnts(ctx, dashLen, offset);
   ctx.restore();
 }
@@ -628,7 +657,8 @@ export function drawSelectionPolylineOutline(
  * Marching ants on mask boundary edges.
  * Traces horizontal and vertical pixel-boundary contour segments (merged into
  * runs) and strokes them.  Expects a context with a document→screen transform
- * so lines render at screen pixel resolution regardless of zoom.
+ * so lines render at screen pixel resolution regardless of zoom. A soft outer
+ * halo is drawn under the marching ants.
  */
 export function drawSelectionMaskOutline(
   ctx: CanvasRenderingContext2D,
@@ -639,7 +669,6 @@ export function drawSelectionMaskOutline(
   const { width: w, height: h, data } = mask;
 
   ctx.save();
-  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
 
   ctx.beginPath();
 
@@ -685,6 +714,8 @@ export function drawSelectionMaskOutline(
     }
   }
 
+  strokeSoftOuterSelectionHalo(ctx, zoom);
+  const { dashLen, offset } = setupScreenAnts(ctx, phase, zoom);
   strokeDualAnts(ctx, dashLen, offset);
   ctx.restore();
 }

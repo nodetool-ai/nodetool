@@ -467,7 +467,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const canvasStyle: React.CSSProperties = {
       transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-      transformOrigin: "center center"
+      transformOrigin: "center center",
+      // Reinforce nearest-neighbor when the bitmap is scaled via transform (some
+      // engines still blur canvas layers even when the parent sets imageRendering).
+      imageRendering: "pixelated"
     };
 
     // Determine cursor style based on tool

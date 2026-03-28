@@ -62,7 +62,7 @@ describe("drawPixelGrid", () => {
     } as unknown as CanvasRenderingContext2D;
     drawPixelGrid(ctx, 4, 4, PIXEL_GRID_MIN_ZOOM);
     const m = strokeStyle.match(
-      /rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([\d.]+)\s*\)/
+      /rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*([\d.]+)\s*\)/
     );
     expect(m).not.toBeNull();
     expect(parseFloat(m![1])).toBeGreaterThan(0);
