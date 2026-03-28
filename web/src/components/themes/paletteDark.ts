@@ -153,59 +153,59 @@ export const paletteDark: PaletteOptions = {
   },
   grey: ((): Record<number, string> => ({
     0: "#fff", // white
-    50: "#F5F5F5", // Standard MUI light grey
-    100: "#D9D9D9", // from c_gray6
-    200: "#BDBDBD", // from c_gray5
-    300: "#A9A9A9", // spare
-    400: "#959595", // from c_gray4
-    500: "#6D6D6D", // from c_gray3
-    600: "#444444", // from c_gray2
-    700: "#333333", // spare
-    800: "#242424", // from c_gray1
-    900: "#0E0E0E", // from c_gray0
+    50: "#F2F2F2",
+    100: "#D6D6D6",
+    200: "#BABABA",
+    300: "#A2A2A2",
+    400: "#8A8A8A",
+    500: "#686868",
+    600: "#404040",
+    700: "#303030",
+    800: "#222222",
+    900: "#0C0C0C",
     1000: "#000" // black
   }))(),
   c_black: "#020202",
-  c_bg_comment: "#0F1115",
+  c_bg_comment: "#0E0E0E",
   c_brightest: "#FCFCFC",
   c_white: "#FCFCFC",
-  c_background: "#424854",
-  c_node_menu: "#232323",
+  c_background: "#404040",
+  c_node_menu: "#1C1C1C",
   c_selection: "#8EACA777",
-  c_input: "#374f4f",
-  c_output: "#493f4d",
+  c_input: "#2e4a4e",
+  c_output: "#3e3448",
   c_attention: "#E35BFF",
   c_delete: "#FF2222",
   c_debug: "#FF3355",
-  c_job: "#223399",
+  c_job: "#2838a8",
   c_node: "#029486",
   c_folder: "#d6ae67",
   c_progress: "#556611",
   c_link: "#93C5FD",
   c_link_visited: "#A5B4FC",
   c_scroll_bg: "transparent",
-  c_scroll_hover: "#585858",
-  c_scroll_thumb: "#535353",
+  c_scroll_hover: "#4A4A4A",
+  c_scroll_thumb: "#444444",
   c_node_bg: "#1E1E1E",
-  c_node_bg_group: "#252525",
+  c_node_bg_group: "#242424",
   c_node_header_bg: "#161616",
   c_node_header_bg_group: "#2A2A2A",
   c_bg_loop: "#2563EB22",
-  c_bg_group: "#A1A4AD30",
-  c_editor_bg_color: "#1f2121",
-  c_editor_grid_color: "#373737",
-  c_editor_axis_color: "#2A2A2A",
+  c_bg_group: "#A0A0A030",
+  c_editor_bg_color: "#101010",
+  c_editor_grid_color: "#262626",
+  c_editor_axis_color: "#202020",
   c_selection_rect: "#cdcdcd33",
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
   c_provider_hf: "#C4B5FD",
-  c_app_header: "#111111",
-  c_tabs_header: "#1E1E1E",
+  c_app_header: "#0C0C0C",
+  c_tabs_header: "#141414",
 
   primary: {
-    main: "#5f8ac8",
-    light: "#6293d9",
-    dark: "#365e98",
+    main: "#6690d4",
+    light: "#7aa0e2",
+    dark: "#3d68a8",
     contrastText: "#fff"
   },
   secondary: {
@@ -215,8 +215,8 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#0B1220"
   },
   background: {
-    default: "#1b1c1d",
-    paper: "rgba(20, 20, 20, 0.95)"
+    default: "#0E0E0E",
+    paper: "rgba(16, 16, 16, 0.95)"
   },
   text: {
     primary: "#FFFFFF",
@@ -250,9 +250,9 @@ export const paletteDark: PaletteOptions = {
     activatedOpacity: 0.24
   },
   Paper: {
-    default: "#1a1a1a",
-    paper: "#1a1a1a",
-    overlay: "#222222"
+    default: "#161616",
+    paper: "#161616",
+    overlay: "#1E1E1E"
   },
   divider: "rgba(255, 255, 255, 0.08)",
   glass: {
