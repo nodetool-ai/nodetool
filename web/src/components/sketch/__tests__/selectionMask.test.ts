@@ -5,7 +5,10 @@ import {
   fillRectMask,
   marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
-  rectSelectionMask
+  offsetSelectionByDocumentDelta,
+  rectSelectionMask,
+  sampleMask,
+  translateMask
 } from "../selection/selectionMask";
 
 describe("marqueeRectFromDocPoints", () => {
@@ -63,6 +66,18 @@ describe("ellipseSelectionMask", () => {
     const m = ellipseSelectionMask(16, 16, 6, 6, 4, 4);
     expect(m.data[8 * 16 + 8]).toBeGreaterThanOrEqual(128);
     expect(m.data[6 * 16 + 6]).toBe(0);
+  });
+});
+
+describe("offsetSelectionByDocumentDelta", () => {
+  it("keeps buffer pixels when shifting document position (translateMask drops them)", () => {
+    const m = createEmptyMask(4, 4);
+    m.data[0] = 255;
+    const shifted = offsetSelectionByDocumentDelta(m, -2, 0);
+    expect(sampleMask(shifted, -2, 0)).toBe(255);
+    expect(sampleMask(shifted, 0, 0)).toBe(0);
+    const clipped = translateMask(m, -2, 0);
+    expect(sampleMask(clipped, 0, 0)).toBe(0);
   });
 });
 

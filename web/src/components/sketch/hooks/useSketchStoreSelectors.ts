@@ -93,6 +93,7 @@ export function useSketchStoreSelectors() {
   const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
   const selection = useSketchStore((s) => s.selection);
   const setSelection = useSketchStore((s) => s.setSelection);
+  const invertSelection = useSketchStore((s) => s.invertSelection);
   const isolatedLayerId = useSketchStore((s) => s.isolatedLayerId);
   const toggleIsolateLayer = useSketchStore((s) => s.toggleIsolateLayer);
   const mirrorX = useSketchStore((s) => s.mirrorX);
@@ -189,6 +190,7 @@ export function useSketchStoreSelectors() {
     resizeCanvas,
     selection,
     setSelection,
+    invertSelection,
     isolatedLayerId,
     toggleIsolateLayer,
     mirrorX,

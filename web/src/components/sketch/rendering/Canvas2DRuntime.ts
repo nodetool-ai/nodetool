@@ -773,28 +773,32 @@ export class Canvas2DRuntime implements SketchRuntime {
     const lw = canvas.width;
     const lh = canvas.height;
     const { width: mw, height: mh, data } = mask;
+    const mox = mask.originX ?? 0;
+    const moy = mask.originY ?? 0;
     const th = 128;
     for (let ly = 0; ly < lh; ly++) {
       const docY = ly + offsetY;
-      if (docY < 0 || docY >= mh) {
+      const by = docY - moy;
+      if (by < 0 || by >= mh) {
         continue;
       }
-      const rowOff = docY * mw;
+      const rowOff = by * mw;
       let lx = 0;
       while (lx < lw) {
         const docX = lx + offsetX;
-        if (docX < 0 || docX >= mw) {
+        const bx = docX - mox;
+        if (bx < 0 || bx >= mw) {
           lx++;
           continue;
         }
-        if (data[rowOff + docX] < th) {
+        if (data[rowOff + bx] < th) {
           lx++;
           continue;
         }
         let lx2 = lx + 1;
         while (lx2 < lw) {
-          const dx = lx2 + offsetX;
-          if (dx >= mw || data[rowOff + dx] < th) {
+          const ddx = lx2 + offsetX - mox;
+          if (ddx >= mw || data[rowOff + ddx] < th) {
             break;
           }
           lx2++;
@@ -826,30 +830,34 @@ export class Canvas2DRuntime implements SketchRuntime {
     const lw = canvas.width;
     const lh = canvas.height;
     const { width: mw, height: mh, data } = mask;
+    const mox = mask.originX ?? 0;
+    const moy = mask.originY ?? 0;
     const th = 128;
     ctx.save();
     ctx.fillStyle = color;
     for (let ly = 0; ly < lh; ly++) {
       const docY = ly + offsetY;
-      if (docY < 0 || docY >= mh) {
+      const by = docY - moy;
+      if (by < 0 || by >= mh) {
         continue;
       }
-      const rowOff = docY * mw;
+      const rowOff = by * mw;
       let lx = 0;
       while (lx < lw) {
         const docX = lx + offsetX;
-        if (docX < 0 || docX >= mw) {
+        const bx = docX - mox;
+        if (bx < 0 || bx >= mw) {
           lx++;
           continue;
         }
-        if (data[rowOff + docX] < th) {
+        if (data[rowOff + bx] < th) {
           lx++;
           continue;
         }
         let lx2 = lx + 1;
         while (lx2 < lw) {
-          const dx = lx2 + offsetX;
-          if (dx >= mw || data[rowOff + dx] < th) {
+          const ddx = lx2 + offsetX - mox;
+          if (ddx >= mw || data[rowOff + ddx] < th) {
             break;
           }
           lx2++;
