@@ -12,7 +12,7 @@ import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
 import { useSelectConnected } from "./useSelectConnected";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
@@ -105,10 +105,9 @@ export const useNodeEditorShortcuts = (
   const selectionActions = useSelectionActions();
 
   const nodeMenuStore = useNodeMenuStore(
-    (state) => ({
+    useShallow((state) => ({
       openNodeMenu: state.openNodeMenu
-    }),
-    shallow
+    }))
   );
   const handleFitView = useFitView();
   const navigate = useNavigate();

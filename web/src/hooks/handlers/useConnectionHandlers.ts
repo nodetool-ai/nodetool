@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { Connection, type OnConnectStart, type OnConnectEnd } from "@xyflow/react";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import useConnectionStore from "../../stores/ConnectionStore";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { isConnectable, Slugify, typeToString } from "../../utils/TypeHandler";
@@ -53,12 +53,11 @@ export default function useConnectionHandlers() {
     updateNodeData: state.updateNodeData
   }));
   const { connecting, startConnecting, endConnecting } = useConnectionStore(
-    (state) => ({
+    useShallow((state) => ({
       connecting: state.connecting,
       startConnecting: state.startConnecting,
       endConnecting: state.endConnecting
-    }),
-    shallow
+    }))
   );
 
   const { findNode, onConnect, edges, setConnectionAttempted } = useNodes(
