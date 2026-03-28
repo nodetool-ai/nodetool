@@ -228,9 +228,10 @@ const Portal: React.FC = () => {
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
+    const timer = searchDebounceRef.current;
     return () => {
-      if (searchDebounceRef.current) {
-        clearTimeout(searchDebounceRef.current);
+      if (timer) {
+        clearTimeout(timer);
       }
     };
   }, []);
@@ -247,7 +248,7 @@ const Portal: React.FC = () => {
 
   // Navigate to chat route after creating thread and sending message
   const sendAndNavigate = useCallback(
-    async (content: MessageContent[], prompt: string) => {
+    async (content: MessageContent[], _prompt: string) => {
       const threadId = await newThread();
       if (threadId) {
         const message: Message = {
