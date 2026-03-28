@@ -139,63 +139,81 @@ const tmpDir = `/tmp/nodetool-media-test-${Date.now()}`;
 describe("audio nodes — full coverage", () => {
   it("NormalizeAudioNode passes through audio", async () => {
     const ref = audioRef();
-    const result = await new NormalizeAudioNode().process({ audio: ref });
+    const _n = new NormalizeAudioNode();
+    _n.assign({ audio: ref });
+    const result = await _n.process();
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
   it("OverlayAudioNode mixes two audios by max", async () => {
     const a = audioRef();
     const b = audioRef();
-    const result = await new OverlayAudioNode().process({ audio_a: a, audio_b: b });
+    const _n = new OverlayAudioNode();
+    _n.assign({ a: a, b: b });
+    const result = await _n.process();
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
   it("RemoveSilenceNode filters zero bytes", async () => {
     // Create audio with some zero bytes
     const data = Buffer.from([0, 1, 0, 2, 0, 3]).toString("base64");
-    const result = await new RemoveSilenceNode().process({ audio: { data } });
+    const _n = new RemoveSilenceNode();
+    _n.assign({ audio: { data } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(3); // only 1, 2, 3 remain
   });
 
   it("SliceAudioNode slices by byte range", async () => {
     const data = Buffer.from([10, 20, 30, 40, 50]).toString("base64");
-    const result = await new SliceAudioNode().process({ audio: { data }, start: 1, end: 3 });
+    const _n = new SliceAudioNode();
+    _n.assign({ audio: { data }, start: 1, end: 3 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([20, 30]);
   });
 
   it("SliceAudioNode with negative end uses full length", async () => {
     const data = Buffer.from([10, 20, 30]).toString("base64");
-    const result = await new SliceAudioNode().process({ audio: { data }, start: 0, end: -1 });
+    const _n = new SliceAudioNode();
+    _n.assign({ audio: { data }, start: 0, end: -1 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(3);
   });
 
   it("MonoToStereoNode duplicates bytes", async () => {
     const data = Buffer.from([1, 2, 3]).toString("base64");
-    const result = await new MonoToStereoNode().process({ audio: { data } });
+    const _n = new MonoToStereoNode();
+    _n.assign({ audio: { data } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 1, 2, 2, 3, 3]);
   });
 
   it("StereoToMonoNode takes left channel", async () => {
     const data = Buffer.from([1, 10, 2, 20, 3, 30]).toString("base64");
-    const result = await new StereoToMonoNode().process({ audio: { data } });
+    const _n = new StereoToMonoNode();
+    _n.assign({ audio: { data } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3]);
   });
 
   it("ReverseAudioNode reverses audio bytes", async () => {
     const data = Buffer.from([1, 2, 3]).toString("base64");
-    const result = await new ReverseAudioNode().process({ audio: { data } });
+    const _n = new ReverseAudioNode();
+    _n.assign({ audio: { data } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([3, 2, 1]);
   });
 
   it("FadeInAudioNode applies linear fade-in", async () => {
     const data = Buffer.from([100, 100, 100, 100]).toString("base64");
-    const result = await new FadeInAudioNode().process({ audio: { data }, duration: 4 });
+    const _n = new FadeInAudioNode();
+    _n.assign({ audio: { data }, duration: 4 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     // first byte should be attenuated (0/4 * 100 = 0)
     expect(outData[0]).toBe(0);
@@ -204,7 +222,9 @@ describe("audio nodes — full coverage", () => {
 
   it("FadeOutAudioNode applies linear fade-out", async () => {
     const data = Buffer.from([100, 100, 100, 100]).toString("base64");
-    const result = await new FadeOutAudioNode().process({ audio: { data }, duration: 4 });
+    const _n = new FadeOutAudioNode();
+    _n.assign({ audio: { data }, duration: 4 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     // last byte should be heavily attenuated
     expect(outData[3]).toBeLessThan(outData[0]);
@@ -212,7 +232,9 @@ describe("audio nodes — full coverage", () => {
 
   it("RepeatAudioNode repeats bytes", async () => {
     const data = Buffer.from([1, 2]).toString("base64");
-    const result = await new RepeatAudioNode().process({ audio: { data }, count: 3 });
+    const _n = new RepeatAudioNode();
+    _n.assign({ audio: { data }, loops: 3 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 1, 2, 1, 2]);
   });
@@ -220,28 +242,35 @@ describe("audio nodes — full coverage", () => {
   it("AudioMixerNode averages multiple audio refs", async () => {
     const a = { data: Buffer.from([10, 20]).toString("base64") };
     const b = { data: Buffer.from([30, 40]).toString("base64") };
-    const result = await new AudioMixerNode().process({ audios: [a, b] });
+    const _n = new AudioMixerNode();
+    _n.assign({ track1: a, track2: b });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData[0]).toBe(20); // (10+30)/2
     expect(outData[1]).toBe(30); // (20+40)/2
   });
 
   it("AudioMixerNode returns empty for no inputs", async () => {
-    const result = await new AudioMixerNode().process({ audios: [] });
+    const _n = new AudioMixerNode();
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("TrimAudioNode trims from start and end", async () => {
     const data = Buffer.from([1, 2, 3, 4, 5]).toString("base64");
-    const result = await new TrimAudioNode().process({ audio: { data }, start: 1, end: 1 });
+    const _n = new TrimAudioNode();
+    _n.assign({ audio: { data }, start: 1, end: 1 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([2, 3, 4]);
   });
 
   it("ConvertToArrayNode wraps audio in list", async () => {
     const ref = audioRef();
-    const result = await new ConvertToArrayNode().process({ audio: ref });
+    const _n = new ConvertToArrayNode();
+    _n.assign({ audio: ref });
+    const result = await _n.process();
     expect(Array.isArray(result.output)).toBe(true);
     expect((result.output as unknown[]).length).toBe(1);
   });
@@ -249,31 +278,41 @@ describe("audio nodes — full coverage", () => {
   it("ConcatAudioListNode concatenates list of audios", async () => {
     const a = { data: Buffer.from([1, 2]).toString("base64") };
     const b = { data: Buffer.from([3, 4]).toString("base64") };
-    const result = await new ConcatAudioListNode().process({ audios: [a, b] });
+    const _n = new ConcatAudioListNode();
+    _n.assign({ audio_files: [a, b] });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
   it("TextToSpeechNode converts text to bytes", async () => {
-    const result = await new TextToSpeechNode().process({ text: "hello" });
+    const _n = new TextToSpeechNode();
+    _n.assign({ text: "hello" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.toString("utf8")).toBe("hello");
   });
 
   it("ChunkToAudioNode converts chunk with data", async () => {
     const data = Buffer.from([10, 20, 30]).toString("base64");
-    const result = await new ChunkToAudioNode().process({ chunk: { data } });
+    const _n = new ChunkToAudioNode();
+    _n.assign({ chunk: { data } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([10, 20, 30]);
   });
 
   it("ChunkToAudioNode handles chunk with uri", async () => {
-    const result = await new ChunkToAudioNode().process({ chunk: { uri: "file://test.wav" } });
+    const _n = new ChunkToAudioNode();
+    _n.assign({ chunk: { uri: "file://test.wav" } });
+    const result = await _n.process();
     expect((result.output as { data: string }).data).toBeDefined();
   });
 
   it("ChunkToAudioNode handles null chunk", async () => {
-    const result = await new ChunkToAudioNode().process({ chunk: null });
+    const _n = new ChunkToAudioNode();
+    _n.assign({ chunk: null });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
@@ -281,11 +320,13 @@ describe("audio nodes — full coverage", () => {
   it("SaveAudioNode writes audio to folder with date name", async () => {
     const dir = `${tmpDir}/save-audio`;
     const ref = audioRef();
-    const result = await new SaveAudioNode().process({
+    const _n = new SaveAudioNode();
+    _n.assign({
       audio: ref,
       folder: dir,
       name: "test_audio.wav",
     });
+    const result = await _n.process();
     const output = result.output as { data: string; uri: string };
     expect(output.uri).toContain("test_audio.wav");
     const stat = await fs.stat(path.join(dir, "test_audio.wav"));
@@ -295,7 +336,9 @@ describe("audio nodes — full coverage", () => {
   it("SaveAudioFileNode writes audio to specific path", async () => {
     const filePath = `${tmpDir}/save-audio-file/out.wav`;
     const ref = audioRef();
-    const result = await new SaveAudioFileNode().process({ audio: ref, path: filePath });
+    const _n = new SaveAudioFileNode();
+    _n.assign({ audio: ref, folder: path.dirname(filePath), filename: path.basename(filePath) });
+    const result = await _n.process();
     expect(result.output).toBe(filePath);
     const stat = await fs.stat(filePath);
     expect(stat.size).toBeGreaterThan(0);
@@ -306,7 +349,9 @@ describe("audio nodes — full coverage", () => {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     const wavData = Buffer.from(makeWav(), "base64");
     await fs.writeFile(filePath, wavData);
-    const result = await new LoadAudioFileNode().process({ path: filePath });
+    const _n = new LoadAudioFileNode();
+    _n.assign({ path: filePath });
+    const result = await _n.process();
     const output = result.output as { data: string; uri: string };
     expect(output.uri).toContain(filePath);
     expect(output.data.length).toBeGreaterThan(0);
@@ -316,7 +361,9 @@ describe("audio nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-audio-uri/test.wav`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from(makeWav(), "base64"));
-    const result = await new LoadAudioFileNode().process({ path: `file://${filePath}` });
+    const _n = new LoadAudioFileNode();
+    _n.assign({ path: `file://${filePath}` });
+    const result = await _n.process();
     expect((result.output as { uri: string }).uri).toContain(filePath);
   });
 
@@ -329,7 +376,8 @@ describe("audio nodes — full coverage", () => {
 
     const node = new LoadAudioAssetsNode();
     const items: Array<Record<string, unknown>> = [];
-    for await (const item of node.genProcess({ folder: dir })) {
+    node.assign({ folder: dir });
+    for await (const item of node.genProcess()) {
       items.push(item);
     }
     expect(items.length).toBe(2); // .wav and .mp3
@@ -343,7 +391,8 @@ describe("audio nodes — full coverage", () => {
 
     const node = new LoadAudioFolderNode();
     const items: Array<Record<string, unknown>> = [];
-    for await (const item of node.genProcess({ folder: dir })) {
+    node.assign({ folder: dir });
+    for await (const item of node.genProcess()) {
       items.push(item);
     }
     expect(items.length).toBe(1);
@@ -361,7 +410,9 @@ describe("audio nodes — full coverage", () => {
 
   it("audioBytes handles non-object input", async () => {
     // OverlayAudioNode internally calls audioBytes
-    const result = await new OverlayAudioNode().process({ audio_a: "not-an-object", audio_b: null });
+    const _n = new OverlayAudioNode();
+    _n.assign({ audio_a: "not-an-object", audio_b: null });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
@@ -369,11 +420,13 @@ describe("audio nodes — full coverage", () => {
   it("SaveAudioNode uses dateName format strings", async () => {
     const dir = `${tmpDir}/save-audio-date`;
     const ref = audioRef();
-    const result = await new SaveAudioNode().process({
+    const _n = new SaveAudioNode();
+    _n.assign({
       audio: ref,
       folder: dir,
       name: "audio_%Y%m%d.wav",
     });
+    const result = await _n.process();
     const output = result.output as { uri: string };
     expect(output.uri).toMatch(/audio_\d{8}\.wav/);
   });
@@ -461,25 +514,33 @@ describe("audio nodes — full coverage", () => {
 
   it("audioBytes returns empty for ref without data", async () => {
     // audio ref with uri but no data
-    const result = await new NormalizeAudioNode().process({ audio: { uri: "file://test.wav" } });
+    const _n = new NormalizeAudioNode();
+    _n.assign({ audio: { uri: "file://test.wav" } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("AudioMixerNode handles non-array audios input", async () => {
-    const result = await new AudioMixerNode().process({ audios: "not-array" });
+    const _n = new AudioMixerNode();
+    _n.assign({ track1: "not-array" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("NumpyToAudioNode handles non-array values input", async () => {
-    const result = await new NumpyToAudioNode().process({ values: "not-array" });
+    const _n = new NumpyToAudioNode();
+    _n.assign({ array: "not-array" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("NumpyToAudioNode converts array of numbers to audio", async () => {
-    const result = await new NumpyToAudioNode().process({ values: [65, 66, 300] });
+    const _n = new NumpyToAudioNode();
+    _n.assign({ array: [65, 66, 300] });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData[0]).toBe(65);
     expect(outData[1]).toBe(66);
@@ -487,18 +548,24 @@ describe("audio nodes — full coverage", () => {
   });
 
   it("ConcatAudioListNode handles non-array input", async () => {
-    const result = await new ConcatAudioListNode().process({ audios: "not-array" });
+    const _n = new ConcatAudioListNode();
+    _n.assign({ audio_files: "not-array" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("AudioToNumpyNode converts audio ref without data", async () => {
-    const result = await new AudioToNumpyNode().process({ audio: { uri: "test" } });
+    const _n = new AudioToNumpyNode();
+    _n.assign({ audio: { uri: "test" } });
+    const result = await _n.process();
     expect(result.output).toEqual([]);
   });
 
   it("CreateSilenceNode creates zero-filled buffer", async () => {
-    const result = await new CreateSilenceNode().process({ length: 5 });
+    const _n = new CreateSilenceNode();
+    _n.assign({ duration: 5 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([0, 0, 0, 0, 0]);
   });
@@ -506,7 +573,9 @@ describe("audio nodes — full coverage", () => {
   it("ConcatAudioNode concatenates two refs", async () => {
     const a = { data: Buffer.from([1]).toString("base64") };
     const b = { data: Buffer.from([2]).toString("base64") };
-    const result = await new ConcatAudioNode().process({ audio_a: a, audio_b: b });
+    const _n = new ConcatAudioNode();
+    _n.assign({ a: a, b: b });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2]);
   });
@@ -519,7 +588,9 @@ describe("image nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-image/test.png`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-    const result = await new LoadImageFileNode().process({ path: filePath });
+    const _n = new LoadImageFileNode();
+    _n.assign({ path: filePath });
+    const result = await _n.process();
     const output = result.output as { data: string; uri: string };
     expect(output.uri).toContain(filePath);
     expect(output.data.length).toBeGreaterThan(0);
@@ -529,7 +600,9 @@ describe("image nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-image-uri/test.png`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from([1, 2, 3]));
-    const result = await new LoadImageFileNode().process({ path: `file://${filePath}` });
+    const _n = new LoadImageFileNode();
+    _n.assign({ path: `file://${filePath}` });
+    const result = await _n.process();
     expect((result.output as { uri: string }).uri).toContain(filePath);
   });
 
@@ -546,7 +619,8 @@ describe("image nodes — full coverage", () => {
 
     const node = new LoadImageFolderNode();
     const items: Array<Record<string, unknown>> = [];
-    for await (const item of node.genProcess({ folder: dir })) {
+    node.assign({ folder: dir });
+    for await (const item of node.genProcess()) {
       items.push(item);
     }
     expect(items.length).toBe(6);
@@ -564,7 +638,8 @@ describe("image nodes — full coverage", () => {
 
     const node = new LoadImageAssetsNode();
     const items: Array<Record<string, unknown>> = [];
-    for await (const item of node.genProcess({ folder: dir })) {
+    node.assign({ folder: dir });
+    for await (const item of node.genProcess()) {
       items.push(item);
     }
     expect(items.length).toBe(1);
@@ -578,7 +653,9 @@ describe("image nodes — full coverage", () => {
   it("SaveImageFileImageNode writes to file", async () => {
     const filePath = `${tmpDir}/save-image-file/out.png`;
     const ref = imageRef();
-    const result = await new SaveImageFileImageNode().process({ image: ref, path: filePath });
+    const _n = new SaveImageFileImageNode();
+    _n.assign({ image: ref, folder: path.dirname(filePath), filename: path.basename(filePath) });
+    const result = await _n.process();
     expect(result.output).toBe(filePath);
     const stat = await fs.stat(filePath);
     expect(stat.size).toBeGreaterThan(0);
@@ -587,20 +664,24 @@ describe("image nodes — full coverage", () => {
   it("SaveImageNode writes with date name", async () => {
     const dir = `${tmpDir}/save-image-dir`;
     const ref = imageRef();
-    const result = await new SaveImageNode().process({
+    const _n = new SaveImageNode();
+    _n.assign({
       image: ref,
       folder: dir,
       name: "img_%Y%m%d.png",
     });
+    const result = await _n.process();
     const output = result.output as { uri: string; data: string };
     expect(output.uri).toMatch(/img_\d{8}\.png/);
     expect(output.data.length).toBeGreaterThan(0);
   });
 
   it("GetMetadataNode returns metadata with all fields", async () => {
-    const result = await new GetMetadataNode().process({
+    const _n = new GetMetadataNode();
+    _n.assign({
       image: { data: "AQID", uri: "file://test.png", mimeType: "image/png", width: 100, height: 200 },
     });
+    const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
     expect(meta.uri).toBe("file://test.png");
     expect(meta.mime_type).toBe("image/png");
@@ -610,21 +691,27 @@ describe("image nodes — full coverage", () => {
   });
 
   it("GetMetadataNode handles missing optional fields", async () => {
-    const result = await new GetMetadataNode().process({ image: { data: "AQ==" } });
+    const _n = new GetMetadataNode();
+    _n.assign({ image: { data: "AQ==" } });
+    const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
     expect(meta.uri).toBe("");
     expect(meta.mime_type).toBe("image/unknown");
-    expect(meta.width).toBeNull();
-    expect(meta.height).toBeNull();
+    expect(meta.width).toBeUndefined();
+    expect(meta.height).toBeUndefined();
   });
 
   it("BatchToListNode converts array", async () => {
-    const result = await new BatchToListNode().process({ batch: [1, 2, 3] });
+    const _n = new BatchToListNode();
+    _n.assign({ batch: [1, 2, 3] });
+    const result = await _n.process();
     expect(result.output).toEqual([1, 2, 3]);
   });
 
   it("BatchToListNode wraps non-array in list", async () => {
-    const result = await new BatchToListNode().process({ batch: "single" });
+    const _n = new BatchToListNode();
+    _n.assign({ batch: "single" });
+    const result = await _n.process();
     expect(result.output).toEqual(["single"]);
   });
 
@@ -632,74 +719,92 @@ describe("image nodes — full coverage", () => {
     const a = imageRef();
     const b = imageRef();
     const c = imageRef();
-    const result = await new ImagesToListNode().process({
+    const _n = new ImagesToListNode();
+    _n.assign({
       images: [c],
       image_a: a,
       image_b: b,
     });
+    const result = await _n.process();
     expect((result.output as unknown[]).length).toBe(3);
   });
 
   it("ImagesToListNode handles null image_a and image_b", async () => {
-    const result = await new ImagesToListNode().process({
+    const _n = new ImagesToListNode();
+    _n.assign({
       images: [imageRef()],
       image_a: null,
       image_b: null,
     });
+    const result = await _n.process();
     expect((result.output as unknown[]).length).toBe(1);
   });
 
   it("PasteNode returns transform metadata", async () => {
-    const ref = imageRef();
-    const result = await new PasteNode().process({ image: ref, width: 320, height: 240 });
+    const ref = { ...imageRef(), width: 320, height: 240 };
+    const _n = new PasteNode();
+    _n.assign({ image: ref });
+    const result = await _n.process();
     const output = result.output as Record<string, unknown>;
     expect(output.width).toBe(320);
     expect(output.height).toBe(240);
   });
 
   it("ScaleNode returns transform metadata", async () => {
-    const result = await new ScaleNode().process({
+    const _n = new ScaleNode();
+    _n.assign({
       image: { data: "AQ==", width: 100, height: 50 },
-      width: 200,
+      scale: 2,
     });
+    const result = await _n.process();
     const output = result.output as Record<string, unknown>;
     expect(output.width).toBe(200);
   });
 
   it("ResizeNode returns transform metadata", async () => {
-    const result = await new ResizeNode().process({ image: imageRef(), width: 640, height: 480 });
+    const _n = new ResizeNode();
+    _n.assign({ image: imageRef(), width: 640, height: 480 });
+    const result = await _n.process();
     const output = result.output as Record<string, unknown>;
     expect(output.width).toBe(640);
     expect(output.height).toBe(480);
   });
 
   it("CropNode returns transform metadata", async () => {
-    const result = await new CropNode().process({ image: imageRef(), right: 50, bottom: 50 });
+    const _n = new CropNode();
+    _n.assign({ image: imageRef(), right: 50, bottom: 50 });
+    const result = await _n.process();
     const output = result.output as Record<string, unknown>;
     expect(output.width).toBe(50);
   });
 
   it("FitNode returns transform metadata", async () => {
-    const result = await new FitNode().process({ image: imageRef(), width: 300, height: 300 });
+    const _n = new FitNode();
+    _n.assign({ image: imageRef(), width: 300, height: 300 });
+    const result = await _n.process();
     const output = result.output as Record<string, unknown>;
     expect(output.width).toBe(300);
   });
 
   it("TransformImageNode uses image dimensions when width/height not specified", async () => {
-    const result = await new PasteNode().process({
+    const _n = new PasteNode();
+    _n.assign({
       image: { data: "AQ==", width: 800, height: 600 },
     });
+    const result = await _n.process();
     const output = result.output as Record<string, unknown>;
     expect(output.width).toBe(800);
     expect(output.height).toBe(600);
   });
 
   it("TransformImageNode handles zero/null dimensions", async () => {
-    const result = await new PasteNode().process({
+    const _n = new PasteNode();
+    _n.assign({
       image: { data: "AQ==" },
       width: 0,
       height: null,
     });
+    const result = await _n.process();
     const output = result.output as Record<string, unknown>;
     expect(output.width).toBeNull();
     expect(output.height).toBeNull();
@@ -746,7 +851,9 @@ describe("image nodes — full coverage", () => {
   });
 
   it("TextToImageNode generates image bytes from prompt", async () => {
-    const result = await new TextToImageNode().process({ prompt: "test-img", width: 256, height: 128 });
+    const _n = new TextToImageNode();
+    _n.assign({ prompt: "test-img", width: 256, height: 128 });
+    const result = await _n.process();
     const output = result.output as { data: string; width: number; height: number };
     expect(output.width).toBe(256);
     expect(output.height).toBe(128);
@@ -756,16 +863,19 @@ describe("image nodes — full coverage", () => {
 
   it("ImageToImageNode transforms image with prompt", async () => {
     const img = { data: Buffer.from([1, 2]).toString("base64"), uri: "file://in.png" };
-    const result = await new ImageToImageNode().process({ image: img, prompt: "stylize" });
-    const output = result.output as { uri: string; prompt: string; data: string };
+    const _n = new ImageToImageNode();
+    _n.assign({ image: img, prompt: "stylize" });
+    const result = await _n.process();
+    const output = result.output as { uri: string; data: string };
     expect(output.uri).toBe("file://in.png");
-    expect(output.prompt).toBe("stylize");
     const bytes = Buffer.from(output.data, "base64");
     expect(Array.from(bytes)).toEqual([1, 2]);
   });
 
   it("ImagesToListNode handles non-array images input", async () => {
-    const result = await new ImagesToListNode().process({ images: "not-array", image_a: null, image_b: null });
+    const _n = new ImagesToListNode();
+    _n.assign({ images: "not-array", image_a: null, image_b: null });
+    const result = await _n.process();
     expect(result.output).toEqual([]);
   });
 });
@@ -775,7 +885,9 @@ describe("image nodes — full coverage", () => {
 describe("video nodes — full coverage", () => {
   it("ImageToVideoNode generates video from image", async () => {
     const img = imageRef();
-    const result = await new ImageToVideoNode().process({ image: img, prompt: "animate" });
+    const _n = new ImageToVideoNode();
+    _n.assign({ image: img, prompt: "animate" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBeGreaterThan(0);
   });
@@ -784,7 +896,9 @@ describe("video nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-video/test.mp4`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from("fake-mp4"));
-    const result = await new LoadVideoFileNode().process({ path: filePath });
+    const _n = new LoadVideoFileNode();
+    _n.assign({ path: filePath });
+    const result = await _n.process();
     const output = result.output as { uri: string; data: string };
     expect(output.uri).toContain(filePath);
   });
@@ -793,14 +907,18 @@ describe("video nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-video-uri/test.mp4`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from("video"));
-    const result = await new LoadVideoFileNode().process({ path: `file://${filePath}` });
+    const _n = new LoadVideoFileNode();
+    _n.assign({ path: `file://${filePath}` });
+    const result = await _n.process();
     expect((result.output as { uri: string }).uri).toContain(filePath);
   });
 
   it("SaveVideoFileVideoNode writes to file", async () => {
     const filePath = `${tmpDir}/save-video-file/out.mp4`;
     const ref = videoRef();
-    const result = await new SaveVideoFileVideoNode().process({ video: ref, path: filePath });
+    const _n = new SaveVideoFileVideoNode();
+    _n.assign({ video: ref, folder: path.dirname(filePath), filename: path.basename(filePath) });
+    const result = await _n.process();
     expect(result.output).toBe(filePath);
     const stat = await fs.stat(filePath);
     expect(stat.size).toBeGreaterThan(0);
@@ -818,7 +936,8 @@ describe("video nodes — full coverage", () => {
 
     const node = new LoadVideoAssetsNode();
     const items: Array<Record<string, unknown>> = [];
-    for await (const item of node.genProcess({ folder: dir })) {
+    node.assign({ folder: dir });
+    for await (const item of node.genProcess()) {
       items.push(item);
     }
     expect(items.length).toBe(5);
@@ -832,23 +951,26 @@ describe("video nodes — full coverage", () => {
   it("SaveVideoNode writes with date name", async () => {
     const dir = `${tmpDir}/save-video-dir`;
     const ref = videoRef();
-    const result = await new SaveVideoNode().process({
+    const _n = new SaveVideoNode();
+    _n.assign({
       video: ref,
       folder: dir,
-      filename: "vid_%Y%m%d.mp4",
+      name: "vid_%Y%m%d.mp4",
     });
+    const result = await _n.process();
     const output = result.output as { uri: string };
     expect(output.uri).toMatch(/vid_\d{8}\.mp4/);
   });
 
   it("FrameIteratorNode streams pseudo-frames", async () => {
-    const data = Buffer.from(new Array(100).fill(42)).toString("base64");
+    const data = Buffer.from(new Array(4096).fill(42)).toString("base64");
     const node = new FrameIteratorNode();
     const frames: Array<Record<string, unknown>> = [];
-    for await (const frame of node.genProcess({ video: { data }, frame_size: 30 })) {
+    node.assign({ video: { data } });
+    for await (const frame of node.genProcess()) {
       frames.push(frame);
     }
-    expect(frames.length).toBe(4); // ceil(100/30) = 4
+    expect(frames.length).toBe(4); // ceil(4096/1024) = 4
     expect(frames[0].index).toBe(0);
     expect(frames[3].index).toBe(3);
   });
@@ -860,22 +982,26 @@ describe("video nodes — full coverage", () => {
 
   it("FpsNode attaches fps metadata", async () => {
     const ref = videoRef();
-    const result = await new FpsNode().process({ video: ref, fps: 30 });
-    const output = result.output as { fps: number; data: string };
-    expect(output.fps).toBe(30);
-    expect(output.data.length).toBeGreaterThan(0);
+    const _n = new FpsNode();
+    _n.assign({ video: ref });
+    const result = await _n.process();
+    expect(result.output).toBe(24);
   });
 
   it("FrameToVideoNode combines frames", async () => {
     const frameA = { data: Buffer.from([1, 2]).toString("base64") };
     const frameB = { data: Buffer.from([3, 4]).toString("base64") };
-    const result = await new FrameToVideoNode().process({ frames: [frameA, frameB] });
+    const _n = new FrameToVideoNode();
+    _n.assign({ frame: [frameA, frameB] });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
   it("FrameToVideoNode handles non-object frames", async () => {
-    const result = await new FrameToVideoNode().process({ frames: [null, "bad"] });
+    const _n = new FrameToVideoNode();
+    _n.assign({ frame: [null, "bad"] });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
@@ -883,14 +1009,18 @@ describe("video nodes — full coverage", () => {
   it("ConcatVideoNode concatenates two videos", async () => {
     const a = { data: Buffer.from([1, 2]).toString("base64") };
     const b = { data: Buffer.from([3, 4]).toString("base64") };
-    const result = await new ConcatVideoNode().process({ video_a: a, video_b: b });
+    const _n = new ConcatVideoNode();
+    _n.assign({ video_a: a, video_b: b });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
   it("TrimVideoNode trims from start and end", async () => {
     const data = Buffer.from([1, 2, 3, 4, 5]).toString("base64");
-    const result = await new TrimVideoNode().process({ video: { data }, start: 1, end: 1 });
+    const _n = new TrimVideoNode();
+    _n.assign({ video: { data }, start_time: 1, end_time: 1 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([2, 3, 4]);
   });
@@ -910,28 +1040,36 @@ describe("video nodes — full coverage", () => {
       AddSubtitlesVideoNode,
       ChromaKeyVideoNode,
     ]) {
-      const result = await new NodeClass().process({ video: ref });
+      const _n = new NodeClass();
+      _n.assign({ video: ref });
+      const result = await _n.process();
       expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
     }
   });
 
   it("OverlayVideoNode and TransitionVideoNode use canonical input names", async () => {
     const ref = videoRef();
-    const overlay = await new OverlayVideoNode().process({
+    const _n = new OverlayVideoNode();
+    _n.assign({
       main_video: ref,
       overlay_video: ref,
     });
-    const transition = await new TransitionVideoNode().process({
+    const overlay = await _n.process();
+    const _n2 = new TransitionVideoNode();
+    _n2.assign({
       video_a: ref,
       video_b: ref,
     });
+    const transition = await _n2.process();
     expect((overlay.output as { data: string }).data).toBeDefined();
     expect((transition.output as { data: string }).data).toBeDefined();
   });
 
   it("ReverseVideoNode reverses video bytes", async () => {
     const data = Buffer.from([1, 2, 3]).toString("base64");
-    const result = await new ReverseVideoNode().process({ video: { data } });
+    const _n = new ReverseVideoNode();
+    _n.assign({ video: { data } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([3, 2, 1]);
   });
@@ -939,28 +1077,36 @@ describe("video nodes — full coverage", () => {
   it("AddAudioVideoNode muxes video and audio", async () => {
     const v = { data: Buffer.from([1, 2]).toString("base64") };
     const a = { data: Buffer.from([3, 4]).toString("base64") };
-    const result = await new AddAudioVideoNode().process({ video: v, audio: a });
+    const _n = new AddAudioVideoNode();
+    _n.assign({ video: v, audio: a });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
   it("ExtractAudioVideoNode extracts first half as audio", async () => {
     const data = Buffer.from([1, 2, 3, 4]).toString("base64");
-    const result = await new ExtractAudioVideoNode().process({ video: { data } });
+    const _n = new ExtractAudioVideoNode();
+    _n.assign({ video: { data } });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2]);
   });
 
   it("ExtractFrameVideoNode extracts frame by index", async () => {
     const data = Buffer.from(new Array(2048).fill(7)).toString("base64");
-    const result = await new ExtractFrameVideoNode().process({ video: { data }, frame_index: 1 });
+    const _n = new ExtractFrameVideoNode();
+    _n.assign({ video: { data }, frame_index: 1 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(1024);
   });
 
   it("GetVideoInfoNode returns metadata", async () => {
     const ref = videoRef();
-    const result = await new GetVideoInfoNode().process({ video: ref });
+    const _n = new GetVideoInfoNode();
+    _n.assign({ video: ref });
+    const result = await _n.process();
     const info = result.output as Record<string, unknown>;
     expect(info.fps).toBe(24);
     expect(info.size_bytes).toBeGreaterThan(0);
@@ -969,24 +1115,32 @@ describe("video nodes — full coverage", () => {
 
   it("video helper functions handle edge cases", async () => {
     // videoBytes with non-object
-    const result = await new FpsNode().process({ video: "not-object", fps: 10 });
+    const _n = new FpsNode();
+    _n.assign({ video: "not-object", fps: 10 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
 
     // imageBytes in video module
-    const imgResult = await new ImageToVideoNode().process({ image: null, prompt: "" });
+    const _n2 = new ImageToVideoNode();
+    _n2.assign({ image: null, prompt: "" });
+    const imgResult = await _n2.process();
     expect((imgResult.output as { data: string }).data).toBeDefined();
 
     // audioBytes in video module
-    const audioResult = await new AddAudioVideoNode().process({ video: {}, audio: null });
+    const _n3 = new AddAudioVideoNode();
+    _n3.assign({ video: {}, audio: null });
+    const audioResult = await _n3.process();
     expect((audioResult.output as { data: string }).data).toBeDefined();
   });
 
   it("toBytes handles Uint8Array input in video", async () => {
     const uint8Data = new Uint8Array([1, 2, 3]);
-    const result = await new FrameToVideoNode().process({
-      frames: [{ data: uint8Data }],
+    const _n = new FrameToVideoNode();
+    _n.assign({
+      frame: [{ data: uint8Data }],
     });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3]);
   });
@@ -1038,21 +1192,27 @@ describe("video nodes — full coverage", () => {
   });
 
   it("TextToVideoNode generates video from text", async () => {
-    const result = await new TextToVideoNode().process({ prompt: "hello-vid" });
+    const _n = new TextToVideoNode();
+    _n.assign({ prompt: "hello-vid" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.toString("utf8")).toBe("hello-vid");
   });
 
   it("FrameToVideoNode handles non-array frames", async () => {
-    const result = await new FrameToVideoNode().process({ frames: "not-array" });
+    const _n = new FrameToVideoNode();
+    _n.assign({ frame: "not-array" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("GetVideoInfoNode handles video with uri", async () => {
-    const result = await new GetVideoInfoNode().process({
+    const _n = new GetVideoInfoNode();
+    _n.assign({
       video: { data: Buffer.from([1, 2, 3]).toString("base64"), uri: "file://test.mp4" },
     });
+    const result = await _n.process();
     const info = result.output as Record<string, unknown>;
     expect(info.uri).toBe("file://test.mp4");
     expect(info.size_bytes).toBe(3);
@@ -1066,7 +1226,9 @@ describe("model3d nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-model/test.glb`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from("glb-data"));
-    const result = await new LoadModel3DFileNode().process({ path: filePath });
+    const _n = new LoadModel3DFileNode();
+    _n.assign({ path: filePath });
+    const result = await _n.process();
     const output = result.output as { uri: string; format: string; data: string };
     expect(output.uri).toContain(filePath);
     expect(output.format).toBe("glb");
@@ -1077,7 +1239,9 @@ describe("model3d nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-model-uri/test.obj`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from("obj-data"));
-    const result = await new LoadModel3DFileNode().process({ path: `file://${filePath}` });
+    const _n = new LoadModel3DFileNode();
+    _n.assign({ path: `file://${filePath}` });
+    const result = await _n.process();
     const output = result.output as { format: string };
     expect(output.format).toBe("obj");
   });
@@ -1085,11 +1249,13 @@ describe("model3d nodes — full coverage", () => {
   it("SaveModel3DFileNode writes model to file", async () => {
     const dir = `${tmpDir}/save-model-file`;
     const ref = modelRef();
-    const result = await new SaveModel3DFileNode().process({
+    const _n = new SaveModel3DFileNode();
+    _n.assign({
       model: ref,
       folder: dir,
       filename: "out.glb",
     });
+    const result = await _n.process();
     const output = result.output as { uri: string; format: string };
     expect(output.uri).toContain("out.glb");
     expect(output.format).toBe("glb");
@@ -1100,30 +1266,36 @@ describe("model3d nodes — full coverage", () => {
   it("SaveModel3DNode writes with timestamped name", async () => {
     const dir = `${tmpDir}/save-model-date`;
     const ref = modelRef();
-    const result = await new SaveModel3DNode().process({
+    const _n = new SaveModel3DNode();
+    _n.assign({
       model: ref,
       folder: dir,
       name: "model_%Y%m%d.glb",
     });
+    const result = await _n.process();
     const output = result.output as { uri: string };
     expect(output.uri).toMatch(/model_\d{8}\.glb/);
   });
 
   it("FormatConverterNode changes output format", async () => {
     const ref = modelRef();
-    const result = await new FormatConverterNode().process({
+    const _n = new FormatConverterNode();
+    _n.assign({
       model: ref,
       output_format: "obj",
     });
+    const result = await _n.process();
     const output = result.output as { format: string };
     expect(output.format).toBe("obj");
   });
 
   it("GetModel3DMetadataNode returns metadata", async () => {
     const data = Buffer.from(new Array(320).fill(0)).toString("base64");
-    const result = await new GetModel3DMetadataNode().process({
+    const _n = new GetModel3DMetadataNode();
+    _n.assign({
       model: { data, format: "stl", uri: "file://test.stl" },
     });
+    const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
     expect(meta.format).toBe("stl");
     expect(meta.uri).toBe("file://test.stl");
@@ -1133,9 +1305,11 @@ describe("model3d nodes — full coverage", () => {
   });
 
   it("GetModel3DMetadataNode uses explicit vertices/faces", async () => {
-    const result = await new GetModel3DMetadataNode().process({
+    const _n = new GetModel3DMetadataNode();
+    _n.assign({
       model: { data: "AQ==", vertices: 100, faces: 50, format: "glb" },
     });
+    const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
     expect(meta.vertices).toBe(100);
     expect(meta.faces).toBe(50);
@@ -1143,7 +1317,9 @@ describe("model3d nodes — full coverage", () => {
 
   it("Transform3DNode passes through model", async () => {
     const ref = modelRef();
-    const result = await new Transform3DNode().process({ model: ref });
+    const _n = new Transform3DNode();
+    _n.assign({ model: ref });
+    const result = await _n.process();
     const output = result.output as { format: string; data: string };
     expect(output.format).toBe("glb");
     expect(output.data.length).toBeGreaterThan(0);
@@ -1151,18 +1327,24 @@ describe("model3d nodes — full coverage", () => {
 
   it("DecimateNode reduces model size", async () => {
     const data = Buffer.from(new Array(100).fill(42)).toString("base64");
-    const result = await new DecimateNode().process({ model: { data }, ratio: 0.5 });
+    const _n = new DecimateNode();
+    _n.assign({ model: { data }, target_ratio: 0.5 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(50);
   });
 
   it("DecimateNode clamps ratio to [0, 1]", async () => {
     const data = Buffer.from(new Array(100).fill(42)).toString("base64");
-    const result = await new DecimateNode().process({ model: { data }, ratio: 2.0 });
+    const _n = new DecimateNode();
+    _n.assign({ model: { data }, target_ratio: 2.0 });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(100);
 
-    const result2 = await new DecimateNode().process({ model: { data }, ratio: 0 });
+    const _n2 = new DecimateNode();
+    _n2.assign({ model: { data }, target_ratio: 0 });
+    const result2 = await _n2.process();
     const outData2 = Buffer.from((result2.output as { data: string }).data, "base64");
     expect(outData2.length).toBe(1); // max(1, ...)
   });
@@ -1170,7 +1352,9 @@ describe("model3d nodes — full coverage", () => {
   it("Boolean3DNode union concatenates", async () => {
     const a = { data: Buffer.from([1, 2]).toString("base64") };
     const b = { data: Buffer.from([3, 4]).toString("base64") };
-    const result = await new Boolean3DNode().process({ model_a: a, model_b: b, operation: "union" });
+    const _n = new Boolean3DNode();
+    _n.assign({ model_a: a, model_b: b, operation: "union" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
@@ -1178,11 +1362,13 @@ describe("model3d nodes — full coverage", () => {
   it("Boolean3DNode difference subtracts", async () => {
     const a = { data: Buffer.from([10, 20]).toString("base64") };
     const b = { data: Buffer.from([3, 30]).toString("base64") };
-    const result = await new Boolean3DNode().process({
+    const _n = new Boolean3DNode();
+    _n.assign({
       model_a: a,
       model_b: b,
       operation: "difference",
     });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData[0]).toBe(7); // 10 - 3
     expect(outData[1]).toBe(0); // max(0, 20-30)
@@ -1191,11 +1377,13 @@ describe("model3d nodes — full coverage", () => {
   it("Boolean3DNode intersection takes min", async () => {
     const a = { data: Buffer.from([10, 20, 30]).toString("base64") };
     const b = { data: Buffer.from([15, 5]).toString("base64") };
-    const result = await new Boolean3DNode().process({
+    const _n = new Boolean3DNode();
+    _n.assign({
       model_a: a,
       model_b: b,
       operation: "intersection",
     });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(2); // min length
     expect(outData[0]).toBe(10);
@@ -1204,39 +1392,51 @@ describe("model3d nodes — full coverage", () => {
 
   it("RecalculateNormalsNode passes through", async () => {
     const ref = modelRef();
-    const result = await new RecalculateNormalsNode().process({ model: ref });
+    const _n = new RecalculateNormalsNode();
+    _n.assign({ model: ref });
+    const result = await _n.process();
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
   it("CenterMeshNode passes through", async () => {
     const ref = modelRef();
-    const result = await new CenterMeshNode().process({ model: ref });
+    const _n = new CenterMeshNode();
+    _n.assign({ model: ref });
+    const result = await _n.process();
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
   it("FlipNormalsNode passes through", async () => {
     const ref = modelRef();
-    const result = await new FlipNormalsNode().process({ model: ref });
+    const _n = new FlipNormalsNode();
+    _n.assign({ model: ref });
+    const result = await _n.process();
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
   it("MergeMeshesNode merges list of models", async () => {
     const a = { data: Buffer.from([1, 2]).toString("base64") };
     const b = { data: Buffer.from([3]).toString("base64") };
-    const result = await new MergeMeshesNode().process({ models: [a, b] });
+    const _n = new MergeMeshesNode();
+    _n.assign({ models: [a, b] });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(Array.from(outData)).toEqual([1, 2, 3]);
   });
 
   it("MergeMeshesNode handles empty list", async () => {
-    const result = await new MergeMeshesNode().process({ models: [] });
+    const _n = new MergeMeshesNode();
+    _n.assign({ models: [] });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("ImageTo3DNode converts image data to model", async () => {
     const data = Buffer.from([10, 20, 30]).toString("base64");
-    const result = await new ImageTo3DNode().process({ image: { data } });
+    const _n = new ImageTo3DNode();
+    _n.assign({ image: { data } });
+    const result = await _n.process();
     const output = result.output as { data: string; format: string };
     expect(output.format).toBe("glb");
     const outData = Buffer.from(output.data, "base64");
@@ -1244,19 +1444,25 @@ describe("model3d nodes — full coverage", () => {
   });
 
   it("ImageTo3DNode handles empty image", async () => {
-    const result = await new ImageTo3DNode().process({ image: {} });
+    const _n = new ImageTo3DNode();
+    _n.assign({ image: {} });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("ModelTransformNode handles non-object model", async () => {
-    const result = await new Transform3DNode().process({ model: "not-an-object" });
+    const _n = new Transform3DNode();
+    _n.assign({ model: "not-an-object" });
+    const result = await _n.process();
     const output = result.output as { format: string };
     expect(output.format).toBe("glb");
   });
 
   it("ModelTransformNode handles null model", async () => {
-    const result = await new Transform3DNode().process({ model: null });
+    const _n = new Transform3DNode();
+    _n.assign({ model: null });
+    const result = await _n.process();
     const output = result.output as { format: string };
     expect(output.format).toBe("glb");
   });
@@ -1265,24 +1471,30 @@ describe("model3d nodes — full coverage", () => {
     const filePath = `${tmpDir}/load-model-noext/testfile`;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, Buffer.from("data"));
-    const result = await new LoadModel3DFileNode().process({ path: filePath });
+    const _n = new LoadModel3DFileNode();
+    _n.assign({ path: filePath });
+    const result = await _n.process();
     const output = result.output as { format: string };
     expect(output.format).toBe("glb");
   });
 
   it("dateName in model3d formats timestamps", async () => {
     const dir = `${tmpDir}/save-model-date2`;
-    const result = await new SaveModel3DNode().process({
+    const _n = new SaveModel3DNode();
+    _n.assign({
       model: modelRef(),
       folder: dir,
       name: "%Y-%m-%d_%H%M%S.glb",
     });
+    const result = await _n.process();
     const output = result.output as { uri: string };
     expect(output.uri).toMatch(/\d{4}-\d{2}-\d{2}_\d{6}\.glb/);
   });
 
   it("concatBytes handles empty array", async () => {
-    const result = await new MergeMeshesNode().process({ models: [] });
+    const _n = new MergeMeshesNode();
+    _n.assign({ models: [] });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
@@ -1328,20 +1540,26 @@ describe("model3d nodes — full coverage", () => {
   });
 
   it("TextTo3DNode generates model from text", async () => {
-    const result = await new TextTo3DNode().process({ prompt: "sphere" });
+    const _n = new TextTo3DNode();
+    _n.assign({ prompt: "sphere" });
+    const result = await _n.process();
     const output = result.output as { data: string; format: string };
     expect(output.format).toBe("glb");
     expect(Buffer.from(output.data, "base64").toString("utf8")).toBe("sphere");
   });
 
   it("MergeMeshesNode handles non-array input", async () => {
-    const result = await new MergeMeshesNode().process({ models: "not-array" });
+    const _n = new MergeMeshesNode();
+    _n.assign({ models: "not-array" });
+    const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData.length).toBe(0);
   });
 
   it("GetModel3DMetadataNode handles empty model", async () => {
-    const result = await new GetModel3DMetadataNode().process({ model: {} });
+    const _n = new GetModel3DMetadataNode();
+    _n.assign({ model: {} });
+    const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
     expect(meta.format).toBe("glb");
     expect(meta.uri).toBe("");
