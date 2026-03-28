@@ -47,9 +47,9 @@ import {
   marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
   rectSelectionMask,
+  offsetSelectionByDocumentDelta,
   selectionHasAnyPixels,
-  selectionHitTest,
-  translateMask
+  selectionHitTest
 } from "../selection/selectionMask";
 import {
   useSketchStore,
@@ -1552,14 +1552,14 @@ export function usePointerHandlers({
         return;
       }
 
-      // Finalize selection movement (commit clipped translate once on pointer up)
+      // Finalize selection movement (preserve mask pixels past canvas via origin shift)
       if (interactionTool === "select" && isMovingSelectionRef.current) {
         const ants = selectionMoveAntsRef.current;
         const start = selectionAtMoveStartRef.current;
         if (start && onSelectionChange) {
           const dx = ants?.dx ?? 0;
           const dy = ants?.dy ?? 0;
-          onSelectionChange(translateMask(start, dx, dy));
+          onSelectionChange(offsetSelectionByDocumentDelta(start, dx, dy));
         }
         selectionMoveAntsRef.current = null;
         isMovingSelectionRef.current = false;

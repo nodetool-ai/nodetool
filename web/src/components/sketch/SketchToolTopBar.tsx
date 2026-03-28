@@ -94,6 +94,7 @@ export interface SketchToolTopBarProps {
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
   onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
+  onInvertSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -142,6 +143,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onGradientSettingsChange,
   onCloneStampSettingsChange,
   onSelectSettingsChange,
+  onInvertSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder,
@@ -193,6 +195,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onGradientSettingsChange={onGradientSettingsChange}
         onCloneStampSettingsChange={onCloneStampSettingsChange}
         onSelectSettingsChange={onSelectSettingsChange}
+        onInvertSelection={onInvertSelection}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
         onStrokeSelectionBorder={onStrokeSelectionBorder}

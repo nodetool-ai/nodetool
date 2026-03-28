@@ -14,43 +14,19 @@ import {
   type LayerTransform,
   type Point,
   type PushHistoryOptions,
-  type Selection,
   type SketchDocument,
   type SketchTool
 } from "../types";
 import { useSketchStore } from "../state";
 import { getLayerCompositeOffset } from "../painting";
 import { getSelectionBounds, selectionHasAnyPixels } from "../selection/selectionMask";
+import {
+  buildSketchInternalClipboardCanvas,
+  drawSketchPasteOnLayerContext,
+  resolveSketchPasteImageCanvas,
+  writeImageCanvasToSystemClipboardPng
+} from "../sketchClipboard";
 import type { StrokeEndOptions } from "../tools/types";
-
-/**
- * For copy/export: zero or scale RGBA alpha by the document-space mask inside `bounds`.
- */
-function multiplyImageDataAlphaBySelectionMask(
-  imageData: ImageData,
-  bounds: { x: number; y: number; width: number; height: number },
-  sel: Selection
-): void {
-  const w = bounds.width;
-  const h = bounds.height;
-  const mw = sel.width;
-  const mh = sel.height;
-  const md = sel.data;
-  const d = imageData.data;
-  for (let j = 0; j < h; j++) {
-    const docY = bounds.y + j;
-    for (let i = 0; i < w; i++) {
-      const docX = bounds.x + i;
-      const p = (j * w + i) * 4;
-      if (docX < 0 || docY < 0 || docX >= mw || docY >= mh) {
-        d[p + 3] = 0;
-        continue;
-      }
-      const m = md[docY * mw + docX] / 255;
-      d[p + 3] = Math.round(d[p + 3] * m);
-    }
-  }
-}
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -676,62 +652,19 @@ export function useCanvasActions({
     }
 
     const sel = useSketchStore.getState().selection;
-    const bounds =
-      sel != null && selectionHasAnyPixels(sel) ? getSelectionBounds(sel) : null;
-    const tmp = window.document.createElement("canvas");
-
-    if (bounds && bounds.width > 0 && bounds.height > 0) {
-      tmp.width = bounds.width;
-      tmp.height = bounds.height;
-      const ctx = tmp.getContext("2d");
-      if (ctx) {
-        const offset = getLayerCompositeOffset(layer, {
-          width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
-          height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
-        });
-        ctx.drawImage(
-          snapshot,
-          bounds.x - offset.x,
-          bounds.y - offset.y,
-          bounds.width,
-          bounds.height,
-          0,
-          0,
-          bounds.width,
-          bounds.height
-        );
-        if (sel != null) {
-          const idata = ctx.getImageData(0, 0, bounds.width, bounds.height);
-          multiplyImageDataAlphaBySelectionMask(idata, bounds, sel);
-          ctx.putImageData(idata, 0, 0);
-        }
-      }
-    } else {
-      tmp.width = snapshot.width;
-      tmp.height = snapshot.height;
-      const ctx = tmp.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(snapshot, 0, 0);
-      }
+    const tmp = buildSketchInternalClipboardCanvas({
+      snapshot,
+      layer,
+      documentCanvasWidth: document.canvas.width,
+      documentCanvasHeight: document.canvas.height,
+      selection: sel
+    });
+    if (!tmp) {
+      return;
     }
 
     clipboardCanvasRef.current = tmp;
-
-    // Also write to system clipboard for interop
-    try {
-      tmp.toBlob((blob) => {
-        if (blob) {
-          const item = new ClipboardItem({ "image/png": blob });
-          navigator.clipboard.write([item]).catch((err) => {
-            // May fail due to missing clipboard-write permission, HTTPS
-            // requirement, or browser security policies.
-            console.warn("Clipboard write failed (internal copy still works):", err);
-          });
-        }
-      }, "image/png");
-    } catch {
-      // toBlob / ClipboardItem may not be available in all environments
-    }
+    writeImageCanvasToSystemClipboardPng(tmp);
   }, [
     canvasRef,
     document.activeLayerId,
@@ -746,8 +679,12 @@ export function useCanvasActions({
     handleClearLayer();
   }, [handleCopy, handleClearLayer]);
 
-  /** Paste from internal clipboard or system clipboard. */
-  const handlePaste = useCallback(async () => {
+  /**
+   * Paste from the OS clipboard and/or the in-app pixel buffer.
+   * @param preferInternalClipboardFirst — When true (Ctrl+Shift+V), use the in-app buffer first
+   *   so masked in-sketch copies keep correct alpha; default Ctrl+V prefers other apps' clipboard.
+   */
+  const handlePaste = useCallback(async (preferInternalClipboardFirst = false) => {
     if (!canvasRef.current) {
       return;
     }
@@ -756,35 +693,10 @@ export function useCanvasActions({
       return;
     }
 
-    let imageToPaste: HTMLCanvasElement | null = null;
-
-    // Try system clipboard first (for images copied from outside apps)
-    try {
-      const items = await navigator.clipboard.read();
-      for (const item of items) {
-        const imageType = item.types.find((t) => t.startsWith("image/"));
-        if (imageType) {
-          const blob = await item.getType(imageType);
-          const bitmap = await createImageBitmap(blob);
-          const tmp = window.document.createElement("canvas");
-          tmp.width = bitmap.width;
-          tmp.height = bitmap.height;
-          const ctx = tmp.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(bitmap, 0, 0);
-          }
-          bitmap.close();
-          imageToPaste = tmp;
-          break;
-        }
-      }
-    } catch {
-      // System clipboard read may fail; fall back to internal clipboard.
-    }
-
-    if (!imageToPaste) {
-      imageToPaste = clipboardCanvasRef.current;
-    }
+    const imageToPaste = await resolveSketchPasteImageCanvas({
+      internalBuffer: clipboardCanvasRef.current,
+      preferInternalClipboardFirst
+    });
     if (!imageToPaste) {
       return;
     }
@@ -804,34 +716,24 @@ export function useCanvasActions({
     if (!layer) {
       return;
     }
-    const offset = getLayerCompositeOffset(layer, {
-      width: document.canvas.width,
-      height: document.canvas.height
-    });
+    const offset = getLayerCompositeOffset(
+      layer,
+      {
+        width: document.canvas.width,
+        height: document.canvas.height
+      },
+      pasteSnapshot
+    );
 
     const pasteDoc = canvasRef.current.getPasteAnchorDocumentPoint();
     const sel = useSketchStore.getState().selection;
     const bounds = sel ? getSelectionBounds(sel) : null;
 
-    if (pasteDoc) {
-      const destX = pasteDoc.x - offset.x;
-      const destY = pasteDoc.y - offset.y;
-      ctx.drawImage(imageToPaste, destX, destY);
-    } else if (bounds && bounds.width > 0 && bounds.height > 0) {
-      ctx.drawImage(
-        imageToPaste,
-        0,
-        0,
-        imageToPaste.width,
-        imageToPaste.height,
-        bounds.x - offset.x,
-        bounds.y - offset.y,
-        bounds.width,
-        bounds.height
-      );
-    } else {
-      ctx.drawImage(imageToPaste, 0, 0);
-    }
+    drawSketchPasteOnLayerContext(ctx, imageToPaste, {
+      offset,
+      pasteAnchorDocument: pasteDoc,
+      selectionBounds: bounds
+    });
 
     canvasRef.current.restoreLayerCanvas(layerId, pasteSnapshot);
     syncPixelLayerFromCanvas(layerId);

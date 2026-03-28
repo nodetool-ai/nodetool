@@ -1,5 +1,7 @@
 /**
- * Per-pixel selection mask utilities (document space, same size as sketch canvas).
+ * Per-pixel selection mask utilities (document space).
+ * Most masks are canvas-sized with implicit origin (0,0); moved selections may
+ * use `originX` / `originY` so buffer pixels keep stable indices.
  */
 
 import type { Point, Selection } from "../types";
@@ -86,11 +88,18 @@ export function createEmptyMask(width: number, height: number): Selection {
 }
 
 export function cloneSelectionMask(src: Selection): Selection {
-  return {
+  const out: Selection = {
     width: src.width,
     height: src.height,
     data: new Uint8ClampedArray(src.data)
   };
+  if (src.originX != null) {
+    out.originX = src.originX;
+  }
+  if (src.originY != null) {
+    out.originY = src.originY;
+  }
+  return out;
 }
 
 export function selectionMaskByteLength(sel: Selection): number {
@@ -121,15 +130,14 @@ export function selectionHasAnyPixels(sel: Selection | null): boolean {
 }
 
 export function sampleMask(sel: Selection, docX: number, docY: number): number {
-  if (
-    docX < 0 ||
-    docY < 0 ||
-    docX >= sel.width ||
-    docY >= sel.height
-  ) {
+  const ox = sel.originX ?? 0;
+  const oy = sel.originY ?? 0;
+  const bx = docX - ox;
+  const by = docY - oy;
+  if (bx < 0 || by < 0 || bx >= sel.width || by >= sel.height) {
     return 0;
   }
-  return sel.data[docY * sel.width + docX];
+  return sel.data[by * sel.width + bx];
 }
 
 export function selectionHitTest(
@@ -174,9 +182,11 @@ export function getSelectionBounds(
   if (maxX < minX || maxY < minY) {
     return null;
   }
+  const ox = sel.originX ?? 0;
+  const oy = sel.originY ?? 0;
   return {
-    x: minX,
-    y: minY,
+    x: minX + ox,
+    y: minY + oy,
     width: maxX - minX + 1,
     height: maxY - minY + 1
   };
@@ -315,18 +325,71 @@ export function ellipseSelectionMask(
 
 export type SelectionCombineOp = "replace" | "add" | "subtract" | "intersect";
 
+/**
+ * Rasterize `sel` into a `docW×docH` mask with top-left at document (0,0).
+ * Pixels outside the canvas are dropped (combine / invert work on the image).
+ */
+export function selectionToDocumentAligned(
+  sel: Selection,
+  docW: number,
+  docH: number
+): Selection {
+  const ox = sel.originX ?? 0;
+  const oy = sel.originY ?? 0;
+  const out = createEmptyMask(docW, docH);
+  const { width: w, height: h, data: s } = sel;
+  for (let by = 0; by < h; by++) {
+    const dy = oy + by;
+    if (dy < 0 || dy >= docH) {
+      continue;
+    }
+    const rowOut = dy * docW;
+    const rowS = by * w;
+    for (let bx = 0; bx < w; bx++) {
+      const v = s[rowS + bx];
+      if (v === 0) {
+        continue;
+      }
+      const dx = ox + bx;
+      if (dx < 0 || dx >= docW) {
+        continue;
+      }
+      const i = rowOut + dx;
+      out.data[i] = Math.max(out.data[i], v);
+    }
+  }
+  return out;
+}
+
 export function combineMasks(
   base: Selection | null,
   overlay: Selection,
   op: SelectionCombineOp
 ): Selection {
   if (op === "replace" || !base || !validateSelectionMask(base)) {
-    return cloneSelectionMask(overlay);
+    const c = cloneSelectionMask(overlay);
+    return { width: c.width, height: c.height, data: c.data };
   }
-  if (base.width !== overlay.width || base.height !== overlay.height) {
-    return cloneSelectionMask(overlay);
+  const docW = overlay.width;
+  const docH = overlay.height;
+  const box = base.originX ?? 0;
+  const boy = base.originY ?? 0;
+  const needsAlign =
+    box !== 0 ||
+    boy !== 0 ||
+    base.width !== docW ||
+    base.height !== docH;
+  const baseAligned: Selection = needsAlign
+    ? selectionToDocumentAligned(base, docW, docH)
+    : cloneSelectionMask(base);
+  if (
+    baseAligned.width !== overlay.width ||
+    baseAligned.height !== overlay.height
+  ) {
+    const c = cloneSelectionMask(overlay);
+    return { width: c.width, height: c.height, data: c.data };
   }
-  const out = cloneSelectionMask(base);
+  const out = cloneSelectionMask(baseAligned);
   const n = out.data.length;
   for (let i = 0; i < n; i++) {
     const b = out.data[i];
@@ -341,7 +404,11 @@ export function combineMasks(
     }
     out.data[i] = v;
   }
-  return out;
+  return {
+    width: out.width,
+    height: out.height,
+    data: out.data
+  };
 }
 
 export function invertMaskInPlace(mask: Selection): void {
@@ -350,6 +417,10 @@ export function invertMaskInPlace(mask: Selection): void {
   }
 }
 
+/**
+ * Shift mask pixels inside a fixed buffer; anything that falls outside is lost.
+ * For moving the user’s selection, prefer {@link offsetSelectionByDocumentDelta}.
+ */
 export function translateMask(
   src: Selection,
   dx: number,
@@ -371,6 +442,24 @@ export function translateMask(
     }
   }
   return out;
+}
+
+/**
+ * Move the selection in document space without rewriting `data` (preserves
+ * regions that extend past the canvas edges).
+ */
+export function offsetSelectionByDocumentDelta(
+  src: Selection,
+  dx: number,
+  dy: number
+): Selection {
+  return {
+    width: src.width,
+    height: src.height,
+    data: new Uint8ClampedArray(src.data),
+    originX: (src.originX ?? 0) + dx,
+    originY: (src.originY ?? 0) + dy
+  };
 }
 
 /**
@@ -667,8 +756,11 @@ export function drawSelectionMaskOutline(
   zoom = 1
 ): void {
   const { width: w, height: h, data } = mask;
+  const ox = mask.originX ?? 0;
+  const oy = mask.originY ?? 0;
 
   ctx.save();
+  ctx.translate(ox, oy);
 
   ctx.beginPath();
 
@@ -735,29 +827,33 @@ export function clipContextToSelectionMask(
   const lw = ctx.canvas.width;
   const lh = ctx.canvas.height;
   const { width: mw, height: mh, data } = mask;
+  const mox = mask.originX ?? 0;
+  const moy = mask.originY ?? 0;
   ctx.save();
   ctx.beginPath();
   for (let ly = 0; ly < lh; ly++) {
     const docY = ly + offsetY;
-    if (docY < 0 || docY >= mh) {
+    const by = docY - moy;
+    if (by < 0 || by >= mh) {
       continue;
     }
-    const rowOff = docY * mw;
+    const rowOff = by * mw;
     let lx = 0;
     while (lx < lw) {
       const docX = lx + offsetX;
-      if (docX < 0 || docX >= mw) {
+      const bx = docX - mox;
+      if (bx < 0 || bx >= mw) {
         lx++;
         continue;
       }
-      if (data[rowOff + docX] === 0) {
+      if (data[rowOff + bx] === 0) {
         lx++;
         continue;
       }
       let lx2 = lx + 1;
       while (lx2 < lw) {
-        const dx = lx2 + offsetX;
-        if (dx >= mw || data[rowOff + dx] === 0) {
+        const ddx = lx2 + offsetX - mox;
+        if (ddx >= mw || data[rowOff + ddx] === 0) {
           break;
         }
         lx2++;
@@ -788,18 +884,22 @@ export function applySelectionMaskAlpha(
   const cw = canvas.width;
   const ch = canvas.height;
   const { width: mw, height: mh, data: mdata } = mask;
+  const mox = mask.originX ?? 0;
+  const moy = mask.originY ?? 0;
   const imgData = ctx.getImageData(0, 0, cw, ch);
   const pixels = imgData.data;
 
   for (let ly = 0; ly < ch; ly++) {
     const docY = ly + offsetY;
-    const inBounds = docY >= 0 && docY < mh;
-    const rowOff = inBounds ? docY * mw : 0;
+    const by = docY - moy;
+    const inY = by >= 0 && by < mh;
+    const rowOff = inY ? by * mw : 0;
     for (let lx = 0; lx < cw; lx++) {
       const docX = lx + offsetX;
+      const bx = docX - mox;
       let maskVal: number;
-      if (inBounds && docX >= 0 && docX < mw) {
-        maskVal = mdata[rowOff + docX];
+      if (inY && bx >= 0 && bx < mw) {
+        maskVal = mdata[rowOff + bx];
       } else {
         maskVal = 0;
       }
@@ -946,7 +1046,14 @@ export function buildSelectionBorderStrokeMask(
   if (!selectionHasAnyPixels({ width: w, height: h, data: strokeData })) {
     return null;
   }
-  return { width: w, height: h, data: strokeData };
+  const ring: Selection = { width: w, height: h, data: strokeData };
+  if (sel.originX != null) {
+    ring.originX = sel.originX;
+  }
+  if (sel.originY != null) {
+    ring.originY = sel.originY;
+  }
+  return ring;
 }
 
 export function drawStrokeBufferForDisplayWithSelectionFeather(

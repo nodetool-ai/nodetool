@@ -62,7 +62,7 @@ export interface UseEditorKeyboardShortcutsParams {
   handleFillLayerWithColor: (color: string) => void;
   handleCopy: () => void;
   handleCut: () => void;
-  handlePaste: () => Promise<void>;
+  handlePaste: (preferInternalClipboardFirst?: boolean) => Promise<void>;
   handleNudgeLayer: (
     dx: number,
     dy: number,
@@ -258,10 +258,10 @@ export function useEditorKeyboardShortcuts(
           e.preventDefault();
           paramsRef.current.handleCut();
         }
-        // Ctrl+V → paste
-        if (e.key === "v" && !e.shiftKey) {
+        // Ctrl+V → paste (OS clipboard first, other apps). Ctrl+Shift+V → in-app buffer first (masked alpha).
+        if (e.key === "v") {
           e.preventDefault();
-          paramsRef.current.handlePaste();
+          paramsRef.current.handlePaste(e.shiftKey);
         }
       } else if (e.altKey) {
         // Alt+Backspace → fill with foreground color (Photoshop convention)

@@ -47,6 +47,7 @@ import {
   featherMaskAlpha,
   invertMaskInPlace,
   selectionHasAnyPixels,
+  selectionToDocumentAligned,
   smoothSelectionBorders
 } from "../selection/selectionMask";
 
@@ -1136,24 +1137,18 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     const state = get();
     const { width: cw, height: ch } = state.document.canvas;
     const cur = state.selection;
-    if (cur && cur.width === cw && cur.height === ch) {
-      const copy = cloneSelectionMask(cur);
-      invertMaskInPlace(copy);
-      set({ selection: copy });
-      return;
-    }
     if (!cur) {
       const m = createEmptyMask(cw, ch);
       m.data.fill(255);
       set({ selection: m });
       return;
     }
-    const aligned = createEmptyMask(cw, ch);
-    for (let y = 0; y < Math.min(ch, cur.height); y++) {
-      for (let x = 0; x < Math.min(cw, cur.width); x++) {
-        aligned.data[y * cw + x] = cur.data[y * cur.width + x];
-      }
-    }
+    const ox = cur.originX ?? 0;
+    const oy = cur.originY ?? 0;
+    const aligned =
+      ox === 0 && oy === 0 && cur.width === cw && cur.height === ch
+        ? cloneSelectionMask(cur)
+        : selectionToDocumentAligned(cur, cw, ch);
     invertMaskInPlace(aligned);
     set({ selection: aligned });
   },

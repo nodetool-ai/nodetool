@@ -135,6 +135,7 @@ interface SelectSettingsPanelProps {
   settings: SelectSettings;
   onChange: (settings: Partial<SelectSettings>) => void;
   hasActiveSelection: boolean;
+  onInvertSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -1068,6 +1069,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   settings,
   onChange,
   hasActiveSelection,
+  onInvertSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder
@@ -1145,6 +1147,14 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         </Typography>
       </Box>
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={onInvertSelection}
+          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+        >
+          Invert
+        </Button>
         <Button
           size="small"
           variant="outlined"
@@ -1478,6 +1488,7 @@ export interface ToolSettingsPanelProps {
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
   onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
+  onInvertSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -1526,6 +1537,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onGradientSettingsChange,
   onCloneStampSettingsChange,
   onSelectSettingsChange,
+  onInvertSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder,
@@ -1638,6 +1650,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         settings={selectSettings}
         onChange={onSelectSettingsChange}
         hasActiveSelection={hasActiveSelection}
+        onInvertSelection={onInvertSelection}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
         onStrokeSelectionBorder={onStrokeSelectionBorder}

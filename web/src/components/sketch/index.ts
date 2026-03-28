@@ -136,6 +136,21 @@ export type {
   LayerRasterBounds
 } from "./serialization";
 
+/** Clipboard / copy-paste pixel pipeline (usable from a standalone sketch shell). */
+export {
+  multiplyImageDataAlphaBySelectionMask,
+  readSystemClipboardImageCanvas,
+  writeImageCanvasToSystemClipboardPng,
+  resolveSketchPasteImageCanvas,
+  buildSketchInternalClipboardCanvas,
+  drawSketchPasteOnLayerContext
+} from "./sketchClipboard";
+export type {
+  ResolveSketchPasteImageOptions,
+  BuildSketchInternalClipboardParams,
+  SketchPasteDrawParams
+} from "./sketchClipboard";
+
 export { getSamService, setSamService, SamServiceStub } from "./sam";
 export { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./sam";
 export type {

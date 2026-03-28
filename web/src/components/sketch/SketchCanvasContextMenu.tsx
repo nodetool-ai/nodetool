@@ -200,6 +200,7 @@ export interface SketchCanvasContextMenuProps {
   adjustContrast?: number;
   adjustSaturation?: number;
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
+  onInvertSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
@@ -264,6 +265,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   adjustContrast,
   adjustSaturation,
   onSelectSettingsChange,
+  onInvertSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
   onStrokeSelectionBorder,
@@ -535,6 +537,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               onGradientSettingsChange={onGradientSettingsChange}
               onCloneStampSettingsChange={onCloneStampSettingsChange}
               onSelectSettingsChange={onSelectSettingsChange}
+              onInvertSelection={onInvertSelection}
               onFeatherSelection={onFeatherSelection}
               onSmoothSelectionBorders={onSmoothSelectionBorders}
               onStrokeSelectionBorder={onStrokeSelectionBorder}
