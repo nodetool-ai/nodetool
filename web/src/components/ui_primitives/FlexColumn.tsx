@@ -1,11 +1,11 @@
 /**
  * FlexColumn Component
- * 
+ *
  * A flexible vertical container with consistent gap spacing.
  * Eliminates repetitive `display: flex, flexDirection: column, gap` patterns.
  */
 
-import * as React from "react";
+import { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -49,7 +49,7 @@ export interface FlexColumnProps extends Omit<BoxProps, 'display' | 'flexDirecti
  *   <Button>Button 2</Button>
  * </FlexColumn>
  */
-export const FlexColumn = React.forwardRef<HTMLDivElement, FlexColumnProps>(({
+export const FlexColumn = forwardRef<HTMLDivElement, FlexColumnProps>(({
   gap = 0,
   padding,
   align = "stretch",

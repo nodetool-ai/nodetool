@@ -1,11 +1,11 @@
 /**
  * FlexRow Component
- * 
+ *
  * A flexible horizontal container with consistent gap spacing.
  * Eliminates repetitive `display: flex, gap` patterns.
  */
 
-import * as React from "react";
+import { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -49,7 +49,7 @@ export interface FlexRowProps extends Omit<BoxProps, 'display'> {
  *   <Chip label="Tag 3" />
  * </FlexRow>
  */
-export const FlexRow = React.forwardRef<HTMLDivElement, FlexRowProps>(({
+export const FlexRow = forwardRef<HTMLDivElement, FlexRowProps>(({
   gap = 0,
   padding,
   align = "stretch",

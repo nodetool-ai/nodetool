@@ -204,12 +204,6 @@ jest.mock("zustand/traditional", () => ({
   useStoreWithEqualityFn: jest.fn()
 }));
 
-// Mock the ref
-jest.mock("react", () => ({
-  ...jest.requireActual("react"),
-  useRef: jest.fn(() => ({ current: null }))
-}));
-
 const renderComponent = (props: any) => {
   return render(
     <ThemeProvider theme={mockTheme}>

@@ -1,7 +1,6 @@
-import * as React from "react";
+import { createElement } from "react";
 
 // Mock SVG React component
-const SvgMock: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
-  React.createElement("svg", props);
+const SvgMock = (props: any) => createElement("svg", props);
 
 export default SvgMock;

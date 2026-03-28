@@ -2,25 +2,13 @@ import { renderHook, act } from "@testing-library/react";
 import { useAddToGroup } from "../useAddToGroup";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
-
-const mockGetState = jest.fn();
+import { useContext } from "react";
 
 // Mock dependencies
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn(),
-  NodeContext: { displayName: 'NodeContext' }
+  NodeContext: { displayName: 'NodeContext', Provider: ({ children }: any) => children }
 }));
-
-// Mock React's useContext to return our mock context
-jest.mock('react', () => {
-  const originalReact = jest.requireActual('react');
-  return {
-    ...originalReact,
-    useContext: () => ({
-      getState: () => mockGetState()
-    })
-  };
-});
 
 jest.mock("../useIsGroupable", () => ({
   useIsGroupable: () => ({
@@ -40,6 +28,7 @@ const mockUseNodes = useNodes as jest.MockedFunction<typeof useNodes>;
 const mockGetGroupBounds = getGroupBounds as jest.MockedFunction<typeof getGroupBounds>;
 
 describe("useAddToGroup", () => {
+  const mockGetState = jest.fn();
   const mockUpdateNode = jest.fn();
 
   const createMockNode = (
@@ -62,11 +51,18 @@ describe("useAddToGroup", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(require('react'), 'useContext').mockReturnValue({
+      getState: () => mockGetState()
+    });
     mockUseNodes.mockReturnValue({
       updateNode: mockUpdateNode
     });
     mockGetGroupBounds.mockReturnValue({ width: 300, height: 200, offsetX: 0, offsetY: 0 });
     mockGetState.mockReturnValue({ nodes: [] });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("returns a function", () => {
