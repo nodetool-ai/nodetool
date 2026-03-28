@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
-import { Typography, Box, CircularProgress } from "@mui/material";
+import { Typography, Box } from "@mui/material";
+import { LoadingSpinner } from "../ui_primitives";
 import { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -529,12 +530,12 @@ const TemplateGrid = memo(function TemplateGrid() {
         />
         {showLoading && (
           <div className="loading-indicator">
-            <CircularProgress />
-            <Typography variant="h4">
-              {isFetchingSearchData && nodesOnlySearch
+            <LoadingSpinner
+              size="large"
+              text={isFetchingSearchData && nodesOnlySearch
                 ? "Searching for Templates"
                 : "Loading Templates"}
-            </Typography>
+            />
           </div>
         )}
         {isError && (

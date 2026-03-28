@@ -1,20 +1,21 @@
 import { useMemo, memo } from "react";
-import { Box, CircularProgress, Typography, List, ListItem } from "@mui/material";
+import { Box, List, ListItem } from "@mui/material";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import { Job } from "../../../stores/ApiTypes";
 import { groupByDate } from "../../../utils/groupByDate";
 import JobItem from "./JobItem";
+import { LoadingSpinner, Text, FlexColumn } from "../../ui_primitives";
 
 const JobGroupHeader = memo(function JobGroupHeader({ label }: { label: string }) {
     return (
     <ListItem sx={{ pt: 1, pb: 0.5, px: 2 }}>
-        <Typography
-            variant="caption"
+        <Text
+            size="tiny"
+            color="secondary"
+            weight={600}
             sx={{
-                fontWeight: 600,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
-                color: "text.secondary",
                 width: "100%",
                 textAlign: "right",
                 borderBottom: 1,
@@ -23,7 +24,7 @@ const JobGroupHeader = memo(function JobGroupHeader({ label }: { label: string }
             }}
         >
             {label}
-        </Typography>
+        </Text>
     </ListItem>
     );
 });
@@ -61,13 +62,13 @@ const JobsPanel = memo(function JobsPanel() {
     const { data: jobs, isLoading, error } = useRunningJobs();
 
     if (isLoading) {
-        return <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}><CircularProgress size={24} /></Box>;
+        return <FlexColumn align="center" padding={2}><LoadingSpinner size="small" /></FlexColumn>;
     }
     if (error) {
-        return <Box sx={{ p: 2, color: "error.main" }}><Typography variant="body2">Error loading jobs</Typography></Box>;
+        return <Box sx={{ p: 2 }}><Text size="small" color="error">Error loading jobs</Text></Box>;
     }
     if (!jobs?.length) {
-        return <Box sx={{ p: 5, color: "text.secondary" }}><Typography variant="body2">No running jobs</Typography></Box>;
+        return <Box sx={{ p: 5 }}><Text size="small" color="secondary">No running jobs</Text></Box>;
     }
 
     return (

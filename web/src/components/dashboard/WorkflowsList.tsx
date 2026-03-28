@@ -5,12 +5,12 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
   Typography,
-  CircularProgress,
   Button,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip
 } from "@mui/material";
+import { LoadingSpinner, FlexRow } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -144,12 +144,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Memoize the workflow box sx prop to avoid creating new objects
-  const workflowControlsBoxSx = useMemo(() => ({
-    display: "flex",
-    gap: 2,
-    alignItems: "center"
-  }), []);
+  // workflowControlsBoxSx replaced by FlexRow primitive
 
   // Single click handler that uses the workflow from the event
   // This avoids creating N callback functions for N workflows on every render
@@ -169,9 +164,10 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
         <Typography variant="h3" className="section-title">
           Recent Workflows
         </Typography>
-        <Box
+        <FlexRow
           className="workflow-controls"
-          sx={workflowControlsBoxSx}
+          gap={2}
+          align="center"
         >
           <ToggleButtonGroup
             className="sort-toggle"
@@ -197,12 +193,12 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
               size="small"
             ></Button>
           </Tooltip>
-        </Box>
+        </FlexRow>
       </Box>
       <Box className="content-scrollable">
         {isLoadingWorkflows ? (
           <Box className="loading-container">
-            <CircularProgress />
+            <LoadingSpinner size="large" />
           </Box>
         ) : (
           sortedWorkflows.map((workflow) => (

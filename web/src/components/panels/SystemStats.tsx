@@ -2,11 +2,11 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Tooltip,
-  Typography,
   LinearProgress,
   Popover
 } from "@mui/material";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
+import { FlexColumn, FlexRow, Text, ProgressBar } from "../ui_primitives";
 
 // Memoized inline styles for progress bars
 const progressSx = {
@@ -16,24 +16,6 @@ const progressSx = {
   "& .MuiLinearProgress-bar": {
     borderRadius: 4
   }
-} as const;
-
-const popoverProgressSx = {
-  height: 4,
-  borderRadius: 4,
-  backgroundColor: "rgba(255, 255, 255, 0.1)",
-  "& .MuiLinearProgress-bar": {
-    borderRadius: 4
-  }
-} as const;
-
-const statsBoxSx = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 1,
-  padding: "2px",
-  minWidth: 60,
-  cursor: "pointer"
 } as const;
 
 // ARIA labels for accessibility
@@ -98,11 +80,12 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
       aria-label="System resource usage"
     >
       <Tooltip title="System Stats">
-        <Box
+        <FlexColumn
           id={triggerId}
           onClick={handleClick}
           onKeyDown={handleKeyDown}
-          sx={statsBoxSx}
+          gap={1}
+          sx={{ padding: "2px", minWidth: 60, cursor: "pointer" }}
           tabIndex={0}
           role="button"
           aria-label={STATS_ARIA_LABELS.statsTrigger}
@@ -122,7 +105,7 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
               aria-valuemax={100}
             />
           ))}
-        </Box>
+        </FlexColumn>
       </Tooltip>
       <Popover
         id={popoverId}
@@ -177,22 +160,13 @@ const StatItem: React.FC<{ label: string; value: number }> = React.memo(function
       role="group"
       aria-label={`${label}: ${value.toFixed(0)}%`}
     >
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-          {label}
-        </Typography>
-        <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-          {value.toFixed(0)}%
-        </Typography>
-      </Box>
-      <LinearProgress
-        variant="determinate"
+      <ProgressBar
         value={value}
-        sx={popoverProgressSx}
+        label={label}
+        showValue
+        formatValue={(v) => `${v.toFixed(0)}%`}
+        barHeight={4}
         aria-label={getAriaLabel(label)}
-        aria-valuenow={value}
-        aria-valuemin={0}
-        aria-valuemax={100}
       />
     </Box>
   );
