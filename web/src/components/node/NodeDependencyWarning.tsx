@@ -90,7 +90,7 @@ let fetchPromise: Promise<void> | null = null;
 
 async function refreshRuntimeStatuses(): Promise<void> {
   const api = (window as any).api;
-  if (!api?.packages?.getRuntimeStatuses) return;
+  if (!api?.packages?.getRuntimeStatuses) {return;}
   try {
     const statuses: Array<{ id: string; installed: boolean }> =
       await api.packages.getRuntimeStatuses();
@@ -140,7 +140,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   useEffect(() => {
     let cancelled = false;
     checkRuntimes().then(() => {
-      if (cancelled) return;
+      if (cancelled) {return;}
     });
     return () => {
       cancelled = true;
@@ -149,7 +149,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
 
   // Re-check when window regains focus (e.g. after installing a runtime).
   useEffect(() => {
-    if (missingRuntimes.length === 0) return;
+    if (missingRuntimes.length === 0) {return;}
     const onFocus = () => {
       checkRuntimes(true);
     };

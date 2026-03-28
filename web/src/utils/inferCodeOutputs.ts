@@ -21,10 +21,10 @@ export function inferReturnOutputs(code: string): string[] | null {
 
   // Find the last `return {` in the code
   const returnIdx = stripped.lastIndexOf("return");
-  if (returnIdx === -1) return null;
+  if (returnIdx === -1) {return null;}
 
   const afterReturn = stripped.slice(returnIdx + 6).trimStart();
-  if (!afterReturn.startsWith("{")) return null;
+  if (!afterReturn.startsWith("{")) {return null;}
 
   // Extract the balanced brace block
   let depth = 0;
@@ -33,7 +33,7 @@ export function inferReturnOutputs(code: string): string[] | null {
   for (let i = 0; i < afterReturn.length; i++) {
     const ch = afterReturn[i];
     if (ch === "{") {
-      if (depth === 0) start = i;
+      if (depth === 0) {start = i;}
       depth++;
     } else if (ch === "}") {
       depth--;
@@ -44,7 +44,7 @@ export function inferReturnOutputs(code: string): string[] | null {
     }
   }
 
-  if (start === -1 || end === -1) return null;
+  if (start === -1 || end === -1) {return null;}
 
   const body = afterReturn.slice(start + 1, end);
 
@@ -60,7 +60,7 @@ export function inferReturnOutputs(code: string): string[] | null {
     // String tracking (simple — doesn't handle template literals perfectly but good enough)
     if (inStr) {
       token += ch;
-      if (ch === inStr && body[i - 1] !== "\\") inStr = null;
+      if (ch === inStr && body[i - 1] !== "\\") {inStr = null;}
       continue;
     }
     if (ch === '"' || ch === "'" || ch === "`") {
@@ -74,7 +74,7 @@ export function inferReturnOutputs(code: string): string[] | null {
 
     if (ch === "," && nesting === 0) {
       const key = extractKey(token.trim());
-      if (key) keys.push(key);
+      if (key) {keys.push(key);}
       token = "";
     } else {
       token += ch;
@@ -82,7 +82,7 @@ export function inferReturnOutputs(code: string): string[] | null {
   }
   // Last token (no trailing comma)
   const lastKey = extractKey(token.trim());
-  if (lastKey) keys.push(lastKey);
+  if (lastKey) {keys.push(lastKey);}
 
   return keys.length > 0 ? keys : null;
 }
@@ -92,9 +92,9 @@ export function inferReturnOutputs(code: string): string[] | null {
  * the property name. Returns null for computed `[expr]: val` keys.
  */
 function extractKey(token: string): string | null {
-  if (!token) return null;
+  if (!token) {return null;}
   // Skip computed keys
-  if (token.startsWith("[")) return null;
+  if (token.startsWith("[")) {return null;}
 
   // key: value  or  shorthand key
   const colonIdx = token.indexOf(":");
@@ -102,6 +102,6 @@ function extractKey(token: string): string | null {
   const key = rawKey.trim().replace(/^["']|["']$/g, ""); // strip quotes
 
   // Must be a valid JS identifier
-  if (!key || !/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) return null;
+  if (!key || !/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {return null;}
   return key;
 }

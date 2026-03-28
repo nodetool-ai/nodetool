@@ -107,7 +107,7 @@ const styles = (theme: Theme) =>
   });
 
 function formatRelativeTime(ms: number): string {
-  if (ms < 1000) return `+${ms}ms`;
+  if (ms < 1000) {return `+${ms}ms`;}
   return `+${(ms / 1000).toFixed(1)}s`;
 }
 
@@ -201,8 +201,8 @@ const TracePanel: React.FC = () => {
   const handleToggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {next.delete(id);}
+      else {next.add(id);}
       return next;
     });
   }, []);
