@@ -434,12 +434,6 @@ export const createNodeStore = (
               "matching",
               matchingCount
             );
-            console.info(
-              "[NodeStore] selectNodesByType",
-              nodeType,
-              "matching",
-              matchingCount
-            );
             if (matchingCount === 0) {
               return;
             }
