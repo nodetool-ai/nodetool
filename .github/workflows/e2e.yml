@@ -52,45 +52,12 @@ jobs:
           cd web
           npx playwright install --with-deps chromium
 
-      - name: Start TS server
-        run: |
-          node packages/websocket/dist/server.js > /tmp/nodetool-server.log 2>&1 &
-          echo $! > /tmp/nodetool-server.pid
-        env:
-          PORT: "7777"
-          HOST: "127.0.0.1"
-
-      - name: Wait for server to be ready
-        uses: jtalk/url-health-check-action@v4
-        with:
-          url: http://localhost:7777/health
-          max-attempts: 60
-          retry-delay: 2s
-
       - name: Run E2E tests
-        shell: bash
         run: |
           cd web
           npx playwright test
         env:
           CI: true
-          E2E_START_BACKEND: "false"
-
-      - name: Stop servers
-        if: always()
-        shell: bash
-        run: |
-          if [ -f /tmp/nodetool-server.pid ]; then
-            kill $(cat /tmp/nodetool-server.pid) || true
-          fi
-
-      - name: Upload nodetool server logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nodetool-server-logs
-          path: /tmp/nodetool-server.log
-          retention-days: 7
 
       - name: Upload Playwright report
         if: failure()
