@@ -36,6 +36,7 @@ import type {
 import { getCanvasRasterBounds } from "../painting";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
 import { usePointerHandlerUtils } from "./usePointerHandlerUtils";
+import type { SelectionMoveAntsRef } from "./useOverlayRenderer";
 import {
   cloneSelectionMask,
   combineMasks,
@@ -69,8 +70,14 @@ import {
 const WHEEL_ZOOM_SMOOTH_MIN = 0.26;
 const WHEEL_ZOOM_SMOOTH_MAX = 0.72;
 
-/** Rect/ellipse marquee: require this much document-space drag (px) before committing a mask. */
+/** Rect/ellipse marquee: require this much document-space delta (or screen slop below) before commit. */
 const MARQUEE_MIN_DRAG_DOC_PX = 1;
+/**
+ * Marquee is a deliberate drag if the pointer moves this many CSS px from pointer-down.
+ * When zoomed in, a 1×1 doc selection can have both doc deltas under 1 while the stroke stays inside
+ * one document pixel — screen slop still detects that. Pure clicks stay under this threshold.
+ */
+const MARQUEE_DRAG_MIN_SCREEN_PX = 3;
 
 function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp {
   if (shift && alt) {
@@ -158,6 +165,8 @@ export interface UsePointerHandlersParams {
   /** Layer isolation (must match on-screen composite for wand / eyedropper readback). */
   isolatedLayerId?: string | null;
   onSelectionChange?: (sel: Selection | null) => void;
+  /** Shared with `useOverlayRenderer` for marching ants while moving selection (unclipped until pointer up). */
+  selectionMoveAntsRef: SelectionMoveAntsRef;
   onAutoPickLayer?: (layerId: string) => void;
   foregroundColor?: string;
   /** Fires when the pointer leaves the canvas container (thumbnails, etc.). */
@@ -227,6 +236,7 @@ export function usePointerHandlers({
   onEyedropperPick,
   isolatedLayerId,
   onSelectionChange,
+  selectionMoveAntsRef,
   onAutoPickLayer,
   foregroundColor = "#000000",
   onCanvasLeave,
@@ -282,11 +292,13 @@ export function usePointerHandlers({
 
   /**
    * Rect/ellipse: true after pointermove shows ≥ {@link MARQUEE_MIN_DRAG_DOC_PX}
-   * document-pixel delta from the marquee anchor. Distinguishes a deliberate drag
-   * (including a 1×1 mask when zoomed) from a click whose pointer-up coords may
-   * not exactly match pointer-down.
+   * document delta from the marquee anchor, or ≥ {@link MARQUEE_DRAG_MIN_SCREEN_PX}
+   * CSS px from pointer-down. The screen test is required so a 1×1 doc mask while zoomed
+   * in (drag entirely inside one document pixel) still counts as a drag; the doc test keeps
+   * 1×1 possible at zoom 1 with a sub–3px but ≥1 doc-unit motion.
    */
   const marqueeDocDragSeenRef = useRef(false);
+  const marqueePointerDownClientRef = useRef<{ x: number; y: number } | null>(null);
 
   // Alpha lock & stroke tracking
   const alphaSnapshotRef = useRef<ImageData | null>(null);
@@ -756,7 +768,9 @@ export function usePointerHandlers({
         ) {
           isMovingSelectionRef.current = true;
           moveSelectionOriginRef.current = pt;
-          selectionAtMoveStartRef.current = cloneSelectionMask(selection);
+          const cloned = cloneSelectionMask(selection);
+          selectionAtMoveStartRef.current = cloned;
+          selectionMoveAntsRef.current = { start: cloned, dx: 0, dy: 0 };
           isDrawingRef.current = true;
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
           return;
@@ -817,6 +831,10 @@ export function usePointerHandlers({
         selectStartRef.current = pt;
         lassoPointsRef.current = [];
         marqueeDocDragSeenRef.current = false;
+        marqueePointerDownClientRef.current = {
+          x: e.clientX,
+          y: e.clientY
+        };
         marqueeCombineAtDownRef.current = {
           shift: shiftHeldRef.current,
           alt: altHeldRef.current
@@ -1235,9 +1253,10 @@ export function usePointerHandlers({
         const pt = screenToCanvas(e.clientX, e.clientY);
         const dx = Math.round(pt.x - moveSelectionOriginRef.current.x);
         const dy = Math.round(pt.y - moveSelectionOriginRef.current.y);
-        const orig = selectionAtMoveStartRef.current;
-        if (onSelectionChange) {
-          onSelectionChange(translateMask(orig, dx, dy));
+        const start = selectionAtMoveStartRef.current;
+        if (start) {
+          selectionMoveAntsRef.current = { start, dx, dy };
+          drawSelectionOverlay();
         }
         return;
       }
@@ -1262,9 +1281,14 @@ export function usePointerHandlers({
         const sm = doc.toolSettings.select.mode;
         if (sm === "rectangle" || sm === "ellipse") {
           const anchor = selectStartRef.current;
+          const downClient = marqueePointerDownClientRef.current;
+          const screenDx = downClient ? e.clientX - downClient.x : 0;
+          const screenDy = downClient ? e.clientY - downClient.y : 0;
           if (
             Math.abs(pt.x - anchor.x) >= MARQUEE_MIN_DRAG_DOC_PX ||
-            Math.abs(pt.y - anchor.y) >= MARQUEE_MIN_DRAG_DOC_PX
+            Math.abs(pt.y - anchor.y) >= MARQUEE_MIN_DRAG_DOC_PX ||
+            screenDx * screenDx + screenDy * screenDy >=
+              MARQUEE_DRAG_MIN_SCREEN_PX * MARQUEE_DRAG_MIN_SCREEN_PX
           ) {
             marqueeDocDragSeenRef.current = true;
           }
@@ -1571,11 +1595,20 @@ export function usePointerHandlers({
         return;
       }
 
-      // Finalize selection movement
+      // Finalize selection movement (commit clipped translate once on pointer up)
       if (interactionTool === "select" && isMovingSelectionRef.current) {
+        const ants = selectionMoveAntsRef.current;
+        const start = selectionAtMoveStartRef.current;
+        if (start && onSelectionChange) {
+          const dx = ants?.dx ?? 0;
+          const dy = ants?.dy ?? 0;
+          onSelectionChange(translateMask(start, dx, dy));
+        }
+        selectionMoveAntsRef.current = null;
         isMovingSelectionRef.current = false;
         moveSelectionOriginRef.current = null;
         selectionAtMoveStartRef.current = null;
+        drawSelectionOverlay();
         return;
       }
 
@@ -1648,6 +1681,7 @@ export function usePointerHandlers({
           selMode === "rectangle" || selMode === "ellipse";
         const marqueeDragged = marqueeDocDragSeenRef.current;
         marqueeDocDragSeenRef.current = false;
+        marqueePointerDownClientRef.current = null;
         if (
           w >= 1 &&
           h >= 1 &&

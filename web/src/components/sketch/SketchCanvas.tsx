@@ -315,6 +315,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const altHeldRef = useRef(false);
     const selectStartRef = useRef<Point | null>(null);
     const lassoPointsRef = useRef<Point[]>([]);
+    const selectionMoveAntsRef = useRef<{
+      start: Selection;
+      dx: number;
+      dy: number;
+    } | null>(null);
 
     // ─── Overlay and cursor rendering ──────────────────────────────────
 
@@ -325,6 +330,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       zoom,
       pan,
       selection,
+      selectionMoveAntsRef,
       overlayCanvasRef,
       selectionCanvasRef,
       cursorCanvasRef,
@@ -384,6 +390,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       onEyedropperPick,
       isolatedLayerId,
       onSelectionChange,
+      selectionMoveAntsRef,
       onAutoPickLayer,
       foregroundColor,
       onCanvasLeave,

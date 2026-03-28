@@ -11,7 +11,11 @@ export { useCanvasImperativeHandle } from "./useCanvasImperativeHandle";
 export type { UseCanvasImperativeHandleParams } from "./useCanvasImperativeHandle";
 
 export { useOverlayRenderer } from "./useOverlayRenderer";
-export type { UseOverlayRendererParams, UseOverlayRendererResult } from "./useOverlayRenderer";
+export type {
+  SelectionMoveAntsRef,
+  UseOverlayRendererParams,
+  UseOverlayRendererResult
+} from "./useOverlayRenderer";
 
 export { usePointerHandlers } from "./usePointerHandlers";
 export type { UsePointerHandlersParams, UsePointerHandlersResult } from "./usePointerHandlers";

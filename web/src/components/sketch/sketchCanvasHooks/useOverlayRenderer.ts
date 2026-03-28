@@ -27,6 +27,13 @@ import {
   selectionHasAnyPixels
 } from "../selection/selectionMask";
 
+/** While dragging a selection, marching ants use `start` + `translate(dx,dy)` so the outline is not clipped before commit. */
+export type SelectionMoveAntsRef = React.MutableRefObject<{
+  start: Selection;
+  dx: number;
+  dy: number;
+} | null>;
+
 export interface UseOverlayRendererParams {
   doc: SketchDocument;
   activeTool: SketchTool;
@@ -35,6 +42,8 @@ export interface UseOverlayRendererParams {
   zoom: number;
   pan: Point;
   selection?: Selection | null;
+  /** Non-null during select-tool move drag; overlay reads this instead of clipping the mask each move. */
+  selectionMoveAntsRef: SelectionMoveAntsRef;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -66,6 +75,7 @@ export function useOverlayRenderer({
   zoom,
   pan,
   selection,
+  selectionMoveAntsRef,
   overlayCanvasRef,
   selectionCanvasRef,
   cursorCanvasRef,
@@ -187,6 +197,23 @@ export function useOverlayRenderer({
 
   /** Paint committed selection mask ants on the screen-res canvas. */
   const paintSelectionAnts = useCallback(() => {
+    const moveAnts = selectionMoveAntsRef.current;
+    if (moveAnts) {
+      if (!selectionHasAnyPixels(moveAnts.start)) {
+        clearSelectionCanvas();
+        return;
+      }
+      const ctx = getSelectionCtx();
+      if (!ctx) {
+        return;
+      }
+      ctx.save();
+      ctx.translate(moveAnts.dx, moveAnts.dy);
+      drawSelectionMaskOutline(ctx, moveAnts.start, antsPhaseRef.current, zoom);
+      ctx.restore();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      return;
+    }
     if (!selection || !selectionHasAnyPixels(selection)) {
       clearSelectionCanvas();
       return;
@@ -199,7 +226,7 @@ export function useOverlayRenderer({
     drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
     ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [selection, zoom, getSelectionCtx, clearSelectionCanvas]);
+  }, [selection, zoom, getSelectionCtx, clearSelectionCanvas, selectionMoveAntsRef]);
 
   const drawSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
@@ -215,7 +242,11 @@ export function useOverlayRenderer({
     paintPixelGridOverlay(ctx);
     ctx.restore();
 
-    if (selection && selectionHasAnyPixels(selection)) {
+    const moveAnts = selectionMoveAntsRef.current;
+    const hasAntsSource =
+      (selection && selectionHasAnyPixels(selection)) ||
+      (moveAnts != null && selectionHasAnyPixels(moveAnts.start));
+    if (hasAntsSource) {
       if (!selectStartRef.current && lassoPointsRef.current.length === 0) {
         paintSelectionAnts();
       } else {
@@ -224,22 +255,30 @@ export function useOverlayRenderer({
     } else {
       clearSelectionCanvas();
     }
-  }, [selection, overlayCanvasRef, selectStartRef, lassoPointsRef, paintPixelGridOverlay, paintSelectionAnts, clearSelectionCanvas]);
+  }, [
+    selection,
+    overlayCanvasRef,
+    selectStartRef,
+    lassoPointsRef,
+    paintPixelGridOverlay,
+    paintSelectionAnts,
+    clearSelectionCanvas,
+    selectionMoveAntsRef
+  ]);
 
   const appendSelectionOverlay = useCallback(() => {
-    if (!selection || !selectionHasAnyPixels(selection)) {
+    const moveAnts = selectionMoveAntsRef.current;
+    const hasAnts =
+      (selection && selectionHasAnyPixels(selection)) ||
+      (moveAnts != null && selectionHasAnyPixels(moveAnts.start));
+    if (!hasAnts) {
       return;
     }
     if (selectStartRef.current || lassoPointsRef.current.length > 0) {
       return;
     }
     paintSelectionAnts();
-  }, [
-    selection,
-    selectStartRef,
-    lassoPointsRef,
-    paintSelectionAnts
-  ]);
+  }, [selection, selectStartRef, lassoPointsRef, paintSelectionAnts, selectionMoveAntsRef]);
 
   useEffect(() => {
     drawSelectionOverlay();

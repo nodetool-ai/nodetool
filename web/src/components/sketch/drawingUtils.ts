@@ -461,9 +461,9 @@ export const PIXEL_GRID_MIN_ZOOM = 2;
  * grid is visible as soon as pixel-level editing makes sense (e.g. 200% zoom)
  * without a harsh pop-in.
  *
- * Because the overlay canvas has the same intrinsic size as the document
- * (e.g. 512×512) and is displayed with CSS `scale(zoom)`, a line width of
- * `1 / zoom` document pixels results in exactly 1 screen pixel.
+ * The overlay matches document pixel size and is scaled with CSS `scale(zoom)`.
+ * Line width is ~`1/zoom` doc units for ~1 CSS px; we clamp to at least 0.5 doc
+ * units so strokes stay visible after rasterization.
  */
 export function drawPixelGrid(
   ctx: CanvasRenderingContext2D,
@@ -482,9 +482,10 @@ export function drawPixelGrid(
       : (zoom - PIXEL_GRID_MIN_ZOOM) / (fadeEnd - PIXEL_GRID_MIN_ZOOM);
   // At exactly PIXEL_GRID_MIN_ZOOM, t === 0: use a visible floor (previous
   // formula multiplied by t and made the grid fully transparent at 200%).
-  const opacity = 0.08 + 0.1 * Math.min(1, Math.max(0, t));
+  const opacity = 0.12 + 0.14 * Math.min(1, Math.max(0, t));
 
-  const lw = 1 / zoom; // 1 screen-pixel wide
+  // Prefer ~1 CSS px after scale(zoom); floor width so sub-pixel strokes survive raster + upscale.
+  const lw = Math.max(1 / zoom, 0.5);
 
   ctx.save();
   ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
