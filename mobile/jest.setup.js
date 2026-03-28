@@ -69,6 +69,13 @@ jest.mock('react-native-syntax-highlighter', () => {
   };
 });
 
+// Mock expo-clipboard
+jest.mock('expo-clipboard', () => ({
+  setStringAsync: jest.fn().mockResolvedValue(true),
+  getStringAsync: jest.fn().mockResolvedValue(''),
+  hasStringAsync: jest.fn().mockResolvedValue(false),
+}));
+
 // Mock expo-image-picker
 jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),

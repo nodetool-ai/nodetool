@@ -602,12 +602,12 @@ describe('WebSocketManager', () => {
       // Access private method to test delay calculation
       // Formula: reconnectInterval * decay^(attempt-1)
       const delay1 = (manager as any).getReconnectDelay();
-      expect(delay1).toBe(1000); // 1000 * 1.5^(1-1) = 1000 * 1 = 1000
-      
+      expect(delay1).toBe(1500); // 1000 * 1.5^1 = 1500
+
       // Simulate subsequent reconnect attempts
       (manager as any).reconnectAttempt = 3;
       const delay3 = (manager as any).getReconnectDelay();
-      expect(delay3).toBe(2250); // 1000 * 1.5^(3-1) = 1000 * 2.25 = 2250
+      expect(delay3).toBe(3375); // 1000 * 1.5^3 = 3375
       expect(delay3).toBeGreaterThan(delay1);
     });
 

@@ -6,6 +6,7 @@ import {
   installRequiredPythonPackages,
   runCommand,
 } from "./python";
+import { getCondaEnvPath } from "./config";
 
 import { logMessage } from "./logger";
 import path from "path";
