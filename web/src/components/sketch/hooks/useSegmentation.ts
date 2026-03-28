@@ -18,6 +18,7 @@ import type {
   SegmentationMask,
   SegmentationStatus,
   Layer,
+  Point,
   PushHistoryOptions
 } from "../types";
 import {
@@ -26,7 +27,13 @@ import {
   generateLayerId
 } from "../types";
 import { useSketchStore } from "../state";
-import { getSamService, generateSegmentationRunId, DEFAULT_SAM_MODEL_ID } from "../sam";
+import {
+  getSamService,
+  generateSegmentationRunId,
+  generateCutoutDataUrl,
+  drawMaskBoundsOverlay,
+  DEFAULT_SAM_MODEL_ID
+} from "../sam";
 import type { SamModelInfo } from "../sam";
 
 export interface UseSegmentationParams {
@@ -58,6 +65,15 @@ export interface UseSegmentationReturn {
   applyResult: () => void;
   /** Discard the current segmentation result. */
   discardResult: () => void;
+  /**
+   * Draw mask preview overlay on the given canvas context.
+   * Call this from the render loop when status === "previewing".
+   */
+  drawMaskPreview: (
+    ctx: CanvasRenderingContext2D,
+    zoom: number,
+    pan: Point
+  ) => void;
 }
 
 export function useSegmentation({
@@ -234,7 +250,42 @@ export function useSegmentation({
 
     // Set cutout image data on each mask layer via canvas ref
     const canvas = canvasRef.current;
-    if (canvas) {
+    if (canvas && settings.outputCutouts) {
+      // Generate cutouts by masking source pixels through each mask
+      const sourceData = canvas.getLayerData(result.sourceLayerId);
+      if (sourceData) {
+        for (let i = 0; i < maskLayers.length; i++) {
+          const mask = result.masks[i];
+          if (mask.maskDataUrl) {
+            // Generate cutout asynchronously - set raw mask data first as fallback
+            canvas.setLayerData(maskLayers[i].id, mask.maskDataUrl, {
+              x: mask.bounds.x,
+              y: mask.bounds.y,
+              width: mask.bounds.width,
+              height: mask.bounds.height
+            });
+
+            // Try to generate a proper cutout with optional feathering
+            void generateCutoutDataUrl(
+              sourceData,
+              mask.maskDataUrl,
+              mask.bounds,
+              settings.maskFeather
+            ).then((cutout) => {
+              if (cutout) {
+                canvas.setLayerData(maskLayers[i].id, cutout, {
+                  x: mask.bounds.x,
+                  y: mask.bounds.y,
+                  width: mask.bounds.width,
+                  height: mask.bounds.height
+                });
+              }
+            });
+          }
+        }
+      }
+    } else if (canvas) {
+      // Mask-only mode: set mask data directly
       for (let i = 0; i < maskLayers.length; i++) {
         const mask = result.masks[i];
         if (mask.maskDataUrl) {
@@ -259,6 +310,34 @@ export function useSegmentation({
     setStatus("idle");
   }, []);
 
+  // ─── Mask Preview Overlay ───────────────────────────────────────────────
+
+  const drawMaskPreview = useCallback(
+    (ctx: CanvasRenderingContext2D, zoom: number, pan: Point) => {
+      if (!result || result.masks.length === 0) {
+        return;
+      }
+
+      ctx.save();
+
+      // Transform overlay context into document space
+      const container = ctx.canvas;
+      const cx = container.width / 2;
+      const cy = container.height / 2;
+      ctx.setTransform(zoom, 0, 0, zoom, cx + pan.x, cy + pan.y);
+
+      const docW = useSketchStore.getState().document.canvas.width;
+      const docH = useSketchStore.getState().document.canvas.height;
+      ctx.translate(-docW / 2, -docH / 2);
+
+      // Draw colored bounding box overlays for each mask
+      drawMaskBoundsOverlay(ctx, result.masks, zoom);
+
+      ctx.restore();
+    },
+    [result]
+  );
+
   return {
     status,
     modelInfo,
@@ -267,6 +346,7 @@ export function useSegmentation({
     runSegmentation,
     cancelSegmentation,
     applyResult,
-    discardResult
+    discardResult,
+    drawMaskPreview
   };
 }

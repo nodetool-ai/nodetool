@@ -13,6 +13,8 @@ export type {
   SegmentationResponse
 } from "./SamService";
 
+export { SamServiceFal, resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
+
 export {
   getMaskOverlayColor,
   getMaskOutlineColor,

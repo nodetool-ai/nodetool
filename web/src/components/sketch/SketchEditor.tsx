@@ -252,6 +252,22 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     }
   }, [store.document, onDocumentChange, canvasReady]);
 
+  // ─── Mask preview overlay when segmentation is previewing ──────────
+  useEffect(() => {
+    if (segmentation.status !== "previewing" || !segmentation.result) {
+      return;
+    }
+    const overlayCanvas = canvasRef.current?.getOverlayCanvas();
+    if (!overlayCanvas) {
+      return;
+    }
+    const ctx = overlayCanvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    segmentation.drawMaskPreview(ctx, store.zoom, store.pan);
+  }, [segmentation, store.zoom, store.pan]);
+
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
     handleUndo,

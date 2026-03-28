@@ -1391,15 +1391,33 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           </>
         )}
         {isRunning && (
-          <Button
-            size="small"
-            variant="outlined"
-            color="warning"
-            onClick={onCancelSegmentation}
-            sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
-          >
-            Cancel
-          </Button>
+          <>
+            <Typography
+              sx={{
+                fontSize: "0.6rem",
+                color: "info.main",
+                lineHeight: 1.3,
+                mr: 0.5,
+                display: "flex",
+                alignItems: "center"
+              }}
+            >
+              {segmentationStatus === "checking-model"
+                ? "Checking model…"
+                : segmentationStatus === "encoding"
+                  ? "Encoding image…"
+                  : "Segmenting…"}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              onClick={onCancelSegmentation}
+              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+            >
+              Cancel
+            </Button>
+          </>
         )}
         {isPreviewing && (
           <>

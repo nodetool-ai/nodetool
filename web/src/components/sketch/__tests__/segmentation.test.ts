@@ -702,3 +702,175 @@ describe("Extended segment settings", () => {
     expect(normalized.toolSettings.segment.outputCutouts).toBe(true);
   });
 });
+
+// ─── SamServiceFal ────────────────────────────────────────────────────────────
+
+describe("SamServiceFal", () => {
+  it("can be instantiated", () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const service = new Fal();
+    expect(service).toBeDefined();
+    expect(service.checkModelAvailability).toBeDefined();
+    expect(service.runSegmentation).toBeDefined();
+  });
+
+  it("reports not-installed when no FAL_API_KEY", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const service = new Fal();
+    const info = await service.checkModelAvailability();
+    // In test environment, secrets store returns no key
+    expect(info.status).toBe("not-installed");
+    expect(info.errorMessage).toBeDefined();
+    expect(info.errorMessage).toContain("FAL_API_KEY");
+  });
+
+  it("can be set via setSamService", () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const service = new Fal();
+    setSamService(service);
+    const retrieved = getSamService();
+    expect(retrieved).toBe(service);
+    // Restore stub
+    setSamService(new SamServiceStub());
+  });
+});
+
+// ─── Large Image Guardrails ───────────────────────────────────────────────────
+
+describe("Image resize guardrails", () => {
+  it("MAX_INFERENCE_DIMENSION is exported and positive", () => {
+    const { MAX_INFERENCE_DIMENSION: maxDim } = require("../sam/SamServiceFal");
+    expect(maxDim).toBeGreaterThan(0);
+    expect(maxDim).toBe(2048);
+  });
+
+  it("resizeForInference is exported", () => {
+    const { resizeForInference } = require("../sam/SamServiceFal");
+    expect(typeof resizeForInference).toBe("function");
+  });
+});
+
+// ─── Mask Preview Drawing ─────────────────────────────────────────────────────
+
+describe("Mask preview overlay", () => {
+  it("drawMaskBoundsOverlay is callable", () => {
+    const { drawMaskBoundsOverlay } = require("../sam/segmentMaskOverlay");
+    expect(typeof drawMaskBoundsOverlay).toBe("function");
+  });
+
+  it("drawMaskBoundsOverlay handles empty masks array", () => {
+    // Create a mock 2d context that doesn't throw
+    const mockCtx = {
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 0,
+      font: "",
+      textBaseline: "",
+      fillRect: jest.fn(),
+      strokeRect: jest.fn(),
+      fillText: jest.fn()
+    };
+
+    const { drawMaskBoundsOverlay } = require("../sam/segmentMaskOverlay");
+    // Should not throw with empty masks
+    drawMaskBoundsOverlay(mockCtx as unknown as CanvasRenderingContext2D, [], 1.0);
+    expect(mockCtx.fillRect).not.toHaveBeenCalled();
+  });
+
+  it("drawMaskBoundsOverlay calls fillRect for each mask", () => {
+    const mockCtx = {
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 0,
+      font: "",
+      textBaseline: "",
+      fillRect: jest.fn(),
+      strokeRect: jest.fn(),
+      fillText: jest.fn()
+    };
+
+    const { drawMaskBoundsOverlay } = require("../sam/segmentMaskOverlay");
+    const masks = [
+      { bounds: { x: 10, y: 10, width: 30, height: 30 }, label: "Object 1" },
+      { bounds: { x: 50, y: 50, width: 20, height: 20 }, label: "Object 2" }
+    ];
+
+    drawMaskBoundsOverlay(mockCtx as unknown as CanvasRenderingContext2D, masks, 1.0);
+
+    // Should call fillRect 2 times (one per mask)
+    expect(mockCtx.fillRect).toHaveBeenCalledTimes(2);
+    // Should call strokeRect 2 times
+    expect(mockCtx.strokeRect).toHaveBeenCalledTimes(2);
+    // Should call fillText 2 times for labels
+    expect(mockCtx.fillText).toHaveBeenCalledTimes(2);
+  });
+
+  it("drawMaskBoundsOverlay adjusts line width by zoom", () => {
+    const mockCtx = {
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 0,
+      font: "",
+      textBaseline: "",
+      fillRect: jest.fn(),
+      strokeRect: jest.fn(),
+      fillText: jest.fn()
+    };
+
+    const { drawMaskBoundsOverlay } = require("../sam/segmentMaskOverlay");
+    const masks = [{ bounds: { x: 0, y: 0, width: 50, height: 50 } }];
+
+    drawMaskBoundsOverlay(mockCtx as unknown as CanvasRenderingContext2D, masks, 2.0);
+    // Line width should be 2/zoom = 1
+    expect(mockCtx.lineWidth).toBe(1);
+  });
+});
+
+// ─── Cutout Generation ────────────────────────────────────────────────────────
+
+describe("Cutout generation with feathering", () => {
+  it("generateCutoutDataUrl is exported", () => {
+    const { generateCutoutDataUrl } = require("../sam/segmentMaskOverlay");
+    expect(typeof generateCutoutDataUrl).toBe("function");
+  });
+
+  // Note: generateCutoutDataUrl requires Image loading which doesn't work in jsdom.
+  // Full integration tests should be run in an E2E environment.
+});
+
+// ─── SketchCanvasRef.getOverlayCanvas ─────────────────────────────────────────
+
+describe("SketchCanvasRef interface", () => {
+  it("getOverlayCanvas is part of the SketchCanvasRef interface", () => {
+    // Type check: ensure the method exists on the interface
+    // This is a compile-time check; runtime test verifies the shape
+    const mockRef: import("../SketchCanvas").SketchCanvasRef = {
+      getLayerData: jest.fn(),
+      setLayerData: jest.fn(),
+      reconcileLayerToDocumentSpace: jest.fn(),
+      trimLayerToBounds: jest.fn(),
+      snapshotLayerCanvas: jest.fn(),
+      restoreLayerCanvas: jest.fn(),
+      flattenToDataUrl: jest.fn(),
+      getMaskDataUrl: jest.fn(),
+      clearLayer: jest.fn(),
+      clearLayerRect: jest.fn(),
+      flipLayer: jest.fn(),
+      mergeLayerDown: jest.fn(),
+      flattenVisible: jest.fn(),
+      cropCanvas: jest.fn(),
+      applyAdjustments: jest.fn(),
+      fillLayerWithColor: jest.fn(),
+      fillLayerRect: jest.fn(),
+      clearLayerBySelectionMask: jest.fn(),
+      fillLayerBySelectionMask: jest.fn(),
+      nudgeLayer: jest.fn(),
+      redrawDisplay: jest.fn(),
+      drainPendingStrokeCommit: jest.fn(),
+      getOverlayCanvas: jest.fn().mockReturnValue(null)
+    };
+
+    expect(mockRef.getOverlayCanvas).toBeDefined();
+    expect(mockRef.getOverlayCanvas()).toBeNull();
+  });
+});
