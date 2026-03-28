@@ -439,12 +439,35 @@ export class NodeGenerator {
 
     // Output handling
     switch (spec.outputType) {
-      case "image":
+      case "image": {
+        // Many endpoints return images[]; others return a single image object (e.g. Bria background/remove).
+        const singleImageField = spec.outputFields.filter(
+          (f) => f.propType === "image",
+        );
+        const outKey =
+          singleImageField.length === 1
+            ? JSON.stringify(singleImageField[0].name)
+            : JSON.stringify("output");
         lines.push(
-          `    const images = res.images as { url: string }[];`,
-          `    return { output: { type: "image", uri: images[0].url } };`,
+          `    const _r = res as Record<string, unknown>;`,
+          `    const _arr = _r.images;`,
+          `    const _one = _r.image;`,
+          `    let _url: string | undefined;`,
+          `    if (Array.isArray(_arr) && _arr.length > 0) {`,
+          `      const u = (_arr[0] as { url?: unknown })?.url;`,
+          `      if (typeof u === "string") _url = u;`,
+          `    }`,
+          `    if (_url === undefined && _one && typeof _one === "object") {`,
+          `      const u = (_one as { url?: unknown }).url;`,
+          `      if (typeof u === "string") _url = u;`,
+          `    }`,
+          `    if (_url === undefined) {`,
+          `      throw new Error("FAL image response missing url (expected images[] or image)");`,
+          `    }`,
+          `    return { ${outKey}: { type: "image", uri: _url } };`,
         );
         break;
+      }
       case "video":
         lines.push(
           `    return { output: { type: "video", uri: (res.video as any).url } };`,

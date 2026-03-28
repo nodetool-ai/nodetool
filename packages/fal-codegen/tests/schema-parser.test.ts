@@ -285,6 +285,29 @@ describe("jsonTypeToTs", () => {
     const result = parser.jsonTypeToTs({ type: "null" }, undefined, "field");
     expect(result).toEqual({ tsType: "any", propType: "any" });
   });
+
+  it("maps $ref to Image component to image (no top-level type on property)", () => {
+    const p = new SchemaParser();
+    const root = {
+      components: {
+        schemas: {
+          Image: {
+            title: "Image",
+            type: "object",
+            properties: { url: { type: "string" } },
+          },
+        },
+      },
+    };
+    (p as unknown as { _rootSchema: typeof root })._rootSchema = root;
+    expect(
+      p.jsonTypeToTs(
+        { $ref: "#/components/schemas/Image" },
+        undefined,
+        "combined_mask",
+      ),
+    ).toEqual({ tsType: "image", propType: "image" });
+  });
 });
 
 // ---------------------------------------------------------------------------

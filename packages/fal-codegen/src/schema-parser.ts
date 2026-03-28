@@ -12,6 +12,8 @@ import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
 
+type MediaPropKind = "image" | "video" | "audio";
+
 export class SchemaParser {
   private _rootSchema: AnyRecord = {};
 
@@ -332,6 +334,16 @@ export class SchemaParser {
       return { tsType: "enum", propType: "enum" };
     }
 
+    // FAL often uses `{ $ref: "#/components/schemas/Image" }` with no `type`.
+    // Defaulting to string incorrectly yields propType "str" and JSON.stringify on objects.
+    const mediaFromRef = this._mediaKindFromResolvedSchema(prop);
+    if (mediaFromRef) {
+      return {
+        tsType: mediaFromRef,
+        propType: mediaFromRef,
+      };
+    }
+
     const jsonType = (prop["type"] as string | undefined) ?? "string";
 
     if (jsonType === "string") {
@@ -402,6 +414,44 @@ export class SchemaParser {
     }
 
     return { tsType: "any", propType: "any" };
+  }
+
+  /**
+   * If prop is (or resolves to) a FAL media component (title Image / Video / Audio),
+   * return the corresponding prop type. Handles bare $ref, allOf with ref, and inline title.
+   */
+  private _mediaKindFromResolvedSchema(prop: AnyRecord): MediaPropKind | null {
+    const tryTitle = (schema: AnyRecord): MediaPropKind | null => {
+      const title = (schema["title"] as string | undefined)?.toLowerCase();
+      if (title === "image") {
+        return "image";
+      }
+      if (title === "video") {
+        return "video";
+      }
+      if (title === "audio") {
+        return "audio";
+      }
+      return null;
+    };
+
+    const resolved = this._resolveRef(this._rootSchema, prop);
+    const fromResolved = tryTitle(resolved);
+    if (fromResolved) {
+      return fromResolved;
+    }
+
+    if ("allOf" in prop && Array.isArray(prop["allOf"])) {
+      for (const sub of prop["allOf"] as AnyRecord[]) {
+        const subRes = this._resolveRef(this._rootSchema, sub);
+        const kind = tryTitle(subRes);
+        if (kind) {
+          return kind;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**

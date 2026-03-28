@@ -7,6 +7,7 @@ import {
   isRefSet,
   assetToFalUrl,
   imageToDataUrl,
+  coerceFalOutputForPropType,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -136,7 +137,12 @@ json, processing, data, utility`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/ffmpeg-api/waveform", args);
-    return res as Record<string, unknown>;
+    return {
+      "waveform": coerceFalOutputForPropType("list[float]", (res as Record<string, unknown>)["waveform"]),
+      "duration": coerceFalOutputForPropType("float", (res as Record<string, unknown>)["duration"]),
+      "points": coerceFalOutputForPropType("int", (res as Record<string, unknown>)["points"]),
+      "precision": coerceFalOutputForPropType("int", (res as Record<string, unknown>)["precision"]),
+    };
   }
 }
 
@@ -170,7 +176,9 @@ json, processing, data, utility`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/ffmpeg-api/metadata", args);
-    return res as Record<string, unknown>;
+    return {
+      "media": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["media"]),
+    };
   }
 }
 

@@ -294,12 +294,31 @@ describe("NodeGenerator.generate()", () => {
 
   // ── process() — output handling ───────────────────────────────────────────
 
-  it("generates image output: images[0].url", () => {
+  it("generates image output: images[] or singular image object", () => {
     const spec = makeSpec({ outputType: "image" });
     const code = gen.generate(spec, "text_to_image");
-    expect(code).toContain(`res.images as { url: string }[]`);
-    expect(code).toContain(`images[0].url`);
+    expect(code).toContain(`const _arr = _r.images`);
+    expect(code).toContain(`const _one = _r.image`);
+    expect(code).toContain(`FAL image response missing url`);
     expect(code).toContain(`type: "image"`);
+    expect(code).toContain(`return { "output": { type: "image", uri: _url } };`);
+  });
+
+  it("uses OpenAPI output field name for single image when propType is image", () => {
+    const spec = makeSpec({
+      outputFields: [
+        makeField({
+          name: "image",
+          propType: "image",
+          tsType: "image",
+          default: null,
+          fieldType: "output",
+        }),
+      ],
+    });
+    const code = gen.generate(spec, "image_to_image");
+    expect(code).toContain(`static readonly outputTypes = { "image": "image" }`);
+    expect(code).toContain(`return { "image": { type: "image", uri: _url } };`);
   });
 
   it("generates video output: res.video.url", () => {

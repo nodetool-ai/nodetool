@@ -7,6 +7,7 @@ import {
   isRefSet,
   assetToFalUrl,
   imageToDataUrl,
+  coerceFalOutputForPropType,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -20,11 +21,11 @@ llm, chat, openrouter, multimodel, language-model`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "usage": "str", "error": "str", "partial": "bool", "reasoning": "str", "output": "str" };
 
-  @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
-  declare prompt: any;
-
   @prop({ type: "str", default: "", description: "Name of the model to use. Charged based on actual token usage." })
   declare model: any;
+
+  @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
+  declare prompt: any;
 
   @prop({ type: "str", default: "", description: "This sets the upper limit for the number of tokens the model can generate in response. It won't produce more than this limit. The maximum value is the context length minus the prompt length." })
   declare max_tokens: any;
@@ -32,33 +33,39 @@ llm, chat, openrouter, multimodel, language-model`;
   @prop({ type: "float", default: 1, description: "This setting influences the variety in the model's responses. Lower values lead to more predictable and typical responses, while higher values encourage more diverse and less common responses. At 0, the model always gives the same response for a given input." })
   declare temperature: any;
 
-  @prop({ type: "bool", default: false, description: "Should reasoning be the part of the final answer." })
-  declare reasoning: any;
-
   @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
   declare system_prompt: any;
 
+  @prop({ type: "bool", default: false, description: "Should reasoning be the part of the final answer." })
+  declare reasoning: any;
+
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
     const model = String(this.model ?? "");
+    const prompt = String(this.prompt ?? "");
     const maxTokens = String(this.max_tokens ?? "");
     const temperature = Number(this.temperature ?? 1);
-    const reasoning = Boolean(this.reasoning ?? false);
     const systemPrompt = String(this.system_prompt ?? "");
+    const reasoning = Boolean(this.reasoning ?? false);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
       "model": model,
+      "prompt": prompt,
       "max_tokens": maxTokens,
       "temperature": temperature,
-      "reasoning": reasoning,
       "system_prompt": systemPrompt,
+      "reasoning": reasoning,
     };
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "openrouter/router", args);
-    return res as Record<string, unknown>;
+    return {
+      "usage": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["usage"]),
+      "error": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["error"]),
+      "partial": coerceFalOutputForPropType("bool", (res as Record<string, unknown>)["partial"]),
+      "reasoning": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["reasoning"]),
+      "output": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["output"]),
+    };
   }
 }
 
@@ -102,7 +109,10 @@ llm, safety, moderation, qwen, guard`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-3-guard", args);
-    return res as Record<string, unknown>;
+    return {
+      "categories": coerceFalOutputForPropType("list[str]", (res as Record<string, unknown>)["categories"]),
+      "label": coerceFalOutputForPropType("enum", (res as Record<string, unknown>)["label"]),
+    };
   }
 }
 
