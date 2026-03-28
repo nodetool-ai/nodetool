@@ -41,6 +41,9 @@ export function useSketchStoreSelectors() {
   const smoothCurrentSelectionBorders = useSketchStore(
     (s) => s.smoothCurrentSelectionBorders
   );
+  const convertSelectionToBorderOutline = useSketchStore(
+    (s) => s.convertSelectionToBorderOutline
+  );
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
@@ -138,6 +141,7 @@ export function useSketchStoreSelectors() {
     setSegmentSettings,
     featherCurrentSelection,
     smoothCurrentSelectionBorders,
+    convertSelectionToBorderOutline,
     setZoom,
     setPan,
     setActiveLayer,

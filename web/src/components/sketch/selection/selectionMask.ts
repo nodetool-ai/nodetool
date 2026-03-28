@@ -9,11 +9,15 @@ const THRESH = 128;
 const ANT_ON = "#aaa";
 const ANT_OFF = "#000";
 
+/** Below this zoom (zoomed out), ant stroke uses 2 CSS px width instead of 1. */
+const ANTS_WIDE_BELOW_ZOOM = 1;
+
 /**
  * Set up stroke style for marching ants on a screen-resolution canvas.
  * The context already has a document→screen transform applied (scale = zoom).
  * Line width and dash lengths are specified in document coordinates so that
- * after the transform they appear as ~1 screen pixel wide with ~4px dashes.
+ * after the transform they appear as ~1 (or ~2 when zoomed out) screen pixels
+ * wide with ~4px dashes.
  */
 function setupScreenAnts(
   ctx: CanvasRenderingContext2D,
@@ -21,7 +25,8 @@ function setupScreenAnts(
   zoom: number
 ): { dashLen: number; offset: number } {
   const z = Math.max(0.02, zoom);
-  const lw = 1 / z;
+  const screenPx = zoom < ANTS_WIDE_BELOW_ZOOM ? 2 : 1;
+  const lw = screenPx / z;
   const dashLen = 4 / z;
   const offset = -((phase % 256) / 32) * dashLen * 2;
   ctx.lineWidth = lw;
@@ -206,6 +211,79 @@ export function marqueeRectFromDocPoints(start: Point, end: Point): {
   const w = Math.ceil(maxX) - x;
   const h = Math.ceil(maxY) - y;
   return { x, y, w, h };
+}
+
+/**
+ * Adjust marquee corners from anchor + pointer (Photoshop-style).
+ * - `fromCenter`: first point is the center; pointer is a corner (Alt/Option while dragging).
+ * - `constrainSquare`: square / circle bounding box (Shift while dragging).
+ */
+export function marqueeAdjustedDocPoints(
+  anchor: Point,
+  pointer: Point,
+  opts: { fromCenter: boolean; constrainSquare: boolean }
+): { start: Point; end: Point } {
+  if (opts.fromCenter) {
+    let hx = Math.abs(pointer.x - anchor.x);
+    let hy = Math.abs(pointer.y - anchor.y);
+    if (opts.constrainSquare) {
+      const s = Math.max(hx, hy);
+      hx = s;
+      hy = s;
+    }
+    const cx = anchor.x;
+    const cy = anchor.y;
+    return {
+      start: { x: cx - hx, y: cy - hy },
+      end: { x: cx + hx, y: cy + hy }
+    };
+  }
+  let ex = pointer.x;
+  let ey = pointer.y;
+  if (opts.constrainSquare) {
+    const dx = ex - anchor.x;
+    const dy = ey - anchor.y;
+    const side = Math.max(Math.abs(dx), Math.abs(dy));
+    const sx = dx >= 0 ? 1 : -1;
+    const sy = dy >= 0 ? 1 : -1;
+    ex = anchor.x + sx * side;
+    ey = anchor.y + sy * side;
+  }
+  return { start: anchor, end: { x: ex, y: ey } };
+}
+
+/** Filled axis-aligned ellipse inside pixel bounds [x,x+rw)×[y,y+rh). */
+export function ellipseSelectionMask(
+  canvasW: number,
+  canvasH: number,
+  x: number,
+  y: number,
+  rw: number,
+  rh: number
+): Selection {
+  const m = createEmptyMask(canvasW, canvasH);
+  if (rw < 1 || rh < 1) {
+    return m;
+  }
+  const cx = x + rw / 2;
+  const cy = y + rh / 2;
+  const rx = rw / 2;
+  const ry = rh / 2;
+  const x0 = Math.max(0, Math.floor(x));
+  const y0 = Math.max(0, Math.floor(y));
+  const x1 = Math.min(canvasW, Math.ceil(x + rw));
+  const y1 = Math.min(canvasH, Math.ceil(y + rh));
+  for (let py = y0; py < y1; py++) {
+    const row = py * canvasW;
+    for (let px = x0; px < x1; px++) {
+      const nx = (px + 0.5 - cx) / rx;
+      const ny = (py + 0.5 - cy) / ry;
+      if (nx * nx + ny * ny <= 1) {
+        m.data[row + px] = 255;
+      }
+    }
+  }
+  return m;
 }
 
 export type SelectionCombineOp = "replace" | "add" | "subtract" | "intersect";
@@ -408,7 +486,7 @@ export function polygonToBinaryMask(
   const c = document.createElement("canvas");
   c.width = canvasW;
   c.height = canvasH;
-  const ctx = c.getContext("2d");
+  const ctx = c.getContext("2d", { willReadFrequently: true });
   if (!ctx) {
     return out;
   }
@@ -524,7 +602,7 @@ export function smoothSelectionBorders(mask: Selection, strength: number): void 
 /**
  * Marching ants along an open polyline (lasso in progress).
  * Expects a context with a document→screen transform already applied so that
- * strokes render at screen resolution (crisp 1px lines at any zoom).
+ * strokes render at screen resolution (~1px, ~2px when zoomed out).
  */
 export function drawSelectionPolylineOutline(
   ctx: CanvasRenderingContext2D,
@@ -672,7 +750,7 @@ export function applySelectionMaskAlpha(
   offsetX: number,
   offsetY: number
 ): void {
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) {
     return;
   }
@@ -808,9 +886,9 @@ function morphBinary8(
 }
 
 /**
- * Pixels forming a stroke of approximately `strokeWidthPx` centered on the
- * selection boundary (morphological dilate/erode band). Document space; same
- * dimensions as `sel`. Returns null if empty.
+ * Ring mask along the selection boundary (~`strokeWidthPx` wide, morphological
+ * dilate/erode band). Document space; same dimensions as `sel`. Use as the new
+ * selection so only the outline is selected, or for other mask ops. Returns null if empty.
  */
 export function buildSelectionBorderStrokeMask(
   sel: Selection,
@@ -864,7 +942,7 @@ export function drawStrokeBufferForDisplayWithSelectionFeather(
     sc.width = w;
     sc.height = h;
   }
-  const sctx = sc.getContext("2d");
+  const sctx = sc.getContext("2d", { willReadFrequently: true });
   if (!sctx) {
     targetCtx.drawImage(buffer, 0, 0);
     return scratch;

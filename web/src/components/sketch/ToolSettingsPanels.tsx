@@ -6,7 +6,11 @@
  */
 
 import React, { memo } from "react";
-import { sketchSliderSx, toggleButtonSmallSx, mergeHexPickerRgbPreserveAlpha as mergeColor } from "./sketchStyles";
+import {
+  sketchSliderSx,
+  toggleButtonSmallSx,
+  mergeHexPickerRgbPreserveAlpha as mergeColor
+} from "./sketchStyles";
 import {
   Box,
   Typography,
@@ -49,7 +53,6 @@ import {
 
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
-
 
 export function getToolSettingsLabel(tool: SketchTool): string {
   switch (tool) {
@@ -221,9 +224,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
         <Switch
           size="small"
           checked={settings.pressureSensitivity ?? true}
-          onChange={(_, checked) =>
-            onChange({ pressureSensitivity: checked })
-          }
+          onChange={(_, checked) => onChange({ pressureSensitivity: checked })}
         />
       </Box>
       {settings.pressureSensitivity !== false && (
@@ -240,22 +241,13 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             }}
             size="small"
           >
-            <ToggleButton
-              value="size"
-              sx={toggleButtonSmallSx}
-            >
+            <ToggleButton value="size" sx={toggleButtonSmallSx}>
               Size
             </ToggleButton>
-            <ToggleButton
-              value="opacity"
-              sx={toggleButtonSmallSx}
-            >
+            <ToggleButton value="opacity" sx={toggleButtonSmallSx}>
               Opacity
             </ToggleButton>
-            <ToggleButton
-              value="both"
-              sx={toggleButtonSmallSx}
-            >
+            <ToggleButton value="both" sx={toggleButtonSmallSx}>
               Both
             </ToggleButton>
           </ToggleButtonGroup>
@@ -304,8 +296,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           </Box>
         </Box>
       )}
-      {(settings.brushType === "round" ||
-        settings.brushType === "soft") && (
+      {(settings.brushType === "round" || settings.brushType === "soft") && (
         <>
           <Box className="setting-row">
             <Typography className="setting-label">Round</Typography>
@@ -403,9 +394,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
         <Switch
           size="small"
           checked={settings.pressureSensitivity ?? true}
-          onChange={(_, checked) =>
-            onChange({ pressureSensitivity: checked })
-          }
+          onChange={(_, checked) => onChange({ pressureSensitivity: checked })}
         />
       </Box>
       {settings.pressureSensitivity !== false && (
@@ -581,7 +570,8 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
   settings,
   onChange
 }: ShapeSettingsPanelProps) {
-  const canFill = settings.shapeType === "rectangle" || settings.shapeType === "ellipse";
+  const canFill =
+    settings.shapeType === "rectangle" || settings.shapeType === "ellipse";
   return (
     <>
       <ToggleButtonGroup
@@ -609,10 +599,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
           value={colorToHex6(settings.strokeColor)}
           onChange={(e) =>
             onChange({
-              strokeColor: mergeColor(
-                settings.strokeColor,
-                e.target.value
-              )
+              strokeColor: mergeColor(settings.strokeColor, e.target.value)
             })
           }
         />
@@ -638,14 +625,10 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
               <Checkbox
                 size="small"
                 checked={settings.filled}
-                onChange={(e) =>
-                  onChange({ filled: e.target.checked })
-                }
+                onChange={(e) => onChange({ filled: e.target.checked })}
               />
             }
-            label={
-              <Typography sx={{ fontSize: "0.75rem" }}>Fill</Typography>
-            }
+            label={<Typography sx={{ fontSize: "0.75rem" }}>Fill</Typography>}
           />
           {settings.filled && (
             <Box className="setting-row">
@@ -656,10 +639,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
                 value={colorToHex6(settings.fillColor)}
                 onChange={(e) =>
                   onChange({
-                    fillColor: mergeColor(
-                      settings.fillColor,
-                      e.target.value
-                    )
+                    fillColor: mergeColor(settings.fillColor, e.target.value)
                   })
                 }
               />
@@ -688,9 +668,7 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
         value={settings.tolerance}
         onChange={(_, v) => onChange({ tolerance: v as number })}
       />
-      <Typography className="setting-value">
-        {settings.tolerance}
-      </Typography>
+      <Typography className="setting-value">{settings.tolerance}</Typography>
     </Box>
   );
 });
@@ -725,9 +703,7 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
           value={settings.strength}
           onChange={(_, v) => onChange({ strength: v as number })}
         />
-        <Typography className="setting-value">
-          {settings.strength}
-        </Typography>
+        <Typography className="setting-value">{settings.strength}</Typography>
       </Box>
     </>
   );
@@ -749,10 +725,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           value={colorToHex6(settings.startColor)}
           onChange={(e) =>
             onChange({
-              startColor: mergeColor(
-                settings.startColor,
-                e.target.value
-              )
+              startColor: mergeColor(settings.startColor, e.target.value)
             })
           }
         />
@@ -767,9 +740,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           min={0}
           max={100}
           step={1}
-          value={Math.round(
-            parseColorToRgba(settings.startColor).a * 100
-          )}
+          value={Math.round(parseColorToRgba(settings.startColor).a * 100)}
           onChange={(_, v) => {
             const a = (v as number) / 100;
             const { r, g, b } = parseColorToRgba(settings.startColor);
@@ -785,10 +756,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           value={colorToHex6(settings.endColor)}
           onChange={(e) =>
             onChange({
-              endColor: mergeColor(
-                settings.endColor,
-                e.target.value
-              )
+              endColor: mergeColor(settings.endColor, e.target.value)
             })
           }
         />
@@ -803,9 +771,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           min={0}
           max={100}
           step={1}
-          value={Math.round(
-            parseColorToRgba(settings.endColor).a * 100
-          )}
+          value={Math.round(parseColorToRgba(settings.endColor).a * 100)}
           onChange={(_, v) => {
             const a = (v as number) / 100;
             const { r, g, b } = parseColorToRgba(settings.endColor);
@@ -823,16 +789,10 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
         }}
         size="small"
       >
-        <ToggleButton
-          value="linear"
-          sx={toggleButtonSmallSx}
-        >
+        <ToggleButton value="linear" sx={toggleButtonSmallSx}>
           Linear
         </ToggleButton>
-        <ToggleButton
-          value="radial"
-          sx={toggleButtonSmallSx}
-        >
+        <ToggleButton value="radial" sx={toggleButtonSmallSx}>
           Radial
         </ToggleButton>
       </ToggleButtonGroup>
@@ -842,94 +802,84 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
 
 // ─── CloneStampSettingsPanel ──────────────────────────────────────────────
 
-export const CloneStampSettingsPanel = memo(
-  function CloneStampSettingsPanel({
-    settings,
-    onChange
-  }: CloneStampSettingsPanelProps) {
-    return (
-      <>
-        <Box className="setting-row">
-          <Typography className="setting-label">Size</Typography>
-          <Slider
-            sx={sketchSliderSx}
-            size="small"
-            min={1}
-            max={200}
-            value={settings.size}
-            onChange={(_, v) => onChange({ size: v as number })}
-          />
-          <Typography className="setting-value">
-            {settings.size}
-          </Typography>
-        </Box>
-        <Box className="setting-row">
-          <Typography className="setting-label">Opacity</Typography>
-          <Slider
-            sx={sketchSliderSx}
-            size="small"
-            min={0}
-            max={1}
-            step={0.01}
-            value={settings.opacity}
-            onChange={(_, v) => onChange({ opacity: v as number })}
-          />
-          <Typography className="setting-value">
-            {Math.round(settings.opacity * 100)}%
-          </Typography>
-        </Box>
-        <Box className="setting-row">
-          <Typography className="setting-label">Hardness</Typography>
-          <Slider
-            sx={sketchSliderSx}
-            size="small"
-            min={0}
-            max={1}
-            step={0.01}
-            value={settings.hardness}
-            onChange={(_, v) => onChange({ hardness: v as number })}
-          />
-          <Typography className="setting-value">
-            {Math.round(settings.hardness * 100)}%
-          </Typography>
-        </Box>
-        <ToggleButtonGroup
-          value={settings.sampling}
-          exclusive
-          onChange={(_, v) => {
-            if (v) {
-              onChange({ sampling: v as CloneStampSampling });
-            }
-          }}
+export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
+  settings,
+  onChange
+}: CloneStampSettingsPanelProps) {
+  return (
+    <>
+      <Box className="setting-row">
+        <Typography className="setting-label">Size</Typography>
+        <Slider
+          sx={sketchSliderSx}
           size="small"
-        >
-          <ToggleButton
-            value="active_layer"
-            sx={toggleButtonSmallSx}
-          >
-            Active Layer
-          </ToggleButton>
-          <ToggleButton
-            value="composited"
-            sx={toggleButtonSmallSx}
-          >
-            All Layers
-          </ToggleButton>
-        </ToggleButtonGroup>
-        <Typography
-          sx={{
-            fontSize: "0.65rem",
-            color: "grey.500",
-            fontStyle: "italic",
-            mt: 1
-          }}
-        >
-          Alt+click to set source point
+          min={1}
+          max={200}
+          value={settings.size}
+          onChange={(_, v) => onChange({ size: v as number })}
+        />
+        <Typography className="setting-value">{settings.size}</Typography>
+      </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Opacity</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={1}
+          step={0.01}
+          value={settings.opacity}
+          onChange={(_, v) => onChange({ opacity: v as number })}
+        />
+        <Typography className="setting-value">
+          {Math.round(settings.opacity * 100)}%
         </Typography>
-      </>
-    );
-  }
-);
+      </Box>
+      <Box className="setting-row">
+        <Typography className="setting-label">Hardness</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={1}
+          step={0.01}
+          value={settings.hardness}
+          onChange={(_, v) => onChange({ hardness: v as number })}
+        />
+        <Typography className="setting-value">
+          {Math.round(settings.hardness * 100)}%
+        </Typography>
+      </Box>
+      <ToggleButtonGroup
+        value={settings.sampling}
+        exclusive
+        onChange={(_, v) => {
+          if (v) {
+            onChange({ sampling: v as CloneStampSampling });
+          }
+        }}
+        size="small"
+      >
+        <ToggleButton value="active_layer" sx={toggleButtonSmallSx}>
+          Active Layer
+        </ToggleButton>
+        <ToggleButton value="composited" sx={toggleButtonSmallSx}>
+          All Layers
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <Typography
+        sx={{
+          fontSize: "0.65rem",
+          color: "grey.500",
+          fontStyle: "italic",
+          mt: 1
+        }}
+      >
+        Alt+click to set source point
+      </Typography>
+    </>
+  );
+});
 
 // ─── AdjustmentsSettingsPanel ─────────────────────────────────────────────
 
@@ -1037,16 +987,20 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
   onCancel,
   onReset
 }: TransformSettingsPanelProps) {
-  const rotDeg = Math.round((rotation * 180) / Math.PI * 10) / 10;
+  const rotDeg = Math.round(((rotation * 180) / Math.PI) * 10) / 10;
   return (
     <>
       <Box className="setting-row">
         <Typography className="setting-label">Scale X</Typography>
-        <Typography className="setting-value">{(scaleX * 100).toFixed(0)}%</Typography>
+        <Typography className="setting-value">
+          {(scaleX * 100).toFixed(0)}%
+        </Typography>
       </Box>
       <Box className="setting-row">
         <Typography className="setting-label">Scale Y</Typography>
-        <Typography className="setting-value">{(scaleY * 100).toFixed(0)}%</Typography>
+        <Typography className="setting-value">
+          {(scaleY * 100).toFixed(0)}%
+        </Typography>
       </Box>
       <Box className="setting-row">
         <Typography className="setting-label">Rotation</Typography>
@@ -1133,6 +1087,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         <ToggleButton value="rectangle" sx={toggleButtonSmallSx}>
           Rect
         </ToggleButton>
+        <ToggleButton value="ellipse" sx={toggleButtonSmallSx}>
+          Ellipse
+        </ToggleButton>
         <ToggleButton value="lasso" sx={toggleButtonSmallSx}>
           Lasso
         </ToggleButton>
@@ -1152,9 +1109,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
             min={0}
             max={255}
             value={settings.magicWandTolerance}
-            onChange={(_, v) =>
-              onChange({ magicWandTolerance: v as number })
-            }
+            onChange={(_, v) => onChange({ magicWandTolerance: v as number })}
           />
           <Typography className="setting-value">
             {settings.magicWandTolerance}
@@ -1171,7 +1126,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           value={settings.featherRadius}
           onChange={(_, v) => onChange({ featherRadius: v as number })}
         />
-        <Typography className="setting-value">{settings.featherRadius}</Typography>
+        <Typography className="setting-value">
+          {settings.featherRadius}
+        </Typography>
       </Box>
       <Box className="setting-row">
         <Typography className="setting-label">Border</Typography>
@@ -1183,7 +1140,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           value={settings.borderWidth}
           onChange={(_, v) => onChange({ borderWidth: v as number })}
         />
-        <Typography className="setting-value">{settings.borderWidth}</Typography>
+        <Typography className="setting-value">
+          {settings.borderWidth}
+        </Typography>
       </Box>
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
         <Button
@@ -1214,17 +1173,6 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           Border
         </Button>
       </Box>
-      <Typography
-        sx={{
-          fontSize: "0.58rem",
-          color: "grey.500",
-          lineHeight: 1.3,
-          maxWidth: 320
-        }}
-      >
-        Shift+drag: add · Alt: subtract · Shift+Alt: intersect · Border uses
-        foreground color
-      </Typography>
     </>
   );
 });
@@ -1328,9 +1276,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           max={1}
           step={0.05}
           value={settings.confidenceThreshold}
-          onChange={(_, v) =>
-            onChange({ confidenceThreshold: v as number })
-          }
+          onChange={(_, v) => onChange({ confidenceThreshold: v as number })}
         />
         <Typography className="setting-value">
           {settings.confidenceThreshold.toFixed(2)}
@@ -1364,7 +1310,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.maskFeather}
           onChange={(_, v) => onChange({ maskFeather: v as number })}
         />
-        <Typography className="setting-value">{settings.maskFeather}</Typography>
+        <Typography className="setting-value">
+          {settings.maskFeather}
+        </Typography>
       </Box>
 
       <Box className="setting-row" sx={{ gap: "4px" }}>
@@ -1528,9 +1476,7 @@ export interface ToolSettingsPanelProps {
   onFillSettingsChange: (settings: Partial<FillSettings>) => void;
   onBlurSettingsChange: (settings: Partial<BlurSettings>) => void;
   onGradientSettingsChange: (settings: Partial<GradientSettings>) => void;
-  onCloneStampSettingsChange: (
-    settings: Partial<CloneStampSettings>
-  ) => void;
+  onCloneStampSettingsChange: (settings: Partial<CloneStampSettings>) => void;
   onSelectSettingsChange: (settings: Partial<SelectSettings>) => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;

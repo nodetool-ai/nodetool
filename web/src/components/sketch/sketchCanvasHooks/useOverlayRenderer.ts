@@ -21,6 +21,7 @@ import {
 import {
   drawSelectionMaskOutline,
   drawSelectionPolylineOutline,
+  ellipseSelectionMask,
   marqueeRectFromDocPoints,
   rectSelectionMask,
   selectionHasAnyPixels
@@ -149,7 +150,7 @@ export function useOverlayRenderer({
   // ─── Selection canvas helpers ──────────────────────────────────────
   // The selection canvas is screen-resolution (sized to the container).
   // We set up a transform so drawing code uses document coordinates, but
-  // the result is rendered at screen pixel density — crisp thin ants.
+  // the result is rendered at screen pixel density — ~1px ants (~2px when zoomed out).
 
   /** Get the selection canvas ctx with document→screen transform applied. */
   const getSelectionCtx = useCallback((): CanvasRenderingContext2D | null => {
@@ -257,7 +258,7 @@ export function useOverlayRenderer({
       }
       antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
       paintSelectionAnts();
-    }, 180);
+    }, 100);
     return () => {
       window.clearInterval(id);
     };
@@ -376,11 +377,22 @@ export function useOverlayRenderer({
       if (selection && selectionHasAnyPixels(selection)) {
         drawSelectionMaskOutline(selCtx, selection, antsPhaseRef.current, zoom);
       }
-      const previewMask = rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
+      const previewMask =
+        doc.toolSettings.select.mode === "ellipse"
+          ? ellipseSelectionMask(overlay.width, overlay.height, x, y, w, h)
+          : rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
       drawSelectionMaskOutline(selCtx, previewMask, antsPhaseRef.current, zoom);
       selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },
-    [overlayCanvasRef, zoom, selection, paintSelectionAnts, getSelectionCtx, paintPixelGridOverlay]
+    [
+      overlayCanvasRef,
+      zoom,
+      selection,
+      doc.toolSettings.select.mode,
+      paintSelectionAnts,
+      getSelectionCtx,
+      paintPixelGridOverlay
+    ]
   );
 
   const drawOverlayLassoPreview = useCallback(

@@ -47,7 +47,12 @@ export interface Selection {
   data: Uint8ClampedArray;
 }
 
-export type SelectToolMode = "rectangle" | "lasso" | "lasso_polygon" | "magic_wand";
+export type SelectToolMode =
+  | "rectangle"
+  | "ellipse"
+  | "lasso"
+  | "lasso_polygon"
+  | "magic_wand";
 
 export interface SelectSettings {
   mode: SelectToolMode;

@@ -41,6 +41,7 @@ import {
   buildLayersPanelRows
 } from "../types";
 import {
+  buildSelectionBorderStrokeMask,
   cloneSelectionMask,
   createEmptyMask,
   featherMaskAlpha,
@@ -228,6 +229,8 @@ export interface SketchStore {
   reselectLastSelection: () => void;
   featherCurrentSelection: () => void;
   smoothCurrentSelectionBorders: () => void;
+  /** Replace the filled selection with a border ring of width from tool settings. */
+  convertSelectionToBorderOutline: () => void;
 
   // ─── Layer Isolation ──────────────────────────────────────────────────────
   isolatedLayerId: string | null;
@@ -1178,6 +1181,19 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     const copy = cloneSelectionMask(sel!);
     smoothSelectionBorders(copy, 3);
     get().setSelection(copy);
+  },
+  convertSelectionToBorderOutline: () => {
+    const state = get();
+    const sel = state.selection;
+    if (!selectionHasAnyPixels(sel)) {
+      return;
+    }
+    const widthPx = state.document.toolSettings.select.borderWidth;
+    const ring = buildSelectionBorderStrokeMask(sel!, widthPx);
+    if (!ring || !selectionHasAnyPixels(ring)) {
+      return;
+    }
+    get().setSelection(ring);
   },
 
   // ─── Layer Isolation ────────────────────────────────────────────────────

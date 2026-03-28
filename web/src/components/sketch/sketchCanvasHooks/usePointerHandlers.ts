@@ -42,6 +42,8 @@ import {
   type SelectionCombineOp,
   magicWandFromRgba,
   polygonToBinaryMask,
+  ellipseSelectionMask,
+  marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
   rectSelectionMask,
   selectionHasAnyPixels,
@@ -252,10 +254,20 @@ export function usePointerHandlers({
   const moveSelectionOriginRef = useRef<Point | null>(null);
   const selectionAtMoveStartRef = useRef<Selection | null>(null);
 
-  /** Shift/Alt at pointer-down for lasso or marquee (so key-up before mouse-up still applies combine). */
+  /** Shift/Alt at pointer-down for lasso / polygon / wand (combine); key-up before up still applies. */
   const selectionDragModifiersRef = useRef<{ shift: boolean; alt: boolean } | null>(
     null
   );
+
+  /**
+   * Rect/ellipse: Shift/Alt at pointer-down set combine (add / subtract / intersect),
+   * same as lasso. While dragging, live Shift/Alt in refs control constrain and
+   * from-center; commit still uses these captured flags for combine op only.
+   */
+  const marqueeCombineAtDownRef = useRef<{
+    shift: boolean;
+    alt: boolean;
+  } | null>(null);
 
   // Alpha lock & stroke tracking
   const alphaSnapshotRef = useRef<ImageData | null>(null);
@@ -415,6 +427,9 @@ export function usePointerHandlers({
     }
     const rt = displayReadbackRuntimeRef.current;
     rt.zoom = zoom;
+    // First getContext wins for willReadFrequently; compositeToDisplay uses getContext("2d")
+    // without attributes, so we must acquire a readback-friendly context before compositing.
+    void rb.getContext("2d", { willReadFrequently: true });
     rt.compositeToDisplay(
       rb,
       doc,
@@ -743,12 +758,17 @@ export function usePointerHandlers({
         }
         selectStartRef.current = pt;
         lassoPointsRef.current = [];
-        selectionDragModifiersRef.current = {
+        marqueeCombineAtDownRef.current = {
           shift: shiftHeldRef.current,
           alt: altHeldRef.current
         };
+        selectionDragModifiersRef.current = null;
         isDrawingRef.current = true;
-        if (!shiftHeldRef.current && !altHeldRef.current) {
+        const marqueeOpAtDown = selectionCombineMode(
+          marqueeCombineAtDownRef.current.shift,
+          marqueeCombineAtDownRef.current.alt
+        );
+        if (marqueeOpAtDown === "replace") {
           onSelectionChange?.(null);
         }
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -1180,7 +1200,20 @@ export function usePointerHandlers({
 
       if (interactionTool === "select" && selectStartRef.current) {
         const pt = screenToCanvas(e.clientX, e.clientY);
-        drawOverlaySelection(selectStartRef.current, pt);
+        const sm = doc.toolSettings.select.mode;
+        if (sm === "rectangle" || sm === "ellipse") {
+          const { start, end } = marqueeAdjustedDocPoints(
+            selectStartRef.current,
+            pt,
+            {
+              fromCenter: altHeldRef.current,
+              constrainSquare: shiftHeldRef.current
+            }
+          );
+          drawOverlaySelection(start, end);
+        } else {
+          drawOverlaySelection(selectStartRef.current, pt);
+        }
         return;
       }
 
@@ -1526,26 +1559,34 @@ export function usePointerHandlers({
           mousePositionRef.current.y +
             (containerRef.current?.getBoundingClientRect().top ?? 0)
         );
-        const { x, y, w, h } = marqueeRectFromDocPoints(
-          selectStartRef.current,
-          pt
-        );
+        const selMode = doc.toolSettings.select.mode;
+        const anchor = selectStartRef.current;
+        const { start: mStart, end: mEnd } =
+          selMode === "rectangle" || selMode === "ellipse"
+            ? marqueeAdjustedDocPoints(anchor, pt, {
+                fromCenter: altHeldRef.current,
+                constrainSquare: shiftHeldRef.current
+              })
+            : { start: anchor, end: pt };
+        const { x, y, w, h } = marqueeRectFromDocPoints(mStart, mEnd);
         clearOverlay();
         selectStartRef.current = null;
         const cw = doc.canvas.width;
         const ch = doc.canvas.height;
+        const mc = marqueeCombineAtDownRef.current;
+        marqueeCombineAtDownRef.current = null;
+        const op: SelectionCombineOp = mc
+          ? selectionCombineMode(mc.shift, mc.alt)
+          : "replace";
         if (w >= 1 && h >= 1 && onSelectionChange) {
-          const overlay = rectSelectionMask(cw, ch, x, y, w, h);
-          const mod = selectionDragModifiersRef.current;
-          selectionDragModifiersRef.current = null;
-          const op = selectionCombineMode(
-            mod?.shift ?? shiftHeldRef.current,
-            mod?.alt ?? altHeldRef.current
-          );
-          const base = op === "replace" ? null : selection ?? null;
-          onSelectionChange(combineMasks(base, overlay, op));
-        } else {
-          selectionDragModifiersRef.current = null;
+          const overlay =
+            selMode === "ellipse"
+              ? ellipseSelectionMask(cw, ch, x, y, w, h)
+              : rectSelectionMask(cw, ch, x, y, w, h);
+          if (selectionHasAnyPixels(overlay)) {
+            const base = op === "replace" ? null : selection ?? null;
+            onSelectionChange(combineMasks(base, overlay, op));
+          }
         }
         drawSelectionOverlay();
         return;

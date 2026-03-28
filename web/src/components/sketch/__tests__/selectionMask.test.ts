@@ -1,7 +1,9 @@
 import {
   buildSelectionBorderStrokeMask,
-  fillRectMask,
   createEmptyMask,
+  ellipseSelectionMask,
+  fillRectMask,
+  marqueeAdjustedDocPoints,
   marqueeRectFromDocPoints,
   rectSelectionMask
 } from "../selection/selectionMask";
@@ -25,6 +27,42 @@ describe("marqueeRectFromDocPoints", () => {
     const fromHelper = rectSelectionMask(64, 64, r.x, r.y, r.w, r.h);
     const fromFloat = rectSelectionMask(64, 64, Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
     expect(fromHelper.data).toEqual(fromFloat.data);
+  });
+});
+
+describe("marqueeAdjustedDocPoints", () => {
+  it("constrains to square from corner (Shift-style)", () => {
+    const anchor = { x: 10, y: 10 };
+    const pointer = { x: 25, y: 18 };
+    const { start, end } = marqueeAdjustedDocPoints(anchor, pointer, {
+      fromCenter: false,
+      constrainSquare: true
+    });
+    expect(start).toEqual(anchor);
+    expect(end.x).toBe(25);
+    expect(end.y).toBe(25);
+  });
+
+  it("from-center with constrain yields square bounds", () => {
+    const center = { x: 20, y: 20 };
+    const pointer = { x: 32, y: 24 };
+    const { start, end } = marqueeAdjustedDocPoints(center, pointer, {
+      fromCenter: true,
+      constrainSquare: true
+    });
+    const w = Math.abs(end.x - start.x);
+    const h = Math.abs(end.y - start.y);
+    expect(w).toBeCloseTo(h, 5);
+    expect((start.x + end.x) / 2).toBeCloseTo(center.x, 5);
+    expect((start.y + end.y) / 2).toBeCloseTo(center.y, 5);
+  });
+});
+
+describe("ellipseSelectionMask", () => {
+  it("fills center pixel for a small ellipse", () => {
+    const m = ellipseSelectionMask(16, 16, 6, 6, 4, 4);
+    expect(m.data[8 * 16 + 8]).toBeGreaterThanOrEqual(128);
+    expect(m.data[6 * 16 + 6]).toBe(0);
   });
 });
 

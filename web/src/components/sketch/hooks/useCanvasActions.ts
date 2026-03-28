@@ -19,11 +19,7 @@ import {
 } from "../types";
 import { useSketchStore } from "../state";
 import { getLayerCompositeOffset } from "../painting";
-import {
-  buildSelectionBorderStrokeMask,
-  getSelectionBounds,
-  selectionHasAnyPixels
-} from "../selection/selectionMask";
+import { getSelectionBounds, selectionHasAnyPixels } from "../selection/selectionMask";
 import type { StrokeEndOptions } from "../tools/types";
 
 export interface UseCanvasActionsParams {
@@ -445,46 +441,6 @@ export function useCanvasActions({
       canvasRef
     ]
   );
-
-  /** Paint a border along the selection outline (foreground color); width from tool settings. */
-  const handleStrokeSelectionBorder = useCallback(() => {
-    const activeLayerId = document.activeLayerId;
-    const layer = document.layers.find((l) => l.id === activeLayerId);
-    if (!activeLayerId || !canvasRef.current || !layer || layer.locked) {
-      return;
-    }
-    const store = useSketchStore.getState();
-    const sel = store.selection;
-    if (!sel || !selectionHasAnyPixels(sel)) {
-      return;
-    }
-    const widthPx = store.document.toolSettings.select.borderWidth;
-    const borderMask = buildSelectionBorderStrokeMask(sel, widthPx);
-    if (!borderMask || !selectionHasAnyPixels(borderMask)) {
-      return;
-    }
-    pushHistory("stroke selection border");
-    const offset = getLayerCompositeOffset(layer, {
-      width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
-      height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
-    });
-    canvasRef.current.fillLayerBySelectionMask(
-      activeLayerId,
-      offset.x,
-      offset.y,
-      borderMask,
-      store.foregroundColor
-    );
-    syncPixelLayerFromCanvas(activeLayerId);
-  }, [
-    document.activeLayerId,
-    document.layers,
-    document.canvas.width,
-    document.canvas.height,
-    pushHistory,
-    syncPixelLayerFromCanvas,
-    canvasRef
-  ]);
 
   // ─── Arrow key nudge for active layer ───────────────────────────
   const handleNudgeLayer = useCallback(
@@ -952,7 +908,6 @@ export function useCanvasActions({
     flushLayerThumbnailsWhenIdle,
     handleClearLayer,
     handleFillLayerWithColor,
-    handleStrokeSelectionBorder,
     handleCommitLayerTransform,
     handleNudgeLayer,
     handleTrimLayerToBounds,
