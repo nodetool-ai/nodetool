@@ -9,6 +9,7 @@ import {
   Button,
   Box
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { CollectionResponse } from "../../stores/ApiTypes";
@@ -95,6 +96,7 @@ const CollectionItem = ({
   onDragLeave,
   deleteMutation
 }: CollectionItemProps) => {
+  const theme = useTheme();
   const addNotification = useNotificationStore((state) => state.addNotification);
   const queryClient = useQueryClient();
   const [isEditingWorkflow, setIsEditingWorkflow] = useState(false);
@@ -163,7 +165,7 @@ const CollectionItem = ({
   }, []);
 
   const listItemSx = useMemo(() => ({
-    borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+    borderBottom: "1px solid " + theme.vars.palette.divider,
     ...(dragOverCollection === collection.name && {
       backgroundColor: "rgba(var(--mui-palette-primary-mainChannel) / 0.08)",
       borderStyle: "dashed",
@@ -184,7 +186,7 @@ const CollectionItem = ({
     py: 2.5,
     px: 3,
     position: "relative"
-  }), [dragOverCollection, collection.name]);
+  }), [theme, dragOverCollection, collection.name]);
 
   const containerStyle = useMemo(() => ({
     display: "flex",

@@ -115,7 +115,7 @@ export const DeleteButton = memo(
         transition: "all 0.15s ease-in-out",
         "&:hover": {
           color: theme.vars.palette.error.main,
-          backgroundColor: "rgba(244, 67, 54, 0.08)",
+          backgroundColor: theme.vars.palette.error.main + "14", // 0.08 opacity as hex
           transform: "scale(1.1)"
         },
         ...sx

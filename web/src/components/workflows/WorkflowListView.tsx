@@ -156,7 +156,7 @@ const listStyles = (theme: Theme) =>
       top: "4px",
       right: "4px",
       transform: "none",
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      backgroundColor: "rgba(var(--mui-palette-grey-mainChannel) / 0.35)",
       borderRadius: "4px",
       padding: "4px 6px",
       backdropFilter: "blur(4px)",
@@ -168,7 +168,7 @@ const listStyles = (theme: Theme) =>
       right: "5px",
       transform: "none",
       zIndex: 5,
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      backgroundColor: "rgba(var(--mui-palette-grey-mainChannel) / 0.35)",
       borderRadius: "4px",
       padding: "2px 6px"
     },
