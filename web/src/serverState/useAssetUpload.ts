@@ -3,7 +3,8 @@ import { Asset } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
 import { UploadSource } from "../utils/imageUploadValidation";
 
-type UploadFile = {
+type UploadFileInput = {
+  id?: string;
   file: File;
   workflow_id?: string;
   parent_id?: string;
@@ -15,13 +16,15 @@ type UploadFile = {
   status?: "uploading" | "completed" | "error";
 };
 
+type UploadFile = Required<Pick<UploadFileInput, 'id'>> & Omit<UploadFileInput, 'id'>;
+
 type UploadState = {
   files: UploadFile[];
   maxConcurrentUploads: number;
   isUploading: boolean;
   overallProgress: number;
   completed: number;
-  uploadAsset: (file: UploadFile) => void;
+  uploadAsset: (file: UploadFileInput) => void;
   updateStatus: (
     index: number,
     progress: number,
@@ -38,10 +41,14 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
   overallProgress: 0,
   completed: 0,
 
-  uploadAsset: (file: UploadFile) => {
+  uploadAsset: (file: UploadFileInput) => {
     const { handleUpload, files } = get();
+    const fileWithId: UploadFile = {
+      ...file,
+      id: file.id || crypto.randomUUID(),
+    };
     set({
-      files: [...files, file],
+      files: [...files, fileWithId],
     });
     handleUpload();
   },
