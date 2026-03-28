@@ -61,6 +61,17 @@ import {
   pointerHasPaintContact
 } from "../pointerPen";
 
+/**
+ * Wheel zoom smoothing: lerp factor per frame is interpolated between these
+ * based on how far animated zoom is from the target — fast catch-up when far,
+ * softer when close.
+ */
+const WHEEL_ZOOM_SMOOTH_MIN = 0.38;
+const WHEEL_ZOOM_SMOOTH_MAX = 0.92;
+
+/** Rect/ellipse marquee: require this much document-space drag (px) before committing a mask. */
+const MARQUEE_MIN_DRAG_DOC_PX = 1;
+
 function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp {
   if (shift && alt) {
     return "intersect";
@@ -269,6 +280,14 @@ export function usePointerHandlers({
     alt: boolean;
   } | null>(null);
 
+  /**
+   * Rect/ellipse: true after pointermove shows ≥ {@link MARQUEE_MIN_DRAG_DOC_PX}
+   * document-pixel delta from the marquee anchor. Distinguishes a deliberate drag
+   * (including a 1×1 mask when zoomed) from a click whose pointer-up coords may
+   * not exactly match pointer-down.
+   */
+  const marqueeDocDragSeenRef = useRef(false);
+
   // Alpha lock & stroke tracking
   const alphaSnapshotRef = useRef<ImageData | null>(null);
   const lastStrokeEndRef = useRef<Point | null>(null);
@@ -287,6 +306,45 @@ export function usePointerHandlers({
   useEffect(() => {
     panOffsetRef.current = pan;
   }, [pan]);
+
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const panRef = useRef(pan);
+  panRef.current = pan;
+
+  const zoomWheelRafRef = useRef<number | null>(null);
+  const zoomWheelAnimatedRef = useRef(zoom);
+  const zoomWheelTargetRef = useRef(zoom);
+  const zoomWheelPanRef = useRef<Point>({ x: pan.x, y: pan.y });
+  const zoomWheelOffsetRef = useRef<Point>({ x: 0, y: 0 });
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
+  const onPanChangeRef = useRef(onPanChange);
+  onPanChangeRef.current = onPanChange;
+
+  useEffect(() => {
+    if (zoomWheelRafRef.current != null) {
+      const a = zoomWheelAnimatedRef.current;
+      const t = zoomWheelTargetRef.current;
+      if (Math.abs(zoom - a) > 1e-3 && Math.abs(zoom - t) > 1e-3) {
+        cancelAnimationFrame(zoomWheelRafRef.current);
+        zoomWheelRafRef.current = null;
+      }
+    }
+    if (zoomWheelRafRef.current == null) {
+      zoomWheelAnimatedRef.current = zoom;
+      zoomWheelTargetRef.current = zoom;
+    }
+  }, [zoom]);
+
+  useEffect(() => {
+    return () => {
+      if (zoomWheelRafRef.current != null) {
+        cancelAnimationFrame(zoomWheelRafRef.current);
+        zoomWheelRafRef.current = null;
+      }
+    };
+  }, []);
 
   // ─── Keyboard modifier tracking ─────────────────────────────────────
   const { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef } =
@@ -758,6 +816,7 @@ export function usePointerHandlers({
         }
         selectStartRef.current = pt;
         lassoPointsRef.current = [];
+        marqueeDocDragSeenRef.current = false;
         marqueeCombineAtDownRef.current = {
           shift: shiftHeldRef.current,
           alt: altHeldRef.current
@@ -1202,6 +1261,13 @@ export function usePointerHandlers({
         const pt = screenToCanvas(e.clientX, e.clientY);
         const sm = doc.toolSettings.select.mode;
         if (sm === "rectangle" || sm === "ellipse") {
+          const anchor = selectStartRef.current;
+          if (
+            Math.abs(pt.x - anchor.x) >= MARQUEE_MIN_DRAG_DOC_PX ||
+            Math.abs(pt.y - anchor.y) >= MARQUEE_MIN_DRAG_DOC_PX
+          ) {
+            marqueeDocDragSeenRef.current = true;
+          }
           const { start, end } = marqueeAdjustedDocPoints(
             selectStartRef.current,
             pt,
@@ -1578,7 +1644,16 @@ export function usePointerHandlers({
         const op: SelectionCombineOp = mc
           ? selectionCombineMode(mc.shift, mc.alt)
           : "replace";
-        if (w >= 1 && h >= 1 && onSelectionChange) {
+        const isMarqueeShape =
+          selMode === "rectangle" || selMode === "ellipse";
+        const marqueeDragged = marqueeDocDragSeenRef.current;
+        marqueeDocDragSeenRef.current = false;
+        if (
+          w >= 1 &&
+          h >= 1 &&
+          onSelectionChange &&
+          (!isMarqueeShape || marqueeDragged)
+        ) {
           const overlay =
             selMode === "ellipse"
               ? ellipseSelectionMask(cw, ch, x, y, w, h)
@@ -1705,7 +1780,7 @@ export function usePointerHandlers({
     ]
   );
 
-  // ─── Wheel zoom ────────────────────────────────────────────────────
+  // ─── Wheel zoom (damped toward target via rAF for smoother steps) ──
 
   const handleZoomWheel = useCallback(
     (
@@ -1714,28 +1789,73 @@ export function usePointerHandlers({
       event.preventDefault();
       const factor = 1.3;
       const delta = event.deltaY > 0 ? 1 / factor : factor;
-      const newZoom = Math.max(
-        SKETCH_ZOOM_MIN,
-        Math.min(SKETCH_ZOOM_MAX, zoom * delta)
-      );
       const container = containerRef.current;
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const offsetX = mouseX - centerX - pan.x;
-        const offsetY = mouseY - centerY - pan.y;
-        const zoomRatio = newZoom / zoom;
-        onPanChange({
-          x: pan.x + offsetX * (1 - zoomRatio),
-          y: pan.y + offsetY * (1 - zoomRatio)
-        });
+      if (!container) {
+        return;
       }
-      onZoomChange(newZoom);
+
+      if (zoomWheelRafRef.current == null) {
+        const z = zoomRef.current;
+        zoomWheelAnimatedRef.current = z;
+        zoomWheelTargetRef.current = z;
+        zoomWheelPanRef.current = { ...panRef.current };
+      }
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      zoomWheelOffsetRef.current = {
+        x: mouseX - centerX - zoomWheelPanRef.current.x,
+        y: mouseY - centerY - zoomWheelPanRef.current.y
+      };
+
+      // Compound the *target* so rapid wheel events stack (not the lagging animated value).
+      zoomWheelTargetRef.current = Math.max(
+        SKETCH_ZOOM_MIN,
+        Math.min(SKETCH_ZOOM_MAX, zoomWheelTargetRef.current * delta)
+      );
+
+      const tick = () => {
+        const z0 = zoomWheelAnimatedRef.current;
+        const zT = zoomWheelTargetRef.current;
+        const denom = Math.max(Math.abs(z0), Math.abs(zT), 1e-6);
+        const relErr = Math.abs(zT - z0) / denom;
+        const k = Math.min(1, relErr * 2.2);
+        const alpha =
+          WHEEL_ZOOM_SMOOTH_MIN + (WHEEL_ZOOM_SMOOTH_MAX - WHEEL_ZOOM_SMOOTH_MIN) * k;
+        let z1 = z0 + (zT - z0) * alpha;
+        const snapEps = 1e-5;
+        if (Math.abs(zT - z1) < snapEps) {
+          z1 = zT;
+        }
+        const ratio = z1 / z0;
+        const ox = zoomWheelOffsetRef.current.x;
+        const oy = zoomWheelOffsetRef.current.y;
+        zoomWheelPanRef.current = {
+          x: zoomWheelPanRef.current.x + ox * (1 - ratio),
+          y: zoomWheelPanRef.current.y + oy * (1 - ratio)
+        };
+        zoomWheelAnimatedRef.current = z1;
+        onZoomChangeRef.current(z1);
+        onPanChangeRef.current({
+          x: zoomWheelPanRef.current.x,
+          y: zoomWheelPanRef.current.y
+        });
+
+        if (Math.abs(z1 - zT) < snapEps) {
+          zoomWheelRafRef.current = null;
+          return;
+        }
+        zoomWheelRafRef.current = requestAnimationFrame(tick);
+      };
+
+      if (zoomWheelRafRef.current == null) {
+        zoomWheelRafRef.current = requestAnimationFrame(tick);
+      }
     },
-    [zoom, pan, onZoomChange, onPanChange, containerRef]
+    [containerRef]
   );
 
   const handleWheel = useCallback(

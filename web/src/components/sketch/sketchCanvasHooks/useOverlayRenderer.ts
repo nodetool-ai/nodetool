@@ -252,15 +252,25 @@ export function useOverlayRenderer({
     ) {
       return;
     }
-    const id = window.setInterval(() => {
+    let cancelled = false;
+    let rafId: number | null = null;
+    const loop = () => {
+      if (cancelled) {
+        return;
+      }
+      rafId = requestAnimationFrame(loop);
       if (selectStartRef.current || lassoPointsRef.current.length > 0) {
         return;
       }
       antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
       paintSelectionAnts();
-    }, 100);
+    };
+    rafId = requestAnimationFrame(loop);
     return () => {
-      window.clearInterval(id);
+      cancelled = true;
+      if (rafId != null) {
+        cancelAnimationFrame(rafId);
+      }
     };
   }, [
     selection,
