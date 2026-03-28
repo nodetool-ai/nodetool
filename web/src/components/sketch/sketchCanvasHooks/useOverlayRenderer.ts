@@ -54,7 +54,8 @@ export interface UseOverlayRendererResult {
   drawOverlayCrop: (start: Point, end: Point) => void;
   drawOverlaySelection: (start: Point, end: Point) => void;
   drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
-  drawCursor: (screenX: number, screenY: number) => void;
+  /** Viewport `clientX` / `clientY` (CSS pixels); mapped into the cursor canvas internally. */
+  drawCursor: (clientX: number, clientY: number) => void;
 }
 
 export function useOverlayRenderer({
@@ -414,7 +415,7 @@ export function useOverlayRenderer({
   // ─── Cursor rendering ──────────────────────────────────────────────
 
   const drawCursor = useCallback(
-    (screenX: number, screenY: number) => {
+    (clientX: number, clientY: number) => {
       const cursorCanvas = cursorCanvasRef.current;
       if (!cursorCanvas) {
         return;
@@ -436,6 +437,17 @@ export function useOverlayRenderer({
       ) {
         return;
       }
+
+      const cRect = cursorCanvas.getBoundingClientRect();
+      const rw = cRect.width;
+      const rh = cRect.height;
+      if (rw <= 0 || rh <= 0) {
+        return;
+      }
+      const scaleX = cursorCanvas.width / rw;
+      const scaleY = cursorCanvas.height / rh;
+      const localX = (clientX - cRect.left) * scaleX;
+      const localY = (clientY - cRect.top) * scaleY;
 
       let size: number;
       let roundness = 1;
@@ -495,19 +507,15 @@ export function useOverlayRenderer({
       // ── Pencil pixel-snap cursor at high zoom ─────────────────────────
       if (isPencilHighZoom) {
         // Show a pixel-aligned square cursor that snaps to the grid
-        const container = containerRef.current;
         const display = overlayCanvasRef.current;
-        if (container && display) {
-          const rect = display.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          const offsetLeft = rect.left - containerRect.left;
-          const offsetTop = rect.top - containerRect.top;
-          // Compute which document pixel the cursor is over
-          const docX = Math.floor((screenX - offsetLeft) / zoom);
-          const docY = Math.floor((screenY - offsetTop) / zoom);
-          // Convert the snapped pixel back to screen coords
-          const pixelScreenX = (docX * zoom) + offsetLeft;
-          const pixelScreenY = (docY * zoom) + offsetTop;
+        if (display) {
+          const dRect = display.getBoundingClientRect();
+          const offsetLeft = (dRect.left - cRect.left) * scaleX;
+          const offsetTop = (dRect.top - cRect.top) * scaleY;
+          const docX = Math.floor((localX - offsetLeft) / zoom);
+          const docY = Math.floor((localY - offsetTop) / zoom);
+          const pixelScreenX = docX * zoom + offsetLeft;
+          const pixelScreenY = docY * zoom + offsetTop;
           const pixelSize = size * zoom;
 
           ctx.save();
@@ -544,7 +552,7 @@ export function useOverlayRenderer({
       const angleRad = (angle * Math.PI) / 180;
 
       ctx.save();
-      ctx.translate(screenX, screenY);
+      ctx.translate(localX, localY);
       if (angleRad !== 0) {
         ctx.rotate(angleRad);
       }
@@ -568,7 +576,7 @@ export function useOverlayRenderer({
 
       // Center dot (unrotated)
       ctx.beginPath();
-      ctx.arc(screenX, screenY, 1.5, 0, Math.PI * 2);
+      ctx.arc(localX, localY, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
       ctx.fill();
     },
@@ -581,7 +589,6 @@ export function useOverlayRenderer({
       doc.toolSettings.cloneStamp,
       zoom,
       cursorCanvasRef,
-      containerRef,
       overlayCanvasRef
     ]
   );

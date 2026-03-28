@@ -76,7 +76,7 @@ export interface ToolContext {
   drawOverlayCrop: (start: Point, end: Point) => void;
   drawOverlaySelection: (start: Point, end: Point) => void;
   drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
-  drawCursor: (screenX: number, screenY: number) => void;
+  drawCursor: (clientX: number, clientY: number) => void;
 
   // ── Editor callbacks ─────────────────────────────────────────────────
   onZoomChange: (zoom: number) => void;

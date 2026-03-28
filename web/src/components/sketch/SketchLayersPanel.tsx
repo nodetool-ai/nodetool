@@ -57,6 +57,65 @@ import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
 
+/**
+ * Ctrl/Cmd/Shift for layer multi-select. On some browsers (notably with `draggable`
+ * rows), `shiftKey` / `ctrlKey` on PointerEvent can be wrong while `click` is correct,
+ * or vice versa — `getModifierState` matches the OS modifier state reliably.
+ */
+function eventHasLayerMultiSelectModifier(
+  e: React.MouseEvent | React.PointerEvent
+): boolean {
+  const n = e.nativeEvent;
+  if (n.metaKey || n.ctrlKey || n.shiftKey) {
+    return true;
+  }
+  if ("getModifierState" in n && typeof n.getModifierState === "function") {
+    return (
+      n.getModifierState("Shift") ||
+      n.getModifierState("Control") ||
+      n.getModifierState("Meta")
+    );
+  }
+  return false;
+}
+
+/** Set to `false` after debugging layer Shift/Ctrl multi-select. */
+const DEBUG_SKETCH_LAYER_ROW_MODIFIERS = true;
+
+function logLayerRowModifierDebug(
+  phase: "pointerdown" | "click",
+  layerId: string,
+  e: React.MouseEvent | React.PointerEvent,
+  extra?: Record<string, unknown>
+): void {
+  if (!DEBUG_SKETCH_LAYER_ROW_MODIFIERS) {
+    return;
+  }
+  const n = e.nativeEvent;
+  const get =
+    "getModifierState" in n && typeof n.getModifierState === "function"
+      ? n.getModifierState.bind(n)
+      : null;
+  console.log("[SketchLayersPanel layer row]", phase, {
+    layerId,
+    eventType: n.type,
+    pointerType: "pointerType" in n ? n.pointerType : undefined,
+    shiftKey: n.shiftKey,
+    ctrlKey: n.ctrlKey,
+    metaKey: n.metaKey,
+    altKey: n.altKey,
+    getModifierState: get
+      ? {
+          Shift: get("Shift"),
+          Control: get("Control"),
+          Meta: get("Meta")
+        }
+      : null,
+    hasMultiSelectModifier: eventHasLayerMultiSelectModifier(e),
+    ...extra
+  });
+}
+
 type PanelSectionKey = "canvasSize" | "shortcuts";
 
 // ─── Collapsible PanelSection component ───────────────────────────────────
@@ -247,7 +306,7 @@ export interface SketchLayersPanelProps {
   onForegroundColorChange: (color: string) => void;
   layers: Layer[];
   activeLayerId: string;
-  /** When length ≥ 2, rows use multi-select highlighting (Ctrl/Cmd+click). */
+  /** When length ≥ 2, rows use multi-select highlighting (Ctrl/Cmd+click or Shift+click). */
   selectedLayerIds: string[];
   maskLayerId: string | null;
   isolatedLayerId: string | null;
@@ -381,13 +440,69 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     setEditingLayerId(null);
   }, []);
 
+  /**
+   * Modifier multi-select on the layer row: HTML5 `draggable` + `click` is unreliable
+   * for Shift/Ctrl/Cmd (browsers may omit modifiers or skip click). Handle toggling on
+   * `pointerdown` and suppress the paired `click` so we do not double-toggle or fall
+   * through to a plain select.
+   */
+  const suppressNextLayerRowClickRef = useRef<string | null>(null);
+
+  const handleLayerRowPointerDown = useCallback(
+    (e: React.PointerEvent, layerId: string) => {
+      const t = e.target as HTMLElement;
+      if (!eventHasLayerMultiSelectModifier(e)) {
+        logLayerRowModifierDebug("pointerdown", layerId, e, {
+          branch: "skip: no modifier",
+          targetTag: t.tagName
+        });
+        return;
+      }
+      if (t.closest("button, input")) {
+        logLayerRowModifierDebug("pointerdown", layerId, e, {
+          branch: "skip: button or input",
+          targetTag: t.tagName
+        });
+        return;
+      }
+      e.preventDefault();
+      suppressNextLayerRowClickRef.current = layerId;
+      logLayerRowModifierDebug("pointerdown", layerId, e, {
+        branch: "toggle + suppress click",
+        targetTag: t.tagName
+      });
+      onToggleLayerInSelection(layerId);
+      window.setTimeout(() => {
+        if (suppressNextLayerRowClickRef.current === layerId) {
+          suppressNextLayerRowClickRef.current = null;
+        }
+      }, 0);
+    },
+    [onToggleLayerInSelection]
+  );
+
   const handleLayerRowClick = useCallback(
     (e: React.MouseEvent, layerId: string) => {
-      if (e.metaKey || e.ctrlKey) {
-        onToggleLayerInSelection(layerId);
-      } else {
-        onSelectLayer(layerId);
+      if (suppressNextLayerRowClickRef.current === layerId) {
+        suppressNextLayerRowClickRef.current = null;
+        logLayerRowModifierDebug("click", layerId, e, {
+          branch: "skip: suppressed (paired pointerdown)"
+        });
+        return;
       }
+      if (eventHasLayerMultiSelectModifier(e)) {
+        suppressNextLayerRowClickRef.current = null;
+        logLayerRowModifierDebug("click", layerId, e, {
+          branch: "toggle (modifier on click)"
+        });
+        onToggleLayerInSelection(layerId);
+        return;
+      }
+      suppressNextLayerRowClickRef.current = null;
+      logLayerRowModifierDebug("click", layerId, e, {
+        branch: "plain select"
+      });
+      onSelectLayer(layerId);
     },
     [onSelectLayer, onToggleLayerInSelection]
   );
@@ -765,6 +880,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               editingLayerId={editingLayerId}
               editName={editName}
+              onLayerRowPointerDown={handleLayerRowPointerDown}
               onLayerRowClick={handleLayerRowClick}
               onToggleVisibility={onToggleVisibility}
               onToggleIsolateLayer={onToggleIsolateLayer}

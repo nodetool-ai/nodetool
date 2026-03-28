@@ -44,6 +44,7 @@ export interface LayerItemProps {
   dropPosition: DropPosition;
   editingLayerId: string | null;
   editName: string;
+  onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
   onToggleIsolateLayer: (layerId: string) => void;
@@ -72,6 +73,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   dropPosition,
   editingLayerId,
   editName,
+  onLayerRowPointerDown,
   onLayerRowClick,
   onToggleVisibility,
   onToggleIsolateLayer,
@@ -132,6 +134,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
         onDragLeave={onDragLeave}
         onDrop={() => onDrop(realIdx)}
         onDragEnd={onDragEnd}
+        onPointerDown={(e) => onLayerRowPointerDown(e, layer.id)}
         onClick={(e) => onLayerRowClick(e, layer.id)}
         sx={{
           pl: `${BASE_PADDING + depth * DEPTH_INDENT}px`,

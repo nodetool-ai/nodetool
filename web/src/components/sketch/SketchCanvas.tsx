@@ -427,18 +427,25 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Document-space cursor tracking ─────────────────────────────────
 
-    const handleMouseMoveWithCoords = useCallback(
-      (e: React.MouseEvent) => {
-        pointerHandlers.handleMouseMove(e);
+    const updateCursorDocPosFromClient = useCallback(
+      (clientX: number, clientY: number) => {
         const display = displayCanvasRef.current;
         if (display) {
           const rect = display.getBoundingClientRect();
-          const dx = (e.clientX - rect.left) / zoom;
-          const dy = (e.clientY - rect.top) / zoom;
+          const dx = (clientX - rect.left) / zoom;
+          const dy = (clientY - rect.top) / zoom;
           setCursorDocPos({ x: Math.floor(dx), y: Math.floor(dy) });
         }
       },
-      [pointerHandlers, displayCanvasRef, zoom]
+      [displayCanvasRef, zoom]
+    );
+
+    const handlePointerMoveWithCoords = useCallback(
+      (e: React.PointerEvent) => {
+        pointerHandlers.handlePointerMove(e);
+        updateCursorDocPosFromClient(e.clientX, e.clientY);
+      },
+      [pointerHandlers, updateCursorDocPosFromClient]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {
@@ -475,11 +482,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         css={styles(theme)}
         style={{ cursor: cursorStyle }}
         onPointerDown={pointerHandlers.handlePointerDown}
-        onPointerMove={pointerHandlers.handlePointerMove}
+        onPointerMove={handlePointerMoveWithCoords}
         onPointerUp={pointerHandlers.handlePointerUp}
         onDoubleClick={pointerHandlers.handleDoubleClick}
         onPointerLeave={pointerHandlers.handleMouseLeave}
-        onMouseMove={handleMouseMoveWithCoords}
         onMouseLeave={handleMouseLeaveWithCoords}
         onContextMenu={pointerHandlers.handleContextMenu}
         onDragOver={handleDragOver}
@@ -503,9 +509,10 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           height={doc.canvas.height}
           style={{
             ...canvasStyle,
-            ...(bootstrapPhaseActive
-              ? { opacity: 0, pointerEvents: "none" }
-              : {})
+            // Hit-test the root `.sketch-canvas` div so pointer capture/stylus
+            // routing matches the cursor overlay coordinate space (sibling canvases).
+            pointerEvents: "none",
+            ...(bootstrapPhaseActive ? { opacity: 0 } : {})
           }}
         />
         {/* Overlay canvas for shape/gradient/crop preview */}

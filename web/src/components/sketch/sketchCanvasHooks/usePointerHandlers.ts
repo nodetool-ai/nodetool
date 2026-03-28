@@ -71,6 +71,17 @@ function selectionCombineMode(shift: boolean, alt: boolean): SelectionCombineOp 
   return "replace";
 }
 
+/** Matches `useOverlayRenderer` brush-ring tools (software cursor). */
+function interactionToolShowsBrushCursor(t: SketchTool): boolean {
+  return (
+    t === "brush" ||
+    t === "pencil" ||
+    t === "eraser" ||
+    t === "blur" ||
+    t === "clone_stamp"
+  );
+}
+
 export interface UsePointerHandlersParams {
   doc: SketchDocument;
   activeTool: SketchTool;
@@ -106,7 +117,7 @@ export interface UsePointerHandlersParams {
   drawOverlayCrop: (start: Point, end: Point) => void;
   drawOverlaySelection: (start: Point, end: Point) => void;
   drawOverlayLassoPreview: (points: Point[], cursor: Point | null) => void;
-  drawCursor: (screenX: number, screenY: number) => void;
+  drawCursor: (clientX: number, clientY: number) => void;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   onStrokeStart: () => void;
@@ -205,6 +216,11 @@ export function usePointerHandlers({
   setLayerTransformPreview,
   clearLayerTransformPreview
 }: UsePointerHandlersParams): UsePointerHandlersResult {
+  const drawCursorRef = useRef(drawCursor);
+  drawCursorRef.current = drawCursor;
+  const interactionToolCursorRef = useRef(interactionTool);
+  interactionToolCursorRef.current = interactionTool;
+
   // ─── Core interaction state refs ────────────────────────────────────
   const isDrawingRef = useRef(false);
   const paintStrokeHasMovedRef = useRef(false);
@@ -994,6 +1010,17 @@ export function usePointerHandlers({
         return;
       }
 
+      // Stylus/tablet: pointermove fires while the pen is down but many drivers do not
+      // emit compatibility mousemove events, so the software brush ring never moved.
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        mousePositionRef.current = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+        drawCursor(e.clientX, e.clientY);
+      }
+
       if (
         !isDrawingRef.current &&
         interactionTool === "select" &&
@@ -1117,6 +1144,16 @@ export function usePointerHandlers({
         if (activeStrokeRef.current) {
           drawActiveStrokePreview();
         }
+        // Draw last: compatibility mousemove may run after pointermove and would
+        // call drawCursor with stale coords if we only relied on the top of handler.
+        const r = containerRef.current?.getBoundingClientRect();
+        if (r) {
+          mousePositionRef.current = {
+            x: e.clientX - r.left,
+            y: e.clientY - r.top
+          };
+          drawCursor(e.clientX, e.clientY);
+        }
         return;
       }
 
@@ -1217,6 +1254,15 @@ export function usePointerHandlers({
       } else {
         requestRedraw();
       }
+
+      const rPaint = containerRef.current?.getBoundingClientRect();
+      if (rPaint) {
+        mousePositionRef.current = {
+          x: e.clientX - rPaint.left,
+          y: e.clientY - rPaint.top
+        };
+        drawCursor(e.clientX, e.clientY);
+      }
     },
     [
       doc,
@@ -1242,7 +1288,10 @@ export function usePointerHandlers({
       activeStrokeRef,
       invalidateLayer,
       drawActiveStrokePreview,
-      strokeDirtyRectRef
+      strokeDirtyRectRef,
+      drawCursor,
+      containerRef,
+      mousePositionRef
     ]
   );
 
@@ -1610,19 +1659,10 @@ export function usePointerHandlers({
 
   // ─── Mouse events (cursor + context menu) ──────────────────────────
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        mousePositionRef.current = {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        };
-        drawCursor(mousePositionRef.current.x, mousePositionRef.current.y);
-      }
-    },
-    [drawCursor, containerRef, mousePositionRef]
-  );
+  const handleMouseMove = useCallback((_e: React.MouseEvent) => {
+    // Cursor position comes from handlePointerMove only. Compatibility mousemove
+    // after pointer events can report the system mouse, not the pen tip.
+  }, []);
 
   const handleMouseLeave = useCallback(() => {
     const cursorCanvas = cursorCanvasRef.current;
@@ -1700,6 +1740,33 @@ export function usePointerHandlers({
       clearOverlay();
     }
   }, [selection, doc.toolSettings.select.mode, lassoPointsRef, clearOverlay]);
+
+  // Pen/tablet: `pointermove` is often coalesced/throttled; `pointerrawupdate` carries
+  // every physical sample so the brush ring tracks the tip while drawing.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el == null || typeof window.PointerEvent === "undefined") {
+      return;
+    }
+    const onRaw: EventListener = (ev) => {
+      const e = ev as PointerEvent;
+      if (!interactionToolShowsBrushCursor(interactionToolCursorRef.current)) {
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      mousePositionRef.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+      // Viewport coords — drawCursor maps into the cursor canvas (some styluses
+      // report as pointerType "mouse"; raw updates still carry the pen position).
+      drawCursorRef.current(e.clientX, e.clientY);
+    };
+    el.addEventListener("pointerrawupdate", onRaw, { capture: true });
+    return () => {
+      el.removeEventListener("pointerrawupdate", onRaw, { capture: true });
+    };
+  }, [containerRef, mousePositionRef]);
 
   // ─── Tool activation lifecycle ────────────────────────────────────
   const prevActiveToolRef = useRef(activeTool);
