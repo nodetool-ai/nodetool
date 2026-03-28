@@ -20,10 +20,9 @@ if (process.env.JEST_WORKER_ID) {
           'input[type="text"], input[role="searchbox"], [data-testid="search-input-field"]'
         );
 
-        // If search exists, verify it's visible
-        if ((await searchInput.count()) > 0) {
-          await expect(searchInput.first()).toBeVisible();
-        }
+        // Search input should exist and be visible on templates page
+        expect(await searchInput.count()).toBeGreaterThan(0);
+        await expect(searchInput.first()).toBeVisible();
 
         // Page should load without errors
         const bodyText = await page.textContent("body");
@@ -43,16 +42,15 @@ if (process.env.JEST_WORKER_ID) {
         );
         expect(searchResponse.ok()).toBeTruthy();
 
-        // Try to find and use the search input
+        // Find and use the search input
         const searchInput = page.locator('[data-testid="search-input-field"]');
-        if ((await searchInput.count()) > 0) {
-          await searchInput.first().fill("test");
-          await waitForAnimation(page); // Wait for debounce
+        await expect(searchInput.first()).toBeVisible();
+        await searchInput.first().fill("test");
+        await waitForAnimation(page); // Wait for debounce
 
-          // The page should update (we can't verify specific results)
-          const bodyText = await page.textContent("body");
-          expect(bodyText).toBeTruthy();
-        }
+        // The page should update (we can't verify specific results)
+        const bodyText = await page.textContent("body");
+        expect(bodyText).toBeTruthy();
       });
 
       test("should clear search results", async ({ page }) => {
@@ -61,20 +59,20 @@ if (process.env.JEST_WORKER_ID) {
         const searchInput = page.locator('[data-testid="search-input-field"]');
         const clearButton = page.locator('[data-testid="search-clear-btn"]');
 
-        if ((await searchInput.count()) > 0) {
-          // Type in the search input
-          await searchInput.first().fill("test query");
-          await waitForAnimation(page);
+        // Search input should exist on templates page
+        await expect(searchInput.first()).toBeVisible();
 
-          // Click clear button if available
-          if ((await clearButton.count()) > 0) {
-            await clearButton.first().click();
+        // Type in the search input
+        await searchInput.first().fill("test query");
+        await waitForAnimation(page);
 
-            // Verify input is cleared
-            const inputValue = await searchInput.first().inputValue();
-            expect(inputValue).toBe("");
-          }
-        }
+        // Clear button should appear after typing
+        await expect(clearButton.first()).toBeVisible();
+        await clearButton.first().click();
+
+        // Verify input is cleared
+        const inputValue = await searchInput.first().inputValue();
+        expect(inputValue).toBe("");
       });
     });
 
@@ -175,16 +173,15 @@ if (process.env.JEST_WORKER_ID) {
           await page.keyboard.press("Tab");
           await waitForAnimation(page);
 
-          // Look for any search input that might appear
+          // Node menu search input should appear after pressing Tab
           const nodeMenuSearch = page.locator(
             '.node-menu input, [data-testid="search-input-field"]'
           );
 
-          if ((await nodeMenuSearch.count()) > 0) {
-            // Type to search for nodes
-            await nodeMenuSearch.first().fill("text");
-            await waitForAnimation(page);
-          }
+          // The node menu search should be visible after Tab
+          expect(await nodeMenuSearch.count()).toBeGreaterThan(0);
+          await nodeMenuSearch.first().fill("text");
+          await waitForAnimation(page);
 
           // Page should remain functional
           const bodyText = await page.textContent("body");
@@ -203,26 +200,27 @@ if (process.env.JEST_WORKER_ID) {
 
         const searchInput = page.locator('[data-testid="search-input-field"]');
 
-        if ((await searchInput.count()) > 0) {
-          // Focus on search input
-          await searchInput.first().click();
-          await searchInput.first().fill("test");
-          await waitForAnimation(page);
+        // Search input should exist on templates page
+        await expect(searchInput.first()).toBeVisible();
 
-          // Try arrow key navigation
-          await page.keyboard.press("ArrowDown");
-          await page.waitForTimeout(100);
-          await page.keyboard.press("ArrowUp");
-          await page.waitForTimeout(100);
+        // Focus on search input
+        await searchInput.first().click();
+        await searchInput.first().fill("test");
+        await waitForAnimation(page);
 
-          // Press Escape to close any dropdown
-          await page.keyboard.press("Escape");
-          await page.waitForTimeout(100);
+        // Try arrow key navigation
+        await page.keyboard.press("ArrowDown");
+        await waitForAnimation(page);
+        await page.keyboard.press("ArrowUp");
+        await waitForAnimation(page);
 
-          // Page should still be functional
-          const bodyText = await page.textContent("body");
-          expect(bodyText).toBeTruthy();
-        }
+        // Press Escape to close any dropdown
+        await page.keyboard.press("Escape");
+        await waitForAnimation(page);
+
+        // Page should still be functional
+        const bodyText = await page.textContent("body");
+        expect(bodyText).toBeTruthy();
       });
 
       test("should focus search with keyboard shortcut", async ({ page }) => {

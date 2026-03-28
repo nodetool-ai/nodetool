@@ -188,14 +188,14 @@ if (process.env.JEST_WORKER_ID) {
 
           // Pan using mouse
           const canvasBounds = await canvas.boundingBox();
-          if (canvasBounds) {
-            await page.mouse.move(
-              canvasBounds.x + 100,
-              canvasBounds.y + 100
-            );
-            await page.mouse.wheel(0, 100);
-            await waitForAnimation(page);
-          }
+          expect(canvasBounds).toBeTruthy();
+
+          await page.mouse.move(
+            canvasBounds!.x + 100,
+            canvasBounds!.y + 100
+          );
+          await page.mouse.wheel(0, 100);
+          await waitForAnimation(page);
 
           // The canvas should still be visible
           await expect(canvas).toBeVisible();

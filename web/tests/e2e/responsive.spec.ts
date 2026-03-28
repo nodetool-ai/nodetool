@@ -186,14 +186,14 @@ if (process.env.JEST_WORKER_ID) {
         const body = page.locator("body");
         await expect(body).not.toBeEmpty();
 
-        // Check for mobile navigation elements
+        // Check for navigation elements - should exist in some form on mobile
         const mobileNav = page.locator(
           '[class*="mobile-nav"], [class*="hamburger"], [data-testid="mobile-menu"]'
         );
-        // Navigation should exist in some form - verify by checking nav count
         const mobileNavCount = await mobileNav.count();
         const navCount = await page.locator("nav").count();
-        expect(mobileNavCount + navCount).toBeGreaterThanOrEqual(0);
+        // Navigation should exist in some form (mobile menu, hamburger, or nav element)
+        expect(mobileNavCount + navCount).toBeGreaterThan(0);
       });
 
       test("should show sidebar on desktop", async ({ page }) => {

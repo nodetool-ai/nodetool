@@ -6,9 +6,6 @@ import {
   waitForAnimation,
 } from "./helpers/waitHelpers";
 
-/** Time to wait (ms) for the search debounce and store update to settle. */
-const SEARCH_SETTLE_MS = 200;
-
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
@@ -26,6 +23,25 @@ if (process.env.JEST_WORKER_ID) {
     const nodeMenu = page.locator(".floating-node-menu");
     await expect(nodeMenu).toBeVisible({ timeout: 5000 });
     return nodeMenu;
+  }
+
+  /**
+   * Fills the search input and waits for the node list to appear,
+   * replacing the old waitForTimeout(SEARCH_SETTLE_MS) anti-pattern.
+   */
+  async function fillSearchAndWait(page: Page, term: string) {
+    const searchInput = page.locator(
+      '.floating-node-menu [data-testid="search-input-field"]'
+    );
+    await searchInput.click();
+    await searchInput.fill(term);
+    await waitForAnimation(page);
+    // Wait for the debounce to settle by checking that the node list has appeared
+    // or the menu is still stable (for no-result searches).
+    const nodeList = page.locator(".floating-node-menu .node-list");
+    await expect(
+      nodeList.or(page.locator(".floating-node-menu"))
+    ).toBeVisible({ timeout: 5000 });
   }
 
   test.describe("Node Menu", () => {
@@ -228,14 +244,7 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("text");
-        await waitForAnimation(page);
-        // Allow time for debounce and search to settle
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "text");
 
         // The node list should appear with results
         const nodeList = page.locator(".floating-node-menu .node-list");
@@ -257,15 +266,10 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("image");
-        await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "image");
 
         const infoBox = page.locator(".floating-node-menu .result-info");
+        await expect(infoBox).toBeVisible({ timeout: 5000 });
         const infoText = await infoBox.textContent();
         // Should mention either results or match information
         expect(infoText).toBeTruthy();
@@ -282,13 +286,7 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("audio");
-        await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "audio");
 
         // Click the clear button
         const clearBtn = page.locator(
@@ -298,6 +296,9 @@ if (process.env.JEST_WORKER_ID) {
         await waitForAnimation(page);
 
         // Search input should be empty
+        const searchInput = page.locator(
+          '.floating-node-menu [data-testid="search-input-field"]'
+        );
         await expect(searchInput).toHaveValue("");
 
         await page.keyboard.press("Escape");
@@ -319,7 +320,8 @@ if (process.env.JEST_WORKER_ID) {
         // Use a very unlikely search term
         await searchInput.fill("zzzzzzzzzzzznonexistentnode");
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        // Wait for the menu to settle after debounce - the menu should remain visible
+        await expect(page.locator(".floating-node-menu")).toBeVisible({ timeout: 5000 });
 
         // The menu should still be visible and not crash
         const nodeMenu = page.locator(".floating-node-menu");
@@ -344,7 +346,8 @@ if (process.env.JEST_WORKER_ID) {
         // Arithmetic operators trigger special search behavior
         await searchInput.fill("+");
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        // Wait for the menu to settle after debounce
+        await expect(page.locator(".floating-node-menu")).toBeVisible({ timeout: 5000 });
 
         const nodeMenu = page.locator(".floating-node-menu");
         await expect(nodeMenu).toBeVisible();
@@ -363,13 +366,7 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("text");
-        await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "text");
 
         // Press ArrowDown to navigate
         await page.keyboard.press("ArrowDown");
@@ -393,13 +390,7 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("text");
-        await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "text");
 
         // Navigate down first, then back up
         await page.keyboard.press("ArrowDown");
@@ -452,20 +443,25 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("text");
-        await waitForAnimation(page);
-        await page.waitForTimeout(300);
+        await fillSearchAndWait(page, "text");
+
+        // Wait for node list results to be present
+        const nodeList = page.locator(".floating-node-menu .node-list");
+        await expect(nodeList).toBeVisible({ timeout: 5000 });
 
         // Navigate to first result and press Enter
         await page.keyboard.press("ArrowDown");
         await waitForAnimation(page);
         await page.keyboard.press("Enter");
         await waitForAnimation(page);
-        await page.waitForTimeout(300);
+
+        // Wait for a node to appear on the canvas
+        await expect(page.locator(".react-flow__node")).toHaveCount(
+          initialNodeCount + 1,
+          { timeout: 5000 }
+        ).catch(() => {
+          // Node count may not increase if the action didn't add a node
+        });
 
         // The menu should close after adding a node
         const nodeMenu = page.locator(".floating-node-menu");
@@ -529,7 +525,13 @@ if (process.env.JEST_WORKER_ID) {
         if (count > 1) {
           await namespaceItems.nth(1).click();
           await waitForAnimation(page);
-          await page.waitForTimeout(SEARCH_SETTLE_MS);
+
+          // Wait for the clicked item to become selected
+          await expect(
+            namespacePanel.locator(".list-item.selected")
+          ).toHaveCount(1, { timeout: 5000 }).catch(() => {
+            // At least one item should be selected
+          });
 
           // The clicked item should now be selected
           const selectedItems = namespacePanel.locator(
@@ -560,7 +562,6 @@ if (process.env.JEST_WORKER_ID) {
         if (count > 1) {
           await namespaceItems.nth(1).click();
           await waitForAnimation(page);
-          await page.waitForTimeout(300);
 
           // The node list should appear with results
           const nodeList = page.locator(".floating-node-menu .node-list");
@@ -589,12 +590,14 @@ if (process.env.JEST_WORKER_ID) {
           // Select a namespace first
           await namespaceItems.nth(1).click();
           await waitForAnimation(page);
-          await page.waitForTimeout(SEARCH_SETTLE_MS);
+          // Wait for selection to take effect
+          await expect(namespaceItems.nth(1)).toHaveClass(/selected/, { timeout: 5000 }).catch(() => {});
 
           // Click Home (first item)
           await namespaceItems.first().click();
           await waitForAnimation(page);
-          await page.waitForTimeout(SEARCH_SETTLE_MS);
+          // Wait for Home to become selected
+          await expect(namespaceItems.first()).toHaveClass(/selected/, { timeout: 5000 });
 
           // Home item should be selected
           const firstItemClass = await namespaceItems.first().getAttribute("class");
@@ -619,13 +622,11 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("text");
-        await waitForAnimation(page);
-        await page.waitForTimeout(300);
+        await fillSearchAndWait(page, "text");
+
+        // Wait for the node list to be visible with results
+        const nodeList = page.locator(".floating-node-menu .node-list");
+        await expect(nodeList).toBeVisible({ timeout: 5000 });
 
         // Click the first node result
         const nodeButton = page
@@ -636,7 +637,14 @@ if (process.env.JEST_WORKER_ID) {
         if (nodeButtonCount > 0) {
           await nodeButton.click();
           await waitForAnimation(page);
-          await page.waitForTimeout(300);
+
+          // Wait for a new node to appear on the canvas
+          await expect(page.locator(".react-flow__node")).toHaveCount(
+            initialNodeCount + 1,
+            { timeout: 5000 }
+          ).catch(() => {
+            // Fallback: just check count increased
+          });
 
           const finalNodeCount = await page
             .locator(".react-flow__node")
@@ -705,7 +713,9 @@ if (process.env.JEST_WORKER_ID) {
 
         await firstChip.click();
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+
+        // Wait for the chip to become selected
+        await expect(firstChip).toHaveClass(/selected/, { timeout: 5000 });
 
         // The chip should now have the "selected" class
         const chipClass = await firstChip.getAttribute("class");
@@ -731,12 +741,14 @@ if (process.env.JEST_WORKER_ID) {
         // Click once to select
         await firstChip.click();
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        // Wait for selected state
+        await expect(firstChip).toHaveClass(/selected/, { timeout: 5000 });
 
         // Click again to deselect
         await firstChip.click();
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        // Wait for deselected state
+        await expect(firstChip).not.toHaveClass(/selected/, { timeout: 5000 });
 
         const chipClass = await firstChip.getAttribute("class");
         expect(chipClass).not.toContain("selected");
@@ -759,7 +771,9 @@ if (process.env.JEST_WORKER_ID) {
         );
         await localChip.click();
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+
+        // Wait for the chip to become selected
+        await expect(localChip).toHaveClass(/selected/, { timeout: 5000 });
 
         const chipClass = await localChip.getAttribute("class");
         expect(chipClass).toContain("selected");
@@ -848,7 +862,8 @@ if (process.env.JEST_WORKER_ID) {
         const typeChips = page.locator(".floating-node-menu .type-chip");
         await typeChips.first().click();
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        // Wait for the chip to become selected
+        await expect(typeChips.first()).toHaveClass(/selected/, { timeout: 5000 });
 
         // Should display active filter chip with "Output: ..." label
         const activeFilterChip = page
@@ -875,7 +890,8 @@ if (process.env.JEST_WORKER_ID) {
         const typeChips = page.locator(".floating-node-menu .type-chip");
         await typeChips.first().click();
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        // Wait for the chip to become selected
+        await expect(typeChips.first()).toHaveClass(/selected/, { timeout: 5000 });
 
         // Look for the active filter chip in the search row (Output: ...)
         const activeChip = page
@@ -889,7 +905,9 @@ if (process.env.JEST_WORKER_ID) {
           const deleteIcon = activeChip.locator(".MuiChip-deleteIcon");
           await deleteIcon.click();
           await waitForAnimation(page);
-          await page.waitForTimeout(SEARCH_SETTLE_MS);
+
+          // Wait for the type chip to be deselected
+          await expect(typeChips.first()).not.toHaveClass(/selected/, { timeout: 5000 });
 
           // The chip should no longer be selected
           const chipClass = await typeChips.first().getAttribute("class");
@@ -957,17 +975,12 @@ if (process.env.JEST_WORKER_ID) {
         if (count > 1) {
           await namespaceItems.nth(1).click();
           await waitForAnimation(page);
-          await page.waitForTimeout(SEARCH_SETTLE_MS);
+          // Wait for namespace selection to take effect
+          await expect(namespaceItems.nth(1)).toHaveClass(/selected/, { timeout: 5000 }).catch(() => {});
         }
 
         // Then type a search term
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("node");
-        await waitForAnimation(page);
-        await page.waitForTimeout(300);
+        await fillSearchAndWait(page, "node");
 
         // Info box should reflect the combined filter
         const infoBox = page.locator(".floating-node-menu .result-info");
@@ -987,13 +1000,7 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("audio");
-        await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "audio");
 
         // The first namespace item should now read "All results"
         const namespacePanel = page.locator(
@@ -1035,13 +1042,7 @@ if (process.env.JEST_WORKER_ID) {
 
         await openNodeMenu(page);
 
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("text");
-        await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "text");
 
         // Quick action tiles should be hidden when search is active
         const quickActionTiles = page.locator(
@@ -1086,20 +1087,19 @@ if (process.env.JEST_WORKER_ID) {
         await openNodeMenu(page);
 
         // Type and clear search
-        const searchInput = page.locator(
-          '.floating-node-menu [data-testid="search-input-field"]'
-        );
-        await searchInput.click();
-        await searchInput.fill("text");
-        await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+        await fillSearchAndWait(page, "text");
 
         const clearBtn = page.locator(
           '.floating-node-menu [data-testid="search-clear-btn"]'
         );
         await clearBtn.click();
         await waitForAnimation(page);
-        await page.waitForTimeout(SEARCH_SETTLE_MS);
+
+        // Wait for the search to be cleared and info box to update
+        const searchInput = page.locator(
+          '.floating-node-menu [data-testid="search-input-field"]'
+        );
+        await expect(searchInput).toHaveValue("");
 
         // Info box should still show total nodes count
         const infoBox = page.locator(".floating-node-menu .result-info");

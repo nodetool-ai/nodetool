@@ -14,26 +14,19 @@ if (process.env.JEST_WORKER_ID) {
       // Navigate to root
       await navigateToPage(page, "/");
 
-      // Wait for client-side redirect to complete (React navigation may happen after networkidle)
-      try {
-        await page.waitForURL(/\/(login|dashboard)/, { timeout: 10000 });
-      } catch {
-        // If timeout, the app might stay at root - check current URL
-      }
-      
-      // After redirect attempt, check URL path - may be at root, dashboard, or login
+      // Wait for client-side redirect to dashboard
+      await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+
       const url = page.url();
       const pathname = new URL(url).pathname;
-      expect(pathname).toMatch(/^\/(login|dashboard)?$/);
+      expect(pathname).toBe("/dashboard");
     });
 
     test("should allow access to dashboard", async ({ page }) => {
       await navigateToPage(page, "/dashboard");
 
-      // After network is idle, should be on dashboard or login
-      const url = page.url();
-      const pathname = new URL(url).pathname;
-      expect(pathname).toMatch(/^\/(login|dashboard)/);
+      // After network is idle, should be on dashboard
+      await expect(page).toHaveURL(/\/dashboard/);
     });
 
     test("should handle login page if authentication required", async ({

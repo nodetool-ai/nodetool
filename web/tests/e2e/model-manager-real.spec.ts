@@ -1,5 +1,9 @@
 import { test, expect, Page } from "@playwright/test";
-import { navigateToPage, waitForAnimation } from "./helpers/waitHelpers";
+import {
+  navigateToPage,
+  waitForAnimation,
+  waitForTextStable,
+} from "./helpers/waitHelpers";
 
 /**
  * E2E tests for the Model Manager against the REAL TS backend.
@@ -58,6 +62,31 @@ if (process.env.JEST_WORKER_ID) {
     return null;
   }
 
+  /** Wait for the model list header text to stabilize after a filter change. */
+  async function waitForHeaderStable(page: Page, timeout = 5000) {
+    await waitForTextStable(page.locator(".model-list-header"), timeout);
+  }
+
+  /** Wait for cache status checks to complete by waiting for .downloaded class or download buttons to appear. */
+  async function waitForCacheChecks(page: Page, timeout = 15000) {
+    // Wait until no more "Checking cache" indicators are visible
+    await page.waitForFunction(
+      () => {
+        const checkingElements = document.querySelectorAll('.model-list-item');
+        if (checkingElements.length === 0) return true;
+        // Check if any items still show "Checking cache"
+        const checking = document.querySelectorAll('.model-list-item *');
+        for (const el of checking) {
+          if (el.textContent?.includes('Checking cache')) return false;
+        }
+        return true;
+      },
+      { timeout }
+    ).catch(() => {
+      // Cache checks may have completed before we started watching — that's fine
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Tests
   // ─────────────────────────────────────────────────────────────────────────────
@@ -109,7 +138,7 @@ if (process.env.JEST_WORKER_ID) {
       await typeButtons.nth(1).click();
       await waitForAnimation(page);
       // Wait for virtual list to update
-      await page.waitForTimeout(500);
+      await waitForHeaderStable(page);
 
       // Header should now reflect a filtered count or the type-specific count
       const headerAfter = await getHeaderModelCount(page);
@@ -128,7 +157,7 @@ if (process.env.JEST_WORKER_ID) {
       // Click "All" to go back
       await typeButtons.first().click();
       await waitForAnimation(page);
-      await page.waitForTimeout(500);
+      await waitForHeaderStable(page);
 
       const headerReset = await getHeaderModelCount(page);
       const totalReset = parseTotalFromHeader(headerReset);
@@ -148,7 +177,7 @@ if (process.env.JEST_WORKER_ID) {
       const searchInput = page.locator("input[type='text']").first();
       await searchInput.fill("whisper");
       await waitForAnimation(page);
-      await page.waitForTimeout(500); // debounce
+      await waitForHeaderStable(page);
 
       const headerAfter = await getHeaderModelCount(page);
       const filteredCount = parseCountFromHeader(headerAfter);
@@ -171,10 +200,8 @@ if (process.env.JEST_WORKER_ID) {
       const searchInput = page.locator("input[type='text']").first();
       await searchInput.fill("zzz_absolutely_no_match_zzz");
       await waitForAnimation(page);
-      await page.waitForTimeout(500);
-
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toContain("No models found");
+      // Wait for the "No models found" text to appear
+      await expect(page.getByText("No models found")).toBeVisible({ timeout: 5000 });
     });
 
     // ── 3. Download status filter ──────────────────────────────────────────
@@ -211,7 +238,8 @@ if (process.env.JEST_WORKER_ID) {
       });
       await downloadedBtn.click();
       await waitForAnimation(page);
-      await page.waitForTimeout(1000); // cache check may take time
+      // Wait for header to update with download status info
+      await waitForHeaderStable(page);
 
       const headerAfter = await getHeaderModelCount(page);
       expect(headerAfter).toContain("downloaded");
@@ -232,7 +260,7 @@ if (process.env.JEST_WORKER_ID) {
       });
       await availableBtn.click();
       await waitForAnimation(page);
-      await page.waitForTimeout(1000);
+      await waitForHeaderStable(page);
 
       const headerAfter = await getHeaderModelCount(page);
       expect(headerAfter).toContain("available");
@@ -253,12 +281,12 @@ if (process.env.JEST_WORKER_ID) {
       });
       await downloadedBtn.click();
       await waitForAnimation(page);
-      await page.waitForTimeout(500);
+      await waitForHeaderStable(page);
 
       const allBtn = page.getByRole("button", { name: "show all models" });
       await allBtn.click();
       await waitForAnimation(page);
-      await page.waitForTimeout(500);
+      await waitForHeaderStable(page);
 
       const headerAfter = await getHeaderModelCount(page);
       const totalAfter = parseTotalFromHeader(headerAfter);
@@ -283,7 +311,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.keyboard.press("ArrowRight"); // value = 1
 
       await waitForAnimation(page);
-      await page.waitForTimeout(500);
+      await waitForHeaderStable(page);
 
       const headerAfter = await getHeaderModelCount(page);
       const filteredAfter = parseCountFromHeader(headerAfter);
@@ -297,7 +325,7 @@ if (process.env.JEST_WORKER_ID) {
       // Reset slider to All (0)
       await page.keyboard.press("Home");
       await waitForAnimation(page);
-      await page.waitForTimeout(500);
+      await waitForHeaderStable(page);
 
       const headerReset = await getHeaderModelCount(page);
       const totalReset = parseTotalFromHeader(headerReset);
@@ -442,7 +470,7 @@ if (process.env.JEST_WORKER_ID) {
       for (let i = 1; i < typesToTest; i++) {
         await typeButtons.nth(i).click();
         await waitForAnimation(page);
-        await page.waitForTimeout(500);
+        await waitForHeaderStable(page);
 
         const headerText = await getHeaderModelCount(page);
         // Should show a valid count
@@ -465,7 +493,7 @@ if (process.env.JEST_WORKER_ID) {
       await openModelManager(page);
 
       // Wait for cache status checks to complete
-      await page.waitForTimeout(2000);
+      await waitForCacheChecks(page);
 
       // Check models with "Downloaded" chip — they should have a delete button
       const downloadedItems = page.locator(
@@ -506,7 +534,7 @@ if (process.env.JEST_WORKER_ID) {
       page
     }) => {
       await openModelManager(page);
-      await page.waitForTimeout(2000); // wait for cache checks
+      await waitForCacheChecks(page);
 
       const downloadedItems = page.locator(
         ".model-list-item.downloaded"
@@ -545,7 +573,7 @@ if (process.env.JEST_WORKER_ID) {
       page
     }) => {
       await openModelManager(page);
-      await page.waitForTimeout(2000);
+      await waitForCacheChecks(page);
 
       const nonDownloadedItems = page.locator(
         ".model-list-item:not(.downloaded)"
@@ -586,13 +614,13 @@ if (process.env.JEST_WORKER_ID) {
       if (buttonCount > 1) {
         await typeButtons.nth(1).click();
         await waitForAnimation(page);
-        await page.waitForTimeout(500);
+        await waitForHeaderStable(page);
 
         // Now also search
         const searchInput = page.locator("input[type='text']").first();
         await searchInput.fill("a");
         await waitForAnimation(page);
-        await page.waitForTimeout(500);
+        await waitForHeaderStable(page);
 
         const headerAfter = await getHeaderModelCount(page);
         // Count should be less than or equal to total
@@ -613,7 +641,7 @@ if (process.env.JEST_WORKER_ID) {
       if ((await typeButtons.count()) > 1) {
         await typeButtons.nth(1).click();
         await waitForAnimation(page);
-        await page.waitForTimeout(500);
+        await waitForHeaderStable(page);
 
         const headerWithType = await getHeaderModelCount(page);
 
@@ -621,12 +649,12 @@ if (process.env.JEST_WORKER_ID) {
         const searchInput = page.locator("input[type='text']").first();
         await searchInput.fill("test_search_term");
         await waitForAnimation(page);
-        await page.waitForTimeout(500);
+        await waitForHeaderStable(page);
 
         // Clear the search
         await searchInput.fill("");
         await waitForAnimation(page);
-        await page.waitForTimeout(500);
+        await waitForHeaderStable(page);
 
         const headerAfterClear = await getHeaderModelCount(page);
         // Should return to type-filtered count

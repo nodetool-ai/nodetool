@@ -113,11 +113,11 @@ if (process.env.JEST_WORKER_ID) {
 
         // Navigate with arrow keys
         await page.keyboard.press("ArrowDown");
-        await page.waitForTimeout(100);
+        await waitForAnimation(page);
         await page.keyboard.press("ArrowDown");
-        await page.waitForTimeout(100);
+        await waitForAnimation(page);
         await page.keyboard.press("ArrowUp");
-        await page.waitForTimeout(100);
+        await waitForAnimation(page);
 
         // Verify no crash
         await expect(canvas).toBeVisible();
@@ -396,13 +396,13 @@ if (process.env.JEST_WORKER_ID) {
 
           // Move with arrow keys
           await page.keyboard.press("ArrowUp");
-          await page.waitForTimeout(100);
+          await waitForAnimation(page);
           await page.keyboard.press("ArrowDown");
-          await page.waitForTimeout(100);
+          await waitForAnimation(page);
           await page.keyboard.press("ArrowLeft");
-          await page.waitForTimeout(100);
+          await waitForAnimation(page);
           await page.keyboard.press("ArrowRight");
-          await page.waitForTimeout(100);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {

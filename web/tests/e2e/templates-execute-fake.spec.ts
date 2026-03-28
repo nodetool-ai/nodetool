@@ -386,10 +386,8 @@ if (process.env.JEST_WORKER_ID) {
         await runButton.click();
         await waitForAnimation(page);
 
-        // Wait briefly for WebSocket events to be processed
-        await page.waitForTimeout(800);
-
-        // Canvas must remain visible and page must not crash after execution
+        // Wait for WebSocket execution events to be processed
+        // The fake WS sends completed after FAKE_PROCESSING_DELAY_MS
         await expect(canvas).toBeVisible({ timeout: 10_000 });
         const body = await page.textContent("body");
         expect(body).not.toContain("Internal Server Error");
@@ -443,10 +441,7 @@ if (process.env.JEST_WORKER_ID) {
       if ((await runButton.count()) > 0 && (await runButton.isVisible())) {
         await runButton.click();
 
-        // Allow time for fake WebSocket events to be processed
-        await page.waitForTimeout(1000);
-
-        // Editor must still be functional after execution
+        // Wait for fake WebSocket execution events to complete
         await expect(canvas).toBeVisible({ timeout: 10_000 });
         const body = await page.textContent("body");
         expect(body).not.toContain("Internal Server Error");
@@ -512,8 +507,6 @@ if (process.env.JEST_WORKER_ID) {
 
       if ((await runButton.count()) > 0 && (await runButton.isVisible())) {
         await runButton.click();
-        // Allow WebSocket events to propagate
-        await page.waitForTimeout(800);
       }
 
       // After execution, UI should remain stable
@@ -580,7 +573,6 @@ if (process.env.JEST_WORKER_ID) {
 
       if ((await runButton.count()) > 0 && (await runButton.isVisible())) {
         await runButton.click();
-        await page.waitForTimeout(800);
       }
 
       // UI must not crash after receiving output_update

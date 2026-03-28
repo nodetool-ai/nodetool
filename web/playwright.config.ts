@@ -58,7 +58,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   // Workers: balance parallelism with stability
-  workers: process.env.CI ? 4 : undefined,
+  workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
   // Timeout must accommodate navigation + editor load + actions in CI
   timeout: process.env.CI ? 30_000 : 20_000,
@@ -78,6 +78,8 @@ export default defineConfig({
   use: {
     baseURL: FRONTEND_URL,
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     tsconfig: './tsconfig.e2e.json',
     // Reasonable navigation timeout to handle slow starts
     navigationTimeout: 30_000,

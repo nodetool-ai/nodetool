@@ -15,6 +15,28 @@ if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Keyboard Shortcuts", () => {
+    let workflowId: string;
+
+    test.beforeAll(async ({ request }) => {
+      const res = await request.post(`${BACKEND_API_URL}/workflows/`, {
+        data: {
+          name: `e2e-keyboard-shortcuts-${Date.now()}`,
+          description: "E2E keyboard shortcuts test",
+          access: "private",
+        },
+      });
+      const workflow = await res.json();
+      workflowId = workflow.id;
+    });
+
+    test.afterAll(async ({ request }) => {
+      if (workflowId) {
+        await request
+          .delete(`${BACKEND_API_URL}/workflows/${workflowId}`)
+          .catch(() => {});
+      }
+    });
+
     test.describe("Global Shortcuts", () => {
       test("should handle Escape key to close dialogs", async ({ page }) => {
         await navigateToPage(page, "/dashboard");
@@ -29,253 +51,112 @@ if (process.env.JEST_WORKER_ID) {
         expect(bodyText).not.toContain("Internal Server Error");
       });
 
-      test("should handle Meta+K for command palette", async ({
-        page,
-        request
-      }) => {
-        // Create a workflow to test in editor
-        const workflowName = `test-shortcuts-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test("should handle Meta+K for command palette", async ({ page }) => {
+        await navigateToPage(page, `/editor/${workflowId}`);
+        await waitForEditorReady(page);
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Try command palette shortcut
+        await page.keyboard.press("Meta+k");
+        await waitForAnimation(page);
 
-          // Try command palette shortcut
-          await page.keyboard.press("Meta+k");
-          await waitForAnimation(page);
-
-          // Check for command palette or any modal
-          const body = await page.locator("body");
-          await expect(body).not.toBeEmpty();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Check for command palette or any modal
+        const body = await page.locator("body");
+        await expect(body).not.toBeEmpty();
       });
     });
 
     test.describe("Editor Shortcuts", () => {
-      test("should handle undo shortcut (Cmd/Ctrl+Z)", async ({
-        page,
-        request
-      }) => {
-        const workflowName = `test-undo-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test.beforeEach(async ({ page }) => {
+        await navigateToPage(page, `/editor/${workflowId}`);
+        await waitForEditorReady(page);
+      });
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+      test("should handle undo shortcut (Cmd/Ctrl+Z)", async ({ page }) => {
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
+        // Try undo shortcut
+        await page.keyboard.press("Meta+z");
+        await waitForAnimation(page);
 
-          // Try undo shortcut
-          await page.keyboard.press("Meta+z");
-          await waitForAnimation(page);
-
-          // Page should still be functional
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Page should still be functional
+        await expect(canvas).toBeVisible();
       });
 
       test("should handle redo shortcut (Cmd/Ctrl+Shift+Z)", async ({
-        page,
-        request
+        page
       }) => {
-        const workflowName = `test-redo-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Try redo shortcut
+        await page.keyboard.press("Meta+Shift+z");
+        await waitForAnimation(page);
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
-
-          // Try redo shortcut
-          await page.keyboard.press("Meta+Shift+z");
-          await waitForAnimation(page);
-
-          // Page should still be functional
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Page should still be functional
+        await expect(canvas).toBeVisible();
       });
 
       test("should handle select all shortcut (Cmd/Ctrl+A)", async ({
-        page,
-        request
+        page
       }) => {
-        const workflowName = `test-select-all-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Try select all shortcut
+        await page.keyboard.press("Meta+a");
+        await waitForAnimation(page);
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
-
-          // Try select all shortcut
-          await page.keyboard.press("Meta+a");
-          await waitForAnimation(page);
-
-          // Page should still be functional
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Page should still be functional
+        await expect(canvas).toBeVisible();
       });
 
-      test("should handle copy/paste shortcuts", async ({ page, request }) => {
-        const workflowName = `test-copy-paste-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test("should handle copy/paste shortcuts", async ({ page }) => {
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Try copy shortcut
+        await page.keyboard.press("Meta+c");
+        await waitForAnimation(page);
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
+        // Try paste shortcut
+        await page.keyboard.press("Meta+v");
+        await waitForAnimation(page);
 
-          // Try copy shortcut
-          await page.keyboard.press("Meta+c");
-          await waitForAnimation(page);
-
-          // Try paste shortcut
-          await page.keyboard.press("Meta+v");
-          await waitForAnimation(page);
-
-          // Page should still be functional
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Page should still be functional
+        await expect(canvas).toBeVisible();
       });
 
-      test("should handle delete shortcut", async ({ page, request }) => {
-        const workflowName = `test-delete-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test("should handle delete shortcut", async ({ page }) => {
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Try delete/backspace
+        await page.keyboard.press("Delete");
+        await waitForAnimation(page);
+        await page.keyboard.press("Backspace");
+        await waitForAnimation(page);
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
-
-          // Try delete/backspace
-          await page.keyboard.press("Delete");
-          await waitForAnimation(page);
-          await page.keyboard.press("Backspace");
-          await waitForAnimation(page);
-
-          // Page should still be functional
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Page should still be functional
+        await expect(canvas).toBeVisible();
       });
 
-      test("should handle fit to screen shortcut", async ({ page, request }) => {
-        const workflowName = `test-fit-screen-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test("should handle fit to screen shortcut", async ({ page }) => {
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Try fit to screen shortcut (commonly F or 0)
+        await page.keyboard.press("f");
+        await waitForAnimation(page);
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
-
-          // Try fit to screen shortcut (commonly F or 0)
-          await page.keyboard.press("f");
-          await waitForAnimation(page);
-
-          // Page should still be functional
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Page should still be functional
+        await expect(canvas).toBeVisible();
       });
     });
 
@@ -348,147 +229,75 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test.describe("Modal Shortcuts", () => {
-      test("should close modals with Escape", async ({ page, request }) => {
-        const workflowName = `test-modal-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test("should close modals with Escape", async ({ page }) => {
+        await navigateToPage(page, `/editor/${workflowId}`);
+        await waitForEditorReady(page);
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Try opening node menu
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
+        await page.keyboard.press("Tab");
+        await waitForAnimation(page);
 
-          // Try opening node menu
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
-          await page.keyboard.press("Tab");
-          await waitForAnimation(page);
+        // Press Escape to close any open menu/modal
+        await page.keyboard.press("Escape");
+        await waitForAnimation(page);
 
-          // Press Escape to close any open menu/modal
-          await page.keyboard.press("Escape");
-          await waitForAnimation(page);
-
-          // Page should remain functional
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Page should remain functional
+        await expect(canvas).toBeVisible();
       });
     });
 
     test.describe("Zoom Shortcuts", () => {
-      test("should handle zoom in (Cmd/Ctrl++)", async ({ page, request }) => {
-        const workflowName = `test-zoom-in-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
-
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
-
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
-
-          // Get viewport element
-          const _viewport = page.locator(".react-flow__viewport");
-
-          // Zoom in
-          await page.keyboard.press("Meta+=");
-          await waitForAnimation(page);
-
-          // Canvas should still be visible
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+      test.beforeEach(async ({ page }) => {
+        await navigateToPage(page, `/editor/${workflowId}`);
+        await waitForEditorReady(page);
       });
 
-      test("should handle zoom out (Cmd/Ctrl+-)", async ({ page, request }) => {
-        const workflowName = `test-zoom-out-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test("should handle zoom in (Cmd/Ctrl++)", async ({ page }) => {
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Get viewport element
+        const _viewport = page.locator(".react-flow__viewport");
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
+        // Zoom in
+        await page.keyboard.press("Meta+=");
+        await waitForAnimation(page);
 
-          // Zoom out
-          await page.keyboard.press("Meta+-");
-          await waitForAnimation(page);
-
-          // Canvas should still be visible
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Canvas should still be visible
+        await expect(canvas).toBeVisible();
       });
 
-      test("should handle reset zoom (Cmd/Ctrl+0)", async ({ page, request }) => {
-        const workflowName = `test-zoom-reset-${Date.now()}`;
-        const createResponse = await request.post(
-          `${BACKEND_API_URL}/workflows/`,
-          {
-            data: {
-              name: workflowName,
-              description: "Test workflow",
-              access: "private"
-            }
-          }
-        );
-        const workflow = await createResponse.json();
+      test("should handle zoom out (Cmd/Ctrl+-)", async ({ page }) => {
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-          await waitForEditorReady(page);
+        // Zoom out
+        await page.keyboard.press("Meta+-");
+        await waitForAnimation(page);
 
-          // Focus on canvas
-          const canvas = page.locator(".react-flow");
-          await canvas.click();
+        // Canvas should still be visible
+        await expect(canvas).toBeVisible();
+      });
 
-          // Zoom in first
-          await page.keyboard.press("Meta+=");
-          await waitForAnimation(page);
+      test("should handle reset zoom (Cmd/Ctrl+0)", async ({ page }) => {
+        // Focus on canvas
+        const canvas = page.locator(".react-flow");
+        await canvas.click();
 
-          // Reset zoom
-          await page.keyboard.press("Meta+0");
-          await waitForAnimation(page);
+        // Zoom in first
+        await page.keyboard.press("Meta+=");
+        await waitForAnimation(page);
 
-          // Canvas should still be visible
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
+        // Reset zoom
+        await page.keyboard.press("Meta+0");
+        await waitForAnimation(page);
+
+        // Canvas should still be visible
+        await expect(canvas).toBeVisible();
       });
     });
   });
