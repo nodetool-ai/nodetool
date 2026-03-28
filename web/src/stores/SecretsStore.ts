@@ -8,6 +8,11 @@ interface SecretsStore {
   isLoading: boolean;
   error: string | null;
   fetchSecrets: (limit?: number) => Promise<SecretResponse[]>;
+  /**
+   * Load a single secret's decrypted value from the API (not included in listSecrets).
+   * Returns null if missing, empty, or the request fails.
+   */
+  fetchDecryptedSecret: (key: string) => Promise<string | null>;
   updateSecret: (key: string, value: string, description?: string) => Promise<void>;
   deleteSecret: (key: string) => Promise<void>;
 }
@@ -48,6 +53,30 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
     }
   },
 
+  fetchDecryptedSecret: async (key: string) => {
+    try {
+      const { error, data } = await client.GET("/api/settings/secrets/{key}", {
+        params: {
+          path: { key },
+          query: { decrypt: true }
+        }
+      });
+
+      if (error || data == null) {
+        return null;
+      }
+
+      const body = data as Record<string, unknown>;
+      const value = body.value;
+      if (typeof value !== "string") {
+        return null;
+      }
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    } catch {
+      return null;
+    }
+  },
 
   updateSecret: async (key: string, value: string, description?: string) => {
     set({ error: null });
