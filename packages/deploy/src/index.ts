@@ -11,6 +11,8 @@ export * from "./progress.js";
 export * from "./ssh.js";
 export * from "./docker.js";
 export * from "./docker-run.js";
+export * from "./image-spec.js";
+export * from "./image-builder.js";
 
 // Deployers
 export * from "./self-hosted.js";
@@ -20,6 +22,9 @@ export * from "./deploy-to-runpod.js";
 export * from "./gcp.js";
 export * from "./google-cloud-run-api.js";
 export * from "./deploy-to-gcp.js";
+export * from "./fly.js";
+export * from "./railway.js";
+export * from "./huggingface.js";
 
 // Deployment manager
 export * from "./manager.js";
