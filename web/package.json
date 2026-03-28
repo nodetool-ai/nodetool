@@ -112,7 +112,7 @@
     "zod": "^4.3.6",
     "zundo": "^2.3.0",
     "zustand": "4.5.7",
-    "@nodetool/protocol": "workspace:*"
+    "@nodetool/protocol": "file:../packages/protocol"
   },
   "scripts": {
     "start": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false",
