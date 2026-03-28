@@ -49,7 +49,7 @@ const useTraceStore = create<TraceStoreState>((set, get) => ({
 
   append: (event: TraceEvent) =>
     set((state) => {
-      if (!state.isRecording) return state;
+      if (!state.isRecording) {return state;}
       const events =
         state.events.length >= MAX_EVENTS
           ? [...state.events.slice(1), event]
