@@ -9,6 +9,8 @@ on:
       - "electron/**"
       - "packages/**"
       - "mobile/**"
+      - "package.json"
+      - ".github/workflows/test.yml"
   pull_request:
     branches:
       - main
@@ -17,6 +19,8 @@ on:
       - "electron/**"
       - "packages/**"
       - "mobile/**"
+      - "package.json"
+      - ".github/workflows/test.yml"
 
 jobs:
   web:
