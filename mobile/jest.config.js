@@ -6,6 +6,9 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  moduleNameMapper: {
+    '^expo-clipboard$': '<rootDir>/__mocks__/expo-clipboard.js',
+  },
   collectCoverageFrom: [
     'src/components/chat/**/*.{ts,tsx}',
     'src/stores/ChatStore.{ts,tsx}',
