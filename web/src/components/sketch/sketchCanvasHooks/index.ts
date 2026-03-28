@@ -10,7 +10,10 @@ export type { UseCompositingParams, UseCompositingResult } from "./useCompositin
 export { useCanvasImperativeHandle } from "./useCanvasImperativeHandle";
 export type { UseCanvasImperativeHandleParams } from "./useCanvasImperativeHandle";
 
-export { useOverlayRenderer } from "./useOverlayRenderer";
+export {
+  useOverlayRenderer,
+  selectionAntCanvasMarginCssPx
+} from "./useOverlayRenderer";
 export type {
   SelectionMoveAntsRef,
   UseOverlayRendererParams,

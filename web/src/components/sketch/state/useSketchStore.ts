@@ -52,7 +52,7 @@ import {
 
 /** Sketch viewport zoom limits (1 = 100%). */
 export const SKETCH_ZOOM_MIN = 0.1;
-export const SKETCH_ZOOM_MAX = 48;
+export const SKETCH_ZOOM_MAX = 56;
 
 function withUpdatedDocumentTimestamp(document: SketchDocument): SketchDocument {
   return {

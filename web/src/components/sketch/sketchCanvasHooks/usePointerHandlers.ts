@@ -62,14 +62,6 @@ import {
   pointerHasPaintContact
 } from "../pointerPen";
 
-/**
- * Wheel zoom smoothing: lerp factor per frame blends between min (near target)
- * and max (far) using relative error — lazy overall motion, a bit quicker when
- * the gap is large so stacked wheel events still land without feeling snappy.
- */
-const WHEEL_ZOOM_SMOOTH_MIN = 0.26;
-const WHEEL_ZOOM_SMOOTH_MAX = 0.72;
-
 /** Rect/ellipse marquee: require this much document-space delta (or screen slop below) before commit. */
 const MARQUEE_MIN_DRAG_DOC_PX = 1;
 /**

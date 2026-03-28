@@ -448,22 +448,30 @@ export function drawCheckerboard(
 }
 
 /**
- * Minimum zoom level at which the pixel grid becomes visible.
- * Below this zoom each pixel is too small for grid lines to be useful.
- * 2× (200%) matches common “zoom in to pixel-edit” without requiring extreme zoom.
+ * First zoom scale (1 = 100%) at which the pixel grid is drawn on the viewport layer.
+ * 20 = 2000% — only when image pixels are very large on screen.
  */
-export const PIXEL_GRID_MIN_ZOOM = 2;
+export const PIXEL_GRID_MIN_ZOOM = 20;
+
+/** Opacity ramp ends here (grid reaches full stroke alpha). */
+export const PIXEL_GRID_FULL_OPACITY_ZOOM = 28;
 
 /**
- * Draws a thin semi-transparent dark grid on the overlay canvas at every
- * integer pixel boundary. Dark strokes read as pixel edges without lifting
- * luminance (a white grid over the whole canvas made zoomed art look washed
- * / brighter). Opacity ramps from PIXEL_GRID_MIN_ZOOM up to full strength at
- * PIXEL_GRID_MIN_ZOOM * 2.
+ * Pencil pixel-snap cursor: independent of {@link PIXEL_GRID_MIN_ZOOM} so the cell
+ * cursor appears at modest zoom (e.g. 200%).
+ */
+export const PENCIL_PIXEL_CURSOR_MIN_ZOOM = 2;
+
+/**
+ * Strokes a thin grid at every integer **document pixel** boundary (not filled cells).
  *
- * The overlay matches document pixel size and is scaled with CSS `scale(zoom)`.
- * Line width is ~`1/zoom` doc units for ~1 CSS px; we clamp to at least 0.5 doc
- * units so strokes stay visible after rasterization.
+ * **Caller must apply the same document→viewport transform as the artwork** (e.g. the
+ * selection/marching-ants canvas: scale(zoom) + pan, origin at document top-left). This
+ * keeps the grid a screen-aligned UI decoration; do not draw it on the document-sized
+ * overlay bitmap in image-buffer space.
+ *
+ * `lineWidth` is `1/zoom` in document user units so the stroke is ~one CSS/device pixel
+ * thick after the view scale.
  */
 export function drawPixelGrid(
   ctx: CanvasRenderingContext2D,
@@ -475,20 +483,17 @@ export function drawPixelGrid(
     return;
   }
 
-  const fadeEnd = PIXEL_GRID_MIN_ZOOM * 2;
+  const fadeEnd = PIXEL_GRID_FULL_OPACITY_ZOOM;
   const t =
     zoom >= fadeEnd
       ? 1
       : (zoom - PIXEL_GRID_MIN_ZOOM) / (fadeEnd - PIXEL_GRID_MIN_ZOOM);
-  // At exactly PIXEL_GRID_MIN_ZOOM, t === 0: use a visible floor (previous
-  // formula multiplied by t and made the grid fully transparent at 200%).
-  const opacity = 0.16 + 0.18 * Math.min(1, Math.max(0, t));
+  const opacity = 0.28 + 0.26 * Math.min(1, Math.max(0, t));
 
-  // Prefer ~1 CSS px after scale(zoom); floor width so sub-pixel strokes survive raster + upscale.
-  const lw = Math.max(1 / zoom, 0.5);
+  const lw = 1 / zoom;
 
   ctx.save();
-  ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
+  ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
   ctx.lineWidth = lw;
 
   // Vertical lines

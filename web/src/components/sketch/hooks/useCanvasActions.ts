@@ -14,6 +14,7 @@ import {
   type LayerTransform,
   type Point,
   type PushHistoryOptions,
+  type Selection,
   type SketchDocument,
   type SketchTool
 } from "../types";
@@ -21,6 +22,35 @@ import { useSketchStore } from "../state";
 import { getLayerCompositeOffset } from "../painting";
 import { getSelectionBounds, selectionHasAnyPixels } from "../selection/selectionMask";
 import type { StrokeEndOptions } from "../tools/types";
+
+/**
+ * For copy/export: zero or scale RGBA alpha by the document-space mask inside `bounds`.
+ */
+function multiplyImageDataAlphaBySelectionMask(
+  imageData: ImageData,
+  bounds: { x: number; y: number; width: number; height: number },
+  sel: Selection
+): void {
+  const w = bounds.width;
+  const h = bounds.height;
+  const mw = sel.width;
+  const mh = sel.height;
+  const md = sel.data;
+  const d = imageData.data;
+  for (let j = 0; j < h; j++) {
+    const docY = bounds.y + j;
+    for (let i = 0; i < w; i++) {
+      const docX = bounds.x + i;
+      const p = (j * w + i) * 4;
+      if (docX < 0 || docY < 0 || docX >= mw || docY >= mh) {
+        d[p + 3] = 0;
+        continue;
+      }
+      const m = md[docY * mw + docX] / 255;
+      d[p + 3] = Math.round(d[p + 3] * m);
+    }
+  }
+}
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -636,13 +666,18 @@ export function useCanvasActions({
     if (!layerId) {
       return;
     }
+    const layer = document.layers.find((l) => l.id === layerId);
+    if (!layer) {
+      return;
+    }
     const snapshot = canvasRef.current.snapshotLayerCanvas(layerId);
     if (!snapshot) {
       return;
     }
 
     const sel = useSketchStore.getState().selection;
-    const bounds = sel ? getSelectionBounds(sel) : null;
+    const bounds =
+      sel != null && selectionHasAnyPixels(sel) ? getSelectionBounds(sel) : null;
     const tmp = window.document.createElement("canvas");
 
     if (bounds && bounds.width > 0 && bounds.height > 0) {
@@ -650,10 +685,14 @@ export function useCanvasActions({
       tmp.height = bounds.height;
       const ctx = tmp.getContext("2d");
       if (ctx) {
+        const offset = getLayerCompositeOffset(layer, {
+          width: Math.max(1, layer.contentBounds?.width ?? document.canvas.width),
+          height: Math.max(1, layer.contentBounds?.height ?? document.canvas.height)
+        });
         ctx.drawImage(
           snapshot,
-          bounds.x,
-          bounds.y,
+          bounds.x - offset.x,
+          bounds.y - offset.y,
           bounds.width,
           bounds.height,
           0,
@@ -661,6 +700,11 @@ export function useCanvasActions({
           bounds.width,
           bounds.height
         );
+        if (sel != null) {
+          const idata = ctx.getImageData(0, 0, bounds.width, bounds.height);
+          multiplyImageDataAlphaBySelectionMask(idata, bounds, sel);
+          ctx.putImageData(idata, 0, 0);
+        }
       }
     } else {
       tmp.width = snapshot.width;
@@ -688,7 +732,13 @@ export function useCanvasActions({
     } catch {
       // toBlob / ClipboardItem may not be available in all environments
     }
-  }, [canvasRef, document.activeLayerId]);
+  }, [
+    canvasRef,
+    document.activeLayerId,
+    document.layers,
+    document.canvas.width,
+    document.canvas.height
+  ]);
 
   /** Cut = copy + clear selection region. */
   const handleCut = useCallback(() => {
@@ -750,23 +800,51 @@ export function useCanvasActions({
       return;
     }
 
+    const layer = document.layers.find((l) => l.id === layerId);
+    if (!layer) {
+      return;
+    }
+    const offset = getLayerCompositeOffset(layer, {
+      width: document.canvas.width,
+      height: document.canvas.height
+    });
+
+    const pasteDoc = canvasRef.current.getPasteAnchorDocumentPoint();
     const sel = useSketchStore.getState().selection;
     const bounds = sel ? getSelectionBounds(sel) : null;
-    if (bounds && bounds.width > 0 && bounds.height > 0) {
+
+    if (pasteDoc) {
+      const destX = pasteDoc.x - offset.x;
+      const destY = pasteDoc.y - offset.y;
+      ctx.drawImage(imageToPaste, destX, destY);
+    } else if (bounds && bounds.width > 0 && bounds.height > 0) {
       ctx.drawImage(
         imageToPaste,
-        0, 0, imageToPaste.width, imageToPaste.height,
-        bounds.x, bounds.y, bounds.width, bounds.height
+        0,
+        0,
+        imageToPaste.width,
+        imageToPaste.height,
+        bounds.x - offset.x,
+        bounds.y - offset.y,
+        bounds.width,
+        bounds.height
       );
     } else {
-      // Paste at origin
       ctx.drawImage(imageToPaste, 0, 0);
     }
 
     canvasRef.current.restoreLayerCanvas(layerId, pasteSnapshot);
     syncPixelLayerFromCanvas(layerId);
     canvasRef.current.redrawDisplay();
-  }, [canvasRef, document.activeLayerId, pushHistory, syncPixelLayerFromCanvas]);
+  }, [
+    canvasRef,
+    document.activeLayerId,
+    document.canvas.height,
+    document.canvas.width,
+    document.layers,
+    pushHistory,
+    syncPixelLayerFromCanvas
+  ]);
 
   /** Import a dropped or externally-provided image file into the active layer. */
   const handleDropImage = useCallback(

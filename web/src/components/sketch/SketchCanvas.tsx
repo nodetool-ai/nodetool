@@ -27,7 +27,8 @@ import {
   useCompositing,
   useCanvasImperativeHandle,
   useOverlayRenderer,
-  usePointerHandlers
+  usePointerHandlers,
+  selectionAntCanvasMarginCssPx
 } from "./sketchCanvasHooks";
 import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
@@ -40,7 +41,7 @@ const styles = (theme: Theme) =>
     position: "relative",
     width: "100%",
     height: "100%",
-    overflow: "hidden",
+    overflow: "visible",
     backgroundColor: theme.vars.palette.grey[800],
     // Pen/tablet: avoid browser gestures (Edge/Chrome “back” arrow on horizontal drag).
     touchAction: "none",
@@ -53,6 +54,12 @@ const styles = (theme: Theme) =>
       imageRendering: "pixelated",
       // Hit target is often the canvas; touch-action is not inherited.
       touchAction: "none"
+    },
+    "& .sketch-canvas__doc-stack": {
+      position: "absolute",
+      inset: 0,
+      overflow: "hidden",
+      pointerEvents: "none"
     },
     "& .cursor-overlay": {
       position: "absolute",
@@ -132,6 +139,11 @@ export interface SketchCanvasRef {
   drainPendingStrokeCommit: () => void;
   /** Get the overlay canvas element for external drawing (e.g. segmentation mask preview). */
   getOverlayCanvas: () => HTMLCanvasElement | null;
+  /**
+   * Document-space pixel (top-left of cell under cursor) from the last pointer
+   * sample on the canvas, or null if the user has not interacted yet.
+   */
+  getPasteAnchorDocumentPoint: () => Point | null;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -267,6 +279,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
     const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
     const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
+    /** Last pointer client coords while over the canvas (for paste-at-cursor). */
+    const lastPointerClientRef = useRef<{ x: number; y: number } | null>(null);
     const activeStrokeRef = useRef<ActiveStrokeInfo | null>(null);
 
     // ─── Document-space cursor position for info bar readout ────────────
@@ -432,7 +446,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       displayCanvasRef,
       overlayCanvasRef,
       redraw,
-      drainPendingStrokeCommit
+      drainPendingStrokeCommit,
+      zoom,
+      lastPointerClientRef
     });
 
     // ─── Document-space cursor tracking ─────────────────────────────────
@@ -452,10 +468,19 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const handlePointerMoveWithCoords = useCallback(
       (e: React.PointerEvent) => {
+        lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
         pointerHandlers.handlePointerMove(e);
         updateCursorDocPosFromClient(e.clientX, e.clientY);
       },
       [pointerHandlers, updateCursorDocPosFromClient]
+    );
+
+    const handlePointerDownWithClient = useCallback(
+      (e: React.PointerEvent) => {
+        lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
+        pointerHandlers.handlePointerDown(e);
+      },
+      [pointerHandlers]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {
@@ -486,6 +511,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             ? "none"
             : "crosshair";
 
+    const selectionAntMarginPx = selectionAntCanvasMarginCssPx(zoom);
+
     return (
       <div
         ref={containerRef}
@@ -494,7 +521,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         }
         css={styles(theme)}
         style={{ cursor: cursorStyle }}
-        onPointerDown={pointerHandlers.handlePointerDown}
+        onPointerDown={handlePointerDownWithClient}
         onPointerMove={handlePointerMoveWithCoords}
         onPointerUp={pointerHandlers.handlePointerUp}
         onDoubleClick={pointerHandlers.handleDoubleClick}
@@ -504,48 +531,55 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <canvas
-          ref={bootstrapDisplayRef}
-          className="sketch-canvas__bootstrap"
-          width={doc.canvas.width}
-          height={doc.canvas.height}
-          style={{
-            ...canvasStyle,
-            pointerEvents: "none",
-            ...(bootstrapPhaseActive ? {} : { visibility: "hidden" })
-          }}
-        />
-        <canvas
-          ref={displayCanvasRef}
-          className="sketch-canvas__display"
-          width={doc.canvas.width}
-          height={doc.canvas.height}
-          style={{
-            ...canvasStyle,
-            // Hit-test the root `.sketch-canvas` div so pointer capture/stylus
-            // routing matches the cursor overlay coordinate space (sibling canvases).
-            pointerEvents: "none",
-            ...(bootstrapPhaseActive ? { opacity: 0 } : {})
-          }}
-        />
-        {/* Overlay canvas for shape/gradient/crop preview + pixel grid.
-            Use auto (not pixelated): grid strokes are 1/zoom doc-units wide; with
-            pixelated upscaling they vanish when zoomed in. */}
-        <canvas
-          ref={overlayCanvasRef}
-          className="sketch-canvas__overlay"
-          width={doc.canvas.width}
-          height={doc.canvas.height}
-          style={{
-            ...canvasStyle,
-            pointerEvents: "none",
-            imageRendering: "auto"
-          }}
-        />
-        {/* Screen-resolution canvas for selection marching ants */}
+        <div className="sketch-canvas__doc-stack">
+          <canvas
+            ref={bootstrapDisplayRef}
+            className="sketch-canvas__bootstrap"
+            width={doc.canvas.width}
+            height={doc.canvas.height}
+            style={{
+              ...canvasStyle,
+              pointerEvents: "none",
+              ...(bootstrapPhaseActive ? {} : { visibility: "hidden" })
+            }}
+          />
+          <canvas
+            ref={displayCanvasRef}
+            className="sketch-canvas__display"
+            width={doc.canvas.width}
+            height={doc.canvas.height}
+            style={{
+              ...canvasStyle,
+              // Hit-test the root `.sketch-canvas` div so pointer capture/stylus
+              // routing matches the cursor overlay coordinate space (sibling canvases).
+              pointerEvents: "none",
+              ...(bootstrapPhaseActive ? { opacity: 0 } : {})
+            }}
+          />
+          {/* Overlay canvas for shape/gradient/crop preview (document space).
+              Pixel grid is drawn on the screen-resolution selection layer (see useOverlayRenderer). */}
+          <canvas
+            ref={overlayCanvasRef}
+            className="sketch-canvas__overlay"
+            width={doc.canvas.width}
+            height={doc.canvas.height}
+            style={{
+              ...canvasStyle,
+              pointerEvents: "none",
+              imageRendering: "auto"
+            }}
+          />
+        </div>
+        {/* Screen-resolution canvas for selection marching ants (padded bitmap + offset so ants are not clipped). */}
         <canvas
           ref={selectionCanvasRef}
           className="sketch-canvas__selection cursor-overlay"
+          style={{
+            top: -selectionAntMarginPx,
+            left: -selectionAntMarginPx,
+            width: `calc(100% + ${2 * selectionAntMarginPx}px)`,
+            height: `calc(100% + ${2 * selectionAntMarginPx}px)`
+          }}
         />
         {/* Cursor canvas for brush size preview */}
         <canvas

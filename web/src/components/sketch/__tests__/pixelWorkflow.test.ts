@@ -5,7 +5,11 @@
  * - PIXEL_GRID_MIN_ZOOM threshold
  */
 
-import { drawPixelGrid, PIXEL_GRID_MIN_ZOOM } from "../drawingUtils";
+import {
+  drawPixelGrid,
+  PIXEL_GRID_FULL_OPACITY_ZOOM,
+  PIXEL_GRID_MIN_ZOOM
+} from "../drawingUtils";
 import { PencilEngine } from "../painting/PencilEngine";
 
 // ─── drawPixelGrid tests ────────────────────────────────────────────────────
@@ -37,7 +41,7 @@ describe("drawPixelGrid", () => {
     expect(ctx.stroke).not.toHaveBeenCalled();
   });
 
-  it("draws grid lines at the minimum zoom threshold", () => {
+  it("draws grid lines at the minimum zoom threshold (2000%)", () => {
     const ctx = createMockCtx();
     drawPixelGrid(ctx, 4, 4, PIXEL_GRID_MIN_ZOOM);
     expect(ctx.save).toHaveBeenCalled();
@@ -47,7 +51,7 @@ describe("drawPixelGrid", () => {
     expect(ctx.moveTo).toHaveBeenCalledTimes(10);
   });
 
-  it("uses non-zero stroke alpha at minimum zoom (grid must be visible at 200%)", () => {
+  it("uses non-zero white stroke alpha at grid threshold", () => {
     let strokeStyle = "";
     const ctx = {
       save: jest.fn(),
@@ -62,7 +66,7 @@ describe("drawPixelGrid", () => {
     } as unknown as CanvasRenderingContext2D;
     drawPixelGrid(ctx, 4, 4, PIXEL_GRID_MIN_ZOOM);
     const m = strokeStyle.match(
-      /rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*([\d.]+)\s*\)/
+      /rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([\d.]+)\s*\)/
     );
     expect(m).not.toBeNull();
     expect(parseFloat(m![1])).toBeGreaterThan(0);
@@ -70,14 +74,14 @@ describe("drawPixelGrid", () => {
 
   it("draws correct number of grid lines for given dimensions", () => {
     const ctx = createMockCtx();
-    drawPixelGrid(ctx, 8, 6, PIXEL_GRID_MIN_ZOOM * 2);
+    drawPixelGrid(ctx, 8, 6, PIXEL_GRID_FULL_OPACITY_ZOOM);
     // 9 vertical lines (x=0..8) + 7 horizontal lines (y=0..6) = 16 moveTo calls
     expect(ctx.moveTo).toHaveBeenCalledTimes(16);
     expect(ctx.lineTo).toHaveBeenCalledTimes(16);
   });
 
-  it("PIXEL_GRID_MIN_ZOOM is 2", () => {
-    expect(PIXEL_GRID_MIN_ZOOM).toBe(2);
+  it("PIXEL_GRID_MIN_ZOOM is 20 (2000%)", () => {
+    expect(PIXEL_GRID_MIN_ZOOM).toBe(20);
   });
 });
 

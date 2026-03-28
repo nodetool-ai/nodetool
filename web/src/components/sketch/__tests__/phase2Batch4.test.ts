@@ -9,7 +9,7 @@
  */
 
 import { act } from "@testing-library/react";
-import { useSketchStore } from "../state/useSketchStore";
+import { useSketchStore, SKETCH_ZOOM_MAX } from "../state/useSketchStore";
 import {
   DEFAULT_SWATCHES,
   CANVAS_PRESETS,
@@ -195,7 +195,7 @@ describe("Zoom speed", () => {
     expect(zoomedOut).toBeCloseTo(1 / 1.3, 5);
   });
 
-  it("store setZoom should clamp between 0.1 and 48", () => {
+  it("store setZoom should clamp between min and SKETCH_ZOOM_MAX", () => {
     act(() => {
       useSketchStore.getState().setZoom(0.01);
     });
@@ -204,7 +204,7 @@ describe("Zoom speed", () => {
     act(() => {
       useSketchStore.getState().setZoom(100);
     });
-    expect(useSketchStore.getState().zoom).toBe(48);
+    expect(useSketchStore.getState().zoom).toBe(SKETCH_ZOOM_MAX);
 
     act(() => {
       useSketchStore.getState().setZoom(2.5);

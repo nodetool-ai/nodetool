@@ -30,8 +30,7 @@ import {
 import {
   drawBlurStroke as drawBlurStrokeUtil,
   drawCloneStampStroke as drawCloneStampStrokeUtil,
-  blendModeToComposite,
-  drawPixelGrid
+  blendModeToComposite
 } from "../drawingUtils";
 import type { BlurTempCanvases } from "../drawingUtils";
 import type { ActiveStrokeInfo } from "./useCompositing";
@@ -426,9 +425,7 @@ export function usePointerHandlerUtils({
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    // Restore pixel grid (useOverlayRenderer paints it on clearOverlay/drawSelectionOverlay only).
-    drawPixelGrid(ctx, overlay.width, overlay.height, zoom);
-  }, [overlayCanvasRef, zoom]);
+  }, [overlayCanvasRef]);
 
   return {
     // Clone stamp state refs

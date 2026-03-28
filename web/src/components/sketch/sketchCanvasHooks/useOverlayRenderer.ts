@@ -2,7 +2,8 @@
  * useOverlayRenderer
  *
  * Manages overlay canvas drawing for shape/gradient/crop/selection preview
- * and cursor canvas rendering for brush size indicator.
+ * (document-sized bitmap), viewport-layer marching ants + pixel grid on the
+ * screen-resolution selection canvas, and cursor canvas rendering.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -16,7 +17,7 @@ import {
   drawShapeOnCtx as drawShapeOnCtxUtil,
   drawGradient as drawGradientUtil,
   drawPixelGrid,
-  PIXEL_GRID_MIN_ZOOM
+  PENCIL_PIXEL_CURSOR_MIN_ZOOM
 } from "../drawingUtils";
 import {
   drawSelectionMaskOutline,
@@ -33,6 +34,15 @@ export type SelectionMoveAntsRef = React.MutableRefObject<{
   dx: number;
   dy: number;
 } | null>;
+
+/**
+ * Extra CSS pixels around the sketch viewport for the selection marching-ants bitmap.
+ * Outlines can map outside the image; without padding they are clipped at the canvas edge.
+ */
+export function selectionAntCanvasMarginCssPx(zoom: number): number {
+  const z = Math.max(0.02, zoom);
+  return Math.min(520, Math.round(32 + z * 120));
+}
 
 export interface UseOverlayRendererParams {
   doc: SketchDocument;
@@ -99,22 +109,25 @@ export function useOverlayRenderer({
     }
 
     const updateScreenCanvasSize = () => {
-      const width = container.clientWidth;
-      const height = container.clientHeight;
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
       if (cursorCanvas) {
-        if (cursorCanvas.width !== width) {
-          cursorCanvas.width = width;
+        if (cursorCanvas.width !== cw) {
+          cursorCanvas.width = cw;
         }
-        if (cursorCanvas.height !== height) {
-          cursorCanvas.height = height;
+        if (cursorCanvas.height !== ch) {
+          cursorCanvas.height = ch;
         }
       }
       if (selCanvas) {
-        if (selCanvas.width !== width) {
-          selCanvas.width = width;
+        const m = selectionAntCanvasMarginCssPx(zoom);
+        const sw = cw + 2 * m;
+        const sh = ch + 2 * m;
+        if (selCanvas.width !== sw) {
+          selCanvas.width = sw;
         }
-        if (selCanvas.height !== height) {
-          selCanvas.height = height;
+        if (selCanvas.height !== sh) {
+          selCanvas.height = sh;
         }
       }
     };
@@ -129,21 +142,9 @@ export function useOverlayRenderer({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [containerRef, cursorCanvasRef, selectionCanvasRef]);
+  }, [containerRef, cursorCanvasRef, selectionCanvasRef, zoom]);
 
   // ─── Overlay helpers ───────────────────────────────────────────────
-
-  /** Paint the pixel grid on the overlay canvas (underneath other overlays). */
-  const paintPixelGridOverlay = useCallback(
-    (ctx: CanvasRenderingContext2D) => {
-      const overlay = overlayCanvasRef.current;
-      if (!overlay) {
-        return;
-      }
-      drawPixelGrid(ctx, overlay.width, overlay.height, zoom);
-    },
-    [overlayCanvasRef, zoom]
-  );
 
   const clearOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
@@ -153,17 +154,15 @@ export function useOverlayRenderer({
     const ctx = overlay.getContext("2d");
     if (ctx) {
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ctx);
     }
-  }, [overlayCanvasRef, paintPixelGridOverlay]);
+  }, [overlayCanvasRef]);
 
-  // ─── Selection canvas helpers ──────────────────────────────────────
-  // The selection canvas is screen-resolution (sized to the container).
-  // We set up a transform so drawing code uses document coordinates, but
-  // the result is rendered at screen pixel density — ~1px ants (~2px when zoomed out).
+  // ─── Selection canvas (viewport layer) ─────────────────────────────
+  // Screen-resolution bitmap with the same document→screen transform as the artwork.
+  // Pixel grid + marching ants are drawn here (not on the document-sized overlay).
 
-  /** Get the selection canvas ctx with document→screen transform applied. */
-  const getSelectionCtx = useCallback((): CanvasRenderingContext2D | null => {
+  /** Clear, apply doc→view transform, stroke pixel grid when zoom allows; leaves ctx in doc space. */
+  const beginSelectionLayerPaint = useCallback((): CanvasRenderingContext2D | null => {
     const selCanvas = selectionCanvasRef.current;
     const container = containerRef.current;
     if (!selCanvas || !container) {
@@ -174,97 +173,63 @@ export function useOverlayRenderer({
       return null;
     }
     ctx.clearRect(0, 0, selCanvas.width, selCanvas.height);
-    const cx = container.clientWidth / 2;
-    const cy = container.clientHeight / 2;
+    const m = selectionAntCanvasMarginCssPx(zoom);
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const cx = m + cw / 2;
+    const cy = m + ch / 2;
     ctx.setTransform(zoom, 0, 0, zoom, cx + pan.x, cy + pan.y);
     const docW = doc.canvas.width;
     const docH = doc.canvas.height;
     ctx.translate(-docW / 2, -docH / 2);
+    drawPixelGrid(ctx, docW, docH, zoom);
     return ctx;
   }, [selectionCanvasRef, containerRef, zoom, pan, doc.canvas.width, doc.canvas.height]);
 
-  const clearSelectionCanvas = useCallback(() => {
-    const selCanvas = selectionCanvasRef.current;
-    if (!selCanvas) {
+  /** Pixel grid (when zoom allows) plus marching ants when applicable. */
+  const paintSelectionCanvas = useCallback(() => {
+    const ctx = beginSelectionLayerPaint();
+    if (!ctx) {
       return;
     }
-    const ctx = selCanvas.getContext("2d");
-    if (ctx) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, selCanvas.width, selCanvas.height);
-    }
-  }, [selectionCanvasRef]);
-
-  /** Paint committed selection mask ants on the screen-res canvas. */
-  const paintSelectionAnts = useCallback(() => {
     const moveAnts = selectionMoveAntsRef.current;
-    if (moveAnts) {
-      if (!selectionHasAnyPixels(moveAnts.start)) {
-        clearSelectionCanvas();
-        return;
-      }
-      const ctx = getSelectionCtx();
-      if (!ctx) {
-        return;
-      }
+    const marqueeActive =
+      selectStartRef.current != null || lassoPointsRef.current.length > 0;
+
+    if (moveAnts && selectionHasAnyPixels(moveAnts.start)) {
       ctx.save();
       ctx.translate(moveAnts.dx, moveAnts.dy);
       drawSelectionMaskOutline(ctx, moveAnts.start, antsPhaseRef.current, zoom);
       ctx.restore();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      return;
+    } else if (
+      !marqueeActive &&
+      selection &&
+      selectionHasAnyPixels(selection)
+    ) {
+      ctx.save();
+      drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
+      ctx.restore();
     }
-    if (!selection || !selectionHasAnyPixels(selection)) {
-      clearSelectionCanvas();
-      return;
-    }
-    const ctx = getSelectionCtx();
-    if (!ctx) {
-      return;
-    }
-    ctx.save();
-    drawSelectionMaskOutline(ctx, selection, antsPhaseRef.current, zoom);
-    ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [selection, zoom, getSelectionCtx, clearSelectionCanvas, selectionMoveAntsRef]);
+  }, [
+    beginSelectionLayerPaint,
+    selection,
+    zoom,
+    selectionMoveAntsRef,
+    selectStartRef,
+    lassoPointsRef
+  ]);
 
   const drawSelectionOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
-    if (!overlay) {
-      return;
-    }
-    const ctx = overlay.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-    ctx.save();
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-    paintPixelGridOverlay(ctx);
-    ctx.restore();
-
-    const moveAnts = selectionMoveAntsRef.current;
-    const hasAntsSource =
-      (selection && selectionHasAnyPixels(selection)) ||
-      (moveAnts != null && selectionHasAnyPixels(moveAnts.start));
-    if (hasAntsSource) {
-      if (!selectStartRef.current && lassoPointsRef.current.length === 0) {
-        paintSelectionAnts();
-      } else {
-        clearSelectionCanvas();
+    if (overlay) {
+      const ctx = overlay.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
       }
-    } else {
-      clearSelectionCanvas();
     }
-  }, [
-    selection,
-    overlayCanvasRef,
-    selectStartRef,
-    lassoPointsRef,
-    paintPixelGridOverlay,
-    paintSelectionAnts,
-    clearSelectionCanvas,
-    selectionMoveAntsRef
-  ]);
+    paintSelectionCanvas();
+  }, [overlayCanvasRef, paintSelectionCanvas]);
 
   const appendSelectionOverlay = useCallback(() => {
     const moveAnts = selectionMoveAntsRef.current;
@@ -277,8 +242,8 @@ export function useOverlayRenderer({
     if (selectStartRef.current || lassoPointsRef.current.length > 0) {
       return;
     }
-    paintSelectionAnts();
-  }, [selection, selectStartRef, lassoPointsRef, paintSelectionAnts, selectionMoveAntsRef]);
+    paintSelectionCanvas();
+  }, [selection, selectStartRef, lassoPointsRef, paintSelectionCanvas, selectionMoveAntsRef]);
 
   useEffect(() => {
     drawSelectionOverlay();
@@ -302,7 +267,7 @@ export function useOverlayRenderer({
         return;
       }
       antsPhaseRef.current = (antsPhaseRef.current + 1) % 256;
-      paintSelectionAnts();
+      paintSelectionCanvas();
     };
     rafId = requestAnimationFrame(loop);
     return () => {
@@ -313,7 +278,7 @@ export function useOverlayRenderer({
     };
   }, [
     selection,
-    paintSelectionAnts,
+    paintSelectionCanvas,
     selectStartRef,
     lassoPointsRef
   ]);
@@ -337,10 +302,9 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ctx);
       drawShapeOnCtxUtil(ctx, doc.toolSettings.shape.shapeType, start, end, doc.toolSettings.shape, shiftHeldRef.current, altHeldRef.current);
     },
-    [doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef, paintPixelGridOverlay]
+    [doc.toolSettings.shape, overlayCanvasRef, shiftHeldRef, altHeldRef]
   );
 
   const drawOverlayGradient = useCallback(
@@ -354,7 +318,6 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ctx);
       drawGradientUtil(ctx, start, end, doc.toolSettings.gradient);
       // Draw guide line
       ctx.save();
@@ -367,7 +330,7 @@ export function useOverlayRenderer({
       ctx.stroke();
       ctx.restore();
     },
-    [doc.toolSettings.gradient, overlayCanvasRef, paintPixelGridOverlay]
+    [doc.toolSettings.gradient, overlayCanvasRef]
   );
 
   const drawOverlayCrop = useCallback(
@@ -381,7 +344,6 @@ export function useOverlayRenderer({
         return;
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ctx);
       const x = Math.min(start.x, end.x);
       const y = Math.min(start.y, end.y);
       const w = Math.abs(end.x - start.x);
@@ -397,7 +359,7 @@ export function useOverlayRenderer({
       ctx.strokeRect(x, y, w, h);
       ctx.restore();
     },
-    [overlayCanvasRef, paintPixelGridOverlay]
+    [overlayCanvasRef]
   );
 
   const drawOverlaySelection = useCallback(
@@ -411,26 +373,27 @@ export function useOverlayRenderer({
         return;
       }
       ovCtx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ovCtx);
 
-      paintSelectionAnts();
-
-      const { x, y, w, h } = marqueeRectFromDocPoints(start, end);
-      if (w < 1 || h < 1) {
-        return;
-      }
-      const selCtx = getSelectionCtx();
+      const selCtx = beginSelectionLayerPaint();
       if (!selCtx) {
         return;
       }
       if (selection && selectionHasAnyPixels(selection)) {
         drawSelectionMaskOutline(selCtx, selection, antsPhaseRef.current, zoom);
       }
-      const previewMask =
-        doc.toolSettings.select.mode === "ellipse"
-          ? ellipseSelectionMask(overlay.width, overlay.height, x, y, w, h)
-          : rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
-      drawSelectionMaskOutline(selCtx, previewMask, antsPhaseRef.current, zoom);
+      const { x, y, w, h } = marqueeRectFromDocPoints(start, end);
+      if (w >= 1 && h >= 1) {
+        const previewMask =
+          doc.toolSettings.select.mode === "ellipse"
+            ? ellipseSelectionMask(overlay.width, overlay.height, x, y, w, h)
+            : rectSelectionMask(overlay.width, overlay.height, x, y, w, h);
+        drawSelectionMaskOutline(
+          selCtx,
+          previewMask,
+          antsPhaseRef.current,
+          zoom
+        );
+      }
       selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },
     [
@@ -438,9 +401,7 @@ export function useOverlayRenderer({
       zoom,
       selection,
       doc.toolSettings.select.mode,
-      paintSelectionAnts,
-      getSelectionCtx,
-      paintPixelGridOverlay
+      beginSelectionLayerPaint
     ]
   );
 
@@ -455,9 +416,8 @@ export function useOverlayRenderer({
         return;
       }
       ovCtx.clearRect(0, 0, overlay.width, overlay.height);
-      paintPixelGridOverlay(ovCtx);
 
-      const selCtx = getSelectionCtx();
+      const selCtx = beginSelectionLayerPaint();
       if (!selCtx) {
         return;
       }
@@ -470,7 +430,7 @@ export function useOverlayRenderer({
       }
       selCtx.setTransform(1, 0, 0, 1, 0, 0);
     },
-    [overlayCanvasRef, zoom, selection, getSelectionCtx, paintPixelGridOverlay]
+    [overlayCanvasRef, zoom, selection, beginSelectionLayerPaint]
   );
 
   // ─── Cursor rendering ──────────────────────────────────────────────
@@ -535,7 +495,7 @@ export function useOverlayRenderer({
         }
       } else if (interactionTool === "pencil") {
         size = doc.toolSettings.pencil.size;
-        isPencilHighZoom = zoom >= PIXEL_GRID_MIN_ZOOM;
+        isPencilHighZoom = zoom >= PENCIL_PIXEL_CURSOR_MIN_ZOOM;
       } else if (interactionTool === "blur") {
         size = doc.toolSettings.blur.size;
       } else if (interactionTool === "clone_stamp") {

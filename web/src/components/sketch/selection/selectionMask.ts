@@ -64,9 +64,9 @@ function strokeSoftOuterSelectionHalo(
   ctx.lineCap = "butt";
   ctx.lineJoin = "miter";
   const layers: readonly [screenPx: number, rgba: string][] = [
-    [12, "rgba(255, 255, 255, 0.08)"],
-    [7, "rgba(255, 255, 255, 0.12)"],
-    [4, "rgba(30, 30, 38, 0.07)"]
+    [10, "rgba(255, 255, 255, 0.05)"],
+    [6, "rgba(255, 255, 255, 0.08)"],
+    [3, "rgba(30, 30, 38, 0.045)"]
   ];
   for (const [screenPx, rgba] of layers) {
     ctx.lineWidth = screenPx / z;

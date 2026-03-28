@@ -8,9 +8,13 @@
  * to the SketchRuntime instead of manipulating Canvas2D directly.
  */
 
-import { useImperativeHandle, type Ref } from "react";
+import {
+  useImperativeHandle,
+  type MutableRefObject,
+  type Ref
+} from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
-import type { LayerContentBounds, Selection, SketchDocument } from "../types";
+import type { LayerContentBounds, Point, Selection, SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
 
 export interface UseCanvasImperativeHandleParams {
@@ -22,6 +26,8 @@ export interface UseCanvasImperativeHandleParams {
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   redraw: () => void;
   drainPendingStrokeCommit: () => void;
+  zoom: number;
+  lastPointerClientRef: MutableRefObject<{ x: number; y: number } | null>;
 }
 
 export function useCanvasImperativeHandle({
@@ -31,7 +37,9 @@ export function useCanvasImperativeHandle({
   displayCanvasRef,
   overlayCanvasRef,
   redraw,
-  drainPendingStrokeCommit
+  drainPendingStrokeCommit,
+  zoom,
+  lastPointerClientRef
 }: UseCanvasImperativeHandleParams): void {
   useImperativeHandle(
     ref,
@@ -177,6 +185,17 @@ export function useCanvasImperativeHandle({
       },
       getOverlayCanvas: () => {
         return overlayCanvasRef.current;
+      },
+      getPasteAnchorDocumentPoint: (): Point | null => {
+        const client = lastPointerClientRef.current;
+        const display = displayCanvasRef.current;
+        if (!client || !display || zoom <= 0) {
+          return null;
+        }
+        const rect = display.getBoundingClientRect();
+        const dx = (client.x - rect.left) / zoom;
+        const dy = (client.y - rect.top) / zoom;
+        return { x: Math.floor(dx), y: Math.floor(dy) };
       }
     }),
     [
@@ -185,7 +204,9 @@ export function useCanvasImperativeHandle({
       redraw,
       drainPendingStrokeCommit,
       displayCanvasRef,
-      overlayCanvasRef
+      overlayCanvasRef,
+      zoom,
+      lastPointerClientRef
     ]
   );
 }

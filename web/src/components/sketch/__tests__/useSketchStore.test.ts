@@ -3,7 +3,7 @@
  */
 
 import { act } from "@testing-library/react";
-import { useSketchStore } from "../state/useSketchStore";
+import { useSketchStore, SKETCH_ZOOM_MAX } from "../state/useSketchStore";
 import { createDefaultDocument } from "../types";
 
 // Reset store before each test
@@ -112,7 +112,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().setZoom(100);
       });
-      expect(useSketchStore.getState().zoom).toBe(48);
+      expect(useSketchStore.getState().zoom).toBe(SKETCH_ZOOM_MAX);
     });
   });
 
