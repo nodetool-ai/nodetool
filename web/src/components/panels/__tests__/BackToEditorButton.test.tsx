@@ -72,13 +72,15 @@ describe("BackToEditorButton", () => {
       }
     });
 
-    return ({ children }: { children: React.ReactNode }) => (
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={mockTheme}>
           <MemoryRouter>{children}</MemoryRouter>
         </ThemeProvider>
       </QueryClientProvider>
     );
+    Wrapper.displayName = "Wrapper";
+    return Wrapper;
   };
 
   beforeEach(() => {
@@ -238,7 +240,7 @@ describe("BackToEditorButton", () => {
         wrapper
       });
 
-      const initialButton = screen.getByRole("button");
+      // const initialButton = screen.getByRole("button");
 
       // Re-render with same props - need to use the wrapper correctly
       rtlRerender(<BackToEditorButton title="Editor" />);

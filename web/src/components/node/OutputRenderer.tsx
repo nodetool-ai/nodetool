@@ -336,7 +336,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       bytes[2] === 0x44 &&
       bytes[3] === 0x46;
     const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
-    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+    const url = URL.createObjectURL(new Blob([bytes as any], { type: mimeType }));
     return { url, isPdf };
   }, [type, value]);
 
