@@ -32,6 +32,7 @@ import {
   SketchTool,
   isShapeTool
 } from "./types";
+import type { SamModelInfo } from "./sam";
 import { CONTEXT_MENU_TOOLS, getToolDefinition, type ToolDefinition } from "./toolDefinitions";
 import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
 
@@ -218,11 +219,13 @@ export interface SketchCanvasContextMenuProps {
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
+  segmentModelInfo?: SamModelInfo | null;
   onRunSegmentation?: () => void;
   onApplySegmentResult?: () => void;
   onDiscardSegmentResult?: () => void;
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
+  onCheckSegmentModel?: () => void;
   onSwapColors: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -283,11 +286,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
+  segmentModelInfo,
   onRunSegmentation,
   onApplySegmentResult,
   onDiscardSegmentResult,
   onCancelSegmentation,
   onClearSegmentPrompts,
+  onCheckSegmentModel,
   onSwapColors,
   onUndo,
   onRedo,
@@ -555,11 +560,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               segmentSettings={segmentSettings}
               onSegmentSettingsChange={onSegmentSettingsChange}
               segmentationStatus={segmentationStatus}
+              segmentModelInfo={segmentModelInfo}
               onRunSegmentation={onRunSegmentation}
               onApplySegmentResult={onApplySegmentResult}
               onDiscardSegmentResult={onDiscardSegmentResult}
               onCancelSegmentation={onCancelSegmentation}
               onClearSegmentPrompts={onClearSegmentPrompts}
+              onCheckSegmentModel={onCheckSegmentModel}
             />
           </Box>
         </Box>

@@ -90,7 +90,8 @@ export function useSegmentation({
   const checkModel = useCallback(async () => {
     setStatus("checking-model");
     try {
-      const service = getSamService();
+      const backend = useSketchStore.getState().document.toolSettings.segment.backend;
+      const service = getSamService(backend);
       const info = await service.checkModelAvailability();
       setModelInfo(info);
       setStatus("idle");
@@ -133,7 +134,8 @@ export function useSegmentation({
       setStatus("inferring");
 
       try {
-        const service = getSamService();
+        const backend = doc.toolSettings.segment.backend;
+        const service = getSamService(backend);
         const response = await service.runSegmentation(
           {
             imageDataUrl: layerData,

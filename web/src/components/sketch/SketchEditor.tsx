@@ -421,11 +421,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             segmentSettings={store.toolSettings.segment}
             onSegmentSettingsChange={store.setSegmentSettings}
             segmentationStatus={segmentation.status}
+            segmentModelInfo={segmentation.modelInfo}
             onRunSegmentation={handleRunSegmentation}
             onApplySegmentResult={segmentation.applyResult}
             onDiscardSegmentResult={segmentation.discardResult}
             onCancelSegmentation={segmentation.cancelSegmentation}
             onClearSegmentPrompts={handleClearSegmentPrompts}
+            onCheckSegmentModel={segmentation.checkModel}
           />
         )}
 
@@ -564,11 +566,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         segmentSettings={store.toolSettings.segment}
         onSegmentSettingsChange={store.setSegmentSettings}
         segmentationStatus={segmentation.status}
+        segmentModelInfo={segmentation.modelInfo}
         onRunSegmentation={handleRunSegmentation}
         onApplySegmentResult={segmentation.applyResult}
         onDiscardSegmentResult={segmentation.discardResult}
         onCancelSegmentation={segmentation.cancelSegmentation}
         onClearSegmentPrompts={handleClearSegmentPrompts}
+        onCheckSegmentModel={segmentation.checkModel}
         onSwapColors={store.swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}

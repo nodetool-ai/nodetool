@@ -33,11 +33,12 @@ import type {
   SegmentationStatus,
   SegmentPromptMode,
   SegmentSourceLayerAction,
+  SegmentBackend,
   SegmentationLayerMeta
 } from "../types";
 import { SegmentTool } from "../tools/SegmentTool";
 import { getToolHandler } from "../tools";
-import { SamServiceStub, getSamService, setSamService } from "../sam";
+import { SamServiceStub, getSamService, setSamService, SamServiceFal } from "../sam";
 import {
   getMaskOverlayColor,
   getMaskOutlineColor,
@@ -58,7 +59,8 @@ describe("Segmentation types and defaults", () => {
       confidenceThreshold: 0.5,
       sourceLayerAction: "keep",
       maskFeather: 0,
-      outputCutouts: true
+      outputCutouts: true,
+      backend: "fal"
     });
   });
 
@@ -1130,5 +1132,82 @@ describe("NodeExecutor", () => {
     // Restore
     SamServiceFal.resizeForInference = origResize;
     setNodeExecutor(new WebSocketNodeExecutor());
+  });
+});
+
+// ─── Backend Selection ────────────────────────────────────────────────────────
+
+describe("Backend selection", () => {
+  afterEach(() => {
+    // Reset service after each test
+    setSamService(new SamServiceStub());
+  });
+
+  it("SegmentBackend type accepts fal and node", () => {
+    const backends: SegmentBackend[] = ["fal", "node"];
+    expect(backends).toHaveLength(2);
+  });
+
+  it("DEFAULT_SEGMENT_SETTINGS defaults to fal backend", () => {
+    expect(DEFAULT_SEGMENT_SETTINGS.backend).toBe("fal");
+  });
+
+  it("getSamService('fal') returns a SamServiceFal instance", () => {
+    const service = getSamService("fal");
+    expect(service).toBeInstanceOf(SamServiceFal);
+  });
+
+  it("getSamService without argument defaults to fal", () => {
+    // First clear any manual override by requesting a specific backend
+    getSamService("fal");
+    const service = getSamService();
+    expect(service).toBeInstanceOf(SamServiceFal);
+  });
+
+  it("getSamService caches instance for same backend", () => {
+    const a = getSamService("fal");
+    const b = getSamService("fal");
+    expect(a).toBe(b);
+  });
+
+  it("getSamService returns different instance for different backend", () => {
+    const fal = getSamService("fal");
+    const node = getSamService("node");
+    expect(fal).not.toBe(node);
+  });
+
+  it("setSamService override is returned by getSamService()", () => {
+    const custom = new SamServiceStub();
+    setSamService(custom);
+    expect(getSamService()).toBe(custom);
+  });
+
+  it("getSamService with explicit backend replaces setSamService override", () => {
+    const custom = new SamServiceStub();
+    setSamService(custom);
+    const fal = getSamService("fal");
+    expect(fal).toBeInstanceOf(SamServiceFal);
+    expect(fal).not.toBe(custom);
+  });
+
+  it("SegmentSettings backend is preserved by normalizeSketchDocument", () => {
+    const doc = createDefaultDocument(64, 64);
+    doc.toolSettings.segment.backend = "node";
+    const normalized = normalizeSketchDocument(doc);
+    expect(normalized.toolSettings.segment.backend).toBe("node");
+  });
+
+  it("normalizeSketchDocument fills in missing backend field", () => {
+    const doc = createDefaultDocument(64, 64);
+    // Simulate an old document without backend field
+    const oldToolSettings = { ...doc.toolSettings };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const oldSegment = { ...oldToolSettings.segment } as any;
+    delete oldSegment.backend;
+    oldToolSettings.segment = oldSegment;
+    doc.toolSettings = oldToolSettings;
+
+    const normalized = normalizeSketchDocument(doc);
+    expect(normalized.toolSettings.segment.backend).toBe("fal");
   });
 });
