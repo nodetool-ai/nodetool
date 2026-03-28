@@ -216,9 +216,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         ? backgroundColor
           ? backgroundColor
           : hexToRgba(tint, 0.5)
-        : `linear-gradient(90deg, ${hexToRgba(tint, 0.2)}, ${hexToRgba(
+        : `linear-gradient(135deg, ${hexToRgba(tint, 0.35)}, ${hexToRgba(
           tint,
-          0.15
+          0.12
         )})`
     } as React.CSSProperties;
   }, [backgroundColor, selected]);
