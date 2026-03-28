@@ -153,6 +153,7 @@ export class NodeGenerator {
       `  isRefSet,`,
       `  assetToFalUrl,`,
       `  imageToDataUrl,`,
+      `  coerceFalOutputForPropType,`,
       `} from "../fal-base.js";`,
       ``,
       `// Re-export alias`,
@@ -467,8 +468,16 @@ export class NodeGenerator {
         break;
       case "dict":
         if (spec.outputFields.length > 0) {
-          // Known output fields - pass response through so keys match declared outputTypes
-          lines.push(`    return res as Record<string, unknown>;`);
+          // Coerce FAL file objects (e.g. { url, width }) into NodeTool asset refs per output field
+          lines.push(`    return {`);
+          for (const f of spec.outputFields) {
+            const k = JSON.stringify(f.name);
+            const pt = JSON.stringify(f.propType);
+            lines.push(
+              `      ${k}: coerceFalOutputForPropType(${pt}, (res as Record<string, unknown>)[${k}]),`,
+            );
+          }
+          lines.push(`    };`);
         } else {
           // No known fields - wrap entire response as "output" dict
           lines.push(`    return { output: res };`);
@@ -476,8 +485,15 @@ export class NodeGenerator {
         break;
       case "any":
         if (spec.outputFields.length > 0) {
-          // Known output fields - pass response through directly
-          lines.push(`    return res as Record<string, unknown>;`);
+          lines.push(`    return {`);
+          for (const f of spec.outputFields) {
+            const k = JSON.stringify(f.name);
+            const pt = JSON.stringify(f.propType);
+            lines.push(
+              `      ${k}: coerceFalOutputForPropType(${pt}, (res as Record<string, unknown>)[${k}]),`,
+            );
+          }
+          lines.push(`    };`);
         } else {
           // Unknown output schema - wrap as dict
           lines.push(`    return { output: res };`);

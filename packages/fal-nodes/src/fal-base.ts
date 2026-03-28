@@ -173,12 +173,14 @@ export function removeNulls(obj: Record<string, unknown>): void {
 }
 
 // ---------------------------------------------------------------------------
-// FAL media payloads → NodeTool image refs (Preview / edges expect ImageRef)
+// FAL media payloads → NodeTool asset refs (Preview / edges expect uri + type)
 // ---------------------------------------------------------------------------
 
-function makeEmptyImageRef(): Record<string, unknown> {
+type FalAssetKind = "image" | "video" | "audio";
+
+function makeEmptyAssetRef(mediaType: FalAssetKind): Record<string, unknown> {
   return {
-    type: "image",
+    type: mediaType,
     uri: "",
     asset_id: null,
     data: null,
@@ -187,10 +189,13 @@ function makeEmptyImageRef(): Record<string, unknown> {
 }
 
 /**
- * Map a FAL file object `{ url, width, height, content_type? }` to an ImageRef.
+ * Map a FAL file object `{ url, width, height, content_type? }` to an asset ref.
  */
-export function falMediaPayloadToImageRef(payload: unknown): Record<string, unknown> {
-  const empty = makeEmptyImageRef();
+export function falFileObjectToAssetRef(
+  payload: unknown,
+  mediaType: FalAssetKind
+): Record<string, unknown> {
+  const empty = makeEmptyAssetRef(mediaType);
   if (!payload || typeof payload !== "object") {
     return empty;
   }
@@ -201,38 +206,69 @@ export function falMediaPayloadToImageRef(payload: unknown): Record<string, unkn
   return empty;
 }
 
-function stringifyOutputField(value: unknown): string {
-  if (value == null) {
-    return "";
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  return JSON.stringify(value);
+/**
+ * Map a FAL file object `{ url, ... }` to an ImageRef.
+ */
+export function falMediaPayloadToImageRef(payload: unknown): Record<string, unknown> {
+  return falFileObjectToAssetRef(payload, "image");
 }
 
 /**
- * Normalize fal-ai/sam-3/image response: primary `image` plus optional `masks`
- * are FAL media dicts; NodeTool expects ImageRef-shaped objects on those handles.
+ * Coerce one FAL response field to the shape declared by @prop / outputTypes.
+ * Used by fal-codegen for multi-output nodes (dict / any with outputFields).
  */
-export function normalizeSam3ImageNodeOutput(
-  res: Record<string, unknown>
-): Record<string, unknown> {
-  const images = res.images;
-  const primary =
-    res.image ??
-    (Array.isArray(images) && images.length > 0 ? images[0] : undefined);
+export function coerceFalOutputForPropType(
+  propType: string,
+  raw: unknown
+): unknown {
+  const listMatch = /^list\[(.+)\]$/.exec(propType);
+  if (listMatch) {
+    const inner = listMatch[1].toLowerCase();
+    if (inner === "image") {
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      return raw.map((item) => falMediaPayloadToImageRef(item));
+    }
+    if (inner === "video") {
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      return raw.map((item) => falFileObjectToAssetRef(item, "video"));
+    }
+    if (inner === "audio") {
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      return raw.map((item) => falFileObjectToAssetRef(item, "audio"));
+    }
+    return Array.isArray(raw) ? raw : [];
+  }
 
-  const masksRaw = res.masks;
-  const masks = Array.isArray(masksRaw)
-    ? masksRaw.map((m) => falMediaPayloadToImageRef(m))
-    : [];
-
-  return {
-    image: falMediaPayloadToImageRef(primary),
-    metadata: stringifyOutputField(res.metadata),
-    masks,
-    scores: stringifyOutputField(res.scores),
-    boxes: stringifyOutputField(res.boxes),
-  };
+  switch (propType) {
+    case "image":
+      return falMediaPayloadToImageRef(raw);
+    case "video":
+      return falFileObjectToAssetRef(raw, "video");
+    case "audio":
+      return falFileObjectToAssetRef(raw, "audio");
+    case "str":
+      if (raw == null) {
+        return "";
+      }
+      if (typeof raw === "string") {
+        return raw;
+      }
+      return JSON.stringify(raw);
+    case "enum":
+      return raw == null ? "" : String(raw);
+    case "int":
+      return typeof raw === "number" ? Math.trunc(raw) : Number(raw);
+    case "float":
+      return typeof raw === "number" ? raw : Number(raw);
+    case "bool":
+      return Boolean(raw);
+    default:
+      return raw;
+  }
 }
