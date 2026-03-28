@@ -489,10 +489,15 @@ const ReactFlowWrapper = ({
 
   useEffect(() => {
     if (shouldFitToScreen) {
+      // Skip fitView if we already have a stored viewport that shows the nodes
+      if (storedViewport && nodes.length > 0) {
+        setShouldFitToScreen(false);
+        return;
+      }
       fitView({ padding: 0.8 });
       setShouldFitToScreen(false);
     }
-  }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
+  }, [fitView, shouldFitToScreen, setShouldFitToScreen, storedViewport, nodes.length]);
 
   useEffect(() => {
     if (storedViewport) {
