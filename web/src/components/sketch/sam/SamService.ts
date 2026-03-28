@@ -107,7 +107,15 @@ let serviceInstance: SamService | null = null;
 
 export function getSamService(): SamService {
   if (!serviceInstance) {
-    serviceInstance = new SamServiceStub();
+    // Default to node-based execution. Falls back to stub behavior
+    // when WebSocket is not available (tests, standalone).
+    try {
+      const { SamServiceNode } = require("./SamServiceNode");
+      serviceInstance = new SamServiceNode();
+    } catch {
+      // Fallback to stub if SamServiceNode can't be loaded
+      serviceInstance = new SamServiceStub();
+    }
   }
   return serviceInstance;
 }

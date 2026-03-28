@@ -15,6 +15,12 @@ export type {
 
 export { SamServiceFal, resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
 
+export { SamServiceNode, SAM_NODE_CONFIGS, DEFAULT_SAM_NODE_BACKEND } from "./SamServiceNode";
+export type { SamNodeConfig } from "./SamServiceNode";
+
+export { WebSocketNodeExecutor, getNodeExecutor, setNodeExecutor } from "./NodeExecutor";
+export type { NodeExecutor, GraphNode, GraphEdge, InlineGraph, NodeExecutionResult } from "./NodeExecutor";
+
 export {
   getMaskOverlayColor,
   getMaskOutlineColor,

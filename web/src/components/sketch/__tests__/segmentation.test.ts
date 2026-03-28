@@ -874,3 +874,260 @@ describe("SketchCanvasRef interface", () => {
     expect(mockRef.getOverlayCanvas()).toBeNull();
   });
 });
+
+// ─── SamServiceNode ───────────────────────────────────────────────────────────
+
+describe("SamServiceNode", () => {
+  it("can be instantiated with default backend", () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const service = new SamServiceNode();
+    expect(service).toBeDefined();
+    expect(service.checkModelAvailability).toBeDefined();
+    expect(service.runSegmentation).toBeDefined();
+  });
+
+  it("can be instantiated with fal-sam2 backend", () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const service = new SamServiceNode("fal-sam2");
+    expect(service).toBeDefined();
+  });
+
+  it("can be instantiated with hf-sam2 backend", () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const service = new SamServiceNode("hf-sam2");
+    expect(service).toBeDefined();
+  });
+
+  it("throws on unknown backend", () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    expect(() => new SamServiceNode("unknown-backend")).toThrow(
+      /Unknown SAM backend/
+    );
+  });
+
+  it("checkModelAvailability returns not-installed when no API key", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const service = new SamServiceNode("fal-sam2");
+    const info = await service.checkModelAvailability();
+    // In test environment, secrets store has no key
+    expect(info.status).toBe("not-installed");
+    expect(info.errorMessage).toContain("FAL_API_KEY");
+  });
+
+  it("hf-sam2 checkModelAvailability returns available (no secret needed)", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const service = new SamServiceNode("hf-sam2");
+    const info = await service.checkModelAvailability();
+    expect(info.status).toBe("available");
+    expect(info.modelName).toBe("SAM 2 (Local HuggingFace)");
+  });
+
+  it("can be set as the active service via setSamService", () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const service = new SamServiceNode();
+    setSamService(service);
+    const retrieved = getSamService();
+    expect(retrieved).toBe(service);
+    // Restore stub
+    setSamService(new SamServiceStub());
+  });
+});
+
+// ─── SAM Node Configs ─────────────────────────────────────────────────────────
+
+describe("SAM node configurations", () => {
+  it("SAM_NODE_CONFIGS has fal-sam2 and hf-sam2", () => {
+    const { SAM_NODE_CONFIGS } = require("../sam/SamServiceNode");
+    expect(SAM_NODE_CONFIGS["fal-sam2"]).toBeDefined();
+    expect(SAM_NODE_CONFIGS["hf-sam2"]).toBeDefined();
+  });
+
+  it("fal-sam2 requires FAL_API_KEY", () => {
+    const { SAM_NODE_CONFIGS } = require("../sam/SamServiceNode");
+    const config = SAM_NODE_CONFIGS["fal-sam2"];
+    expect(config.requiredSecret).toBe("FAL_API_KEY");
+    expect(config.isLocal).toBe(false);
+    expect(config.nodeType).toBe("fal.image_to_image.Sam2Image");
+  });
+
+  it("hf-sam2 is local and has no required secret", () => {
+    const { SAM_NODE_CONFIGS } = require("../sam/SamServiceNode");
+    const config = SAM_NODE_CONFIGS["hf-sam2"];
+    expect(config.requiredSecret).toBeNull();
+    expect(config.isLocal).toBe(true);
+    expect(config.nodeType).toBe(
+      "huggingface.image_segmentation.SAM2Segmentation"
+    );
+  });
+
+  it("DEFAULT_SAM_NODE_BACKEND is fal-sam2", () => {
+    const { DEFAULT_SAM_NODE_BACKEND } = require("../sam/SamServiceNode");
+    expect(DEFAULT_SAM_NODE_BACKEND).toBe("fal-sam2");
+  });
+});
+
+// ─── NodeExecutor ─────────────────────────────────────────────────────────────
+
+describe("NodeExecutor", () => {
+  it("getNodeExecutor returns a WebSocketNodeExecutor by default", () => {
+    const { getNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const executor = getNodeExecutor();
+    expect(executor).toBeInstanceOf(WebSocketNodeExecutor);
+  });
+
+  it("setNodeExecutor overrides the singleton", () => {
+    const {
+      getNodeExecutor,
+      setNodeExecutor,
+      WebSocketNodeExecutor
+    } = require("../sam/NodeExecutor");
+
+    const mock = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        outputs: { sam_node: { output: { type: "image", uri: "test.png" } } }
+      })
+    };
+
+    setNodeExecutor(mock);
+    expect(getNodeExecutor()).toBe(mock);
+
+    // Restore default
+    setNodeExecutor(new WebSocketNodeExecutor());
+  });
+
+  it("mock NodeExecutor can simulate segmentation", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const SamServiceFal = require("../sam/SamServiceFal");
+
+    // Mock resizeForInference to avoid Image loading in jsdom
+    const origResize = SamServiceFal.resizeForInference;
+    SamServiceFal.resizeForInference = jest
+      .fn()
+      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 1 });
+
+    // Mock executor that returns a fake mask
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        outputs: {
+          sam_node: {
+            output: {
+              type: "image",
+              uri: "data:image/png;base64,fakedata",
+              width: 512,
+              height: 512
+            }
+          }
+        }
+      })
+    };
+
+    setNodeExecutor(mockExecutor);
+
+    const service = new SamServiceNode("hf-sam2");
+    const tinyPng = "data:image/png;base64,smallimage";
+
+    const result = await service.runSegmentation({
+      imageDataUrl: tinyPng,
+      pointPrompts: [{ x: 10, y: 10, label: "positive" }],
+      boxPrompt: null,
+      settings: DEFAULT_SEGMENT_SETTINGS
+    });
+
+    expect(mockExecutor.execute).toHaveBeenCalledTimes(1);
+    expect(result.masks).toHaveLength(1);
+    expect(result.masks[0].maskDataUrl).toBe(
+      "data:image/png;base64,fakedata"
+    );
+
+    // Restore
+    SamServiceFal.resizeForInference = origResize;
+    setNodeExecutor(new WebSocketNodeExecutor());
+  });
+
+  it("mock NodeExecutor handles execution failure", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const SamServiceFal = require("../sam/SamServiceFal");
+
+    const origResize = SamServiceFal.resizeForInference;
+    SamServiceFal.resizeForInference = jest
+      .fn()
+      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 1 });
+
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        success: false,
+        outputs: {},
+        error: "Node execution failed"
+      })
+    };
+
+    setNodeExecutor(mockExecutor);
+
+    const service = new SamServiceNode("hf-sam2");
+    const tinyPng = "data:image/png;base64,smallimage";
+
+    await expect(
+      service.runSegmentation({
+        imageDataUrl: tinyPng,
+        pointPrompts: [],
+        boxPrompt: null,
+        settings: DEFAULT_SEGMENT_SETTINGS
+      })
+    ).rejects.toThrow("Node execution failed");
+
+    // Restore
+    SamServiceFal.resizeForInference = origResize;
+    setNodeExecutor(new WebSocketNodeExecutor());
+  });
+
+  it("mock NodeExecutor builds fal graph with prompts", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const SamServiceFal = require("../sam/SamServiceFal");
+
+    const origResize = SamServiceFal.resizeForInference;
+    SamServiceFal.resizeForInference = jest
+      .fn()
+      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 1 });
+
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        outputs: { sam_node: { output: [] } }
+      })
+    };
+
+    setNodeExecutor(mockExecutor);
+
+    const service = new SamServiceNode("fal-sam2");
+    const tinyPng = "data:image/png;base64,smallimage";
+
+    await service.runSegmentation({
+      imageDataUrl: tinyPng,
+      pointPrompts: [
+        { x: 10, y: 20, label: "positive" },
+        { x: 30, y: 40, label: "negative" }
+      ],
+      boxPrompt: { x: 5, y: 5, width: 50, height: 50 },
+      settings: DEFAULT_SEGMENT_SETTINGS
+    });
+
+    // Verify the graph was built correctly
+    const callArgs = mockExecutor.execute.mock.calls[0];
+    const graph = callArgs[0];
+    expect(graph.nodes).toHaveLength(1);
+    expect(graph.nodes[0].type).toBe("fal.image_to_image.Sam2Image");
+    expect(graph.nodes[0].data.prompts).toHaveLength(2);
+    expect(graph.nodes[0].data.prompts[0].label).toBe(1); // positive
+    expect(graph.nodes[0].data.prompts[1].label).toBe(0); // negative
+    expect(graph.nodes[0].data.box_prompts).toHaveLength(1);
+
+    // Restore
+    SamServiceFal.resizeForInference = origResize;
+    setNodeExecutor(new WebSocketNodeExecutor());
+  });
+});
