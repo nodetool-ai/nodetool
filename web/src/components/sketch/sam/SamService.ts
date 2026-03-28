@@ -105,7 +105,7 @@ export class SamServiceStub implements SamService {
 
 /** Singleton service instance. Replace with real implementation when available. */
 let serviceInstance: SamService | null = null;
-let currentBackend: string | null = null;
+let currentBackend: "fal" | "node" | null = null;
 /** True when the instance was set explicitly via setSamService. */
 let manualOverride = false;
 

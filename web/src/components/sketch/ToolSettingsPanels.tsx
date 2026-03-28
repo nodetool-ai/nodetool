@@ -1256,8 +1256,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           onChange={(_, v) => {
             if (v) {
               onChange({ backend: v as SegmentBackend });
-              // Trigger model check when backend changes
-              setTimeout(onCheckModel, 0);
+              onCheckModel();
             }
           }}
           size="small"
