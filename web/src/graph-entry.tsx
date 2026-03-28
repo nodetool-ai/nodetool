@@ -4,7 +4,7 @@
  * Reuses the real nodetool BaseNode component with proper MUI theme and CSS.
  * No backend needed — workflow data comes via ?data=<base64 JSON> param.
  */
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import ReactDOM from "react-dom/client";
 import {
   ReactFlow,
@@ -220,7 +220,7 @@ function createMinimalNodeStore(
   edges: Edge[],
   workflow: Workflow
 ) {
-  return create<any>((set: any, get: any) => ({
+  return create<any>((_set: any, _get: any) => ({
     nodes,
     edges,
     workflow,

@@ -310,7 +310,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       getEdges().find(
         (edge) => edge.target === props.id && edge.targetHandle === "value"
       ),
-    [getEdges, props.id, result]
+    [getEdges, props.id]
   );
 
   const sourceNodeValue = useResultsStore((state) => {

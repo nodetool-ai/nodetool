@@ -42,7 +42,7 @@ describe("TraceStore", () => {
         detail: {}
       });
 
-      let { events } = useTraceStore.getState();
+      const { events } = useTraceStore.getState();
       expect(events).toHaveLength(1);
 
       // Start a new run
