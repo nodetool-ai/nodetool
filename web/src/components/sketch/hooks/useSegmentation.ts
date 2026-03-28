@@ -280,6 +280,9 @@ export function useSegmentation({
                   height: mask.bounds.height
                 });
               }
+            }).catch((err) => {
+              // Cutout generation is best-effort; mask data is already set as fallback
+              console.warn("[useSegmentation] Cutout generation failed:", err);
             });
           }
         }

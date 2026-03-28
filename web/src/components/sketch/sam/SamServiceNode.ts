@@ -279,7 +279,7 @@ export class SamServiceNode implements SamService {
       return { masks: [] };
     }
 
-    const invScale = scale !== 0 ? 1 / scale : 1;
+    const invScale = scale > 0 ? 1 / scale : 1;
 
     const masks: SegmentationMask[] = images.map((img, i) => {
       const uri = img.uri ?? img.url ?? "";

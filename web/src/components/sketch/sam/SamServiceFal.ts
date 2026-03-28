@@ -27,13 +27,14 @@ const SAM2_ENDPOINT = "fal-ai/sam2/image";
  */
 export const MAX_INFERENCE_DIMENSION = 2048;
 
+/** Maximum time to wait for inline execution before timing out (ms). */
+const EXECUTION_TIMEOUT_MS = 120_000;
+
 /** Polling interval for queue status (ms). */
 const QUEUE_POLL_INTERVAL_MS = 1000;
 
 /** Maximum time to wait for a queued job (ms). */
 const QUEUE_TIMEOUT_MS = 120_000;
-
-// ─── Types for FAL API ────────────────────────────────────────────────────────
 
 interface FalPointPrompt {
   x: number;
@@ -157,7 +158,11 @@ async function uploadToFal(
   }
 
   const uploadData = await uploadRes.json();
-  return uploadData.url ?? uploadData.access_url ?? uploadData.file_url;
+  const resultUrl = uploadData.url ?? uploadData.access_url ?? uploadData.file_url;
+  if (!resultUrl) {
+    throw new Error("FAL upload succeeded but no URL returned in response");
+  }
+  return resultUrl;
 }
 
 // ─── SamServiceFal Implementation ─────────────────────────────────────────────
@@ -361,7 +366,7 @@ export class SamServiceFal implements SamService {
     // Each image from SAM2 is a mask or a combined masked output
     // Convert to our SegmentationMask format
     const masks: SegmentationMask[] = images.map((img, i) => {
-      const invScale = scale !== 0 ? 1 / scale : 1;
+      const invScale = scale > 0 ? 1 / scale : 1;
       return {
         id: `mask_${i}`,
         label: `Object ${i + 1}`,

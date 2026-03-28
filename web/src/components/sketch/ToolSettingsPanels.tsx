@@ -1217,6 +1217,20 @@ function promptModeHelpText(mode: SegmentPromptMode): string {
   return "Auto-detect prominent objects";
 }
 
+/** Returns a user-friendly status message for the current segmentation phase. */
+function getSegmentationStatusMessage(status: SegmentationStatus): string {
+  switch (status) {
+    case "checking-model":
+      return "Checking model…";
+    case "encoding":
+      return "Encoding image…";
+    case "inferring":
+      return "Segmenting…";
+    default:
+      return "Processing…";
+  }
+}
+
 interface SegmentSettingsPanelProps {
   settings: SegmentSettings;
   onChange: (settings: Partial<SegmentSettings>) => void;
@@ -1402,11 +1416,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 alignItems: "center"
               }}
             >
-              {segmentationStatus === "checking-model"
-                ? "Checking model…"
-                : segmentationStatus === "encoding"
-                  ? "Encoding image…"
-                  : "Segmenting…"}
+              {getSegmentationStatusMessage(segmentationStatus)}
             </Typography>
             <Button
               size="small"

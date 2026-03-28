@@ -14,6 +14,11 @@
  * decoupled from the specific execution transport.
  */
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+/** Maximum time to wait for inline node execution before timing out (ms). */
+const EXECUTION_TIMEOUT_MS = 120_000;
+
 // ─── Graph Types ──────────────────────────────────────────────────────────────
 
 /** A node in a mini-workflow graph, in the backend's native format. */
@@ -96,7 +101,7 @@ export class WebSocketNodeExecutor implements NodeExecutor {
     }
 
     // Generate a unique job ID for this inline execution
-    const jobId = `sketch_seg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const jobId = `sketch_segmentation_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     return new Promise<NodeExecutionResult>((resolve) => {
       const outputs: Record<string, unknown> = {};
@@ -203,7 +208,7 @@ export class WebSocketNodeExecutor implements NodeExecutor {
           outputs,
           error: "Execution timed out"
         });
-      }, 120_000);
+      }, EXECUTION_TIMEOUT_MS);
     });
   }
 }
