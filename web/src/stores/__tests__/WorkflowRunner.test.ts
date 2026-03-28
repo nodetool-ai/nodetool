@@ -45,6 +45,7 @@ jest.mock("../ResultsStore", () => ({
       clearTasks: jest.fn(),
       clearChunks: jest.fn(),
       clearPlanningUpdates: jest.fn(),
+      clearOutputResults: jest.fn(),
     }),
   },
 }));
@@ -243,6 +244,67 @@ describe("WorkflowRunner", () => {
         "streamInput called without an active job"
       );
       logSpy.mockRestore();
+    });
+  });
+
+  describe("run", () => {
+    const mockWorkflow = {
+      id: "test-workflow-id",
+      name: "Test Workflow",
+      graph: { nodes: [], edges: [] },
+    } as any;
+
+    it("sets state to running immediately", async () => {
+      await store.getState().run({}, mockWorkflow, [], []);
+
+      expect(store.getState().state).toBe("running");
+      expect(store.getState().job_id).toBeDefined();
+    });
+
+    it("sends run_job command via websocket", async () => {
+      await store.getState().run({}, mockWorkflow, [], []);
+
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          command: "run_job",
+        })
+      );
+    });
+
+    it("prevents duplicate runs when already running", async () => {
+      const logSpy = jest.spyOn(log, "warn").mockImplementation();
+
+      // First run should proceed
+      await store.getState().run({}, mockWorkflow, [], []);
+      expect(store.getState().state).toBe("running");
+
+      // Clear mock call count to track second attempt
+      (globalWebSocketManager.send as jest.Mock).mockClear();
+
+      // Second run should be rejected
+      await store.getState().run({}, mockWorkflow, [], []);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Already running, ignoring duplicate run request")
+      );
+      // Should NOT have sent another run_job command
+      expect(globalWebSocketManager.send).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "run_job" })
+      );
+
+      logSpy.mockRestore();
+    });
+
+    it("sets error state when connection fails", async () => {
+      (globalWebSocketManager.ensureConnection as jest.Mock).mockRejectedValueOnce(
+        new Error("Connection failed")
+      );
+
+      await store.getState().run({}, mockWorkflow, [], []);
+
+      expect(store.getState().state).toBe("error");
+      expect(store.getState().statusMessage).toBe("Connection failed");
     });
   });
 });
