@@ -30,7 +30,7 @@ export class FloatInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? 0.0 };
   }
 }
@@ -59,7 +59,7 @@ export class BooleanInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? false };
   }
 }
@@ -94,7 +94,7 @@ export class IntegerInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? 0 };
   }
 }
@@ -132,7 +132,7 @@ export class SelectInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? "" };
   }
 }
@@ -161,7 +161,7 @@ export class StringListInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? [] };
   }
 }
@@ -192,7 +192,7 @@ export class FolderPathInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? "" };
   }
 }
@@ -228,7 +228,7 @@ export class HuggingFaceModelInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -260,7 +260,7 @@ export class ColorInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -289,7 +289,7 @@ export class ImageSizeInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -325,7 +325,7 @@ export class LanguageModelInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -361,7 +361,7 @@ export class ImageModelInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -397,7 +397,7 @@ export class VideoModelInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -434,7 +434,7 @@ export class TTSModelInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -469,7 +469,7 @@ export class ASRModelInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -504,7 +504,7 @@ export class EmbeddingModelInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -540,7 +540,7 @@ export class DataframeInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -575,7 +575,7 @@ export class DocumentInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -610,7 +610,7 @@ export class ImageInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -723,7 +723,7 @@ export class ImageListInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? [] };
   }
 }
@@ -752,7 +752,7 @@ export class VideoListInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? [] };
   }
 }
@@ -781,7 +781,7 @@ export class AudioListInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? [] };
   }
 }
@@ -810,7 +810,7 @@ export class TextListInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? [] };
   }
 }
@@ -847,7 +847,7 @@ export class VideoInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -882,7 +882,7 @@ export class AudioInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -920,7 +920,7 @@ export class Model3DInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -955,7 +955,7 @@ export class AssetFolderInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -1008,7 +1008,7 @@ export class MessageInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? {} };
   }
 }
@@ -1037,7 +1037,7 @@ export class MessageListInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? [] };
   }
 }
@@ -1078,7 +1078,7 @@ export class StringInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const raw = String(this.value ?? "");
     const max = Number(this.max_length ?? 0);
     if (max > 0 && raw.length > max) {
@@ -1161,7 +1161,7 @@ export class DocumentFileInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const p = String(this.value ?? "");
     return { document: { uri: p ? `file://${p}` : "" }, path: p };
   }
@@ -1193,7 +1193,7 @@ export class FilePathInputNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? "" };
   }
 }
@@ -1242,7 +1242,7 @@ export class MessageDeconstructorNode extends BaseNode {
 
     
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const msg = (this.value ?? {}) as Record<string, unknown>;
     const content = msg.content;
     let text = "";

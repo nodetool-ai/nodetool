@@ -2,8 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import nodePath from "node:path";
-import os from "node:os";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
@@ -15,7 +14,8 @@ import {
   Secret,
 } from "@nodetool/models";
 import { loadPythonPackageMetadata, type NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
-import { getSecret } from "@nodetool/security";
+import { clearSecretCache } from "@nodetool/security";
+import { clearProviderCache } from "@nodetool/runtime";
 import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
@@ -52,8 +52,7 @@ function getAssetFileName(assetId: string, contentType: string): string {
 }
 
 function getAssetStoragePath(opts?: StorageHandlerOptions): string {
-  return process.env.ASSET_FOLDER ?? opts?.storagePath ?? process.env.STORAGE_PATH ??
-    nodePath.join(os.homedir(), ".local", "share", "nodetool", "assets");
+  return opts?.storagePath ?? getDefaultAssetsPath();
 }
 
 type JsonObject = Record<string, unknown>;
@@ -335,11 +334,23 @@ export async function handleWorkflowAutosave(
   lastAutosaveTime.set(workflowId, Date.now());
 
   // Create a version and prune old ones if WorkflowVersion table is available
-  const version: JsonObject | null = null;
+  let version: JsonObject | null = null;
   try {
+    const nextVer = await WorkflowVersion.nextVersion(workflowId);
+    const wv = new WorkflowVersion({
+      workflow_id: workflowId,
+      user_id: userId,
+      graph,
+      version: nextVer,
+      save_type: "autosave",
+      name: workflow.name,
+      description: workflow.description,
+    });
+    await wv.save();
+    version = { id: wv.id, version: wv.version, workflow_id: wv.workflow_id, save_type: wv.save_type, created_at: wv.created_at } as JsonObject;
     await WorkflowVersion.pruneOldVersions(workflowId, maxVersions);
   } catch {
-    // non-fatal
+    // non-fatal — version table may not exist
   }
 
   return jsonResponse({ version, message: "Autosaved successfully", skipped: false });
@@ -453,7 +464,7 @@ export async function handleWorkflowApp(
   }
   const baseUrl = options.baseUrl ?? "http://127.0.0.1:7777";
   const html = `<!DOCTYPE html><html><head><title>Workflow App</title>
-<script>window.WORKFLOW_ID="${workflowId}";window.API_URL="${baseUrl}";</script>
+<script>window.WORKFLOW_ID=${JSON.stringify(workflowId)};window.API_URL=${JSON.stringify(baseUrl)};</script>
 </head><body><div id="app"></div></body></html>`;
   return new Response(html, {
     status: 200,
@@ -960,9 +971,7 @@ export async function handleThreadById(
       const [messages] = await Message.paginate(threadId, { limit: 100 });
       if (!messages.length) break;
       for (const msg of messages) {
-        if (msg.user_id === userId) {
-          await msg.delete();
-        }
+        await msg.delete();
       }
       if (messages.length < 100) break;
     }
@@ -1273,6 +1282,9 @@ export async function handleSecretByKey(
         value: body.value,
         description: body.description,
       });
+      // Invalidate caches so providers pick up the new key
+      clearSecretCache(userId, key);
+      clearProviderCache();
       return jsonResponse(await toSecretResponse(secret));
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Failed to update secret";
@@ -1283,6 +1295,8 @@ export async function handleSecretByKey(
   if (request.method === "DELETE") {
     const deleted = await Secret.deleteSecret(userId, key);
     if (!deleted) return errorResponse(404, "Secret not found");
+    clearSecretCache(userId, key);
+    clearProviderCache();
     return jsonResponse({ message: "Secret deleted successfully" });
   }
 
@@ -1705,13 +1719,6 @@ export async function handleApiRequest(
   if (pathname === "/api/models" || pathname.startsWith("/api/models/")) {
     const response = await handleModelsApiRequest(request);
     if (response) return response;
-  }
-
-  if (pathname === "/api/nodes/replicate_status") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const replicateKey = await getSecret("REPLICATE_API_TOKEN", "1");
-    const configured = Boolean(replicateKey);
-    return jsonResponse({ configured });
   }
 
   if (pathname === "/api/users/validate_username") {

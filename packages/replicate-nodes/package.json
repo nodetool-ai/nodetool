@@ -12,7 +12,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/node-sdk": "*"
+    "@nodetool/node-sdk": "*",
+    "replicate": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

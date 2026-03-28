@@ -1,11 +1,18 @@
-import OpenAI from "openai";
+import Replicate from "replicate";
 import { createLogger } from "@nodetool/config";
-import { OpenAIProvider } from "./openai-provider.js";
+import { BaseProvider } from "./base-provider.js";
+import type { Chunk } from "@nodetool/protocol";
 import type {
+  ASRModel,
+  EmbeddingModel,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
+  Message,
+  MessageTextContent,
+  ProviderStreamItem,
+  ProviderTool,
   TextToImageParams,
   TTSModel,
   VideoModel,
@@ -15,82 +22,185 @@ import type {
 const log = createLogger("nodetool.runtime.providers.replicate");
 
 interface ReplicateProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
+  /** Inject a pre-built Replicate client (mainly for testing). */
+  client?: Replicate;
   fetchFn?: typeof fetch;
 }
 
 /**
- * Replicate prediction status response.
- */
-interface ReplicatePrediction {
-  id: string;
-  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
-  output?: unknown;
-  error?: string | null;
-  urls?: { get?: string; stream?: string };
-}
-
-const REPLICATE_API_BASE = "https://api.replicate.com/v1";
-
-/**
  * Provider for Replicate's LLM, image, video, and audio models.
  *
- * For chat completions, Replicate exposes an OpenAI-compatible endpoint,
- * so we extend OpenAIProvider and point the OpenAI SDK at Replicate's base URL.
- *
- * For image/video generation, we use Replicate's predictions REST API directly.
+ * Uses the official Replicate TypeScript SDK (`replicate` package).
+ * - Chat / LLM:  `replicate.run()` and `replicate.stream()` with SSE
+ * - Image / Video / TTS:  `replicate.run()` with file output
  */
-export class ReplicateProvider extends OpenAIProvider {
-  static override requiredSecrets(): string[] {
+export class ReplicateProvider extends BaseProvider {
+  static requiredSecrets(): string[] {
     return ["REPLICATE_API_TOKEN"];
   }
 
-  private _replicateFetch: typeof fetch;
+  readonly apiKey: string;
+  private _client: Replicate;
 
   constructor(
     secrets: { REPLICATE_API_TOKEN?: string },
     options: ReplicateProviderOptions = {}
   ) {
+    super("replicate");
+
     const apiKey = secrets.REPLICATE_API_TOKEN;
     if (!apiKey) {
       throw new Error("REPLICATE_API_TOKEN is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
-    super(
-      { OPENAI_API_KEY: apiKey },
-      {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: `${REPLICATE_API_BASE}/openai/v1`,
-            })),
-        fetchFn,
-      }
-    );
-
-    (this as { provider: string }).provider = "replicate";
-    this._replicateFetch = fetchFn;
+    this.apiKey = apiKey;
+    this._client =
+      options.client ??
+      new Replicate({
+        auth: apiKey,
+        ...(options.fetchFn ? { fetch: options.fetchFn } : {}),
+      });
   }
 
-  override getContainerEnv(): Record<string, string> {
+  getContainerEnv(): Record<string, string> {
     return { REPLICATE_API_TOKEN: this.apiKey };
   }
 
-  override async hasToolSupport(_model: string): Promise<boolean> {
-    return true;
+  async hasToolSupport(_model: string): Promise<boolean> {
+    // Replicate predictions API does not support OpenAI-style tool calling
+    return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chat completions via Replicate SDK
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Convert our Message[] into the prompt/system_prompt format
+   * that most Replicate LLMs expect.
+   */
+  private _formatChatInput(
+    messages: Message[],
+    maxTokens?: number,
+  ): Record<string, unknown> {
+    let systemPrompt = "";
+    const parts: string[] = [];
+
+    for (const msg of messages) {
+      const text =
+        typeof msg.content === "string"
+          ? msg.content
+          : Array.isArray(msg.content)
+            ? msg.content
+                .filter((c): c is MessageTextContent => c.type === "text")
+                .map((c) => c.text)
+                .join("\n")
+            : "";
+
+      if (msg.role === "system") {
+        systemPrompt += (systemPrompt ? "\n" : "") + text;
+      } else if (msg.role === "user" || msg.role === "assistant") {
+        parts.push(text);
+      }
+    }
+
+    const input: Record<string, unknown> = {
+      prompt: parts.join("\n"),
+    };
+    if (systemPrompt) input.system_prompt = systemPrompt;
+    if (maxTokens != null) input.max_tokens = maxTokens;
+    return input;
+  }
+
+  async generateMessage(args: {
+    messages: Message[];
+    model: string;
+    tools?: ProviderTool[];
+    maxTokens?: number;
+    responseFormat?: Record<string, unknown>;
+    jsonSchema?: Record<string, unknown>;
+    temperature?: number;
+    topP?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
+  }): Promise<Message> {
+    const input = this._formatChatInput(args.messages, args.maxTokens);
+    if (args.temperature != null) input.temperature = args.temperature;
+    if (args.topP != null) input.top_p = args.topP;
+
+    log.debug("generateMessage", { model: args.model });
+    const output = await this._client.run(args.model as `${string}/${string}`, { input });
+
+    // Replicate LLMs return output as a string, array of token strings,
+    // or a ReadableStream/FileOutput.
+    let text: string;
+    if (typeof output === "string") {
+      text = output;
+    } else if (Array.isArray(output)) {
+      text = output.join("");
+    } else {
+      text = String(output ?? "");
+    }
+
+    return { role: "assistant", content: text };
+  }
+
+  async *generateMessages(args: {
+    messages: Message[];
+    model: string;
+    tools?: ProviderTool[];
+    maxTokens?: number;
+    responseFormat?: Record<string, unknown>;
+    jsonSchema?: Record<string, unknown>;
+    temperature?: number;
+    topP?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
+    audio?: Record<string, unknown>;
+  }): AsyncGenerator<ProviderStreamItem> {
+    const input = this._formatChatInput(args.messages, args.maxTokens);
+    if (args.temperature != null) input.temperature = args.temperature;
+    if (args.topP != null) input.top_p = args.topP;
+
+    log.debug("generateMessages (streaming)", { model: args.model });
+
+    const stream = this._client.stream(args.model as `${string}/${string}`, { input });
+
+    for await (const event of stream) {
+      if (event.event === "output") {
+        yield {
+          type: "chunk",
+          content: String(event.data),
+          done: false,
+          content_type: "text",
+        } as Chunk;
+      } else if (event.event === "error") {
+        throw new Error(`Replicate stream error: ${String(event.data)}`);
+      } else if (event.event === "done") {
+        yield {
+          type: "chunk",
+          content: "",
+          done: true,
+          content_type: "text",
+        } as Chunk;
+        return;
+      }
+    }
+
+    // End of stream without explicit done event
+    yield {
+      type: "chunk",
+      content: "",
+      done: true,
+      content_type: "text",
+    } as Chunk;
   }
 
   // ---------------------------------------------------------------------------
   // Available models
   // ---------------------------------------------------------------------------
 
-  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+  async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     return [
       { id: "meta/meta-llama-3-8b-instruct", name: "Llama 3 8B Instruct", provider: "replicate" },
       { id: "meta/meta-llama-3-70b-instruct", name: "Llama 3 70B Instruct", provider: "replicate" },
@@ -122,7 +232,7 @@ export class ReplicateProvider extends OpenAIProvider {
     ];
   }
 
-  override async getAvailableImageModels(): Promise<ImageModel[]> {
+  async getAvailableImageModels(): Promise<ImageModel[]> {
     return [
       { id: "black-forest-labs/flux-schnell", name: "FLUX Schnell", provider: "replicate", supportedTasks: ["text_to_image"] },
       { id: "black-forest-labs/flux-dev", name: "FLUX Dev", provider: "replicate", supportedTasks: ["text_to_image"] },
@@ -141,7 +251,7 @@ export class ReplicateProvider extends OpenAIProvider {
     ];
   }
 
-  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+  async getAvailableVideoModels(): Promise<VideoModel[]> {
     return [
       { id: "google/veo-3.1", name: "Veo 3.1", provider: "replicate", supportedTasks: ["text_to_video"] },
       { id: "google/veo-3", name: "Veo 3", provider: "replicate", supportedTasks: ["text_to_video"] },
@@ -156,7 +266,7 @@ export class ReplicateProvider extends OpenAIProvider {
     ];
   }
 
-  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+  async getAvailableTTSModels(): Promise<TTSModel[]> {
     return [
       { id: "elevenlabs/v3", name: "ElevenLabs V3", provider: "replicate" },
       { id: "minimax/speech-2.8-hd", name: "MiniMax Speech 2.8 HD", provider: "replicate" },
@@ -166,7 +276,7 @@ export class ReplicateProvider extends OpenAIProvider {
     ];
   }
 
-  override async getAvailableASRModels(): Promise<{ id: string; name: string; provider: string }[]> {
+  async getAvailableASRModels(): Promise<ASRModel[]> {
     return [
       { id: "openai/gpt-4o-transcribe", name: "GPT-4o Transcribe", provider: "replicate" },
       { id: "vaibhavs10/incredibly-fast-whisper", name: "Incredibly Fast Whisper", provider: "replicate" },
@@ -176,7 +286,7 @@ export class ReplicateProvider extends OpenAIProvider {
     ];
   }
 
-  override async getAvailableEmbeddingModels(): Promise<{ id: string; name: string; provider: string; dimensions?: number }[]> {
+  async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
     return [
       { id: "replicate/all-mpnet-base-v2", name: "All MPNet Base V2", provider: "replicate", dimensions: 768 },
       { id: "lucataco/snowflake-arctic-embed-l", name: "Snowflake Arctic Embed L", provider: "replicate", dimensions: 1024 },
@@ -192,93 +302,47 @@ export class ReplicateProvider extends OpenAIProvider {
   }
 
   // ---------------------------------------------------------------------------
-  // Replicate prediction helper
+  // Image / Video / Audio capabilities
   // ---------------------------------------------------------------------------
-
-  private async _runPrediction(
-    modelId: string,
-    input: Record<string, unknown>,
-    timeoutMs = 5 * 60 * 1000
-  ): Promise<unknown> {
-    const createResponse = await this._replicateFetch(
-      `${REPLICATE_API_BASE}/models/${modelId}/predictions`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          Prefer: "wait",
-        },
-        body: JSON.stringify({ input }),
-      }
-    );
-
-    if (!createResponse.ok) {
-      const errorBody = await createResponse.text();
-      throw new Error(
-        `Replicate prediction failed (${createResponse.status}): ${errorBody}`
-      );
-    }
-
-    let prediction = (await createResponse.json()) as ReplicatePrediction;
-
-    const intervalMs = 2000;
-    const start = Date.now();
-
-    while (
-      prediction.status === "starting" ||
-      prediction.status === "processing"
-    ) {
-      if (Date.now() - start > timeoutMs) {
-        throw new Error("Replicate prediction timed out");
-      }
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
-
-      const pollUrl =
-        prediction.urls?.get ??
-        `${REPLICATE_API_BASE}/predictions/${prediction.id}`;
-
-      const pollResponse = await this._replicateFetch(pollUrl, {
-        headers: { Authorization: `Bearer ${this.apiKey}` },
-      });
-
-      if (!pollResponse.ok) {
-        throw new Error(`Replicate poll failed (${pollResponse.status})`);
-      }
-      prediction = (await pollResponse.json()) as ReplicatePrediction;
-    }
-
-    if (prediction.status !== "succeeded") {
-      throw new Error(
-        prediction.error ?? `Prediction ended with status '${prediction.status}'`
-      );
-    }
-
-    return prediction.output;
-  }
 
   private async _fetchOutputBytes(output: unknown): Promise<Uint8Array> {
-    let url: string | null = null;
-    if (typeof output === "string") {
-      url = output;
-    } else if (Array.isArray(output) && typeof output[0] === "string") {
-      url = output[0];
+    // replicate.run() returns FileOutput (ReadableStream) for file models,
+    // or a string URL, or an array of URLs/FileOutputs.
+    let target: unknown = output;
+    if (Array.isArray(output)) {
+      target = output[0];
     }
-    if (!url) {
-      throw new Error("Replicate prediction returned no output URL");
+
+    // FileOutput is a ReadableStream — read it to bytes
+    if (target && typeof target === "object" && "getReader" in target) {
+      const reader = (target as ReadableStream<Uint8Array>).getReader();
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return result;
     }
-    const res = await this._replicateFetch(url);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch output: ${res.status}`);
+
+    // String URL — fetch the bytes
+    if (typeof target === "string") {
+      const res = await fetch(target);
+      if (!res.ok) throw new Error(`Failed to fetch output: ${res.status}`);
+      return new Uint8Array(await res.arrayBuffer());
     }
-    return new Uint8Array(await res.arrayBuffer());
+
+    throw new Error("Replicate prediction returned no usable output");
   }
 
-  // ---------------------------------------------------------------------------
-  // Capabilities
-  // ---------------------------------------------------------------------------
-
-  override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+  async textToImage(params: TextToImageParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
 
     const input: Record<string, unknown> = { prompt: params.prompt };
@@ -291,11 +355,14 @@ export class ReplicateProvider extends OpenAIProvider {
     if (params.scheduler) input.scheduler = params.scheduler;
 
     log.debug("textToImage", { model: params.model.id });
-    const output = await this._runPrediction(params.model.id, input);
+    const output = await this._client.run(
+      params.model.id as `${string}/${string}`,
+      { input }
+    );
     return this._fetchOutputBytes(output);
   }
 
-  override async imageToImage(image: Uint8Array, params: ImageToImageParams): Promise<Uint8Array> {
+  async imageToImage(image: Uint8Array, params: ImageToImageParams): Promise<Uint8Array> {
     const base64 = Buffer.from(image).toString("base64");
     const dataUri = `data:image/png;base64,${base64}`;
 
@@ -308,11 +375,14 @@ export class ReplicateProvider extends OpenAIProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("imageToImage", { model: params.model.id });
-    const output = await this._runPrediction(params.model.id, input);
+    const output = await this._client.run(
+      params.model.id as `${string}/${string}`,
+      { input }
+    );
     return this._fetchOutputBytes(output);
   }
 
-  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+  async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
 
     const input: Record<string, unknown> = { prompt: params.prompt };
@@ -323,12 +393,14 @@ export class ReplicateProvider extends OpenAIProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("textToVideo", { model: params.model.id });
-    const output = await this._runPrediction(params.model.id, input, 10 * 60 * 1000);
+    const output = await this._client.run(
+      params.model.id as `${string}/${string}`,
+      { input }
+    );
     return this._fetchOutputBytes(output);
   }
 
-  override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
-    // Upload image to a data URI for the Replicate API
+  async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
     const base64 = Buffer.from(image).toString("base64");
     const dataUri = `data:image/png;base64,${base64}`;
 
@@ -341,11 +413,14 @@ export class ReplicateProvider extends OpenAIProvider {
     if (params.seed != null) input.seed = params.seed;
 
     log.debug("imageToVideo", { model: params.model.id });
-    const output = await this._runPrediction(params.model.id, input, 10 * 60 * 1000);
+    const output = await this._client.run(
+      params.model.id as `${string}/${string}`,
+      { input }
+    );
     return this._fetchOutputBytes(output);
   }
 
-  override async *textToSpeech(args: {
+  async *textToSpeech(args: {
     text: string;
     model: string;
     voice?: string;
@@ -356,10 +431,19 @@ export class ReplicateProvider extends OpenAIProvider {
     if (args.speed != null) input.speed = args.speed;
 
     log.debug("textToSpeech", { model: args.model });
-    const output = await this._runPrediction(args.model, input);
+    const output = await this._client.run(
+      args.model as `${string}/${string}`,
+      { input }
+    );
     const bytes = await this._fetchOutputBytes(output);
 
     // Convert to Int16Array (assume raw PCM or WAV)
-    yield { samples: new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2) };
+    yield {
+      samples: new Int16Array(
+        bytes.buffer,
+        bytes.byteOffset,
+        bytes.byteLength / 2
+      ),
+    };
   }
 }

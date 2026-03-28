@@ -60,7 +60,6 @@ import {
   isRefSet,
 } from "../../src/nodes/kie-base.js";
 
-const secrets = { _secrets: { KIE_API_KEY: "test-key" } };
 const fakeImage = { data: "abc123", uri: "" };
 const fakeImages = [fakeImage];
 
@@ -115,13 +114,9 @@ describe("Flux2ProTextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Flux2ProTextToImageNode as any)();
-    const result = await n.process({
-      prompt: "A beautiful sunset",
-      aspect_ratio: "16:9",
-      resolution: "2K",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "A beautiful sunset", aspect_ratio: "16:9", resolution: "2K" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "flux-2/pro-text-to-image",
@@ -134,7 +129,7 @@ describe("Flux2ProTextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Flux2ProTextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -157,12 +152,9 @@ describe("Flux2ProImageToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Flux2ProImageToImageNode as any)();
-    const result = await n.process({
-      prompt: "Transform this",
-      images: fakeImages,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Transform this", images: fakeImages });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -175,8 +167,9 @@ describe("Flux2ProImageToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Flux2ProImageToImageNode as any)();
+    n.assign({ images: fakeImages });
     await expect(
-      n.process({ prompt: "", images: fakeImages, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -199,11 +192,9 @@ describe("Flux2FlexTextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Flux2FlexTextToImageNode as any)();
-    const result = await n.process({
-      prompt: "A cat",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "A cat" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "flux-2/flex-text-to-image",
@@ -216,7 +207,7 @@ describe("Flux2FlexTextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Flux2FlexTextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -239,12 +230,9 @@ describe("Flux2FlexImageToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Flux2FlexImageToImageNode as any)();
-    const result = await n.process({
-      prompt: "Stylize",
-      images: fakeImages,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Stylize", images: fakeImages });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -257,8 +245,9 @@ describe("Flux2FlexImageToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Flux2FlexImageToImageNode as any)();
+    n.assign({ images: fakeImages });
     await expect(
-      n.process({ prompt: "", images: fakeImages, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -281,8 +270,9 @@ describe("Seedream45TextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Seedream45TextToImageNode as any)();
-    const result = await n.process({ prompt: "Landscape", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Landscape" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "seedream/4-5-text-to-image",
@@ -295,7 +285,7 @@ describe("Seedream45TextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Seedream45TextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -316,12 +306,9 @@ describe("Seedream45EditNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Seedream45EditNode as any)();
-    const result = await n.process({
-      prompt: "Make brighter",
-      image: fakeImage,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Make brighter", image: fakeImage });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -334,8 +321,9 @@ describe("Seedream45EditNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Seedream45EditNode as any)();
+    n.assign({ image: fakeImage });
     await expect(
-      n.process({ prompt: "", image: fakeImage, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -356,8 +344,9 @@ describe("ZImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (ZImageNode as any)();
-    const result = await n.process({ prompt: "Robot", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Robot" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "z-image/turbo",
@@ -369,7 +358,9 @@ describe("ZImageNode", () => {
 
   it("passes seed when >= 0", async () => {
     const n = new (ZImageNode as any)();
-    await n.process({ prompt: "Robot", seed: 42, ...secrets });
+    n.assign({ prompt: "Robot" });
+    (n as any).seed = 42;
+    await n.process();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "z-image/turbo",
@@ -382,7 +373,7 @@ describe("ZImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (ZImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -403,8 +394,9 @@ describe("NanoBananaNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (NanoBananaNode as any)();
-    const result = await n.process({ prompt: "Banana", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Banana" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "nano-banana/text-to-image",
@@ -417,7 +409,7 @@ describe("NanoBananaNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (NanoBananaNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -438,8 +430,9 @@ describe("NanoBananaProNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (NanoBananaProNode as any)();
-    const result = await n.process({ prompt: "Pro banana", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Pro banana" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "nano-banana-pro/text-to-image",
@@ -452,7 +445,7 @@ describe("NanoBananaProNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (NanoBananaProNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -473,8 +466,9 @@ describe("FluxKontextNode", () => {
 
   it("process text-only (no images)", async () => {
     const n = new (FluxKontextNode as any)();
-    const result = await n.process({ prompt: "Context gen", images: [], ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Context gen", images: [] });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "flux-kontext/text-to-image",
@@ -486,14 +480,16 @@ describe("FluxKontextNode", () => {
 
   it("process with images uploads them", async () => {
     const n = new (FluxKontextNode as any)();
-    await n.process({ prompt: "Context gen", images: fakeImages, ...secrets });
+    n.assign({ prompt: "Context gen" });
+    (n as any).images = fakeImages;
+    await n.process();
     expect(uploadImageInput).toHaveBeenCalled();
   });
 
   it("throws on empty prompt", async () => {
     const n = new (FluxKontextNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -516,8 +512,10 @@ describe("GrokImagineTextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (GrokImagineTextToImageNode as any)();
-    const result = await n.process({ prompt: "Grok it", n: 2, ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Grok it" });
+    (n as any).n = 2;
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "grok-imagine/text-to-image",
@@ -530,7 +528,7 @@ describe("GrokImagineTextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (GrokImagineTextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -553,12 +551,10 @@ describe("GrokImagineUpscaleNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (GrokImagineUpscaleNode as any)();
-    const result = await n.process({
-      image: fakeImage,
-      scale_factor: 4,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ image: fakeImage });
+    (n as any).scale_factor = 4;
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -586,8 +582,9 @@ describe("QwenTextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (QwenTextToImageNode as any)();
-    const result = await n.process({ prompt: "Qwen art", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Qwen art" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "qwen/text-to-image",
@@ -600,7 +597,7 @@ describe("QwenTextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (QwenTextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -621,12 +618,9 @@ describe("QwenImageToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (QwenImageToImageNode as any)();
-    const result = await n.process({
-      prompt: "Qwen transform",
-      image: fakeImage,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Qwen transform", image: fakeImage });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -639,8 +633,9 @@ describe("QwenImageToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (QwenImageToImageNode as any)();
+    n.assign({ image: fakeImage });
     await expect(
-      n.process({ prompt: "", image: fakeImage, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -661,13 +656,9 @@ describe("TopazImageUpscaleNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (TopazImageUpscaleNode as any)();
-    const result = await n.process({
-      image: fakeImage,
-      scale_factor: 4,
-      model_name: "Standard V2",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ image: fakeImage, upscale_factor: "4" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -697,8 +688,9 @@ describe("RecraftRemoveBackgroundNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (RecraftRemoveBackgroundNode as any)();
-    const result = await n.process({ image: fakeImage, ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ image: fakeImage });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -726,13 +718,11 @@ describe("IdeogramCharacterNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (IdeogramCharacterNode as any)();
-    const result = await n.process({
-      prompt: "A warrior",
-      character_description: "Tall elf",
-      images: fakeImages,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "A warrior" });
+    (n as any).character_description = "Tall elf";
+    (n as any).images = fakeImages;
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -746,7 +736,7 @@ describe("IdeogramCharacterNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (IdeogramCharacterNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -769,13 +759,9 @@ describe("IdeogramCharacterEditNode", () => {
 
   it("process with valid inputs (no mask)", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
-    const result = await n.process({
-      prompt: "Edit character",
-      image: fakeImage,
-      mask: null,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Edit character", image: fakeImage, mask: null });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "ideogram/v3-character-edit",
@@ -787,46 +773,35 @@ describe("IdeogramCharacterEditNode", () => {
 
   it("process with mask uploads mask", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
-    await n.process({
-      prompt: "Edit character",
-      image: fakeImage,
-      mask: fakeImage,
-      ...secrets,
-    });
+    n.assign({ prompt: "Edit character", image: fakeImage, mask: fakeImage });
+    await n.process();
     // uploadImageInput called for image + mask = at least 2 times
     expect(uploadImageInput).toHaveBeenCalledTimes(2);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
+    n.assign({ image: fakeImage });
     await expect(
-      n.process({ prompt: "", image: fakeImage, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("process with reference images uploads them", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
-    const result = await n.process({
-      prompt: "Edit character",
-      image: fakeImage,
-      images: [fakeImage, fakeImage],
-      character_description: "A warrior",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Edit character", image: fakeImage, reference_images: [fakeImage, fakeImage] });
+    (n as any).character_description = "A warrior";
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     // image + 2 ref images = 3 uploadImageInput calls
     expect(uploadImageInput).toHaveBeenCalledTimes(3);
   });
 
   it("process skips null/invalid reference images", async () => {
     const n = new (IdeogramCharacterEditNode as any)();
-    const result = await n.process({
-      prompt: "Edit character",
-      image: fakeImage,
-      images: [null, {}, "not-an-object", fakeImage],
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Edit character", image: fakeImage, images: [null, {}, "not-an-object", fakeImage] });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
   });
 });
 
@@ -848,12 +823,9 @@ describe("IdeogramCharacterRemixNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (IdeogramCharacterRemixNode as any)();
-    const result = await n.process({
-      prompt: "Remix character",
-      image: fakeImage,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Remix character", image: fakeImage });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -866,34 +838,27 @@ describe("IdeogramCharacterRemixNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (IdeogramCharacterRemixNode as any)();
+    n.assign({ image: fakeImage });
     await expect(
-      n.process({ prompt: "", image: fakeImage, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("process with reference images uploads them", async () => {
     const n = new (IdeogramCharacterRemixNode as any)();
-    const result = await n.process({
-      prompt: "Remix character",
-      image: fakeImage,
-      images: [fakeImage, fakeImage],
-      character_description: "A wizard",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Remix character", image: fakeImage, reference_images: [fakeImage, fakeImage] });
+    (n as any).character_description = "A wizard";
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     // image + 2 ref images = 3 uploadImageInput calls
     expect(uploadImageInput).toHaveBeenCalledTimes(3);
   });
 
   it("process skips null/invalid reference images in remix", async () => {
     const n = new (IdeogramCharacterRemixNode as any)();
-    const result = await n.process({
-      prompt: "Remix",
-      image: fakeImage,
-      images: [null, {}, fakeImage],
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Remix", image: fakeImage, images: [null, {}, fakeImage] });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
   });
 });
 
@@ -913,12 +878,9 @@ describe("IdeogramV3ReframeNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (IdeogramV3ReframeNode as any)();
-    const result = await n.process({
-      image: fakeImage,
-      resolution: "1024x1024",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ image: fakeImage, resolution: "1024x1024" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -950,8 +912,9 @@ describe("RecraftCrispUpscaleNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (RecraftCrispUpscaleNode as any)();
-    const result = await n.process({ image: fakeImage, ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ image: fakeImage });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -981,8 +944,9 @@ describe("Imagen4FastNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Imagen4FastNode as any)();
-    const result = await n.process({ prompt: "Fast image", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Fast image" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "imagen-4/fast",
@@ -995,7 +959,7 @@ describe("Imagen4FastNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Imagen4FastNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1016,8 +980,9 @@ describe("Imagen4UltraNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Imagen4UltraNode as any)();
-    const result = await n.process({ prompt: "Ultra image", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Ultra image" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "imagen-4/ultra",
@@ -1030,7 +995,7 @@ describe("Imagen4UltraNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Imagen4UltraNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1051,8 +1016,9 @@ describe("Imagen4Node", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Imagen4Node as any)();
-    const result = await n.process({ prompt: "Standard image", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Standard image" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "imagen-4/standard",
@@ -1065,7 +1031,7 @@ describe("Imagen4Node", () => {
   it("throws on empty prompt", async () => {
     const n = new (Imagen4Node as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1086,13 +1052,11 @@ describe("NanoBananaEditNode", () => {
 
   it("process with valid inputs (no mask)", async () => {
     const n = new (NanoBananaEditNode as any)();
-    const result = await n.process({
-      prompt: "Edit banana",
-      image: fakeImage,
-      mask: null,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Edit banana" });
+    (n as any).image = fakeImage;
+    (n as any).mask = null;
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "nano-banana/edit",
@@ -1104,20 +1068,19 @@ describe("NanoBananaEditNode", () => {
 
   it("process with mask uploads mask", async () => {
     const n = new (NanoBananaEditNode as any)();
-    await n.process({
-      prompt: "Edit banana",
-      image: fakeImage,
-      mask: fakeImage,
-      ...secrets,
-    });
+    n.assign({ prompt: "Edit banana" });
+    (n as any).image = fakeImage;
+    (n as any).mask = fakeImage;
+    await n.process();
     // image + mask = 2 uploads
     expect(uploadImageInput).toHaveBeenCalledTimes(2);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (NanoBananaEditNode as any)();
+    (n as any).image = fakeImage;
     await expect(
-      n.process({ prompt: "", image: fakeImage, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1140,12 +1103,10 @@ describe("GPTImage4oTextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (GPTImage4oTextToImageNode as any)();
-    const result = await n.process({
-      prompt: "GPT image",
-      quality: "hd",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "GPT image" });
+    (n as any).quality = "hd";
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "gpt-image-4o/text-to-image",
@@ -1158,7 +1119,7 @@ describe("GPTImage4oTextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (GPTImage4oTextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1181,12 +1142,9 @@ describe("GPTImage4oImageToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (GPTImage4oImageToImageNode as any)();
-    const result = await n.process({
-      prompt: "Transform GPT",
-      images: fakeImages,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Transform GPT", images: fakeImages });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -1199,8 +1157,9 @@ describe("GPTImage4oImageToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (GPTImage4oImageToImageNode as any)();
+    n.assign({ images: fakeImages });
     await expect(
-      n.process({ prompt: "", images: fakeImages, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1223,11 +1182,9 @@ describe("GPTImage15TextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (GPTImage15TextToImageNode as any)();
-    const result = await n.process({
-      prompt: "GPT 1.5 image",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "GPT 1.5 image" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "gpt-image-1-5/text-to-image",
@@ -1240,7 +1197,7 @@ describe("GPTImage15TextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (GPTImage15TextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1263,12 +1220,9 @@ describe("GPTImage15ImageToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (GPTImage15ImageToImageNode as any)();
-    const result = await n.process({
-      prompt: "GPT 1.5 transform",
-      images: fakeImages,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "GPT 1.5 transform", images: fakeImages });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -1281,8 +1235,9 @@ describe("GPTImage15ImageToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (GPTImage15ImageToImageNode as any)();
+    n.assign({ images: fakeImages });
     await expect(
-      n.process({ prompt: "", images: fakeImages, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1305,12 +1260,9 @@ describe("IdeogramV3TextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (IdeogramV3TextToImageNode as any)();
-    const result = await n.process({
-      prompt: "Ideogram art",
-      negative_prompt: "ugly",
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Ideogram art", negative_prompt: "ugly" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "ideogram/v3-text-to-image",
@@ -1325,7 +1277,8 @@ describe("IdeogramV3TextToImageNode", () => {
 
   it("process without negative_prompt omits it", async () => {
     const n = new (IdeogramV3TextToImageNode as any)();
-    await n.process({ prompt: "Ideogram art", negative_prompt: "", ...secrets });
+    n.assign({ prompt: "Ideogram art", negative_prompt: "" });
+    await n.process();
     const call = (kieExecuteTask as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(call[2]).not.toHaveProperty("negative_prompt");
   });
@@ -1333,7 +1286,7 @@ describe("IdeogramV3TextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (IdeogramV3TextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1356,13 +1309,10 @@ describe("IdeogramV3ImageToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (IdeogramV3ImageToImageNode as any)();
-    const result = await n.process({
-      prompt: "Ideogram transform",
-      image: fakeImage,
-      image_weight: 75,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Ideogram transform", image: fakeImage });
+    (n as any).image_weight = 75;
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -1378,8 +1328,9 @@ describe("IdeogramV3ImageToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (IdeogramV3ImageToImageNode as any)();
+    n.assign({ image: fakeImage });
     await expect(
-      n.process({ prompt: "", image: fakeImage, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1402,8 +1353,9 @@ describe("Seedream40TextToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Seedream40TextToImageNode as any)();
-    const result = await n.process({ prompt: "Seedream 4.0", ...secrets });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Seedream 4.0" });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
       "seedream/4-0-text-to-image",
@@ -1416,7 +1368,7 @@ describe("Seedream40TextToImageNode", () => {
   it("throws on empty prompt", async () => {
     const n = new (Seedream40TextToImageNode as any)();
     await expect(
-      n.process({ prompt: "", ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });
@@ -1439,12 +1391,9 @@ describe("Seedream40ImageToImageNode", () => {
 
   it("process with valid inputs", async () => {
     const n = new (Seedream40ImageToImageNode as any)();
-    const result = await n.process({
-      prompt: "Seedream 4.0 transform",
-      image: fakeImage,
-      ...secrets,
-    });
-    expect(result.output).toEqual({ data: "base64data" });
+    n.assign({ prompt: "Seedream 4.0 transform", image: fakeImage });
+    const result = await n.process();
+    expect(result.output).toEqual({ type: "image", data: "base64data" });
     expect(uploadImageInput).toHaveBeenCalled();
     expect(kieExecuteTask).toHaveBeenCalledWith(
       "test-api-key",
@@ -1457,8 +1406,9 @@ describe("Seedream40ImageToImageNode", () => {
 
   it("throws on empty prompt", async () => {
     const n = new (Seedream40ImageToImageNode as any)();
+    n.assign({ image: fakeImage });
     await expect(
-      n.process({ prompt: "", image: fakeImage, ...secrets })
+      n.process()
     ).rejects.toThrow("Prompt cannot be empty");
   });
 });

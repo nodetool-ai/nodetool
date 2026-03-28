@@ -6,6 +6,7 @@ import React, { useState, useCallback, useRef, useMemo } from "react";
 import { IconButton, Tooltip } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export interface ImageMetadata {
   width?: number;
@@ -34,7 +35,7 @@ const styles = (theme: Theme) =>
       minHeight: "200px",
       overflow: "hidden",
       userSelect: "none",
-      backgroundColor: theme.vars.palette.background.default
+      ...alphaSurfaceBg
     },
     ".comparer-container": {
       position: "relative",

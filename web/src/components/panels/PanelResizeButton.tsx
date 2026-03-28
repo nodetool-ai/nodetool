@@ -92,4 +92,6 @@ const PanelResizeButton = memo(function PanelResizeButton({
   );
 });
 
-export default memo(PanelResizeButton);
+PanelResizeButton.displayName = "PanelResizeButton";
+
+export default PanelResizeButton;

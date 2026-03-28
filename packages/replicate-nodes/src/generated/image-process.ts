@@ -27,12 +27,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -57,12 +57,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -90,15 +90,15 @@ replicate, ai`;
   @prop({ type: "enum", default: "large", values: ["large", "tiny"], description: "Choose the model size." })
   declare model_size: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const modelSize = String(inputs.model_size ?? this.model_size ?? "large");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const modelSize = String(this.model_size ?? "large");
 
     const args: Record<string, unknown> = {
       "model_size": modelSize,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -174,24 +174,24 @@ replicate, ai`;
   @prop({ type: "float", default: 0.9, description: "When img2img is active, the denoising strength. 1 means total destruction of the input image." })
   declare strength: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const applyWatermark = Boolean(inputs.apply_watermark ?? this.apply_watermark ?? true);
-    const backgroundColor = String(inputs.background_color ?? this.background_color ?? "#A2A2A2");
-    const conditionCannyScale = Number(inputs.condition_canny_scale ?? this.condition_canny_scale ?? 0.15);
-    const conditionDepthScale = Number(inputs.condition_depth_scale ?? this.condition_depth_scale ?? 0.35);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 4);
-    const ipScale = Number(inputs.ip_scale ?? this.ip_scale ?? 0.3);
-    const loraScale = Number(inputs.lora_scale ?? this.lora_scale ?? 0.9);
-    const loraWeights = String(inputs.lora_weights ?? this.lora_weights ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "An astronaut riding a rainbow unicorn");
-    const resizingScale = Number(inputs.resizing_scale ?? this.resizing_scale ?? 1);
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "K_EULER");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.9);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const applyWatermark = Boolean(this.apply_watermark ?? true);
+    const backgroundColor = String(this.background_color ?? "#A2A2A2");
+    const conditionCannyScale = Number(this.condition_canny_scale ?? 0.15);
+    const conditionDepthScale = Number(this.condition_depth_scale ?? 0.35);
+    const guidanceScale = Number(this.guidance_scale ?? 4);
+    const ipScale = Number(this.ip_scale ?? 0.3);
+    const loraScale = Number(this.lora_scale ?? 0.9);
+    const loraWeights = String(this.lora_weights ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const numOutputs = Number(this.num_outputs ?? 1);
+    const prompt = String(this.prompt ?? "An astronaut riding a rainbow unicorn");
+    const resizingScale = Number(this.resizing_scale ?? 1);
+    const scheduler = String(this.scheduler ?? "K_EULER");
+    const seed = Number(this.seed ?? -1);
+    const strength = Number(this.strength ?? 0.9);
 
     const args: Record<string, unknown> = {
       "apply_watermark": applyWatermark,
@@ -212,13 +212,13 @@ replicate, ai`;
       "strength": strength,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const ipImageRef = (inputs.ip_image ?? this.ip_image) as Record<string, unknown> | undefined;
+    const ipImageRef = this.ip_image as Record<string, unknown> | undefined;
     if (isRefSet(ipImageRef)) {
       const ipImageUrl = await assetToUrl(ipImageRef!, apiKey);
       if (ipImageUrl) args["ip_image"] = ipImageUrl;
@@ -246,18 +246,18 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Original input image" })
   declare org_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const maskImageRef = (inputs.mask_image ?? this.mask_image) as Record<string, unknown> | undefined;
+    const maskImageRef = this.mask_image as Record<string, unknown> | undefined;
     if (isRefSet(maskImageRef)) {
       const maskImageUrl = await assetToUrl(maskImageRef!, apiKey);
       if (maskImageUrl) args["mask_image"] = maskImageUrl;
     }
 
-    const orgImageRef = (inputs.org_image ?? this.org_image) as Record<string, unknown> | undefined;
+    const orgImageRef = this.org_image as Record<string, unknown> | undefined;
     if (isRefSet(orgImageRef)) {
       const orgImageUrl = await assetToUrl(orgImageRef!, apiKey);
       if (orgImageUrl) args["org_image"] = orgImageUrl;
@@ -291,11 +291,11 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "A text description of the image you want to generate" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "match_input_image");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "jpg");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "match_input_image");
+    const outputFormat = String(this.output_format ?? "jpg");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
@@ -303,7 +303,7 @@ replicate, ai`;
       "prompt": prompt,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -361,19 +361,19 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Synchronous response mode" })
   declare sync: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "1:1");
-    const canvasSize = String(inputs.canvas_size ?? this.canvas_size ?? []);
-    const contentModeration = Boolean(inputs.content_moderation ?? this.content_moderation ?? false);
-    const imageUrl = String(inputs.image_url ?? this.image_url ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const originalImageLocation = String(inputs.original_image_location ?? this.original_image_location ?? []);
-    const originalImageSize = String(inputs.original_image_size ?? this.original_image_size ?? []);
-    const preserveAlpha = Boolean(inputs.preserve_alpha ?? this.preserve_alpha ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const sync = Boolean(inputs.sync ?? this.sync ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "1:1");
+    const canvasSize = String(this.canvas_size ?? []);
+    const contentModeration = Boolean(this.content_moderation ?? false);
+    const imageUrl = String(this.image_url ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const originalImageLocation = String(this.original_image_location ?? []);
+    const originalImageSize = String(this.original_image_size ?? []);
+    const preserveAlpha = Boolean(this.preserve_alpha ?? true);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const sync = Boolean(this.sync ?? true);
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
@@ -389,7 +389,7 @@ replicate, ai`;
       "sync": sync,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;

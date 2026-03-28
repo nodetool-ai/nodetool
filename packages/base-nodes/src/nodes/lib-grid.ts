@@ -66,8 +66,8 @@ export class SliceImageGridLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const imageInput = inputs.image ?? this.image;
+  async process(): Promise<Record<string, unknown>> {
+    const imageInput = this.image;
     const src = await loadImageBuffer(imageInput);
     const srcSharp = sharp(src, { failOn: "none" });
     const meta = await srcSharp.metadata();
@@ -78,8 +78,8 @@ export class SliceImageGridLibNode extends BaseNode {
       throw new Error("Input image has invalid dimensions.");
     }
 
-    let columns = Number(inputs.columns ?? this.columns ?? 0);
-    let rows = Number(inputs.rows ?? this.rows ?? 0);
+    let columns = Number(this.columns ?? 0);
+    let rows = Number(this.rows ?? 0);
 
     if (columns <= 0 && rows <= 0) {
       columns = 3;
@@ -135,8 +135,8 @@ export class CombineImageGridLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const tileInputs = (inputs.tiles ?? this.tiles ?? []) as unknown[];
+  async process(): Promise<Record<string, unknown>> {
+    const tileInputs = (this.tiles ?? []) as unknown[];
     if (!Array.isArray(tileInputs) || tileInputs.length === 0) {
       throw new Error("No tiles provided for combining.");
     }
@@ -144,7 +144,7 @@ export class CombineImageGridLibNode extends BaseNode {
     const tiles = await Promise.all(tileInputs.map((tile) => loadImageBuffer(tile)));
     const metas = await Promise.all(tiles.map((tile) => sharp(tile, { failOn: "none" }).metadata()));
 
-    let columns = Number(inputs.columns ?? this.columns ?? 0);
+    let columns = Number(this.columns ?? 0);
     if (columns <= 0) {
       columns = Math.floor(Math.sqrt(tiles.length));
     }

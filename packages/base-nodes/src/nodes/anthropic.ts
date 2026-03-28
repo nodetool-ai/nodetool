@@ -56,24 +56,22 @@ export class ClaudeAgentNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const prompt = String(inputs.prompt ?? this.prompt ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const prompt = String(this.prompt ?? "").trim();
     if (!prompt) throw new Error("Prompt is required");
 
     const apiKey =
-      (inputs._secrets as Record<string, string>)?.ANTHROPIC_API_KEY ||
+      this._secrets.ANTHROPIC_API_KEY ||
       process.env.ANTHROPIC_API_KEY ||
       "";
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
-    const model = (inputs.model ?? this.model ?? {}) as Record<string, unknown>;
+    const model = (this.model ?? {}) as Record<string, unknown>;
     const modelId = String(model.id || "claude-sonnet-4-20250514");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const maxTurns = Number(inputs.max_turns ?? this.max_turns ?? 20);
-    const permissionMode = String(inputs.permission_mode ?? this.permission_mode ?? "acceptEdits");
-    const allowedTools = (inputs.allowed_tools ?? this.allowed_tools ?? ["Read", "Write", "Bash"]) as string[];
+    const systemPrompt = String(this.system_prompt ?? "");
+    const maxTurns = Number(this.max_turns ?? 20);
+    const permissionMode = String(this.permission_mode ?? "acceptEdits");
+    const allowedTools = (this.allowed_tools ?? ["Read", "Write", "Bash"]) as string[];
 
     // Use Claude Agent SDK via dynamic import
     // The SDK provides query() async iterator for streaming agent responses

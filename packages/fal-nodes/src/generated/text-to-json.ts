@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -34,11 +35,11 @@ text, analysis, json, extraction`;
   @prop({ type: "image", default: "", description: "Reference image (file or URL)." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const seed = Number(inputs.seed ?? this.seed ?? 5555);
-    const instruction = String(inputs.instruction ?? this.instruction ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const seed = Number(this.seed ?? 5555);
+    const instruction = String(this.instruction ?? "");
 
     const args: Record<string, unknown> = {
       "sync_mode": syncMode,
@@ -46,15 +47,15 @@ text, analysis, json, extraction`;
       "instruction": instruction,
     };
 
-    const maskUrlRef = inputs.mask_url as Record<string, unknown> | undefined;
+    const maskUrlRef = this.mask_url as Record<string, unknown> | undefined;
     if (isRefSet(maskUrlRef)) {
-      const maskUrlUrl = await assetToFalUrl(apiKey, maskUrlRef!);
+      const maskUrlUrl = await imageToDataUrl(maskUrlRef!) ?? await assetToFalUrl(apiKey, maskUrlRef!);
       if (maskUrlUrl) args["mask_url"] = maskUrlUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -84,11 +85,11 @@ text, analysis, json, extraction`;
   @prop({ type: "image", default: "", description: "Input image URL" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? 7);
-    const structuredPrompt = String(inputs.structured_prompt ?? this.structured_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? 7);
+    const structuredPrompt = String(this.structured_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -96,9 +97,9 @@ text, analysis, json, extraction`;
       "structured_prompt": structuredPrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -128,11 +129,11 @@ text, analysis, json, extraction`;
   @prop({ type: "image", default: "", description: "Reference image (file or URL)." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? 5555);
-    const structuredPrompt = String(inputs.structured_prompt ?? this.structured_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? 5555);
+    const structuredPrompt = String(this.structured_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -140,9 +141,9 @@ text, analysis, json, extraction`;
       "structured_prompt": structuredPrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -172,11 +173,11 @@ text, analysis, json, extraction`;
   @prop({ type: "image", default: "", description: "Reference image (file or URL)." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? 5555);
-    const structuredPrompt = String(inputs.structured_prompt ?? this.structured_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? 5555);
+    const structuredPrompt = String(this.structured_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -184,9 +185,9 @@ text, analysis, json, extraction`;
       "structured_prompt": structuredPrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);

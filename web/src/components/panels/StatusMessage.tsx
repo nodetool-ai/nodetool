@@ -5,9 +5,14 @@ import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 const StatusMessage = memo(function StatusMessage() {
   const statusMessage = useWebsocketRunner((state) => state.statusMessage);
   const runnerState = useWebsocketRunner((state) => state.state);
-  const isWorkflowRunning = runnerState === "running";
+  const isActive =
+    runnerState === "running" ||
+    runnerState === "connecting" ||
+    runnerState === "connected" ||
+    runnerState === "paused" ||
+    runnerState === "suspended";
 
-  if (!isWorkflowRunning) {return null;}
+  if (!isActive) {return null;}
 
   return (
     <Typography
@@ -20,4 +25,6 @@ const StatusMessage = memo(function StatusMessage() {
   );
 });
 
-export default memo(StatusMessage);
+StatusMessage.displayName = "StatusMessage";
+
+export default StatusMessage;

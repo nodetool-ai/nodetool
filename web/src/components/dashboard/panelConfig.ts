@@ -2,6 +2,7 @@ export const PANEL_CONFIG = {
   "getting-started": { title: "Getting Started" },
   templates: { title: "Templates" },
   activity: { title: "Activity" },
+  runtimes: { title: "Runtimes" },
   workflows: { title: "Recent Workflows" },
   "recent-chats": { title: "Recent Chats" },
   chat: { title: "Chat" },

@@ -280,6 +280,23 @@ export class NodeGenerator {
       `  static readonly description = \`${description.replace(/`/g, "'")}\`;`,
     );
     lines.push(`  static readonly requiredSettings = ["FAL_API_KEY"];`);
+
+    // Output type declaration
+    if (spec.outputType === "model_3d") {
+      lines.push(`  static readonly outputTypes = { output: "model_3d" };`);
+    } else if (spec.outputType === "str") {
+      lines.push(`  static readonly outputTypes = { output: "str" };`);
+    } else if (spec.outputFields.length > 0) {
+      // Emit outputTypes for all nodes that have known output fields (dict, any with fields)
+      const entries = spec.outputFields
+        .map((f) => `${JSON.stringify(f.name)}: ${JSON.stringify(f.propType)}`)
+        .join(", ");
+      lines.push(`  static readonly outputTypes = { ${entries} };`);
+    } else {
+      // No known output fields (empty schema or unresolved refs) - emit a generic dict output
+      lines.push(`  static readonly outputTypes = { output: "dict" };`);
+    }
+
     lines.push(``);
 
     // Field declarations
@@ -301,9 +318,9 @@ export class NodeGenerator {
   private _renderProcessMethod(spec: NodeSpec): string[] {
     const lines: string[] = [];
     lines.push(
-      `  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {`,
+      `  async process(): Promise<Record<string, unknown>> {`,
     );
-    lines.push(`    const apiKey = getFalApiKey(inputs);`);
+    lines.push(`    const apiKey = getFalApiKey(this._secrets);`);
 
     // Separate fields by kind
     const assetFields = spec.inputFields.filter(
@@ -319,7 +336,7 @@ export class NodeGenerator {
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
       lines.push(
-        `    const ${varName} = ${cast}(inputs.${field.name} ?? this.${field.name} ?? ${defLit});`,
+        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`,
       );
     }
 
@@ -346,7 +363,7 @@ export class NodeGenerator {
         // List of assets
         lines.push(``);
         lines.push(
-          `    const ${varName}List = inputs.${field.name} as Record<string, unknown>[] | undefined;`,
+          `    const ${varName}List = this.${field.name} as Record<string, unknown>[] | undefined;`,
         );
         lines.push(`    if (${varName}List?.length) {`);
         lines.push(
@@ -368,7 +385,7 @@ export class NodeGenerator {
         );
         lines.push(``);
         lines.push(
-          `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
+          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
         lines.push(
@@ -382,7 +399,7 @@ export class NodeGenerator {
           const subVar = fieldToVarName(sub.name);
           const subDefLit = defaultLiteral(sub.default, sub.propType);
           nestedObj.push(
-            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}(inputs.${sub.name} ?? this.${sub.name} ?? ${subDefLit}),`,
+            `          ${JSON.stringify(sub.name)}: ${castFn(sub.propType)}((this as any).${sub.name} ?? ${subDefLit}),`,
           );
         }
         lines.push(`        args[${JSON.stringify(apiName)}] = {`);
@@ -394,7 +411,7 @@ export class NodeGenerator {
         // Plain asset
         lines.push(``);
         lines.push(
-          `    const ${varName}Ref = inputs.${field.name} as Record<string, unknown> | undefined;`,
+          `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
         if (kind === "image") {
@@ -436,6 +453,35 @@ export class NodeGenerator {
         lines.push(
           `    return { output: { type: "audio", uri: (res.audio as any).url } };`,
         );
+        break;
+      case "model_3d": {
+        // model_glb takes priority over model_mesh; extract the URL from the File ref
+        lines.push(
+          `    const model3dRef = (res as any).model_glb ?? (res as any).model_mesh;`,
+          `    return { output: { type: "model_3d", uri: model3dRef?.url ?? "" } };`,
+        );
+        break;
+      }
+      case "str":
+        lines.push(`    return { output: (res as any).output ?? "" };`);
+        break;
+      case "dict":
+        if (spec.outputFields.length > 0) {
+          // Known output fields - pass response through so keys match declared outputTypes
+          lines.push(`    return res as Record<string, unknown>;`);
+        } else {
+          // No known fields - wrap entire response as "output" dict
+          lines.push(`    return { output: res };`);
+        }
+        break;
+      case "any":
+        if (spec.outputFields.length > 0) {
+          // Known output fields - pass response through directly
+          lines.push(`    return res as Record<string, unknown>;`);
+        } else {
+          // Unknown output schema - wrap as dict
+          lines.push(`    return { output: res };`);
+        }
         break;
       default:
         lines.push(`    return { output: res };`);

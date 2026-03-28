@@ -211,7 +211,14 @@ export class WebSocketChatClient {
       }
       const type = event.type as string;
       if (type === "chunk") {
-        yield { type: "chunk", content: typeof event.content === "string" ? event.content : "" };
+        const chunkContent = typeof event.content === "string" ? event.content : "";
+        if (chunkContent) {
+          yield { type: "chunk", content: chunkContent };
+        }
+        if (event.done === true) {
+          yield { type: "done" };
+          return;
+        }
       } else if (type === "tool_call") {
         yield {
           type: "tool_call",

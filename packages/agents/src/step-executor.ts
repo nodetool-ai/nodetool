@@ -252,6 +252,7 @@ export interface StepExecutorOptions {
   maxTokenLimit?: number;
   maxIterations?: number;
   useFinishTask?: boolean;
+  threadId?: string;
 }
 
 export class StepExecutor {
@@ -278,6 +279,7 @@ export class StepExecutor {
   private inputTokensTotal = 0;
   private outputTokensTotal = 0;
   private _controlEvents: Array<{ targetNodeId: string; event: import("@nodetool/protocol").ControlEvent }> = [];
+  private threadId?: string;
 
   constructor(opts: StepExecutorOptions) {
     this.task = opts.task;
@@ -289,6 +291,7 @@ export class StepExecutor {
     this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.useFinishTask = opts.useFinishTask ?? false;
+    this.threadId = opts.threadId;
 
     // Load and sanitize the output schema
     this.resultSchema = this.loadResultSchema();
@@ -341,6 +344,7 @@ export class StepExecutor {
 
       if (this.useFinishTask) {
         basePrompt = customPrompt ?? DEFAULT_FINISH_TASK_SYSTEM_PROMPT;
+        templateContext["step_content"] = this.step.instructions;
       } else {
         basePrompt = customPrompt ?? DEFAULT_EXECUTION_SYSTEM_PROMPT;
         templateContext["step_content"] = this.step.instructions;
@@ -726,6 +730,203 @@ export class StepExecutor {
   }
 
   /**
+   * Check if the provider supports native agentic tool execution (onToolCall).
+   * When true, the provider handles the tool-calling loop internally (e.g. Claude
+   * Agent SDK with MCP), so StepExecutor delegates the entire step to a single
+   * provider call rather than running its own multi-iteration loop.
+   */
+  private providerSupportsOnToolCall(): boolean {
+    // ClaudeAgentProvider advertises MCP support. Detect by provider id.
+    return (this.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+  }
+
+  /**
+   * Execute the step using a provider with native agentic tool execution.
+   * A single provider call handles the full tool loop: action tools → finish_step.
+   * Falls back to a second call with a nudge if finish_step wasn't called.
+   */
+  private async *executeWithAgenticProvider(): AsyncGenerator<ProcessingMessage> {
+    const allTools = this.getCurrentTools();
+    const providerTools = allTools.map((t) => t.toProviderTool());
+
+    // State captured by the onToolCall callback
+    let finishStepResult: unknown = undefined;
+    let finishStepCalled = false;
+
+    const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+      const tool = this.tools.find((t) => t.name === name);
+      if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
+
+      if (tool instanceof ControlNodeTool) {
+        const event = tool.createControlEvent(args);
+        this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
+        const msg = tool.userMessage(args);
+        return typeof msg === "string" ? msg : JSON.stringify(msg);
+      }
+
+      if (name === "finish_step" || name === "finish_task") {
+        finishStepCalled = true;
+        finishStepResult = args?.["result"] ?? args;
+        return JSON.stringify({ status: "completed" });
+      }
+
+      try {
+        const result = await tool.process(this.context, args);
+        this.trackToolSideEffects(name, result);
+        return typeof result === "string" ? result : JSON.stringify(result ?? null);
+      } catch (e) {
+        return JSON.stringify({ error: String(e) });
+      }
+    };
+
+    // Single provider call — the SDK's agentic loop handles tool calls internally
+    yield {
+      type: "log_update",
+      node_id: this.step.id,
+      node_name: `Step: ${this.step.id}`,
+      content: "Executing step...",
+      severity: "info",
+    } satisfies LogUpdate;
+
+    this.inputTokensTotal += this.estimateTokens();
+
+    let content = "";
+    const toolCalls: ToolCall[] = [];
+
+    const stream = this.provider.generateMessagesTraced({
+      messages: [...this.history],
+      model: this.model,
+      tools: providerTools.length > 0 ? providerTools : undefined,
+      threadId: this.threadId,
+      onToolCall,
+    });
+
+    for await (const item of stream) {
+      if (isChunk(item)) {
+        content += item.content ?? "";
+        yield {
+          type: "chunk",
+          node_id: this.step.id,
+          content: item.content,
+          done: false,
+        } satisfies Chunk;
+      }
+      if (isToolCall(item)) {
+        toolCalls.push(item);
+        yield {
+          type: "tool_call_update",
+          node_id: this.step.id,
+          name: item.name,
+          args: item.args,
+          message: this.generateToolCallMessage(item),
+        } satisfies ToolCallUpdate;
+      }
+    }
+
+    content = removeThinkTags(content);
+    this.outputTokensTotal += Math.ceil((content.length + JSON.stringify(toolCalls).length) / 4);
+
+    // Check if finish_step was called within the agentic loop
+    if (finishStepCalled && finishStepResult !== undefined && finishStepResult !== null) {
+      const [isValid, errorDetail, normalizedResult] = this.validateResultPayload(finishStepResult);
+      if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+        await this.storeCompletionResult(normalizedResult);
+        return;
+      }
+      log.warn("finish_step result validation failed", { stepId: this.step.id, error: errorDetail });
+    }
+
+    // For unstructured steps (no schema), accept text content
+    if (this.resultSchema === null && content) {
+      await this.storeCompletionResult(content);
+      return;
+    }
+
+    // Try JSON extraction from text
+    if (content) {
+      const message: Message = { role: "assistant", content };
+      const [completed, normalizedResult] = this.maybeFinalizeFromMessage(message);
+      if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+        await this.storeCompletionResult(normalizedResult);
+        return;
+      }
+    }
+
+    // Fallback: send a second query with a nudge to call finish_step
+    if (this.finishStepTool && !this.step.completed) {
+      log.debug("Nudging provider to call finish_step", { stepId: this.step.id });
+
+      // Build nudge with tool results context
+      const toolResultsSummary = toolCalls
+        .filter((tc) => tc.name !== "finish_step" && tc.name !== "finish_task")
+        .map((tc) => `${tc.name}(${JSON.stringify(tc.args)})`)
+        .join(", ");
+
+      const schemaStr = JSON.stringify(this.resultSchema, null, 2);
+      const nudgePrompt = toolResultsSummary
+        ? `You already executed: ${toolResultsSummary}. The assistant's analysis: ${content?.slice(0, 500) ?? ""}.\n\nNow call finish_step with {"result": <result>} matching this schema:\n${schemaStr}`
+        : `Complete the step by calling finish_step with {"result": <result>} matching this schema:\n${schemaStr}`;
+
+      const nudgeMessages: Message[] = [
+        { role: "system", content: this.systemPrompt },
+        { role: "user", content: nudgePrompt },
+      ];
+
+      finishStepCalled = false;
+      finishStepResult = undefined;
+
+      const nudgeStream = this.provider.generateMessagesTraced({
+        messages: nudgeMessages,
+        model: this.model,
+        tools: providerTools.length > 0 ? providerTools : undefined,
+        threadId: this.threadId,
+        onToolCall,
+      });
+
+      let nudgeContent = "";
+      for await (const item of nudgeStream) {
+        if (isChunk(item)) {
+          nudgeContent += item.content ?? "";
+          yield {
+            type: "chunk",
+            node_id: this.step.id,
+            content: item.content,
+            done: false,
+          } satisfies Chunk;
+        }
+        if (isToolCall(item)) {
+          yield {
+            type: "tool_call_update",
+            node_id: this.step.id,
+            name: item.name,
+            args: item.args,
+            message: this.generateToolCallMessage(item),
+          } satisfies ToolCallUpdate;
+        }
+      }
+
+      if (finishStepCalled && finishStepResult !== undefined && finishStepResult !== null) {
+        const [isValid, , normalizedResult] = this.validateResultPayload(finishStepResult);
+        if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+          await this.storeCompletionResult(normalizedResult);
+          return;
+        }
+      }
+
+      // Last resort: try JSON extraction from nudge response
+      nudgeContent = removeThinkTags(nudgeContent);
+      if (nudgeContent) {
+        const msg: Message = { role: "assistant", content: nudgeContent };
+        const [completed, normalizedResult] = this.maybeFinalizeFromMessage(msg);
+        if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+          await this.storeCompletionResult(normalizedResult);
+          return;
+        }
+      }
+    }
+  }
+
+  /**
    * Execute the step, yielding ProcessingMessages as progress updates.
    */
   async *execute(): AsyncGenerator<ProcessingMessage> {
@@ -749,6 +950,38 @@ export class StepExecutor {
       event: TaskUpdateEvent.StepStarted,
     } satisfies TaskUpdate;
 
+    // --- Agentic provider fast-path (e.g. Claude Agent SDK with MCP) ---
+    // The provider handles the full tool loop in a single call.
+    if (this.providerSupportsOnToolCall() && this.tools.length > 0) {
+      try {
+        yield* this.executeWithAgenticProvider();
+      } catch (e) {
+        log.error("Agentic execution failed", { stepId: this.step.id, error: String(e) });
+      }
+
+      if (this.step.completed) {
+        yield {
+          type: "task_update",
+          node_id: this.step.id,
+          task: { id: this.task.id, title: this.task.title },
+          step: { id: this.step.id, instructions: this.step.instructions },
+          event: TaskUpdateEvent.StepCompleted,
+        } satisfies TaskUpdate;
+
+        yield {
+          type: "step_result",
+          step: { id: this.step.id, instructions: this.step.instructions },
+          result: this.result,
+          is_task_result: this.useFinishTask,
+        } satisfies StepResult;
+        return;
+      }
+
+      // Fall through to standard loop if agentic path didn't complete
+      log.warn("Agentic path did not complete step, falling back to standard loop", { stepId: this.step.id });
+    }
+
+    // --- Standard multi-iteration loop (for non-agentic providers) ---
     while (!this.step.completed && this.iterations < this.maxIterations) {
       this.iterations++;
 
@@ -796,6 +1029,7 @@ export class StepExecutor {
           messages: [...this.history],
           model: this.model,
           tools: providerTools.length > 0 ? providerTools : undefined,
+          threadId: this.threadId,
         });
 
         for await (const item of stream) {
@@ -920,8 +1154,9 @@ export class StepExecutor {
             } satisfies ToolCallUpdate;
           }
 
-          // Yield log: executing tools
           const toolNamesStr = regularToolCalls.map((tc) => tc.name).join(", ");
+
+          // Standard execution path: run tools ourselves and add results to history
           yield {
             type: "log_update",
             node_id: this.step.id,
@@ -993,7 +1228,7 @@ export class StepExecutor {
         }
       }
 
-      // Try to finalize from message content (inline JSON completion)
+      // Try to finalize from message content (inline JSON completion).
       if (!this.step.completed) {
         const [completed, normalizedResult] = this.maybeFinalizeFromMessage(message);
         if (completed && normalizedResult !== null && normalizedResult !== undefined) {
@@ -1018,10 +1253,16 @@ export class StepExecutor {
       }
     }
 
-    // If we exhausted iterations without completing, yield a final event
+    // If we exhausted iterations without completing, yield a failure event
+    // and a step_result so downstream steps see an explicit error rather than undefined.
     if (!this.step.completed) {
       this.step.completed = true;
       this.step.endTime = Date.now();
+
+      const errorResult = { error: `Step failed: exceeded ${this.maxIterations} iterations without completion` };
+      this.result = errorResult;
+      await this.context.storeStepResult(this.step.id, errorResult);
+
       yield {
         type: "task_update",
         node_id: this.step.id,
@@ -1029,6 +1270,13 @@ export class StepExecutor {
         step: { id: this.step.id, instructions: this.step.instructions },
         event: TaskUpdateEvent.StepFailed,
       } satisfies TaskUpdate;
+
+      yield {
+        type: "step_result",
+        step: { id: this.step.id, instructions: this.step.instructions },
+        result: errorResult,
+        is_task_result: this.useFinishTask,
+      } satisfies StepResult;
     }
   }
 

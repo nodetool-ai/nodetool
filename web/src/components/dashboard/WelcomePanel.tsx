@@ -156,7 +156,7 @@ const WelcomePanel: React.FC = () => {
     const parts = text.split(new RegExp(`(${term})`, "gi"));
     return parts.map((part, index) =>
       part.toLowerCase() === term.toLowerCase() ? (
-        <span key={index} className="highlight">
+        <span key={`highlight-${index}-${part.slice(0, 10)}`} className="highlight">
           {part}
         </span>
       ) : (
@@ -230,9 +230,25 @@ const WelcomePanel: React.FC = () => {
       );
     }
     if (Array.isArray(content)) {
-      return content.map((item, index) => (
-        <React.Fragment key={index}>{renderContent(item)}</React.Fragment>
-      ));
+      return content.map((item, index) => {
+        // Generate a stable key for array items
+        let key: string | number;
+        if (React.isValidElement(item) && item.key) {
+          // Use the element's existing key if available
+          key = item.key;
+        } else if (React.isValidElement(item)) {
+          // Use element type for components
+          const type = typeof item.type === "string" ? item.type : (item.type as any)?.displayName || (item.type as any)?.name || "component";
+          key = `${type}-${index}`;
+        } else if (typeof item === "string" || typeof item === "number") {
+          // Use the value itself for primitives
+          key = `${typeof item}-${index}`;
+        } else {
+          // Fallback to index for other types
+          key = index;
+        }
+        return <React.Fragment key={key}>{renderContent(item)}</React.Fragment>;
+      });
     }
     return content;
   }, [highlightText, searchTerm]);

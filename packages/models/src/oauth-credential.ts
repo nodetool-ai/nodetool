@@ -45,7 +45,7 @@ export class OAuthCredential extends DBModel {
     this.updated_at = new Date().toISOString();
   }
 
-  /** Upsert an OAuth credential. */
+  /** Upsert an OAuth credential. Encrypts tokens before storing. */
   static async upsert(opts: {
     user_id: string;
     provider: string;
@@ -58,6 +58,12 @@ export class OAuthCredential extends DBModel {
     received_at: string;
     expires_at?: string | null;
   }): Promise<OAuthCredential> {
+    const masterKey = getMasterKey();
+    const encryptedAccessToken = encrypt(masterKey, opts.user_id, opts.access_token);
+    const encryptedRefreshToken = opts.refresh_token
+      ? encrypt(masterKey, opts.user_id, opts.refresh_token)
+      : null;
+
     const existing = await OAuthCredential.findByAccount(
       opts.user_id,
       opts.provider,
@@ -65,8 +71,8 @@ export class OAuthCredential extends DBModel {
     );
 
     if (existing) {
-      existing.encrypted_access_token = opts.access_token;
-      existing.encrypted_refresh_token = opts.refresh_token ?? existing.encrypted_refresh_token;
+      existing.encrypted_access_token = encryptedAccessToken;
+      existing.encrypted_refresh_token = encryptedRefreshToken ?? existing.encrypted_refresh_token;
       existing.username = opts.username ?? existing.username;
       existing.token_type = opts.token_type;
       existing.scope = opts.scope ?? existing.scope;
@@ -80,8 +86,8 @@ export class OAuthCredential extends DBModel {
       user_id: opts.user_id,
       provider: opts.provider,
       account_id: opts.account_id,
-      encrypted_access_token: opts.access_token,
-      encrypted_refresh_token: opts.refresh_token ?? null,
+      encrypted_access_token: encryptedAccessToken,
+      encrypted_refresh_token: encryptedRefreshToken,
       username: opts.username ?? null,
       token_type: opts.token_type,
       scope: opts.scope ?? null,

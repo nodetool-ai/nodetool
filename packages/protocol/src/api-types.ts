@@ -14,39 +14,43 @@ import type { Edge } from "./graph.js";
 
 export interface ImageRef {
   type: "image";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
-  data?: unknown;
+  data?: string | null;
   metadata?: Record<string, unknown> | null;
+  mimeType?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface AudioRef {
   type: "audio";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: unknown;
+  data?: string | null;
   metadata?: Record<string, unknown> | null;
 }
 
 export interface VideoRef {
   type: "video";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: unknown;
+  data?: string | null;
   metadata?: Record<string, unknown> | null;
   format?: string | null;
 }
 
 export interface TextRef {
   type: "text";
-  uri: string;
+  uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
+  data?: string | null;
 }
 
 export interface DataframeRef {
@@ -132,6 +136,40 @@ export interface PlotlyConfig {
   data: unknown[];
   layout?: Record<string, unknown>;
   config?: Record<string, unknown>;
+}
+
+export interface ChartSeries {
+  type?: string;
+  x_column?: string | null;
+  y_column?: string | null;
+  label?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ChartData {
+  type: "chart_data";
+  series: ChartSeries[];
+  row?: string | null;
+  col?: string | null;
+  col_wrap?: number | null;
+}
+
+export interface ChartConfig {
+  type: "chart_config";
+  title?: string;
+  x_label?: string;
+  y_label?: string;
+  legend?: boolean;
+  data?: ChartData;
+  height?: number | null;
+  aspect?: number | null;
+  x_lim?: [number, number] | null;
+  y_lim?: [number, number] | null;
+  x_scale?: "linear" | "log" | null;
+  y_scale?: "linear" | "log" | null;
+  legend_position?: "auto" | "right" | "left" | "top" | "bottom";
+  palette?: string | null;
+  [key: string]: unknown;
 }
 
 export interface Datetime {

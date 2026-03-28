@@ -5,7 +5,6 @@ import type { ImageRef, AudioRef, VideoRef, DataframeRef } from "../types.js";
 
 // Kling 2.6 Text To Video — kie.video.KlingTextToVideo
 export interface KlingTextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   duration?: Connectable<number>;
@@ -23,7 +22,6 @@ export function klingTextToVideo(inputs: KlingTextToVideoInputs): DslNode<KlingT
 
 // Kling 2.6 Image To Video — kie.video.KlingImageToVideo
 export interface KlingImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image1?: Connectable<ImageRef>;
   image2?: Connectable<ImageRef>;
@@ -42,7 +40,6 @@ export function klingImageToVideo(inputs: KlingImageToVideoInputs): DslNode<Klin
 
 // Kling AIAvatar Standard — kie.video.KlingAIAvatarStandard
 export interface KlingAIAvatarStandardInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   audio?: Connectable<AudioRef>;
   prompt?: Connectable<string>;
@@ -59,7 +56,6 @@ export function klingAIAvatarStandard(inputs: KlingAIAvatarStandardInputs): DslN
 
 // Kling AIAvatar Pro — kie.video.KlingAIAvatarPro
 export interface KlingAIAvatarProInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   audio?: Connectable<AudioRef>;
   prompt?: Connectable<string>;
@@ -76,7 +72,6 @@ export function klingAIAvatarPro(inputs: KlingAIAvatarProInputs): DslNode<KlingA
 
 // Grok Imagine Text To Video — kie.video.GrokImagineTextToVideo
 export interface GrokImagineTextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   resolution?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -92,7 +87,6 @@ export function grokImagineTextToVideo(inputs: GrokImagineTextToVideoInputs): Ds
 
 // Grok Imagine Image To Video — kie.video.GrokImagineImageToVideo
 export interface GrokImagineImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   duration?: Connectable<unknown>;
@@ -108,7 +102,6 @@ export function grokImagineImageToVideo(inputs: GrokImagineImageToVideoInputs): 
 
 // Seedance V1 Lite Text To Video — kie.video.SeedanceV1LiteTextToVideo
 export interface SeedanceV1LiteTextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -126,7 +119,6 @@ export function seedanceV1LiteTextToVideo(inputs: SeedanceV1LiteTextToVideoInput
 
 // Seedance V1 Pro Text To Video — kie.video.SeedanceV1ProTextToVideo
 export interface SeedanceV1ProTextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -144,7 +136,6 @@ export function seedanceV1ProTextToVideo(inputs: SeedanceV1ProTextToVideoInputs)
 
 // Seedance V1 Lite Image To Video — kie.video.SeedanceV1LiteImageToVideo
 export interface SeedanceV1LiteImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -165,7 +156,6 @@ export function seedanceV1LiteImageToVideo(inputs: SeedanceV1LiteImageToVideoInp
 
 // Seedance V1 Pro Image To Video — kie.video.SeedanceV1ProImageToVideo
 export interface SeedanceV1ProImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -186,7 +176,6 @@ export function seedanceV1ProImageToVideo(inputs: SeedanceV1ProImageToVideoInput
 
 // Seedance V1 Pro Fast Image To Video — kie.video.SeedanceV1ProFastImageToVideo
 export interface SeedanceV1ProFastImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -206,7 +195,6 @@ export function seedanceV1ProFastImageToVideo(inputs: SeedanceV1ProFastImageToVi
 
 // Hailuo 2.3 Pro Text To Video — kie.video.HailuoTextToVideoPro
 export interface HailuoTextToVideoProInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -222,7 +210,6 @@ export function hailuoTextToVideoPro(inputs: HailuoTextToVideoProInputs): DslNod
 
 // Hailuo 2.3 Standard Text To Video — kie.video.HailuoTextToVideoStandard
 export interface HailuoTextToVideoStandardInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -238,7 +225,6 @@ export function hailuoTextToVideoStandard(inputs: HailuoTextToVideoStandardInput
 
 // Hailuo 2.3 Pro Image To Video — kie.video.HailuoImageToVideoPro
 export interface HailuoImageToVideoProInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
@@ -255,7 +241,6 @@ export function hailuoImageToVideoPro(inputs: HailuoImageToVideoProInputs): DslN
 
 // Hailuo 2.3 Standard Image To Video — kie.video.HailuoImageToVideoStandard
 export interface HailuoImageToVideoStandardInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
@@ -272,7 +257,6 @@ export function hailuoImageToVideoStandard(inputs: HailuoImageToVideoStandardInp
 
 // Kling 2.5 Turbo Text To Video — kie.video.Kling25TurboTextToVideo
 export interface Kling25TurboTextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
   aspect_ratio?: Connectable<unknown>;
@@ -290,7 +274,6 @@ export function kling25TurboTextToVideo(inputs: Kling25TurboTextToVideoInputs): 
 
 // Kling 2.5 Turbo Image To Video — kie.video.Kling25TurboImageToVideo
 export interface Kling25TurboImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   tail_image?: Connectable<ImageRef>;
@@ -309,7 +292,6 @@ export function kling25TurboImageToVideo(inputs: Kling25TurboImageToVideoInputs)
 
 // Sora 2 Pro Text To Video — kie.video.Sora2ProTextToVideo
 export interface Sora2ProTextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   remove_watermark?: Connectable<boolean>;
   n_frames?: Connectable<unknown>;
@@ -326,7 +308,6 @@ export function sora2ProTextToVideo(inputs: Sora2ProTextToVideoInputs): DslNode<
 
 // Sora 2 Pro Image To Video — kie.video.Sora2ProImageToVideo
 export interface Sora2ProImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   remove_watermark?: Connectable<boolean>;
   n_frames?: Connectable<unknown>;
@@ -344,7 +325,6 @@ export function sora2ProImageToVideo(inputs: Sora2ProImageToVideoInputs): DslNod
 
 // Sora 2 Pro Storyboard — kie.video.Sora2ProStoryboard
 export interface Sora2ProStoryboardInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   remove_watermark?: Connectable<boolean>;
   n_frames?: Connectable<unknown>;
@@ -362,7 +342,6 @@ export function sora2ProStoryboard(inputs: Sora2ProStoryboardInputs): DslNode<So
 
 // Sora 2 Text To Video — kie.video.Sora2TextToVideo
 export interface Sora2TextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   aspect_ratio?: Connectable<unknown>;
   remove_watermark?: Connectable<boolean>;
   n_frames?: Connectable<unknown>;
@@ -379,7 +358,6 @@ export function sora2TextToVideo(inputs: Sora2TextToVideoInputs): DslNode<Sora2T
 
 // Wan 2.1 Multi-Shot Text To Video — kie.video.WanMultiShotTextToVideoPro
 export interface WanMultiShotTextToVideoProInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -397,7 +375,6 @@ export function wanMultiShotTextToVideoPro(inputs: WanMultiShotTextToVideoProInp
 
 // Wan 2.6 Text To Video — kie.video.Wan26TextToVideo
 export interface Wan26TextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -413,7 +390,6 @@ export function wan26TextToVideo(inputs: Wan26TextToVideoInputs): DslNode<Wan26T
 
 // Wan 2.6 Image To Video — kie.video.Wan26ImageToVideo
 export interface Wan26ImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image1?: Connectable<ImageRef>;
   image2?: Connectable<ImageRef>;
@@ -432,7 +408,6 @@ export function wan26ImageToVideo(inputs: Wan26ImageToVideoInputs): DslNode<Wan2
 
 // Wan 2.6 Video To Video — kie.video.Wan26VideoToVideo
 export interface Wan26VideoToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   video1?: Connectable<VideoRef>;
   video2?: Connectable<VideoRef>;
@@ -451,7 +426,6 @@ export function wan26VideoToVideo(inputs: Wan26VideoToVideoInputs): DslNode<Wan2
 
 // Topaz Video Upscale — kie.video.TopazVideoUpscale
 export interface TopazVideoUpscaleInputs {
-  timeout_seconds?: Connectable<number>;
   video?: Connectable<VideoRef>;
   resolution?: Connectable<unknown>;
   denoise?: Connectable<boolean>;
@@ -467,7 +441,6 @@ export function topazVideoUpscale(inputs: TopazVideoUpscaleInputs): DslNode<Topa
 
 // Infinitalk V1 — kie.video.InfinitalkV1
 export interface InfinitalkV1Inputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   audio?: Connectable<AudioRef>;
@@ -484,7 +457,6 @@ export function infinitalkV1(inputs: InfinitalkV1Inputs): DslNode<InfinitalkV1Ou
 
 // Veo 31 Text To Video — kie.video.Veo31TextToVideo
 export interface Veo31TextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   model?: Connectable<unknown>;
   aspect_ratio?: Connectable<unknown>;
   call_back_url?: Connectable<string>;
@@ -501,7 +473,6 @@ export function veo31TextToVideo(inputs: Veo31TextToVideoInputs): DslNode<Veo31T
 
 // Runway Gen-3 Alpha Text To Video — kie.video.RunwayGen3AlphaTextToVideo
 export interface RunwayGen3AlphaTextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -520,7 +491,6 @@ export function runwayGen3AlphaTextToVideo(inputs: RunwayGen3AlphaTextToVideoInp
 
 // Runway Gen-3 Alpha Image To Video — kie.video.RunwayGen3AlphaImageToVideo
 export interface RunwayGen3AlphaImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
@@ -539,7 +509,6 @@ export function runwayGen3AlphaImageToVideo(inputs: RunwayGen3AlphaImageToVideoI
 
 // Runway Gen-3 Alpha Extend Video — kie.video.RunwayGen3AlphaExtendVideo
 export interface RunwayGen3AlphaExtendVideoInputs {
-  timeout_seconds?: Connectable<number>;
   video_url?: Connectable<string>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
@@ -558,7 +527,6 @@ export function runwayGen3AlphaExtendVideo(inputs: RunwayGen3AlphaExtendVideoInp
 
 // Runway Aleph Video — kie.video.RunwayAlephVideo
 export interface RunwayAlephVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   duration?: Connectable<unknown>;
@@ -577,7 +545,6 @@ export function runwayAlephVideo(inputs: RunwayAlephVideoInputs): DslNode<Runway
 
 // Luma Modify Video — kie.video.LumaModifyVideo
 export interface LumaModifyVideoInputs {
-  timeout_seconds?: Connectable<number>;
   video?: Connectable<VideoRef>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
@@ -594,7 +561,6 @@ export function lumaModifyVideo(inputs: LumaModifyVideoInputs): DslNode<LumaModi
 
 // Veo 3.1 Image To Video — kie.video.Veo31ImageToVideo
 export interface Veo31ImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   model?: Connectable<unknown>;
   aspect_ratio?: Connectable<unknown>;
   call_back_url?: Connectable<string>;
@@ -613,7 +579,6 @@ export function veo31ImageToVideo(inputs: Veo31ImageToVideoInputs): DslNode<Veo3
 
 // Veo 3.1 Reference To Video — kie.video.Veo31ReferenceToVideo
 export interface Veo31ReferenceToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   model?: Connectable<unknown>;
   aspect_ratio?: Connectable<unknown>;
   call_back_url?: Connectable<string>;
@@ -633,7 +598,6 @@ export function veo31ReferenceToVideo(inputs: Veo31ReferenceToVideoInputs): DslN
 
 // Kling 2.6 Motion Control — kie.video.KlingMotionControl
 export interface KlingMotionControlInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   video?: Connectable<VideoRef>;
@@ -651,7 +615,6 @@ export function klingMotionControl(inputs: KlingMotionControlInputs): DslNode<Kl
 
 // Kling 2.1 Text To Video — kie.video.Kling21TextToVideo
 export interface Kling21TextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   aspect_ratio?: Connectable<unknown>;
   duration?: Connectable<number>;
@@ -670,7 +633,6 @@ export function kling21TextToVideo(inputs: Kling21TextToVideoInputs): DslNode<Kl
 
 // Kling 2.1 Image To Video — kie.video.Kling21ImageToVideo
 export interface Kling21ImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image1?: Connectable<ImageRef>;
   image2?: Connectable<ImageRef>;
@@ -690,7 +652,6 @@ export function kling21ImageToVideo(inputs: Kling21ImageToVideoInputs): DslNode<
 
 // Wan 2.5 Text To Video — kie.video.Wan25TextToVideo
 export interface Wan25TextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -707,7 +668,6 @@ export function wan25TextToVideo(inputs: Wan25TextToVideoInputs): DslNode<Wan25T
 
 // Wan 2.5 Image To Video — kie.video.Wan25ImageToVideo
 export interface Wan25ImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image1?: Connectable<ImageRef>;
   image2?: Connectable<ImageRef>;
@@ -726,7 +686,6 @@ export function wan25ImageToVideo(inputs: Wan25ImageToVideoInputs): DslNode<Wan2
 
 // Wan 2.2 Animate — kie.video.WanAnimate
 export interface WanAnimateInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   duration?: Connectable<unknown>;
@@ -743,7 +702,6 @@ export function wanAnimate(inputs: WanAnimateInputs): DslNode<WanAnimateOutputs,
 
 // Wan 2.2 Speech To Video — kie.video.WanSpeechToVideo
 export interface WanSpeechToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   image?: Connectable<ImageRef>;
   audio?: Connectable<AudioRef>;
   resolution?: Connectable<unknown>;
@@ -759,7 +717,6 @@ export function wanSpeechToVideo(inputs: WanSpeechToVideoInputs): DslNode<WanSpe
 
 // Wan 2.2 Text To Video — kie.video.Wan22TextToVideo
 export interface Wan22TextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -776,7 +733,6 @@ export function wan22TextToVideo(inputs: Wan22TextToVideoInputs): DslNode<Wan22T
 
 // Wan 2.2 Image To Video — kie.video.Wan22ImageToVideo
 export interface Wan22ImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   duration?: Connectable<unknown>;
@@ -793,7 +749,6 @@ export function wan22ImageToVideo(inputs: Wan22ImageToVideoInputs): DslNode<Wan2
 
 // Hailuo 02 Text To Video — kie.video.Hailuo02TextToVideo
 export interface Hailuo02TextToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   duration?: Connectable<unknown>;
   resolution?: Connectable<unknown>;
@@ -810,7 +765,6 @@ export function hailuo02TextToVideo(inputs: Hailuo02TextToVideoInputs): DslNode<
 
 // Hailuo 02 Image To Video — kie.video.Hailuo02ImageToVideo
 export interface Hailuo02ImageToVideoInputs {
-  timeout_seconds?: Connectable<number>;
   prompt?: Connectable<string>;
   image?: Connectable<ImageRef>;
   duration?: Connectable<unknown>;
@@ -827,7 +781,6 @@ export function hailuo02ImageToVideo(inputs: Hailuo02ImageToVideoInputs): DslNod
 
 // Sora 2 Watermark Remover — kie.video.Sora2WatermarkRemover
 export interface Sora2WatermarkRemoverInputs {
-  timeout_seconds?: Connectable<number>;
   video?: Connectable<VideoRef>;
 }
 

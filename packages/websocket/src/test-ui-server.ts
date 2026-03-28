@@ -1,10 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
@@ -1205,7 +1203,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   // Initialize SQLite adapter pointing at the same DB as the Python side
-  const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".config", "nodetool", "nodetool.sqlite3");
+  const dbPath = getDefaultDbPath();
   try {
     initDb(dbPath);
   } catch {

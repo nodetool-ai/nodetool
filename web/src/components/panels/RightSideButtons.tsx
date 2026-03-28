@@ -13,6 +13,7 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
 
 const styles = (theme: Theme) =>
   css({
@@ -54,6 +55,7 @@ const RightSideButtons: React.FC = () => {
           <OverallDownloadProgress />
         </>
       )}
+      <ThemeToggleButton />
       <NotificationButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />
       <Tooltip
@@ -76,5 +78,7 @@ const RightSideButtons: React.FC = () => {
     </Box>
   );
 };
+
+RightSideButtons.displayName = "RightSideButtons";
 
 export default memo(RightSideButtons);

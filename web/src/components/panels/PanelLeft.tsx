@@ -501,4 +501,6 @@ const PanelLeft: React.FC = () => {
   );
 };
 
+PanelLeft.displayName = "PanelLeft";
+
 export default memo(PanelLeft, isEqual);

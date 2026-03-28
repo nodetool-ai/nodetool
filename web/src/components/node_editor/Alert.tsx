@@ -163,7 +163,7 @@ const Alert: React.FC = memo(() => {
     Notification[]
   >([]);
 
-  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement | null>>>({});
+  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
   const [_show, setShow] = useState<Record<string, boolean>>({});
   // Store timeout IDs in a ref so they persist across effect re-runs
   const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>[]>>(new Map());
@@ -291,7 +291,7 @@ const Alert: React.FC = memo(() => {
     <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
-          nodeRefs.current[notification.id] = createRef<HTMLLIElement>();
+          nodeRefs.current[notification.id] = createRef<HTMLLIElement>() as React.RefObject<HTMLLIElement>;
         }
         const nodeRef = nodeRefs.current[notification.id];
 

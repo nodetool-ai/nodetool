@@ -63,8 +63,8 @@ export class CreateWorkbookLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const sheetName = String(inputs.sheet_name ?? this.sheet_name ?? "Sheet1");
+  async process(): Promise<Record<string, unknown>> {
+    const sheetName = String(this.sheet_name ?? "Sheet1");
     const wb = new ExcelJS.Workbook();
     wb.addWorksheet(sheetName);
     return { output: { data: wb } };
@@ -97,10 +97,10 @@ export class ExcelToDataFrameLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const wb = getWorkbook(inputs.workbook ?? this.workbook);
-    const sheetName = String(inputs.sheet_name ?? this.sheet_name ?? "Sheet1");
-    const hasHeader = inputs.has_header ?? this.has_header ?? true;
+  async process(): Promise<Record<string, unknown>> {
+    const wb = getWorkbook(this.workbook);
+    const sheetName = String(this.sheet_name ?? "Sheet1");
+    const hasHeader = this.has_header ?? true;
     const ws = wb.getWorksheet(sheetName);
     if (!ws) throw new Error(`Worksheet '${sheetName}' not found`);
 
@@ -174,11 +174,11 @@ export class DataFrameToExcelLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const wb = getWorkbook(inputs.workbook ?? this.workbook);
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const sheetName = String(inputs.sheet_name ?? this.sheet_name ?? "Sheet1");
-    const includeHeader = inputs.include_header ?? this.include_header ?? true;
+  async process(): Promise<Record<string, unknown>> {
+    const wb = getWorkbook(this.workbook);
+    const rows = asRows(this.dataframe);
+    const sheetName = String(this.sheet_name ?? "Sheet1");
+    const includeHeader = this.include_header ?? true;
 
     let ws = wb.getWorksheet(sheetName);
     if (!ws) {
@@ -244,13 +244,13 @@ export class FormatCellsLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const wb = getWorkbook(inputs.workbook ?? this.workbook);
-    const sheetName = String(inputs.sheet_name ?? this.sheet_name ?? "Sheet1");
-    const cellRange = String(inputs.cell_range ?? this.cell_range ?? "A1:B10");
-    const bold = Boolean(inputs.bold ?? this.bold ?? false);
-    const bgColor = String(inputs.background_color ?? this.background_color ?? "FFFF00");
-    const textColor = String(inputs.text_color ?? this.text_color ?? "000000");
+  async process(): Promise<Record<string, unknown>> {
+    const wb = getWorkbook(this.workbook);
+    const sheetName = String(this.sheet_name ?? "Sheet1");
+    const cellRange = String(this.cell_range ?? "A1:B10");
+    const bold = Boolean(this.bold ?? false);
+    const bgColor = String(this.background_color ?? "FFFF00");
+    const textColor = String(this.text_color ?? "000000");
 
     const ws = wb.getWorksheet(sheetName);
     if (!ws) throw new Error(`Worksheet '${sheetName}' not found`);
@@ -311,9 +311,9 @@ export class AutoFitColumnsLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const wb = getWorkbook(inputs.workbook ?? this.workbook);
-    const sheetName = String(inputs.sheet_name ?? this.sheet_name ?? "Sheet1");
+  async process(): Promise<Record<string, unknown>> {
+    const wb = getWorkbook(this.workbook);
+    const sheetName = String(this.sheet_name ?? "Sheet1");
 
     const ws = wb.getWorksheet(sheetName);
     if (!ws) throw new Error(`Worksheet '${sheetName}' not found`);
@@ -357,16 +357,16 @@ export class SaveWorkbookLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const wb = getWorkbook(inputs.workbook ?? this.workbook);
-    const folderInput = inputs.folder ?? this.folder;
+  async process(): Promise<Record<string, unknown>> {
+    const wb = getWorkbook(this.workbook);
+    const folderInput = this.folder;
     const folderPath =
       typeof folderInput === "string"
         ? folderInput
         : (folderInput as { path?: string })?.path ?? "";
     if (!folderPath) throw new Error("Path is not set");
 
-    const filenameTemplate = String(inputs.filename ?? this.filename ?? "");
+    const filenameTemplate = String(this.filename ?? "");
     const filename = formatDate(filenameTemplate);
     const fullPath = expandUser(path.join(folderPath, filename));
 

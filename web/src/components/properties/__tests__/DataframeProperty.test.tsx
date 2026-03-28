@@ -43,6 +43,22 @@ jest.mock("../DataframeEditorModal", () => ({
 jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
+    palette: {
+      mode: "dark",
+      common: {
+        white: "#fff",
+        black: "#000"
+      },
+      grey: {
+        0: "#ffffff",
+        100: "#f5f5f5",
+        400: "#bdbdbd",
+        500: "#9e9e9e",
+        600: "#757575",
+        800: "#424242",
+        900: "#212121"
+      }
+    },
     vars: {
       palette: {
         grey: {

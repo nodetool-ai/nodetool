@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,7 +18,7 @@ export class BagelUnderstand extends FalNode {
   static readonly description = `Bagel is a 7B parameter multimodal model from Bytedance-Seed that can generate both text and images.
 vision, analysis, json, image-understanding`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
+  static readonly outputTypes = { "prompt": "str", "text": "str", "timings": "dict[str, any]", "seed": "int" };
 
   @prop({ type: "str", default: "", description: "The prompt to query the image with." })
   declare prompt: any;
@@ -28,25 +29,25 @@ vision, analysis, json, image-understanding`;
   @prop({ type: "image", default: "", description: "The image for the query." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/bagel/understand", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 

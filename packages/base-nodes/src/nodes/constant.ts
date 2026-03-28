@@ -6,7 +6,7 @@ export class ConstantBaseNode extends BaseNode {
             static readonly description = "Base class for fixed-value nodes.\n\n    constant, parameter, default\n\n    Use cases:\n    - Provide static inputs to a workflow\n    - Hold configuration values\n    - Simplify testing with deterministic outputs";
   
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { output: null };
   }
 }
@@ -26,10 +26,7 @@ export class ConstantBoolNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? false };
   }
 }
@@ -48,10 +45,7 @@ export class ConstantIntegerNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? 0 };
   }
 }
@@ -70,10 +64,7 @@ export class ConstantFloatNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? 0.0 };
   }
 }
@@ -92,10 +83,7 @@ export class ConstantStringNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
   }
 }
@@ -114,10 +102,7 @@ export class ConstantListNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
   }
 }
@@ -137,10 +122,7 @@ export class ConstantTextListNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
   }
 }
@@ -160,10 +142,7 @@ export class ConstantDictNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -189,10 +168,7 @@ export class ConstantAudioNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -218,10 +194,7 @@ export class ConstantImageNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -249,10 +222,7 @@ export class ConstantVideoNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -278,10 +248,7 @@ export class ConstantDocumentNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -307,10 +274,7 @@ export class ConstantJSONNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -339,10 +303,7 @@ export class ConstantModel3DNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -369,10 +330,7 @@ export class ConstantDataFrameNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -392,10 +350,7 @@ export class ConstantAudioListNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
   }
 }
@@ -415,10 +370,7 @@ export class ConstantImageListNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
   }
 }
@@ -438,10 +390,7 @@ export class ConstantVideoListNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
   }
 }
@@ -471,10 +420,7 @@ export class ConstantSelectNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
   }
 }
@@ -496,8 +442,8 @@ export class ConstantImageSizeNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = (inputs.value ?? this.value ?? { width: 1024, height: 1024 }) as {
+  async process(): Promise<Record<string, unknown>> {
+    const value = (this.value ?? this.value ?? { width: 1024, height: 1024 }) as {
       width?: number;
       height?: number;
     };
@@ -527,10 +473,10 @@ export class ConstantDateNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const year = Number(inputs.year ?? this.year ?? 2024);
-    const month = Number(inputs.month ?? this.month ?? 1);
-    const day = Number(inputs.day ?? this.day ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const year = Number(this.year ?? this.year ?? 2024);
+    const month = Number(this.month ?? this.month ?? 1);
+    const day = Number(this.day ?? this.day ?? 1);
     return { output: { year, month, day } };
   }
 }
@@ -574,18 +520,18 @@ export class ConstantDateTimeNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {
       output: {
-        year: Number(inputs.year ?? this.year ?? 2024),
-        month: Number(inputs.month ?? this.month ?? 1),
-        day: Number(inputs.day ?? this.day ?? 1),
-        hour: Number(inputs.hour ?? this.hour ?? 0),
-        minute: Number(inputs.minute ?? this.minute ?? 0),
-        second: Number(inputs.second ?? this.second ?? 0),
-        millisecond: Number(inputs.millisecond ?? this.millisecond ?? 0),
-        tzinfo: String(inputs.tzinfo ?? this.tzinfo ?? ""),
-        utc_offset: String(inputs.utc_offset ?? this.utc_offset ?? ""),
+        year: Number(this.year ?? this.year ?? 2024),
+        month: Number(this.month ?? this.month ?? 1),
+        day: Number(this.day ?? this.day ?? 1),
+        hour: Number(this.hour ?? this.hour ?? 0),
+        minute: Number(this.minute ?? this.minute ?? 0),
+        second: Number(this.second ?? this.second ?? 0),
+        millisecond: Number(this.millisecond ?? this.millisecond ?? 0),
+        tzinfo: String(this.tzinfo ?? this.tzinfo ?? ""),
+        utc_offset: String(this.utc_offset ?? this.utc_offset ?? ""),
       },
     };
   }
@@ -606,10 +552,7 @@ export class ConstantASRModelNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -629,10 +572,7 @@ export class ConstantEmbeddingModelNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -652,10 +592,7 @@ export class ConstantImageModelNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -675,10 +612,7 @@ export class ConstantLanguageModelNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -698,10 +632,7 @@ export class ConstantTTSModelNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }
@@ -721,10 +652,7 @@ export class ConstantVideoModelNode extends BaseNode {
 
     
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
   }
 }

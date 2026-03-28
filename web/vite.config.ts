@@ -55,8 +55,9 @@ export default defineConfig(async ({ mode }) => {
     },
     resolve: {
       alias: {
+        "@nodetool/protocol": resolve(configDir, "../packages/protocol/src/index.ts"),
         "monaco-editor": resolve(rootNodeModules, "monaco-editor"),
-      }
+      },
     },
     plugins: [
       react({

@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,16 +18,16 @@ export class PixverseV56ImageToVideo extends FalNode {
   static readonly description = `Generate high-quality videos from images with Pixverse v5.6.
 video, generation, pixverse, v5.6, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired video motion" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution quality of the output video" })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "5", values: ["5", "8", "10"], description: "The duration of the generated video in seconds" })
   declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution quality of the output video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "Optional visual style for the video" })
   declare style: any;
@@ -46,21 +47,21 @@ video, generation, pixverse, v5.6, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "What to avoid in the generated video" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const style = String(inputs.style ?? this.style ?? "");
-    const thinkingType = String(inputs.thinking_type ?? this.thinking_type ?? "");
-    const generateAudioSwitch = Boolean(inputs.generate_audio_switch ?? this.generate_audio_switch ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const thinkingType = String(this.thinking_type ?? "");
+    const generateAudioSwitch = Boolean(this.generate_audio_switch ?? false);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
       "duration": duration,
+      "resolution": resolution,
       "style": style,
       "thinking_type": thinkingType,
       "generate_audio_switch": generateAudioSwitch,
@@ -68,9 +69,9 @@ video, generation, pixverse, v5.6, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -86,7 +87,7 @@ export class LumaDreamMachine extends FalNode {
   static readonly description = `Generate video clips from your images using Luma Dream Machine v1.5. Supports various aspect ratios and optional end-frame blending.
 video, generation, animation, blending, aspect-ratio, img2vid, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -103,11 +104,11 @@ video, generation, animation, blending, aspect-ratio, img2vid, image-to-video`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const loop = Boolean(inputs.loop ?? this.loop ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const loop = Boolean(this.loop ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -115,15 +116,15 @@ video, generation, animation, blending, aspect-ratio, img2vid, image-to-video`;
       "loop": loop,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -139,7 +140,7 @@ export class AMTFrameInterpolation extends FalNode {
   static readonly description = `AMT Frame Interpolation creates smooth transitions between image frames.
 video, interpolation, frame-generation, amt, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "list[Frame]", default: [], description: "Frames to interpolate" })
   declare frames: any;
@@ -150,11 +151,11 @@ video, interpolation, frame-generation, amt, image-to-video`;
   @prop({ type: "int", default: 24, description: "Output frames per second" })
   declare output_fps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const frames = String(inputs.frames ?? this.frames ?? []);
-    const recursiveInterpolationPasses = Number(inputs.recursive_interpolation_passes ?? this.recursive_interpolation_passes ?? 4);
-    const outputFps = Number(inputs.output_fps ?? this.output_fps ?? 24);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const frames = String(this.frames ?? []);
+    const recursiveInterpolationPasses = Number(this.recursive_interpolation_passes ?? 4);
+    const outputFps = Number(this.output_fps ?? 24);
 
     const args: Record<string, unknown> = {
       "frames": frames,
@@ -174,7 +175,7 @@ export class AIAvatar extends FalNode {
   static readonly description = `MultiTalk generates talking avatar videos from images and audio files.
 video, avatar, talking-head, multitalk, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -191,35 +192,35 @@ video, avatar, talking-head, multitalk, image-to-video`;
   @prop({ type: "audio", default: "", description: "The URL of the audio file." })
   declare audio: any;
 
-  @prop({ type: "int", default: 145, description: "Number of frames to generate. Must be between 81 to 129 (inclusive). If the number of frames is greater than 81, the video will be generated with 1.25x more billing units." })
-  declare num_frames: any;
-
   @prop({ type: "int", default: 42, description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 145);
-    const seed = Number(inputs.seed ?? this.seed ?? 42);
+  @prop({ type: "int", default: 145, description: "Number of frames to generate. Must be between 81 to 129 (inclusive). If the number of frames is greater than 81, the video will be generated with 1.25x more billing units." })
+  declare num_frames: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "480p");
+    const acceleration = String(this.acceleration ?? "regular");
+    const seed = Number(this.seed ?? 42);
+    const numFrames = Number(this.num_frames ?? 145);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "resolution": resolution,
       "acceleration": acceleration,
-      "num_frames": numFrames,
       "seed": seed,
+      "num_frames": numFrames,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -237,7 +238,7 @@ export class AIAvatarSingleText extends FalNode {
   static readonly description = `MultiTalk generates talking avatar videos from an image and text input.
 video, avatar, talking-head, text-to-speech, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -263,15 +264,15 @@ video, avatar, talking-head, text-to-speech, image-to-video`;
   @prop({ type: "int", default: 136, description: "Number of frames to generate. Must be between 81 to 129 (inclusive). If the number of frames is greater than 81, the video will be generated with 1.25x more billing units." })
   declare num_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const textInput = String(inputs.text_input ?? this.text_input ?? "");
-    const voice = String(inputs.voice ?? this.voice ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? 42);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 136);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "480p");
+    const acceleration = String(this.acceleration ?? "regular");
+    const textInput = String(this.text_input ?? "");
+    const voice = String(this.voice ?? "");
+    const seed = Number(this.seed ?? 42);
+    const numFrames = Number(this.num_frames ?? 136);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -283,9 +284,9 @@ video, avatar, talking-head, text-to-speech, image-to-video`;
       "num_frames": numFrames,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -301,7 +302,7 @@ export class AIAvatarMultiText extends FalNode {
   static readonly description = `MultiTalk generates multi-speaker avatar videos from images and text.
 video, avatar, multi-speaker, talking-head, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -315,11 +316,11 @@ video, avatar, multi-speaker, talking-head, image-to-video`;
   @prop({ type: "enum", default: "480p", values: ["480p", "720p"], description: "Resolution of the video to generate. Must be either 480p or 720p." })
   declare resolution: any;
 
-  @prop({ type: "str", default: "", description: "The text input to guide video generation." })
-  declare first_text_input: any;
-
   @prop({ type: "image", default: "", description: "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped." })
   declare image: any;
+
+  @prop({ type: "str", default: "", description: "The text input to guide video generation." })
+  declare first_text_input: any;
 
   @prop({ type: "enum", default: "Roger", values: ["Aria", "Roger", "Sarah", "Laura", "Charlie", "George", "Callum", "River", "Liam", "Charlotte", "Alice", "Matilda", "Will", "Jessica", "Eric", "Chris", "Brian", "Daniel", "Lily", "Bill"], description: "The second person's voice to use for speech generation" })
   declare voice2: any;
@@ -333,17 +334,17 @@ video, avatar, multi-speaker, talking-head, image-to-video`;
   @prop({ type: "int", default: 191, description: "Number of frames to generate. Must be between 81 to 129 (inclusive). If the number of frames is greater than 81, the video will be generated with 1.25x more billing units." })
   declare num_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const secondTextInput = String(inputs.second_text_input ?? this.second_text_input ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const firstTextInput = String(inputs.first_text_input ?? this.first_text_input ?? "");
-    const voice2 = String(inputs.voice2 ?? this.voice2 ?? "Roger");
-    const voice1 = String(inputs.voice1 ?? this.voice1 ?? "Sarah");
-    const seed = Number(inputs.seed ?? this.seed ?? 81);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 191);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const secondTextInput = String(this.second_text_input ?? "");
+    const acceleration = String(this.acceleration ?? "regular");
+    const resolution = String(this.resolution ?? "480p");
+    const firstTextInput = String(this.first_text_input ?? "");
+    const voice2 = String(this.voice2 ?? "Roger");
+    const voice1 = String(this.voice1 ?? "Sarah");
+    const seed = Number(this.seed ?? 81);
+    const numFrames = Number(this.num_frames ?? 191);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -357,9 +358,9 @@ video, avatar, multi-speaker, talking-head, image-to-video`;
       "num_frames": numFrames,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -375,7 +376,7 @@ export class AIAvatarMulti extends FalNode {
   static readonly description = `MultiTalk generates multi-speaker avatar videos with audio synchronization.
 video, avatar, multi-speaker, talking-head, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -404,14 +405,14 @@ video, avatar, multi-speaker, talking-head, image-to-video`;
   @prop({ type: "int", default: 181, description: "Number of frames to generate. Must be between 81 to 129 (inclusive). If the number of frames is greater than 81, the video will be generated with 1.25x more billing units." })
   declare num_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const seed = Number(inputs.seed ?? this.seed ?? 81);
-    const useOnlyFirstAudio = Boolean(inputs.use_only_first_audio ?? this.use_only_first_audio ?? false);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 181);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "480p");
+    const acceleration = String(this.acceleration ?? "regular");
+    const seed = Number(this.seed ?? 81);
+    const useOnlyFirstAudio = Boolean(this.use_only_first_audio ?? false);
+    const numFrames = Number(this.num_frames ?? 181);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -422,19 +423,19 @@ video, avatar, multi-speaker, talking-head, image-to-video`;
       "num_frames": numFrames,
     };
 
-    const firstAudioRef = inputs.first_audio as Record<string, unknown> | undefined;
+    const firstAudioRef = this.first_audio as Record<string, unknown> | undefined;
     if (isRefSet(firstAudioRef)) {
       const firstAudioUrl = await assetToFalUrl(apiKey, firstAudioRef!);
       if (firstAudioUrl) args["first_audio_url"] = firstAudioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const secondAudioRef = inputs.second_audio as Record<string, unknown> | undefined;
+    const secondAudioRef = this.second_audio as Record<string, unknown> | undefined;
     if (isRefSet(secondAudioRef)) {
       const secondAudioUrl = await assetToFalUrl(apiKey, secondAudioRef!);
       if (secondAudioUrl) args["second_audio_url"] = secondAudioUrl;
@@ -452,13 +453,13 @@ export class SeeDanceV15ProImageToVideo extends FalNode {
   static readonly description = `SeeDance v1.5 Pro generates high-quality dance videos from images.
 video, dance, animation, seedance, bytedance, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"], description: "The aspect ratio of the generated video" })
-  declare aspect_ratio: any;
+  @prop({ type: "enum", default: "720p", values: ["480p", "720p", "1080p"], description: "Video resolution - 480p for faster generation, 720p for balance, 1080p for higher quality" })
+  declare resolution: any;
 
   @prop({ type: "enum", default: "5", values: ["4", "5", "6", "7", "8", "9", "10", "11", "12"], description: "Duration of the video in seconds" })
   declare duration: any;
@@ -466,8 +467,8 @@ video, dance, animation, seedance, bytedance, image-to-video`;
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the video" })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "720p", values: ["480p", "720p", "1080p"], description: "Video resolution - 480p for faster generation, 720p for balance, 1080p for higher quality" })
-  declare resolution: any;
+  @prop({ type: "enum", default: "16:9", values: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"], description: "The aspect ratio of the generated video" })
+  declare aspect_ratio: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image used to generate video" })
   declare image: any;
@@ -475,46 +476,46 @@ video, dance, animation, seedance, bytedance, image-to-video`;
   @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
-  declare seed: any;
+  @prop({ type: "bool", default: false, description: "Whether to fix the camera position" })
+  declare camera_fixed: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image the video ends with. Defaults to None." })
   declare end_image: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to fix the camera position" })
-  declare camera_fixed: any;
+  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
+  declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const cameraFixed = Boolean(inputs.camera_fixed ?? this.camera_fixed ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const duration = String(this.duration ?? "5");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const cameraFixed = Boolean(this.camera_fixed ?? false);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "duration": duration,
       "generate_audio": generateAudio,
-      "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
       "camera_fixed": cameraFixed,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -530,10 +531,13 @@ export class SeeDanceV1ProFastImageToVideo extends FalNode {
   static readonly description = `SeeDance v1 Pro Fast generates dance videos quickly from images.
 video, dance, fast, seedance, bytedance, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
+
+  @prop({ type: "enum", default: "auto", values: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"], description: "The aspect ratio of the generated video" })
+  declare aspect_ratio: any;
 
   @prop({ type: "enum", default: "1080p", values: ["480p", "720p", "1080p"], description: "Video resolution - 480p for faster generation, 720p for balance, 1080p for higher quality" })
   declare resolution: any;
@@ -541,44 +545,46 @@ video, dance, fast, seedance, bytedance, image-to-video`;
   @prop({ type: "enum", default: "5", values: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "enum", default: "auto", values: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"], description: "The aspect ratio of the generated video" })
-  declare aspect_ratio: any;
-
   @prop({ type: "image", default: "", description: "The URL of the image used to generate video" })
   declare image: any;
 
   @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
-  declare seed: any;
-
   @prop({ type: "bool", default: false, description: "Whether to fix the camera position" })
   declare camera_fixed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const cameraFixed = Boolean(inputs.camera_fixed ?? this.camera_fixed ?? false);
+  @prop({ type: "str", default: "", description: "The number of frames to generate. If provided, will override duration." })
+  declare num_frames: any;
+
+  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "1080p");
+    const duration = String(this.duration ?? "5");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const cameraFixed = Boolean(this.camera_fixed ?? false);
+    const numFrames = String(this.num_frames ?? "");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
+      "aspect_ratio": aspectRatio,
       "resolution": resolution,
       "duration": duration,
-      "aspect_ratio": aspectRatio,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
       "camera_fixed": cameraFixed,
+      "num_frames": numFrames,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -594,7 +600,7 @@ export class SeeDanceV1LiteReferenceToVideo extends FalNode {
   static readonly description = `SeeDance v1 Lite generates lightweight dance videos using reference images.
 video, dance, lite, reference, seedance, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
@@ -602,45 +608,50 @@ video, dance, lite, reference, seedance, image-to-video`;
   @prop({ type: "enum", default: "auto", values: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: "5", values: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], description: "Duration of the video in seconds" })
-  declare duration: any;
-
   @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Video resolution - 480p for faster generation, 720p for higher quality" })
   declare resolution: any;
 
-  @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
-  declare enable_safety_checker: any;
-
-  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
-  declare seed: any;
-
-  @prop({ type: "bool", default: false, description: "Whether to fix the camera position" })
-  declare camera_fixed: any;
+  @prop({ type: "enum", default: "5", values: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], description: "Duration of the video in seconds" })
+  declare duration: any;
 
   @prop({ type: "list[image]", default: [], description: "Reference images to generate the video with." })
   declare reference_images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const cameraFixed = Boolean(inputs.camera_fixed ?? this.camera_fixed ?? false);
+  @prop({ type: "bool", default: false, description: "Whether to fix the camera position" })
+  declare camera_fixed: any;
+
+  @prop({ type: "str", default: "", description: "The number of frames to generate. If provided, will override duration." })
+  declare num_frames: any;
+
+  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
+  declare seed: any;
+
+  @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
+  declare enable_safety_checker: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const duration = String(this.duration ?? "5");
+    const cameraFixed = Boolean(this.camera_fixed ?? false);
+    const numFrames = String(this.num_frames ?? "");
+    const seed = String(this.seed ?? "");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
-      "duration": duration,
       "resolution": resolution,
-      "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
+      "duration": duration,
       "camera_fixed": cameraFixed,
+      "num_frames": numFrames,
+      "seed": seed,
+      "enable_safety_checker": enableSafetyChecker,
     };
 
-    const referenceImagesList = inputs.reference_images as Record<string, unknown>[] | undefined;
+    const referenceImagesList = this.reference_images as Record<string, unknown>[] | undefined;
     if (referenceImagesList?.length) {
       const referenceImagesUrls: string[] = [];
       for (const ref of referenceImagesList) {
@@ -661,7 +672,7 @@ export class ByteDanceVideoStylize extends FalNode {
   static readonly description = `ByteDance Video Stylize applies artistic styles to image-based video generation.
 video, style-transfer, artistic, bytedance, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { output: "dict" };
 
   @prop({ type: "str", default: "", description: "The style for your character in the video. Please use a short description." })
   declare style: any;
@@ -669,23 +680,23 @@ video, style-transfer, artistic, bytedance, image-to-video`;
   @prop({ type: "image", default: "", description: "URL of the image to make the stylized video from." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const style = String(inputs.style ?? this.style ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const style = String(this.style ?? "");
 
     const args: Record<string, unknown> = {
       "style": style,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/bytedance/video-stylize", args);
-    return { output: { type: "video", uri: (res.video as any).url } };
+    return { output: res };
   }
 }
 
@@ -695,7 +706,7 @@ export class OmniHumanV15 extends FalNode {
   static readonly description = `OmniHuman v1.5 generates realistic human videos from images.
 video, human, realistic, bytedance, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "duration": "float", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to guide the video generation." })
   declare prompt: any;
@@ -712,11 +723,11 @@ video, human, realistic, bytedance, image-to-video`;
   @prop({ type: "image", default: "", description: "The URL of the image used to generate the video" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
-    const turboMode = Boolean(inputs.turbo_mode ?? this.turbo_mode ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "1080p");
+    const turboMode = Boolean(this.turbo_mode ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -724,15 +735,15 @@ video, human, realistic, bytedance, image-to-video`;
       "turbo_mode": turboMode,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -748,7 +759,7 @@ export class CogVideoX5BImageToVideo extends FalNode {
   static readonly description = `CogVideoX-5B generates high-quality videos from images with advanced motion.
 video, generation, cogvideo, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "timings": "dict[str, any]", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -768,8 +779,8 @@ video, generation, cogvideo, image-to-video, img2vid`;
   @prop({ type: "float", default: 7, description: "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related video to show you.\n        " })
   declare guidance_scale: any;
 
-  @prop({ type: "str", default: "", description: "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        " })
-  declare seed: any;
+  @prop({ type: "int", default: 50, description: "The number of inference steps to perform." })
+  declare num_inference_steps: any;
 
   @prop({ type: "int", default: 16, description: "The target FPS of the video" })
   declare export_fps: any;
@@ -777,20 +788,20 @@ video, generation, cogvideo, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "The negative prompt to generate video from" })
   declare negative_prompt: any;
 
-  @prop({ type: "int", default: 50, description: "The number of inference steps to perform." })
-  declare num_inference_steps: any;
+  @prop({ type: "str", default: "", description: "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        " })
+  declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const useRife = Boolean(inputs.use_rife ?? this.use_rife ?? true);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const exportFps = Number(inputs.export_fps ?? this.export_fps ?? 16);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 50);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const useRife = Boolean(this.use_rife ?? true);
+    const loras = String(this.loras ?? []);
+    const videoSize = String(this.video_size ?? "");
+    const guidanceScale = Number(this.guidance_scale ?? 7);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 50);
+    const exportFps = Number(this.export_fps ?? 16);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -798,15 +809,15 @@ video, generation, cogvideo, image-to-video, img2vid`;
       "loras": loras,
       "video_size": videoSize,
       "guidance_scale": guidanceScale,
-      "seed": seed,
+      "num_inference_steps": numInferenceSteps,
       "export_fps": exportFps,
       "negative_prompt": negativePrompt,
-      "num_inference_steps": numInferenceSteps,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -822,7 +833,7 @@ export class StableVideoImageToVideo extends FalNode {
   static readonly description = `Stable Video generates consistent video animations from images.
 video, generation, stable, consistent, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "int", default: 127, description: "\n            The motion bucket id determines the motion of the generated video. The\n            higher the number, the more motion there will be.\n        " })
   declare motion_bucket_id: any;
@@ -839,12 +850,12 @@ video, generation, stable, consistent, image-to-video`;
   @prop({ type: "image", default: "", description: "The URL of the image to use as a starting point for the generation." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const motionBucketId = Number(inputs.motion_bucket_id ?? this.motion_bucket_id ?? 127);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const condAug = Number(inputs.cond_aug ?? this.cond_aug ?? 0.02);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const motionBucketId = Number(this.motion_bucket_id ?? 127);
+    const fps = Number(this.fps ?? 25);
+    const condAug = Number(this.cond_aug ?? 0.02);
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "motion_bucket_id": motionBucketId,
@@ -853,9 +864,9 @@ video, generation, stable, consistent, image-to-video`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -871,7 +882,7 @@ export class LTXImageToVideo extends FalNode {
   static readonly description = `LTX Video generates temporally consistent videos from images.
 video, generation, ltx, temporal, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -879,11 +890,11 @@ video, generation, ltx, temporal, image-to-video`;
   @prop({ type: "float", default: 3, description: "The guidance scale to use." })
   declare guidance_scale: any;
 
-  @prop({ type: "str", default: "", description: "The seed to use for random number generation." })
-  declare seed: any;
-
   @prop({ type: "int", default: 30, description: "The number of inference steps to take." })
   declare num_inference_steps: any;
+
+  @prop({ type: "str", default: "", description: "The seed to use for random number generation." })
+  declare seed: any;
 
   @prop({ type: "str", default: "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly", description: "The negative prompt to generate the video from." })
   declare negative_prompt: any;
@@ -891,25 +902,25 @@ video, generation, ltx, temporal, image-to-video`;
   @prop({ type: "image", default: "", description: "The URL of the image to generate the video from." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const guidanceScale = Number(this.guidance_scale ?? 3);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "guidance_scale": guidanceScale,
-      "seed": seed,
       "num_inference_steps": numInferenceSteps,
+      "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -925,7 +936,7 @@ export class KlingVideoV1StandardImageToVideo extends FalNode {
   static readonly description = `Kling Video v1 Standard generates videos from images with balanced quality.
 video, generation, kling, standard, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt for the video" })
   declare prompt: any;
@@ -933,8 +944,8 @@ video, generation, kling, standard, image-to-video`;
   @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to be used for the end of the video" })
-  declare tail_image: any;
+  @prop({ type: "str", default: "blur, distort, and low quality" })
+  declare negative_prompt: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to be used for the video" })
   declare image: any;
@@ -945,44 +956,44 @@ video, generation, kling, standard, image-to-video`;
   @prop({ type: "str", default: "", description: "List of dynamic masks" })
   declare dynamic_masks: any;
 
-  @prop({ type: "str", default: "blur, distort, and low quality" })
-  declare negative_prompt: any;
+  @prop({ type: "image", default: "", description: "URL of the image to be used for the end of the video" })
+  declare tail_image: any;
 
   @prop({ type: "float", default: 0.5, description: "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        " })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const dynamicMasks = String(inputs.dynamic_masks ?? this.dynamic_masks ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
+    const dynamicMasks = String(this.dynamic_masks ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
-      "dynamic_masks": dynamicMasks,
       "negative_prompt": negativePrompt,
+      "dynamic_masks": dynamicMasks,
       "cfg_scale": cfgScale,
     };
 
-    const tailImageRef = inputs.tail_image as Record<string, unknown> | undefined;
-    if (isRefSet(tailImageRef)) {
-      const tailImageUrl = await assetToFalUrl(apiKey, tailImageRef!);
-      if (tailImageUrl) args["tail_image_url"] = tailImageUrl;
-    }
-
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const staticMaskUrlRef = inputs.static_mask_url as Record<string, unknown> | undefined;
+    const staticMaskUrlRef = this.static_mask_url as Record<string, unknown> | undefined;
     if (isRefSet(staticMaskUrlRef)) {
-      const staticMaskUrlUrl = await assetToFalUrl(apiKey, staticMaskUrlRef!);
+      const staticMaskUrlUrl = await imageToDataUrl(staticMaskUrlRef!) ?? await assetToFalUrl(apiKey, staticMaskUrlRef!);
       if (staticMaskUrlUrl) args["static_mask_url"] = staticMaskUrlUrl;
+    }
+
+    const tailImageRef = this.tail_image as Record<string, unknown> | undefined;
+    if (isRefSet(tailImageRef)) {
+      const tailImageUrl = await imageToDataUrl(tailImageRef!) ?? await assetToFalUrl(apiKey, tailImageRef!);
+      if (tailImageUrl) args["tail_image_url"] = tailImageUrl;
     }
     removeNulls(args);
 
@@ -997,16 +1008,16 @@ export class PixverseV56Transition extends FalNode {
   static readonly description = `Pixverse v5.6 Transition creates smooth video transitions between two images with professional effects.
 video, transition, pixverse, v5.6, effects`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
-  @prop({ type: "str", default: "", description: "The prompt for the transition" })
-  declare prompt: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
+  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
+  declare first_image: any;
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -1017,8 +1028,8 @@ video, transition, pixverse, v5.6, effects`;
   @prop({ type: "enum", default: "5", values: ["5", "8", "10"], description: "The duration of the generated video in seconds. 1080p videos are limited to 5 or 8 seconds" })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare first_image: any;
+  @prop({ type: "str", default: "", description: "The prompt for the transition" })
+  declare prompt: any;
 
   @prop({ type: "bool", default: false, description: "Enable audio generation (BGM, SFX, dialogue)" })
   declare generate_audio_switch: any;
@@ -1032,39 +1043,39 @@ video, transition, pixverse, v5.6, effects`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const style = String(inputs.style ?? this.style ?? "");
-    const thinkingType = String(inputs.thinking_type ?? this.thinking_type ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const generateAudioSwitch = Boolean(inputs.generate_audio_switch ?? this.generate_audio_switch ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const thinkingType = String(this.thinking_type ?? "");
+    const duration = String(this.duration ?? "5");
+    const prompt = String(this.prompt ?? "");
+    const generateAudioSwitch = Boolean(this.generate_audio_switch ?? false);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "style": style,
       "thinking_type": thinkingType,
       "duration": duration,
+      "prompt": prompt,
       "generate_audio_switch": generateAudioSwitch,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const firstImageRef = inputs.first_image as Record<string, unknown> | undefined;
+    const firstImageRef = this.first_image as Record<string, unknown> | undefined;
     if (isRefSet(firstImageRef)) {
-      const firstImageUrl = await assetToFalUrl(apiKey, firstImageRef!);
+      const firstImageUrl = await imageToDataUrl(firstImageRef!) ?? await assetToFalUrl(apiKey, firstImageRef!);
       if (firstImageUrl) args["first_image_url"] = firstImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -1080,7 +1091,7 @@ export class ViduQ2ReferenceToVideoPro extends FalNode {
   static readonly description = `Vidu Q2 Reference-to-Video Pro generates professional quality videos using reference images for style and content.
 video, generation, vidu, q2, pro, reference`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 2000 characters" })
   declare prompt: any;
@@ -1109,15 +1120,15 @@ video, generation, vidu, q2, pro, reference`;
   @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
   declare movement_amplitude: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = Number(inputs.duration ?? this.duration ?? 4);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const bgm = Boolean(inputs.bgm ?? this.bgm ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = Number(this.duration ?? 4);
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const bgm = Boolean(this.bgm ?? false);
+    const seed = String(this.seed ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1129,7 +1140,7 @@ video, generation, vidu, q2, pro, reference`;
       "movement_amplitude": movementAmplitude,
     };
 
-    const referenceVideoUrlsList = inputs.reference_video_urls as Record<string, unknown>[] | undefined;
+    const referenceVideoUrlsList = this.reference_video_urls as Record<string, unknown>[] | undefined;
     if (referenceVideoUrlsList?.length) {
       const referenceVideoUrlsUrls: string[] = [];
       for (const ref of referenceVideoUrlsList) {
@@ -1138,7 +1149,7 @@ video, generation, vidu, q2, pro, reference`;
       if (referenceVideoUrlsUrls.length) args["reference_video_urls"] = referenceVideoUrlsUrls;
     }
 
-    const referenceImagesList = inputs.reference_images as Record<string, unknown>[] | undefined;
+    const referenceImagesList = this.reference_images as Record<string, unknown>[] | undefined;
     if (referenceImagesList?.length) {
       const referenceImagesUrls: string[] = [];
       for (const ref of referenceImagesList) {
@@ -1159,7 +1170,7 @@ export class WanV26ImageToVideoFlash extends FalNode {
   static readonly description = `Wan v2.6 Flash generates videos from images with ultra-fast processing for rapid iteration.
 video, generation, wan, v2.6, flash, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "actual_prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the desired video motion. Max 800 characters." })
   declare prompt: any;
@@ -1191,16 +1202,16 @@ video, generation, wan, v2.6, flash, fast`;
   @prop({ type: "audio", default: "", description: "\nURL of the audio to use as the background music. Must be publicly accessible.\nLimit handling: If the audio duration exceeds the duration value (5, 10, or 15 seconds),\nthe audio is truncated to the first N seconds, and the rest is discarded. If\nthe audio is shorter than the video, the remaining part of the video will be silent.\nFor example, if the audio is 3 seconds long and the video duration is 5 seconds, the\nfirst 3 seconds of the output video will have sound, and the last 2 seconds will be silent.\n- Format: WAV, MP3.\n- Duration: 3 to 30 s.\n- File size: Up to 15 MB.\n" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const multiShots = Boolean(inputs.multi_shots ?? this.multi_shots ?? false);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "1080p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const seed = String(this.seed ?? "");
+    const multiShots = Boolean(this.multi_shots ?? false);
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1213,13 +1224,13 @@ video, generation, wan, v2.6, flash, fast`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1237,7 +1248,7 @@ export class WanV26ImageToVideo extends FalNode {
   static readonly description = `Wan v2.6 generates high-quality videos from images with balanced quality and performance.
 video, generation, wan, v2.6, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "actual_prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the desired video motion. Max 800 characters." })
   declare prompt: any;
@@ -1269,16 +1280,16 @@ video, generation, wan, v2.6, image-to-video`;
   @prop({ type: "audio", default: "", description: "\nURL of the audio to use as the background music. Must be publicly accessible.\nLimit handling: If the audio duration exceeds the duration value (5, 10, or 15 seconds),\nthe audio is truncated to the first N seconds, and the rest is discarded. If\nthe audio is shorter than the video, the remaining part of the video will be silent.\nFor example, if the audio is 3 seconds long and the video duration is 5 seconds, the\nfirst 3 seconds of the output video will have sound, and the last 2 seconds will be silent.\n- Format: WAV, MP3.\n- Duration: 3 to 30 s.\n- File size: Up to 15 MB.\n" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const multiShots = Boolean(inputs.multi_shots ?? this.multi_shots ?? false);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "1080p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const seed = String(this.seed ?? "");
+    const multiShots = Boolean(this.multi_shots ?? false);
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1291,13 +1302,13 @@ video, generation, wan, v2.6, image-to-video`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1315,7 +1326,7 @@ export class Ltx219BImageToVideo extends FalNode {
   static readonly description = `LTX-2 19B generates high-quality videos from images using the powerful 19-billion parameter model.
 video, generation, ltx-2, 19b, large-model`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1332,32 +1343,11 @@ video, generation, ltx-2, 19b, large-model`;
   @prop({ type: "float", default: 25, description: "The frames per second of the generated video." })
   declare fps: any;
 
-  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
-  declare enable_safety_checker: any;
-
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
-
-  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
-  declare image_strength: any;
-
-  @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
-  declare negative_prompt: any;
-
-  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
-  declare end_image: any;
-
-  @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
-  declare video_write_mode: any;
-
-  @prop({ type: "enum", default: "X264 (.mp4)", values: ["X264 (.mp4)", "VP9 (.webm)", "PRORES4444 (.mov)", "GIF (.gif)"], description: "The output type of the generated video." })
-  declare video_output_type: any;
+  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
+  declare video_size: any;
 
   @prop({ type: "float", default: 3, description: "The guidance scale to use." })
   declare guidance_scale: any;
@@ -1365,20 +1355,41 @@ video, generation, ltx-2, 19b, large-model`;
   @prop({ type: "int", default: 121, description: "The number of frames to generate." })
   declare num_frames: any;
 
+  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
+  declare end_image: any;
+
+  @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
+  declare negative_prompt: any;
+
+  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
+  declare enable_safety_checker: any;
+
+  @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
+  declare video_write_mode: any;
+
+  @prop({ type: "enum", default: "X264 (.mp4)", values: ["X264 (.mp4)", "VP9 (.webm)", "PRORES4444 (.mov)", "GIF (.gif)"], description: "The output type of the generated video." })
+  declare video_output_type: any;
+
+  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
+  declare image_strength: any;
+
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
+
   @prop({ type: "image", default: "", description: "The URL of the image to generate the video from." })
   declare image: any;
-
-  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
-  declare sync_mode: any;
 
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
   declare video_quality: any;
 
+  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
+  declare sync_mode: any;
+
   @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
-  declare num_inference_steps: any;
+  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
+  declare seed: any;
 
   @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
   declare end_image_strength: any;
@@ -1386,33 +1397,33 @@ video, generation, ltx-2, 19b, large-model`;
   @prop({ type: "enum", default: "forward", values: ["forward", "backward"], description: "The direction to interpolate the image sequence in. 'Forward' goes from the start image to the end image, 'Backward' goes from the end image to the start image." })
   declare interpolation_direction: any;
 
-  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
-  declare seed: any;
+  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
+  declare num_inference_steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "auto");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const interpolationDirection = String(inputs.interpolation_direction ?? this.interpolation_direction ?? "forward");
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const prompt = String(this.prompt ?? "");
+    const acceleration = String(this.acceleration ?? "regular");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const fps = Number(this.fps ?? 25);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "auto");
+    const guidanceScale = Number(this.guidance_scale ?? 3);
+    const numFrames = Number(this.num_frames ?? 121);
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const imageStrength = Number(this.image_strength ?? 1);
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const interpolationDirection = String(this.interpolation_direction ?? "forward");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
@@ -1420,34 +1431,34 @@ video, generation, ltx-2, 19b, large-model`;
       "acceleration": acceleration,
       "generate_audio": generateAudio,
       "fps": fps,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
-      "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
-      "image_strength": imageStrength,
-      "negative_prompt": negativePrompt,
-      "video_write_mode": videoWriteMode,
-      "video_output_type": videoOutputType,
+      "video_size": videoSize,
       "guidance_scale": guidanceScale,
       "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "negative_prompt": negativePrompt,
+      "enable_safety_checker": enableSafetyChecker,
+      "video_write_mode": videoWriteMode,
+      "video_output_type": videoOutputType,
+      "image_strength": imageStrength,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
+      "sync_mode": syncMode,
       "enable_prompt_expansion": enablePromptExpansion,
-      "num_inference_steps": numInferenceSteps,
+      "seed": seed,
       "end_image_strength": endImageStrength,
       "interpolation_direction": interpolationDirection,
-      "seed": seed,
+      "num_inference_steps": numInferenceSteps,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1463,7 +1474,7 @@ export class Ltx219BImageToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B with LoRA enables custom-trained 19B models for specialized video generation.
 video, generation, ltx-2, 19b, lora, custom`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1483,17 +1494,17 @@ video, generation, ltx-2, 19b, lora, custom`;
   @prop({ type: "list[LoRAInput]", default: [], description: "The LoRAs to use for the generation." })
   declare loras: any;
 
-  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
-  declare enable_safety_checker: any;
+  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
+  declare video_size: any;
 
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
+  @prop({ type: "float", default: 3, description: "The guidance scale to use." })
+  declare guidance_scale: any;
+
+  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
+  declare num_frames: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
   declare end_image: any;
@@ -1501,8 +1512,8 @@ video, generation, ltx-2, 19b, lora, custom`;
   @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
   declare negative_prompt: any;
 
-  @prop({ type: "float", default: 3, description: "The guidance scale to use." })
-  declare guidance_scale: any;
+  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
+  declare enable_safety_checker: any;
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -1513,23 +1524,23 @@ video, generation, ltx-2, 19b, lora, custom`;
   @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
   declare image_strength: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to generate the video from." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
-  declare sync_mode: any;
-
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
   declare video_quality: any;
+
+  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
+  declare sync_mode: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
-  declare num_inference_steps: any;
+  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
+  declare seed: any;
 
   @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
   declare end_image_strength: any;
@@ -1537,34 +1548,34 @@ video, generation, ltx-2, 19b, lora, custom`;
   @prop({ type: "enum", default: "forward", values: ["forward", "backward"], description: "The direction to interpolate the image sequence in. 'Forward' goes from the start image to the end image, 'Backward' goes from the end image to the start image." })
   declare interpolation_direction: any;
 
-  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
-  declare seed: any;
+  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
+  declare num_inference_steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "auto");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3);
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const interpolationDirection = String(inputs.interpolation_direction ?? this.interpolation_direction ?? "forward");
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const prompt = String(this.prompt ?? "");
+    const acceleration = String(this.acceleration ?? "regular");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const fps = Number(this.fps ?? 25);
+    const loras = String(this.loras ?? []);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "auto");
+    const guidanceScale = Number(this.guidance_scale ?? 3);
+    const numFrames = Number(this.num_frames ?? 121);
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const imageStrength = Number(this.image_strength ?? 1);
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const interpolationDirection = String(this.interpolation_direction ?? "forward");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
@@ -1573,34 +1584,34 @@ video, generation, ltx-2, 19b, lora, custom`;
       "generate_audio": generateAudio,
       "fps": fps,
       "loras": loras,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
-      "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
-      "negative_prompt": negativePrompt,
+      "video_size": videoSize,
       "guidance_scale": guidanceScale,
+      "num_frames": numFrames,
+      "negative_prompt": negativePrompt,
+      "enable_safety_checker": enableSafetyChecker,
       "video_write_mode": videoWriteMode,
       "video_output_type": videoOutputType,
       "image_strength": imageStrength,
-      "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
+      "sync_mode": syncMode,
       "enable_prompt_expansion": enablePromptExpansion,
-      "num_inference_steps": numInferenceSteps,
+      "seed": seed,
       "end_image_strength": endImageStrength,
       "interpolation_direction": interpolationDirection,
-      "seed": seed,
+      "num_inference_steps": numInferenceSteps,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1616,7 +1627,7 @@ export class Ltx219BDistilledImageToVideo extends FalNode {
   static readonly description = `LTX-2 19B Distilled generates videos efficiently using knowledge distillation from the 19B model.
 video, generation, ltx-2, 19b, distilled, efficient`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1633,17 +1644,17 @@ video, generation, ltx-2, 19b, distilled, efficient`;
   @prop({ type: "float", default: 25, description: "The frames per second of the generated video." })
   declare fps: any;
 
-  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
+
+  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
+  declare video_size: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
+  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
+  declare num_frames: any;
 
   @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
   declare image_strength: any;
@@ -1660,17 +1671,17 @@ video, generation, ltx-2, 19b, distilled, efficient`;
   @prop({ type: "enum", default: "X264 (.mp4)", values: ["X264 (.mp4)", "VP9 (.webm)", "PRORES4444 (.mov)", "GIF (.gif)"], description: "The output type of the generated video." })
   declare video_output_type: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to generate the video from." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
-  declare sync_mode: any;
-
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
   declare video_quality: any;
+
+  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
+  declare sync_mode: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
@@ -1684,28 +1695,28 @@ video, generation, ltx-2, 19b, distilled, efficient`;
   @prop({ type: "enum", default: "forward", values: ["forward", "backward"], description: "The direction to interpolate the image sequence in. 'Forward' goes from the start image to the end image, 'Backward' goes from the end image to the start image." })
   declare interpolation_direction: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "none");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "auto");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const interpolationDirection = String(inputs.interpolation_direction ?? this.interpolation_direction ?? "forward");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const prompt = String(this.prompt ?? "");
+    const acceleration = String(this.acceleration ?? "none");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const fps = Number(this.fps ?? 25);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "auto");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numFrames = Number(this.num_frames ?? 121);
+    const imageStrength = Number(this.image_strength ?? 1);
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const interpolationDirection = String(this.interpolation_direction ?? "forward");
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
@@ -1713,32 +1724,32 @@ video, generation, ltx-2, 19b, distilled, efficient`;
       "acceleration": acceleration,
       "generate_audio": generateAudio,
       "fps": fps,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
+      "video_size": videoSize,
       "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
+      "num_frames": numFrames,
       "image_strength": imageStrength,
       "negative_prompt": negativePrompt,
       "video_write_mode": videoWriteMode,
       "video_output_type": videoOutputType,
-      "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
+      "sync_mode": syncMode,
       "enable_prompt_expansion": enablePromptExpansion,
       "seed": seed,
       "end_image_strength": endImageStrength,
       "interpolation_direction": interpolationDirection,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1754,7 +1765,7 @@ export class Ltx219BDistilledImageToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B Distilled with LoRA combines efficient generation with custom-trained models.
 video, generation, ltx-2, 19b, distilled, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
@@ -1774,17 +1785,17 @@ video, generation, ltx-2, 19b, distilled, lora`;
   @prop({ type: "list[LoRAInput]", default: [], description: "The LoRAs to use for the generation." })
   declare loras: any;
 
-  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
+
+  @prop({ type: "str", default: "auto", description: "The size of the generated video." })
+  declare video_size: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
+  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
+  declare num_frames: any;
 
   @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
   declare image_strength: any;
@@ -1801,17 +1812,17 @@ video, generation, ltx-2, 19b, distilled, lora`;
   @prop({ type: "enum", default: "X264 (.mp4)", values: ["X264 (.mp4)", "VP9 (.webm)", "PRORES4444 (.mov)", "GIF (.gif)"], description: "The output type of the generated video." })
   declare video_output_type: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to generate the video from." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
-  declare sync_mode: any;
-
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
   declare video_quality: any;
+
+  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
+  declare sync_mode: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
@@ -1825,29 +1836,29 @@ video, generation, ltx-2, 19b, distilled, lora`;
   @prop({ type: "enum", default: "forward", values: ["forward", "backward"], description: "The direction to interpolate the image sequence in. 'Forward' goes from the start image to the end image, 'Backward' goes from the end image to the start image." })
   declare interpolation_direction: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "none");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "auto");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const interpolationDirection = String(inputs.interpolation_direction ?? this.interpolation_direction ?? "forward");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const prompt = String(this.prompt ?? "");
+    const acceleration = String(this.acceleration ?? "none");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const fps = Number(this.fps ?? 25);
+    const loras = String(this.loras ?? []);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "auto");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numFrames = Number(this.num_frames ?? 121);
+    const imageStrength = Number(this.image_strength ?? 1);
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const interpolationDirection = String(this.interpolation_direction ?? "forward");
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
@@ -1856,32 +1867,32 @@ video, generation, ltx-2, 19b, distilled, lora`;
       "generate_audio": generateAudio,
       "fps": fps,
       "loras": loras,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
+      "video_size": videoSize,
       "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
+      "num_frames": numFrames,
       "image_strength": imageStrength,
       "negative_prompt": negativePrompt,
       "video_write_mode": videoWriteMode,
       "video_output_type": videoOutputType,
-      "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
+      "sync_mode": syncMode,
       "enable_prompt_expansion": enablePromptExpansion,
       "seed": seed,
       "end_image_strength": endImageStrength,
       "interpolation_direction": interpolationDirection,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1897,7 +1908,7 @@ export class WanMove extends FalNode {
   static readonly description = `Wan Move generates videos with natural motion and movement from static images.
 video, generation, wan, motion, animation`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide the video generation." })
   declare prompt: any;
@@ -1911,36 +1922,36 @@ video, generation, wan, motion, animation`;
   @prop({ type: "float", default: 3.5, description: "Classifier-free guidance scale. Higher values give better adherence to the prompt but may decrease quality." })
   declare guidance_scale: any;
 
-  @prop({ type: "int", default: 40, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
-  declare num_inference_steps: any;
-
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
+
+  @prop({ type: "int", default: 40, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
+  declare num_inference_steps: any;
 
   @prop({ type: "str", default: "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走", description: "Negative prompt to guide the video generation." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const trajectories = String(inputs.trajectories ?? this.trajectories ?? []);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const trajectories = String(this.trajectories ?? []);
+    const guidanceScale = Number(this.guidance_scale ?? 3.5);
+    const seed = String(this.seed ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
+    const negativePrompt = String(this.negative_prompt ?? "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "trajectories": trajectories,
       "guidance_scale": guidanceScale,
-      "num_inference_steps": numInferenceSteps,
       "seed": seed,
+      "num_inference_steps": numInferenceSteps,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -1956,19 +1967,19 @@ export class Kandinsky5ProImageToVideo extends FalNode {
   static readonly description = `Kandinsky5 Pro generates professional quality videos from images with artistic style and control.
 video, generation, kandinsky, pro, artistic`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
 
-  @prop({ type: "str", default: "5s", description: "Video duration." })
-  declare duration: any;
+  @prop({ type: "enum", default: "512P", values: ["512P", "1024P"], description: "Video resolution: 512p or 1024p." })
+  declare resolution: any;
 
   @prop({ type: "str", default: "regular", description: "Acceleration level for faster generation." })
   declare acceleration: any;
 
-  @prop({ type: "enum", default: "512P", values: ["512P", "1024P"], description: "Video resolution: 512p or 1024p." })
-  declare resolution: any;
+  @prop({ type: "str", default: "5s", description: "Video duration." })
+  declare duration: any;
 
   @prop({ type: "int", default: 28 })
   declare num_inference_steps: any;
@@ -1976,25 +1987,25 @@ video, generation, kandinsky, pro, artistic`;
   @prop({ type: "image", default: "", description: "The URL of the image to use as a reference for the video generation." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5s");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "512P");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 28);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "512P");
+    const acceleration = String(this.acceleration ?? "regular");
+    const duration = String(this.duration ?? "5s");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 28);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
-      "acceleration": acceleration,
       "resolution": resolution,
+      "acceleration": acceleration,
+      "duration": duration,
       "num_inference_steps": numInferenceSteps,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -2010,13 +2021,13 @@ export class LiveAvatar extends FalNode {
   static readonly description = `Live Avatar creates animated talking avatars from portrait images with realistic lip-sync and expressions.
 video, avatar, talking-head, animation, portrait`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "str", default: "", description: "A text prompt describing the scene and character. Helps guide the video generation style and context." })
-  declare prompt: any;
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "int", default: 48, description: "Number of frames per clip. Must be a multiple of 4. Higher values = smoother but slower generation." })
   declare frames_per_clip: any;
+
+  @prop({ type: "str", default: "", description: "A text prompt describing the scene and character. Helps guide the video generation style and context." })
+  declare prompt: any;
 
   @prop({ type: "enum", default: "none", values: ["none", "light", "regular", "high"], description: "Acceleration level for faster video decoding " })
   declare acceleration: any;
@@ -2027,8 +2038,8 @@ video, avatar, talking-head, animation, portrait`;
   @prop({ type: "int", default: 10, description: "Number of video clips to generate. Each clip is approximately 3 seconds. Set higher for longer videos." })
   declare num_clips: any;
 
-  @prop({ type: "bool", default: true, description: "Enable safety checker for content moderation." })
-  declare enable_safety_checker: any;
+  @prop({ type: "audio", default: "", description: "The URL of the driving audio file (WAV or MP3). The avatar will be animated to match this audio." })
+  declare audio: any;
 
   @prop({ type: "str", default: "", description: "Random seed for reproducible generation." })
   declare seed: any;
@@ -2036,36 +2047,36 @@ video, avatar, talking-head, animation, portrait`;
   @prop({ type: "float", default: 0, description: "Classifier-free guidance scale. Higher values follow the prompt more closely." })
   declare guidance_scale: any;
 
-  @prop({ type: "audio", default: "", description: "The URL of the driving audio file (WAV or MP3). The avatar will be animated to match this audio." })
-  declare audio: any;
+  @prop({ type: "bool", default: true, description: "Enable safety checker for content moderation." })
+  declare enable_safety_checker: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const framesPerClip = Number(inputs.frames_per_clip ?? this.frames_per_clip ?? 48);
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "none");
-    const numClips = Number(inputs.num_clips ?? this.num_clips ?? 10);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const framesPerClip = Number(this.frames_per_clip ?? 48);
+    const prompt = String(this.prompt ?? "");
+    const acceleration = String(this.acceleration ?? "none");
+    const numClips = Number(this.num_clips ?? 10);
+    const seed = String(this.seed ?? "");
+    const guidanceScale = Number(this.guidance_scale ?? 0);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
       "frames_per_clip": framesPerClip,
+      "prompt": prompt,
       "acceleration": acceleration,
       "num_clips": numClips,
-      "enable_safety_checker": enableSafetyChecker,
       "seed": seed,
       "guidance_scale": guidanceScale,
+      "enable_safety_checker": enableSafetyChecker,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -2083,16 +2094,16 @@ export class HunyuanVideoV15ImageToVideo extends FalNode {
   static readonly description = `Hunyuan Video v1.5 generates high-quality videos from images with advanced AI capabilities.
 video, generation, hunyuan, v1.5, advanced`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
 
-  @prop({ type: "str", default: "480p", description: "The resolution of the video." })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "The aspect ratio of the video." })
   declare aspect_ratio: any;
+
+  @prop({ type: "str", default: "480p", description: "The resolution of the video." })
+  declare resolution: any;
 
   @prop({ type: "image", default: "", description: "URL of the reference image for image-to-video generation." })
   declare image: any;
@@ -2100,43 +2111,43 @@ video, generation, hunyuan, v1.5, advanced`;
   @prop({ type: "bool", default: true, description: "Enable prompt expansion to enhance the input prompt." })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "str", default: "", description: "Random seed for reproducibility." })
-  declare seed: any;
-
   @prop({ type: "int", default: 28, description: "The number of inference steps." })
   declare num_inference_steps: any;
-
-  @prop({ type: "str", default: "", description: "The negative prompt to guide what not to generate." })
-  declare negative_prompt: any;
 
   @prop({ type: "int", default: 121, description: "The number of frames to generate." })
   declare num_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 28);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
+  @prop({ type: "str", default: "", description: "The negative prompt to guide what not to generate." })
+  declare negative_prompt: any;
+
+  @prop({ type: "str", default: "", description: "Random seed for reproducibility." })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "480p");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 28);
+    const numFrames = Number(this.num_frames ?? 121);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "enable_prompt_expansion": enablePromptExpansion,
-      "seed": seed,
       "num_inference_steps": numInferenceSteps,
-      "negative_prompt": negativePrompt,
       "num_frames": numFrames,
+      "negative_prompt": negativePrompt,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -2152,7 +2163,7 @@ export class KlingVideoO1StandardImageToVideo extends FalNode {
   static readonly description = `Kling Video O1 Standard generates videos with optimized standard quality from images.
 video, generation, kling, o1, standard`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Use @Image1 to reference the start frame, @Image2 to reference the end frame." })
   declare prompt: any;
@@ -2166,25 +2177,25 @@ video, generation, kling, o1, standard`;
   @prop({ type: "image", default: "", description: "Image to use as the last frame of the video." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
     };
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
       if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -2200,16 +2211,16 @@ export class KlingVideoO1StandardReferenceToVideo extends FalNode {
   static readonly description = `Kling Video O1 Standard generates videos using reference images for style consistency.
 video, generation, kling, o1, standard, reference`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Take @Element1, @Element2 to reference elements and @Image1, @Image2 to reference images in order." })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10"], description: "Video duration in seconds." })
-  declare duration: any;
-
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "The aspect ratio of the generated video frame." })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10"], description: "Video duration in seconds." })
+  declare duration: any;
 
   @prop({ type: "str", default: "", description: "Elements (characters/objects) to include in the video. Reference in prompt as @Element1, @Element2, etc. Maximum 7 total (elements + reference images + start image)." })
   declare elements: any;
@@ -2217,21 +2228,21 @@ video, generation, kling, o1, standard, reference`;
   @prop({ type: "list[image]", default: "", description: "Additional reference images for style/appearance. Reference in prompt as @Image1, @Image2, etc. Maximum 7 total (elements + reference images + start image)." })
   declare images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const elements = String(inputs.elements ?? this.elements ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const duration = String(this.duration ?? "5");
+    const elements = String(this.elements ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "aspect_ratio": aspectRatio,
+      "duration": duration,
       "elements": elements,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
@@ -2252,7 +2263,7 @@ export class KlingVideoO3StandardImageToVideo extends FalNode {
   static readonly description = `Kling Video O3 Standard generates videos from images with balanced quality and speed.
 video, generation, kling, o3, standard, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
@@ -2260,46 +2271,46 @@ video, generation, kling, o3, standard, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"], description: "Video duration in seconds (3-15s)." })
   declare duration: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to generate native audio for the video." })
-  declare generate_audio: any;
-
   @prop({ type: "str", default: "", description: "List of prompts for multi-shot video generation." })
   declare multi_prompt: any;
 
-  @prop({ type: "image", default: "", description: "URL of the start frame image." })
-  declare image: any;
+  @prop({ type: "bool", default: false, description: "Whether to generate native audio for the video." })
+  declare generate_audio: any;
 
   @prop({ type: "str", default: "customize", description: "The type of multi-shot video generation." })
   declare shot_type: any;
 
+  @prop({ type: "image", default: "", description: "URL of the start frame image." })
+  declare image: any;
+
   @prop({ type: "image", default: "", description: "URL of the end frame image (optional)." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? false);
-    const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
-    const shotType = String(inputs.shot_type ?? this.shot_type ?? "customize");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const multiPrompt = String(this.multi_prompt ?? "");
+    const generateAudio = Boolean(this.generate_audio ?? false);
+    const shotType = String(this.shot_type ?? "customize");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
-      "generate_audio": generateAudio,
       "multi_prompt": multiPrompt,
+      "generate_audio": generateAudio,
       "shot_type": shotType,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -2315,7 +2326,7 @@ export class KlingVideoO3ProImageToVideo extends FalNode {
   static readonly description = `Kling Video O3 Pro generates professional quality videos from images with enhanced fidelity.
 video, generation, kling, o3, pro, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
@@ -2323,46 +2334,46 @@ video, generation, kling, o3, pro, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"], description: "Video duration in seconds (3-15s)." })
   declare duration: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to generate native audio for the video." })
-  declare generate_audio: any;
-
   @prop({ type: "str", default: "", description: "List of prompts for multi-shot video generation." })
   declare multi_prompt: any;
 
-  @prop({ type: "image", default: "", description: "URL of the start frame image." })
-  declare image: any;
+  @prop({ type: "bool", default: false, description: "Whether to generate native audio for the video." })
+  declare generate_audio: any;
 
   @prop({ type: "str", default: "customize", description: "The type of multi-shot video generation." })
   declare shot_type: any;
 
+  @prop({ type: "image", default: "", description: "URL of the start frame image." })
+  declare image: any;
+
   @prop({ type: "image", default: "", description: "URL of the end frame image (optional)." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? false);
-    const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
-    const shotType = String(inputs.shot_type ?? this.shot_type ?? "customize");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const multiPrompt = String(this.multi_prompt ?? "");
+    const generateAudio = Boolean(this.generate_audio ?? false);
+    const shotType = String(this.shot_type ?? "customize");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
-      "generate_audio": generateAudio,
       "multi_prompt": multiPrompt,
+      "generate_audio": generateAudio,
       "shot_type": shotType,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -2378,7 +2389,7 @@ export class KlingVideoO3StandardReferenceToVideo extends FalNode {
   static readonly description = `Kling Video O3 Standard generates videos using reference images for style consistency.
 video, generation, kling, o3, standard, reference`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
@@ -2398,27 +2409,27 @@ video, generation, kling, o3, standard, reference`;
   @prop({ type: "str", default: "customize", description: "The type of multi-shot video generation." })
   declare shot_type: any;
 
+  @prop({ type: "image", default: "", description: "Image to use as the first frame of the video." })
+  declare start_image: any;
+
+  @prop({ type: "image", default: "", description: "Image to use as the last frame of the video." })
+  declare end_image: any;
+
   @prop({ type: "str", default: "", description: "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2." })
   declare elements: any;
 
   @prop({ type: "list[image]", default: "", description: "Reference images for style/appearance. Reference in prompt as @Image1, @Image2, etc. Maximum 4 total (elements + reference images) when using video." })
   declare images: any;
 
-  @prop({ type: "image", default: "", description: "Image to use as the last frame of the video." })
-  declare end_image: any;
-
-  @prop({ type: "image", default: "", description: "Image to use as the first frame of the video." })
-  declare start_image: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? false);
-    const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
-    const shotType = String(inputs.shot_type ?? this.shot_type ?? "customize");
-    const elements = String(inputs.elements ?? this.elements ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const generateAudio = Boolean(this.generate_audio ?? false);
+    const multiPrompt = String(this.multi_prompt ?? "");
+    const shotType = String(this.shot_type ?? "customize");
+    const elements = String(this.elements ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -2430,25 +2441,25 @@ video, generation, kling, o3, standard, reference`;
       "elements": elements,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
+      if (startImageUrl) args["start_image_url"] = startImageUrl;
+    }
+
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
+      if (endImageUrl) args["end_image_url"] = endImageUrl;
+    }
+
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
         if (isRefSet(ref)) { const u = await assetToFalUrl(apiKey, ref); if (u) imagesUrls.push(u); }
       }
       if (imagesUrls.length) args["image_urls"] = imagesUrls;
-    }
-
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
-    if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
-      if (endImageUrl) args["end_image_url"] = endImageUrl;
-    }
-
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
-    if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
-      if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
     removeNulls(args);
 
@@ -2463,7 +2474,7 @@ export class KlingVideoO3ProReferenceToVideo extends FalNode {
   static readonly description = `Kling Video O3 Pro generates high-fidelity videos using reference images for style and structure.
 video, generation, kling, o3, pro, reference`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
@@ -2483,27 +2494,27 @@ video, generation, kling, o3, pro, reference`;
   @prop({ type: "str", default: "customize", description: "The type of multi-shot video generation." })
   declare shot_type: any;
 
+  @prop({ type: "image", default: "", description: "Image to use as the first frame of the video." })
+  declare start_image: any;
+
+  @prop({ type: "image", default: "", description: "Image to use as the last frame of the video." })
+  declare end_image: any;
+
   @prop({ type: "str", default: "", description: "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2." })
   declare elements: any;
 
   @prop({ type: "list[image]", default: "", description: "Reference images for style/appearance. Reference in prompt as @Image1, @Image2, etc. Maximum 4 total (elements + reference images) when using video." })
   declare images: any;
 
-  @prop({ type: "image", default: "", description: "Image to use as the last frame of the video." })
-  declare end_image: any;
-
-  @prop({ type: "image", default: "", description: "Image to use as the first frame of the video." })
-  declare start_image: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? false);
-    const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
-    const shotType = String(inputs.shot_type ?? this.shot_type ?? "customize");
-    const elements = String(inputs.elements ?? this.elements ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const generateAudio = Boolean(this.generate_audio ?? false);
+    const multiPrompt = String(this.multi_prompt ?? "");
+    const shotType = String(this.shot_type ?? "customize");
+    const elements = String(this.elements ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -2515,25 +2526,25 @@ video, generation, kling, o3, pro, reference`;
       "elements": elements,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
+      if (startImageUrl) args["start_image_url"] = startImageUrl;
+    }
+
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
+      if (endImageUrl) args["end_image_url"] = endImageUrl;
+    }
+
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
         if (isRefSet(ref)) { const u = await assetToFalUrl(apiKey, ref); if (u) imagesUrls.push(u); }
       }
       if (imagesUrls.length) args["image_urls"] = imagesUrls;
-    }
-
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
-    if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
-      if (endImageUrl) args["end_image_url"] = endImageUrl;
-    }
-
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
-    if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
-      if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
     removeNulls(args);
 
@@ -2548,16 +2559,16 @@ export class KlingVideoV26ProImageToVideo extends FalNode {
   static readonly description = `Kling Video v2.6 Pro generates professional quality videos with latest model improvements.
 video, generation, kling, v2.6, pro`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
-  declare duration: any;
-
   @prop({ type: "str", default: "", description: "Optional Voice IDs for video generation. Reference voices in your prompt with <<<voice_1>>> and <<<voice_2>>> (maximum 2 voices per task). Get voice IDs from the kling video create-voice endpoint: https://fal.ai/models/fal-ai/kling-video/create-voice" })
   declare voice_ids: any;
+
+  @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
+  declare duration: any;
 
   @prop({ type: "bool", default: true, description: "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase." })
   declare generate_audio: any;
@@ -2571,31 +2582,31 @@ video, generation, kling, v2.6, pro`;
   @prop({ type: "str", default: "blur, distort, and low quality" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const voiceIds = String(inputs.voice_ids ?? this.voice_ids ?? "");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const voiceIds = String(this.voice_ids ?? "");
+    const duration = String(this.duration ?? "5");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "voice_ids": voiceIds,
+      "duration": duration,
       "generate_audio": generateAudio,
       "negative_prompt": negativePrompt,
     };
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
       if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -2611,7 +2622,7 @@ export class KlingVideoAiAvatarV2Standard extends FalNode {
   static readonly description = `Kling Video AI Avatar v2 Standard creates animated talking avatars with standard quality.
 video, avatar, kling, v2, standard, talking-head`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "duration": "float", "video": "video" };
 
   @prop({ type: "str", default: ".", description: "The prompt to use for the video generation." })
   declare prompt: any;
@@ -2622,23 +2633,23 @@ video, avatar, kling, v2, standard, talking-head`;
   @prop({ type: "image", default: "", description: "The URL of the image to use as your avatar" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? ".");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? ".");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -2654,7 +2665,7 @@ export class KlingVideoAiAvatarV2Pro extends FalNode {
   static readonly description = `Kling Video AI Avatar v2 Pro creates professional quality animated talking avatars with enhanced realism.
 video, avatar, kling, v2, pro, talking-head`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "duration": "float", "video": "video" };
 
   @prop({ type: "str", default: ".", description: "The prompt to use for the video generation." })
   declare prompt: any;
@@ -2665,23 +2676,23 @@ video, avatar, kling, v2, pro, talking-head`;
   @prop({ type: "image", default: "", description: "The URL of the image to use as your avatar" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? ".");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? ".");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -2697,7 +2708,7 @@ export class CreatifyAurora extends FalNode {
   static readonly description = `Creatify Aurora generates creative and visually stunning videos from images with unique effects.
 video, generation, creatify, aurora, creative, effects`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "A text prompt to guide the video generation process." })
   declare prompt: any;
@@ -2717,12 +2728,12 @@ video, generation, creatify, aurora, creative, effects`;
   @prop({ type: "image", default: "", description: "The URL of the image file to be used for video generation." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const audioGuidanceScale = String(inputs.audio_guidance_scale ?? this.audio_guidance_scale ?? 2);
-    const guidanceScale = String(inputs.guidance_scale ?? this.guidance_scale ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const audioGuidanceScale = String(this.audio_guidance_scale ?? 2);
+    const guidanceScale = String(this.guidance_scale ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -2731,15 +2742,15 @@ video, generation, creatify, aurora, creative, effects`;
       "guidance_scale": guidanceScale,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -2755,10 +2766,10 @@ export class PixverseV55Effects extends FalNode {
   static readonly description = `Pixverse
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
-  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
-  declare effect: any;
+  @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
+  declare negative_prompt: any;
 
   @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
   declare resolution: any;
@@ -2769,31 +2780,31 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Prompt optimization mode: 'enabled' to optimize, 'disabled' to turn off, 'auto' for model decision" })
   declare thinking_type: any;
 
-  @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
-  declare negative_prompt: any;
+  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
+  declare effect: any;
 
   @prop({ type: "image", default: "", description: "Optional URL of the image to use as the first frame. If not provided, generates from text" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const effect = String(inputs.effect ?? this.effect ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const thinkingType = String(inputs.thinking_type ?? this.thinking_type ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const duration = String(this.duration ?? "5");
+    const thinkingType = String(this.thinking_type ?? "");
+    const effect = String(this.effect ?? "");
 
     const args: Record<string, unknown> = {
-      "effect": effect,
+      "negative_prompt": negativePrompt,
       "resolution": resolution,
       "duration": duration,
       "thinking_type": thinkingType,
-      "negative_prompt": negativePrompt,
+      "effect": effect,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -2809,16 +2820,16 @@ export class PixverseV55Transition extends FalNode {
   static readonly description = `Pixverse
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
-  @prop({ type: "str", default: "", description: "The prompt for the transition" })
-  declare prompt: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
+  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
+  declare first_image: any;
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -2829,8 +2840,8 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["5", "8", "10"], description: "The duration of the generated video in seconds. Longer durations cost more. 1080p videos are limited to 5 or 8 seconds" })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare first_image: any;
+  @prop({ type: "str", default: "", description: "The prompt for the transition" })
+  declare prompt: any;
 
   @prop({ type: "bool", default: false, description: "Enable audio generation (BGM, SFX, dialogue)" })
   declare generate_audio_switch: any;
@@ -2844,39 +2855,39 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const style = String(inputs.style ?? this.style ?? "");
-    const thinkingType = String(inputs.thinking_type ?? this.thinking_type ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const generateAudioSwitch = Boolean(inputs.generate_audio_switch ?? this.generate_audio_switch ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const thinkingType = String(this.thinking_type ?? "");
+    const duration = String(this.duration ?? "5");
+    const prompt = String(this.prompt ?? "");
+    const generateAudioSwitch = Boolean(this.generate_audio_switch ?? false);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "style": style,
       "thinking_type": thinkingType,
       "duration": duration,
+      "prompt": prompt,
       "generate_audio_switch": generateAudioSwitch,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const firstImageRef = inputs.first_image as Record<string, unknown> | undefined;
+    const firstImageRef = this.first_image as Record<string, unknown> | undefined;
     if (isRefSet(firstImageRef)) {
-      const firstImageUrl = await assetToFalUrl(apiKey, firstImageRef!);
+      const firstImageUrl = await imageToDataUrl(firstImageRef!) ?? await assetToFalUrl(apiKey, firstImageRef!);
       if (firstImageUrl) args["first_image_url"] = firstImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -2892,25 +2903,25 @@ export class PixverseV55ImageToVideo extends FalNode {
   static readonly description = `Pixverse
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "5", values: ["5", "8", "10"], description: "The duration of the generated video in seconds. Longer durations cost more. 1080p videos are limited to 5 or 8 seconds" })
   declare duration: any;
 
-  @prop({ type: "bool", default: false, description: "Enable multi-clip generation with dynamic camera changes" })
-  declare generate_multi_clip_switch: any;
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
+
+  @prop({ type: "str", default: "", description: "The style of the generated video" })
+  declare style: any;
 
   @prop({ type: "str", default: "", description: "Prompt optimization mode: 'enabled' to optimize, 'disabled' to turn off, 'auto' for model decision" })
   declare thinking_type: any;
 
-  @prop({ type: "str", default: "", description: "The style of the generated video" })
-  declare style: any;
+  @prop({ type: "bool", default: false, description: "Enable multi-clip generation with dynamic camera changes" })
+  declare generate_multi_clip_switch: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
@@ -2924,33 +2935,33 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const generateMultiClipSwitch = Boolean(inputs.generate_multi_clip_switch ?? this.generate_multi_clip_switch ?? false);
-    const thinkingType = String(inputs.thinking_type ?? this.thinking_type ?? "");
-    const style = String(inputs.style ?? this.style ?? "");
-    const generateAudioSwitch = Boolean(inputs.generate_audio_switch ?? this.generate_audio_switch ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const thinkingType = String(this.thinking_type ?? "");
+    const generateMultiClipSwitch = Boolean(this.generate_multi_clip_switch ?? false);
+    const generateAudioSwitch = Boolean(this.generate_audio_switch ?? false);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
       "duration": duration,
-      "generate_multi_clip_switch": generateMultiClipSwitch,
-      "thinking_type": thinkingType,
+      "resolution": resolution,
       "style": style,
+      "thinking_type": thinkingType,
+      "generate_multi_clip_switch": generateMultiClipSwitch,
       "generate_audio_switch": generateAudioSwitch,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -2966,7 +2977,7 @@ export class KlingVideoO1ImageToVideo extends FalNode {
   static readonly description = `Kling O1 First Frame Last Frame to Video [Pro]
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Use @Image1 to reference the start frame, @Image2 to reference the end frame." })
   declare prompt: any;
@@ -2980,25 +2991,25 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "Image to use as the last frame of the video." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
     };
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
       if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -3014,16 +3025,16 @@ export class KlingVideoO1ReferenceToVideo extends FalNode {
   static readonly description = `Kling O1 Reference Image to Video [Pro]
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Take @Element1, @Element2 to reference elements and @Image1, @Image2 to reference images in order." })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10"], description: "Video duration in seconds." })
-  declare duration: any;
-
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "The aspect ratio of the generated video frame." })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10"], description: "Video duration in seconds." })
+  declare duration: any;
 
   @prop({ type: "str", default: "", description: "Elements (characters/objects) to include in the video. Reference in prompt as @Element1, @Element2, etc. Maximum 7 total (elements + reference images + start image)." })
   declare elements: any;
@@ -3031,21 +3042,21 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "list[image]", default: "", description: "Additional reference images for style/appearance. Reference in prompt as @Image1, @Image2, etc. Maximum 7 total (elements + reference images + start image)." })
   declare images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const elements = String(inputs.elements ?? this.elements ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const duration = String(this.duration ?? "5");
+    const elements = String(this.elements ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "aspect_ratio": aspectRatio,
+      "duration": duration,
       "elements": elements,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
@@ -3066,7 +3077,7 @@ export class Ltx2ImageToVideoFast extends FalNode {
   static readonly description = `LTX Video 2.0 Fast
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from" })
   declare prompt: any;
@@ -3074,37 +3085,37 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "enum", default: 6, values: [6, 8, 10, 12, 14, 16, 18, 20], description: "The duration of the generated video in seconds. The fast model supports 6-20 seconds. Note: Durations longer than 10 seconds (12, 14, 16, 18, 20) are only supported with 25 FPS and 1080p resolution." })
   declare duration: any;
 
-  @prop({ type: "enum", default: 25, values: [25, 50], description: "The frames per second of the generated video" })
-  declare fps: any;
+  @prop({ type: "enum", default: "1080p", values: ["1080p", "1440p", "2160p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the generated video" })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p", "1440p", "2160p"], description: "The resolution of the generated video" })
-  declare resolution: any;
+  @prop({ type: "enum", default: 25, values: [25, 50], description: "The frames per second of the generated video" })
+  declare fps: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to generate the video from. Must be publicly accessible or base64 data URI. Supports PNG, JPEG, WebP, AVIF, and HEIF formats." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? 6);
-    const fps = String(inputs.fps ?? this.fps ?? 25);
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? 6);
+    const resolution = String(this.resolution ?? "1080p");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const fps = String(this.fps ?? 25);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
-      "fps": fps,
-      "generate_audio": generateAudio,
       "resolution": resolution,
+      "generate_audio": generateAudio,
+      "fps": fps,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3120,7 +3131,7 @@ export class Ltx2ImageToVideo extends FalNode {
   static readonly description = `LTX Video 2.0 Pro
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from" })
   declare prompt: any;
@@ -3128,37 +3139,37 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: 6, values: [6, 8, 10], description: "The duration of the generated video in seconds" })
   declare duration: any;
 
-  @prop({ type: "enum", default: 25, values: [25, 50], description: "The frames per second of the generated video" })
-  declare fps: any;
+  @prop({ type: "enum", default: "1080p", values: ["1080p", "1440p", "2160p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the generated video" })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "1080p", values: ["1080p", "1440p", "2160p"], description: "The resolution of the generated video" })
-  declare resolution: any;
+  @prop({ type: "enum", default: 25, values: [25, 50], description: "The frames per second of the generated video" })
+  declare fps: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to generate the video from. Must be publicly accessible or base64 data URI. Supports PNG, JPEG, WebP, AVIF, and HEIF formats." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? 6);
-    const fps = String(inputs.fps ?? this.fps ?? 25);
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? 6);
+    const resolution = String(this.resolution ?? "1080p");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const fps = String(this.fps ?? 25);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
-      "fps": fps,
-      "generate_audio": generateAudio,
       "resolution": resolution,
+      "generate_audio": generateAudio,
+      "fps": fps,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3174,22 +3185,22 @@ export class BytedanceLynx extends FalNode {
   static readonly description = `Lynx
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide video generation" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the generated video (16:9, 9:16, or 1:1)" })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "720p", values: ["480p", "580p", "720p"], description: "Resolution of the generated video (480p, 580p, or 720p)" })
   declare resolution: any;
 
-  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
-  declare seed: any;
+  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "Aspect ratio of the generated video (16:9, 9:16, or 1:1)" })
+  declare aspect_ratio: any;
 
-  @prop({ type: "image", default: "", description: "The URL of the subject image to be used for video generation" })
-  declare image: any;
+  @prop({ type: "int", default: 81, description: "Number of frames in the generated video. Must be between 9 to 100." })
+  declare num_frames: any;
+
+  @prop({ type: "float", default: 2, description: "Image guidance scale. Controls how closely the generated video follows the reference image. Higher values increase adherence to the reference image but may decrease quality." })
+  declare guidance_scale_2: any;
 
   @prop({ type: "float", default: 1, description: "Reference image scale. Controls the influence of the reference image on the generated video." })
   declare strength: any;
@@ -3197,17 +3208,17 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "int", default: 16, description: "Frames per second of the generated video. Must be between 5 to 30." })
   declare frames_per_second: any;
 
-  @prop({ type: "float", default: 2, description: "Image guidance scale. Controls how closely the generated video follows the reference image. Higher values increase adherence to the reference image but may decrease quality." })
-  declare guidance_scale_2: any;
+  @prop({ type: "image", default: "", description: "The URL of the subject image to be used for video generation" })
+  declare image: any;
 
   @prop({ type: "float", default: 5, description: "Classifier-free guidance scale. Higher values give better adherence to the prompt but may decrease quality." })
   declare guidance_scale: any;
 
+  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
+  declare seed: any;
+
   @prop({ type: "int", default: 50, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
   declare num_inference_steps: any;
-
-  @prop({ type: "int", default: 81, description: "Number of frames in the generated video. Must be between 9 to 100." })
-  declare num_frames: any;
 
   @prop({ type: "str", default: "Bright tones, overexposed, blurred background, static, subtitles, style, works, paintings, images, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards", description: "Negative prompt to guide what should not appear in the generated video" })
   declare negative_prompt: any;
@@ -3215,39 +3226,39 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 1, description: "Identity preservation scale. Controls how closely the generated video preserves the subject's identity from the reference image." })
   declare ip_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const strength = Number(inputs.strength ?? this.strength ?? 1);
-    const framesPerSecond = Number(inputs.frames_per_second ?? this.frames_per_second ?? 16);
-    const guidanceScale_2 = Number(inputs.guidance_scale_2 ?? this.guidance_scale_2 ?? 2);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 50);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 81);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "Bright tones, overexposed, blurred background, static, subtitles, style, works, paintings, images, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
-    const ipScale = Number(inputs.ip_scale ?? this.ip_scale ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const numFrames = Number(this.num_frames ?? 81);
+    const guidanceScale_2 = Number(this.guidance_scale_2 ?? 2);
+    const strength = Number(this.strength ?? 1);
+    const framesPerSecond = Number(this.frames_per_second ?? 16);
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const seed = String(this.seed ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 50);
+    const negativePrompt = String(this.negative_prompt ?? "Bright tones, overexposed, blurred background, static, subtitles, style, works, paintings, images, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
+    const ipScale = Number(this.ip_scale ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
-      "seed": seed,
+      "aspect_ratio": aspectRatio,
+      "num_frames": numFrames,
+      "guidance_scale_2": guidanceScale_2,
       "strength": strength,
       "frames_per_second": framesPerSecond,
-      "guidance_scale_2": guidanceScale_2,
       "guidance_scale": guidanceScale,
+      "seed": seed,
       "num_inference_steps": numInferenceSteps,
-      "num_frames": numFrames,
       "negative_prompt": negativePrompt,
       "ip_scale": ipScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3263,13 +3274,13 @@ export class PixverseSwap extends FalNode {
   static readonly description = `Pixverse
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "video", default: "", description: "URL of the external video to swap" })
-  declare video: any;
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p"], description: "The output resolution (1080p not supported)" })
   declare resolution: any;
+
+  @prop({ type: "video", default: "", description: "URL of the external video to swap" })
+  declare video: any;
 
   @prop({ type: "image", default: "", description: "URL of the target image for swapping" })
   declare image: any;
@@ -3286,13 +3297,13 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "int", default: 1, description: "The keyframe ID to use for face/object mapping. The input video is normalized to 24 FPS before processing, so keyframe 1 = first frame, keyframe 24 = 1 second in, etc. Valid range: 1 to (duration_seconds * 24)." })
   declare keyframe_id: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const originalSoundSwitch = Boolean(inputs.original_sound_switch ?? this.original_sound_switch ?? true);
-    const mode = String(inputs.mode ?? this.mode ?? "person");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const keyframeId = Number(inputs.keyframe_id ?? this.keyframe_id ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const resolution = String(this.resolution ?? "720p");
+    const originalSoundSwitch = Boolean(this.original_sound_switch ?? true);
+    const mode = String(this.mode ?? "person");
+    const seed = String(this.seed ?? "");
+    const keyframeId = Number(this.keyframe_id ?? 1);
 
     const args: Record<string, unknown> = {
       "resolution": resolution,
@@ -3302,15 +3313,15 @@ video, animation, image-to-video, img2vid`;
       "keyframe_id": keyframeId,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3326,7 +3337,7 @@ export class PikaV22Pikaframes extends FalNode {
   static readonly description = `Pika
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Default prompt for all transitions. Individual transition prompts override this." })
   declare prompt: any;
@@ -3346,13 +3357,13 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "A negative prompt to guide the model" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const transitions = String(inputs.transitions ?? this.transitions ?? []);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const transitions = String(this.transitions ?? []);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -3362,7 +3373,7 @@ video, animation, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
@@ -3383,7 +3394,7 @@ export class LongcatVideoImageToVideo720P extends FalNode {
   static readonly description = `LongCat Video
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -3433,23 +3444,23 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "int", default: -1, description: "The seed for the random number generator." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const fps = Number(inputs.fps ?? this.fps ?? 30);
-    const numRefineInferenceSteps = Number(inputs.num_refine_inference_steps ?? this.num_refine_inference_steps ?? 40);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 4);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 162);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
+    const acceleration = String(this.acceleration ?? "regular");
+    const fps = Number(this.fps ?? 30);
+    const numRefineInferenceSteps = Number(this.num_refine_inference_steps ?? 40);
+    const guidanceScale = Number(this.guidance_scale ?? 4);
+    const numFrames = Number(this.num_frames ?? 162);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const negativePrompt = String(this.negative_prompt ?? "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -3469,9 +3480,9 @@ video, animation, image-to-video, img2vid`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3487,7 +3498,7 @@ export class LongcatVideoImageToVideo480P extends FalNode {
   static readonly description = `LongCat Video
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -3534,22 +3545,22 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "int", default: -1, description: "The seed for the random number generator." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const fps = Number(inputs.fps ?? this.fps ?? 15);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 4);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 162);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
+    const acceleration = String(this.acceleration ?? "regular");
+    const fps = Number(this.fps ?? 15);
+    const guidanceScale = Number(this.guidance_scale ?? 4);
+    const numFrames = Number(this.num_frames ?? 162);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const negativePrompt = String(this.negative_prompt ?? "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -3568,9 +3579,9 @@ video, animation, image-to-video, img2vid`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3586,7 +3597,7 @@ export class LongcatVideoDistilledImageToVideo720P extends FalNode {
   static readonly description = `LongCat Video Distilled
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -3627,20 +3638,20 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
   declare video_quality: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
-    const fps = Number(inputs.fps ?? this.fps ?? 30);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const numRefineInferenceSteps = Number(inputs.num_refine_inference_steps ?? this.num_refine_inference_steps ?? 12);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 12);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 162);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const prompt = String(this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
+    const fps = Number(this.fps ?? 30);
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const numRefineInferenceSteps = Number(this.num_refine_inference_steps ?? 12);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 12);
+    const seed = Number(this.seed ?? -1);
+    const numFrames = Number(this.num_frames ?? 162);
+    const videoQuality = String(this.video_quality ?? "high");
 
     const args: Record<string, unknown> = {
       "video_write_mode": videoWriteMode,
@@ -3657,9 +3668,9 @@ video, animation, image-to-video, img2vid`;
       "video_quality": videoQuality,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3675,7 +3686,7 @@ export class LongcatVideoDistilledImageToVideo480P extends FalNode {
   static readonly description = `LongCat Video Distilled
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -3713,19 +3724,19 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
-    const fps = Number(inputs.fps ?? this.fps ?? 15);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 12);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 162);
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const prompt = String(this.prompt ?? "First-person view from the cockpit of a Formula 1 car. The driver's gloved hands firmly grip the intricate, carbon-fiber steering wheel adorned with numerous colorful buttons and a vibrant digital display showing race data. Beyond the windshield, a sun-drenched racetrack stretches ahead, lined with cheering spectators in the grandstands. Several rival cars are visible in the distance, creating a dynamic sense of competition. The sky above is a clear, brilliant blue, reflecting the exhilarating atmosphere of a high-speed race. high resolution 4k");
+    const fps = Number(this.fps ?? 15);
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 12);
+    const seed = Number(this.seed ?? -1);
+    const numFrames = Number(this.num_frames ?? 162);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
 
     const args: Record<string, unknown> = {
       "video_write_mode": videoWriteMode,
@@ -3741,9 +3752,9 @@ video, animation, image-to-video, img2vid`;
       "enable_prompt_expansion": enablePromptExpansion,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3759,7 +3770,7 @@ export class MinimaxHailuo23FastStandardImageToVideo extends FalNode {
   static readonly description = `MiniMax Hailuo 2.3 Fast [Standard] (Image to Video)
 video, animation, image-to-video, img2vid, fast, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
@@ -3773,11 +3784,11 @@ video, animation, image-to-video, img2vid, fast, professional`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "6");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "6");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -3785,9 +3796,9 @@ video, animation, image-to-video, img2vid, fast, professional`;
       "prompt_optimizer": promptOptimizer,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3803,7 +3814,7 @@ export class MinimaxHailuo23StandardImageToVideo extends FalNode {
   static readonly description = `MiniMax Hailuo 2.3 [Standard] (Image to Video)
 video, animation, image-to-video, img2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
@@ -3817,11 +3828,11 @@ video, animation, image-to-video, img2vid, professional`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "6");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "6");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -3829,9 +3840,9 @@ video, animation, image-to-video, img2vid, professional`;
       "prompt_optimizer": promptOptimizer,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3847,7 +3858,7 @@ export class MinimaxHailuo23FastProImageToVideo extends FalNode {
   static readonly description = `MiniMax Hailuo 2.3 Fast [Pro] (Image to Video)
 video, animation, image-to-video, img2vid, fast, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation" })
   declare prompt: any;
@@ -3858,19 +3869,19 @@ video, animation, image-to-video, img2vid, fast, professional`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -3886,7 +3897,7 @@ export class ViduQ2ImageToVideoTurbo extends FalNode {
   static readonly description = `Vidu
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 3000 characters" })
   declare prompt: any;
@@ -3906,20 +3917,20 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
-  declare movement_amplitude: any;
-
   @prop({ type: "image", default: "", description: "URL of the image to use as the ending frame. When provided, generates a transition video between start and end frames." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? 4);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const bgm = Boolean(inputs.bgm ?? this.bgm ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
+  declare movement_amplitude: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? 4);
+    const resolution = String(this.resolution ?? "720p");
+    const bgm = Boolean(this.bgm ?? false);
+    const seed = String(this.seed ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -3930,15 +3941,15 @@ video, animation, image-to-video, img2vid, fast`;
       "movement_amplitude": movementAmplitude,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -3954,7 +3965,7 @@ export class ViduQ2ImageToVideoPro extends FalNode {
   static readonly description = `Vidu
 video, animation, image-to-video, img2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 3000 characters" })
   declare prompt: any;
@@ -3974,20 +3985,20 @@ video, animation, image-to-video, img2vid, professional`;
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
-  declare movement_amplitude: any;
-
   @prop({ type: "image", default: "", description: "URL of the image to use as the ending frame. When provided, generates a transition video between start and end frames." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? 4);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const bgm = Boolean(inputs.bgm ?? this.bgm ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
+  declare movement_amplitude: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? 4);
+    const resolution = String(this.resolution ?? "720p");
+    const bgm = Boolean(this.bgm ?? false);
+    const seed = String(this.seed ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -3998,15 +4009,15 @@ video, animation, image-to-video, img2vid, professional`;
       "movement_amplitude": movementAmplitude,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -4022,7 +4033,7 @@ export class KlingVideoV25TurboStandardImageToVideo extends FalNode {
   static readonly description = `Kling Video
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -4039,12 +4050,12 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "image", default: "", description: "URL of the image to be used for the video" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -4053,9 +4064,9 @@ video, animation, image-to-video, img2vid, fast`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4071,7 +4082,7 @@ export class Veo31FastFirstLastFrameToVideo extends FalNode {
   static readonly description = `Veo 3.1 Fast
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -4085,11 +4096,11 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video." })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "720p", values: ["720p", "1080p", "4k"], description: "The resolution of the generated video." })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video." })
+  declare aspect_ratio: any;
 
   @prop({ type: "video", default: "", description: "URL of the first frame of the video" })
   declare first_frame_url: any;
@@ -4100,43 +4111,43 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "str", default: "", description: "The seed for the random number generator." })
   declare seed: any;
 
-  @prop({ type: "video", default: "", description: "URL of the last frame of the video" })
-  declare last_frame_url: any;
-
   @prop({ type: "str", default: "", description: "A negative prompt to guide the video generation." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "8s");
-    const autoFix = Boolean(inputs.auto_fix ?? this.auto_fix ?? false);
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const safetyTolerance = String(inputs.safety_tolerance ?? this.safety_tolerance ?? "4");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  @prop({ type: "video", default: "", description: "URL of the last frame of the video" })
+  declare last_frame_url: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "8s");
+    const autoFix = Boolean(this.auto_fix ?? false);
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const safetyTolerance = String(this.safety_tolerance ?? "4");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
       "auto_fix": autoFix,
       "generate_audio": generateAudio,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const firstFrameUrlRef = inputs.first_frame_url as Record<string, unknown> | undefined;
+    const firstFrameUrlRef = this.first_frame_url as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameUrlRef)) {
       const firstFrameUrlUrl = await assetToFalUrl(apiKey, firstFrameUrlRef!);
       if (firstFrameUrlUrl) args["first_frame_url"] = firstFrameUrlUrl;
     }
 
-    const lastFrameUrlRef = inputs.last_frame_url as Record<string, unknown> | undefined;
+    const lastFrameUrlRef = this.last_frame_url as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameUrlRef)) {
       const lastFrameUrlUrl = await assetToFalUrl(apiKey, lastFrameUrlRef!);
       if (lastFrameUrlUrl) args["last_frame_url"] = lastFrameUrlUrl;
@@ -4154,7 +4165,7 @@ export class Veo31FirstLastFrameToVideo extends FalNode {
   static readonly description = `Veo 3.1
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -4168,11 +4179,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video." })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "720p", values: ["720p", "1080p", "4k"], description: "The resolution of the generated video." })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video." })
+  declare aspect_ratio: any;
 
   @prop({ type: "video", default: "", description: "URL of the first frame of the video" })
   declare first_frame_url: any;
@@ -4183,43 +4194,43 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "The seed for the random number generator." })
   declare seed: any;
 
-  @prop({ type: "video", default: "", description: "URL of the last frame of the video" })
-  declare last_frame_url: any;
-
   @prop({ type: "str", default: "", description: "A negative prompt to guide the video generation." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "8s");
-    const autoFix = Boolean(inputs.auto_fix ?? this.auto_fix ?? false);
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const safetyTolerance = String(inputs.safety_tolerance ?? this.safety_tolerance ?? "4");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  @prop({ type: "video", default: "", description: "URL of the last frame of the video" })
+  declare last_frame_url: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "8s");
+    const autoFix = Boolean(this.auto_fix ?? false);
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const safetyTolerance = String(this.safety_tolerance ?? "4");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
       "auto_fix": autoFix,
       "generate_audio": generateAudio,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const firstFrameUrlRef = inputs.first_frame_url as Record<string, unknown> | undefined;
+    const firstFrameUrlRef = this.first_frame_url as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameUrlRef)) {
       const firstFrameUrlUrl = await assetToFalUrl(apiKey, firstFrameUrlRef!);
       if (firstFrameUrlUrl) args["first_frame_url"] = firstFrameUrlUrl;
     }
 
-    const lastFrameUrlRef = inputs.last_frame_url as Record<string, unknown> | undefined;
+    const lastFrameUrlRef = this.last_frame_url as Record<string, unknown> | undefined;
     if (isRefSet(lastFrameUrlRef)) {
       const lastFrameUrlUrl = await assetToFalUrl(apiKey, lastFrameUrlRef!);
       if (lastFrameUrlUrl) args["last_frame_url"] = lastFrameUrlUrl;
@@ -4237,7 +4248,7 @@ export class Veo31ReferenceToVideo extends FalNode {
   static readonly description = `Veo 3.1
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -4251,11 +4262,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "The aspect ratio of the generated video." })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "720p", values: ["720p", "1080p", "4k"], description: "The resolution of the generated video." })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "The aspect ratio of the generated video." })
+  declare aspect_ratio: any;
 
   @prop({ type: "enum", default: "4", values: ["1", "2", "3", "4", "5", "6"], description: "The safety tolerance level for content moderation. 1 is the most strict (blocks most content), 6 is the least strict." })
   declare safety_tolerance: any;
@@ -4263,27 +4274,27 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "list[image]", default: [], description: "URLs of the reference images to use for consistent subject appearance" })
   declare images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "8s");
-    const autoFix = Boolean(inputs.auto_fix ?? this.auto_fix ?? false);
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const safetyTolerance = String(inputs.safety_tolerance ?? this.safety_tolerance ?? "4");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "8s");
+    const autoFix = Boolean(this.auto_fix ?? false);
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const safetyTolerance = String(this.safety_tolerance ?? "4");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
       "auto_fix": autoFix,
       "generate_audio": generateAudio,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "safety_tolerance": safetyTolerance,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
@@ -4304,25 +4315,25 @@ export class Veo31FastImageToVideo extends FalNode {
   static readonly description = `Veo 3.1 Fast
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
-  declare duration: any;
-
   @prop({ type: "bool", default: false, description: "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them." })
   declare auto_fix: any;
+
+  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
+  declare duration: any;
 
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video. Only 16:9 and 9:16 are supported." })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "720p", values: ["720p", "1080p", "4k"], description: "The resolution of the generated video." })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video. Only 16:9 and 9:16 are supported." })
+  declare aspect_ratio: any;
 
   @prop({ type: "image", default: "", description: "URL of the input image to animate. Should be 720p or higher resolution in 16:9 or 9:16 aspect ratio. If the image is not in 16:9 or 9:16 aspect ratio, it will be cropped to fit." })
   declare image: any;
@@ -4336,33 +4347,33 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "str", default: "", description: "A negative prompt to guide the video generation." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "8s");
-    const autoFix = Boolean(inputs.auto_fix ?? this.auto_fix ?? false);
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const safetyTolerance = String(inputs.safety_tolerance ?? this.safety_tolerance ?? "4");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const autoFix = Boolean(this.auto_fix ?? false);
+    const duration = String(this.duration ?? "8s");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const safetyTolerance = String(this.safety_tolerance ?? "4");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "auto_fix": autoFix,
+      "duration": duration,
       "generate_audio": generateAudio,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4378,25 +4389,25 @@ export class Veo31ImageToVideo extends FalNode {
   static readonly description = `Veo 3.1
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
-  declare duration: any;
-
   @prop({ type: "bool", default: false, description: "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them." })
   declare auto_fix: any;
+
+  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
+  declare duration: any;
 
   @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
   declare generate_audio: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video. Only 16:9 and 9:16 are supported." })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "720p", values: ["720p", "1080p", "4k"], description: "The resolution of the generated video." })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video. Only 16:9 and 9:16 are supported." })
+  declare aspect_ratio: any;
 
   @prop({ type: "image", default: "", description: "URL of the input image to animate. Should be 720p or higher resolution in 16:9 or 9:16 aspect ratio. If the image is not in 16:9 or 9:16 aspect ratio, it will be cropped to fit." })
   declare image: any;
@@ -4410,33 +4421,33 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "A negative prompt to guide the video generation." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "8s");
-    const autoFix = Boolean(inputs.auto_fix ?? this.auto_fix ?? false);
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const safetyTolerance = String(inputs.safety_tolerance ?? this.safety_tolerance ?? "4");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const autoFix = Boolean(this.auto_fix ?? false);
+    const duration = String(this.duration ?? "8s");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const safetyTolerance = String(this.safety_tolerance ?? "4");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "auto_fix": autoFix,
+      "duration": duration,
       "generate_audio": generateAudio,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4452,19 +4463,22 @@ export class Sora2ImageToVideoPro extends FalNode {
   static readonly description = `Sora 2
 video, animation, image-to-video, img2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "thumbnail": "str", "video_id": "str", "spritesheet": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "auto", values: ["auto", "9:16", "16:9"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
 
-  @prop({ type: "enum", default: 4, values: [4, 8, 12], description: "Duration of the generated video in seconds" })
+  @prop({ type: "enum", default: 4, values: [4, 8, 12, 16, 20], description: "Duration of the generated video in seconds" })
   declare duration: any;
+
+  @prop({ type: "enum", default: "auto", values: ["auto", "720p", "1080p", "true_1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
+
+  @prop({ type: "str", default: "", description: "Up to two character IDs (from create-character) to use in the video. Refer to characters by name in the prompt. When set, only the OpenAI provider is used." })
+  declare character_ids: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to use as the first frame" })
   declare image: any;
@@ -4475,27 +4489,29 @@ video, animation, image-to-video, img2vid, professional`;
   @prop({ type: "bool", default: false, description: "If enabled, the prompt (and image for image-to-video) will be checked for known intellectual property references and the request will be blocked if any are detected." })
   declare detect_and_block_ip: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "auto");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const duration = String(inputs.duration ?? this.duration ?? 4);
-    const deleteVideo = Boolean(inputs.delete_video ?? this.delete_video ?? true);
-    const detectAndBlockIp = Boolean(inputs.detect_and_block_ip ?? this.detect_and_block_ip ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const duration = String(this.duration ?? 4);
+    const resolution = String(this.resolution ?? "auto");
+    const characterIds = String(this.character_ids ?? "");
+    const deleteVideo = Boolean(this.delete_video ?? true);
+    const detectAndBlockIp = Boolean(this.detect_and_block_ip ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
       "duration": duration,
+      "resolution": resolution,
+      "character_ids": characterIds,
       "delete_video": deleteVideo,
       "detect_and_block_ip": detectAndBlockIp,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4511,7 +4527,7 @@ export class Sora2ImageToVideo extends FalNode {
   static readonly description = `Sora 2
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "thumbnail": "str", "video_id": "str", "spritesheet": "str", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing the video you want to generate" })
   declare prompt: any;
@@ -4519,11 +4535,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "auto", values: ["auto", "9:16", "16:9"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
 
+  @prop({ type: "enum", default: 4, values: [4, 8, 12, 16, 20], description: "Duration of the generated video in seconds" })
+  declare duration: any;
+
   @prop({ type: "enum", default: "auto", values: ["auto", "720p"], description: "The resolution of the generated video" })
   declare resolution: any;
 
-  @prop({ type: "enum", default: 4, values: [4, 8, 12], description: "Duration of the generated video in seconds" })
-  declare duration: any;
+  @prop({ type: "str", default: "", description: "Up to two character IDs (from create-character) to use in the video. Refer to characters by name in the prompt. When set, only the OpenAI provider is used." })
+  declare character_ids: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to use as the first frame" })
   declare image: any;
@@ -4537,29 +4556,31 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: false, description: "If enabled, the prompt (and image for image-to-video) will be checked for known intellectual property references and the request will be blocked if any are detected." })
   declare detect_and_block_ip: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "auto");
-    const duration = String(inputs.duration ?? this.duration ?? 4);
-    const model = String(inputs.model ?? this.model ?? "sora-2");
-    const deleteVideo = Boolean(inputs.delete_video ?? this.delete_video ?? true);
-    const detectAndBlockIp = Boolean(inputs.detect_and_block_ip ?? this.detect_and_block_ip ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const duration = String(this.duration ?? 4);
+    const resolution = String(this.resolution ?? "auto");
+    const characterIds = String(this.character_ids ?? "");
+    const model = String(this.model ?? "sora-2");
+    const deleteVideo = Boolean(this.delete_video ?? true);
+    const detectAndBlockIp = Boolean(this.detect_and_block_ip ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
-      "resolution": resolution,
       "duration": duration,
+      "resolution": resolution,
+      "character_ids": characterIds,
       "model": model,
       "delete_video": deleteVideo,
       "detect_and_block_ip": detectAndBlockIp,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4575,13 +4596,10 @@ export class OviImageToVideo extends FalNode {
   static readonly description = `Ovi
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
-
-  @prop({ type: "str", default: "robotic, muffled, echo, distorted", description: "Negative prompt for audio generation." })
-  declare audio_negative_prompt: any;
 
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
@@ -4589,31 +4607,34 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "int", default: 30, description: "The number of inference steps." })
   declare num_inference_steps: any;
 
+  @prop({ type: "str", default: "robotic, muffled, echo, distorted", description: "Negative prompt for audio generation." })
+  declare audio_negative_prompt: any;
+
   @prop({ type: "str", default: "jitter, bad hands, blur, distortion", description: "Negative prompt for video generation." })
   declare negative_prompt: any;
 
   @prop({ type: "image", default: "", description: "The image URL to guide video generation." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const audioNegativePrompt = String(inputs.audio_negative_prompt ?? this.audio_negative_prompt ?? "robotic, muffled, echo, distorted");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "jitter, bad hands, blur, distortion");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = String(this.seed ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const audioNegativePrompt = String(this.audio_negative_prompt ?? "robotic, muffled, echo, distorted");
+    const negativePrompt = String(this.negative_prompt ?? "jitter, bad hands, blur, distortion");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "audio_negative_prompt": audioNegativePrompt,
       "seed": seed,
       "num_inference_steps": numInferenceSteps,
+      "audio_negative_prompt": audioNegativePrompt,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4629,7 +4650,7 @@ export class VeedFabric10Fast extends FalNode {
   static readonly description = `Fabric 1.0 Fast
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "", values: ["720p", "480p"], description: "Resolution" })
   declare resolution: any;
@@ -4640,23 +4661,23 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const resolution = String(this.resolution ?? "");
 
     const args: Record<string, unknown> = {
       "resolution": resolution,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4672,7 +4693,7 @@ export class VeedFabric10 extends FalNode {
   static readonly description = `Fabric 1.0
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "", values: ["720p", "480p"], description: "Resolution" })
   declare resolution: any;
@@ -4683,23 +4704,23 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const resolution = String(this.resolution ?? "");
 
     const args: Record<string, unknown> = {
       "resolution": resolution,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4715,7 +4736,7 @@ export class KlingVideoV1StandardAiAvatar extends FalNode {
   static readonly description = `Kling AI Avatar
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "duration": "float", "video": "video" };
 
   @prop({ type: "str", default: ".", description: "The prompt to use for the video generation." })
   declare prompt: any;
@@ -4726,23 +4747,23 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "The URL of the image to use as your avatar" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? ".");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? ".");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4758,7 +4779,7 @@ export class KlingVideoV1ProAiAvatar extends FalNode {
   static readonly description = `Kling AI Avatar Pro
 video, animation, image-to-video, img2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "duration": "float", "video": "video" };
 
   @prop({ type: "str", default: ".", description: "The prompt to use for the video generation." })
   declare prompt: any;
@@ -4769,23 +4790,23 @@ video, animation, image-to-video, img2vid, professional`;
   @prop({ type: "image", default: "", description: "The URL of the image to use as your avatar" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? ".");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? ".");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4801,7 +4822,7 @@ export class DecartLucy14BImageToVideo extends FalNode {
   static readonly description = `Decart Lucy 14b
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "bool", default: true, description: "\n            If set to true, the function will wait for the image to be generated\n            and uploaded before returning the response. This will increase the\n            latency of the function but it allows you to get the image directly\n            in the response without going through the CDN.\n        " })
   declare sync_mode: any;
@@ -4815,11 +4836,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? true);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const syncMode = Boolean(this.sync_mode ?? true);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "sync_mode": syncMode,
@@ -4827,9 +4848,9 @@ video, animation, image-to-video, img2vid`;
       "prompt": prompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -4845,7 +4866,7 @@ export class WanAti extends FalNode {
   static readonly description = `Wan Ati
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -4868,14 +4889,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const track = String(inputs.track ?? this.track ?? []);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "480p");
+    const track = String(this.track ?? []);
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -4886,63 +4907,14 @@ video, animation, image-to-video, img2vid`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/wan-ati", args);
-    return { output: { type: "video", uri: (res.video as any).url } };
-  }
-}
-
-export class DecartLucy5bImageToVideo extends FalNode {
-  static readonly nodeType = "fal.image_to_video.DecartLucy5bImageToVideo";
-  static readonly title = "Decart Lucy5b Image To Video";
-  static readonly description = `Lucy-5B is a model that can create 5-second I2V videos in under 5 seconds, achieving >1x RTF end-to-end
-video, animation, image-to-video, img2vid`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "str", default: "", description: "Text description of the desired video content" })
-  declare prompt: any;
-
-  @prop({ type: "enum", default: "16:9", values: ["9:16", "16:9"], description: "Aspect ratio of the generated video." })
-  declare aspect_ratio: any;
-
-  @prop({ type: "str", default: "720p", description: "Resolution of the generated video" })
-  declare resolution: any;
-
-  @prop({ type: "bool", default: true, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
-  declare sync_mode: any;
-
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare image: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? true);
-
-    const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "aspect_ratio": aspectRatio,
-      "resolution": resolution,
-      "sync_mode": syncMode,
-    };
-
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
-    if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
-      if (imageUrl) args["image_url"] = imageUrl;
-    }
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "fal-ai/decart/lucy-5b/image-to-video", args);
     return { output: { type: "video", uri: (res.video as any).url } };
   }
 }
@@ -4953,16 +4925,16 @@ export class PixverseV5Transition extends FalNode {
   static readonly description = `Create seamless transition between images using PixVerse v5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
-  @prop({ type: "str", default: "", description: "The prompt for the transition" })
-  declare prompt: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
+  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
+  declare first_image: any;
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
+
+  @prop({ type: "str", default: "", description: "The prompt for the transition" })
+  declare prompt: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -4970,8 +4942,8 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare first_image: any;
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        " })
   declare seed: any;
@@ -4982,35 +4954,35 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const style = String(inputs.style ?? this.style ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const prompt = String(this.prompt ?? "");
+    const style = String(this.style ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "prompt": prompt,
       "style": style,
       "duration": duration,
+      "resolution": resolution,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const firstImageRef = inputs.first_image as Record<string, unknown> | undefined;
+    const firstImageRef = this.first_image as Record<string, unknown> | undefined;
     if (isRefSet(firstImageRef)) {
-      const firstImageUrl = await assetToFalUrl(apiKey, firstImageRef!);
+      const firstImageUrl = await imageToDataUrl(firstImageRef!) ?? await assetToFalUrl(apiKey, firstImageRef!);
       if (firstImageUrl) args["first_image_url"] = firstImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -5026,40 +4998,40 @@ export class PixverseV5Effects extends FalNode {
   static readonly description = `Generate high quality video clips with different effects using PixVerse v5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
-  declare effect: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
-  declare resolution: any;
-
-  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
-  declare duration: any;
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
+  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
+  declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
+  declare resolution: any;
+
+  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
+  declare effect: any;
+
   @prop({ type: "image", default: "", description: "Optional URL of the image to use as the first frame. If not provided, generates from text" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const effect = String(inputs.effect ?? this.effect ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const effect = String(this.effect ?? "");
 
     const args: Record<string, unknown> = {
-      "effect": effect,
-      "resolution": resolution,
-      "duration": duration,
       "negative_prompt": negativePrompt,
+      "duration": duration,
+      "resolution": resolution,
+      "effect": effect,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5075,16 +5047,16 @@ export class PixverseV5ImageToVideo extends FalNode {
   static readonly description = `Generate high quality video clips from text and image prompts using PixVerse v5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds. 8s videos cost double. 1080p videos are limited to 5 seconds" })
   declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -5098,27 +5070,27 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const style = String(inputs.style ?? this.style ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
       "duration": duration,
+      "resolution": resolution,
       "style": style,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5134,7 +5106,7 @@ export class MoonvalleyMareyI2v extends FalNode {
   static readonly description = `Generate a video starting from an image as the first frame with Marey, a generative video model trained exclusively on fully licensed data.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate a video from" })
   declare prompt: any;
@@ -5157,14 +5129,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "<synthetic> <scene cut> low-poly, flat shader, bad rigging, stiff animation, uncanny eyes, low-quality textures, looping glitch, cheap effect, overbloom, bloom spam, default lighting, game asset, stiff face, ugly specular, AI artifacts", description: "Negative prompt used to guide the model away from undesirable features." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5s");
-    const dimensions = String(inputs.dimensions ?? this.dimensions ?? "1920x1080");
-    const guidanceScale = String(inputs.guidance_scale ?? this.guidance_scale ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? -1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "<synthetic> <scene cut> low-poly, flat shader, bad rigging, stiff animation, uncanny eyes, low-quality textures, looping glitch, cheap effect, overbloom, bloom spam, default lighting, game asset, stiff face, ugly specular, AI artifacts");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5s");
+    const dimensions = String(this.dimensions ?? "1920x1080");
+    const guidanceScale = String(this.guidance_scale ?? "");
+    const seed = String(this.seed ?? -1);
+    const negativePrompt = String(this.negative_prompt ?? "<synthetic> <scene cut> low-poly, flat shader, bad rigging, stiff animation, uncanny eyes, low-quality textures, looping glitch, cheap effect, overbloom, bloom spam, default lighting, game asset, stiff face, ugly specular, AI artifacts");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -5175,9 +5147,9 @@ video, animation, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5193,7 +5165,7 @@ export class WanV22A14bImageToVideoLora extends FalNode {
   static readonly description = `Wan-2.2 image-to-video is a video model that generates high-quality videos with high visual quality and motion diversity from text prompts and images. This endpoint supports LoRAs made for Wan 2.2
 video, animation, image-to-video, img2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -5201,14 +5173,14 @@ video, animation, image-to-video, img2vid, lora`;
   @prop({ type: "float", default: 5, description: "Shift value for the video. Must be between 1.0 and 10.0." })
   declare shift: any;
 
-  @prop({ type: "enum", default: "regular", values: ["none", "regular"], description: "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'regular'." })
-  declare acceleration: any;
+  @prop({ type: "bool", default: false, description: "If true, the video will be reversed." })
+  declare reverse_video: any;
 
   @prop({ type: "int", default: 1, description: "Number of frames to interpolate between each pair of generated frames. Must be between 0 and 4." })
   declare num_interpolated_frames: any;
 
-  @prop({ type: "bool", default: false, description: "If true, the video will be reversed." })
-  declare reverse_video: any;
+  @prop({ type: "enum", default: "regular", values: ["none", "regular"], description: "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'regular'." })
+  declare acceleration: any;
 
   @prop({ type: "list[LoRAWeight]", default: [], description: "LoRA weights to be used in the inference." })
   declare loras: any;
@@ -5252,52 +5224,52 @@ video, animation, image-to-video, img2vid, lora`;
   @prop({ type: "float", default: 4, description: "Guidance scale for the second stage of the model. This is used to control the adherence to the prompt in the second stage of the model." })
   declare guidance_scale_2: any;
 
+  @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning." })
+  declare enable_prompt_expansion: any;
+
+  @prop({ type: "int", default: 27, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
+  declare num_inference_steps: any;
+
+  @prop({ type: "enum", default: "film", values: ["none", "film", "rife"], description: "The model to use for frame interpolation. If None, no interpolation is applied." })
+  declare interpolator_model: any;
+
   @prop({ type: "bool", default: true, description: "If true, the number of frames per second will be multiplied by the number of interpolated frames plus one. For example, if the generated frames per second is 16 and the number of interpolated frames is 1, the final frames per second will be 32. If false, the passed frames per second will be used as-is." })
   declare adjust_fps_for_interpolation: any;
 
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  @prop({ type: "enum", default: "film", values: ["none", "film", "rife"], description: "The model to use for frame interpolation. If None, no interpolation is applied." })
-  declare interpolator_model: any;
-
-  @prop({ type: "int", default: 27, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
-  declare num_inference_steps: any;
-
-  @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning." })
-  declare enable_prompt_expansion: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const shift = Number(inputs.shift ?? this.shift ?? 5);
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const numInterpolatedFrames = Number(inputs.num_interpolated_frames ?? this.num_interpolated_frames ?? 1);
-    const reverseVideo = Boolean(inputs.reverse_video ?? this.reverse_video ?? false);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const framesPerSecond = String(inputs.frames_per_second ?? this.frames_per_second ?? 16);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 81);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const enableOutputSafetyChecker = Boolean(inputs.enable_output_safety_checker ?? this.enable_output_safety_checker ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const guidanceScale_2 = Number(inputs.guidance_scale_2 ?? this.guidance_scale_2 ?? 4);
-    const adjustFpsForInterpolation = Boolean(inputs.adjust_fps_for_interpolation ?? this.adjust_fps_for_interpolation ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const interpolatorModel = String(inputs.interpolator_model ?? this.interpolator_model ?? "film");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 27);
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const shift = Number(this.shift ?? 5);
+    const reverseVideo = Boolean(this.reverse_video ?? false);
+    const numInterpolatedFrames = Number(this.num_interpolated_frames ?? 1);
+    const acceleration = String(this.acceleration ?? "regular");
+    const loras = String(this.loras ?? []);
+    const framesPerSecond = String(this.frames_per_second ?? 16);
+    const guidanceScale = Number(this.guidance_scale ?? 3.5);
+    const numFrames = Number(this.num_frames ?? 81);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const enableOutputSafetyChecker = Boolean(this.enable_output_safety_checker ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const guidanceScale_2 = Number(this.guidance_scale_2 ?? 4);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 27);
+    const interpolatorModel = String(this.interpolator_model ?? "film");
+    const adjustFpsForInterpolation = Boolean(this.adjust_fps_for_interpolation ?? true);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "shift": shift,
-      "acceleration": acceleration,
-      "num_interpolated_frames": numInterpolatedFrames,
       "reverse_video": reverseVideo,
+      "num_interpolated_frames": numInterpolatedFrames,
+      "acceleration": acceleration,
       "loras": loras,
       "frames_per_second": framesPerSecond,
       "guidance_scale": guidanceScale,
@@ -5310,22 +5282,22 @@ video, animation, image-to-video, img2vid, lora`;
       "enable_output_safety_checker": enableOutputSafetyChecker,
       "video_quality": videoQuality,
       "guidance_scale_2": guidanceScale_2,
+      "enable_prompt_expansion": enablePromptExpansion,
+      "num_inference_steps": numInferenceSteps,
+      "interpolator_model": interpolatorModel,
       "adjust_fps_for_interpolation": adjustFpsForInterpolation,
       "seed": seed,
-      "interpolator_model": interpolatorModel,
-      "num_inference_steps": numInferenceSteps,
-      "enable_prompt_expansion": enablePromptExpansion,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5341,7 +5313,7 @@ export class MinimaxHailuo02FastImageToVideo extends FalNode {
   static readonly description = `Create blazing fast and economical videos with MiniMax Hailuo-02 Image To Video API at 512p resolution
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -5355,11 +5327,11 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "6");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "6");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -5367,9 +5339,9 @@ video, animation, image-to-video, img2vid, fast`;
       "prompt_optimizer": promptOptimizer,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5385,25 +5357,25 @@ export class Veo3ImageToVideo extends FalNode {
   static readonly description = `Veo 3 is the latest state-of-the art video generation model from Google DeepMind
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing how the image should be animated" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
-  declare duration: any;
-
   @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video." })
   declare aspect_ratio: any;
-
-  @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
-  declare generate_audio: any;
 
   @prop({ type: "enum", default: "720p", values: ["720p", "1080p"], description: "The resolution of the generated video." })
   declare resolution: any;
 
+  @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
+  declare generate_audio: any;
+
   @prop({ type: "bool", default: false, description: "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them." })
   declare auto_fix: any;
+
+  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
+  declare duration: any;
 
   @prop({ type: "image", default: "", description: "URL of the input image to animate. Should be 720p or higher resolution in 16:9 or 9:16 aspect ratio. If the image is not in 16:9 or 9:16 aspect ratio, it will be cropped to fit." })
   declare image: any;
@@ -5417,33 +5389,33 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "A negative prompt to guide the video generation." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "8s");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const autoFix = Boolean(inputs.auto_fix ?? this.auto_fix ?? false);
-    const safetyTolerance = String(inputs.safety_tolerance ?? this.safety_tolerance ?? "4");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const autoFix = Boolean(this.auto_fix ?? false);
+    const duration = String(this.duration ?? "8s");
+    const safetyTolerance = String(this.safety_tolerance ?? "4");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "aspect_ratio": aspectRatio,
-      "generate_audio": generateAudio,
       "resolution": resolution,
+      "generate_audio": generateAudio,
       "auto_fix": autoFix,
+      "duration": duration,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5459,13 +5431,13 @@ export class WanV22A14bImageToVideoTurbo extends FalNode {
   static readonly description = `Wan-2.2 Turbo image-to-video is a video model that generates high-quality videos with high visual quality and motion diversity from text prompts. 
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["480p", "580p", "720p"], description: "Resolution of the generated video (480p, 580p, or 720p)." })
-  declare resolution: any;
+  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16", "1:1"], description: "Aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image." })
+  declare aspect_ratio: any;
 
   @prop({ type: "enum", default: "regular", values: ["none", "regular"], description: "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'regular'." })
   declare acceleration: any;
@@ -5473,8 +5445,8 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the output video. Faster write mode means faster results but larger file size, balanced write mode is a good compromise between speed and quality, and small write mode is the slowest but produces the smallest file size." })
   declare video_write_mode: any;
 
-  @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16", "1:1"], description: "Aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image." })
-  declare aspect_ratio: any;
+  @prop({ type: "enum", default: "720p", values: ["480p", "580p", "720p"], description: "Resolution of the generated video (480p, 580p, or 720p)." })
+  declare resolution: any;
 
   @prop({ type: "bool", default: false, description: "If set to true, output video will be checked for safety after generation." })
   declare enable_output_safety_checker: any;
@@ -5497,25 +5469,25 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning." })
   declare enable_prompt_expansion: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const enableOutputSafetyChecker = Boolean(inputs.enable_output_safety_checker ?? this.enable_output_safety_checker ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const acceleration = String(this.acceleration ?? "regular");
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const resolution = String(this.resolution ?? "720p");
+    const enableOutputSafetyChecker = Boolean(this.enable_output_safety_checker ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const seed = String(this.seed ?? "");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "acceleration": acceleration,
       "video_write_mode": videoWriteMode,
-      "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "enable_output_safety_checker": enableOutputSafetyChecker,
       "video_quality": videoQuality,
       "enable_safety_checker": enableSafetyChecker,
@@ -5523,15 +5495,15 @@ video, animation, image-to-video, img2vid, fast`;
       "enable_prompt_expansion": enablePromptExpansion,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -5547,7 +5519,7 @@ export class WanV225bImageToVideo extends FalNode {
   static readonly description = `Wan 2.2's 5B model produces up to 5 seconds of video 720p at 24FPS with fluid motion and powerful prompt understanding
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -5561,14 +5533,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: 24, description: "Frames per second of the generated video. Must be between 4 to 60. When using interpolation and 'adjust_fps_for_interpolation' is set to true (default true,) the final FPS will be multiplied by the number of interpolated frames plus one. For example, if the generated frames per second is 16 and the number of interpolated frames is 1, the final frames per second will be 32. If 'adjust_fps_for_interpolation' is set to false, this value will be used as-is." })
   declare frames_per_second: any;
 
-  @prop({ type: "float", default: 3.5, description: "Classifier-free guidance scale. Higher values give better adherence to the prompt but may decrease quality." })
-  declare guidance_scale: any;
+  @prop({ type: "bool", default: false, description: "If set to true, input data will be checked for safety before processing." })
+  declare enable_safety_checker: any;
 
   @prop({ type: "int", default: 81, description: "Number of frames to generate. Must be between 17 to 161 (inclusive)." })
   declare num_frames: any;
 
-  @prop({ type: "bool", default: false, description: "If set to true, input data will be checked for safety before processing." })
-  declare enable_safety_checker: any;
+  @prop({ type: "float", default: 3.5, description: "Classifier-free guidance scale. Higher values give better adherence to the prompt but may decrease quality." })
+  declare guidance_scale: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt for video generation." })
   declare negative_prompt: any;
@@ -5591,66 +5563,66 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the output video. Higher quality means better visual quality but larger file size." })
   declare video_quality: any;
 
+  @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning." })
+  declare enable_prompt_expansion: any;
+
+  @prop({ type: "int", default: 40, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
+  declare num_inference_steps: any;
+
+  @prop({ type: "enum", default: "film", values: ["none", "film", "rife"], description: "The model to use for frame interpolation. If None, no interpolation is applied." })
+  declare interpolator_model: any;
+
   @prop({ type: "bool", default: true, description: "If true, the number of frames per second will be multiplied by the number of interpolated frames plus one. For example, if the generated frames per second is 16 and the number of interpolated frames is 1, the final frames per second will be 32. If false, the passed frames per second will be used as-is." })
   declare adjust_fps_for_interpolation: any;
 
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  @prop({ type: "enum", default: "film", values: ["none", "film", "rife"], description: "The model to use for frame interpolation. If None, no interpolation is applied." })
-  declare interpolator_model: any;
-
-  @prop({ type: "int", default: 40, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
-  declare num_inference_steps: any;
-
-  @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning." })
-  declare enable_prompt_expansion: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const shift = Number(inputs.shift ?? this.shift ?? 5);
-    const numInterpolatedFrames = Number(inputs.num_interpolated_frames ?? this.num_interpolated_frames ?? 0);
-    const framesPerSecond = String(inputs.frames_per_second ?? this.frames_per_second ?? 24);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 81);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const enableOutputSafetyChecker = Boolean(inputs.enable_output_safety_checker ?? this.enable_output_safety_checker ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const adjustFpsForInterpolation = Boolean(inputs.adjust_fps_for_interpolation ?? this.adjust_fps_for_interpolation ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const interpolatorModel = String(inputs.interpolator_model ?? this.interpolator_model ?? "film");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const shift = Number(this.shift ?? 5);
+    const numInterpolatedFrames = Number(this.num_interpolated_frames ?? 0);
+    const framesPerSecond = String(this.frames_per_second ?? 24);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const numFrames = Number(this.num_frames ?? 81);
+    const guidanceScale = Number(this.guidance_scale ?? 3.5);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const enableOutputSafetyChecker = Boolean(this.enable_output_safety_checker ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
+    const interpolatorModel = String(this.interpolator_model ?? "film");
+    const adjustFpsForInterpolation = Boolean(this.adjust_fps_for_interpolation ?? true);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "shift": shift,
       "num_interpolated_frames": numInterpolatedFrames,
       "frames_per_second": framesPerSecond,
-      "guidance_scale": guidanceScale,
-      "num_frames": numFrames,
       "enable_safety_checker": enableSafetyChecker,
+      "num_frames": numFrames,
+      "guidance_scale": guidanceScale,
       "negative_prompt": negativePrompt,
       "video_write_mode": videoWriteMode,
       "aspect_ratio": aspectRatio,
       "resolution": resolution,
       "enable_output_safety_checker": enableOutputSafetyChecker,
       "video_quality": videoQuality,
+      "enable_prompt_expansion": enablePromptExpansion,
+      "num_inference_steps": numInferenceSteps,
+      "interpolator_model": interpolatorModel,
       "adjust_fps_for_interpolation": adjustFpsForInterpolation,
       "seed": seed,
-      "interpolator_model": interpolatorModel,
-      "num_inference_steps": numInferenceSteps,
-      "enable_prompt_expansion": enablePromptExpansion,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5666,7 +5638,7 @@ export class WanV22A14bImageToVideo extends FalNode {
   static readonly description = `fal-ai/wan/v2.2-A14B/image-to-video
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -5674,11 +5646,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 5, description: "Shift value for the video. Must be between 1.0 and 10.0." })
   declare shift: any;
 
-  @prop({ type: "enum", default: "regular", values: ["none", "regular"], description: "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'regular'." })
-  declare acceleration: any;
-
   @prop({ type: "int", default: 1, description: "Number of frames to interpolate between each pair of generated frames. Must be between 0 and 4." })
   declare num_interpolated_frames: any;
+
+  @prop({ type: "enum", default: "regular", values: ["none", "regular"], description: "Acceleration level to use. The more acceleration, the faster the generation, but with lower quality. The recommended value is 'regular'." })
+  declare acceleration: any;
 
   @prop({ type: "str", default: 16, description: "Frames per second of the generated video. Must be between 4 to 60. When using interpolation and 'adjust_fps_for_interpolation' is set to true (default true,) the final FPS will be multiplied by the number of interpolated frames plus one. For example, if the generated frames per second is 16 and the number of interpolated frames is 1, the final frames per second will be 32. If 'adjust_fps_for_interpolation' is set to false, this value will be used as-is." })
   declare frames_per_second: any;
@@ -5719,49 +5691,49 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 3.5, description: "Guidance scale for the second stage of the model. This is used to control the adherence to the prompt in the second stage of the model." })
   declare guidance_scale_2: any;
 
+  @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning." })
+  declare enable_prompt_expansion: any;
+
+  @prop({ type: "int", default: 27, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
+  declare num_inference_steps: any;
+
+  @prop({ type: "enum", default: "film", values: ["none", "film", "rife"], description: "The model to use for frame interpolation. If None, no interpolation is applied." })
+  declare interpolator_model: any;
+
   @prop({ type: "bool", default: true, description: "If true, the number of frames per second will be multiplied by the number of interpolated frames plus one. For example, if the generated frames per second is 16 and the number of interpolated frames is 1, the final frames per second will be 32. If false, the passed frames per second will be used as-is." })
   declare adjust_fps_for_interpolation: any;
 
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  @prop({ type: "enum", default: "film", values: ["none", "film", "rife"], description: "The model to use for frame interpolation. If None, no interpolation is applied." })
-  declare interpolator_model: any;
-
-  @prop({ type: "int", default: 27, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
-  declare num_inference_steps: any;
-
-  @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion. This will use a large language model to expand the prompt with additional details while maintaining the original meaning." })
-  declare enable_prompt_expansion: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const shift = Number(inputs.shift ?? this.shift ?? 5);
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const numInterpolatedFrames = Number(inputs.num_interpolated_frames ?? this.num_interpolated_frames ?? 1);
-    const framesPerSecond = String(inputs.frames_per_second ?? this.frames_per_second ?? 16);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 81);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const enableOutputSafetyChecker = Boolean(inputs.enable_output_safety_checker ?? this.enable_output_safety_checker ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const guidanceScale_2 = Number(inputs.guidance_scale_2 ?? this.guidance_scale_2 ?? 3.5);
-    const adjustFpsForInterpolation = Boolean(inputs.adjust_fps_for_interpolation ?? this.adjust_fps_for_interpolation ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const interpolatorModel = String(inputs.interpolator_model ?? this.interpolator_model ?? "film");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 27);
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const shift = Number(this.shift ?? 5);
+    const numInterpolatedFrames = Number(this.num_interpolated_frames ?? 1);
+    const acceleration = String(this.acceleration ?? "regular");
+    const framesPerSecond = String(this.frames_per_second ?? 16);
+    const guidanceScale = Number(this.guidance_scale ?? 3.5);
+    const numFrames = Number(this.num_frames ?? 81);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const enableOutputSafetyChecker = Boolean(this.enable_output_safety_checker ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const guidanceScale_2 = Number(this.guidance_scale_2 ?? 3.5);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 27);
+    const interpolatorModel = String(this.interpolator_model ?? "film");
+    const adjustFpsForInterpolation = Boolean(this.adjust_fps_for_interpolation ?? true);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "shift": shift,
-      "acceleration": acceleration,
       "num_interpolated_frames": numInterpolatedFrames,
+      "acceleration": acceleration,
       "frames_per_second": framesPerSecond,
       "guidance_scale": guidanceScale,
       "num_frames": numFrames,
@@ -5773,22 +5745,22 @@ video, animation, image-to-video, img2vid`;
       "enable_output_safety_checker": enableOutputSafetyChecker,
       "video_quality": videoQuality,
       "guidance_scale_2": guidanceScale_2,
+      "enable_prompt_expansion": enablePromptExpansion,
+      "num_inference_steps": numInferenceSteps,
+      "interpolator_model": interpolatorModel,
       "adjust_fps_for_interpolation": adjustFpsForInterpolation,
       "seed": seed,
-      "interpolator_model": interpolatorModel,
-      "num_inference_steps": numInferenceSteps,
-      "enable_prompt_expansion": enablePromptExpansion,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5804,7 +5776,7 @@ export class BytedanceOmnihuman extends FalNode {
   static readonly description = `OmniHuman generates video using an image of a human figure paired with an audio file. It produces vivid, high-quality videos where the character's emotions and movements maintain a strong correlation with the audio.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "duration": "float", "video": "video" };
 
   @prop({ type: "audio", default: "", description: "The URL of the audio file to generate the video. Audio must be under 30s long." })
   declare audio: any;
@@ -5812,20 +5784,20 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "The URL of the image used to generate the video" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5841,7 +5813,7 @@ export class Ltxv13b098DistilledImageToVideo extends FalNode {
   static readonly description = `Generate long videos from prompts and images using LTX Video-0.9.8 13B Distilled and custom LoRA
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -5849,32 +5821,32 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "int", default: 8, description: "Number of inference steps during the first pass." })
   declare first_pass_num_inference_steps: any;
 
-  @prop({ type: "int", default: 24, description: "The frame rate of the video." })
-  declare frame_rate: any;
-
   @prop({ type: "bool", default: false, description: "Whether to reverse the video." })
   declare reverse_video: any;
+
+  @prop({ type: "int", default: 24, description: "The frame rate of the video." })
+  declare frame_rate: any;
 
   @prop({ type: "int", default: 5, description: "The number of inference steps to skip in the initial steps of the second pass. By skipping some steps at the beginning, the second pass can focus on smaller details instead of larger changes." })
   declare second_pass_skip_initial_steps: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to expand the prompt using a language model." })
-  declare expand_prompt: any;
-
   @prop({ type: "float", default: 0.5, description: "The factor for adaptive instance normalization (AdaIN) applied to generated video chunks after the first. This can help deal with a gradual increase in saturation/contrast in the generated video by normalizing the color distribution across the video. A high value will ensure the color distribution is more consistent across the video, while a low value will allow for more variation in color distribution." })
   declare temporal_adain_factor: any;
+
+  @prop({ type: "bool", default: false, description: "Whether to expand the prompt using a language model." })
+  declare expand_prompt: any;
 
   @prop({ type: "list[LoRAWeight]", default: [], description: "LoRA weights to use for generation" })
   declare loras: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
-  declare enable_safety_checker: any;
+  @prop({ type: "int", default: 8, description: "Number of inference steps during the second pass." })
+  declare second_pass_num_inference_steps: any;
 
   @prop({ type: "int", default: 121, description: "The number of frames in the video." })
   declare num_frames: any;
 
-  @prop({ type: "int", default: 8, description: "Number of inference steps during the second pass." })
-  declare second_pass_num_inference_steps: any;
+  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
+  declare enable_safety_checker: any;
 
   @prop({ type: "str", default: "worst quality, inconsistent motion, blurry, jittery, distorted", description: "Negative prompt for generation" })
   declare negative_prompt: any;
@@ -5900,39 +5872,39 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Random seed for generation" })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const firstPassNumInferenceSteps = Number(inputs.first_pass_num_inference_steps ?? this.first_pass_num_inference_steps ?? 8);
-    const frameRate = Number(inputs.frame_rate ?? this.frame_rate ?? 24);
-    const reverseVideo = Boolean(inputs.reverse_video ?? this.reverse_video ?? false);
-    const secondPassSkipInitialSteps = Number(inputs.second_pass_skip_initial_steps ?? this.second_pass_skip_initial_steps ?? 5);
-    const expandPrompt = Boolean(inputs.expand_prompt ?? this.expand_prompt ?? false);
-    const temporalAdainFactor = Number(inputs.temporal_adain_factor ?? this.temporal_adain_factor ?? 0.5);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const secondPassNumInferenceSteps = Number(inputs.second_pass_num_inference_steps ?? this.second_pass_num_inference_steps ?? 8);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "worst quality, inconsistent motion, blurry, jittery, distorted");
-    const enableDetailPass = Boolean(inputs.enable_detail_pass ?? this.enable_detail_pass ?? false);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const toneMapCompressionRatio = Number(inputs.tone_map_compression_ratio ?? this.tone_map_compression_ratio ?? 0);
-    const constantRateFactor = Number(inputs.constant_rate_factor ?? this.constant_rate_factor ?? 29);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const firstPassNumInferenceSteps = Number(this.first_pass_num_inference_steps ?? 8);
+    const reverseVideo = Boolean(this.reverse_video ?? false);
+    const frameRate = Number(this.frame_rate ?? 24);
+    const secondPassSkipInitialSteps = Number(this.second_pass_skip_initial_steps ?? 5);
+    const temporalAdainFactor = Number(this.temporal_adain_factor ?? 0.5);
+    const expandPrompt = Boolean(this.expand_prompt ?? false);
+    const loras = String(this.loras ?? []);
+    const secondPassNumInferenceSteps = Number(this.second_pass_num_inference_steps ?? 8);
+    const numFrames = Number(this.num_frames ?? 121);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const negativePrompt = String(this.negative_prompt ?? "worst quality, inconsistent motion, blurry, jittery, distorted");
+    const enableDetailPass = Boolean(this.enable_detail_pass ?? false);
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const toneMapCompressionRatio = Number(this.tone_map_compression_ratio ?? 0);
+    const constantRateFactor = Number(this.constant_rate_factor ?? 29);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "first_pass_num_inference_steps": firstPassNumInferenceSteps,
-      "frame_rate": frameRate,
       "reverse_video": reverseVideo,
+      "frame_rate": frameRate,
       "second_pass_skip_initial_steps": secondPassSkipInitialSteps,
-      "expand_prompt": expandPrompt,
       "temporal_adain_factor": temporalAdainFactor,
+      "expand_prompt": expandPrompt,
       "loras": loras,
-      "enable_safety_checker": enableSafetyChecker,
-      "num_frames": numFrames,
       "second_pass_num_inference_steps": secondPassNumInferenceSteps,
+      "num_frames": numFrames,
+      "enable_safety_checker": enableSafetyChecker,
       "negative_prompt": negativePrompt,
       "enable_detail_pass": enableDetailPass,
       "resolution": resolution,
@@ -5942,9 +5914,9 @@ video, animation, image-to-video, img2vid`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -5960,25 +5932,25 @@ export class Veo3FastImageToVideo extends FalNode {
   static readonly description = `Now with a 50% price drop. Generate videos from your image prompts using Veo 3 fast.
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt describing how the image should be animated" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
-  declare duration: any;
-
   @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16"], description: "The aspect ratio of the generated video." })
   declare aspect_ratio: any;
-
-  @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
-  declare generate_audio: any;
 
   @prop({ type: "enum", default: "720p", values: ["720p", "1080p"], description: "The resolution of the generated video." })
   declare resolution: any;
 
+  @prop({ type: "bool", default: true, description: "Whether to generate audio for the video." })
+  declare generate_audio: any;
+
   @prop({ type: "bool", default: false, description: "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them." })
   declare auto_fix: any;
+
+  @prop({ type: "enum", default: "8s", values: ["4s", "6s", "8s"], description: "The duration of the generated video." })
+  declare duration: any;
 
   @prop({ type: "image", default: "", description: "URL of the input image to animate. Should be 720p or higher resolution in 16:9 or 9:16 aspect ratio. If the image is not in 16:9 or 9:16 aspect ratio, it will be cropped to fit." })
   declare image: any;
@@ -5992,33 +5964,33 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "str", default: "", description: "A negative prompt to guide the video generation." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "8s");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const autoFix = Boolean(inputs.auto_fix ?? this.auto_fix ?? false);
-    const safetyTolerance = String(inputs.safety_tolerance ?? this.safety_tolerance ?? "4");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const autoFix = Boolean(this.auto_fix ?? false);
+    const duration = String(this.duration ?? "8s");
+    const safetyTolerance = String(this.safety_tolerance ?? "4");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "aspect_ratio": aspectRatio,
-      "generate_audio": generateAudio,
       "resolution": resolution,
+      "generate_audio": generateAudio,
       "auto_fix": autoFix,
+      "duration": duration,
       "safety_tolerance": safetyTolerance,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6034,7 +6006,7 @@ export class ViduQ1ReferenceToVideo extends FalNode {
   static readonly description = `Generate video clips from your multiple image references using Vidu Q1
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -6054,13 +6026,13 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
   declare movement_amplitude: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const bgm = Boolean(inputs.bgm ?? this.bgm ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const bgm = Boolean(this.bgm ?? false);
+    const seed = String(this.seed ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -6070,7 +6042,7 @@ video, animation, image-to-video, img2vid`;
       "movement_amplitude": movementAmplitude,
     };
 
-    const referenceImagesList = inputs.reference_images as Record<string, unknown>[] | undefined;
+    const referenceImagesList = this.reference_images as Record<string, unknown>[] | undefined;
     if (referenceImagesList?.length) {
       const referenceImagesUrls: string[] = [];
       for (const ref of referenceImagesList) {
@@ -6091,7 +6063,7 @@ export class MinimaxHailuo02ProImageToVideo extends FalNode {
   static readonly description = `MiniMax Hailuo-02 Image To Video API (Pro, 1080p): Advanced image-to-video generation model with 1080p resolution
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -6105,25 +6077,25 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6139,10 +6111,13 @@ export class BytedanceSeedanceV1LiteImageToVideo extends FalNode {
   static readonly description = `Seedance 1.0 Lite
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used to generate the video" })
   declare prompt: any;
+
+  @prop({ type: "enum", default: "auto", values: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"], description: "The aspect ratio of the generated video" })
+  declare aspect_ratio: any;
 
   @prop({ type: "enum", default: "720p", values: ["480p", "720p", "1080p"], description: "Video resolution - 480p for faster generation, 720p for higher quality" })
   declare resolution: any;
@@ -6150,53 +6125,55 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], description: "Duration of the video in seconds" })
   declare duration: any;
 
-  @prop({ type: "enum", default: "auto", values: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16", "auto"], description: "The aspect ratio of the generated video" })
-  declare aspect_ratio: any;
-
   @prop({ type: "image", default: "", description: "The URL of the image used to generate video" })
   declare image: any;
 
   @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
-  declare seed: any;
+  @prop({ type: "bool", default: false, description: "Whether to fix the camera position" })
+  declare camera_fixed: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image the video ends with. Defaults to None." })
   declare end_image: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to fix the camera position" })
-  declare camera_fixed: any;
+  @prop({ type: "str", default: "", description: "The number of frames to generate. If provided, will override duration." })
+  declare num_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const cameraFixed = Boolean(inputs.camera_fixed ?? this.camera_fixed ?? false);
+  @prop({ type: "str", default: "", description: "Random seed to control video generation. Use -1 for random." })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const duration = String(this.duration ?? "5");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const cameraFixed = Boolean(this.camera_fixed ?? false);
+    const numFrames = String(this.num_frames ?? "");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
+      "aspect_ratio": aspectRatio,
       "resolution": resolution,
       "duration": duration,
-      "aspect_ratio": aspectRatio,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
       "camera_fixed": cameraFixed,
+      "num_frames": numFrames,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -6212,7 +6189,7 @@ export class HunyuanAvatar extends FalNode {
   static readonly description = `HunyuanAvatar is a High-Fidelity Audio-Driven Human Animation model for Multiple Characters .
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "A cat is singing.", description: "Text prompt describing the scene." })
   declare text: any;
@@ -6226,38 +6203,38 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "audio", default: "", description: "The URL of the audio file." })
   declare audio: any;
 
-  @prop({ type: "int", default: 129, description: "Number of video frames to generate at 25 FPS. If greater than the input audio length, it will capped to the length of the input audio." })
-  declare num_frames: any;
+  @prop({ type: "int", default: 30, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
+  declare num_inference_steps: any;
 
   @prop({ type: "str", default: "", description: "Random seed for generation." })
   declare seed: any;
 
-  @prop({ type: "int", default: 30, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
-  declare num_inference_steps: any;
+  @prop({ type: "int", default: 129, description: "Number of video frames to generate at 25 FPS. If greater than the input audio length, it will capped to the length of the input audio." })
+  declare num_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const text = String(inputs.text ?? this.text ?? "A cat is singing.");
-    const turboMode = Boolean(inputs.turbo_mode ?? this.turbo_mode ?? true);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 129);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const text = String(this.text ?? "A cat is singing.");
+    const turboMode = Boolean(this.turbo_mode ?? true);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const seed = String(this.seed ?? "");
+    const numFrames = Number(this.num_frames ?? 129);
 
     const args: Record<string, unknown> = {
       "text": text,
       "turbo_mode": turboMode,
-      "num_frames": numFrames,
-      "seed": seed,
       "num_inference_steps": numInferenceSteps,
+      "seed": seed,
+      "num_frames": numFrames,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -6275,7 +6252,7 @@ export class KlingVideoV21ProImageToVideo extends FalNode {
   static readonly description = `Kling 2.1 Pro is an advanced endpoint for the Kling 2.1 model, offering professional-grade videos with enhanced visual fidelity, precise camera movements, and dynamic motion control, perfect for cinematic storytelling.  
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -6283,11 +6260,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
   declare duration: any;
 
-  @prop({ type: "str", default: "blur, distort, and low quality" })
-  declare negative_prompt: any;
-
   @prop({ type: "float", default: 0.5, description: "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        " })
   declare cfg_scale: any;
+
+  @prop({ type: "str", default: "blur, distort, and low quality" })
+  declare negative_prompt: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to be used for the end of the video" })
   declare tail_image: any;
@@ -6295,29 +6272,29 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the image to be used for the video" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
-      "negative_prompt": negativePrompt,
       "cfg_scale": cfgScale,
+      "negative_prompt": negativePrompt,
     };
 
-    const tailImageRef = inputs.tail_image as Record<string, unknown> | undefined;
+    const tailImageRef = this.tail_image as Record<string, unknown> | undefined;
     if (isRefSet(tailImageRef)) {
-      const tailImageUrl = await assetToFalUrl(apiKey, tailImageRef!);
+      const tailImageUrl = await imageToDataUrl(tailImageRef!) ?? await assetToFalUrl(apiKey, tailImageRef!);
       if (tailImageUrl) args["tail_image_url"] = tailImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6333,7 +6310,7 @@ export class HunyuanPortrait extends FalNode {
   static readonly description = `HunyuanPortrait is a diffusion-based framework for generating lifelike, temporally consistent portrait animations.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "video", default: "", description: "The URL of the driving video." })
   declare video: any;
@@ -6347,25 +6324,25 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "The URL of the source image." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const useArcface = Boolean(inputs.use_arcface ?? this.use_arcface ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const seed = Number(this.seed ?? -1);
+    const useArcface = Boolean(this.use_arcface ?? true);
 
     const args: Record<string, unknown> = {
       "seed": seed,
       "use_arcface": useArcface,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6381,16 +6358,16 @@ export class KlingVideoV16StandardElements extends FalNode {
   static readonly description = `Generate video clips from your multiple image references using Kling 1.6 (standard)
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
-  declare duration: any;
-
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "The aspect ratio of the generated video frame" })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
+  declare duration: any;
 
   @prop({ type: "list[image]", default: [], description: "List of image URLs to use for video generation. Supports up to 4 images." })
   declare input_images: any;
@@ -6398,21 +6375,21 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "blur, distort, and low quality" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const duration = String(this.duration ?? "5");
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "aspect_ratio": aspectRatio,
+      "duration": duration,
       "negative_prompt": negativePrompt,
     };
 
-    const inputImagesList = inputs.input_images as Record<string, unknown>[] | undefined;
+    const inputImagesList = this.input_images as Record<string, unknown>[] | undefined;
     if (inputImagesList?.length) {
       const inputImagesUrls: string[] = [];
       for (const ref of inputImagesList) {
@@ -6433,16 +6410,16 @@ export class KlingVideoV16ProElements extends FalNode {
   static readonly description = `Generate video clips from your multiple image references using Kling 1.6 (pro)
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
-  declare duration: any;
-
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "The aspect ratio of the generated video frame" })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "5", values: ["5", "10"], description: "The duration of the generated video in seconds" })
+  declare duration: any;
 
   @prop({ type: "list[image]", default: [], description: "List of image URLs to use for video generation. Supports up to 4 images." })
   declare input_images: any;
@@ -6450,21 +6427,21 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "blur, distort, and low quality" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const duration = String(this.duration ?? "5");
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
       "aspect_ratio": aspectRatio,
+      "duration": duration,
       "negative_prompt": negativePrompt,
     };
 
-    const inputImagesList = inputs.input_images as Record<string, unknown>[] | undefined;
+    const inputImagesList = this.input_images as Record<string, unknown>[] | undefined;
     if (inputImagesList?.length) {
       const inputImagesUrls: string[] = [];
       for (const ref of inputImagesList) {
@@ -6485,28 +6462,28 @@ export class LtxVideo13bDistilledImageToVideo extends FalNode {
   static readonly description = `Generate videos from prompts and images using LTX Video-0.9.7 13B Distilled and custom LoRA
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
-  declare prompt: any;
-
-  @prop({ type: "int", default: 8, description: "Number of inference steps during the first pass." })
-  declare first_pass_num_inference_steps: any;
-
-  @prop({ type: "bool", default: false, description: "Whether to reverse the video." })
-  declare reverse_video: any;
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "int", default: 5, description: "The number of inference steps to skip in the initial steps of the second pass. By skipping some steps at the beginning, the second pass can focus on smaller details instead of larger changes." })
   declare second_pass_skip_initial_steps: any;
 
+  @prop({ type: "int", default: 8, description: "Number of inference steps during the first pass." })
+  declare first_pass_num_inference_steps: any;
+
   @prop({ type: "int", default: 24, description: "The frame rate of the video." })
   declare frame_rate: any;
 
-  @prop({ type: "float", default: 0.5, description: "The factor for adaptive instance normalization (AdaIN) applied to generated video chunks after the first. This can help deal with a gradual increase in saturation/contrast in the generated video by normalizing the color distribution across the video. A high value will ensure the color distribution is more consistent across the video, while a low value will allow for more variation in color distribution." })
-  declare temporal_adain_factor: any;
+  @prop({ type: "bool", default: false, description: "Whether to reverse the video." })
+  declare reverse_video: any;
+
+  @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
+  declare prompt: any;
 
   @prop({ type: "bool", default: false, description: "Whether to expand the prompt using a language model." })
   declare expand_prompt: any;
+
+  @prop({ type: "float", default: 0.5, description: "The factor for adaptive instance normalization (AdaIN) applied to generated video chunks after the first. This can help deal with a gradual increase in saturation/contrast in the generated video by normalizing the color distribution across the video. A high value will ensure the color distribution is more consistent across the video, while a low value will allow for more variation in color distribution." })
+  declare temporal_adain_factor: any;
 
   @prop({ type: "list[LoRAWeight]", default: [], description: "LoRA weights to use for generation" })
   declare loras: any;
@@ -6526,11 +6503,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: false, description: "Whether to use a detail pass. If True, the model will perform a second pass to refine the video and enhance details. This incurs a 2.0x cost multiplier on the base price." })
   declare enable_detail_pass: any;
 
-  @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video." })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "auto", values: ["9:16", "1:1", "16:9", "auto"], description: "The aspect ratio of the video." })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video." })
+  declare resolution: any;
 
   @prop({ type: "float", default: 0, description: "The compression ratio for tone mapping. This is used to compress the dynamic range of the video to improve visual quality. A value of 0.0 means no compression, while a value of 1.0 means maximum compression." })
   declare tone_map_compression_ratio: any;
@@ -6544,51 +6521,51 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Random seed for generation" })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const firstPassNumInferenceSteps = Number(inputs.first_pass_num_inference_steps ?? this.first_pass_num_inference_steps ?? 8);
-    const reverseVideo = Boolean(inputs.reverse_video ?? this.reverse_video ?? false);
-    const secondPassSkipInitialSteps = Number(inputs.second_pass_skip_initial_steps ?? this.second_pass_skip_initial_steps ?? 5);
-    const frameRate = Number(inputs.frame_rate ?? this.frame_rate ?? 24);
-    const temporalAdainFactor = Number(inputs.temporal_adain_factor ?? this.temporal_adain_factor ?? 0.5);
-    const expandPrompt = Boolean(inputs.expand_prompt ?? this.expand_prompt ?? false);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const secondPassNumInferenceSteps = Number(inputs.second_pass_num_inference_steps ?? this.second_pass_num_inference_steps ?? 8);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "worst quality, inconsistent motion, blurry, jittery, distorted");
-    const enableDetailPass = Boolean(inputs.enable_detail_pass ?? this.enable_detail_pass ?? false);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const toneMapCompressionRatio = Number(inputs.tone_map_compression_ratio ?? this.tone_map_compression_ratio ?? 0);
-    const constantRateFactor = Number(inputs.constant_rate_factor ?? this.constant_rate_factor ?? 29);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const secondPassSkipInitialSteps = Number(this.second_pass_skip_initial_steps ?? 5);
+    const firstPassNumInferenceSteps = Number(this.first_pass_num_inference_steps ?? 8);
+    const frameRate = Number(this.frame_rate ?? 24);
+    const reverseVideo = Boolean(this.reverse_video ?? false);
+    const prompt = String(this.prompt ?? "");
+    const expandPrompt = Boolean(this.expand_prompt ?? false);
+    const temporalAdainFactor = Number(this.temporal_adain_factor ?? 0.5);
+    const loras = String(this.loras ?? []);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numFrames = Number(this.num_frames ?? 121);
+    const secondPassNumInferenceSteps = Number(this.second_pass_num_inference_steps ?? 8);
+    const negativePrompt = String(this.negative_prompt ?? "worst quality, inconsistent motion, blurry, jittery, distorted");
+    const enableDetailPass = Boolean(this.enable_detail_pass ?? false);
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const toneMapCompressionRatio = Number(this.tone_map_compression_ratio ?? 0);
+    const constantRateFactor = Number(this.constant_rate_factor ?? 29);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "first_pass_num_inference_steps": firstPassNumInferenceSteps,
-      "reverse_video": reverseVideo,
       "second_pass_skip_initial_steps": secondPassSkipInitialSteps,
+      "first_pass_num_inference_steps": firstPassNumInferenceSteps,
       "frame_rate": frameRate,
-      "temporal_adain_factor": temporalAdainFactor,
+      "reverse_video": reverseVideo,
+      "prompt": prompt,
       "expand_prompt": expandPrompt,
+      "temporal_adain_factor": temporalAdainFactor,
       "loras": loras,
       "enable_safety_checker": enableSafetyChecker,
       "num_frames": numFrames,
       "second_pass_num_inference_steps": secondPassNumInferenceSteps,
       "negative_prompt": negativePrompt,
       "enable_detail_pass": enableDetailPass,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "tone_map_compression_ratio": toneMapCompressionRatio,
       "constant_rate_factor": constantRateFactor,
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6604,7 +6581,7 @@ export class LtxVideo13bDevImageToVideo extends FalNode {
   static readonly description = `Generate videos from prompts and images using LTX Video-0.9.7 13B and custom LoRA
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide generation" })
   declare prompt: any;
@@ -6612,11 +6589,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "int", default: 30, description: "Number of inference steps during the first pass." })
   declare first_pass_num_inference_steps: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to reverse the video." })
-  declare reverse_video: any;
-
   @prop({ type: "int", default: 24, description: "The frame rate of the video." })
   declare frame_rate: any;
+
+  @prop({ type: "bool", default: false, description: "Whether to reverse the video." })
+  declare reverse_video: any;
 
   @prop({ type: "int", default: 17, description: "The number of inference steps to skip in the initial steps of the second pass. By skipping some steps at the beginning, the second pass can focus on smaller details instead of larger changes." })
   declare second_pass_skip_initial_steps: any;
@@ -6663,32 +6640,32 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Random seed for generation" })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const firstPassNumInferenceSteps = Number(inputs.first_pass_num_inference_steps ?? this.first_pass_num_inference_steps ?? 30);
-    const reverseVideo = Boolean(inputs.reverse_video ?? this.reverse_video ?? false);
-    const frameRate = Number(inputs.frame_rate ?? this.frame_rate ?? 24);
-    const secondPassSkipInitialSteps = Number(inputs.second_pass_skip_initial_steps ?? this.second_pass_skip_initial_steps ?? 17);
-    const temporalAdainFactor = Number(inputs.temporal_adain_factor ?? this.temporal_adain_factor ?? 0.5);
-    const expandPrompt = Boolean(inputs.expand_prompt ?? this.expand_prompt ?? false);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const secondPassNumInferenceSteps = Number(inputs.second_pass_num_inference_steps ?? this.second_pass_num_inference_steps ?? 30);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "worst quality, inconsistent motion, blurry, jittery, distorted");
-    const enableDetailPass = Boolean(inputs.enable_detail_pass ?? this.enable_detail_pass ?? false);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const toneMapCompressionRatio = Number(inputs.tone_map_compression_ratio ?? this.tone_map_compression_ratio ?? 0);
-    const constantRateFactor = Number(inputs.constant_rate_factor ?? this.constant_rate_factor ?? 29);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const firstPassNumInferenceSteps = Number(this.first_pass_num_inference_steps ?? 30);
+    const frameRate = Number(this.frame_rate ?? 24);
+    const reverseVideo = Boolean(this.reverse_video ?? false);
+    const secondPassSkipInitialSteps = Number(this.second_pass_skip_initial_steps ?? 17);
+    const temporalAdainFactor = Number(this.temporal_adain_factor ?? 0.5);
+    const expandPrompt = Boolean(this.expand_prompt ?? false);
+    const loras = String(this.loras ?? []);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numFrames = Number(this.num_frames ?? 121);
+    const secondPassNumInferenceSteps = Number(this.second_pass_num_inference_steps ?? 30);
+    const negativePrompt = String(this.negative_prompt ?? "worst quality, inconsistent motion, blurry, jittery, distorted");
+    const enableDetailPass = Boolean(this.enable_detail_pass ?? false);
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const toneMapCompressionRatio = Number(this.tone_map_compression_ratio ?? 0);
+    const constantRateFactor = Number(this.constant_rate_factor ?? 29);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "first_pass_num_inference_steps": firstPassNumInferenceSteps,
-      "reverse_video": reverseVideo,
       "frame_rate": frameRate,
+      "reverse_video": reverseVideo,
       "second_pass_skip_initial_steps": secondPassSkipInitialSteps,
       "temporal_adain_factor": temporalAdainFactor,
       "expand_prompt": expandPrompt,
@@ -6705,9 +6682,9 @@ video, animation, image-to-video, img2vid`;
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6723,7 +6700,7 @@ export class LtxVideoLoraImageToVideo extends FalNode {
   static readonly description = `Generate videos from prompts and images using LTX Video-0.9.7 and custom LoRA
 video, animation, image-to-video, img2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -6731,17 +6708,11 @@ video, animation, image-to-video, img2vid, lora`;
   @prop({ type: "enum", default: "auto", values: ["16:9", "1:1", "9:16", "auto"], description: "The aspect ratio of the video." })
   declare aspect_ratio: any;
 
-  @prop({ type: "int", default: 25, description: "The frame rate of the video." })
-  declare frame_rate: any;
-
-  @prop({ type: "int", default: 30, description: "The number of inference steps to use." })
-  declare number_of_steps: any;
+  @prop({ type: "bool", default: false, description: "Whether to reverse the video." })
+  declare reverse_video: any;
 
   @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "The resolution of the video." })
   declare resolution: any;
-
-  @prop({ type: "bool", default: false, description: "Whether to expand the prompt using the LLM." })
-  declare expand_prompt: any;
 
   @prop({ type: "int", default: 89, description: "The number of frames in the video." })
   declare number_of_frames: any;
@@ -6752,51 +6723,57 @@ video, animation, image-to-video, img2vid, lora`;
   @prop({ type: "list[LoRAWeight]", default: [], description: "The LoRA weights to use for generation." })
   declare loras: any;
 
-  @prop({ type: "bool", default: false, description: "Whether to reverse the video." })
-  declare reverse_video: any;
+  @prop({ type: "int", default: 25, description: "The frame rate of the video." })
+  declare frames_per_second: any;
+
+  @prop({ type: "bool", default: false, description: "Whether to expand the prompt using the LLM." })
+  declare enable_prompt_expansion: any;
+
+  @prop({ type: "int", default: 30, description: "The number of inference steps to use." })
+  declare num_inference_steps: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "The seed to use for generation." })
-  declare seed: any;
-
   @prop({ type: "str", default: "blurry, low quality, low resolution, inconsistent motion, jittery, distorted", description: "The negative prompt to use." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const frameRate = Number(inputs.frame_rate ?? this.frame_rate ?? 25);
-    const numberOfSteps = Number(inputs.number_of_steps ?? this.number_of_steps ?? 30);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const expandPrompt = Boolean(inputs.expand_prompt ?? this.expand_prompt ?? false);
-    const numberOfFrames = Number(inputs.number_of_frames ?? this.number_of_frames ?? 89);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const reverseVideo = Boolean(inputs.reverse_video ?? this.reverse_video ?? false);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, low quality, low resolution, inconsistent motion, jittery, distorted");
+  @prop({ type: "str", default: "", description: "The seed to use for generation." })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const reverseVideo = Boolean(this.reverse_video ?? false);
+    const resolution = String(this.resolution ?? "720p");
+    const numberOfFrames = Number(this.number_of_frames ?? 89);
+    const loras = String(this.loras ?? []);
+    const framesPerSecond = Number(this.frames_per_second ?? 25);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const negativePrompt = String(this.negative_prompt ?? "blurry, low quality, low resolution, inconsistent motion, jittery, distorted");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
-      "frame_rate": frameRate,
-      "number_of_steps": numberOfSteps,
+      "reverse_video": reverseVideo,
       "resolution": resolution,
-      "expand_prompt": expandPrompt,
       "number_of_frames": numberOfFrames,
       "loras": loras,
-      "reverse_video": reverseVideo,
+      "frames_per_second": framesPerSecond,
+      "enable_prompt_expansion": enablePromptExpansion,
+      "num_inference_steps": numInferenceSteps,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
       "negative_prompt": negativePrompt,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6812,16 +6789,16 @@ export class PixverseV45Transition extends FalNode {
   static readonly description = `Create seamless transition between images using PixVerse v4.5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
-  @prop({ type: "str", default: "", description: "The prompt for the transition" })
-  declare prompt: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
+  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
+  declare first_image: any;
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
+
+  @prop({ type: "str", default: "", description: "The prompt for the transition" })
+  declare prompt: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -6829,8 +6806,8 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare first_image: any;
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        " })
   declare seed: any;
@@ -6841,35 +6818,35 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const style = String(inputs.style ?? this.style ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const prompt = String(this.prompt ?? "");
+    const style = String(this.style ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "prompt": prompt,
       "style": style,
       "duration": duration,
+      "resolution": resolution,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const firstImageRef = inputs.first_image as Record<string, unknown> | undefined;
+    const firstImageRef = this.first_image as Record<string, unknown> | undefined;
     if (isRefSet(firstImageRef)) {
-      const firstImageUrl = await assetToFalUrl(apiKey, firstImageRef!);
+      const firstImageUrl = await imageToDataUrl(firstImageRef!) ?? await assetToFalUrl(apiKey, firstImageRef!);
       if (firstImageUrl) args["first_image_url"] = firstImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -6885,7 +6862,7 @@ export class PixverseV45ImageToVideoFast extends FalNode {
   static readonly description = `Generate fast high quality video clips from text and image prompts using PixVerse v4.5
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -6908,14 +6885,14 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const style = String(inputs.style ?? this.style ?? "");
-    const cameraMovement = String(inputs.camera_movement ?? this.camera_movement ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const cameraMovement = String(this.camera_movement ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -6926,9 +6903,9 @@ video, animation, image-to-video, img2vid, fast`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6944,40 +6921,40 @@ export class PixverseV45Effects extends FalNode {
   static readonly description = `Generate high quality video clips with different effects using PixVerse v4.5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
-  declare effect: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
-  declare resolution: any;
-
-  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
-  declare duration: any;
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
+  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
+  declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
+  declare resolution: any;
+
+  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
+  declare effect: any;
+
   @prop({ type: "image", default: "", description: "Optional URL of the image to use as the first frame. If not provided, generates from text" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const effect = String(inputs.effect ?? this.effect ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const effect = String(this.effect ?? "");
 
     const args: Record<string, unknown> = {
-      "effect": effect,
-      "resolution": resolution,
-      "duration": duration,
       "negative_prompt": negativePrompt,
+      "duration": duration,
+      "resolution": resolution,
+      "effect": effect,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -6993,7 +6970,7 @@ export class HunyuanCustom extends FalNode {
   static readonly description = `HunyuanCustom revolutionizes video generation with unmatched identity consistency across multiple input types. Its innovative fusion modules and alignment networks outperform competitors, maintaining subject integrity while responding flexibly to text, image, audio, and video conditions.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation (max 500 characters)." })
   declare prompt: any;
@@ -7004,26 +6981,26 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "The aspect ratio of the video to generate." })
   declare aspect_ratio: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
-  declare enable_prompt_expansion: any;
-
   @prop({ type: "int", default: 129, description: "The number of frames to generate." })
   declare num_frames: any;
-
-  @prop({ type: "int", default: 25, description: "The frames per second of the generated video." })
-  declare fps: any;
-
-  @prop({ type: "image", default: "", description: "URL of the image input." })
-  declare image: any;
 
   @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "The seed to use for generating the video." })
-  declare seed: any;
+  @prop({ type: "image", default: "", description: "URL of the image input." })
+  declare image: any;
+
+  @prop({ type: "int", default: 25, description: "The frames per second of the generated video." })
+  declare fps: any;
+
+  @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
+  declare enable_prompt_expansion: any;
 
   @prop({ type: "int", default: 30, description: "The number of inference steps to run. Lower gets faster results, higher gets better results." })
   declare num_inference_steps: any;
+
+  @prop({ type: "str", default: "", description: "The seed to use for generating the video." })
+  declare seed: any;
 
   @prop({ type: "str", default: "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border.", description: "Negative prompt for video generation." })
   declare negative_prompt: any;
@@ -7031,37 +7008,37 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 7.5, description: "Classifier-Free Guidance scale for the generation." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "512p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 129);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border.");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 7.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "512p");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const numFrames = Number(this.num_frames ?? 129);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const fps = Number(this.fps ?? 25);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border.");
+    const cfgScale = Number(this.cfg_scale ?? 7.5);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "resolution": resolution,
       "aspect_ratio": aspectRatio,
-      "enable_prompt_expansion": enablePromptExpansion,
       "num_frames": numFrames,
-      "fps": fps,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
+      "fps": fps,
+      "enable_prompt_expansion": enablePromptExpansion,
       "num_inference_steps": numInferenceSteps,
+      "seed": seed,
       "negative_prompt": negativePrompt,
       "cfg_scale": cfgScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7077,7 +7054,7 @@ export class FramepackF1 extends FalNode {
   static readonly description = `Framepack is an efficient Image-to-video model that autoregressively generates videos.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation (max 500 characters)." })
   declare prompt: any;
@@ -7088,20 +7065,20 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "480p", values: ["720p", "480p"], description: "The resolution of the video to generate. 720p generations cost 1.5x more than 480p generations." })
   declare resolution: any;
 
-  @prop({ type: "int", default: 180, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "bool", default: false, description: "If set to true, the safety checker will be enabled." })
+  declare enable_safety_checker: any;
 
   @prop({ type: "image", default: "", description: "URL of the image input." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "If set to true, the safety checker will be enabled." })
-  declare enable_safety_checker: any;
+  @prop({ type: "float", default: 10, description: "Guidance scale for the generation." })
+  declare guidance_scale: any;
+
+  @prop({ type: "int", default: 180, description: "The number of frames to generate." })
+  declare num_frames: any;
 
   @prop({ type: "str", default: "", description: "The seed to use for generating the video." })
   declare seed: any;
-
-  @prop({ type: "float", default: 10, description: "Guidance scale for the generation." })
-  declare guidance_scale: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt for video generation." })
   declare negative_prompt: any;
@@ -7109,33 +7086,33 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 1, description: "Classifier-Free Guidance scale for the generation." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 180);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 10);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "480p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const guidanceScale = Number(this.guidance_scale ?? 10);
+    const numFrames = Number(this.num_frames ?? 180);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
       "resolution": resolution,
-      "num_frames": numFrames,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
       "guidance_scale": guidanceScale,
+      "num_frames": numFrames,
+      "seed": seed,
       "negative_prompt": negativePrompt,
       "cfg_scale": cfgScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7151,45 +7128,45 @@ export class ViduQ1StartEndToVideo extends FalNode {
   static readonly description = `Vidu Q1 Start-End to Video generates smooth transition 1080p videos between specified start and end images.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "Seed for the random number generator" })
-  declare seed: any;
+  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
+  declare start_image: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to use as the last frame" })
   declare end_image: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare start_image: any;
-
   @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
   declare movement_amplitude: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  @prop({ type: "str", default: "", description: "Seed for the random number generator" })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "seed": seed,
       "movement_amplitude": movementAmplitude,
+      "seed": seed,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
-    if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
-      if (endImageUrl) args["end_image_url"] = endImageUrl;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
+      if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
-    if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
-      if (startImageUrl) args["start_image_url"] = startImageUrl;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
+      if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
 
@@ -7204,7 +7181,7 @@ export class ViduQ1ImageToVideo extends FalNode {
   static readonly description = `Vidu Q1 Image to Video generates high-quality 1080p videos with exceptional visual quality and motion diversity from a single image
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -7218,11 +7195,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = String(this.seed ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -7230,9 +7207,9 @@ video, animation, image-to-video, img2vid`;
       "movement_amplitude": movementAmplitude,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7248,7 +7225,7 @@ export class MagiImageToVideo extends FalNode {
   static readonly description = `MAGI-1 generates videos from images with exceptional understanding of physical interactions and prompting
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -7265,38 +7242,38 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
-  declare seed: any;
-
   @prop({ type: "enum", default: 16, values: [4, 8, 16, 32, 64], description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
   declare num_inference_steps: any;
+
+  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
+  declare seed: any;
 
   @prop({ type: "str", default: 96, description: "Number of frames to generate. Must be between 96 and 192 (inclusive). Each additional 24 frames beyond 96 incurs an additional billing unit." })
   declare num_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = String(inputs.num_inference_steps ?? this.num_inference_steps ?? 16);
-    const numFrames = String(inputs.num_frames ?? this.num_frames ?? 96);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numInferenceSteps = String(this.num_inference_steps ?? 16);
+    const seed = String(this.seed ?? "");
+    const numFrames = String(this.num_frames ?? 96);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "resolution": resolution,
       "aspect_ratio": aspectRatio,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
       "num_inference_steps": numInferenceSteps,
+      "seed": seed,
       "num_frames": numFrames,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7312,40 +7289,40 @@ export class PixverseV4Effects extends FalNode {
   static readonly description = `Generate high quality video clips with different effects using PixVerse v4
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
-  declare effect: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
-  declare resolution: any;
-
-  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
-  declare duration: any;
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
+  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
+  declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
+  declare resolution: any;
+
+  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
+  declare effect: any;
+
   @prop({ type: "image", default: "", description: "Optional URL of the image to use as the first frame. If not provided, generates from text" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const effect = String(inputs.effect ?? this.effect ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const effect = String(this.effect ?? "");
 
     const args: Record<string, unknown> = {
-      "effect": effect,
-      "resolution": resolution,
-      "duration": duration,
       "negative_prompt": negativePrompt,
+      "duration": duration,
+      "resolution": resolution,
+      "effect": effect,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7361,7 +7338,7 @@ export class MagiDistilledImageToVideo extends FalNode {
   static readonly description = `MAGI-1 distilled generates videos faster from images with exceptional understanding of physical interactions and prompting
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
@@ -7378,38 +7355,38 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
-  declare seed: any;
+  @prop({ type: "str", default: 96, description: "Number of frames to generate. Must be between 96 and 192 (inclusive). Each additional 24 frames beyond 96 incurs an additional billing unit." })
+  declare num_frames: any;
 
   @prop({ type: "enum", default: 16, values: [4, 8, 16, 32], description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
   declare num_inference_steps: any;
 
-  @prop({ type: "str", default: 96, description: "Number of frames to generate. Must be between 96 and 192 (inclusive). Each additional 24 frames beyond 96 incurs an additional billing unit." })
-  declare num_frames: any;
+  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
+  declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = String(inputs.num_inference_steps ?? this.num_inference_steps ?? 16);
-    const numFrames = String(inputs.num_frames ?? this.num_frames ?? 96);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numFrames = String(this.num_frames ?? 96);
+    const numInferenceSteps = String(this.num_inference_steps ?? 16);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
       "resolution": resolution,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
-      "num_inference_steps": numInferenceSteps,
       "num_frames": numFrames,
+      "num_inference_steps": numInferenceSteps,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7425,7 +7402,7 @@ export class FramepackFlf2v extends FalNode {
   static readonly description = `Framepack is an efficient Image-to-video model that autoregressively generates videos.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation (max 500 characters)." })
   declare prompt: any;
@@ -7436,11 +7413,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "480p", values: ["720p", "480p"], description: "The resolution of the video to generate. 720p generations cost 1.5x more than 480p generations." })
   declare resolution: any;
 
-  @prop({ type: "float", default: 10, description: "Guidance scale for the generation." })
-  declare guidance_scale: any;
+  @prop({ type: "bool", default: false, description: "If set to true, the safety checker will be enabled." })
+  declare enable_safety_checker: any;
 
-  @prop({ type: "int", default: 240, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "str", default: "", description: "The seed to use for generating the video." })
+  declare seed: any;
 
   @prop({ type: "image", default: "", description: "URL of the image input." })
   declare image: any;
@@ -7448,11 +7425,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 0.8, description: "Determines the influence of the final frame on the generated video. Higher values result in the output being more heavily influenced by the last frame." })
   declare strength: any;
 
-  @prop({ type: "bool", default: false, description: "If set to true, the safety checker will be enabled." })
-  declare enable_safety_checker: any;
+  @prop({ type: "float", default: 10, description: "Guidance scale for the generation." })
+  declare guidance_scale: any;
 
-  @prop({ type: "str", default: "", description: "The seed to use for generating the video." })
-  declare seed: any;
+  @prop({ type: "int", default: 240, description: "The number of frames to generate." })
+  declare num_frames: any;
 
   @prop({ type: "image", default: "", description: "URL of the end image input." })
   declare end_image: any;
@@ -7463,41 +7440,41 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 1, description: "Classifier-Free Guidance scale for the generation." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 10);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 240);
-    const strength = Number(inputs.strength ?? this.strength ?? 0.8);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "480p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const seed = String(this.seed ?? "");
+    const strength = Number(this.strength ?? 0.8);
+    const guidanceScale = Number(this.guidance_scale ?? 10);
+    const numFrames = Number(this.num_frames ?? 240);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
       "resolution": resolution,
-      "guidance_scale": guidanceScale,
-      "num_frames": numFrames,
-      "strength": strength,
       "enable_safety_checker": enableSafetyChecker,
       "seed": seed,
+      "strength": strength,
+      "guidance_scale": guidanceScale,
+      "num_frames": numFrames,
       "negative_prompt": negativePrompt,
       "cfg_scale": cfgScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -7513,7 +7490,7 @@ export class WanFlf2v extends FalNode {
   static readonly description = `Wan-2.1 flf2v generates dynamic videos by intelligently bridging a given first frame to a desired end frame through smooth, coherent motion sequences.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "float", default: 5, description: "Shift parameter for video generation." })
   declare shift: any;
@@ -7542,11 +7519,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: 81, description: "Number of frames to generate. Must be between 81 to 100 (inclusive). If the number of frames is greater than 81, the video will be generated with 1.25x more billing units." })
   declare num_frames: any;
 
-  @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video (480p or 720p). 480p is 0.5 billing units, and 720p is 1 billing unit." })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "auto", values: ["auto", "16:9", "9:16", "1:1"], description: "Aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image." })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video (480p or 720p). 480p is 0.5 billing units, and 720p is 1 billing unit." })
+  declare resolution: any;
 
   @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
@@ -7560,21 +7537,21 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const shift = Number(inputs.shift ?? this.shift ?? 5);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const framesPerSecond = String(inputs.frames_per_second ?? this.frames_per_second ?? 16);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "bright colors, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still picture, cluttered background, three legs, many people in the background, walking backwards");
-    const numFrames = String(inputs.num_frames ?? this.num_frames ?? 81);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const guideScale = Number(inputs.guide_scale ?? this.guide_scale ?? 5);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const shift = Number(this.shift ?? 5);
+    const prompt = String(this.prompt ?? "");
+    const acceleration = String(this.acceleration ?? "regular");
+    const framesPerSecond = String(this.frames_per_second ?? 16);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const negativePrompt = String(this.negative_prompt ?? "bright colors, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still picture, cluttered background, three legs, many people in the background, walking backwards");
+    const numFrames = String(this.num_frames ?? 81);
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const resolution = String(this.resolution ?? "720p");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const guideScale = Number(this.guide_scale ?? 5);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "shift": shift,
@@ -7584,23 +7561,23 @@ video, animation, image-to-video, img2vid`;
       "enable_safety_checker": enableSafetyChecker,
       "negative_prompt": negativePrompt,
       "num_frames": numFrames,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "enable_prompt_expansion": enablePromptExpansion,
       "num_inference_steps": numInferenceSteps,
       "guide_scale": guideScale,
       "seed": seed,
     };
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
       if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -7616,7 +7593,7 @@ export class Framepack extends FalNode {
   static readonly description = `Framepack is an efficient Image-to-video model that autoregressively generates videos.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation (max 500 characters)." })
   declare prompt: any;
@@ -7627,20 +7604,20 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "480p", values: ["720p", "480p"], description: "The resolution of the video to generate. 720p generations cost 1.5x more than 480p generations." })
   declare resolution: any;
 
-  @prop({ type: "int", default: 180, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "bool", default: false, description: "If set to true, the safety checker will be enabled." })
+  declare enable_safety_checker: any;
 
   @prop({ type: "image", default: "", description: "URL of the image input." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "If set to true, the safety checker will be enabled." })
-  declare enable_safety_checker: any;
+  @prop({ type: "float", default: 10, description: "Guidance scale for the generation." })
+  declare guidance_scale: any;
+
+  @prop({ type: "int", default: 180, description: "The number of frames to generate." })
+  declare num_frames: any;
 
   @prop({ type: "str", default: "", description: "The seed to use for generating the video." })
   declare seed: any;
-
-  @prop({ type: "float", default: 10, description: "Guidance scale for the generation." })
-  declare guidance_scale: any;
 
   @prop({ type: "str", default: "", description: "Negative prompt for video generation." })
   declare negative_prompt: any;
@@ -7648,33 +7625,33 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 1, description: "Classifier-Free Guidance scale for the generation." })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 180);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 10);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "480p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const guidanceScale = Number(this.guidance_scale ?? 10);
+    const numFrames = Number(this.num_frames ?? 180);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
       "resolution": resolution,
-      "num_frames": numFrames,
       "enable_safety_checker": enableSafetyChecker,
-      "seed": seed,
       "guidance_scale": guidanceScale,
+      "num_frames": numFrames,
+      "seed": seed,
       "negative_prompt": negativePrompt,
       "cfg_scale": cfgScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7690,7 +7667,7 @@ export class PixverseV4ImageToVideoFast extends FalNode {
   static readonly description = `Generate fast high quality video clips from text and image prompts using PixVerse v4
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -7713,14 +7690,14 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const style = String(inputs.style ?? this.style ?? "");
-    const cameraMovement = String(inputs.camera_movement ?? this.camera_movement ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const cameraMovement = String(this.camera_movement ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -7731,9 +7708,9 @@ video, animation, image-to-video, img2vid, fast`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7749,16 +7726,16 @@ export class PixverseV4ImageToVideo extends FalNode {
   static readonly description = `Generate high quality video clips from text and image prompts using PixVerse v4
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds. 8s videos cost double. 1080p videos are limited to 5 seconds" })
   declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -7775,29 +7752,29 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const style = String(inputs.style ?? this.style ?? "");
-    const cameraMovement = String(inputs.camera_movement ?? this.camera_movement ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const cameraMovement = String(this.camera_movement ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
       "duration": duration,
+      "resolution": resolution,
       "style": style,
       "camera_movement": cameraMovement,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7813,40 +7790,40 @@ export class PixverseV35Effects extends FalNode {
   static readonly description = `Generate high quality video clips with different effects using PixVerse v3.5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
-  declare effect: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
-  declare resolution: any;
-
-  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
-  declare duration: any;
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
+  @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
+  declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video." })
+  declare resolution: any;
+
+  @prop({ type: "enum", default: "", values: ["Kiss Me AI", "Kiss", "Muscle Surge", "Warmth of Jesus", "Anything, Robot", "The Tiger Touch", "Hug", "Holy Wings", "Microwave", "Zombie Mode", "Squid Game", "Baby Face", "Black Myth: Wukong", "Long Hair Magic", "Leggy Run", "Fin-tastic Mermaid", "Punch Face", "Creepy Devil Smile", "Thunder God", "Eye Zoom Challenge", "Who's Arrested?", "Baby Arrived", "Werewolf Rage", "Bald Swipe", "BOOM DROP", "Huge Cutie", "Liquid Metal", "Sharksnap!", "Dust Me Away", "3D Figurine Factor", "Bikini Up", "My Girlfriends", "My Boyfriends", "Subject 3 Fever", "Earth Zoom", "Pole Dance", "Vroom Dance", "GhostFace Terror", "Dragon Evoker", "Skeletal Bae", "Summoning succubus", "Halloween Voodoo Doll", "3D Naked-Eye AD", "Package Explosion", "Dishes Served", "Ocean ad", "Supermarket AD", "Tree doll", "Come Feel My Abs", "The Bicep Flex", "London Elite Vibe", "Flora Nymph Gown", "Christmas Costume", "It's Snowy", "Reindeer Cruiser", "Snow Globe Maker", "Pet Christmas Outfit", "Adopt a Polar Pal", "Cat Christmas Box", "Starlight Gift Box", "Xmas Poster", "Pet Christmas Tree", "City Santa Hat", "Stocking Sweetie", "Christmas Night", "Xmas Front Page Karma", "Grinch's Xmas Hijack", "Giant Product", "Truck Fashion Shoot", "Beach AD", "Shoal Surround", "Mechanical Assembly", "Lighting AD", "Billboard AD", "Product close-up", "Parachute Delivery", "Dreamlike Cloud", "Macaron Machine", "Poster AD", "Truck AD", "Graffiti AD", "3D Figurine Factory", "The Exclusive First Class", "Art Zoom Challenge", "I Quit", "Hitchcock Dolly Zoom", "Smell the Lens", "I believe I can fly", "Strikout Dance", "Pixel World", "Mint in Box", "Hands up, Hand", "Flora Nymph Go", "Somber Embrace", "Beam me up", "Suit Swagger"], description: "The effect to apply to the video" })
+  declare effect: any;
+
   @prop({ type: "image", default: "", description: "Optional URL of the image to use as the first frame. If not provided, generates from text" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const effect = String(inputs.effect ?? this.effect ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const effect = String(this.effect ?? "");
 
     const args: Record<string, unknown> = {
-      "effect": effect,
-      "resolution": resolution,
-      "duration": duration,
       "negative_prompt": negativePrompt,
+      "duration": duration,
+      "resolution": resolution,
+      "effect": effect,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -7862,16 +7839,16 @@ export class PixverseV35Transition extends FalNode {
   static readonly description = `Create seamless transition between images using PixVerse v3.5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
-  @prop({ type: "str", default: "", description: "The prompt for the transition" })
-  declare prompt: any;
-
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
+  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
+  declare first_image: any;
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "4:3", "1:1", "3:4", "9:16"], description: "The aspect ratio of the generated video" })
   declare aspect_ratio: any;
+
+  @prop({ type: "str", default: "", description: "The prompt for the transition" })
+  declare prompt: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -7879,8 +7856,8 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds" })
   declare duration: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare first_image: any;
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        " })
   declare seed: any;
@@ -7891,35 +7868,35 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const style = String(inputs.style ?? this.style ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const prompt = String(this.prompt ?? "");
+    const style = String(this.style ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
-      "prompt": prompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "prompt": prompt,
       "style": style,
       "duration": duration,
+      "resolution": resolution,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const firstImageRef = inputs.first_image as Record<string, unknown> | undefined;
+    const firstImageRef = this.first_image as Record<string, unknown> | undefined;
     if (isRefSet(firstImageRef)) {
-      const firstImageUrl = await assetToFalUrl(apiKey, firstImageRef!);
+      const firstImageUrl = await imageToDataUrl(firstImageRef!) ?? await assetToFalUrl(apiKey, firstImageRef!);
       if (firstImageUrl) args["first_image_url"] = firstImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -7935,16 +7912,16 @@ export class LumaDreamMachineRay2FlashImageToVideo extends FalNode {
   static readonly description = `Ray2 Flash is a fast video generative model capable of creating realistic visuals with natural, coherent motion.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "21:9", "9:21"], description: "The aspect ratio of the generated video" })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "540p", values: ["540p", "720p", "1080p"], description: "The resolution of the generated video (720p costs 2x more, 1080p costs 4x more)" })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "21:9", "9:21"], description: "The aspect ratio of the generated video" })
+  declare aspect_ratio: any;
 
   @prop({ type: "bool", default: false, description: "Whether the video should loop (end of video is blended with the beginning)" })
   declare loop: any;
@@ -7958,31 +7935,31 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "Final image to end the video with. Can be used together with image_url." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "540p");
-    const loop = Boolean(inputs.loop ?? this.loop ?? false);
-    const duration = String(inputs.duration ?? this.duration ?? "5s");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "540p");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const loop = Boolean(this.loop ?? false);
+    const duration = String(this.duration ?? "5s");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "loop": loop,
       "duration": duration,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -7998,7 +7975,7 @@ export class PikaV15Pikaffects extends FalNode {
   static readonly description = `Pika Effects are AI-powered video effects designed to modify objects, characters, and environments in a fun, engaging, and visually compelling manner.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt to guide the effect" })
   declare prompt: any;
@@ -8015,12 +7992,12 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const pikaffect = String(inputs.pikaffect ?? this.pikaffect ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const pikaffect = String(this.pikaffect ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8029,9 +8006,9 @@ video, animation, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8047,7 +8024,7 @@ export class PikaV21ImageToVideo extends FalNode {
   static readonly description = `Turn photos into mind-blowing, dynamic videos. Your images can can come to life with sharp details, impressive character control and cinematic camera moves.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -8067,13 +8044,13 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = Number(inputs.duration ?? this.duration ?? 5);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const duration = Number(this.duration ?? 5);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8083,9 +8060,9 @@ video, animation, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8101,7 +8078,7 @@ export class PikaV22ImageToVideo extends FalNode {
   static readonly description = `Turn photos into mind-blowing, dynamic videos in up to 1080p. Experience better image clarity and crisper, sharper visuals.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -8121,13 +8098,13 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? 5);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const duration = String(this.duration ?? 5);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8137,9 +8114,9 @@ video, animation, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8155,16 +8132,16 @@ export class PikaV22Pikascenes extends FalNode {
   static readonly description = `Pika Scenes v2.2 creates videos from a images with high quality output.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt describing the desired video" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1", "4:5", "5:4", "3:2", "2:3"], description: "The aspect ratio of the generated video" })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "1080p", values: ["720p", "1080p"], description: "The resolution of the generated video" })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1", "4:5", "5:4", "3:2", "2:3"], description: "The aspect ratio of the generated video" })
+  declare aspect_ratio: any;
 
   @prop({ type: "enum", default: 5, values: [5, 10], description: "The duration of the generated video in seconds" })
   declare duration: any;
@@ -8181,27 +8158,27 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "ugly, bad, terrible", description: "A negative prompt to guide the model" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "1080p");
-    const duration = String(inputs.duration ?? this.duration ?? 5);
-    const ingredientsMode = String(inputs.ingredients_mode ?? this.ingredients_mode ?? "precise");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "ugly, bad, terrible");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "1080p");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const duration = String(this.duration ?? 5);
+    const ingredientsMode = String(this.ingredients_mode ?? "precise");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "ugly, bad, terrible");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "duration": duration,
       "ingredients_mode": ingredientsMode,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imagesList = inputs.images as Record<string, unknown>[] | undefined;
+    const imagesList = this.images as Record<string, unknown>[] | undefined;
     if (imagesList?.length) {
       const imagesUrls: string[] = [];
       for (const ref of imagesList) {
@@ -8222,7 +8199,7 @@ export class PikaV2TurboImageToVideo extends FalNode {
   static readonly description = `Turbo is the model to use when you feel the need for speed. Turn your image to stunning video up to 3x faster – all with high quality outputs. 
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -8242,13 +8219,13 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = Number(inputs.duration ?? this.duration ?? 5);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const duration = Number(this.duration ?? 5);
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8258,9 +8235,9 @@ video, animation, image-to-video, img2vid, fast`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8276,7 +8253,7 @@ export class ViduImageToVideo extends FalNode {
   static readonly description = `Vidu Image to Video generates high-quality videos with exceptional visual quality and motion diversity from a single image
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -8290,11 +8267,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = String(this.seed ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8302,9 +8279,9 @@ video, animation, image-to-video, img2vid`;
       "movement_amplitude": movementAmplitude,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8320,7 +8297,7 @@ export class ViduReferenceToVideo extends FalNode {
   static readonly description = `Vidu Reference to Video creates videos by using a reference images and combining them with a prompt.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
@@ -8337,12 +8314,12 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
   declare movement_amplitude: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const seed = String(this.seed ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8351,7 +8328,7 @@ video, animation, image-to-video, img2vid`;
       "movement_amplitude": movementAmplitude,
     };
 
-    const referenceImagesList = inputs.reference_images as Record<string, unknown>[] | undefined;
+    const referenceImagesList = this.reference_images as Record<string, unknown>[] | undefined;
     if (referenceImagesList?.length) {
       const referenceImagesUrls: string[] = [];
       for (const ref of referenceImagesList) {
@@ -8372,45 +8349,45 @@ export class ViduStartEndToVideo extends FalNode {
   static readonly description = `Vidu Start-End to Video generates smooth transition videos between specified start and end images.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation, max 1500 characters" })
   declare prompt: any;
 
-  @prop({ type: "str", default: "", description: "Random seed for generation" })
-  declare seed: any;
+  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
+  declare start_image: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to use as the last frame" })
   declare end_image: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
-  declare start_image: any;
-
   @prop({ type: "enum", default: "auto", values: ["auto", "small", "medium", "large"], description: "The movement amplitude of objects in the frame" })
   declare movement_amplitude: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const movementAmplitude = String(inputs.movement_amplitude ?? this.movement_amplitude ?? "auto");
+  @prop({ type: "str", default: "", description: "Random seed for generation" })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const movementAmplitude = String(this.movement_amplitude ?? "auto");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "seed": seed,
       "movement_amplitude": movementAmplitude,
+      "seed": seed,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
-    if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
-      if (endImageUrl) args["end_image_url"] = endImageUrl;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
+    if (isRefSet(startImageRef)) {
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
+      if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
-    if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
-      if (startImageUrl) args["start_image_url"] = startImageUrl;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
+    if (isRefSet(endImageRef)) {
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
+      if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
 
@@ -8425,7 +8402,7 @@ export class ViduTemplateToVideo extends FalNode {
   static readonly description = `Vidu Template to Video lets you create different effects by applying motion templates to your images.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16"], description: "The aspect ratio of the output video" })
   declare aspect_ratio: any;
@@ -8439,11 +8416,11 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "list[image]", default: [], description: "URLs of the images to use with the template. Number of images required varies by template: 'dynasty_dress' and 'shop_frame' accept 1-2 images, 'wish_sender' requires exactly 3 images, all other templates accept only 1 image." })
   declare input_images: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const template = String(inputs.template ?? this.template ?? "hug");
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const template = String(this.template ?? "hug");
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
@@ -8451,7 +8428,7 @@ video, animation, image-to-video, img2vid`;
       "seed": seed,
     };
 
-    const inputImagesList = inputs.input_images as Record<string, unknown>[] | undefined;
+    const inputImagesList = this.input_images as Record<string, unknown>[] | undefined;
     if (inputImagesList?.length) {
       const inputImagesUrls: string[] = [];
       for (const ref of inputImagesList) {
@@ -8472,13 +8449,13 @@ export class WanI2vLora extends FalNode {
   static readonly description = `Add custom LoRAs to Wan-2.1 is a image-to-video model that generates high-quality videos with high visual quality and motion diversity from images
 video, animation, image-to-video, img2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "float", default: 5, description: "Shift parameter for video generation." })
-  declare shift: any;
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt to guide video generation." })
   declare prompt: any;
+
+  @prop({ type: "float", default: 5, description: "Shift parameter for video generation." })
+  declare shift: any;
 
   @prop({ type: "bool", default: false, description: "If true, the video will be reversed." })
   declare reverse_video: any;
@@ -8501,11 +8478,11 @@ video, animation, image-to-video, img2vid, lora`;
   @prop({ type: "str", default: "bright colors, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still picture, cluttered background, three legs, many people in the background, walking backwards", description: "Negative prompt for video generation." })
   declare negative_prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video (480p or 720p). 480p is 0.5 billing units, and 720p is 1 billing unit." })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "16:9", values: ["auto", "16:9", "9:16", "1:1"], description: "Aspect ratio of the output video." })
   declare aspect_ratio: any;
+
+  @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video (480p or 720p). 480p is 0.5 billing units, and 720p is 1 billing unit." })
+  declare resolution: any;
 
   @prop({ type: "image", default: "", description: "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped." })
   declare image: any;
@@ -8513,36 +8490,36 @@ video, animation, image-to-video, img2vid, lora`;
   @prop({ type: "bool", default: false, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
 
-  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
-  declare seed: any;
+  @prop({ type: "int", default: 30, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
+  declare num_inference_steps: any;
 
   @prop({ type: "float", default: 5, description: "Classifier-free guidance scale. Higher values give better adherence to the prompt but may decrease quality." })
   declare guide_scale: any;
 
-  @prop({ type: "int", default: 30, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
-  declare num_inference_steps: any;
+  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
+  declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const shift = Number(inputs.shift ?? this.shift ?? 5);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reverseVideo = Boolean(inputs.reverse_video ?? this.reverse_video ?? false);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const framesPerSecond = String(inputs.frames_per_second ?? this.frames_per_second ?? 16);
-    const turboMode = Boolean(inputs.turbo_mode ?? this.turbo_mode ?? true);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const numFrames = String(inputs.num_frames ?? this.num_frames ?? 81);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "bright colors, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still picture, cluttered background, three legs, many people in the background, walking backwards");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? false);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const guideScale = Number(inputs.guide_scale ?? this.guide_scale ?? 5);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const shift = Number(this.shift ?? 5);
+    const reverseVideo = Boolean(this.reverse_video ?? false);
+    const loras = String(this.loras ?? []);
+    const framesPerSecond = String(this.frames_per_second ?? 16);
+    const turboMode = Boolean(this.turbo_mode ?? true);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const numFrames = String(this.num_frames ?? 81);
+    const negativePrompt = String(this.negative_prompt ?? "bright colors, overexposed, static, blurred details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still picture, cluttered background, three legs, many people in the background, walking backwards");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "720p");
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? false);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const guideScale = Number(this.guide_scale ?? 5);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
-      "shift": shift,
       "prompt": prompt,
+      "shift": shift,
       "reverse_video": reverseVideo,
       "loras": loras,
       "frames_per_second": framesPerSecond,
@@ -8550,17 +8527,17 @@ video, animation, image-to-video, img2vid, lora`;
       "enable_safety_checker": enableSafetyChecker,
       "num_frames": numFrames,
       "negative_prompt": negativePrompt,
-      "resolution": resolution,
       "aspect_ratio": aspectRatio,
+      "resolution": resolution,
       "enable_prompt_expansion": enablePromptExpansion,
-      "seed": seed,
-      "guide_scale": guideScale,
       "num_inference_steps": numInferenceSteps,
+      "guide_scale": guideScale,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8576,7 +8553,7 @@ export class HunyuanVideoImageToVideo extends FalNode {
   static readonly description = `Image to Video for the high-quality Hunyuan Video I2V model.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -8599,14 +8576,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: false, description: "Turning on I2V Stability reduces hallucination but also reduces motion." })
   declare i2v_stability: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numFrames = String(inputs.num_frames ?? this.num_frames ?? 129);
-    const i2vStability = Boolean(inputs.i2v_stability ?? this.i2v_stability ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const resolution = String(this.resolution ?? "720p");
+    const seed = String(this.seed ?? "");
+    const numFrames = String(this.num_frames ?? 129);
+    const i2vStability = Boolean(this.i2v_stability ?? false);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8617,9 +8594,9 @@ video, animation, image-to-video, img2vid`;
       "i2v_stability": i2vStability,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8635,7 +8612,7 @@ export class MinimaxVideo01DirectorImageToVideo extends FalNode {
   static readonly description = `Generate video clips more accurately with respect to initial image, natural language descriptions, and using camera movement instructions for shot control.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Camera movement instructions can be added using square brackets (e.g. [Pan left] or [Zoom in]). You can use up to 3 combined movements per prompt. Supported movements: Truck left/right, Pan left/right, Push in/Pull out, Pedestal up/down, Tilt up/down, Zoom in/out, Shake, Tracking shot, Static shot. For example: [Truck left, Pan right, Zoom in]. For a more detailed guide, refer https://sixth-switch-2ac.notion.site/T2V-01-Director-Model-Tutorial-with-camera-movement-1886c20a98eb80f395b8e05291ad8645" })
   declare prompt: any;
@@ -8646,19 +8623,19 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8674,7 +8651,7 @@ export class SkyreelsI2v extends FalNode {
   static readonly description = `SkyReels V1 is the first and most advanced open-source human-centric video foundation model. By fine-tuning HunyuanVideo on O(10M) high-quality film and television clips
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -8697,14 +8674,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to guide generation away from certain attributes." })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 6);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const guidanceScale = Number(this.guidance_scale ?? 6);
+    const seed = String(this.seed ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8715,9 +8692,9 @@ video, animation, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8733,16 +8710,16 @@ export class LumaDreamMachineRay2ImageToVideo extends FalNode {
   static readonly description = `Ray2 is a large-scale video generative model capable of creating realistic visuals with natural, coherent motion.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "21:9", "9:21"], description: "The aspect ratio of the generated video" })
-  declare aspect_ratio: any;
-
   @prop({ type: "enum", default: "540p", values: ["540p", "720p", "1080p"], description: "The resolution of the generated video (720p costs 2x more, 1080p costs 4x more)" })
   declare resolution: any;
+
+  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "4:3", "3:4", "21:9", "9:21"], description: "The aspect ratio of the generated video" })
+  declare aspect_ratio: any;
 
   @prop({ type: "bool", default: false, description: "Whether the video should loop (end of video is blended with the beginning)" })
   declare loop: any;
@@ -8756,31 +8733,31 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "Final image to end the video with. Can be used together with image_url." })
   declare end_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "540p");
-    const loop = Boolean(inputs.loop ?? this.loop ?? false);
-    const duration = String(inputs.duration ?? this.duration ?? "5s");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "540p");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const loop = Boolean(this.loop ?? false);
+    const duration = String(this.duration ?? "5s");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "aspect_ratio": aspectRatio,
       "resolution": resolution,
+      "aspect_ratio": aspectRatio,
       "loop": loop,
       "duration": duration,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -8796,7 +8773,7 @@ export class HunyuanVideoImg2vidLora extends FalNode {
   static readonly description = `Image to Video for the Hunyuan Video model using a custom trained LoRA.
 video, animation, image-to-video, img2vid, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -8807,19 +8784,19 @@ video, animation, image-to-video, img2vid, lora`;
   @prop({ type: "image", default: "", description: "The URL to the image to generate the video from. The image must be 960x544 or it will get cropped and resized to that size." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8835,7 +8812,7 @@ export class PixverseV35ImageToVideoFast extends FalNode {
   static readonly description = `Generate high quality video clips from text and image prompts quickly using PixVerse v3.5 Fast
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -8855,13 +8832,13 @@ video, animation, image-to-video, img2vid, fast`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const style = String(inputs.style ?? this.style ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -8871,9 +8848,9 @@ video, animation, image-to-video, img2vid, fast`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8889,16 +8866,16 @@ export class PixverseV35ImageToVideo extends FalNode {
   static readonly description = `Generate high quality video clips from text and image prompts using PixVerse v3.5
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
-  declare resolution: any;
-
   @prop({ type: "enum", default: "5", values: ["5", "8"], description: "The duration of the generated video in seconds. 8s videos cost double. 1080p videos are limited to 5 seconds" })
   declare duration: any;
+
+  @prop({ type: "enum", default: "720p", values: ["360p", "540p", "720p", "1080p"], description: "The resolution of the generated video" })
+  declare resolution: any;
 
   @prop({ type: "str", default: "", description: "The style of the generated video" })
   declare style: any;
@@ -8912,27 +8889,27 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "Negative prompt to be used for the generation" })
   declare negative_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const style = String(inputs.style ?? this.style ?? "");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const resolution = String(this.resolution ?? "720p");
+    const style = String(this.style ?? "");
+    const seed = String(this.seed ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "resolution": resolution,
       "duration": duration,
+      "resolution": resolution,
       "style": style,
       "seed": seed,
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -8948,7 +8925,7 @@ export class MinimaxVideo01SubjectReference extends FalNode {
   static readonly description = `Generate video clips maintaining consistent, realistic facial features and identity across dynamic video content
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -8959,19 +8936,19 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the subject reference image to use for consistent subject appearance" })
   declare subject_reference_image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
     };
 
-    const subjectReferenceImageRef = inputs.subject_reference_image as Record<string, unknown> | undefined;
+    const subjectReferenceImageRef = this.subject_reference_image as Record<string, unknown> | undefined;
     if (isRefSet(subjectReferenceImageRef)) {
-      const subjectReferenceImageUrl = await assetToFalUrl(apiKey, subjectReferenceImageRef!);
+      const subjectReferenceImageUrl = await imageToDataUrl(subjectReferenceImageRef!) ?? await assetToFalUrl(apiKey, subjectReferenceImageRef!);
       if (subjectReferenceImageUrl) args["subject_reference_image_url"] = subjectReferenceImageUrl;
     }
     removeNulls(args);
@@ -8987,7 +8964,7 @@ export class KlingVideoV16StandardImageToVideo extends FalNode {
   static readonly description = `Generate video clips from your images using Kling 1.6 (std)
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -9004,12 +8981,12 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -9018,9 +8995,9 @@ video, animation, image-to-video, img2vid`;
       "negative_prompt": negativePrompt,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -9036,7 +9013,7 @@ export class SadtalkerReference extends FalNode {
   static readonly description = `Learning Realistic 3D Motion Coefficients for Stylized Audio-Driven Single Image Talking Face Animation
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "int", default: 0, description: "The style of the pose" })
   declare pose_style: any;
@@ -9065,14 +9042,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "crop", values: ["crop", "extcrop", "resize", "full", "extfull"], description: "The type of preprocessing to use" })
   declare preprocess: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const poseStyle = Number(inputs.pose_style ?? this.pose_style ?? 0);
-    const faceEnhancer = String(inputs.face_enhancer ?? this.face_enhancer ?? "");
-    const expressionScale = Number(inputs.expression_scale ?? this.expression_scale ?? 1);
-    const faceModelResolution = String(inputs.face_model_resolution ?? this.face_model_resolution ?? "256");
-    const stillMode = Boolean(inputs.still_mode ?? this.still_mode ?? false);
-    const preprocess = String(inputs.preprocess ?? this.preprocess ?? "crop");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const poseStyle = Number(this.pose_style ?? 0);
+    const faceEnhancer = String(this.face_enhancer ?? "");
+    const expressionScale = Number(this.expression_scale ?? 1);
+    const faceModelResolution = String(this.face_model_resolution ?? "256");
+    const stillMode = Boolean(this.still_mode ?? false);
+    const preprocess = String(this.preprocess ?? "crop");
 
     const args: Record<string, unknown> = {
       "pose_style": poseStyle,
@@ -9083,19 +9060,19 @@ video, animation, image-to-video, img2vid`;
       "preprocess": preprocess,
     };
 
-    const sourceImageRef = inputs.source_image as Record<string, unknown> | undefined;
+    const sourceImageRef = this.source_image as Record<string, unknown> | undefined;
     if (isRefSet(sourceImageRef)) {
-      const sourceImageUrl = await assetToFalUrl(apiKey, sourceImageRef!);
+      const sourceImageUrl = await imageToDataUrl(sourceImageRef!) ?? await assetToFalUrl(apiKey, sourceImageRef!);
       if (sourceImageUrl) args["source_image_url"] = sourceImageUrl;
     }
 
-    const referencePoseVideoRef = inputs.reference_pose_video as Record<string, unknown> | undefined;
+    const referencePoseVideoRef = this.reference_pose_video as Record<string, unknown> | undefined;
     if (isRefSet(referencePoseVideoRef)) {
       const referencePoseVideoUrl = await assetToFalUrl(apiKey, referencePoseVideoRef!);
       if (referencePoseVideoUrl) args["reference_pose_video_url"] = referencePoseVideoUrl;
     }
 
-    const drivenAudioRef = inputs.driven_audio as Record<string, unknown> | undefined;
+    const drivenAudioRef = this.driven_audio as Record<string, unknown> | undefined;
     if (isRefSet(drivenAudioRef)) {
       const drivenAudioUrl = await assetToFalUrl(apiKey, drivenAudioRef!);
       if (drivenAudioUrl) args["driven_audio_url"] = drivenAudioUrl;
@@ -9113,7 +9090,7 @@ export class MinimaxVideo01LiveImageToVideo extends FalNode {
   static readonly description = `Generate video clips from your images using MiniMax Video model
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -9124,19 +9101,19 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "image", default: "", description: "URL of the image to use as the first frame" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const promptOptimizer = Boolean(inputs.prompt_optimizer ?? this.prompt_optimizer ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const promptOptimizer = Boolean(this.prompt_optimizer ?? true);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "prompt_optimizer": promptOptimizer,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -9152,7 +9129,7 @@ export class KlingVideoV15ProImageToVideo extends FalNode {
   static readonly description = `Generate video clips from your images using Kling 1.5 (pro)
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "" })
   declare prompt: any;
@@ -9163,8 +9140,8 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "The aspect ratio of the generated video frame" })
   declare aspect_ratio: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to be used for the end of the video" })
-  declare tail_image: any;
+  @prop({ type: "str", default: "blur, distort, and low quality" })
+  declare negative_prompt: any;
 
   @prop({ type: "image", default: "" })
   declare image: any;
@@ -9175,46 +9152,46 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "str", default: "", description: "List of dynamic masks" })
   declare dynamic_masks: any;
 
-  @prop({ type: "str", default: "blur, distort, and low quality" })
-  declare negative_prompt: any;
+  @prop({ type: "image", default: "", description: "URL of the image to be used for the end of the video" })
+  declare tail_image: any;
 
   @prop({ type: "float", default: 0.5, description: "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        " })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const dynamicMasks = String(inputs.dynamic_masks ?? this.dynamic_masks ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const duration = String(this.duration ?? "5");
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
+    const dynamicMasks = String(this.dynamic_masks ?? "");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "duration": duration,
       "aspect_ratio": aspectRatio,
-      "dynamic_masks": dynamicMasks,
       "negative_prompt": negativePrompt,
+      "dynamic_masks": dynamicMasks,
       "cfg_scale": cfgScale,
     };
 
-    const tailImageRef = inputs.tail_image as Record<string, unknown> | undefined;
-    if (isRefSet(tailImageRef)) {
-      const tailImageUrl = await assetToFalUrl(apiKey, tailImageRef!);
-      if (tailImageUrl) args["tail_image_url"] = tailImageUrl;
-    }
-
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const staticMaskUrlRef = inputs.static_mask_url as Record<string, unknown> | undefined;
+    const staticMaskUrlRef = this.static_mask_url as Record<string, unknown> | undefined;
     if (isRefSet(staticMaskUrlRef)) {
-      const staticMaskUrlUrl = await assetToFalUrl(apiKey, staticMaskUrlRef!);
+      const staticMaskUrlUrl = await imageToDataUrl(staticMaskUrlRef!) ?? await assetToFalUrl(apiKey, staticMaskUrlRef!);
       if (staticMaskUrlUrl) args["static_mask_url"] = staticMaskUrlUrl;
+    }
+
+    const tailImageRef = this.tail_image as Record<string, unknown> | undefined;
+    if (isRefSet(tailImageRef)) {
+      const tailImageUrl = await imageToDataUrl(tailImageRef!) ?? await assetToFalUrl(apiKey, tailImageRef!);
+      if (tailImageUrl) args["tail_image_url"] = tailImageUrl;
     }
     removeNulls(args);
 
@@ -9229,7 +9206,7 @@ export class LivePortrait extends FalNode {
   static readonly description = `Transfer expression from a video to a portrait.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "float", default: 0, description: "Amount to smile" })
   declare smile: any;
@@ -9243,14 +9220,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 0, description: "Amount to raise or lower eyebrows" })
   declare eyebrow: any;
 
-  @prop({ type: "float", default: 0, description: "Amount to wink" })
-  declare wink: any;
+  @prop({ type: "float", default: 0, description: "Amount to blink the eyes" })
+  declare blink: any;
 
   @prop({ type: "float", default: 0, description: "Amount to rotate the face in pitch" })
   declare rotate_pitch: any;
 
-  @prop({ type: "float", default: 0, description: "Amount to blink the eyes" })
-  declare blink: any;
+  @prop({ type: "float", default: 0, description: "Amount to wink" })
+  declare wink: any;
 
   @prop({ type: "float", default: 2.3, description: "Scaling factor for the face crop." })
   declare scale: any;
@@ -9294,17 +9271,17 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "float", default: 0, description: "Amount to rotate the face in roll" })
   declare rotate_roll: any;
 
-  @prop({ type: "float", default: 0, description: "Amount to move pupils horizontally" })
-  declare pupil_x: any;
+  @prop({ type: "int", default: 512, description: "Size of the output image." })
+  declare dsize: any;
 
   @prop({ type: "float", default: -0.125, description: "Vertical offset ratio for face crop. Positive values move up, negative values move down." })
   declare vy_ratio: any;
 
+  @prop({ type: "float", default: 0, description: "Amount to move pupils horizontally" })
+  declare pupil_x: any;
+
   @prop({ type: "bool", default: false, description: "\n        Whether to enable the safety checker. If enabled, the model will check if the input image contains a face before processing it.\n        The safety checker will process the input image\n        " })
   declare enable_safety_checker: any;
-
-  @prop({ type: "int", default: 512, description: "Size of the output image." })
-  declare dsize: any;
 
   @prop({ type: "float", default: 0, description: "Horizontal offset ratio for face crop." })
   declare vx_ratio: any;
@@ -9315,42 +9292,42 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "bool", default: true, description: "Whether to crop the source portrait to the face-cropping space." })
   declare flag_do_crop: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const smile = Number(inputs.smile ?? this.smile ?? 0);
-    const flagStitching = Boolean(inputs.flag_stitching ?? this.flag_stitching ?? true);
-    const eyebrow = Number(inputs.eyebrow ?? this.eyebrow ?? 0);
-    const wink = Number(inputs.wink ?? this.wink ?? 0);
-    const rotatePitch = Number(inputs.rotate_pitch ?? this.rotate_pitch ?? 0);
-    const blink = Number(inputs.blink ?? this.blink ?? 0);
-    const scale = Number(inputs.scale ?? this.scale ?? 2.3);
-    const eee = Number(inputs.eee ?? this.eee ?? 0);
-    const flagPasteback = Boolean(inputs.flag_pasteback ?? this.flag_pasteback ?? true);
-    const pupilY = Number(inputs.pupil_y ?? this.pupil_y ?? 0);
-    const rotateYaw = Number(inputs.rotate_yaw ?? this.rotate_yaw ?? 0);
-    const woo = Number(inputs.woo ?? this.woo ?? 0);
-    const aaa = Number(inputs.aaa ?? this.aaa ?? 0);
-    const flagDoRot = Boolean(inputs.flag_do_rot ?? this.flag_do_rot ?? true);
-    const flagRelative = Boolean(inputs.flag_relative ?? this.flag_relative ?? true);
-    const flagEyeRetargeting = Boolean(inputs.flag_eye_retargeting ?? this.flag_eye_retargeting ?? false);
-    const flagLipZero = Boolean(inputs.flag_lip_zero ?? this.flag_lip_zero ?? true);
-    const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 32);
-    const rotateRoll = Number(inputs.rotate_roll ?? this.rotate_roll ?? 0);
-    const pupilX = Number(inputs.pupil_x ?? this.pupil_x ?? 0);
-    const vyRatio = Number(inputs.vy_ratio ?? this.vy_ratio ?? -0.125);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const dsize = Number(inputs.dsize ?? this.dsize ?? 512);
-    const vxRatio = Number(inputs.vx_ratio ?? this.vx_ratio ?? 0);
-    const flagLipRetargeting = Boolean(inputs.flag_lip_retargeting ?? this.flag_lip_retargeting ?? false);
-    const flagDoCrop = Boolean(inputs.flag_do_crop ?? this.flag_do_crop ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const smile = Number(this.smile ?? 0);
+    const flagStitching = Boolean(this.flag_stitching ?? true);
+    const eyebrow = Number(this.eyebrow ?? 0);
+    const blink = Number(this.blink ?? 0);
+    const rotatePitch = Number(this.rotate_pitch ?? 0);
+    const wink = Number(this.wink ?? 0);
+    const scale = Number(this.scale ?? 2.3);
+    const eee = Number(this.eee ?? 0);
+    const flagPasteback = Boolean(this.flag_pasteback ?? true);
+    const pupilY = Number(this.pupil_y ?? 0);
+    const rotateYaw = Number(this.rotate_yaw ?? 0);
+    const woo = Number(this.woo ?? 0);
+    const aaa = Number(this.aaa ?? 0);
+    const flagDoRot = Boolean(this.flag_do_rot ?? true);
+    const flagRelative = Boolean(this.flag_relative ?? true);
+    const flagEyeRetargeting = Boolean(this.flag_eye_retargeting ?? false);
+    const flagLipZero = Boolean(this.flag_lip_zero ?? true);
+    const batchSize = Number(this.batch_size ?? 32);
+    const rotateRoll = Number(this.rotate_roll ?? 0);
+    const dsize = Number(this.dsize ?? 512);
+    const vyRatio = Number(this.vy_ratio ?? -0.125);
+    const pupilX = Number(this.pupil_x ?? 0);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const vxRatio = Number(this.vx_ratio ?? 0);
+    const flagLipRetargeting = Boolean(this.flag_lip_retargeting ?? false);
+    const flagDoCrop = Boolean(this.flag_do_crop ?? true);
 
     const args: Record<string, unknown> = {
       "smile": smile,
       "flag_stitching": flagStitching,
       "eyebrow": eyebrow,
-      "wink": wink,
-      "rotate_pitch": rotatePitch,
       "blink": blink,
+      "rotate_pitch": rotatePitch,
+      "wink": wink,
       "scale": scale,
       "eee": eee,
       "flag_pasteback": flagPasteback,
@@ -9364,24 +9341,24 @@ video, animation, image-to-video, img2vid`;
       "flag_lip_zero": flagLipZero,
       "batch_size": batchSize,
       "rotate_roll": rotateRoll,
-      "pupil_x": pupilX,
-      "vy_ratio": vyRatio,
-      "enable_safety_checker": enableSafetyChecker,
       "dsize": dsize,
+      "vy_ratio": vyRatio,
+      "pupil_x": pupilX,
+      "enable_safety_checker": enableSafetyChecker,
       "vx_ratio": vxRatio,
       "flag_lip_retargeting": flagLipRetargeting,
       "flag_do_crop": flagDoCrop,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -9397,29 +9374,29 @@ export class Musetalk extends FalNode {
   static readonly description = `MuseTalk is a real-time high quality audio-driven lip-syncing model. Use MuseTalk to animate a face with your own audio.
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "video", default: "", description: "URL of the source video" })
-  declare source_video: any;
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "audio", default: "", description: "URL of the audio" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  @prop({ type: "video", default: "", description: "URL of the source video" })
+  declare source_video: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const sourceVideoRef = inputs.source_video as Record<string, unknown> | undefined;
-    if (isRefSet(sourceVideoRef)) {
-      const sourceVideoUrl = await assetToFalUrl(apiKey, sourceVideoRef!);
-      if (sourceVideoUrl) args["source_video_url"] = sourceVideoUrl;
-    }
-
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
+    }
+
+    const sourceVideoRef = this.source_video as Record<string, unknown> | undefined;
+    if (isRefSet(sourceVideoRef)) {
+      const sourceVideoUrl = await assetToFalUrl(apiKey, sourceVideoRef!);
+      if (sourceVideoUrl) args["source_video_url"] = sourceVideoUrl;
     }
     removeNulls(args);
 
@@ -9434,7 +9411,7 @@ export class Sadtalker extends FalNode {
   static readonly description = `Learning Realistic 3D Motion Coefficients for Stylized Audio-Driven Single Image Talking Face Animation
 video, animation, image-to-video, img2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "int", default: 0, description: "The style of the pose" })
   declare pose_style: any;
@@ -9460,14 +9437,14 @@ video, animation, image-to-video, img2vid`;
   @prop({ type: "enum", default: "crop", values: ["crop", "extcrop", "resize", "full", "extfull"], description: "The type of preprocessing to use" })
   declare preprocess: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const poseStyle = Number(inputs.pose_style ?? this.pose_style ?? 0);
-    const faceEnhancer = String(inputs.face_enhancer ?? this.face_enhancer ?? "");
-    const expressionScale = Number(inputs.expression_scale ?? this.expression_scale ?? 1);
-    const faceModelResolution = String(inputs.face_model_resolution ?? this.face_model_resolution ?? "256");
-    const stillMode = Boolean(inputs.still_mode ?? this.still_mode ?? false);
-    const preprocess = String(inputs.preprocess ?? this.preprocess ?? "crop");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const poseStyle = Number(this.pose_style ?? 0);
+    const faceEnhancer = String(this.face_enhancer ?? "");
+    const expressionScale = Number(this.expression_scale ?? 1);
+    const faceModelResolution = String(this.face_model_resolution ?? "256");
+    const stillMode = Boolean(this.still_mode ?? false);
+    const preprocess = String(this.preprocess ?? "crop");
 
     const args: Record<string, unknown> = {
       "pose_style": poseStyle,
@@ -9478,13 +9455,13 @@ video, animation, image-to-video, img2vid`;
       "preprocess": preprocess,
     };
 
-    const sourceImageRef = inputs.source_image as Record<string, unknown> | undefined;
+    const sourceImageRef = this.source_image as Record<string, unknown> | undefined;
     if (isRefSet(sourceImageRef)) {
-      const sourceImageUrl = await assetToFalUrl(apiKey, sourceImageRef!);
+      const sourceImageUrl = await imageToDataUrl(sourceImageRef!) ?? await assetToFalUrl(apiKey, sourceImageRef!);
       if (sourceImageUrl) args["source_image_url"] = sourceImageUrl;
     }
 
-    const drivenAudioRef = inputs.driven_audio as Record<string, unknown> | undefined;
+    const drivenAudioRef = this.driven_audio as Record<string, unknown> | undefined;
     if (isRefSet(drivenAudioRef)) {
       const drivenAudioUrl = await assetToFalUrl(apiKey, drivenAudioRef!);
       if (drivenAudioUrl) args["driven_audio_url"] = drivenAudioUrl;
@@ -9502,45 +9479,45 @@ export class FastSvdLcm extends FalNode {
   static readonly description = `Generate short video clips from your images using SVD v1.1 at Lightning Speed
 video, animation, image-to-video, img2vid, fast`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
-
-  @prop({ type: "int", default: 127, description: "\n            The motion bucket id determines the motion of the generated video. The\n            higher the number, the more motion there will be.\n        " })
-  declare motion_bucket_id: any;
-
-  @prop({ type: "int", default: 10, description: "\n            The FPS of the generated video. The higher the number, the faster the video will\n            play. Total video length is 25 frames.\n        " })
-  declare fps: any;
-
-  @prop({ type: "int", default: 4, description: "\n            The number of steps to run the model for. The higher the number the better\n            the quality and longer it will take to generate.\n        " })
-  declare steps: any;
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "float", default: 0.02, description: "\n            The conditoning augmentation determines the amount of noise that will be\n            added to the conditioning frame. The higher the number, the more noise\n            there will be, and the less the video will look like the initial image.\n            Increase it for more motion.\n        " })
   declare cond_aug: any;
 
-  @prop({ type: "int", default: -1, description: "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        " })
-  declare seed: any;
-
   @prop({ type: "image", default: "", description: "The URL of the image to use as a starting point for the generation." })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const motionBucketId = Number(inputs.motion_bucket_id ?? this.motion_bucket_id ?? 127);
-    const fps = Number(inputs.fps ?? this.fps ?? 10);
-    const steps = Number(inputs.steps ?? this.steps ?? 4);
-    const condAug = Number(inputs.cond_aug ?? this.cond_aug ?? 0.02);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  @prop({ type: "int", default: 4, description: "\n            The number of steps to run the model for. The higher the number the better\n            the quality and longer it will take to generate.\n        " })
+  declare steps: any;
+
+  @prop({ type: "int", default: 127, description: "\n            The motion bucket id determines the motion of the generated video. The\n            higher the number, the more motion there will be.\n        " })
+  declare motion_bucket_id: any;
+
+  @prop({ type: "str", default: "", description: "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        " })
+  declare seed: any;
+
+  @prop({ type: "int", default: 10, description: "\n            The FPS of the generated video. The higher the number, the faster the video will\n            play. Total video length is 25 frames.\n        " })
+  declare fps: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const condAug = Number(this.cond_aug ?? 0.02);
+    const steps = Number(this.steps ?? 4);
+    const motionBucketId = Number(this.motion_bucket_id ?? 127);
+    const seed = String(this.seed ?? "");
+    const fps = Number(this.fps ?? 10);
 
     const args: Record<string, unknown> = {
-      "motion_bucket_id": motionBucketId,
-      "fps": fps,
-      "steps": steps,
       "cond_aug": condAug,
+      "steps": steps,
+      "motion_bucket_id": motionBucketId,
       "seed": seed,
+      "fps": fps,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -9556,34 +9533,31 @@ export class KlingVideoV3StandardImageToVideo extends FalNode {
   static readonly description = `Kling Video V3 Standard generates videos from images with balanced quality and speed using the latest V3 model.
 video, generation, kling, v3, standard, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
 
+  @prop({ type: "str", default: "", description: "Optional Voice IDs for video generation. Reference voices in your prompt with <<<voice_1>>> and <<<voice_2>>> (maximum 2 voices per task). Get voice IDs from the kling video create-voice endpoint: https://fal.ai/models/fal-ai/kling-video/create-voice" })
+  declare voice_ids: any;
+
   @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"], description: "The duration of the generated video in seconds" })
   declare duration: any;
-
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "The aspect ratio of the generated video frame" })
-  declare aspect_ratio: any;
-
-  @prop({ type: "bool", default: true, description: "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase." })
-  declare generate_audio: any;
 
   @prop({ type: "str", default: "", description: "List of prompts for multi-shot video generation. If provided, divides the video into multiple shots." })
   declare multi_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Optional Voice IDs for video generation. Reference voices in your prompt with <<<voice_1>>> and <<<voice_2>>> (maximum 2 voices per task). Get voice IDs from the kling video create-voice endpoint: https://fal.ai/models/fal-ai/kling-video/create-voice" })
-  declare voice_ids: any;
+  @prop({ type: "bool", default: true, description: "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase." })
+  declare generate_audio: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to be used for the video" })
-  declare start_image: any;
+  @prop({ type: "str", default: "", description: "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc." })
+  declare elements: any;
 
   @prop({ type: "str", default: "customize", description: "The type of multi-shot video generation. Required when multi_prompt is provided." })
   declare shot_type: any;
 
-  @prop({ type: "str", default: "", description: "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc." })
-  declare elements: any;
+  @prop({ type: "image", default: "", description: "URL of the image to be used for the video" })
+  declare start_image: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to be used for the end of the video" })
   declare end_image: any;
@@ -9594,41 +9568,39 @@ video, generation, kling, v3, standard, image-to-video`;
   @prop({ type: "float", default: 0.5, description: "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        " })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
-    const voiceIds = String(inputs.voice_ids ?? this.voice_ids ?? "");
-    const shotType = String(inputs.shot_type ?? this.shot_type ?? "customize");
-    const elements = String(inputs.elements ?? this.elements ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const voiceIds = String(this.voice_ids ?? "");
+    const duration = String(this.duration ?? "5");
+    const multiPrompt = String(this.multi_prompt ?? "");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const elements = String(this.elements ?? "");
+    const shotType = String(this.shot_type ?? "customize");
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
-      "aspect_ratio": aspectRatio,
-      "generate_audio": generateAudio,
-      "multi_prompt": multiPrompt,
       "voice_ids": voiceIds,
-      "shot_type": shotType,
+      "duration": duration,
+      "multi_prompt": multiPrompt,
+      "generate_audio": generateAudio,
       "elements": elements,
+      "shot_type": shotType,
       "negative_prompt": negativePrompt,
       "cfg_scale": cfgScale,
     };
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
       if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -9644,34 +9616,31 @@ export class KlingVideoV3ProImageToVideo extends FalNode {
   static readonly description = `Kling Video V3 Pro generates professional quality videos from images with enhanced visual fidelity using the latest V3 model.
 video, generation, kling, v3, pro, image-to-video`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "Text prompt for video generation. Either prompt or multi_prompt must be provided, but not both." })
   declare prompt: any;
 
+  @prop({ type: "str", default: "", description: "Optional Voice IDs for video generation. Reference voices in your prompt with <<<voice_1>>> and <<<voice_2>>> (maximum 2 voices per task). Get voice IDs from the kling video create-voice endpoint: https://fal.ai/models/fal-ai/kling-video/create-voice" })
+  declare voice_ids: any;
+
   @prop({ type: "enum", default: "5", values: ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"], description: "The duration of the generated video in seconds" })
   declare duration: any;
-
-  @prop({ type: "enum", default: "16:9", values: ["16:9", "9:16", "1:1"], description: "The aspect ratio of the generated video frame" })
-  declare aspect_ratio: any;
-
-  @prop({ type: "bool", default: true, description: "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase." })
-  declare generate_audio: any;
 
   @prop({ type: "str", default: "", description: "List of prompts for multi-shot video generation. If provided, divides the video into multiple shots." })
   declare multi_prompt: any;
 
-  @prop({ type: "str", default: "", description: "Optional Voice IDs for video generation. Reference voices in your prompt with <<<voice_1>>> and <<<voice_2>>> (maximum 2 voices per task). Get voice IDs from the kling video create-voice endpoint: https://fal.ai/models/fal-ai/kling-video/create-voice" })
-  declare voice_ids: any;
+  @prop({ type: "bool", default: true, description: "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase." })
+  declare generate_audio: any;
 
-  @prop({ type: "image", default: "", description: "URL of the image to be used for the video" })
-  declare start_image: any;
+  @prop({ type: "str", default: "", description: "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc." })
+  declare elements: any;
 
   @prop({ type: "str", default: "customize", description: "The type of multi-shot video generation. Required when multi_prompt is provided." })
   declare shot_type: any;
 
-  @prop({ type: "str", default: "", description: "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc." })
-  declare elements: any;
+  @prop({ type: "image", default: "", description: "URL of the image to be used for the video" })
+  declare start_image: any;
 
   @prop({ type: "image", default: "", description: "URL of the image to be used for the end of the video" })
   declare end_image: any;
@@ -9682,41 +9651,39 @@ video, generation, kling, v3, pro, image-to-video`;
   @prop({ type: "float", default: 0.5, description: "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        " })
   declare cfg_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const duration = String(inputs.duration ?? this.duration ?? "5");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const generateAudio = Boolean(inputs.generate_audio ?? this.generate_audio ?? true);
-    const multiPrompt = String(inputs.multi_prompt ?? this.multi_prompt ?? "");
-    const voiceIds = String(inputs.voice_ids ?? this.voice_ids ?? "");
-    const shotType = String(inputs.shot_type ?? this.shot_type ?? "customize");
-    const elements = String(inputs.elements ?? this.elements ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blur, distort, and low quality");
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 0.5);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const voiceIds = String(this.voice_ids ?? "");
+    const duration = String(this.duration ?? "5");
+    const multiPrompt = String(this.multi_prompt ?? "");
+    const generateAudio = Boolean(this.generate_audio ?? true);
+    const elements = String(this.elements ?? "");
+    const shotType = String(this.shot_type ?? "customize");
+    const negativePrompt = String(this.negative_prompt ?? "blur, distort, and low quality");
+    const cfgScale = Number(this.cfg_scale ?? 0.5);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "duration": duration,
-      "aspect_ratio": aspectRatio,
-      "generate_audio": generateAudio,
-      "multi_prompt": multiPrompt,
       "voice_ids": voiceIds,
-      "shot_type": shotType,
+      "duration": duration,
+      "multi_prompt": multiPrompt,
+      "generate_audio": generateAudio,
       "elements": elements,
+      "shot_type": shotType,
       "negative_prompt": negativePrompt,
       "cfg_scale": cfgScale,
     };
 
-    const startImageRef = inputs.start_image as Record<string, unknown> | undefined;
+    const startImageRef = this.start_image as Record<string, unknown> | undefined;
     if (isRefSet(startImageRef)) {
-      const startImageUrl = await assetToFalUrl(apiKey, startImageRef!);
+      const startImageUrl = await imageToDataUrl(startImageRef!) ?? await assetToFalUrl(apiKey, startImageRef!);
       if (startImageUrl) args["start_image_url"] = startImageUrl;
     }
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
     removeNulls(args);
@@ -9799,7 +9766,6 @@ export const FAL_IMAGE_TO_VIDEO_NODES: readonly NodeClass[] = [
   KlingVideoV1ProAiAvatar,
   DecartLucy14BImageToVideo,
   WanAti,
-  DecartLucy5bImageToVideo,
   PixverseV5Transition,
   PixverseV5Effects,
   PixverseV5ImageToVideo,

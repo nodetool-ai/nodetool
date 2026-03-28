@@ -176,7 +176,12 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
   }, [handleAction, createNode, addNode, getViewportCenter]);
 
   const addInputNode = useCallback(
-    (nodeType: string) => () => {
+    (event: React.MouseEvent) => {
+      const target = event.currentTarget as HTMLElement;
+      const nodeType = target.dataset.nodeType;
+      if (!nodeType) {
+        return;
+      }
       handleAction(() => {
         const metadata = useMetadataStore
           .getState()
@@ -276,65 +281,65 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           {/* Input Nodes */}
           <div className="menu-section-title">Input Nodes</div>
           <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode("StringInput")}>
+            <ListItemButton onClick={addInputNode} data-node-type="StringInput">
               <ListItemIcon className="menu-item-icon">
                 <TextFieldsIcon />
               </ListItemIcon>
-              <ListItemText 
+              <ListItemText
                 className="menu-item-text"
-                primary="String Input" 
+                primary="String Input"
                 secondary="Text input field"
               />
             </ListItemButton>
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode("IntegerInput")}>
+            <ListItemButton onClick={addInputNode} data-node-type="IntegerInput">
               <ListItemIcon className="menu-item-icon">
                 <NumbersIcon />
               </ListItemIcon>
-              <ListItemText 
+              <ListItemText
                 className="menu-item-text"
-                primary="Integer Input" 
+                primary="Integer Input"
                 secondary="Whole number input"
               />
             </ListItemButton>
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode("FloatInput")}>
+            <ListItemButton onClick={addInputNode} data-node-type="FloatInput">
               <ListItemIcon className="menu-item-icon">
                 <NumbersIcon />
               </ListItemIcon>
-              <ListItemText 
+              <ListItemText
                 className="menu-item-text"
-                primary="Float Input" 
+                primary="Float Input"
                 secondary="Decimal number input"
               />
             </ListItemButton>
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode("ChatInput")}>
+            <ListItemButton onClick={addInputNode} data-node-type="ChatInput">
               <ListItemIcon className="menu-item-icon">
                 <ChatIcon />
               </ListItemIcon>
-              <ListItemText 
+              <ListItemText
                 className="menu-item-text"
-                primary="Chat Input" 
+                primary="Chat Input"
                 secondary="Chat message input"
               />
             </ListItemButton>
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode("ImageInput")}>
+            <ListItemButton onClick={addInputNode} data-node-type="ImageInput">
               <ListItemIcon className="menu-item-icon">
                 <ImageIcon />
               </ListItemIcon>
-              <ListItemText 
+              <ListItemText
                 className="menu-item-text"
-                primary="Image Input" 
+                primary="Image Input"
                 secondary="Image file input"
               />
             </ListItemButton>

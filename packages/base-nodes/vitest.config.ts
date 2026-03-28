@@ -7,6 +7,8 @@ export default defineConfig({
       "@nodetool/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       "@nodetool/protocol": resolve(__dirname, "../protocol/src/index.ts"),
       "@nodetool/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
+      "@nodetool/agents": resolve(__dirname, "../agents/src/index.ts"),
+      "@nodetool/runtime": resolve(__dirname, "../runtime/src/index.ts"),
     },
   },
   test: {

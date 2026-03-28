@@ -27,12 +27,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Image to process" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -57,12 +57,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image" })
   declare image_path: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imagePathRef = (inputs.image_path ?? this.image_path) as Record<string, unknown> | undefined;
+    const imagePathRef = this.image_path as Record<string, unknown> | undefined;
     if (isRefSet(imagePathRef)) {
       const imagePathUrl = await assetToUrl(imagePathRef!, apiKey);
       if (imagePathUrl) args["image_path"] = imagePathUrl;
@@ -99,12 +99,12 @@ replicate, ai`;
   @prop({ type: "int", default: 1, description: "Page Number" })
   declare page_number: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const action = String(inputs.action ?? this.action ?? "Run Text Detection");
-    const languagesChoices = String(inputs.languages_choices ?? this.languages_choices ?? "English");
-    const languagesInput = String(inputs.languages_input ?? this.languages_input ?? "English");
-    const pageNumber = Number(inputs.page_number ?? this.page_number ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const action = String(this.action ?? "Run Text Detection");
+    const languagesChoices = String(this.languages_choices ?? "English");
+    const languagesInput = String(this.languages_input ?? "English");
+    const pageNumber = Number(this.page_number ?? 1);
 
     const args: Record<string, unknown> = {
       "action": action,
@@ -113,7 +113,7 @@ replicate, ai`;
       "page_number": pageNumber,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -147,11 +147,11 @@ replicate, ai`;
   @prop({ type: "enum", default: "Convert to Markdown", values: ["Convert to Markdown", "Free OCR", "Parse Figure", "Locate Object by Reference"], description: "Type of OCR task to perform" })
   declare task_type: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const referenceText = String(inputs.reference_text ?? this.reference_text ?? "");
-    const resolutionSize = String(inputs.resolution_size ?? this.resolution_size ?? "Gundam (Recommended)");
-    const taskType = String(inputs.task_type ?? this.task_type ?? "Convert to Markdown");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const referenceText = String(this.reference_text ?? "");
+    const resolutionSize = String(this.resolution_size ?? "Gundam (Recommended)");
+    const taskType = String(this.task_type ?? "Convert to Markdown");
 
     const args: Record<string, unknown> = {
       "reference_text": referenceText,
@@ -159,7 +159,7 @@ replicate, ai`;
       "task_type": taskType,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -199,13 +199,13 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Draw red polygons on the input image(s) to visualize detected text regions and return the annotated images" })
   declare visualize: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxPages = Number(inputs.max_pages ?? this.max_pages ?? 0);
-    const pageRange = String(inputs.page_range ?? this.page_range ?? "");
-    const returnPages = Boolean(inputs.return_pages ?? this.return_pages ?? false);
-    const skipCache = Boolean(inputs.skip_cache ?? this.skip_cache ?? false);
-    const visualize = Boolean(inputs.visualize ?? this.visualize ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxPages = Number(this.max_pages ?? 0);
+    const pageRange = String(this.page_range ?? "");
+    const returnPages = Boolean(this.return_pages ?? false);
+    const skipCache = Boolean(this.skip_cache ?? false);
+    const visualize = Boolean(this.visualize ?? false);
 
     const args: Record<string, unknown> = {
       "max_pages": maxPages,
@@ -215,7 +215,7 @@ replicate, ai`;
       "visualize": visualize,
     };
 
-    const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
+    const fileRef = this.file as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
       const fileUrl = await assetToUrl(fileRef!, apiKey);
       if (fileUrl) args["file"] = fileUrl;
@@ -291,25 +291,25 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Use an LLM to significantly improve accuracy for tables, forms, inline math, and layout detection. This merges tables across pages, handles complex layouts, and extracts form values. Will increase processing time" })
   declare use_llm: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const additionalConfig = String(inputs.additional_config ?? this.additional_config ?? "");
-    const blockCorrectionPrompt = String(inputs.block_correction_prompt ?? this.block_correction_prompt ?? "");
-    const disableImageExtraction = Boolean(inputs.disable_image_extraction ?? this.disable_image_extraction ?? false);
-    const disableOcrMath = Boolean(inputs.disable_ocr_math ?? this.disable_ocr_math ?? false);
-    const forceOcr = Boolean(inputs.force_ocr ?? this.force_ocr ?? false);
-    const formatLines = Boolean(inputs.format_lines ?? this.format_lines ?? false);
-    const includeMetadata = Boolean(inputs.include_metadata ?? this.include_metadata ?? false);
-    const maxPages = Number(inputs.max_pages ?? this.max_pages ?? 0);
-    const mode = String(inputs.mode ?? this.mode ?? "fast");
-    const pageRange = String(inputs.page_range ?? this.page_range ?? "");
-    const pageSchema = String(inputs.page_schema ?? this.page_schema ?? "");
-    const paginate = Boolean(inputs.paginate ?? this.paginate ?? false);
-    const saveCheckpoint = Boolean(inputs.save_checkpoint ?? this.save_checkpoint ?? false);
-    const segmentationSchema = String(inputs.segmentation_schema ?? this.segmentation_schema ?? "");
-    const skipCache = Boolean(inputs.skip_cache ?? this.skip_cache ?? false);
-    const stripExistingOcr = Boolean(inputs.strip_existing_ocr ?? this.strip_existing_ocr ?? false);
-    const useLlm = Boolean(inputs.use_llm ?? this.use_llm ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const additionalConfig = String(this.additional_config ?? "");
+    const blockCorrectionPrompt = String(this.block_correction_prompt ?? "");
+    const disableImageExtraction = Boolean(this.disable_image_extraction ?? false);
+    const disableOcrMath = Boolean(this.disable_ocr_math ?? false);
+    const forceOcr = Boolean(this.force_ocr ?? false);
+    const formatLines = Boolean(this.format_lines ?? false);
+    const includeMetadata = Boolean(this.include_metadata ?? false);
+    const maxPages = Number(this.max_pages ?? 0);
+    const mode = String(this.mode ?? "fast");
+    const pageRange = String(this.page_range ?? "");
+    const pageSchema = String(this.page_schema ?? "");
+    const paginate = Boolean(this.paginate ?? false);
+    const saveCheckpoint = Boolean(this.save_checkpoint ?? false);
+    const segmentationSchema = String(this.segmentation_schema ?? "");
+    const skipCache = Boolean(this.skip_cache ?? false);
+    const stripExistingOcr = Boolean(this.strip_existing_ocr ?? false);
+    const useLlm = Boolean(this.use_llm ?? false);
 
     const args: Record<string, unknown> = {
       "additional_config": additionalConfig,
@@ -331,7 +331,7 @@ replicate, ai`;
       "use_llm": useLlm,
     };
 
-    const fileRef = (inputs.file ?? this.file) as Record<string, unknown> | undefined;
+    const fileRef = this.file as Record<string, unknown> | undefined;
     if (isRefSet(fileRef)) {
       const fileUrl = await assetToUrl(fileRef!, apiKey);
       if (fileUrl) args["file"] = fileUrl;

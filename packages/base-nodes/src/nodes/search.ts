@@ -7,9 +7,9 @@ import type { NodeClass } from "@nodetool/node-sdk";
 
 const SERPAPI_BASE = "https://serpapi.com/search.json";
 
-function getSerpApiKey(inputs: Record<string, unknown>): string {
+function getSerpApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.SERPAPI_API_KEY ||
+    secrets.SERPAPI_API_KEY ||
     process.env.SERPAPI_API_KEY ||
     "";
   if (!key) throw new Error("SERPAPI_API_KEY is required");
@@ -65,11 +65,11 @@ export class GoogleSearchNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const keyword = String(inputs.keyword ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const keyword = String(this.keyword ?? "");
     if (!keyword) throw new Error("Keyword is required");
-    const numResults = Number(inputs.num_results ?? 10);
-    const apiKey = getSerpApiKey(inputs);
+    const numResults = Number(this.num_results ?? 10);
+    const apiKey = getSerpApiKey(this._secrets);
 
     const data = await serpRequest(apiKey, {
       engine: "google_light",
@@ -108,11 +108,11 @@ export class GoogleNewsNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const keyword = String(inputs.keyword ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const keyword = String(this.keyword ?? "");
     if (!keyword) throw new Error("Keyword is required");
-    const numResults = Number(inputs.num_results ?? 10);
-    const apiKey = getSerpApiKey(inputs);
+    const numResults = Number(this.num_results ?? 10);
+    const apiKey = getSerpApiKey(this._secrets);
 
     const data = await serpRequest(apiKey, {
       engine: "google_news",
@@ -154,13 +154,13 @@ export class GoogleImagesNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const keyword = String(inputs.keyword ?? "");
-    const imageUrl = String(inputs.image_url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const keyword = String(this.keyword ?? "");
+    const imageUrl = String(this.image_url ?? "");
     if (!keyword && !imageUrl)
       throw new Error("One of 'keyword' or 'image_url' is required.");
-    const numResults = Number(inputs.num_results ?? 20);
-    const apiKey = getSerpApiKey(inputs);
+    const numResults = Number(this.num_results ?? 20);
+    const apiKey = getSerpApiKey(this._secrets);
 
     const params: Record<string, string | number> = {
       num: numResults,
@@ -210,11 +210,11 @@ export class GoogleFinanceNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const query = String(inputs.query ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const query = String(this.query ?? "");
     if (!query) return { output: { error: "Query is required for Google Finance search." } };
-    const window = String(inputs.window ?? "");
-    const apiKey = getSerpApiKey(inputs);
+    const window = String(this.window ?? "");
+    const apiKey = getSerpApiKey(this._secrets);
 
     const params: Record<string, string | number> = {
       engine: "google_finance",
@@ -256,11 +256,11 @@ export class GoogleJobsNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const query = String(inputs.query ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const query = String(this.query ?? "");
     if (!query) throw new Error("Query is required for Google Jobs search.");
-    const location = String(inputs.location ?? "");
-    const apiKey = getSerpApiKey(inputs);
+    const location = String(this.location ?? "");
+    const apiKey = getSerpApiKey(this._secrets);
 
     const params: Record<string, string | number> = {
       engine: "google_jobs",
@@ -297,10 +297,10 @@ export class GoogleLensNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const imageUrl = String(inputs.image_url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const imageUrl = String(this.image_url ?? "");
     if (!imageUrl) throw new Error("Image URL is required for Google Lens search.");
-    const apiKey = getSerpApiKey(inputs);
+    const apiKey = getSerpApiKey(this._secrets);
 
     const data = await serpRequest(apiKey, {
       engine: "google_lens",
@@ -341,10 +341,10 @@ export class GoogleMapsNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const query = String(inputs.query ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const query = String(this.query ?? "");
     if (!query) throw new Error("Query is required for map search.");
-    const apiKey = getSerpApiKey(inputs);
+    const apiKey = getSerpApiKey(this._secrets);
 
     const data = await serpRequest(apiKey, {
       engine: "google_maps",
@@ -404,15 +404,15 @@ export class GoogleShoppingNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const query = String(inputs.query ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const query = String(this.query ?? "");
     if (!query) throw new Error("Query is required for Google Shopping search.");
-    const country = String(inputs.country ?? "us") || "us";
-    const minPrice = Number(inputs.min_price ?? 0);
-    const maxPrice = Number(inputs.max_price ?? 0);
-    const condition = String(inputs.condition ?? "");
-    const sortBy = String(inputs.sort_by ?? "");
-    const apiKey = getSerpApiKey(inputs);
+    const country = String(this.country ?? "us") || "us";
+    const minPrice = Number(this.min_price ?? 0);
+    const maxPrice = Number(this.max_price ?? 0);
+    const condition = String(this.condition ?? "");
+    const sortBy = String(this.sort_by ?? "");
+    const apiKey = getSerpApiKey(this._secrets);
 
     const params: Record<string, string | number> = {
       engine: "google_shopping",

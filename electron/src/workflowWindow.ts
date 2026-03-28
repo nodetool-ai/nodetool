@@ -78,7 +78,7 @@ function createMiniAppWindow(workflowId: string, workflowName?: string): Browser
   // For development, use direct SPA route
   if (app.isPackaged) {
     const port = getServerPort();
-    miniAppWindow.loadURL(`http://127.0.0.1:${port}/index.html#/miniapp/${workflowId}`);
+    miniAppWindow.loadURL(`http://127.0.0.1:${port}/#/miniapp/${workflowId}`);
   } else {
     miniAppWindow.loadURL(`${webDevBaseUrl}/miniapp/${workflowId}`);
   }
@@ -123,7 +123,7 @@ function createChatWindow(): BrowserWindow {
   // For development, use direct SPA route
   if (app.isPackaged) {
     const port = getServerPort();
-    chatWindow.loadURL(`http://127.0.0.1:${port}/index.html#/standalone-chat`);
+    chatWindow.loadURL(`http://127.0.0.1:${port}/#/standalone-chat`);
   } else {
     chatWindow.loadURL(`${webDevBaseUrl}/standalone-chat`);
   }

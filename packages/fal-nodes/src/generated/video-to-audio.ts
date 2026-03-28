@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,7 +18,7 @@ export class SamAudioVisualSeparate extends FalNode {
   static readonly description = `Audio separation with SAM Audio. Isolate any sound using natural language—professional-grade audio editing made simple for creators, researchers, and accessibility applications.
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
+  static readonly outputTypes = { "target": "str", "duration": "float", "sample_rate": "int", "residual": "str" };
 
   @prop({ type: "str", default: "", description: "Text prompt to assist with separation. Use natural language to describe the target sound." })
   declare prompt: any;
@@ -43,14 +44,14 @@ audio, extraction, video-to-audio, processing`;
   @prop({ type: "int", default: 1, description: "Number of candidates to generate and rank. Higher improves quality but increases latency and cost." })
   declare reranking_candidates: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "balanced");
-    const chunkOverlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 5);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "wav");
-    const maxChunkDuration = Number(inputs.max_chunk_duration ?? this.max_chunk_duration ?? 60);
-    const rerankingCandidates = Number(inputs.reranking_candidates ?? this.reranking_candidates ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const acceleration = String(this.acceleration ?? "balanced");
+    const chunkOverlap = Number(this.chunk_overlap ?? 5);
+    const outputFormat = String(this.output_format ?? "wav");
+    const maxChunkDuration = Number(this.max_chunk_duration ?? 60);
+    const rerankingCandidates = Number(this.reranking_candidates ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -61,13 +62,13 @@ audio, extraction, video-to-audio, processing`;
       "reranking_candidates": rerankingCandidates,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
     }
 
-    const maskVideoRef = inputs.mask_video as Record<string, unknown> | undefined;
+    const maskVideoRef = this.mask_video as Record<string, unknown> | undefined;
     if (isRefSet(maskVideoRef)) {
       const maskVideoUrl = await assetToFalUrl(apiKey, maskVideoRef!);
       if (maskVideoUrl) args["mask_video_url"] = maskVideoUrl;
@@ -75,7 +76,7 @@ audio, extraction, video-to-audio, processing`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-audio/visual-separate", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -85,7 +86,7 @@ export class MireloAiSfxV15VideoToAudio extends FalNode {
   static readonly description = `Generate synced sounds for any video, and return the new sound track (like MMAudio)
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
+  static readonly outputTypes = { "audio": "list[Audio]" };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;
@@ -105,13 +106,13 @@ audio, extraction, video-to-audio, processing`;
   @prop({ type: "str", default: "", description: "Additional description to guide the model" })
   declare text_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const numSamples = String(inputs.num_samples ?? this.num_samples ?? 2);
-    const duration = String(inputs.duration ?? this.duration ?? 10);
-    const startOffset = String(inputs.start_offset ?? this.start_offset ?? 0);
-    const seed = String(inputs.seed ?? this.seed ?? 8069);
-    const textPrompt = String(inputs.text_prompt ?? this.text_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const numSamples = String(this.num_samples ?? 2);
+    const duration = String(this.duration ?? 10);
+    const startOffset = String(this.start_offset ?? 0);
+    const seed = String(this.seed ?? 8069);
+    const textPrompt = String(this.text_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "num_samples": numSamples,
@@ -121,7 +122,7 @@ audio, extraction, video-to-audio, processing`;
       "text_prompt": textPrompt,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
@@ -139,7 +140,7 @@ export class KlingVideoVideoToAudio extends FalNode {
   static readonly description = `Generate audio from input videos using Kling
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video", "audio": "audio" };
 
   @prop({ type: "video", default: "", description: "The video URL to extract audio from. Only .mp4/.mov formats are supported. File size does not exceed 100MB. Video duration between 3.0s and 20.0s." })
   declare video: any;
@@ -153,11 +154,11 @@ audio, extraction, video-to-audio, processing`;
   @prop({ type: "str", default: "Car tires screech as they accelerate in a drag race", description: "Sound effect prompt. Cannot exceed 200 characters." })
   declare sound_effect_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const asmrMode = Boolean(inputs.asmr_mode ?? this.asmr_mode ?? false);
-    const backgroundMusicPrompt = String(inputs.background_music_prompt ?? this.background_music_prompt ?? "intense car race");
-    const soundEffectPrompt = String(inputs.sound_effect_prompt ?? this.sound_effect_prompt ?? "Car tires screech as they accelerate in a drag race");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const asmrMode = Boolean(this.asmr_mode ?? false);
+    const backgroundMusicPrompt = String(this.background_music_prompt ?? "intense car race");
+    const soundEffectPrompt = String(this.sound_effect_prompt ?? "Car tires screech as they accelerate in a drag race");
 
     const args: Record<string, unknown> = {
       "asmr_mode": asmrMode,
@@ -165,7 +166,7 @@ audio, extraction, video-to-audio, processing`;
       "sound_effect_prompt": soundEffectPrompt,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
@@ -183,7 +184,7 @@ export class MireloAiSfxV1VideoToAudio extends FalNode {
   static readonly description = `Generate synced sounds for any video, and return the new sound track (like MMAudio)
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "audio" };
+  static readonly outputTypes = { "audio": "list[Audio]" };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;
@@ -200,12 +201,12 @@ audio, extraction, video-to-audio, processing`;
   @prop({ type: "str", default: "", description: "Additional description to guide the model" })
   declare text_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const numSamples = String(inputs.num_samples ?? this.num_samples ?? 2);
-    const duration = String(inputs.duration ?? this.duration ?? 10);
-    const seed = String(inputs.seed ?? this.seed ?? 2105);
-    const textPrompt = String(inputs.text_prompt ?? this.text_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const numSamples = String(this.num_samples ?? 2);
+    const duration = String(this.duration ?? 10);
+    const seed = String(this.seed ?? 2105);
+    const textPrompt = String(this.text_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "num_samples": numSamples,
@@ -214,7 +215,7 @@ audio, extraction, video-to-audio, processing`;
       "text_prompt": textPrompt,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;

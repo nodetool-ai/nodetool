@@ -126,7 +126,7 @@ export class PythonNodeExecutor {
   constructor(
     private bridge: PythonBridge,
     private nodeType: string,
-    private properties: Record<string, unknown>,
+    _properties: Record<string, unknown>,
     private outputTypes: Record<string, string>,
     private requiredSettings: string[],
   ) {}
@@ -135,10 +135,11 @@ export class PythonNodeExecutor {
     inputs: Record<string, unknown>,
     context?: ProcessingContext,
   ): Promise<Record<string, unknown>> {
-    // 1. Merge properties + edge inputs into fields
-    const fields: Record<string, unknown> = { ...this.properties };
+    // NodeActor merges node.properties + edge inputs before calling process(),
+    // so `inputs` already contains all fields. Filter out internal keys.
+    const fields: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(inputs)) {
-      if (key !== "_secrets") {
+      if (key !== "_secrets" && !key.startsWith("__")) {
         fields[key] = value;
       }
     }

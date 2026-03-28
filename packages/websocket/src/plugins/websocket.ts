@@ -17,8 +17,8 @@ export interface WebSocketPluginOptions {
   toolClassMap: Map<string, new () => Tool>;
 }
 
-async function resolveProvider(providerId: string) {
-  return getProvider(providerId.toLowerCase());
+async function resolveProvider(providerId: string, userId: string) {
+  return getProvider(providerId.toLowerCase(), userId);
 }
 
 const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, opts) => {
@@ -127,6 +127,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
       });
     }).catch((err: unknown) => {
       log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
+      try {
+        (socket as any).send(JSON.stringify({ status: "error", error: "Download module unavailable" }));
+        (socket as any).close();
+      } catch { /* socket already gone */ }
     });
   });
 };

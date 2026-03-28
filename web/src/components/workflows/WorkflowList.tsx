@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, CircularProgress } from "@mui/material";
+import { Typography } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -24,7 +24,7 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
-import { FlexColumn, FlexRow } from "../ui_primitives";
+import { FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 import log from "loglevel";
 
 const styles = (theme: Theme) =>
@@ -328,8 +328,7 @@ const WorkflowList = () => {
         <div className="status">
           {isLoading && (
             <FlexColumn gap={3} justify="center" align="center" sx={{ height: "45vh", width: "100%", color: theme.vars.palette.grey[0] }}>
-              <CircularProgress />
-              <Typography variant="h4">Loading Workflows</Typography>
+              <LoadingSpinner size="large" text="Loading Workflows" />
             </FlexColumn>
           )}
           {isError && (

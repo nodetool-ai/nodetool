@@ -9,10 +9,9 @@
 import Database from "better-sqlite3";
 import type { Database as DatabaseType } from "better-sqlite3";
 import * as sqliteVec from "sqlite-vec";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { dirname } from "node:path";
 import { mkdirSync } from "node:fs";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultVectorstoreDbPath } from "@nodetool/config";
 
 const log = createLogger("nodetool.vectorstore.sqlite-vec");
 
@@ -434,8 +433,9 @@ export class VecCollection {
     const allDistances: number[][] = [];
 
     for (const queryText of queryTexts) {
-      let sql = `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE document LIKE ?`;
-      const params: unknown[] = [`%${queryText}%`];
+      let sql = `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE document LIKE ? ESCAPE '\\'`;
+      const escapedQuery = queryText.replace(/[%_\\]/g, "\\$&");
+      const params: unknown[] = [`%${escapedQuery}%`];
 
       if (whereDocument) {
         const conditions = this.buildWhereDocumentConditions(whereDocument);
@@ -479,11 +479,12 @@ export class VecCollection {
     const allDistances: number[][] = [];
 
     for (const uri of queryURIs) {
+      const escapedUri = uri.replace(/[%_\\]/g, "\\$&");
       const rows = this.db
         .prepare(
-          `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE uri LIKE ? LIMIT ?`,
+          `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE uri LIKE ? ESCAPE '\\' LIMIT ?`,
         )
-        .all(`%${uri}%`, nResults) as Array<{
+        .all(`%${escapedUri}%`, nResults) as Array<{
         doc_id: string;
         document: string | null;
         metadata: string;
@@ -559,22 +560,10 @@ export class SqliteVecStore {
   readonly db: DatabaseType;
 
   constructor(dbPath?: string) {
-    const resolvedPath =
-      dbPath ??
-      process.env.VECTORSTORE_DB_PATH ??
-      join(
-        homedir(),
-        ".local",
-        "share",
-        "nodetool",
-        "vectorstore.db",
-      );
+    const resolvedPath = dbPath ?? getDefaultVectorstoreDbPath();
 
     // Ensure parent directory exists
-    const dir = resolvedPath.substring(0, resolvedPath.lastIndexOf("/"));
-    if (dir) {
-      mkdirSync(dir, { recursive: true });
-    }
+    mkdirSync(dirname(resolvedPath), { recursive: true });
 
     this.db = new Database(resolvedPath);
     this.db.pragma("journal_mode = WAL");

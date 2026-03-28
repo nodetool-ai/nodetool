@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, forwardRef, useCallback } from "react";
+import { memo, forwardRef, useCallback } from "react";
 import { Button, Tooltip } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";

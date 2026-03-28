@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useMemo, useState, useRef } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -99,11 +99,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     [onColorChange, handleClose]
   );
 
-  // Memoize color button click handlers to prevent unnecessary re-renders
-  const colorButtonClickHandlers = useMemo(() => {
-    return colorPickerColors.map((cellColor) => () => handleColorCellClick(cellColor));
-  }, [handleColorCellClick]);
-
   const handleOpenModal = useCallback(() => {
     currentColorRef.current = color || "#ffffff";
     setShowModal(true);
@@ -128,6 +123,17 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const handleModalClose = useCallback(() => {
     setShowModal(false);
   }, []);
+
+  // Handle color cell click using data attribute to avoid creating new functions in map
+  const handleColorCellButtonClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const button = event.currentTarget;
+      const isNullColor = button.getAttribute('data-color-null') === 'true';
+      const cellColor: string | null = isNullColor ? null : button.getAttribute('data-color');
+      handleColorCellClick(cellColor);
+    },
+    [handleColorCellClick]
+  );
 
   return (
     <div className="color-picker" css={styles(theme)}>
@@ -164,10 +170,13 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         }}
       >
         <div css={colorMatrixStyle(theme)}>
-          {colorPickerColors.map((cellColor) => (
+          {colorPickerColors.map((cellColor, index) => (
             <Button
               key={String(cellColor)}
               className="pick-color-button"
+              {...(cellColor === null
+                ? { 'data-color-null': 'true' }
+                : { 'data-color': cellColor })}
               sx={{
                 borderRadius: "50%",
                 cursor: "pointer",
@@ -179,7 +188,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
-              onClick={colorButtonClickHandlers[index]}
+              onClick={handleColorCellButtonClick}
             />
           ))}
           {showCustom && (

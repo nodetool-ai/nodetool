@@ -36,7 +36,8 @@ describe("native lib.grid nodes", () => {
 
     const node = new cls();
     const image = await solid(6, 4, "#ff0000");
-    const out = await node.process({ image, columns: 3, rows: 2 });
+    node.assign({ image, columns: 3, rows: 2 });
+    const out = await node.process();
 
     const tiles = out.output as Array<Record<string, unknown>>;
     expect(Array.isArray(tiles)).toBe(true);
@@ -60,7 +61,8 @@ describe("native lib.grid nodes", () => {
       await solid(10, 10, "#ffffff"),
     ];
 
-    const out = await node.process({ tiles, columns: 2 });
+    node.assign({ tiles, columns: 2 });
+    const out = await node.process();
     const bytes = Buffer.from(String((out.output as { data: string }).data), "base64");
     const meta = await sharp(bytes).metadata();
     expect(meta.width).toBe(20);
@@ -76,7 +78,8 @@ describe("native lib.grid nodes", () => {
       await solid(8, 8, "#ffffff"),
     ];
 
-    const out = await node.process({ tiles, columns: 2 });
+    node.assign({ tiles, columns: 2 });
+    const out = await node.process();
     const bytes = Buffer.from(String((out.output as { data: string }).data), "base64");
     const meta = await sharp(bytes).metadata();
     expect(meta.width).toBe(16);
@@ -88,6 +91,7 @@ describe("native lib.grid nodes", () => {
     if (!cls) throw new Error("missing CombineImageGrid node");
 
     const node = new cls();
-    await expect(node.process({ tiles: [] })).rejects.toThrow("No tiles provided");
+    node.assign({ tiles: [] });
+    await expect(node.process()).rejects.toThrow("No tiles provided");
   });
 });

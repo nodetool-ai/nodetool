@@ -66,6 +66,7 @@ export class ExecutePythonNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["python"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Python code to execute as-is. Dynamic inputs are provided as local vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -79,12 +80,12 @@ export class ExecutePythonNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Stdin", description: "String to write to process stdin before any streaming input. Use newlines to separate lines." })
   declare stdin: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
-    const mode = String(inputs.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
-    const image = String(inputs.image ?? this.image ?? "python:3.11-slim");
-    const stdinStr = String(inputs.stdin ?? this.stdin ?? "");
+    const mode = String(this.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
+    const image = String(this.image ?? this.image ?? "python:3.11-slim");
+    const stdinStr = String(this.stdin ?? this.stdin ?? "");
     const runner = new PythonDockerRunner({ image, mode });
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
@@ -100,6 +101,7 @@ export class ExecuteJavaScriptNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["nodejs"];
 
   @prop({ type: "str", default: "", title: "Code", description: "JavaScript code to execute as-is under Node.js. Dynamic inputs are provided as local vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -113,12 +115,12 @@ export class ExecuteJavaScriptNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Stdin", description: "String to write to process stdin before any streaming input. Use newlines to separate lines." })
   declare stdin: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
-    const mode = String(inputs.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
-    const image = String(inputs.image ?? this.image ?? "node:22-alpine");
-    const stdinStr = String(inputs.stdin ?? this.stdin ?? "");
+    const mode = String(this.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
+    const image = String(this.image ?? this.image ?? "node:22-alpine");
+    const stdinStr = String(this.stdin ?? this.stdin ?? "");
     const runner = new JavaScriptDockerRunner({ image, mode });
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
@@ -135,6 +137,7 @@ export class ExecuteBashNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["bash"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Bash script to execute as-is. Dynamic inputs are provided as env vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -148,12 +151,12 @@ export class ExecuteBashNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Stdin", description: "String to write to process stdin before any streaming input. Use newlines to separate lines." })
   declare stdin: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
-    const mode = String(inputs.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
-    const image = String(inputs.image ?? this.image ?? "ubuntu:22.04");
-    const stdinStr = String(inputs.stdin ?? this.stdin ?? "");
+    const mode = String(this.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
+    const image = String(this.image ?? this.image ?? "ubuntu:22.04");
+    const stdinStr = String(this.stdin ?? this.stdin ?? "");
     const runner = new BashDockerRunner({ image, mode });
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
@@ -170,6 +173,7 @@ export class ExecuteRubyNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["ruby"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Ruby code to execute as-is. Dynamic inputs are provided as env vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -183,12 +187,12 @@ export class ExecuteRubyNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Stdin", description: "String to write to process stdin before any streaming input. Use newlines to separate lines." })
   declare stdin: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
-    const mode = String(inputs.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
-    const image = String(inputs.image ?? this.image ?? "ruby:3.3-alpine");
-    const stdinStr = String(inputs.stdin ?? this.stdin ?? "");
+    const mode = String(this.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
+    const image = String(this.image ?? this.image ?? "ruby:3.3-alpine");
+    const stdinStr = String(this.stdin ?? this.stdin ?? "");
     const runner = new RubyDockerRunner({ image, mode });
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
@@ -205,6 +209,7 @@ export class ExecuteLuaNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
+  static readonly requiredRuntimes = ["lua"];
 
   @prop({ type: "str", default: "", title: "Code", description: "Lua code to execute as-is in a restricted environment. Dynamic inputs are provided as variables. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare code: any;
@@ -221,13 +226,13 @@ export class ExecuteLuaNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Stdin", description: "String to write to process stdin before any streaming input. Use newlines to separate lines." })
   declare stdin: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
-    const mode = String(inputs.execution_mode ?? this.execution_mode ?? "subprocess") as "docker" | "subprocess";
-    const executable = String(inputs.executable ?? this.executable ?? "lua");
-    const timeoutSeconds = Number(inputs.timeout_seconds ?? this.timeout_seconds ?? 10);
-    const stdinStr = String(inputs.stdin ?? this.stdin ?? "");
+    const mode = String(this.execution_mode ?? this.execution_mode ?? "subprocess") as "docker" | "subprocess";
+    const executable = String(this.executable ?? this.executable ?? "lua");
+    const timeoutSeconds = Number(this.timeout_seconds ?? this.timeout_seconds ?? 10);
+    const stdinStr = String(this.stdin ?? this.stdin ?? "");
 
     const runner = mode === "subprocess"
       ? new LuaSubprocessRunner({ executable, timeoutSeconds })
@@ -248,7 +253,6 @@ export class ExecuteCommandNode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
-
   @prop({ type: "str", default: "", title: "Command", description: "Single command to run via the selected shell. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'." })
   declare command: any;
 
@@ -261,12 +265,12 @@ export class ExecuteCommandNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Stdin", description: "String to write to process stdin before any streaming input. Use newlines to separate lines." })
   declare stdin: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const command = String(inputs.command ?? this.command ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const command = String(this.command ?? this.command ?? "");
     if (!command.trim()) throw new Error("Command is required");
-    const mode = String(inputs.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
-    const image = String(inputs.image ?? this.image ?? "bash:5.2");
-    const stdinStr = String(inputs.stdin ?? this.stdin ?? "");
+    const mode = String(this.execution_mode ?? this.execution_mode ?? "docker") as "docker" | "subprocess";
+    const image = String(this.image ?? this.image ?? "bash:5.2");
+    const stdinStr = String(this.stdin ?? this.stdin ?? "");
     const runner = new CommandDockerRunner({ image, mode });
     const result = await collectRunnerOutput(runner, command, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
@@ -304,8 +308,8 @@ abstract class RunCommandNode extends BaseNode {
   /** Default execution mode */
   static readonly defaultMode: "docker" | "subprocess" = "subprocess";
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const command = String(inputs.command ?? (this as any).command ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const command = String((this as any).command ?? "");
     if (!command.trim()) return { stdout: "", stderr: "", exit_code: 0, output: "", success: true };
     const cls = this.constructor as typeof RunCommandNode;
     const mode = String((this as any).execution_mode ?? cls.defaultMode) as "docker" | "subprocess";
@@ -332,6 +336,7 @@ export class RunPythonCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "python" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["python"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Python command to execute" })
   declare command: any;
@@ -346,6 +351,7 @@ export class RunJavaScriptCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "javascript" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["nodejs"];
 
   @prop({ type: "str", default: "", title: "Command", description: "JavaScript command to execute" })
   declare command: any;
@@ -360,6 +366,7 @@ export class RunBashCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "bash" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["bash"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Bash command to execute" })
   declare command: any;
@@ -374,6 +381,7 @@ export class RunRubyCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "ruby" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["ruby"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Ruby command to execute" })
   declare command: any;
@@ -388,6 +396,7 @@ export class RunLuaCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "lua" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["lua"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Lua command to execute" })
   declare command: any;
@@ -408,6 +417,7 @@ export class RunShellCommandNode extends RunCommandNode {
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "command" as const;
   static readonly defaultMode = "subprocess" as const;
+  static readonly requiredRuntimes = ["bash"];
 
   @prop({ type: "str", default: "", title: "Command", description: "Shell command to execute" })
   declare command: any;

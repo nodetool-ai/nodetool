@@ -151,24 +151,20 @@ export class KieAINode extends BaseNode {
           static readonly supportsDynamicOutputs = true;
   
   @prop({ type: "int", default: 0, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use default)", min: 0, max: 3600 })
-  declare timeout_seconds: any;
 
   @prop({ type: "str", default: "", title: "Model Info", description: "Paste the full API documentation from the kie.ai model page." })
   declare model_info: any;
 
-
-
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const modelInfo = String(inputs.model_info ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const modelInfo = String(this.model_info ?? "").trim();
     if (!modelInfo) throw new Error("model_info is empty. Paste kie.ai API documentation.");
-    const apiKey = getApiKey(inputs);
+    const apiKey = getApiKey(this._secrets);
     const bundle = parseKieDocs(modelInfo);
 
     // Build input params from dynamic properties
     const apiInput: Record<string, unknown> = {};
     for (const p of bundle.params) {
-      const val = inputs[p.name];
+      const val = (this as any)[p.name];
       if (val === undefined || val === null) {
         if (p.required) throw new Error(`Missing required input: ${p.name}`);
         continue;

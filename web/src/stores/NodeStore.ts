@@ -283,7 +283,6 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
-    // @ts-expect-error - zundo temporal middleware type incompatible with zustand StoreMutators
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
@@ -339,6 +338,9 @@ export const createNodeStore = (
           }
         });
 
+        let lastNodesForSelectionCount: Node<NodeData>[] | null = null;
+        let lastSelectionCount = 0;
+
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
           missingModelFiles: [],
@@ -384,10 +386,10 @@ export const createNodeStore = (
             get().edges.filter((e) => e.source === nodeId),
           getSelection: (): NodeSelection => {
             const nodes = get().nodes.filter((node) => node.selected);
-            const nodeIds = nodes.reduce((acc, node) => {
-              acc[node.id] = true;
-              return acc;
-            }, {} as Record<string, boolean>);
+            const nodeIds: Record<string, boolean> = {};
+            for (const node of nodes) {
+              nodeIds[node.id] = true;
+            }
             const edges = get().edges.filter(
               (edge) => edge.source in nodeIds && edge.target in nodeIds
             );
@@ -396,13 +398,19 @@ export const createNodeStore = (
           getSelectedNodes: (): Node<NodeData>[] =>
             get().nodes.filter((node) => node.selected),
           getSelectedNodeCount: (): number => {
-            let count = 0;
             const nodes = get().nodes;
+            if (nodes === lastNodesForSelectionCount) {
+              return lastSelectionCount;
+            }
+
+            lastNodesForSelectionCount = nodes;
+            let count = 0;
             for (const node of nodes) {
               if (node.selected) {
                 count++;
               }
             }
+            lastSelectionCount = count;
             return count;
           },
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
@@ -424,12 +432,6 @@ export const createNodeStore = (
               );
             }).length;
             log.info(
-              "[NodeStore] selectNodesByType",
-              nodeType,
-              "matching",
-              matchingCount
-            );
-            console.info(
               "[NodeStore] selectNodesByType",
               nodeType,
               "matching",
@@ -906,20 +908,23 @@ export const createNodeStore = (
           },
           getModels: (): UnifiedModel[] => {
             const nodes = get().nodes;
-            return nodes.reduce((acc, node) => {
+            const models: UnifiedModel[] = [];
+            for (const node of nodes) {
               for (const key in node.data.properties) {
-                const property = node.data.properties[key];
-                if (
-                  property &&
-                  typeof property === "object" &&
-                  "type" in property &&
-                  "repo_id" in property
-                ) {
-                  acc.push(property as UnifiedModel);
+                if (Object.prototype.hasOwnProperty.call(node.data.properties, key)) {
+                  const property = node.data.properties[key];
+                  if (
+                    property &&
+                    typeof property === "object" &&
+                    "type" in property &&
+                    "repo_id" in property
+                  ) {
+                    models.push(property as UnifiedModel);
+                  }
                 }
               }
-              return acc;
-            }, [] as UnifiedModel[]);
+            }
+            return models;
           },
           getWorkflow: (): Workflow => {
             const workflow = get().workflow;
@@ -1223,13 +1228,14 @@ export const createNodeStore = (
             position: XYPosition,
             properties?: Record<string, any>
           ): Node<NodeData> => {
-            const defaults = metadata.properties.reduce<Record<string, any>>(
-              (acc, property) => ({
-                ...acc,
-                [property.name]: property.default
-              }),
-              {}
-            );
+            const defaults: Record<string, any> = {};
+            if (metadata.properties) {
+              for (const property of metadata.properties) {
+                if (property.name) {
+                  defaults[property.name] = property.default;
+                }
+              }
+            }
             if (properties) {
               for (const key in properties) {
                 defaults[key] = properties[key];

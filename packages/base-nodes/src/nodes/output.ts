@@ -60,18 +60,8 @@ export class OutputNode extends BaseNode {
     });
   }
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    let value: unknown = this.value ?? null;
-    if ("value" in inputs) {
-      value = inputs.value;
-    } else if ("input_value" in inputs) {
-      value = inputs.input_value;
-    } else if ("output" in inputs) {
-      value = inputs.output;
-    } else {
-      const keys = Object.keys(inputs);
-      if (keys.length === 1) value = inputs[keys[0]];
-    }
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const value = this.value ?? null;
 
     const normalized = await this.normalize(value, context);
     this.emitOutputUpdate(normalized, context);
@@ -106,15 +96,8 @@ export class PreviewNode extends BaseNode {
     });
   }
 
-  async process(inputs: Record<string, unknown>, context?: ProcessingContext): Promise<Record<string, unknown>> {
-    let value: unknown;
-    if ("value" in inputs) {
-      value = inputs.value;
-    } else {
-      const keys = Object.keys(inputs);
-      if (keys.length === 1) value = inputs[keys[0]];
-      else value = this.value ?? null;
-    }
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const value = this.value ?? null;
 
     const normalized = await this.normalize(value, context);
     this.emitPreview(normalized, context);

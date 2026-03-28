@@ -6,7 +6,7 @@
  * via slotProps/sx and is safe for portal rendering (no reliance on global CSS).
  */
 
-import React, { memo } from "react";
+import { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Menu, MenuItem, type MenuItemProps, type MenuProps } from "@mui/material";
 import { editorUiClasses } from "../../constants/editorUiClasses";

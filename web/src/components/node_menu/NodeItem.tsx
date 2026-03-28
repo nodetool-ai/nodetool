@@ -6,7 +6,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
@@ -48,14 +48,15 @@ const NodeItem = memo(
       const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
+      const hasRuntimeDeps =
+        node.required_runtimes && node.required_runtimes.length > 0;
       // Combine multiple store selectors into one with shallow comparison to reduce re-renders
       const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
-        useMemo(() => (state) => ({
+        useShallow((state) => ({
           searchTerm: state.searchTerm,
           hoveredNode: state.hoveredNode,
           setHoveredNode: state.setHoveredNode
-        }), []),
-        shallow
+        }))
       );
       const isHovered = hoveredNode?.node_type === node.node_type;
       const isFavorite = useFavoriteNodesStore((state) =>
@@ -318,6 +319,35 @@ const NodeItem = memo(
                   />
                 </Typography>
               </div>
+            )}
+            {hasRuntimeDeps && (
+              <Tooltip
+                title={`Requires: ${node.required_runtimes!.join(", ")}`}
+                placement="top"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+                slotProps={{
+                  popper: { sx: { zIndex: 2000 } },
+                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "0.7rem" } }
+                }}
+              >
+                <Box
+                  component="span"
+                  sx={{
+                    fontSize: "0.55rem",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
+                    color: theme.vars.palette.warning.main,
+                    px: 0.5,
+                    py: 0.15,
+                    borderRadius: "3px",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {node.required_runtimes!.join(", ")}
+                </Box>
+              </Tooltip>
             )}
             {showFavoriteButton && (
               <Tooltip

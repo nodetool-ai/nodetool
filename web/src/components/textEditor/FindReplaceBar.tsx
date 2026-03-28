@@ -190,6 +190,10 @@ const FindReplaceBar = ({
     setShowReplace(!showReplace);
   }, [showReplace]);
 
+  const handleClose = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
+
   if (!isVisible) {return null;}
 
   const isValidSearch = isValidInput(searchTerm);
@@ -283,7 +287,7 @@ const FindReplaceBar = ({
         </div>
       )}
 
-      <CloseButton onClick={() => onClose?.()} buttonSize="small" tooltip="Close Find/Replace" className="toolbar-button" />
+      <CloseButton onClick={handleClose} buttonSize="small" tooltip="Close Find/Replace" className="toolbar-button" />
     </Box>
   );
 };

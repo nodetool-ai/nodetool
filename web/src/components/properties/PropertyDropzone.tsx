@@ -18,6 +18,7 @@ import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import log from "loglevel";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -110,6 +111,11 @@ const PropertyDropzone = ({
         letterSpacing: "1px",
         fontSize: "10px",
         color: theme.vars.palette.grey[500]
+      },
+      ".dropzone .image-preview-surface": {
+        ...alphaSurfaceBg,
+        borderRadius: "4px",
+        overflow: "hidden"
       },
       ".dropzone img": {
         width: "100%",
@@ -336,6 +342,12 @@ const PropertyDropzone = ({
     }
   }, [handleNativeFilePicker, handleBrowserFilePicker]);
 
+  // Handle replace button click - prevent event propagation and open file picker
+  const handleReplaceClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleDropzoneClick();
+  }, [handleDropzoneClick]);
+
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
       case "image":
@@ -347,7 +359,7 @@ const PropertyDropzone = ({
               open={openViewer}
               onClose={handleCloseViewer}
             />
-            <div style={{ position: "relative" }}>
+            <div className="image-preview-surface" style={{ position: "relative" }}>
               <img
                 ref={imageRef}
                 src={asset?.get_url || uri || ""}
@@ -496,10 +508,7 @@ const PropertyDropzone = ({
                   <Tooltip title="Replace file">
                     <IconButton
                       className="asset-action-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDropzoneClick();
-                      }}
+                      onClick={handleReplaceClick}
                       size="small"
                     >
                       <FolderOpenIcon fontSize="small" />

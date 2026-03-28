@@ -30,15 +30,15 @@ replicate, ai`;
   @prop({ type: "enum", default: "best", values: ["best", "fast"], description: "Prompt Mode: fast takes 1-2 seconds, best takes 15-25 seconds." })
   declare mode: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const mode = String(inputs.mode ?? this.mode ?? "best");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const mode = String(this.mode ?? "best");
 
     const args: Record<string, unknown> = {
       "mode": mode,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -63,12 +63,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -96,15 +96,15 @@ replicate, ai`;
   @prop({ type: "str", default: "Describe this image", description: "Input prompt" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Describe this image");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "Describe this image");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -129,12 +129,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -168,11 +168,11 @@ replicate, ai`;
   @prop({ type: "enum", default: "image_captioning", values: ["image_captioning", "visual_question_answering", "image_text_matching"], description: "Choose a task." })
   declare task: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const caption = String(inputs.caption ?? this.caption ?? "");
-    const question = String(inputs.question ?? this.question ?? "");
-    const task = String(inputs.task ?? this.task ?? "image_captioning");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const caption = String(this.caption ?? "");
+    const question = String(this.question ?? "");
+    const task = String(this.task ?? "image_captioning");
 
     const args: Record<string, unknown> = {
       "caption": caption,
@@ -180,7 +180,7 @@ replicate, ai`;
       "task": task,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -220,13 +220,13 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Toggles the model using nucleus sampling to generate responses" })
   declare use_nucleus_sampling: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const caption = Boolean(inputs.caption ?? this.caption ?? false);
-    const context = String(inputs.context ?? this.context ?? "");
-    const question = String(inputs.question ?? this.question ?? "What is this a picture of?");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const useNucleusSampling = Boolean(inputs.use_nucleus_sampling ?? this.use_nucleus_sampling ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const caption = Boolean(this.caption ?? false);
+    const context = String(this.context ?? "");
+    const question = String(this.question ?? "What is this a picture of?");
+    const temperature = Number(this.temperature ?? 1);
+    const useNucleusSampling = Boolean(this.use_nucleus_sampling ?? false);
 
     const args: Record<string, unknown> = {
       "caption": caption,
@@ -236,7 +236,7 @@ replicate, ai`;
       "use_nucleus_sampling": useNucleusSampling,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -267,17 +267,17 @@ replicate, ai`;
   @prop({ type: "enum", default: "best", values: ["best", "classic", "fast", "negative"], description: "Prompt mode (best takes 10-20 seconds, fast takes 1-2 seconds)." })
   declare mode: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const clipModelName = String(inputs.clip_model_name ?? this.clip_model_name ?? "ViT-L-14/openai");
-    const mode = String(inputs.mode ?? this.mode ?? "best");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const clipModelName = String(this.clip_model_name ?? "ViT-L-14/openai");
+    const mode = String(this.mode ?? "best");
 
     const args: Record<string, unknown> = {
       "clip_model_name": clipModelName,
       "mode": mode,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -314,12 +314,12 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.2);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxTokens = Number(this.max_tokens ?? 1024);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.2);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "max_tokens": maxTokens,
@@ -328,7 +328,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -353,9 +353,9 @@ replicate, ai`;
   @prop({ type: "str", default: "a\nb", description: "Newline-separated inputs. Can either be strings of text or image URIs starting with http[s]://" })
   declare inputs: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const field_inputs = String(inputs.inputs ?? this.inputs ?? "a\nb");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const field_inputs = String(this.inputs ?? "a\nb");
 
     const args: Record<string, unknown> = {
       "inputs": field_inputs,
@@ -392,12 +392,12 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input video file" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 256);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Describe this video in detail");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.4);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.7);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxNewTokens = Number(this.max_new_tokens ?? 256);
+    const prompt = String(this.prompt ?? "Describe this video in detail");
+    const temperature = Number(this.temperature ?? 0.4);
+    const topP = Number(this.top_p ?? 0.7);
 
     const args: Record<string, unknown> = {
       "max_new_tokens": maxNewTokens,
@@ -406,7 +406,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -443,12 +443,12 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input video file" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 256);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Describe this video in detail");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.4);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.7);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxNewTokens = Number(this.max_new_tokens ?? 256);
+    const prompt = String(this.prompt ?? "Describe this video in detail");
+    const temperature = Number(this.temperature ?? 0.4);
+    const topP = Number(this.top_p ?? 0.7);
 
     const args: Record<string, unknown> = {
       "max_new_tokens": maxNewTokens,
@@ -457,7 +457,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -491,23 +491,23 @@ replicate, ai`;
   @prop({ type: "int", default: 8, description: "Maximum number of frames to sample from the video." })
   declare video_max_frames: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const videoMaxFrames = Number(inputs.video_max_frames ?? this.video_max_frames ?? 8);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const videoMaxFrames = Number(this.video_max_frames ?? 8);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "video_max_frames": videoMaxFrames,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -550,14 +550,14 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input video file" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const fps = Number(inputs.fps ?? this.fps ?? 1);
-    const maxFrames = Number(inputs.max_frames ?? this.max_frames ?? 180);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 2048);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.2);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const fps = Number(this.fps ?? 1);
+    const maxFrames = Number(this.max_frames ?? 180);
+    const maxNewTokens = Number(this.max_new_tokens ?? 2048);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.2);
+    const topP = Number(this.top_p ?? 0.9);
 
     const args: Record<string, unknown> = {
       "fps": fps,
@@ -568,7 +568,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -608,13 +608,13 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const history = String(inputs.history ?? this.history ?? []);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.2);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const history = String(this.history ?? []);
+    const maxTokens = Number(this.max_tokens ?? 1024);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.2);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "history": history,
@@ -624,7 +624,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -664,13 +664,13 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const history = String(inputs.history ?? this.history ?? []);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.2);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const history = String(this.history ?? []);
+    const maxTokens = Number(this.max_tokens ?? 1024);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.2);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "history": history,
@@ -680,7 +680,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -729,14 +729,14 @@ replicate, ai`;
   @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const thinkingLevel = String(inputs.thinking_level ?? this.thinking_level ?? "");
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxOutputTokens = Number(this.max_output_tokens ?? 65535);
+    const prompt = String(this.prompt ?? "");
+    const systemInstruction = String(this.system_instruction ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const thinkingLevel = String(this.thinking_level ?? "");
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "max_output_tokens": maxOutputTokens,
@@ -747,19 +747,19 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
+    const imagesRef = this.images as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = await assetToUrl(imagesRef!, apiKey);
       if (imagesUrl) args["images"] = imagesUrl;
     }
 
-    const videosRef = (inputs.videos ?? this.videos) as Record<string, unknown> | undefined;
+    const videosRef = this.videos as Record<string, unknown> | undefined;
     if (isRefSet(videosRef)) {
       const videosUrl = await assetToUrl(videosRef!, apiKey);
       if (videosUrl) args["videos"] = videosUrl;

@@ -57,18 +57,18 @@ replicate, ai`;
   @prop({ type: "enum", default: "3D", values: ["3D", "Emoji", "Video game", "Pixels", "Clay", "Toy"], description: "Style to convert to" })
   declare style: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const controlDepthStrength = Number(inputs.control_depth_strength ?? this.control_depth_strength ?? 0.8);
-    const customLoraUrl = String(inputs.custom_lora_url ?? this.custom_lora_url ?? "");
-    const denoisingStrength = Number(inputs.denoising_strength ?? this.denoising_strength ?? 0.65);
-    const instantIdStrength = Number(inputs.instant_id_strength ?? this.instant_id_strength ?? 1);
-    const loraScale = Number(inputs.lora_scale ?? this.lora_scale ?? 1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "a person");
-    const promptStrength = Number(inputs.prompt_strength ?? this.prompt_strength ?? 4.5);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const style = String(inputs.style ?? this.style ?? "3D");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const controlDepthStrength = Number(this.control_depth_strength ?? 0.8);
+    const customLoraUrl = String(this.custom_lora_url ?? "");
+    const denoisingStrength = Number(this.denoising_strength ?? 0.65);
+    const instantIdStrength = Number(this.instant_id_strength ?? 1);
+    const loraScale = Number(this.lora_scale ?? 1);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const prompt = String(this.prompt ?? "a person");
+    const promptStrength = Number(this.prompt_strength ?? 4.5);
+    const seed = Number(this.seed ?? -1);
+    const style = String(this.style ?? "3D");
 
     const args: Record<string, unknown> = {
       "control_depth_strength": controlDepthStrength,
@@ -83,7 +83,7 @@ replicate, ai`;
       "style": style,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -144,19 +144,19 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Fix the random seed for reproducibility" })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const controlDepthStrength = Number(inputs.control_depth_strength ?? this.control_depth_strength ?? 0.8);
-    const denoisingStrength = Number(inputs.denoising_strength ?? this.denoising_strength ?? 1);
-    const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
-    const imageToBecomeNoise = Number(inputs.image_to_become_noise ?? this.image_to_become_noise ?? 0.3);
-    const imageToBecomeStrength = Number(inputs.image_to_become_strength ?? this.image_to_become_strength ?? 0.75);
-    const instantIdStrength = Number(inputs.instant_id_strength ?? this.instant_id_strength ?? 1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const numberOfImages = Number(inputs.number_of_images ?? this.number_of_images ?? 2);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "a person");
-    const promptStrength = Number(inputs.prompt_strength ?? this.prompt_strength ?? 2);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const controlDepthStrength = Number(this.control_depth_strength ?? 0.8);
+    const denoisingStrength = Number(this.denoising_strength ?? 1);
+    const disableSafetyChecker = Boolean(this.disable_safety_checker ?? false);
+    const imageToBecomeNoise = Number(this.image_to_become_noise ?? 0.3);
+    const imageToBecomeStrength = Number(this.image_to_become_strength ?? 0.75);
+    const instantIdStrength = Number(this.instant_id_strength ?? 1);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const numberOfImages = Number(this.number_of_images ?? 2);
+    const prompt = String(this.prompt ?? "a person");
+    const promptStrength = Number(this.prompt_strength ?? 2);
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "control_depth_strength": controlDepthStrength,
@@ -172,13 +172,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const imageToBecomeRef = (inputs.image_to_become ?? this.image_to_become) as Record<string, unknown> | undefined;
+    const imageToBecomeRef = this.image_to_become as Record<string, unknown> | undefined;
     if (isRefSet(imageToBecomeRef)) {
       const imageToBecomeUrl = await assetToUrl(imageToBecomeRef!, apiKey);
       if (imageToBecomeUrl) args["image_to_become"] = imageToBecomeUrl;
@@ -239,17 +239,17 @@ replicate, ai`;
   @prop({ type: "float", default: 20, description: "Style strength (%)" })
   declare style_strength_ratio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry");
-    const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
-    const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 20);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "A photo of a person img");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const styleName = String(inputs.style_name ?? this.style_name ?? "Photographic (Default)");
-    const styleStrengthRatio = Number(inputs.style_strength_ratio ?? this.style_strength_ratio ?? 20);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const disableSafetyChecker = Boolean(this.disable_safety_checker ?? false);
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const negativePrompt = String(this.negative_prompt ?? "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry");
+    const numOutputs = Number(this.num_outputs ?? 1);
+    const numSteps = Number(this.num_steps ?? 20);
+    const prompt = String(this.prompt ?? "A photo of a person img");
+    const seed = Number(this.seed ?? -1);
+    const styleName = String(this.style_name ?? "Photographic (Default)");
+    const styleStrengthRatio = Number(this.style_strength_ratio ?? 20);
 
     const args: Record<string, unknown> = {
       "disable_safety_checker": disableSafetyChecker,
@@ -263,25 +263,25 @@ replicate, ai`;
       "style_strength_ratio": styleStrengthRatio,
     };
 
-    const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
+    const inputImageRef = this.input_image as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
       const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
 
-    const inputImage2Ref = (inputs.input_image2 ?? this.input_image2) as Record<string, unknown> | undefined;
+    const inputImage2Ref = this.input_image2 as Record<string, unknown> | undefined;
     if (isRefSet(inputImage2Ref)) {
       const inputImage2Url = await assetToUrl(inputImage2Ref!, apiKey);
       if (inputImage2Url) args["input_image2"] = inputImage2Url;
     }
 
-    const inputImage3Ref = (inputs.input_image3 ?? this.input_image3) as Record<string, unknown> | undefined;
+    const inputImage3Ref = this.input_image3 as Record<string, unknown> | undefined;
     if (isRefSet(inputImage3Ref)) {
       const inputImage3Url = await assetToUrl(inputImage3Ref!, apiKey);
       if (inputImage3Url) args["input_image3"] = inputImage3Url;
     }
 
-    const inputImage4Ref = (inputs.input_image4 ?? this.input_image4) as Record<string, unknown> | undefined;
+    const inputImage4Ref = this.input_image4 as Record<string, unknown> | undefined;
     if (isRefSet(inputImage4Ref)) {
       const inputImage4Url = await assetToUrl(inputImage4Ref!, apiKey);
       if (inputImage4Url) args["input_image4"] = inputImage4Url;
@@ -342,17 +342,17 @@ replicate, ai`;
   @prop({ type: "float", default: 20, description: "Style strength (%)" })
   declare style_strength_ratio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry");
-    const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
-    const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 20);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "A photo of a person img");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const styleName = String(inputs.style_name ?? this.style_name ?? "(No style)");
-    const styleStrengthRatio = Number(inputs.style_strength_ratio ?? this.style_strength_ratio ?? 20);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const disableSafetyChecker = Boolean(this.disable_safety_checker ?? false);
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const negativePrompt = String(this.negative_prompt ?? "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry");
+    const numOutputs = Number(this.num_outputs ?? 1);
+    const numSteps = Number(this.num_steps ?? 20);
+    const prompt = String(this.prompt ?? "A photo of a person img");
+    const seed = Number(this.seed ?? -1);
+    const styleName = String(this.style_name ?? "(No style)");
+    const styleStrengthRatio = Number(this.style_strength_ratio ?? 20);
 
     const args: Record<string, unknown> = {
       "disable_safety_checker": disableSafetyChecker,
@@ -366,25 +366,25 @@ replicate, ai`;
       "style_strength_ratio": styleStrengthRatio,
     };
 
-    const inputImageRef = (inputs.input_image ?? this.input_image) as Record<string, unknown> | undefined;
+    const inputImageRef = this.input_image as Record<string, unknown> | undefined;
     if (isRefSet(inputImageRef)) {
       const inputImageUrl = await assetToUrl(inputImageRef!, apiKey);
       if (inputImageUrl) args["input_image"] = inputImageUrl;
     }
 
-    const inputImage2Ref = (inputs.input_image2 ?? this.input_image2) as Record<string, unknown> | undefined;
+    const inputImage2Ref = this.input_image2 as Record<string, unknown> | undefined;
     if (isRefSet(inputImage2Ref)) {
       const inputImage2Url = await assetToUrl(inputImage2Ref!, apiKey);
       if (inputImage2Url) args["input_image2"] = inputImage2Url;
     }
 
-    const inputImage3Ref = (inputs.input_image3 ?? this.input_image3) as Record<string, unknown> | undefined;
+    const inputImage3Ref = this.input_image3 as Record<string, unknown> | undefined;
     if (isRefSet(inputImage3Ref)) {
       const inputImage3Url = await assetToUrl(inputImage3Ref!, apiKey);
       if (inputImage3Url) args["input_image3"] = inputImage3Url;
     }
 
-    const inputImage4Ref = (inputs.input_image4 ?? this.input_image4) as Record<string, unknown> | undefined;
+    const inputImage4Ref = this.input_image4 as Record<string, unknown> | undefined;
     if (isRefSet(inputImage4Ref)) {
       const inputImage4Url = await assetToUrl(inputImage4Ref!, apiKey);
       if (inputImage4Url) args["input_image4"] = inputImage4Url;
@@ -445,20 +445,20 @@ replicate, ai`;
   @prop({ type: "int", default: 1024 })
   declare width: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const height = Number(inputs.height ?? this.height ?? 1024);
-    const instantIdStrength = Number(inputs.instant_id_strength ?? this.instant_id_strength ?? 1);
-    const ipAdapterNoise = Number(inputs.ip_adapter_noise ?? this.ip_adapter_noise ?? 0.5);
-    const ipAdapterWeight = Number(inputs.ip_adapter_weight ?? this.ip_adapter_weight ?? 0.2);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "a person");
-    const promptStrength = Number(inputs.prompt_strength ?? this.prompt_strength ?? 7);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const steps = Number(inputs.steps ?? this.steps ?? 20);
-    const upscale = Boolean(inputs.upscale ?? this.upscale ?? false);
-    const upscaleSteps = Number(inputs.upscale_steps ?? this.upscale_steps ?? 10);
-    const width = Number(inputs.width ?? this.width ?? 1024);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const height = Number(this.height ?? 1024);
+    const instantIdStrength = Number(this.instant_id_strength ?? 1);
+    const ipAdapterNoise = Number(this.ip_adapter_noise ?? 0.5);
+    const ipAdapterWeight = Number(this.ip_adapter_weight ?? 0.2);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const prompt = String(this.prompt ?? "a person");
+    const promptStrength = Number(this.prompt_strength ?? 7);
+    const seed = Number(this.seed ?? -1);
+    const steps = Number(this.steps ?? 20);
+    const upscale = Boolean(this.upscale ?? false);
+    const upscaleSteps = Number(this.upscale_steps ?? 10);
+    const width = Number(this.width ?? 1024);
 
     const args: Record<string, unknown> = {
       "height": height,
@@ -475,7 +475,7 @@ replicate, ai`;
       "width": width,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -578,33 +578,33 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const cannyStrength = Number(inputs.canny_strength ?? this.canny_strength ?? 0.3);
-    const controlnetConditioningScale = Number(inputs.controlnet_conditioning_scale ?? this.controlnet_conditioning_scale ?? 0.8);
-    const depthStrength = Number(inputs.depth_strength ?? this.depth_strength ?? 0.5);
-    const disableSafetyChecker = Boolean(inputs.disable_safety_checker ?? this.disable_safety_checker ?? false);
-    const enableCannyControlnet = Boolean(inputs.enable_canny_controlnet ?? this.enable_canny_controlnet ?? false);
-    const enableDepthControlnet = Boolean(inputs.enable_depth_controlnet ?? this.enable_depth_controlnet ?? false);
-    const enableLcm = Boolean(inputs.enable_lcm ?? this.enable_lcm ?? false);
-    const enablePoseControlnet = Boolean(inputs.enable_pose_controlnet ?? this.enable_pose_controlnet ?? true);
-    const enhanceNonfaceRegion = Boolean(inputs.enhance_nonface_region ?? this.enhance_nonface_region ?? true);
-    const faceDetectionInputHeight = Number(inputs.face_detection_input_height ?? this.face_detection_input_height ?? 640);
-    const faceDetectionInputWidth = Number(inputs.face_detection_input_width ?? this.face_detection_input_width ?? 640);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7.5);
-    const ipAdapterScale = Number(inputs.ip_adapter_scale ?? this.ip_adapter_scale ?? 0.8);
-    const lcmGuidanceScale = Number(inputs.lcm_guidance_scale ?? this.lcm_guidance_scale ?? 1.5);
-    const lcmNumInferenceSteps = Number(inputs.lcm_num_inference_steps ?? this.lcm_num_inference_steps ?? 5);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const numOutputs = Number(inputs.num_outputs ?? this.num_outputs ?? 1);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
-    const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 80);
-    const poseStrength = Number(inputs.pose_strength ?? this.pose_strength ?? 0.4);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "a person");
-    const scheduler = String(inputs.scheduler ?? this.scheduler ?? "EulerDiscreteScheduler");
-    const sdxlWeights = String(inputs.sdxl_weights ?? this.sdxl_weights ?? "stable-diffusion-xl-base-1.0");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const cannyStrength = Number(this.canny_strength ?? 0.3);
+    const controlnetConditioningScale = Number(this.controlnet_conditioning_scale ?? 0.8);
+    const depthStrength = Number(this.depth_strength ?? 0.5);
+    const disableSafetyChecker = Boolean(this.disable_safety_checker ?? false);
+    const enableCannyControlnet = Boolean(this.enable_canny_controlnet ?? false);
+    const enableDepthControlnet = Boolean(this.enable_depth_controlnet ?? false);
+    const enableLcm = Boolean(this.enable_lcm ?? false);
+    const enablePoseControlnet = Boolean(this.enable_pose_controlnet ?? true);
+    const enhanceNonfaceRegion = Boolean(this.enhance_nonface_region ?? true);
+    const faceDetectionInputHeight = Number(this.face_detection_input_height ?? 640);
+    const faceDetectionInputWidth = Number(this.face_detection_input_width ?? 640);
+    const guidanceScale = Number(this.guidance_scale ?? 7.5);
+    const ipAdapterScale = Number(this.ip_adapter_scale ?? 0.8);
+    const lcmGuidanceScale = Number(this.lcm_guidance_scale ?? 1.5);
+    const lcmNumInferenceSteps = Number(this.lcm_num_inference_steps ?? 5);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const numOutputs = Number(this.num_outputs ?? 1);
+    const outputFormat = String(this.output_format ?? "webp");
+    const outputQuality = Number(this.output_quality ?? 80);
+    const poseStrength = Number(this.pose_strength ?? 0.4);
+    const prompt = String(this.prompt ?? "a person");
+    const scheduler = String(this.scheduler ?? "EulerDiscreteScheduler");
+    const sdxlWeights = String(this.sdxl_weights ?? "stable-diffusion-xl-base-1.0");
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "canny_strength": cannyStrength,
@@ -634,13 +634,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const poseImageRef = (inputs.pose_image ?? this.pose_image) as Record<string, unknown> | undefined;
+    const poseImageRef = this.pose_image as Record<string, unknown> | undefined;
     if (isRefSet(poseImageRef)) {
       const poseImageUrl = await assetToUrl(poseImageRef!, apiKey);
       if (poseImageUrl) args["pose_image"] = poseImageUrl;
@@ -689,16 +689,16 @@ replicate, ai`;
   @prop({ type: "int", default: 640, description: "Width of output image" })
   declare width: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const controlnetConditioningScale = Number(inputs.controlnet_conditioning_scale ?? this.controlnet_conditioning_scale ?? 0.8);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const height = Number(inputs.height ?? this.height ?? 640);
-    const ipAdapterScale = Number(inputs.ip_adapter_scale ?? this.ip_adapter_scale ?? 0.8);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "analog film photo of a man. faded film, desaturated, 35mm photo, grainy, vignette, vintage, Kodachrome, Lomography, stained, highly detailed, found footage, masterpiece, best quality");
-    const width = Number(inputs.width ?? this.width ?? 640);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const controlnetConditioningScale = Number(this.controlnet_conditioning_scale ?? 0.8);
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const height = Number(this.height ?? 640);
+    const ipAdapterScale = Number(this.ip_adapter_scale ?? 0.8);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const prompt = String(this.prompt ?? "analog film photo of a man. faded film, desaturated, 35mm photo, grainy, vignette, vintage, Kodachrome, Lomography, stained, highly detailed, found footage, masterpiece, best quality");
+    const width = Number(this.width ?? 640);
 
     const args: Record<string, unknown> = {
       "controlnet_conditioning_scale": controlnetConditioningScale,
@@ -711,7 +711,7 @@ replicate, ai`;
       "width": width,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -760,16 +760,16 @@ replicate, ai`;
   @prop({ type: "int", default: 640, description: "Width of output image" })
   declare width: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const controlnetConditioningScale = Number(inputs.controlnet_conditioning_scale ?? this.controlnet_conditioning_scale ?? 0.8);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const height = Number(inputs.height ?? this.height ?? 640);
-    const ipAdapterScale = Number(inputs.ip_adapter_scale ?? this.ip_adapter_scale ?? 0.8);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "analog film photo of a man. faded film, desaturated, 35mm photo, grainy, vignette, vintage, Kodachrome, Lomography, stained, highly detailed, found footage, masterpiece, best quality");
-    const width = Number(inputs.width ?? this.width ?? 640);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const controlnetConditioningScale = Number(this.controlnet_conditioning_scale ?? 0.8);
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const height = Number(this.height ?? 640);
+    const ipAdapterScale = Number(this.ip_adapter_scale ?? 0.8);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const prompt = String(this.prompt ?? "analog film photo of a man. faded film, desaturated, 35mm photo, grainy, vignette, vintage, Kodachrome, Lomography, stained, highly detailed, found footage, masterpiece, best quality");
+    const width = Number(this.width ?? 640);
 
     const args: Record<string, unknown> = {
       "controlnet_conditioning_scale": controlnetConditioningScale,
@@ -782,7 +782,7 @@ replicate, ai`;
       "width": width,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;

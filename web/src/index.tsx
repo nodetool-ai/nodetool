@@ -86,7 +86,7 @@ const AppHeader = React.lazy(
 );
 
 // Lazy-loaded route components for code splitting
-const Dashboard = React.lazy(
+const _Dashboard = React.lazy(
   () => import("./components/dashboard/Dashboard")
 );
 const GlobalChat = React.lazy(
@@ -104,6 +104,9 @@ const StandaloneMiniApp = React.lazy(
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
 );
+const WorkflowGraphView = React.lazy(
+  () => import("./components/graph_view/WorkflowGraphView")
+);
 const TabsNodeEditor = React.lazy(
   () => import("./components/editor/TabsNodeEditor")
 );
@@ -119,8 +122,10 @@ const CollectionsExplorer = React.lazy(
 const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
+const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
+const CodeEditorDebug = React.lazy(() => import("./components/CodeEditorDebug"));
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -142,7 +147,7 @@ const registerFrontendTools = () => {
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
-(window as any).log = log;
+window.log = log;
 installIpcLogBridge();
 
 if (isLocalhost) {
@@ -232,9 +237,7 @@ function getRoutes() {
       path: "/dashboard",
       element: (
         <ProtectedRoute>
-          <PanelLeft />
-          <Dashboard />
-          <PanelBottom />
+          <Portal />
         </ProtectedRoute>
       )
     },
@@ -386,6 +389,10 @@ function getRoutes() {
           <ModelListIndex />
         </ProtectedRoute>
       )
+    },
+    {
+      path: "graph/:workflowId",
+      element: <WorkflowGraphView />
     }
   ];
 
@@ -398,6 +405,10 @@ function getRoutes() {
     routes.push({
       path: "/chatmarkdowntest",
       element: <ChatMarkdownTest />
+    });
+    routes.push({
+      path: "/code-editor-debug",
+      element: <CodeEditorDebug />
     });
   }
 
@@ -478,7 +489,7 @@ const AppWrapper = () => {
   // Allow dev-only test pages to render without backend metadata
   const isDevTestRoute =
     isLocalhost &&
-    ["/layouttest", "/chatmarkdowntest"].some((p) =>
+    ["/layouttest", "/chatmarkdowntest", "/graph"].some((p) =>
       window.location.pathname.startsWith(p)
     );
 

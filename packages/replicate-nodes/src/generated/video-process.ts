@@ -42,12 +42,12 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Deprecated: Use video instead." })
   declare video_url: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const firstFrameUrl = String(inputs.first_frame_url ?? this.first_frame_url ?? "");
-    const mode = String(inputs.mode ?? this.mode ?? "adhere_1");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const videoUrl = String(inputs.video_url ?? this.video_url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const firstFrameUrl = String(this.first_frame_url ?? "");
+    const mode = String(this.mode ?? "adhere_1");
+    const prompt = String(this.prompt ?? "");
+    const videoUrl = String(this.video_url ?? "");
 
     const args: Record<string, unknown> = {
       "first_frame_url": firstFrameUrl,
@@ -56,13 +56,13 @@ replicate, ai`;
       "video_url": videoUrl,
     };
 
-    const firstFrameRef = (inputs.first_frame ?? this.first_frame) as Record<string, unknown> | undefined;
+    const firstFrameRef = this.first_frame as Record<string, unknown> | undefined;
     if (isRefSet(firstFrameRef)) {
       const firstFrameUrl = await assetToUrl(firstFrameRef!, apiKey);
       if (firstFrameUrl) args["first_frame"] = firstFrameUrl;
     }
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -114,17 +114,17 @@ replicate, ai`;
   @prop({ type: "int", default: 0, description: "The y start of the crop bounds, in pixels. Defines the top boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content." })
   declare y_start: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "16:9");
-    const gridPositionX = Number(inputs.grid_position_x ?? this.grid_position_x ?? 0);
-    const gridPositionY = Number(inputs.grid_position_y ?? this.grid_position_y ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const videoUrl = String(inputs.video_url ?? this.video_url ?? "");
-    const xEnd = Number(inputs.x_end ?? this.x_end ?? 0);
-    const xStart = Number(inputs.x_start ?? this.x_start ?? 0);
-    const yEnd = Number(inputs.y_end ?? this.y_end ?? 0);
-    const yStart = Number(inputs.y_start ?? this.y_start ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const aspectRatio = String(this.aspect_ratio ?? "16:9");
+    const gridPositionX = Number(this.grid_position_x ?? 0);
+    const gridPositionY = Number(this.grid_position_y ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const videoUrl = String(this.video_url ?? "");
+    const xEnd = Number(this.x_end ?? 0);
+    const xStart = Number(this.x_start ?? 0);
+    const yEnd = Number(this.y_end ?? 0);
+    const yStart = Number(this.y_start ?? 0);
 
     const args: Record<string, unknown> = {
       "aspect_ratio": aspectRatio,
@@ -138,7 +138,7 @@ replicate, ai`;
       "y_start": yStart,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -163,12 +163,12 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "input video" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -196,15 +196,15 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "An input video for upscaling" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const scaleFactor = Number(inputs.scale_factor ?? this.scale_factor ?? 2);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const scaleFactor = Number(this.scale_factor ?? 2);
 
     const args: Record<string, unknown> = {
       "scale_factor": scaleFactor,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -235,17 +235,17 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input Video" })
   declare video_path: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const model = String(inputs.model ?? this.model ?? "RealESRGAN_x4plus");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "FHD");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const model = String(this.model ?? "RealESRGAN_x4plus");
+    const resolution = String(this.resolution ?? "FHD");
 
     const args: Record<string, unknown> = {
       "model": model,
       "resolution": resolution,
     };
 
-    const videoPathRef = (inputs.video_path ?? this.video_path) as Record<string, unknown> | undefined;
+    const videoPathRef = this.video_path as Record<string, unknown> | undefined;
     if (isRefSet(videoPathRef)) {
       const videoPathUrl = await assetToUrl(videoPathRef!, apiKey);
       if (videoPathUrl) args["video_path"] = videoPathUrl;
@@ -300,17 +300,17 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input video file (e.g. MP4)." })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const decodeChunkSize = Number(inputs.decode_chunk_size ?? this.decode_chunk_size ?? 16);
-    const i2iNoiseStrength = Number(inputs.i2i_noise_strength ?? this.i2i_noise_strength ?? 1);
-    const maxAppearanceGuidanceScale = Number(inputs.max_appearance_guidance_scale ?? this.max_appearance_guidance_scale ?? 2);
-    const minAppearanceGuidanceScale = Number(inputs.min_appearance_guidance_scale ?? this.min_appearance_guidance_scale ?? 2);
-    const noiseAugStrength = Number(inputs.noise_aug_strength ?? this.noise_aug_strength ?? 0);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const overlap = Number(inputs.overlap ?? this.overlap ?? 3);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const tasks = String(inputs.tasks ?? this.tasks ?? "face-restoration");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const decodeChunkSize = Number(this.decode_chunk_size ?? 16);
+    const i2iNoiseStrength = Number(this.i2i_noise_strength ?? 1);
+    const maxAppearanceGuidanceScale = Number(this.max_appearance_guidance_scale ?? 2);
+    const minAppearanceGuidanceScale = Number(this.min_appearance_guidance_scale ?? 2);
+    const noiseAugStrength = Number(this.noise_aug_strength ?? 0);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const overlap = Number(this.overlap ?? 3);
+    const seed = Number(this.seed ?? -1);
+    const tasks = String(this.tasks ?? "face-restoration");
 
     const args: Record<string, unknown> = {
       "decode_chunk_size": decodeChunkSize,
@@ -324,13 +324,13 @@ replicate, ai`;
       "tasks": tasks,
     };
 
-    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
+    const maskRef = this.mask as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
     }
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -358,15 +358,15 @@ replicate, ai`;
   @prop({ type: "int", default: 21, description: "The default value of 35 has been carefully chosen and should work -ok- for most scenarios (but probably won't be the -best-). This determines resolution at which the color portion of the image is rendered. Lower resolution will render faster, and colors also tend to look more vibrant. Older and lower quality images in particular will generally benefit by lowering the render factor. Higher render factors are often better for higher quality images, but the colors may get slightly washed out." })
   declare render_factor: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const renderFactor = Number(inputs.render_factor ?? this.render_factor ?? 21);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const renderFactor = Number(this.render_factor ?? 21);
 
     const args: Record<string, unknown> = {
       "render_factor": renderFactor,
     };
 
-    const inputVideoRef = (inputs.input_video ?? this.input_video) as Record<string, unknown> | undefined;
+    const inputVideoRef = this.input_video as Record<string, unknown> | undefined;
     if (isRefSet(inputVideoRef)) {
       const inputVideoUrl = await assetToUrl(inputVideoRef!, apiKey);
       if (inputVideoUrl) args["input_video"] = inputVideoUrl;
@@ -436,22 +436,22 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Video file" })
   declare video_file_input: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const MaxChars = Number(inputs.MaxChars ?? this.MaxChars ?? 20);
-    const color = String(inputs.color ?? this.color ?? "white");
-    const font = String(inputs.font ?? this.font ?? "Poppins/Poppins-ExtraBold.ttf");
-    const fontsize = Number(inputs.fontsize ?? this.fontsize ?? 7);
-    const highlightColor = String(inputs.highlight_color ?? this.highlight_color ?? "yellow");
-    const kerning = Number(inputs.kerning ?? this.kerning ?? -5);
-    const opacity = Number(inputs.opacity ?? this.opacity ?? 0);
-    const outputTranscript = Boolean(inputs.output_transcript ?? this.output_transcript ?? true);
-    const outputVideo = Boolean(inputs.output_video ?? this.output_video ?? true);
-    const rightToLeft = Boolean(inputs.right_to_left ?? this.right_to_left ?? false);
-    const strokeColor = String(inputs.stroke_color ?? this.stroke_color ?? "black");
-    const strokeWidth = Number(inputs.stroke_width ?? this.stroke_width ?? 2.6);
-    const subsPosition = String(inputs.subs_position ?? this.subs_position ?? "bottom75");
-    const translate = Boolean(inputs.translate ?? this.translate ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const MaxChars = Number(this.MaxChars ?? 20);
+    const color = String(this.color ?? "white");
+    const font = String(this.font ?? "Poppins/Poppins-ExtraBold.ttf");
+    const fontsize = Number(this.fontsize ?? 7);
+    const highlightColor = String(this.highlight_color ?? "yellow");
+    const kerning = Number(this.kerning ?? -5);
+    const opacity = Number(this.opacity ?? 0);
+    const outputTranscript = Boolean(this.output_transcript ?? true);
+    const outputVideo = Boolean(this.output_video ?? true);
+    const rightToLeft = Boolean(this.right_to_left ?? false);
+    const strokeColor = String(this.stroke_color ?? "black");
+    const strokeWidth = Number(this.stroke_width ?? 2.6);
+    const subsPosition = String(this.subs_position ?? "bottom75");
+    const translate = Boolean(this.translate ?? false);
 
     const args: Record<string, unknown> = {
       "MaxChars": MaxChars,
@@ -470,13 +470,13 @@ replicate, ai`;
       "translate": translate,
     };
 
-    const transcriptFileInputRef = (inputs.transcript_file_input ?? this.transcript_file_input) as Record<string, unknown> | undefined;
+    const transcriptFileInputRef = this.transcript_file_input as Record<string, unknown> | undefined;
     if (isRefSet(transcriptFileInputRef)) {
       const transcriptFileInputUrl = await assetToUrl(transcriptFileInputRef!, apiKey);
       if (transcriptFileInputUrl) args["transcript_file_input"] = transcriptFileInputUrl;
     }
 
-    const videoFileInputRef = (inputs.video_file_input ?? this.video_file_input) as Record<string, unknown> | undefined;
+    const videoFileInputRef = this.video_file_input as Record<string, unknown> | undefined;
     if (isRefSet(videoFileInputRef)) {
       const videoFileInputUrl = await assetToUrl(videoFileInputRef!, apiKey);
       if (videoFileInputUrl) args["video_file_input"] = videoFileInputUrl;
@@ -516,12 +516,12 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Random seed. Leave blank for random" })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const interpolate = Boolean(inputs.interpolate ?? this.interpolate ?? false);
-    const numFramesPerChunk = Number(inputs.num_frames_per_chunk ?? this.num_frames_per_chunk ?? 81);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const interpolate = Boolean(this.interpolate ?? false);
+    const numFramesPerChunk = Number(this.num_frames_per_chunk ?? 81);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "interpolate": interpolate,
@@ -530,13 +530,13 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -567,21 +567,21 @@ replicate, ai`;
   @prop({ type: "enum", default: "720p", values: ["480p", "720p"], description: "Resolution of the generated video" })
   declare resolution: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "720p");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const resolution = String(this.resolution ?? "720p");
 
     const args: Record<string, unknown> = {
       "resolution": resolution,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;

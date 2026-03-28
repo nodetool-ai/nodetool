@@ -21,6 +21,7 @@ export type NodeClass = {
   recommendedModels?: unknown[];
   basicFields?: string[];
   requiredSettings?: string[];
+  requiredRuntimes?: string[];
   isStreamingInput: boolean;
   isStreamingOutput: boolean;
   isDynamic: boolean;
@@ -36,6 +37,34 @@ export type NodeClass = {
   toDescriptor(id?: string): NodeDescriptor;
 };
 
+// ---------------------------------------------------------------------------
+// NodeProps<T> — extracts @prop-declared fields from a node class as a
+// Partial type suitable for the `inputs` parameter of process().
+//
+// Excludes BaseNode's own members and underscore-prefixed fields so that
+// only the user-declared @prop fields remain.
+// ---------------------------------------------------------------------------
+
+/** Keys that belong to BaseNode itself and should not appear in NodeProps. */
+type BaseNodeKey =
+  | keyof BaseNode
+  | "dynamicProps";
+
+/**
+ * Extract the @prop-declared fields of a node as an optional record.
+ *
+ * Usage:
+ * ```ts
+ * async process(): Promise<{ output: ImageRef }> {
+ *   // Properties are assigned before process() is called
+ *   const prompt = this.prompt; // typed via @prop
+ * }
+ * ```
+ */
+export type NodeProps<T extends BaseNode> = Partial<
+  Pick<T, Exclude<keyof T, BaseNodeKey | `__${string}` | `_${string}`>>
+>;
+
 export abstract class BaseNode {
   static readonly nodeType: string = "";
   static readonly title: string = "";
@@ -45,6 +74,7 @@ export abstract class BaseNode {
   static readonly recommendedModels: unknown[] | undefined = undefined;
   static readonly basicFields: string[] | undefined = undefined;
   static readonly requiredSettings: string[] | undefined = undefined;
+  static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
   static readonly isStreamingOutput: boolean = false;
   static readonly isDynamic: boolean = false;
@@ -58,7 +88,6 @@ export abstract class BaseNode {
 
   __node_id = "";
   __node_name = "";
-  [key: string]: unknown;
 
   protected dynamicProps = new Map<string, unknown>();
 
@@ -77,24 +106,32 @@ export abstract class BaseNode {
   assign(properties: Record<string, unknown>): void {
     const ctor = this.constructor as typeof BaseNode;
     const declared = ctor.getDeclaredProperties();
-    const defaults: Record<string, unknown> = {};
 
-    for (const prop of declared) {
-      if (Object.prototype.hasOwnProperty.call(prop.options, "default")) {
-        defaults[prop.name] = prop.options.default;
-      }
-    }
-
-    const merged = { ...defaults, ...properties };
     if (Object.prototype.hasOwnProperty.call(properties, "__node_id")) {
       this.__node_id = String(properties.__node_id ?? "");
     }
     if (Object.prototype.hasOwnProperty.call(properties, "__node_name")) {
       this.__node_name = String(properties.__node_name ?? "");
     }
-    for (const { name } of declared) {
-      if (Object.prototype.hasOwnProperty.call(merged, name)) {
-        (this as Record<string, unknown>)[name] = merged[name];
+    const declaredNames = new Set(declared.map((p) => p.name));
+    for (const { name, options } of declared) {
+      if (Object.prototype.hasOwnProperty.call(properties, name)) {
+        // Explicit value provided — use it
+        (this as any)[name] = properties[name];
+      } else if ((this as any)[name] === undefined && Object.prototype.hasOwnProperty.call(options, "default")) {
+        // No value on instance yet and a default exists — apply it.
+        // Deep-copy mutable defaults so instances don't share references.
+        const def = options.default;
+        (this as any)[name] = (def !== null && typeof def === "object") ? JSON.parse(JSON.stringify(def)) : def;
+      }
+    }
+    // For dynamic nodes, store undeclared properties in dynamicProps
+    if (ctor.isDynamic) {
+      const skip = new Set(["__node_id", "__node_name", "_secrets"]);
+      for (const [key, value] of Object.entries(properties)) {
+        if (!declaredNames.has(key) && !skip.has(key)) {
+          this.dynamicProps.set(key, value);
+        }
       }
     }
   }
@@ -104,7 +141,14 @@ export abstract class BaseNode {
     const result: Record<string, unknown> = {};
 
     for (const { name } of ctor.getDeclaredProperties()) {
-      result[name] = (this as Record<string, unknown>)[name];
+      result[name] = (this as any)[name];
+    }
+
+    // Include dynamic properties so round-trip serialization is lossless
+    if (ctor.isDynamic) {
+      for (const [key, value] of this.dynamicProps) {
+        result[key] = value;
+      }
     }
 
     return result;
@@ -127,15 +171,13 @@ export abstract class BaseNode {
   async finalize(): Promise<void> {}
 
   abstract process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>>;
 
   async *genProcess(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    yield await this.process(inputs, context);
+    yield await this.process(context);
   }
 
   /**
@@ -178,15 +220,29 @@ export abstract class BaseNode {
       }
     }
     if (Object.keys(secrets).length === 0) return inputs;
-    return { ...inputs, _secrets: { ...secrets, ...((inputs._secrets as Record<string, string>) ?? {}) } };
+    return { ...inputs, _secrets: { ...((inputs._secrets as Record<string, string>) ?? {}), ...secrets } };
+  }
+
+  /** Get resolved secrets (available during process()). */
+  get _secrets(): Record<string, string> {
+    return this.getDynamic<Record<string, string>>("_secrets") ?? {};
   }
 
   toExecutor(): NodeExecutor {
     const executor: NodeExecutor = {
-      process: async (inputs: Record<string, unknown>, context?: ProcessingContext) =>
-        this.process(await this._injectSecrets(inputs, context), context),
+      process: async (inputs: Record<string, unknown>, context?: ProcessingContext) => {
+        const merged = await this._injectSecrets(inputs, context);
+        const { _secrets, ...props } = merged;
+        if (_secrets) this.setDynamic("_secrets", _secrets);
+        this.assign(props);
+        return this.process(context);
+      },
       genProcess: async function* (this: BaseNode, inputs: Record<string, unknown>, context?: ProcessingContext) {
-        yield* this.genProcess(await this._injectSecrets(inputs, context), context);
+        const merged = await this._injectSecrets(inputs, context);
+        const { _secrets, ...props } = merged;
+        if (_secrets) this.setDynamic("_secrets", _secrets);
+        this.assign(props);
+        yield* this.genProcess(context);
       }.bind(this) as NodeExecutor["genProcess"],
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),

@@ -33,10 +33,9 @@ function folderPath(value: unknown): string {
 }
 
 function modelConfig(
-  inputs: Record<string, unknown>,
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
-  const model = (inputs.model ?? props.model ?? {}) as Record<string, unknown>;
+  const model = (props.model ?? {}) as Record<string, unknown>;
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : "",
@@ -60,9 +59,9 @@ export class SplitTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const delimiter = String(inputs.delimiter ?? this.delimiter ?? ",");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const delimiter = String(this.delimiter ?? this.delimiter ?? ",");
     return { output: text.split(delimiter) };
   }
 }
@@ -87,10 +86,10 @@ export class ExtractTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const start = Number(inputs.start ?? this.start ?? 0);
-    const end = Number(inputs.end ?? this.end ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const start = Number(this.start ?? this.start ?? 0);
+    const end = Number(this.end ?? this.end ?? 0);
     return { output: text.slice(start, end) };
   }
 }
@@ -118,11 +117,11 @@ export class ChunkTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const length = Number(inputs.length ?? this.length ?? 100);
-    const overlap = Number(inputs.overlap ?? this.overlap ?? 0);
-    const separator = String(inputs.separator ?? this.separator ?? " ");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const length = Number(this.length ?? this.length ?? 100);
+    const overlap = Number(this.overlap ?? this.overlap ?? 0);
+    const separator = String(this.separator ?? this.separator ?? " ");
 
     const step = length - overlap;
     if (length < 1 || step <= 0) {
@@ -164,13 +163,13 @@ export class ExtractRegexNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const pattern = String(inputs.regex ?? this.regex ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const pattern = String(this.regex ?? this.regex ?? "");
     const flags = flagsFromOpts({
-      dotall: inputs.dotall ?? this.dotall,
-      ignorecase: inputs.ignorecase ?? this.ignorecase,
-      multiline: inputs.multiline ?? this.multiline,
+      dotall: this.dotall ?? this.dotall,
+      ignorecase: this.ignorecase ?? this.ignorecase,
+      multiline: this.multiline ?? this.multiline,
     });
 
     const match = new RegExp(pattern, flags).exec(text);
@@ -207,13 +206,13 @@ export class FindAllRegexNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const pattern = String(inputs.regex ?? this.regex ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const pattern = String(this.regex ?? this.regex ?? "");
     const flags = `${flagsFromOpts({
-      dotall: inputs.dotall ?? this.dotall,
-      ignorecase: inputs.ignorecase ?? this.ignorecase,
-      multiline: inputs.multiline ?? this.multiline,
+      dotall: this.dotall ?? this.dotall,
+      ignorecase: this.ignorecase ?? this.ignorecase,
+      multiline: this.multiline ?? this.multiline,
     })}g`;
 
     const matches = [...text.matchAll(new RegExp(pattern, flags))].map((m) => m[0]);
@@ -235,8 +234,8 @@ export class TextParseJSONNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
     return { output: JSON.parse(text) };
   }
 }
@@ -302,10 +301,10 @@ export class ExtractJSONNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const jsonPath = String(inputs.json_path ?? this.json_path ?? "$.*");
-    const findAll = Boolean(inputs.find_all ?? this.find_all ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const jsonPath = String(this.json_path ?? this.json_path ?? "$.*");
+    const findAll = Boolean(this.find_all ?? this.find_all ?? false);
 
     const parsed = JSON.parse(text) as unknown;
     const matches = jsonPathFind(jsonPath, parsed);
@@ -339,10 +338,10 @@ export class RegexMatchNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const pattern = String(inputs.pattern ?? this.pattern ?? "");
-    const group = inputs.group ?? this.group;
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const pattern = String(this.pattern ?? this.pattern ?? "");
+    const group = this.group ?? this.group;
 
     if (group === null || group === undefined) {
       return { output: [...text.matchAll(new RegExp(pattern, "g"))].map((m) => m[0]) };
@@ -377,11 +376,11 @@ export class RegexReplaceNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    let text = String(inputs.text ?? this.text ?? "");
-    const pattern = String(inputs.pattern ?? this.pattern ?? "");
-    const replacement = String(inputs.replacement ?? this.replacement ?? "");
-    const count = Number(inputs.count ?? this.count ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    let text = String(this.text ?? this.text ?? "");
+    const pattern = String(this.pattern ?? this.pattern ?? "");
+    const replacement = String(this.replacement ?? this.replacement ?? "");
+    const count = Number(this.count ?? this.count ?? 0);
 
     if (count <= 0) {
       return { output: text.replace(new RegExp(pattern, "g"), replacement) };
@@ -420,10 +419,10 @@ export class RegexSplitNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const pattern = String(inputs.pattern ?? this.pattern ?? "");
-    const maxsplit = Number(inputs.maxsplit ?? this.maxsplit ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const pattern = String(this.pattern ?? this.pattern ?? "");
+    const maxsplit = Number(this.maxsplit ?? this.maxsplit ?? 0);
 
     const split = text.split(new RegExp(pattern));
     if (maxsplit <= 0) {
@@ -450,9 +449,9 @@ export class RegexValidateNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const pattern = String(inputs.pattern ?? this.pattern ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const pattern = String(this.pattern ?? this.pattern ?? "");
     return { output: new RegExp(pattern).test(text) };
   }
 }
@@ -480,14 +479,14 @@ export class CompareTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const textA = String(inputs.text_a ?? this.text_a ?? "");
-    const textB = String(inputs.text_b ?? this.text_b ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const textA = String(this.text_a ?? this.text_a ?? "");
+    const textB = String(this.text_b ?? this.text_b ?? "");
     const caseSensitive = Boolean(
-      inputs.case_sensitive ?? this.case_sensitive ?? true
+      this.case_sensitive ?? this.case_sensitive ?? true
     );
     const trimWhitespace = Boolean(
-      inputs.trim_whitespace ?? this.trim_whitespace ?? false
+      this.trim_whitespace ?? this.trim_whitespace ?? false
     );
 
     const normalize = (value: string) => {
@@ -531,10 +530,10 @@ export class EqualsTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const cmp = new CompareTextNode();
     cmp.assign(this.serialize());
-    const result = await cmp.process(inputs);
+    const result = await cmp.process();
     return { output: result.output === "equal" };
   }
 }
@@ -553,8 +552,8 @@ export class ToUppercaseNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: String(inputs.text ?? this.text ?? "").toUpperCase() };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: String(this.text ?? this.text ?? "").toUpperCase() };
   }
 }
 
@@ -572,8 +571,8 @@ export class ToLowercaseNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: String(inputs.text ?? this.text ?? "").toLowerCase() };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: String(this.text ?? this.text ?? "").toLowerCase() };
   }
 }
 
@@ -591,8 +590,8 @@ export class ToTitlecaseNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: toTitleCase(String(inputs.text ?? this.text ?? "")) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: toTitleCase(String(this.text ?? this.text ?? "")) };
   }
 }
 
@@ -610,8 +609,8 @@ export class CapitalizeTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
     if (!text) {
       return { output: "" };
     }
@@ -642,11 +641,11 @@ export class SliceTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const start = Number(inputs.start ?? this.start ?? 0);
-    const stop = Number(inputs.stop ?? this.stop ?? 0);
-    const step = Number(inputs.step ?? this.step ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const start = Number(this.start ?? this.start ?? 0);
+    const stop = Number(this.stop ?? this.stop ?? 0);
+    const step = Number(this.step ?? this.step ?? 1);
 
     if (step === 0) {
       throw new Error("slice step cannot be zero");
@@ -695,9 +694,9 @@ export class StartsWithTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const prefix = String(inputs.prefix ?? this.prefix ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const prefix = String(this.prefix ?? this.prefix ?? "");
     return { output: text.startsWith(prefix) };
   }
 }
@@ -719,9 +718,9 @@ export class EndsWithTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const suffix = String(inputs.suffix ?? this.suffix ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const suffix = String(this.suffix ?? this.suffix ?? "");
     return { output: text.endsWith(suffix) };
   }
 }
@@ -756,18 +755,18 @@ export class ContainsTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const substring = String(inputs.substring ?? this.substring ?? "");
-    const searchValues = Array.isArray(inputs.search_values ?? this.search_values)
-      ? ((inputs.search_values ?? this.search_values) as unknown[]).map((v) =>
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const substring = String(this.substring ?? this.substring ?? "");
+    const searchValues = Array.isArray(this.search_values ?? this.search_values)
+      ? ((this.search_values ?? this.search_values) as unknown[]).map((v) =>
           String(v)
         )
       : [];
     const caseSensitive = Boolean(
-      inputs.case_sensitive ?? this.case_sensitive ?? true
+      this.case_sensitive ?? this.case_sensitive ?? true
     );
-    const matchMode = String(inputs.match_mode ?? this.match_mode ?? "any");
+    const matchMode = String(this.match_mode ?? this.match_mode ?? "any");
 
     const targets = searchValues.length > 0 ? searchValues : substring ? [substring] : [];
     if (targets.length === 0) {
@@ -807,10 +806,10 @@ export class TrimWhitespaceNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const trimStart = Boolean(inputs.trim_start ?? this.trim_start ?? true);
-    const trimEnd = Boolean(inputs.trim_end ?? this.trim_end ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const trimStart = Boolean(this.trim_start ?? this.trim_start ?? true);
+    const trimEnd = Boolean(this.trim_end ?? this.trim_end ?? true);
 
     if (trimStart && trimEnd) {
       return { output: text.trim() };
@@ -848,13 +847,13 @@ export class CollapseWhitespaceNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
     const preserveNewlines = Boolean(
-      inputs.preserve_newlines ?? this.preserve_newlines ?? false
+      this.preserve_newlines ?? this.preserve_newlines ?? false
     );
-    const replacement = String(inputs.replacement ?? this.replacement ?? " ");
-    const trimEdges = Boolean(inputs.trim_edges ?? this.trim_edges ?? true);
+    const replacement = String(this.replacement ?? this.replacement ?? " ");
+    const trimEdges = Boolean(this.trim_edges ?? this.trim_edges ?? true);
 
     const value = trimEdges ? text.trim() : text;
     if (preserveNewlines) {
@@ -881,10 +880,10 @@ export class IsEmptyTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
     const trimWhitespace = Boolean(
-      inputs.trim_whitespace ?? this.trim_whitespace ?? true
+      this.trim_whitespace ?? this.trim_whitespace ?? true
     );
     return { output: (trimWhitespace ? text.trim() : text).length === 0 };
   }
@@ -910,11 +909,11 @@ export class RemovePunctuationNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const replacement = String(inputs.replacement ?? this.replacement ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const replacement = String(this.replacement ?? this.replacement ?? "");
     const punctuation = String(
-      inputs.punctuation ?? this.punctuation ?? `!"#$%&'()*+,\\-./:;<=>?@[\\]^_{|}~`
+      this.punctuation ?? this.punctuation ?? `!"#$%&'()*+,\\-./:;<=>?@[\\]^_{|}~`
     );
 
     const escaped = punctuation.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -939,10 +938,10 @@ export class StripAccentsNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
     const preserveNonAscii = Boolean(
-      inputs.preserve_non_ascii ?? this.preserve_non_ascii ?? true
+      this.preserve_non_ascii ?? this.preserve_non_ascii ?? true
     );
 
     const normalized = text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
@@ -977,12 +976,12 @@ export class SlugifyNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const separator = String(inputs.separator ?? this.separator ?? "-");
-    const lowercase = Boolean(inputs.lowercase ?? this.lowercase ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const separator = String(this.separator ?? this.separator ?? "-");
+    const lowercase = Boolean(this.lowercase ?? this.lowercase ?? true);
     const allowUnicode = Boolean(
-      inputs.allow_unicode ?? this.allow_unicode ?? false
+      this.allow_unicode ?? this.allow_unicode ?? false
     );
 
     let value = text.normalize("NFKD");
@@ -1022,11 +1021,11 @@ export class HasLengthTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const minLength = Number(inputs.min_length ?? this.min_length ?? 0);
-    const maxLength = Number(inputs.max_length ?? this.max_length ?? 0);
-    const exactLength = Number(inputs.exact_length ?? this.exact_length ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const minLength = Number(this.min_length ?? this.min_length ?? 0);
+    const maxLength = Number(this.max_length ?? this.max_length ?? 0);
+    const exactLength = Number(this.exact_length ?? this.exact_length ?? 0);
 
     const length = text.length;
 
@@ -1063,10 +1062,10 @@ export class TruncateTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const maxLength = Number(inputs.max_length ?? this.max_length ?? 100);
-    const ellipsis = String(inputs.ellipsis ?? this.ellipsis ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const maxLength = Number(this.max_length ?? this.max_length ?? 100);
+    const ellipsis = String(this.ellipsis ?? this.ellipsis ?? "");
 
     if (maxLength <= 0) {
       return { output: ellipsis || "" };
@@ -1109,11 +1108,11 @@ export class PadTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const length = Number(inputs.length ?? this.length ?? 0);
-    const padCharacter = String(inputs.pad_character ?? this.pad_character ?? " ");
-    const direction = String(inputs.direction ?? this.direction ?? "right");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const length = Number(this.length ?? this.length ?? 0);
+    const padCharacter = String(this.pad_character ?? this.pad_character ?? " ");
+    const direction = String(this.direction ?? this.direction ?? "right");
 
     if (padCharacter.length !== 1) {
       throw new Error("pad_character must be a single character");
@@ -1159,11 +1158,11 @@ export class LengthTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const measure = String(inputs.measure ?? this.measure ?? "characters");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const measure = String(this.measure ?? this.measure ?? "characters");
     const trimWhitespace = Boolean(
-      inputs.trim_whitespace ?? this.trim_whitespace ?? false
+      this.trim_whitespace ?? this.trim_whitespace ?? false
     );
 
     const value = trimWhitespace ? text.trim() : text;
@@ -1214,16 +1213,16 @@ export class IndexOfTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    let haystack = String(inputs.text ?? this.text ?? "");
-    let needle = String(inputs.substring ?? this.substring ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    let haystack = String(this.text ?? this.text ?? "");
+    let needle = String(this.substring ?? this.substring ?? "");
     const caseSensitive = Boolean(
-      inputs.case_sensitive ?? this.case_sensitive ?? true
+      this.case_sensitive ?? this.case_sensitive ?? true
     );
-    const startIndex = Number(inputs.start_index ?? this.start_index ?? 0);
-    const endIndex = Number(inputs.end_index ?? this.end_index ?? 0);
+    const startIndex = Number(this.start_index ?? this.start_index ?? 0);
+    const endIndex = Number(this.end_index ?? this.end_index ?? 0);
     const searchFromEnd = Boolean(
-      inputs.search_from_end ?? this.search_from_end ?? false
+      this.search_from_end ?? this.search_from_end ?? false
     );
 
     if (!caseSensitive) {
@@ -1265,12 +1264,12 @@ export class SurroundWithTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const prefix = String(inputs.prefix ?? this.prefix ?? "");
-    const suffix = String(inputs.suffix ?? this.suffix ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const prefix = String(this.prefix ?? this.prefix ?? "");
+    const suffix = String(this.suffix ?? this.suffix ?? "");
     const skipIfWrapped = Boolean(
-      inputs.skip_if_wrapped ?? this.skip_if_wrapped ?? true
+      this.skip_if_wrapped ?? this.skip_if_wrapped ?? true
     );
 
     if (skipIfWrapped && text.startsWith(prefix) && text.endsWith(suffix)) {
@@ -1301,8 +1300,8 @@ export class CountTokensNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
     if (!text.trim()) {
       return { output: 0 };
     }
@@ -1337,8 +1336,8 @@ export class HtmlToTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const html = String(inputs.html ?? this.html ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const html = String(this.html ?? this.html ?? "");
     const text = html
       .replace(/<script[\s\S]*?<\/script>/gi, "")
       .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -1397,11 +1396,10 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const { providerId, modelId } = modelConfig(inputs, this.serialize());
-    const audio = (inputs.audio ?? this.audio ?? {}) as Record<string, unknown>;
+    const { providerId, modelId } = modelConfig(this.serialize());
+    const audio = (this.audio ?? this.audio ?? {}) as Record<string, unknown>;
     let bytes = new Uint8Array();
     if (typeof audio.data === "string") {
       bytes = Uint8Array.from(Buffer.from(audio.data, "base64"));
@@ -1424,9 +1422,9 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
         model: modelId,
         params: {
           audio: bytes,
-          language: inputs.language ?? this.language,
-          prompt: inputs.prompt ?? this.prompt,
-          temperature: inputs.temperature ?? this.temperature,
+          language: (this as any).language,
+          prompt: (this as any).prompt,
+          temperature: (this as any).temperature,
         },
       })) as string;
       return { text, output: text };
@@ -1469,8 +1467,8 @@ export class EmbeddingTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.input ?? this.input ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.input ?? this.input ?? "");
     return { output: seededEmbedding(text) };
   }
 }
@@ -1495,10 +1493,10 @@ export class SaveTextFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const folder = String(inputs.folder ?? this.folder ?? "");
-    const name = String(inputs.name ?? this.name ?? "output.txt");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const folder = String(this.folder ?? this.folder ?? "");
+    const name = String(this.name ?? this.name ?? "output.txt");
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
@@ -1535,9 +1533,9 @@ export class SaveTextNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "");
-    const name = String(inputs.name ?? this.name ?? "output.txt");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "");
+    const name = String(this.name ?? this.name ?? "output.txt");
     await fs.writeFile(name, text, "utf-8");
     return { output: { uri: name, data: text } };
   }
@@ -1576,19 +1574,17 @@ export class LoadTextFolderNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>
-  ): AsyncGenerator<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? "");
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = String(this.folder ?? this.folder ?? "");
     const includeSubdirs = Boolean(
-      inputs.include_subdirectories ?? this.include_subdirectories ?? false
+      this.include_subdirectories ?? this.include_subdirectories ?? false
     );
-    const extensions = Array.isArray(inputs.extensions ?? this.extensions)
-      ? ((inputs.extensions ?? this.extensions) as unknown[]).map((v) =>
+    const extensions = Array.isArray(this.extensions ?? this.extensions)
+      ? ((this.extensions ?? this.extensions) as unknown[]).map((v) =>
           String(v).toLowerCase()
         )
       : [".txt"];
@@ -1643,19 +1639,19 @@ export class LoadTextAssetsNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown> = {}): AsyncGenerator<Record<string, unknown>> {
-    const folder = folderPath(inputs.folder ?? this.folder ?? "");
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = folderPath(this.folder ?? "");
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
 
     const walker = new LoadTextFolderNode();
     walker.assign({ folder });
-    for await (const item of walker.genProcess({ folder })) {
+    for await (const item of walker.genProcess()) {
       yield item;
     }
   }
@@ -1706,20 +1702,11 @@ export class FilterStringNode extends BaseNode {
     this._criteria = String(this.criteria ?? "");
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("filter_type" in inputs) {
-      this._filterType = String(inputs.filter_type ?? "contains") as FilterStringType;
-      return {};
-    }
-    if ("criteria" in inputs) {
-      this._criteria = String(inputs.criteria ?? "");
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._filterType = String(this.filter_type ?? "contains") as FilterStringType;
+    this._criteria = String(this.criteria ?? "");
 
-    const value = inputs.value;
+    const value = this.value;
     if (typeof value !== "string") {
       return {};
     }
@@ -1789,20 +1776,11 @@ export class FilterRegexStringNode extends BaseNode {
     this._fullMatch = Boolean(this.full_match ?? false);
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("pattern" in inputs) {
-      this._pattern = String(inputs.pattern ?? "");
-      return {};
-    }
-    if ("full_match" in inputs) {
-      this._fullMatch = Boolean(inputs.full_match);
-      return {};
-    }
-    if (!("value" in inputs)) {
-      return {};
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._pattern = String(this.pattern ?? "");
+    this._fullMatch = Boolean(this.full_match ?? false);
 
-    const value = inputs.value;
+    const value = this.value;
     if (typeof value !== "string") {
       return {};
     }

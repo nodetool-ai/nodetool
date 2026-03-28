@@ -6,10 +6,10 @@ import {
   TextField,
   Button,
   IconButton,
-  CircularProgress,
   Collapse,
   Alert
 } from "@mui/material";
+import { LoadingSpinner, FlexColumn } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -336,9 +336,9 @@ const ProviderSetupPanel: React.FC = () => {
 
           <Collapse in={isExpanded}>
             {isLoading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress size={32} />
-              </Box>
+              <FlexColumn align="center" sx={{ py: 4 }}>
+                <LoadingSpinner size="medium" />
+              </FlexColumn>
             ) : (
               <>
                 <Typography
@@ -406,7 +406,7 @@ const ProviderSetupPanel: React.FC = () => {
                             disabled={!hasInput || isSaving}
                             startIcon={
                               isSaving ? (
-                                <CircularProgress size={16} />
+                                <LoadingSpinner size="small" />
                               ) : (
                                 <SaveIcon />
                               )

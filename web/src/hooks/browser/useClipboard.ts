@@ -5,17 +5,10 @@ import { copyAssetToClipboard } from "../../utils/clipboardUtils";
 import type {} from "../../window.d";
 
 export const useClipboard = () => {
-  const {
-    clipboardData,
-    setClipboardData,
-    isClipboardValid,
-    setIsClipboardValid
-  } = useSessionStateStore((state) => ({
-    clipboardData: state.clipboardData,
-    setClipboardData: state.setClipboardData,
-    isClipboardValid: state.isClipboardValid,
-    setIsClipboardValid: state.setIsClipboardValid
-  }));
+  const clipboardData = useSessionStateStore((state) => state.clipboardData);
+  const setClipboardData = useSessionStateStore((state) => state.setClipboardData);
+  const isClipboardValid = useSessionStateStore((state) => state.isClipboardValid);
+  const setIsClipboardValid = useSessionStateStore((state) => state.setIsClipboardValid);
   const isFirefox = useMemo(
     () => navigator.userAgent.toLowerCase().includes("firefox"),
     []

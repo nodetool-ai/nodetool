@@ -364,11 +364,6 @@ export const createWorkflowRunnerStore = (
           job_id: jobId
         }
       });
-
-      set({
-        state: "running",
-        notifications: []
-      });
     },
 
     /**
@@ -392,8 +387,12 @@ export const createWorkflowRunnerStore = (
      * Cancel the current workflow run.
      */
     cancel: async () => {
-      const { job_id, workflow } = get();
+      const { job_id, workflow, state } = get();
       log.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
+
+      if (state === "cancelled" || state === "idle" || state === "error") {
+        return;
+      }
 
       // Immediately stop all animations and clear state
       set({ state: "cancelled" });

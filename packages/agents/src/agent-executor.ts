@@ -94,6 +94,12 @@ export interface AgentExecutorOptions {
   maxIterations?: number;
   outputType?: string;
   outputSchema?: Record<string, unknown> | null;
+  threadId?: string;
+}
+
+interface FinishTaskArgs {
+  result?: unknown;
+  metadata?: Record<string, unknown>;
 }
 
 export class AgentExecutor {
@@ -105,6 +111,7 @@ export class AgentExecutor {
   private readonly maxIterations: number;
   private readonly outputType: string;
   private readonly systemPrompt: string;
+  private readonly threadId?: string;
   private history: Message[];
   private iterations = 0;
   private completed = false;
@@ -116,6 +123,7 @@ export class AgentExecutor {
     this.model = options.model;
     this.context = options.context;
     this.outputType = options.outputType ?? "string";
+    this.threadId = options.threadId;
     this.maxIterations =
       options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
 
@@ -156,6 +164,13 @@ Safety and privacy:
 - Prefer deterministic, structured outputs over prose.`;
   }
 
+  /**
+   * Check if the provider supports native agentic tool execution.
+   */
+  private isAgenticProvider(): boolean {
+    return (this.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+  }
+
   async *execute(
     objective: string,
     inputs?: Record<string, unknown>
@@ -184,6 +199,14 @@ Safety and privacy:
       t.toProviderTool()
     );
 
+    // --- Agentic provider fast-path ---
+    // The provider handles the full tool loop in a single call via MCP.
+    if (this.isAgenticProvider()) {
+      yield* this.executeAgentic(providerTools);
+      return;
+    }
+
+    // --- Standard multi-iteration loop (for non-agentic providers) ---
     while (!this.completed && this.iterations < this.maxIterations) {
       this.iterations += 1;
 
@@ -191,6 +214,7 @@ Safety and privacy:
         messages: this.history,
         model: this.model,
         tools: providerTools,
+        threadId: this.threadId,
       });
 
       if (response.content) {
@@ -254,6 +278,100 @@ Safety and privacy:
           "Task did not complete within iteration limit",
         sources: [],
       };
+    }
+  }
+
+  /**
+   * Agentic execution: single provider call handles all tool calls via MCP.
+   * The onToolCall callback executes tools natively; finish_task signals completion.
+   */
+  private async *executeAgentic(
+    providerTools: ProviderTool[]
+  ): AsyncGenerator<Chunk | ToolCall> {
+    const finishTaskState: { args: FinishTaskArgs | null } = { args: null };
+    const getFinishTaskArgs = (): FinishTaskArgs | null =>
+      finishTaskState.args;
+
+    const onToolCall = async (
+      name: string,
+      args: Record<string, unknown>
+    ): Promise<string> => {
+      if (name === "finish_task") {
+        finishTaskState.args = args as FinishTaskArgs;
+        return JSON.stringify({ status: "finished" });
+      }
+      const tool = this.tools.find((t) => t.name === name);
+      if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
+      try {
+        const result = await tool.process(this.context, args);
+        return typeof result === "string" ? result : JSON.stringify(result ?? null);
+      } catch (e) {
+        return JSON.stringify({ error: String(e) });
+      }
+    };
+
+    const response = await this.provider.generateMessageTraced({
+      messages: this.history,
+      model: this.model,
+      tools: providerTools,
+      threadId: this.threadId,
+      onToolCall,
+    });
+
+    if (response.content) {
+      yield { type: "chunk", content: String(response.content) } as Chunk;
+    }
+
+    // Yield tool calls for tracking
+    if (response.toolCalls) {
+      for (const tc of response.toolCalls) {
+        yield tc;
+      }
+    }
+
+    // Check if finish_task was called via MCP
+    const initialFinishTaskArgs = getFinishTaskArgs();
+    if (initialFinishTaskArgs) {
+      this.completed = true;
+      this._result = initialFinishTaskArgs.result ?? null;
+      this._metadata = initialFinishTaskArgs.metadata ?? null;
+      return;
+    }
+
+    // Fallback: send a nudge to call finish_task
+    const nudgeMessages: Message[] = [
+      ...this.history,
+      { role: "assistant", content: String(response.content ?? "") },
+      { role: "user", content: `Now call finish_task with the final result and metadata. The result type should be '${this.outputType}'.` },
+    ];
+
+    finishTaskState.args = null;
+    const nudgeResponse = await this.provider.generateMessageTraced({
+      messages: nudgeMessages,
+      model: this.model,
+      tools: providerTools,
+      threadId: this.threadId,
+      onToolCall,
+    });
+
+    if (nudgeResponse.content) {
+      yield { type: "chunk", content: String(nudgeResponse.content) } as Chunk;
+    }
+    if (nudgeResponse.toolCalls) {
+      for (const tc of nudgeResponse.toolCalls) {
+        yield tc;
+      }
+    }
+
+    const nudgedFinishTaskArgs = getFinishTaskArgs();
+    if (nudgedFinishTaskArgs) {
+      this.completed = true;
+      this._result = nudgedFinishTaskArgs.result ?? null;
+      this._metadata = nudgedFinishTaskArgs.metadata ?? null;
+    } else {
+      this.completed = true;
+      this._result = String(response.content ?? "Task incomplete");
+      this._metadata = { title: "Incomplete Task", description: "finish_task was not called" };
     }
   }
 

@@ -22,11 +22,9 @@ export class WebFetchLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
-    const selector = String(inputs.selector ?? this.selector ?? "body");
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
+    const selector = String(this.selector ?? "body");
     if (!url) throw new Error("URL is required");
 
     const axios = (await import("axios")).default;
@@ -81,10 +79,8 @@ export class DownloadFileLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
     if (!url) throw new Error("URL is required");
 
     const axios = (await import("axios")).default;
@@ -119,11 +115,9 @@ export class BrowserLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 20000);
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
+    const timeout = Number(this.timeout ?? 20000);
     if (!url) throw new Error("URL is required");
 
     const { chromium } = await import("playwright");
@@ -174,12 +168,10 @@ export class ScreenshotLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
-    const selector = String(inputs.selector ?? this.selector ?? "");
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 30000);
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
+    const selector = String(this.selector ?? "");
+    const timeout = Number(this.timeout ?? 30000);
     if (!url) throw new Error("URL is required");
 
     const { chromium } = await import("playwright");
@@ -257,16 +249,14 @@ export class BrowserNavigationLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
-    const action = String(inputs.action ?? this.action ?? "goto") as BrowserAction;
-    const selector = String(inputs.selector ?? this.selector ?? "");
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 30000);
-    const waitFor = String(inputs.wait_for ?? this.wait_for ?? "");
-    const extractType = String(inputs.extract_type ?? this.extract_type ?? "text") as ExtractType;
-    const attribute = String(inputs.attribute ?? this.attribute ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? "");
+    const action = String(this.action ?? "goto") as BrowserAction;
+    const selector = String(this.selector ?? "");
+    const timeout = Number(this.timeout ?? 30000);
+    const waitFor = String(this.wait_for ?? "");
+    const extractType = String(this.extract_type ?? "text") as ExtractType;
+    const attribute = String(this.attribute ?? "");
 
     if (action === "goto" && !url) throw new Error("URL is required for goto action");
 
@@ -382,18 +372,16 @@ export class SpiderCrawlLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const startUrl = String(inputs.start_url ?? this.start_url ?? "");
-    const maxDepth = Number(inputs.max_depth ?? this.max_depth ?? 2);
-    const maxPages = Number(inputs.max_pages ?? this.max_pages ?? 50);
-    const sameDomainOnly = Boolean(inputs.same_domain_only ?? this.same_domain_only ?? true);
-    const includeHtml = Boolean(inputs.include_html ?? this.include_html ?? false);
-    const delayMs = Number(inputs.delay_ms ?? this.delay_ms ?? 1000);
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 30000);
-    const urlPattern = String(inputs.url_pattern ?? this.url_pattern ?? "");
-    const excludePattern = String(inputs.exclude_pattern ?? this.exclude_pattern ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const startUrl = String(this.start_url ?? "");
+    const maxDepth = Number(this.max_depth ?? 2);
+    const maxPages = Number(this.max_pages ?? 50);
+    const sameDomainOnly = Boolean(this.same_domain_only ?? true);
+    const includeHtml = Boolean(this.include_html ?? false);
+    const delayMs = Number(this.delay_ms ?? 1000);
+    const timeout = Number(this.timeout ?? 30000);
+    const urlPattern = String(this.url_pattern ?? "");
+    const excludePattern = String(this.exclude_pattern ?? "");
 
     if (!startUrl) throw new Error("start_url is required");
 

@@ -14,14 +14,14 @@ describe('Wheel-based Package Manager', () => {
 
   describe('getPackageInstallationInfo', () => {
     test('returns correct installation info for valid repo ID', () => {
-      const repoId = 'nodetool-ai/nodetool-base';
+      const repoId = 'nodetool-ai/nodetool-core';
       const info = getPackageInstallationInfo(repoId);
 
       expect(info).toEqual({
-        packageName: 'nodetool-base',
-        repoId: 'nodetool-ai/nodetool-base',
-        wheelCommand: 'uv pip install --index-url https://pypi.org/simple --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-base',
-        gitCommand: 'uv pip install git+https://github.com/nodetool-ai/nodetool-base.git',
+        packageName: 'nodetool-core',
+        repoId: 'nodetool-ai/nodetool-core',
+        wheelCommand: 'uv pip install --index-url https://pypi.org/simple --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-core',
+        gitCommand: 'uv pip install git+https://github.com/nodetool-ai/nodetool-core.git',
         packageIndexUrl: 'https://nodetool-ai.github.io/nodetool-registry/simple/'
       });
     });
@@ -36,9 +36,9 @@ describe('Wheel-based Package Manager', () => {
 
   describe('getInstallCommandForPackage', () => {
     test('returns correct wheel-based install command', () => {
-      const command = getInstallCommandForPackage('nodetool-ai/nodetool-base');
+      const command = getInstallCommandForPackage('nodetool-ai/nodetool-core');
       
-      expect(command).toBe('uv pip install --index-url https://pypi.org/simple --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-base');
+      expect(command).toBe('uv pip install --index-url https://pypi.org/simple --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-core');
     });
 
     test('works with different package names', () => {
@@ -50,7 +50,7 @@ describe('Wheel-based Package Manager', () => {
 
   describe('validateRepoId (unchanged)', () => {
     test('validates correct repo ID format', () => {
-      const result = validateRepoId('nodetool-ai/nodetool-base');
+      const result = validateRepoId('nodetool-ai/nodetool-core');
       
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();

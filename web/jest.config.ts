@@ -9,6 +9,10 @@ export default {
   testTimeout: 10000,
   maxWorkers: "50%",
   moduleNameMapper: {
+    "^@nodetool/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
+    "^@nodetool/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
+    // Strip .js extensions from TypeScript ESM imports (packages use .js in source imports per ESM convention)
+    "^(\\.{1,2}/.+)\\.js$": "$1",
     canvas: "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas/.*$": "<rootDir>/src/__mocks__/canvas.ts",
@@ -40,7 +44,8 @@ export default {
     "^.*contexts/WorkflowManagerContext$": "<rootDir>/src/__mocks__/WorkflowManagerContext.tsx",
     "^react-pdf$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-pdf/.*$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts"
+    "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^wavesurfer\\.js$": "<rootDir>/src/__mocks__/wavesurfer.ts"
   },
   setupFiles: ["<rootDir>/jest.setup.js"],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
@@ -54,7 +59,7 @@ export default {
     ]
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(react-markdown|remark-gfm|rehype-raw|react-syntax-highlighter)/)"
+    "node_modules/(?!(react-markdown|remark-gfm|rehype-raw|react-syntax-highlighter|@nodetool)/)"
   ],
   extensionsToTreatAsEsm: [".ts", ".tsx"],
   testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
