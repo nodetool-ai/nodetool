@@ -1,12 +1,24 @@
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo } from "react";
-import { Box, Typography, IconButton, Tooltip } from "@mui/material";
+import { Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
+import BuildIcon from "@mui/icons-material/Build";
 import { ServerStatus } from "../../stores/VibeCodingStore";
+
+/** Extract port number from an EADDRINUSE log line, e.g. ":::3101" or ":3101" */
+function extractEaddrinusePort(lines: string[]): number | null {
+  for (const line of lines) {
+    if (!line.includes("EADDRINUSE")) continue;
+    const m = line.match(/:(\d{4,5})/);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
 
 interface VibeCodingServerLogsProps {
   workspacePath: string | undefined;
   serverStatus: ServerStatus;
+  onAutoFix?: (port: number) => void;
 }
 
 function classifyLine(
@@ -32,7 +44,8 @@ const LINE_COLORS: Record<string, string> = {
 
 const VibeCodingServerLogs: React.FC<VibeCodingServerLogsProps> = ({
   workspacePath,
-  serverStatus
+  serverStatus,
+  onAutoFix
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -91,6 +104,15 @@ const VibeCodingServerLogs: React.FC<VibeCodingServerLogsProps> = ({
     }
   }, []);
 
+  const eaddrinusePort = useMemo(
+    () => (serverStatus === "error" ? extractEaddrinusePort(allLines) : null),
+    [allLines, serverStatus]
+  );
+
+  const handleAutoFix = useCallback(() => {
+    if (eaddrinusePort != null) onAutoFix?.(eaddrinusePort);
+  }, [eaddrinusePort, onAutoFix]);
+
   return (
     <Box
       sx={{
@@ -112,6 +134,29 @@ const VibeCodingServerLogs: React.FC<VibeCodingServerLogsProps> = ({
           borderColor: "divider"
         }}
       >
+        {eaddrinusePort != null && onAutoFix && (
+          <Tooltip title={`Kill process on port ${eaddrinusePort} and restart`}>
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              startIcon={<BuildIcon sx={{ fontSize: 12 }} />}
+              onClick={handleAutoFix}
+              sx={{
+                fontSize: "0.65rem",
+                py: "1px",
+                px: "6px",
+                minWidth: 0,
+                mr: "4px",
+                borderColor: "#FFB86C",
+                color: "#FFB86C",
+                "&:hover": { borderColor: "#FFD580", color: "#FFD580", bgcolor: "rgba(255,184,108,0.08)" }
+              }}
+            >
+              Auto-fix port {eaddrinusePort}
+            </Button>
+          </Tooltip>
+        )}
         {!autoScroll && (
           <Tooltip title="Scroll to bottom">
             <IconButton size="small" onClick={handleScrollToBottom} sx={{ p: "3px" }}>

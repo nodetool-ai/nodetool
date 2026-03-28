@@ -25,6 +25,7 @@ interface FileTreeItemProps {
   entry: FileEntry;
   workspacePath: string;
   depth: number;
+  onFileOpen?: (filePath: string) => void;
 }
 
 const FILE_ICON_COLORS: Record<string, string> = {
@@ -54,13 +55,16 @@ function formatSize(bytes: number): string {
 const ROW_HEIGHT = 24;
 
 const FileTreeItem: React.FC<FileTreeItemProps> = memo(
-  ({ entry, workspacePath, depth }) => {
+  ({ entry, workspacePath, depth, onFileOpen }) => {
     const [expanded, setExpanded] = useState(false);
     const [children, setChildren] = useState<FileEntry[] | null>(null);
     const [loading, setLoading] = useState(false);
 
     const toggle = useCallback(async () => {
-      if (!entry.isDir) {return;}
+      if (!entry.isDir) {
+        onFileOpen?.(entry.path);
+        return;
+      }
       if (expanded) {
         setExpanded(false);
         return;
@@ -80,7 +84,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = memo(
         }
       }
       setExpanded(true);
-    }, [entry, workspacePath, expanded, children]);
+    }, [entry, workspacePath, expanded, children, onFileOpen]);
 
     const fileColor = !entry.isDir ? getFileColor(entry.name) : undefined;
 
@@ -95,7 +99,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = memo(
             pl: `${depth * 16 + 8}px`,
             pr: "8px",
             height: ROW_HEIGHT,
-            cursor: entry.isDir ? "pointer" : "default",
+            cursor: "pointer",
             "&:hover": {
               bgcolor: "rgba(255, 255, 255, 0.02)"
             },
@@ -173,6 +177,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = memo(
                 entry={child}
                 workspacePath={workspacePath}
                 depth={depth + 1}
+                onFileOpen={onFileOpen}
               />
             ))}
             {children?.length === 0 && (
@@ -202,10 +207,12 @@ FileTreeItem.displayName = "FileTreeItem";
 
 interface VibeCodingFileExplorerProps {
   workspacePath: string | undefined;
+  onFileOpen?: (filePath: string) => void;
 }
 
 const VibeCodingFileExplorer: React.FC<VibeCodingFileExplorerProps> = ({
-  workspacePath
+  workspacePath,
+  onFileOpen
 }) => {
   const [entries, setEntries] = useState<FileEntry[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -336,6 +343,7 @@ const VibeCodingFileExplorer: React.FC<VibeCodingFileExplorerProps> = ({
             entry={entry}
             workspacePath={workspacePath}
             depth={0}
+            onFileOpen={onFileOpen}
           />
         ))}
       </Box>

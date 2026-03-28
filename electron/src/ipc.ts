@@ -1457,6 +1457,21 @@ export function initializeIpcHandlers(): void {
     }
   );
 
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_SERVER_KILL_PORT,
+    async (_event, { port }) => {
+      await new Promise<void>((resolve) => {
+        const cmd =
+          process.platform === "win32"
+            ? `FOR /F "tokens=5" %a IN ('netstat -aon ^| findstr :${port}') DO taskkill /F /PID %a`
+            : `lsof -ti:${port} | xargs kill -9`;
+        const proc = require("child_process").exec(cmd);
+        proc.on("exit", () => resolve());
+        proc.on("error", () => resolve()); // Ignore errors (port may already be free)
+      });
+    }
+  );
+
   // Workspace file I/O handlers
   createIpcMainHandler(
     IpcChannels.WORKSPACE_FILE_WRITE,

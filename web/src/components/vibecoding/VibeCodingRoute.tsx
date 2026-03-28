@@ -19,7 +19,7 @@ const VibeCodingRoute: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", height: "100%", pt: "42px" }}>
+    <Box sx={{ display: "flex", height: "100%", pt: "42px", ml: "35px" }}>
       <VibeCodingPanel
         workspaceId={workspaceId}
         workspacePath={workspace?.is_accessible ? workspace.path : undefined}

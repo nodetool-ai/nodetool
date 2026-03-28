@@ -676,6 +676,13 @@ const api = {
         ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_LOGS, { workspacePath }),
       ensureInstalled: (workspacePath: string) =>
         ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED, { workspacePath }),
+      killPort: (port: number) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_KILL_PORT, { port }),
+      onStatusChange: (callback: (event: { workspacePath: string; status: string; port: number | null }) => void) => {
+        const handler = (_event: any, data: { workspacePath: string; status: string; port: number | null }) => callback(data);
+        ipcRenderer.on(IpcChannels.WORKSPACE_SERVER_STATUS_CHANGE, handler);
+        return () => { ipcRenderer.removeListener(IpcChannels.WORKSPACE_SERVER_STATUS_CHANGE, handler); };
+      },
       onLog: (callback: (event: { workspacePath: string; line: string }) => void) => {
         const handler = (_event: any, data: { workspacePath: string; line: string }) => callback(data);
         ipcRenderer.on(IpcChannels.WORKSPACE_SERVER_LOG_STREAM, handler);

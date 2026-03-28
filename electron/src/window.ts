@@ -332,6 +332,12 @@ function initializePermissionHandlers(): void {
         responseHeaders["Access-Control-Allow-Origin"] = ["*"];
         responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
         responseHeaders["Access-Control-Allow-Headers"] = ["*"];
+        // Strip framing-restriction headers so the workspace dev server preview
+        // can be embedded in the VibeCoding iframe.
+        delete responseHeaders["x-frame-options"];
+        delete responseHeaders["X-Frame-Options"];
+        delete responseHeaders["content-security-policy"];
+        delete responseHeaders["Content-Security-Policy"];
         callback({ responseHeaders });
       } else {
         // Don't modify headers for untrusted origins

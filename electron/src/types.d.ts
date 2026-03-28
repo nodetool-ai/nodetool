@@ -1,4 +1,5 @@
 type ClipboardType = "clipboard" | "selection";
+export type DevServerStatus = 'starting' | 'running' | 'error' | 'stopped';
 export type FrontendLogLevel = "info" | "warn" | "error";
 
 export interface FrontendLogRequest {
@@ -626,6 +627,8 @@ export enum IpcChannels {
   WORKSPACE_SERVER_STATUS = "workspace-server-status",
   WORKSPACE_SERVER_LOGS = "workspace-server-logs",
   WORKSPACE_SERVER_ENSURE_INSTALLED = "workspace-server-ensure-installed",
+  WORKSPACE_SERVER_KILL_PORT = "workspace-server-kill-port",
+  WORKSPACE_SERVER_STATUS_CHANGE = "workspace-server-status-change",
   // Workspace file I/O
   WORKSPACE_FILE_WRITE = "workspace-file-write",
   WORKSPACE_FILE_READ = "workspace-file-read",
@@ -816,6 +819,7 @@ export interface IpcRequest {
   [IpcChannels.WORKSPACE_SERVER_STATUS]: { workspacePath: string };
   [IpcChannels.WORKSPACE_SERVER_LOGS]: { workspacePath: string };
   [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: { workspacePath: string };
+  [IpcChannels.WORKSPACE_SERVER_KILL_PORT]: { port: number };
   [IpcChannels.WORKSPACE_FILE_WRITE]: { workspacePath: string; relPath: string; content: string };
   [IpcChannels.WORKSPACE_FILE_READ]: { workspacePath: string; relPath: string };
   [IpcChannels.WORKSPACE_FILE_LIST]: { workspacePath: string; relPath: string };
@@ -932,6 +936,7 @@ export interface IpcResponse {
   [IpcChannels.WORKSPACE_SERVER_STATUS]: { running: boolean; port: number | null; status: string };
   [IpcChannels.WORKSPACE_SERVER_LOGS]: string[];
   [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: void;
+  [IpcChannels.WORKSPACE_SERVER_KILL_PORT]: void;
   [IpcChannels.WORKSPACE_FILE_WRITE]: void;
   [IpcChannels.WORKSPACE_FILE_READ]: string;
   [IpcChannels.WORKSPACE_FILE_LIST]: Array<{ name: string; path: string; isDir: boolean; size: number }>;
@@ -959,6 +964,7 @@ export interface IpcEvents {
   [IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE]: FrontendToolsCallResponseEvent;
   [IpcChannels.LOCALHOST_PROXY_WS_EVENT]: LocalhostProxyWsEvent;
   [IpcChannels.WORKSPACE_SERVER_LOG_STREAM]: { workspacePath: string; line: string };
+  [IpcChannels.WORKSPACE_SERVER_STATUS_CHANGE]: { workspacePath: string; status: DevServerStatus; port: number | null };
 }
 
 export type PythonPackages = string[];

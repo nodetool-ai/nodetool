@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect, memo, useState } from "react";
+import React, { useCallback, useMemo, useEffect, memo, useState, useRef } from "react";
 import {
   Box,
   Typography,
@@ -6,8 +6,8 @@ import {
   Select,
   MenuItem,
   CircularProgress,
-  Autocomplete,
-  TextField
+  Paper,
+  MenuList
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -75,6 +75,11 @@ Install with: \`npx shadcn@latest add button card badge alert textarea\`
 Utility: \`src/lib/utils.ts\` with \`cn()\` from clsx + tailwind-merge.
 
 ### Dark Theme Colors (OKLCH)
+Always add \`class="dark"\` to the \`<html>\` element in \`src/app/layout.tsx\` so the dark CSS variables activate:
+\`\`\`tsx
+<html lang="en" className="dark">
+\`\`\`
+
 Use these CSS variables in globals.css:
 \`\`\`css
 .dark {
@@ -257,6 +262,15 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
 
   const { templates } = useVibecodingTemplates();
 
+  // @mention dropdown state
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mentionState, setMentionState] = useState<{
+    active: boolean;
+    anchorEl: HTMLElement | null;
+    search: string;
+    atIndex: number;
+  }>({ active: false, anchorEl: null, search: "", atIndex: -1 });
+
   // Workflow selection state
   const [workflowOptions, setWorkflowOptions] = useState<WorkflowOption[]>([]);
   const [workflowsLoading, setWorkflowsLoading] = useState(false);
@@ -317,6 +331,89 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
       });
     };
   }, []);
+
+  // Detect @mention in the chat textarea
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let textarea: HTMLTextAreaElement | null = null;
+
+    const handleInput = (e: Event) => {
+      const ta = e.target as HTMLTextAreaElement;
+      const cursor = ta.selectionStart ?? 0;
+      const textBefore = ta.value.slice(0, cursor);
+      const match = textBefore.match(/@(\w*)$/);
+      if (match) {
+        setMentionState({
+          active: true,
+          anchorEl: ta,
+          search: match[1].toLowerCase(),
+          atIndex: cursor - match[0].length
+        });
+      } else {
+        setMentionState({ active: false, anchorEl: null, search: "", atIndex: -1 });
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMentionState({ active: false, anchorEl: null, search: "", atIndex: -1 });
+      }
+    };
+
+    const attachListeners = () => {
+      textarea = container.querySelector("textarea");
+      if (textarea) {
+        textarea.addEventListener("input", handleInput);
+        textarea.addEventListener("keydown", handleKeyDown);
+      } else {
+        requestAnimationFrame(attachListeners);
+      }
+    };
+    attachListeners();
+
+    return () => {
+      textarea?.removeEventListener("input", handleInput);
+      textarea?.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const filteredWorkflows = useMemo(
+    () =>
+      workflowOptions.filter((w) =>
+        w.name.toLowerCase().includes(mentionState.search)
+      ),
+    [workflowOptions, mentionState.search]
+  );
+
+  const handleWorkflowMentionSelect = useCallback(
+    (workflow: WorkflowOption) => {
+      setSelectedWorkflowId(workflow.id);
+      const container = containerRef.current;
+      const captured = mentionState;
+      setMentionState({ active: false, anchorEl: null, search: "", atIndex: -1 });
+
+      if (!container) return;
+      const textarea = container.querySelector("textarea") as HTMLTextAreaElement | null;
+      if (!textarea) return;
+
+      const cursorEnd = captured.atIndex + 1 + captured.search.length;
+      const newValue =
+        textarea.value.slice(0, captured.atIndex) +
+        `@${workflow.name} ` +
+        textarea.value.slice(cursorEnd);
+
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype,
+        "value"
+      )?.set;
+      nativeSetter?.call(textarea, newValue);
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      textarea.focus();
+    },
+    [mentionState]
+  );
 
   const handleWorkspaceSelect = useCallback(
     (event: SelectChangeEvent<string>) => {
@@ -390,7 +487,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           {!isAvailable
             ? "The Claude agent requires the NodeTool desktop app (Electron)."
             : workspaceId
-              ? "Describe your UI. Optionally select a workflow to build the app around."
+              ? "Describe your UI. Type @ to link a workflow."
               : "Pick a workspace from the dropdown above to start building."}
         </Typography>
       </Box>
@@ -449,51 +546,15 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         {isLoadingWorkspaces && <CircularProgress size={16} />}
       </Box>
 
-      {/* Workflow selector */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          px: 3,
-          py: 1.5,
-          borderBottom: (theme) => `1px solid ${theme.palette.divider}`
-        }}
-      >
-        <AccountTreeIcon
-          sx={{ fontSize: 20, color: "text.secondary", flexShrink: 0 }}
-        />
-        <Autocomplete
-          size="small"
-          fullWidth
-          options={workflowOptions}
-          getOptionLabel={(option) => option.name}
-          loading={workflowsLoading}
-          value={workflowOptions.find((w) => w.id === selectedWorkflowId) ?? null}
-          onChange={(_event, value) => {
-            setSelectedWorkflowId(value?.id ?? null);
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              placeholder="Link a workflow (optional)"
-              sx={{ "& .MuiInputBase-root": { fontSize: "0.8125rem" } }}
-            />
-          )}
-          sx={{ flex: 1 }}
-          isOptionEqualToValue={(option, value) => option.id === value.id}
-        />
-      </Box>
-
-      {/* Workflow info chip */}
+      {/* Linked workflow chip */}
       {selectedWorkflow && (
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             gap: 1,
-            px: 3,
-            py: 1,
+            px: 2,
+            py: 0.75,
             borderBottom: (theme) => `1px solid ${theme.palette.divider}`
           }}
         >
@@ -505,20 +566,6 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
             color="primary"
             variant="outlined"
           />
-          {selectedWorkflow.input_schema && (
-            <Typography variant="caption" color="text.secondary">
-              {Object.keys(
-                (selectedWorkflow.input_schema as { properties?: Record<string, unknown> }).properties ?? {}
-              ).length} inputs
-            </Typography>
-          )}
-          {selectedWorkflow.output_schema && (
-            <Typography variant="caption" color="text.secondary">
-              {Object.keys(
-                (selectedWorkflow.output_schema as { properties?: Record<string, unknown> }).properties ?? {}
-              ).length} outputs
-            </Typography>
-          )}
         </Box>
       )}
 
@@ -559,7 +606,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         )}
 
       {/* Chat area */}
-      <Box sx={{ flex: 1, overflow: "hidden" }}>
+      <Box ref={containerRef} sx={{ flex: 1, overflow: "hidden", position: "relative" }}>
         <ChatView
           status={chatStatus}
           progress={0}
@@ -571,6 +618,42 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           noMessagesPlaceholder={welcomePlaceholder}
           progressMessage={null}
         />
+
+        {/* @-mention workflow picker */}
+        {mentionState.active && (filteredWorkflows.length > 0 || workflowsLoading) && (
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 60,
+              left: 8,
+              zIndex: 1500
+            }}
+          >
+            <Paper
+              elevation={6}
+              sx={{ minWidth: 220, maxWidth: 320, maxHeight: 220, overflow: "auto" }}
+            >
+              <MenuList dense disablePadding>
+                {workflowsLoading ? (
+                  <MenuItem disabled sx={{ fontSize: "0.8rem" }}>
+                    <CircularProgress size={12} sx={{ mr: 1 }} /> Loading…
+                  </MenuItem>
+                ) : (
+                  filteredWorkflows.map((w) => (
+                    <MenuItem
+                      key={w.id}
+                      onClick={() => handleWorkflowMentionSelect(w)}
+                      sx={{ fontSize: "0.8rem", gap: 1 }}
+                    >
+                      <AccountTreeIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                      {w.name}
+                    </MenuItem>
+                  ))
+                )}
+              </MenuList>
+            </Paper>
+          </Box>
+        )}
       </Box>
     </Box>
   );

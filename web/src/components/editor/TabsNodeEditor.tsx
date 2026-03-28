@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(12px)",
       alignItems: "center",
       position: "relative",
-      padding: "4px 0px 0px 10px",
+      padding: "4px 0px 0px 30px",
       width: "100%",
       WebkitAppRegion: "drag",
       borderBottom: `1px solid ${theme.vars.palette.divider}`

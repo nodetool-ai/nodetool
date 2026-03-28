@@ -61,8 +61,8 @@ const styles = (
     // Main container - fixed to left edge of viewport
     position: "fixed",
     left: 0,
-    top: `${headerHeight}px`,
-    height: `calc(100vh - ${headerHeight}px)`,
+    top: `${headerHeight - 36}px`,
+    height: `calc(100vh - ${headerHeight - 36}px)`,
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,

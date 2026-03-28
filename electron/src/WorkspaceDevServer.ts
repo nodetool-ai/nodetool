@@ -1,10 +1,11 @@
 // nodetool/electron/src/WorkspaceDevServer.ts
 import { spawn, ChildProcess } from 'child_process';
+import http from 'http';
 import path from 'path';
 import { BrowserWindow } from 'electron';
-import { IpcChannels } from './types.d';
+import { IpcChannels, DevServerStatus } from './types.d';
 
-export type DevServerStatus = 'starting' | 'running' | 'error' | 'stopped';
+export type { DevServerStatus };
 
 interface DevServerEntry {
   process: ChildProcess;
@@ -22,7 +23,26 @@ const SPAWN_TIMEOUT_MS = 60_000;
 export class WorkspaceDevServer {
   private servers = new Map<string, DevServerEntry>();
 
-  spawn(workspacePath: string, port: number): Promise<number> {
+  private broadcastStatus(workspacePath: string, status: DevServerStatus, port: number | null) {
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send(IpcChannels.WORKSPACE_SERVER_STATUS_CHANGE, { workspacePath, status, port });
+    }
+  }
+
+  private killPort(port: number): Promise<void> {
+    return new Promise((resolve) => {
+      const cmd = process.platform === 'win32'
+        ? `FOR /F "tokens=5" %a IN ('netstat -aon ^| findstr :${port}') DO taskkill /F /PID %a`
+        : `lsof -ti:${port} | xargs kill -9`;
+      require('child_process').exec(cmd, () => resolve());
+    });
+  }
+
+  async spawn(workspacePath: string, port: number): Promise<number> {
+    // Free the port before starting so stale processes from previous sessions
+    // never cause EADDRINUSE.
+    await this.killPort(port);
+
     return new Promise((resolve, reject) => {
       const respawnAttempts = this.servers.get(workspacePath)?.respawnAttempts ?? 0;
 
@@ -60,29 +80,53 @@ export class WorkspaceDevServer {
         }
       }, SPAWN_TIMEOUT_MS);
 
+      let pollInterval: ReturnType<typeof setInterval> | null = null;
+
       const settle = (fn: () => void) => {
         clearTimeout(timeoutHandle);
+        if (pollInterval !== null) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
         fn();
       };
 
-      proc.stdout!.on('data', (data: Buffer) => {
-        const text = data.toString();
-        appendLog(text);
-        if (
-          entry.status === 'starting' &&
-          (text.includes('✓ Ready') || text.includes('ready started'))
-        ) {
-          entry.status = 'running';
-          entry.respawnAttempts = 0;
-          settle(() => resolve(port));
-        }
-      });
-
+      proc.stdout!.on('data', (data: Buffer) => appendLog(data.toString()));
       proc.stderr!.on('data', (data: Buffer) => appendLog(data.toString()));
+
+      // Poll the health endpoint instead of parsing log output — more reliable
+      // across Next.js versions, Turbopack, and ANSI-coloured terminal output.
+      const pingPort = (p: number): Promise<boolean> =>
+        new Promise((res) => {
+          const req = http.get(`http://localhost:${p}/`, (response) => {
+            response.resume();
+            res(true); // Any HTTP response means the server is accepting connections
+          });
+          req.setTimeout(800, () => { req.destroy(); res(false); });
+          req.on('error', () => res(false));
+        });
+
+      const POLL_INTERVAL_MS = 500;
+      pollInterval = setInterval(() => {
+        if (entry.status !== 'starting') {
+          clearInterval(pollInterval!);
+          pollInterval = null;
+          return;
+        }
+        pingPort(port).then((ok) => {
+          if (ok && entry.status === 'starting') {
+            entry.status = 'running';
+            entry.respawnAttempts = 0;
+            this.broadcastStatus(workspacePath, 'running', port);
+            settle(() => resolve(port));
+          }
+        });
+      }, POLL_INTERVAL_MS);
 
       proc.on('error', (err: Error) => {
         if (entry.status === 'starting') {
           entry.status = 'error';
+          this.broadcastStatus(workspacePath, 'error', null);
           settle(() => reject(err));
         }
       });

@@ -9,6 +9,8 @@ export interface VibeCodingSession {
   serverStatus: ServerStatus;
   serverLogs: string[];
   isPublished: boolean;
+  openFilePath: string | null;
+  openFileContent: string | null;
 }
 
 const MAX_LOGS = 100;
@@ -20,6 +22,8 @@ const defaultSession = (workspaceId: string): VibeCodingSession => ({
   serverStatus: "stopped",
   serverLogs: [],
   isPublished: false,
+  openFilePath: null,
+  openFileContent: null,
 });
 
 interface VibeCodingState {
@@ -30,6 +34,8 @@ interface VibeCodingState {
   setServerStatus: (workspaceId: string, status: ServerStatus, port?: number | null) => void;
   appendServerLog: (workspaceId: string, line: string) => void;
   setIsPublished: (workspaceId: string, published: boolean) => void;
+  openFile: (workspaceId: string, filePath: string, content: string) => void;
+  closeFile: (workspaceId: string) => void;
 }
 
 function patch(
@@ -48,12 +54,21 @@ export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
     get().sessions[workspaceId] ?? defaultSession(workspaceId),
 
   initSession: (workspaceId, workspacePath) =>
-    set((state) => ({
-      sessions: {
-        ...state.sessions,
-        [workspaceId]: { ...defaultSession(workspaceId), workspacePath: workspacePath ?? "" },
-      },
-    })),
+    set((state) => {
+      const existing = state.sessions[workspaceId];
+      return {
+        sessions: {
+          ...state.sessions,
+          [workspaceId]: {
+            ...defaultSession(workspaceId),
+            workspacePath: workspacePath ?? "",
+            // Preserve open file across re-init
+            openFilePath: existing?.openFilePath ?? null,
+            openFileContent: existing?.openFileContent ?? null,
+          },
+        },
+      };
+    }),
 
   clearSession: (workspaceId) =>
     set((state) => {
@@ -80,5 +95,21 @@ export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
   setIsPublished: (workspaceId, published) =>
     set((state) => ({
       sessions: patch(state.sessions, workspaceId, () => ({ isPublished: published })),
+    })),
+
+  openFile: (workspaceId, filePath, content) =>
+    set((state) => ({
+      sessions: patch(state.sessions, workspaceId, () => ({
+        openFilePath: filePath,
+        openFileContent: content,
+      })),
+    })),
+
+  closeFile: (workspaceId) =>
+    set((state) => ({
+      sessions: patch(state.sessions, workspaceId, () => ({
+        openFilePath: null,
+        openFileContent: null,
+      })),
     })),
 }));

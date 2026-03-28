@@ -406,6 +406,8 @@ declare global {
           status: (workspacePath: string) => Promise<{ running: boolean; port: number | null; status: string }>;
           logs: (workspacePath: string) => Promise<string[]>;
           ensureInstalled: (workspacePath: string) => Promise<void>;
+          killPort: (port: number) => Promise<void>;
+          onStatusChange: (callback: (event: { workspacePath: string; status: string; port: number | null }) => void) => () => void;
           onLog: (callback: (event: { workspacePath: string; line: string }) => void) => () => void;
         };
         file?: {
