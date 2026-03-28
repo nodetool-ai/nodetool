@@ -170,7 +170,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         }}
       >
         <div css={colorMatrixStyle(theme)}>
-          {colorPickerColors.map((cellColor) => (
+          {colorPickerColors.map((cellColor, index) => (
             <Button
               key={String(cellColor)}
               className="pick-color-button"
