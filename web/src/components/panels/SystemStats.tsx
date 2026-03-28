@@ -6,7 +6,7 @@ import {
   Popover
 } from "@mui/material";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
-import { FlexColumn, FlexRow, Text, ProgressBar } from "../ui_primitives";
+import { FlexColumn, ProgressBar } from "../ui_primitives";
 
 // Memoized inline styles for progress bars
 const progressSx = {
@@ -141,19 +141,6 @@ const StatItem: React.FC<{ label: string; value: number }> = React.memo(function
   label,
   value
 }) {
-  const getAriaLabel = (itemLabel: string): string => {
-    switch (itemLabel) {
-      case "CPU":
-        return STATS_ARIA_LABELS.cpu;
-      case "Memory":
-        return STATS_ARIA_LABELS.memory;
-      case "GPU Memory":
-        return STATS_ARIA_LABELS.gpu;
-      default:
-        return `${itemLabel} usage`;
-    }
-  };
-
   return (
     <Box
       className="system-stats-popover"
@@ -166,7 +153,6 @@ const StatItem: React.FC<{ label: string; value: number }> = React.memo(function
         showValue
         formatValue={(v) => `${v.toFixed(0)}%`}
         barHeight={4}
-        aria-label={getAriaLabel(label)}
       />
     </Box>
   );
