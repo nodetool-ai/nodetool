@@ -25,6 +25,7 @@ import {
   SegmentSettings,
   SegmentationStatus
 } from "./types";
+import type { SamModelInfo } from "./sam";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
 
 const styles = (theme: Theme) =>
@@ -112,11 +113,13 @@ export interface SketchToolTopBarProps {
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
+  segmentModelInfo?: SamModelInfo | null;
   onRunSegmentation?: () => void;
   onApplySegmentResult?: () => void;
   onDiscardSegmentResult?: () => void;
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
+  onCheckSegmentModel?: () => void;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -161,11 +164,13 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
+  segmentModelInfo,
   onRunSegmentation,
   onApplySegmentResult,
   onDiscardSegmentResult,
   onCancelSegmentation,
-  onClearSegmentPrompts
+  onClearSegmentPrompts,
+  onCheckSegmentModel
 }) => {
   const theme = useTheme();
 
@@ -213,11 +218,13 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         segmentSettings={segmentSettings}
         onSegmentSettingsChange={onSegmentSettingsChange}
         segmentationStatus={segmentationStatus}
+        segmentModelInfo={segmentModelInfo}
         onRunSegmentation={onRunSegmentation}
         onApplySegmentResult={onApplySegmentResult}
         onDiscardSegmentResult={onDiscardSegmentResult}
         onCancelSegmentation={onCancelSegmentation}
         onClearSegmentPrompts={onClearSegmentPrompts}
+        onCheckSegmentModel={onCheckSegmentModel}
       />
     </Box>
   );

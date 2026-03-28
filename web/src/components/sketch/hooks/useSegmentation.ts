@@ -32,6 +32,7 @@ import {
   generateSegmentationRunId,
   generateCutoutDataUrl,
   drawMaskBoundsOverlay,
+  drawMaskImageOverlay,
   DEFAULT_SAM_MODEL_ID
 } from "../sam";
 import type { SamModelInfo } from "../sam";
@@ -90,7 +91,8 @@ export function useSegmentation({
   const checkModel = useCallback(async () => {
     setStatus("checking-model");
     try {
-      const service = getSamService();
+      const backend = useSketchStore.getState().document.toolSettings.segment.backend;
+      const service = getSamService(backend);
       const info = await service.checkModelAvailability();
       setModelInfo(info);
       setStatus("idle");
@@ -133,7 +135,8 @@ export function useSegmentation({
       setStatus("inferring");
 
       try {
-        const service = getSamService();
+        const backend = doc.toolSettings.segment.backend;
+        const service = getSamService(backend);
         const response = await service.runSegmentation(
           {
             imageDataUrl: layerData,
@@ -316,27 +319,27 @@ export function useSegmentation({
   // ─── Mask Preview Overlay ───────────────────────────────────────────────
 
   const drawMaskPreview = useCallback(
-    (ctx: CanvasRenderingContext2D, zoom: number, pan: Point) => {
+    (ctx: CanvasRenderingContext2D, zoom: number, _pan: Point) => {
       if (!result || result.masks.length === 0) {
         return;
       }
 
-      ctx.save();
+      // The overlay canvas is already in document-pixel space (CSS handles
+      // zoom/pan), so we draw directly without transform.
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-      // Transform overlay context into document space
-      const container = ctx.canvas;
-      const cx = container.width / 2;
-      const cy = container.height / 2;
-      ctx.setTransform(zoom, 0, 0, zoom, cx + pan.x, cy + pan.y);
-
-      const docW = useSketchStore.getState().document.canvas.width;
-      const docH = useSketchStore.getState().document.canvas.height;
-      ctx.translate(-docW / 2, -docH / 2);
-
-      // Draw colored bounding box overlays for each mask
-      drawMaskBoundsOverlay(ctx, result.masks, zoom);
-
-      ctx.restore();
+      // Try to draw full mask image overlays; falls back to bounds
+      // if mask data URLs are not available.
+      const hasMaskData = result.masks.some((m) => !!m.maskDataUrl);
+      if (hasMaskData) {
+        // drawMaskImageOverlay is async — fire-and-forget with signal safety
+        void drawMaskImageOverlay(ctx, result.masks, zoom).catch(() => {
+          // Fallback to bounding boxes if image loading fails
+          drawMaskBoundsOverlay(ctx, result.masks, zoom);
+        });
+      } else {
+        drawMaskBoundsOverlay(ctx, result.masks, zoom);
+      }
     },
     [result]
   );

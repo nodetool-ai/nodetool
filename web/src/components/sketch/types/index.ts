@@ -227,6 +227,9 @@ export interface CloneStampSettings {
 /** Prompt mode for SAM-based segmentation. */
 export type SegmentPromptMode = "point" | "box" | "auto";
 
+/** Backend used for segmentation inference. */
+export type SegmentBackend = "fal" | "node";
+
 /** What to do with the source layer after segmentation is applied. */
 export type SegmentSourceLayerAction = "keep" | "hide" | "lock";
 
@@ -302,6 +305,8 @@ export interface SegmentSettings {
   maskFeather: number;
   /** Whether the result should be cutout layers (true) or mask layers (false). */
   outputCutouts: boolean;
+  /** Inference backend: "fal" for fal.ai cloud API, "node" for nodetool node execution. */
+  backend: SegmentBackend;
 }
 
 /** Metadata stored on layers created by segmentation. */
@@ -608,7 +613,8 @@ export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
   confidenceThreshold: 0.5,
   sourceLayerAction: "keep",
   maskFeather: 0,
-  outputCutouts: true
+  outputCutouts: true,
+  backend: "fal"
 };
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {

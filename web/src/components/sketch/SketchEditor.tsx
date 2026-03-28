@@ -232,8 +232,15 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     ) {
       canvasActions.handleTransformCancel();
     }
+    // Auto-check model availability when switching to segment tool
+    if (
+      prevAdjustToolRef.current !== "segment" &&
+      store.activeTool === "segment"
+    ) {
+      segmentation.checkModel();
+    }
     prevAdjustToolRef.current = store.activeTool;
-  }, [store.activeTool, canvasActions]);
+  }, [store.activeTool, canvasActions, segmentation]);
 
   // ─── Seed global store from prop before SketchCanvas mounts ─────────
   const { setDocument } = store;
@@ -421,11 +428,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             segmentSettings={store.toolSettings.segment}
             onSegmentSettingsChange={store.setSegmentSettings}
             segmentationStatus={segmentation.status}
+            segmentModelInfo={segmentation.modelInfo}
             onRunSegmentation={handleRunSegmentation}
             onApplySegmentResult={segmentation.applyResult}
             onDiscardSegmentResult={segmentation.discardResult}
             onCancelSegmentation={segmentation.cancelSegmentation}
             onClearSegmentPrompts={handleClearSegmentPrompts}
+            onCheckSegmentModel={segmentation.checkModel}
           />
         )}
 
@@ -564,11 +573,13 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         segmentSettings={store.toolSettings.segment}
         onSegmentSettingsChange={store.setSegmentSettings}
         segmentationStatus={segmentation.status}
+        segmentModelInfo={segmentation.modelInfo}
         onRunSegmentation={handleRunSegmentation}
         onApplySegmentResult={segmentation.applyResult}
         onDiscardSegmentResult={segmentation.discardResult}
         onCancelSegmentation={segmentation.cancelSegmentation}
         onClearSegmentPrompts={handleClearSegmentPrompts}
+        onCheckSegmentModel={segmentation.checkModel}
         onSwapColors={store.swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}

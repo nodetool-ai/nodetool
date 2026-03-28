@@ -14,6 +14,7 @@ import type {
   SegmentationMask,
   SegmentSettings
 } from "../types";
+import { SamServiceFal } from "./SamServiceFal";
 
 // ─── Model Availability ───────────────────────────────────────────────────────
 
@@ -104,20 +105,42 @@ export class SamServiceStub implements SamService {
 
 /** Singleton service instance. Replace with real implementation when available. */
 let serviceInstance: SamService | null = null;
+let currentBackend: "fal" | "node" | null = null;
+/** True when the instance was set explicitly via setSamService. */
+let manualOverride = false;
 
-export function getSamService(): SamService {
-  if (!serviceInstance) {
-    // Default to node-based execution. Falls back to stub behavior
-    // when WebSocket is not available (tests, standalone).
+export function getSamService(backend?: "fal" | "node"): SamService {
+  const requestedBackend = backend ?? "fal";
+
+  // Return manually-overridden instance unless a specific backend was requested
+  if (serviceInstance && manualOverride && backend === undefined) {
+    return serviceInstance;
+  }
+
+  // Return cached instance if backend matches
+  if (serviceInstance && currentBackend === requestedBackend) {
+    return serviceInstance;
+  }
+
+  let newService: SamService;
+
+  if (requestedBackend === "fal") {
+    newService = new SamServiceFal();
+  } else {
+    // Node-based execution. Falls back to stub if SamServiceNode can't be loaded.
     try {
       const { SamServiceNode } = require("./SamServiceNode");
-      serviceInstance = new SamServiceNode();
+      newService = new SamServiceNode();
     } catch {
       // Fallback to stub if SamServiceNode can't be loaded
-      serviceInstance = new SamServiceStub();
+      newService = new SamServiceStub();
     }
   }
-  return serviceInstance;
+
+  serviceInstance = newService;
+  currentBackend = requestedBackend;
+  manualOverride = false;
+  return newService;
 }
 
 /**
@@ -125,4 +148,6 @@ export function getSamService(): SamService {
  */
 export function setSamService(service: SamService): void {
   serviceInstance = service;
+  currentBackend = null;
+  manualOverride = true;
 }

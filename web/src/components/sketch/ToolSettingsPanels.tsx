@@ -41,6 +41,7 @@ import {
   SegmentSettings,
   SegmentPromptMode,
   SegmentSourceLayerAction,
+  SegmentBackend,
   SegmentationStatus,
   parseColorToRgba,
   rgbaToCss,
@@ -48,6 +49,7 @@ import {
   DEFAULT_PRESSURE_MIN_SCALE,
   DEFAULT_PRESSURE_CURVE
 } from "./types";
+import type { SamModelInfo } from "./sam";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -1217,22 +1219,26 @@ interface SegmentSettingsPanelProps {
   settings: SegmentSettings;
   onChange: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus: SegmentationStatus;
+  modelInfo: SamModelInfo | null;
   onRunSegmentation: () => void;
   onApplyResult: () => void;
   onDiscardResult: () => void;
   onCancelSegmentation: () => void;
   onClearPrompts: () => void;
+  onCheckModel: () => void;
 }
 
 export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   settings,
   onChange,
   segmentationStatus,
+  modelInfo,
   onRunSegmentation,
   onApplyResult,
   onDiscardResult,
   onCancelSegmentation,
-  onClearPrompts
+  onClearPrompts,
+  onCheckModel
 }: SegmentSettingsPanelProps) {
   const isRunning =
     segmentationStatus === "inferring" ||
@@ -1242,6 +1248,55 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
 
   return (
     <>
+      <Box className="setting-row" sx={{ gap: "4px" }}>
+        <Typography className="setting-label">Backend</Typography>
+        <ToggleButtonGroup
+          value={settings.backend}
+          exclusive
+          onChange={(_, v) => {
+            if (v) {
+              onChange({ backend: v as SegmentBackend });
+              onCheckModel();
+            }
+          }}
+          size="small"
+        >
+          <ToggleButton value="fal" sx={toggleButtonSmallSx}>
+            fal.ai
+          </ToggleButton>
+          <ToggleButton value="node" sx={toggleButtonSmallSx}>
+            Node
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {modelInfo && (
+        <Box sx={{ mb: "4px" }}>
+          <Typography
+            sx={{
+              fontSize: "0.58rem",
+              lineHeight: 1.3,
+              color:
+                modelInfo.status === "available"
+                  ? "success.main"
+                  : modelInfo.status === "error" ||
+                      modelInfo.status === "not-installed"
+                    ? "warning.main"
+                    : "grey.500"
+            }}
+          >
+            {modelInfo.status === "available" && `✓ ${modelInfo.modelName}`}
+            {modelInfo.status === "not-installed" &&
+              (modelInfo.errorMessage ?? "Model not available")}
+            {modelInfo.status === "error" &&
+              (modelInfo.errorMessage ?? "Connection failed")}
+            {modelInfo.status === "checking" && "Checking…"}
+            {modelInfo.status === "downloading" &&
+              `Downloading… ${Math.round((modelInfo.downloadProgress ?? 0) * 100)}%`}
+          </Typography>
+        </Box>
+      )}
+
       <ToggleButtonGroup
         value={settings.promptMode}
         exclusive
@@ -1506,11 +1561,13 @@ export interface ToolSettingsPanelProps {
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
+  segmentModelInfo?: SamModelInfo | null;
   onRunSegmentation?: () => void;
   onApplySegmentResult?: () => void;
   onDiscardSegmentResult?: () => void;
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
+  onCheckSegmentModel?: () => void;
 }
 
 export const ToolSettingsPanel = memo(function ToolSettingsPanel({
@@ -1555,11 +1612,13 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
+  segmentModelInfo,
   onRunSegmentation,
   onApplySegmentResult,
   onDiscardSegmentResult,
   onCancelSegmentation,
-  onClearSegmentPrompts
+  onClearSegmentPrompts,
+  onCheckSegmentModel
 }: ToolSettingsPanelProps) {
   if (activeTool === "brush") {
     return (
@@ -1692,11 +1751,13 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         settings={segmentSettings}
         onChange={onSegmentSettingsChange}
         segmentationStatus={segmentationStatus ?? "idle"}
+        modelInfo={segmentModelInfo ?? null}
         onRunSegmentation={onRunSegmentation ?? noop}
         onApplyResult={onApplySegmentResult ?? noop}
         onDiscardResult={onDiscardSegmentResult ?? noop}
         onCancelSegmentation={onCancelSegmentation ?? noop}
         onClearPrompts={onClearSegmentPrompts ?? noop}
+        onCheckModel={onCheckSegmentModel ?? noop}
       />
     );
   }
