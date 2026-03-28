@@ -79,7 +79,9 @@ export function useSegmentation({
       setModelInfo(info);
       setStatus("idle");
     } catch {
-      // Model check failed (network error, backend unavailable, etc.) — surface via status
+      // Intentionally catching all errors: model check failures (network, timeout, backend
+      // unavailability) are surfaced to the UI via the "error" status. No logging here since
+      // the user action is to retry via the UI.
       setStatus("error");
     }
   }, []);

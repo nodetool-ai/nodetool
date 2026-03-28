@@ -1207,6 +1207,16 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
 
 // ─── SegmentSettingsPanel ──────────────────────────────────────────────────
 
+function promptModeHelpText(mode: SegmentPromptMode): string {
+  if (mode === "point") {
+    return "Click: include · Alt+click: exclude";
+  }
+  if (mode === "box") {
+    return "Drag to draw a bounding box";
+  }
+  return "Auto-detect prominent objects";
+}
+
 interface SegmentSettingsPanelProps {
   settings: SegmentSettings;
   onChange: (settings: Partial<SegmentSettings>) => void;
@@ -1423,11 +1433,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           mt: "4px"
         }}
       >
-        {settings.promptMode === "point"
-          ? "Click: include · Alt+click: exclude"
-          : settings.promptMode === "box"
-            ? "Drag to draw a bounding box"
-            : "Auto-detect prominent objects"}
+        {promptModeHelpText(settings.promptMode)}
       </Typography>
 
       {segmentationStatus === "error" && (

@@ -89,12 +89,14 @@ export class SamServiceStub implements SamService {
     };
   }
 
+  /** Simulate a delay for the stub */
+  private static readonly STUB_DELAY_MS = 200;
+
   async runSegmentation(
     _request: SegmentationRequest,
     _signal?: AbortSignal
   ): Promise<SegmentationResponse> {
-    // Simulate a delay for the stub
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, SamServiceStub.STUB_DELAY_MS));
 
     return { masks: [] };
   }

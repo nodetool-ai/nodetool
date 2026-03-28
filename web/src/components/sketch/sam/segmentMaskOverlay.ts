@@ -206,9 +206,11 @@ export async function generateCutoutDataUrl(
     // Draw mask, optionally with feather (blur)
     if (featherRadius > 0) {
       maskCtx.filter = `blur(${featherRadius}px)`;
+      maskCtx.drawImage(maskImg, 0, 0, width, height);
+      maskCtx.filter = "none";
+    } else {
+      maskCtx.drawImage(maskImg, 0, 0, width, height);
     }
-    maskCtx.drawImage(maskImg, 0, 0, width, height);
-    maskCtx.filter = "none";
 
     // Apply the mask as alpha channel
     ctx.globalCompositeOperation = "destination-in";
