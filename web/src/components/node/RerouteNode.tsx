@@ -20,6 +20,11 @@ const rerouteBackground = (theme: Theme, alpha: number): string =>
     ? `rgba(30 30 30 / ${alpha})`
     : `rgba(255 255 255 / ${alpha})`;
 
+const rerouteBackground = (theme: Theme, alpha: number): string =>
+  theme.palette.mode === "dark"
+    ? `rgba(30 30 30 / ${alpha})`
+    : `rgba(255 255 255 / ${alpha})`;
+
 const styles = (theme: Theme) =>
   css({
     position: "relative",
