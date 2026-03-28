@@ -34,6 +34,7 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
       icon={<PsychologyIcon fontSize="small" />}
       tooltip={tooltipContent}
       tooltipPlacement="top"
+      ariaLabel={agentMode ? "Disable agent mode" : "Enable agent mode"}
       onClick={handleClick}
       disabled={disabled}
       size="small"
