@@ -252,7 +252,7 @@ describe("PanelResizeButton", () => {
 
   describe("memoization", () => {
     it("is memoized with React.memo", () => {
-      expect(PanelResizeButton.displayName).toBeUndefined();
+      expect(PanelResizeButton.displayName).toBe("PanelResizeButton");
       // The component is exported as memo() wrapped
     });
 
