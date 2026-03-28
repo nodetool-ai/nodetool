@@ -47,7 +47,7 @@ async function withServer(run: (url: string) => Promise<void>): Promise<void> {
 describe("native lib.rss", () => {
   it("extracts feed metadata", async () => {
     await withServer(async (url) => {
-      const out = await new ExtractFeedMetadataLibNode().process({ url });
+      const out = await new ExtractFeedMetadataLibNode({ url }).process();
       expect(out.output).toMatchObject({
         title: "Example Feed",
         description: "Example Desc",
@@ -63,7 +63,8 @@ describe("native lib.rss", () => {
     await withServer(async (url) => {
       const node = new FetchRSSFeedLibNode();
       const rows: Array<Record<string, unknown>> = [];
-      for await (const item of node.genProcess({ url })) {
+      node.assign({ url });
+      for await (const item of node.genProcess()) {
         rows.push(item);
       }
       expect(rows).toHaveLength(2);

@@ -15,11 +15,11 @@ import type { DeploymentConfig, AnyDeployment } from "../src/deployment-config.j
 
 function makeMockDeployer(overrides: Partial<Deployer> = {}): Deployer {
   return {
-    plan: vi.fn().mockReturnValue({ changes: [] }),
-    apply: vi.fn().mockReturnValue({ status: "applied" }),
-    status: vi.fn().mockReturnValue({ status: "running" }),
-    logs: vi.fn().mockReturnValue("some log output"),
-    destroy: vi.fn().mockReturnValue({ status: "destroyed" }),
+    plan: vi.fn().mockResolvedValue({ changes: [] }),
+    apply: vi.fn().mockResolvedValue({ status: "applied" }),
+    status: vi.fn().mockResolvedValue({ status: "running" }),
+    logs: vi.fn().mockResolvedValue("some log output"),
+    destroy: vi.fn().mockResolvedValue({ status: "destroyed" }),
     ...overrides,
   };
 }
@@ -54,29 +54,29 @@ function makeDockerDeployment(
   } as unknown as AnyDeployment;
 }
 
-function makeSSHDeployment(
+function makeSSHDockerDeployment(
   overrides: Partial<Record<string, unknown>> = {}
 ): AnyDeployment {
   return {
-    type: "ssh",
+    type: "docker",
     enabled: true,
     host: "10.0.0.2",
-    port: 8000,
     ssh: { user: "root", key_path: "/home/user/.ssh/id_rsa", port: 22 },
-    service_name: "nodetool",
+    container: { name: "nodetool", port: 8000 },
+    image: { name: "nodetool/api", tag: "latest", registry: "docker.io" },
     paths: { workspace: "/data/workspace", hf_cache: "/data/hf" },
     state: { status: "running", last_deployed: "2025-01-01T00:00:00Z" },
     ...overrides,
   } as unknown as AnyDeployment;
 }
 
-function makeLocalDeployment(): AnyDeployment {
+function makeLocalDockerDeployment(): AnyDeployment {
   return {
-    type: "local",
+    type: "docker",
     enabled: true,
     host: "localhost",
-    port: 8000,
-    service_name: "nodetool-local",
+    container: { name: "nodetool-local", port: 8000 },
+    image: { name: "nodetool/api", tag: "latest", registry: "docker.io" },
     paths: { workspace: "/data/workspace", hf_cache: "/data/hf" },
     state: { status: "running", last_deployed: null },
   } as unknown as AnyDeployment;
@@ -107,7 +107,7 @@ function makeConfig(
   deployments: Record<string, AnyDeployment>
 ): DeploymentConfig {
   return {
-    version: "1.0",
+    version: "2.0",
     defaults: {
       chat_provider: "llama_cpp",
       default_model: "",
@@ -135,10 +135,11 @@ function makeManager(
 
   const factories: Record<string, DeployerFactory> = {
     docker: defaultFactory,
-    ssh: defaultFactory,
-    local: defaultFactory,
     runpod: defaultFactory,
     gcp: defaultFactory,
+    fly: defaultFactory,
+    railway: defaultFactory,
+    huggingface: defaultFactory,
     ...factoryOverrides,
   };
 
@@ -179,22 +180,22 @@ describe("DeploymentManager", () => {
       expect(result[0].container).toBe("nodetool-api");
     });
 
-    it("lists an SSH deployment with host and service_name", async () => {
+    it("lists a docker deployment with SSH and host", async () => {
       const { manager } = makeManager(
-        { prod: makeSSHDeployment() },
+        { prod: makeSSHDockerDeployment() },
         { prod: { status: "running", last_deployed: "2025-01-01T00:00:00Z" } }
       );
       const result = await manager.listDeployments();
       expect(result[0].host).toBe("10.0.0.2");
-      expect(result[0].service).toBe("nodetool");
+      expect(result[0].container).toBe("nodetool");
     });
 
-    it("lists a local deployment", async () => {
-      const { manager } = makeManager({ dev: makeLocalDeployment() });
+    it("lists a local docker deployment", async () => {
+      const { manager } = makeManager({ dev: makeLocalDockerDeployment() });
       const result = await manager.listDeployments();
-      expect(result[0].type).toBe("local");
+      expect(result[0].type).toBe("docker");
       expect(result[0].host).toBe("localhost");
-      expect(result[0].service).toBe("nodetool-local");
+      expect(result[0].container).toBe("nodetool-local");
     });
 
     it("lists a RunPod deployment with pod_id from state", async () => {
@@ -228,7 +229,7 @@ describe("DeploymentManager", () => {
     it("lists multiple deployments at once", async () => {
       const { manager } = makeManager({
         a: makeDockerDeployment(),
-        b: makeSSHDeployment(),
+        b: makeSSHDockerDeployment(),
         c: makeGCPDeployment(),
       });
       const result = await manager.listDeployments();
@@ -269,82 +270,82 @@ describe("DeploymentManager", () => {
   // ---- plan ----
 
   describe("plan", () => {
-    it("delegates to deployer.plan()", () => {
+    it("delegates to deployer.plan()", async () => {
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      (deployer.plan as ReturnType<typeof vi.fn>).mockReturnValue({
+      (deployer.plan as ReturnType<typeof vi.fn>).mockResolvedValue({
         changes: [{ action: "create" }],
       });
-      const result = manager.plan("web");
+      const result = await manager.plan("web");
       expect(result).toEqual({ changes: [{ action: "create" }] });
       expect(deployer.plan).toHaveBeenCalled();
     });
 
-    it("throws for unknown deployment", () => {
+    it("throws for unknown deployment", async () => {
       const { manager } = makeManager({});
-      expect(() => manager.plan("nope")).toThrow("Deployment 'nope' not found");
+      await expect(manager.plan("nope")).rejects.toThrow("Deployment 'nope' not found");
     });
   });
 
   // ---- apply ----
 
   describe("apply", () => {
-    it("delegates to deployer.apply()", () => {
+    it("delegates to deployer.apply()", async () => {
       const spy = vi.spyOn(console, "log").mockImplementation(() => {});
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      const result = manager.apply("web");
+      const result = await manager.apply("web");
       expect(result).toEqual({ status: "applied" });
       expect(deployer.apply).toHaveBeenCalledWith({ dryRun: undefined });
       spy.mockRestore();
     });
 
-    it("passes dryRun option", () => {
+    it("passes dryRun option", async () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      manager.apply("web", { dryRun: true });
+      await manager.apply("web", { dryRun: true });
       expect(deployer.apply).toHaveBeenCalledWith({ dryRun: true });
     });
 
-    it("logs the deployment name and type", () => {
+    it("logs the deployment name and type", async () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       const { manager } = makeManager({ web: makeDockerDeployment() });
-      manager.apply("web");
+      await manager.apply("web");
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining("Applying deployment 'web'")
       );
       logSpy.mockRestore();
     });
 
-    it("throws for unknown deployment", () => {
+    it("throws for unknown deployment", async () => {
       const { manager } = makeManager({});
-      expect(() => manager.apply("nope")).toThrow("Deployment 'nope' not found");
+      await expect(manager.apply("nope")).rejects.toThrow("Deployment 'nope' not found");
     });
   });
 
   // ---- status ----
 
   describe("status", () => {
-    it("delegates to deployer.status()", () => {
+    it("delegates to deployer.status()", async () => {
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      (deployer.status as ReturnType<typeof vi.fn>).mockReturnValue({
+      (deployer.status as ReturnType<typeof vi.fn>).mockResolvedValue({
         status: "running",
         uptime: 3600,
       });
-      const result = manager.status("web");
+      const result = await manager.status("web");
       expect(result).toEqual({ status: "running", uptime: 3600 });
     });
 
-    it("throws for unknown deployment", () => {
+    it("throws for unknown deployment", async () => {
       const { manager } = makeManager({});
-      expect(() => manager.status("nope")).toThrow("Deployment 'nope' not found");
+      await expect(manager.status("nope")).rejects.toThrow("Deployment 'nope' not found");
     });
   });
 
   // ---- logs ----
 
   describe("logs", () => {
-    it("delegates to deployer.logs() with defaults", () => {
+    it("delegates to deployer.logs() with defaults", async () => {
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      const result = manager.logs("web");
+      const result = await manager.logs("web");
       expect(result).toBe("some log output");
       expect(deployer.logs).toHaveBeenCalledWith({
         service: undefined,
@@ -353,9 +354,9 @@ describe("DeploymentManager", () => {
       });
     });
 
-    it("passes custom tail and service options", () => {
+    it("passes custom tail and service options", async () => {
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      manager.logs("web", { service: "api", tail: 50, follow: true });
+      await manager.logs("web", { service: "api", tail: 50, follow: true });
       expect(deployer.logs).toHaveBeenCalledWith({
         service: "api",
         follow: true,
@@ -363,36 +364,36 @@ describe("DeploymentManager", () => {
       });
     });
 
-    it("throws for unknown deployment", () => {
+    it("throws for unknown deployment", async () => {
       const { manager } = makeManager({});
-      expect(() => manager.logs("nope")).toThrow("Deployment 'nope' not found");
+      await expect(manager.logs("nope")).rejects.toThrow("Deployment 'nope' not found");
     });
   });
 
   // ---- destroy ----
 
   describe("destroy", () => {
-    it("delegates to deployer.destroy()", () => {
+    it("delegates to deployer.destroy()", async () => {
       vi.spyOn(console, "warn").mockImplementation(() => {});
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      const result = manager.destroy("web");
+      const result = await manager.destroy("web");
       expect(result).toEqual({ status: "destroyed" });
       expect(deployer.destroy).toHaveBeenCalled();
     });
 
-    it("logs a warning", () => {
+    it("logs a warning", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const { manager } = makeManager({ web: makeDockerDeployment() });
-      manager.destroy("web");
+      await manager.destroy("web");
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining("Destroying deployment 'web'")
       );
       warnSpy.mockRestore();
     });
 
-    it("throws for unknown deployment", () => {
+    it("throws for unknown deployment", async () => {
       const { manager } = makeManager({});
-      expect(() => manager.destroy("nope")).toThrow(
+      await expect(manager.destroy("nope")).rejects.toThrow(
         "Deployment 'nope' not found"
       );
     });
@@ -420,20 +421,20 @@ describe("DeploymentManager", () => {
       );
     });
 
-    it("returns error when ssh deployment has no port", () => {
-      const dep = makeSSHDeployment({ port: undefined });
+    it("returns error when docker deployment has no container (ssh variant)", () => {
+      const dep = makeSSHDockerDeployment({ container: undefined });
       const { manager } = makeManager({ prod: dep });
       const result = manager.validate("prod");
       expect(result.valid).toBe(false);
       expect(result.errors).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("No port configured"),
+          expect.stringContaining("No container configured"),
         ])
       );
     });
 
-    it("warns when SSH deployment has no auth method", () => {
-      const dep = makeSSHDeployment({
+    it("warns when docker deployment SSH has no auth method", () => {
+      const dep = makeSSHDockerDeployment({
         ssh: { user: "root", port: 22 },
       });
       const { manager } = makeManager({ prod: dep });
@@ -448,7 +449,7 @@ describe("DeploymentManager", () => {
     it("validates all deployments when no name provided", () => {
       const { manager } = makeManager({
         a: makeDockerDeployment(),
-        b: makeSSHDeployment(),
+        b: makeSSHDockerDeployment(),
       });
       const result = manager.validate();
       expect(result.valid).toBe(true);
@@ -477,32 +478,32 @@ describe("DeploymentManager", () => {
   // ---- hasChanges ----
 
   describe("hasChanges", () => {
-    it("returns false when plan has empty changes", () => {
+    it("returns false when plan has empty changes", async () => {
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      (deployer.plan as ReturnType<typeof vi.fn>).mockReturnValue({ changes: [] });
-      expect(manager.hasChanges("web")).toBe(false);
+      (deployer.plan as ReturnType<typeof vi.fn>).mockResolvedValue({ changes: [] });
+      expect(await manager.hasChanges("web")).toBe(false);
     });
 
-    it("returns true when plan has changes", () => {
+    it("returns true when plan has changes", async () => {
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      (deployer.plan as ReturnType<typeof vi.fn>).mockReturnValue({
+      (deployer.plan as ReturnType<typeof vi.fn>).mockResolvedValue({
         changes: [{ action: "update" }],
       });
-      expect(manager.hasChanges("web")).toBe(true);
+      expect(await manager.hasChanges("web")).toBe(true);
     });
 
-    it("returns false when plan throws", () => {
+    it("returns false when plan throws", async () => {
       vi.spyOn(console, "error").mockImplementation(() => {});
       const { manager } = makeManager({});
-      expect(manager.hasChanges("nope")).toBe(false);
+      expect(await manager.hasChanges("nope")).toBe(false);
     });
 
-    it("returns false when changes is not an array", () => {
+    it("returns false when changes is not an array", async () => {
       const { manager, deployer } = makeManager({ web: makeDockerDeployment() });
-      (deployer.plan as ReturnType<typeof vi.fn>).mockReturnValue({
+      (deployer.plan as ReturnType<typeof vi.fn>).mockResolvedValue({
         changes: "none",
       });
-      expect(manager.hasChanges("web")).toBe(false);
+      expect(await manager.hasChanges("web")).toBe(false);
     });
   });
 
@@ -524,12 +525,12 @@ describe("DeploymentManager", () => {
   // ---- getDeployer (private, tested through public methods) ----
 
   describe("unknown deployment type", () => {
-    it("throws when no factory exists for the deployment type", () => {
+    it("throws when no factory exists for the deployment type", async () => {
       const dep = { type: "custom", enabled: true } as unknown as AnyDeployment;
       const config = makeConfig({ x: dep });
       const stateManager = makeMockStateManager();
       const manager = new DeploymentManager(config, stateManager, {});
-      expect(() => manager.plan("x")).toThrow("Unknown deployment type: custom");
+      await expect(manager.plan("x")).rejects.toThrow("Unknown deployment type: custom");
     });
   });
 });

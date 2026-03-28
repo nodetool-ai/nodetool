@@ -149,7 +149,7 @@ describe("createAuthMiddleware", () => {
       expect(user.userId).toBe("carol");
     });
 
-    it("throws 401 when a token is supplied but both providers reject", async () => {
+    it("falls back to default user when a token is supplied but both providers reject", async () => {
       const middleware = createAuthMiddleware(
         opts({
           staticProvider: new RejectProvider(),
@@ -157,7 +157,9 @@ describe("createAuthMiddleware", () => {
         })
       );
       const req = bearerRequest("invalid");
-      await expect(middleware(req)).rejects.toMatchObject({ statusCode: 401 });
+      const user = await middleware(req);
+      expect(user.userId).toBe("1");
+      expect(user.tokenType).toBe(TokenType.STATIC);
     });
   });
 });

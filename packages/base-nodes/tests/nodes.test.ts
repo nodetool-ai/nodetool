@@ -135,7 +135,9 @@ describe("input/output/workspace nodes", () => {
   });
 
   it("OutputNode forwards a value handle", async () => {
-    await expect(new OutputNode().process({ value: 5 })).resolves.toEqual({
+    const _n = new OutputNode();
+    _n.assign({ value: 5 });
+    await expect(_n.process()).resolves.toEqual({
       output: 5,
     });
   });
@@ -150,7 +152,8 @@ describe("input/output/workspace nodes", () => {
         typeof value === "string" ? value.toUpperCase() : value,
     } as unknown as ProcessingContext;
 
-    await expect(node.process({ value: "hello" }, context)).resolves.toEqual({
+    node.assign({ value: "hello" });
+    await expect(node.process(context)).resolves.toEqual({
       output: "HELLO",
     });
     expect(emitted).toHaveLength(1);
@@ -173,7 +176,8 @@ describe("input/output/workspace nodes", () => {
         typeof value === "string" ? value.toUpperCase() : value,
     } as unknown as ProcessingContext;
 
-    await expect(node.process({ value: "hello" }, context)).resolves.toEqual({
+    node.assign({ value: "hello" });
+    await expect(node.process(context)).resolves.toEqual({
       output: "HELLO",
     });
     expect(emitted).toHaveLength(1);
@@ -186,167 +190,156 @@ describe("input/output/workspace nodes", () => {
   it("workspace text file nodes read and write", async () => {
     const dir = `/tmp/nodetool-ws-${Date.now()}`;
     const write = new WriteTextFileNode();
+    write.assign({
+      workspace_dir: dir,
+      path: "notes/a.txt",
+      content: "hello",
+    });
+    await expect(write.process()).resolves.toEqual({ output: "notes/a.txt" });
     const read = new ReadTextFileNode();
-    await expect(
-      write.process({
-        workspace_dir: dir,
-        path: "notes/a.txt",
-        content: "hello",
-      })
-    ).resolves.toEqual({ output: "notes/a.txt" });
-    await expect(
-      read.process({
-        workspace_dir: dir,
-        path: "notes/a.txt",
-      })
-    ).resolves.toEqual({ output: "hello" });
+    read.assign({
+      workspace_dir: dir,
+      path: "notes/a.txt",
+    });
+    await expect(read.process()).resolves.toEqual({ output: "hello" });
   });
 
   it("workspace helpers validate and inspect paths", async () => {
     const dir = `/tmp/nodetool-ws-${Date.now()}-2`;
     const joined = new JoinWorkspacePathsNode();
+    joined.assign({ workspace_dir: dir, paths: ["x", "y.txt"] });
     const exists = new WorkspaceFileExistsNode();
-    await expect(
-      joined.process({ workspace_dir: dir, paths: ["x", "y.txt"] })
-    ).resolves.toEqual({ output: "x/y.txt" });
-    await expect(
-      exists.process({ workspace_dir: dir, path: "x/y.txt" })
-    ).resolves.toEqual({ output: false });
+    exists.assign({ workspace_dir: dir, path: "x/y.txt" });
+    await expect(joined.process()).resolves.toEqual({ output: "x/y.txt" });
+    await expect(exists.process()).resolves.toEqual({ output: false });
   });
 
   it("CompareImagesNode returns perfect score for equal bytes", async () => {
     const bytes = Uint8Array.from([1, 2, 3]);
     const node = new CompareImagesNode();
-    await expect(
-      node.process({ image_a: { data: bytes }, image_b: { data: bytes } })
-    ).resolves.toEqual({ score: 1, equal: true });
+    node.assign({ image_a: { data: bytes }, image_b: { data: bytes } });
+    await expect(node.process()).resolves.toEqual({ score: 1, equal: true });
   });
 
   it("document save/load and split json nodes work", async () => {
     const file = `/tmp/nodetool-doc-${Date.now()}.json`;
     const save = new SaveDocumentFileNode();
-    await expect(
-      save.process({
-        path: file,
-        document: {
-          text: "{\"a\":1,\"b\":2}",
-        },
-      })
-    ).resolves.toEqual({ output: file });
+    save.assign({
+      document: {
+        text: "{\"a\":1,\"b\":2}",
+      },
+    });
+    (save as any).path = file;
+    await expect(save.process()).resolves.toEqual({ output: file });
 
     const load = new LoadDocumentFileNode();
-    const loaded = await load.process({ path: file });
+    load.assign({ path: file });
+    const loaded = await load.process();
     expect((loaded.output as { data: string }).data).toBeTruthy();
 
     const split = new SplitJSONNode();
-    const out: Array<string> = [];
-    for await (const chunk of split.genProcess({
+    split.assign({
       document: { uri: `file://${file}` },
       chunk_size: 8,
       chunk_overlap: 2,
-    })) {
+    });
+    const out: Array<string> = [];
+    for await (const chunk of split.genProcess()) {
       out.push(String(chunk.chunk));
     }
     expect(out.length).toBeGreaterThan(0);
   });
 
   it("data nodes import/select/aggregate/rename/fill work", async () => {
-    const imported = await new ImportCSVNode().process({
-      csv_data: "team,score\nA,10\nA,20\nB,5",
-    });
-    const selected = await new SelectColumnNode().process({
-      dataframe: imported.output,
-      columns: "team,score",
-    });
-    const aggregated = await new AggregateNode().process({
-      dataframe: selected.output,
-      columns: "team",
-      aggregation: "sum",
-    });
-    const renamed = await new RenameNode().process({
-      dataframe: aggregated.output,
-      rename_map: "score:total",
-    });
-    const filled = await new FillNANode().process({
-      dataframe: renamed.output,
-      method: "value",
-      value: 0,
-    });
+    const _imp = new ImportCSVNode();
+    _imp.assign({ csv_data: "team,score\nA,10\nA,20\nB,5" });
+    const imported = await _imp.process();
+    const _sel = new SelectColumnNode();
+    _sel.assign({ dataframe: imported.output, columns: "team,score" });
+    const selected = await _sel.process();
+    const _agg = new AggregateNode();
+    _agg.assign({ dataframe: selected.output, columns: "team", aggregation: "sum" });
+    const aggregated = await _agg.process();
+    const _ren = new RenameNode();
+    _ren.assign({ dataframe: aggregated.output, rename_map: "score:total" });
+    const renamed = await _ren.process();
+    const _fill = new FillNANode();
+    _fill.assign({ dataframe: renamed.output, method: "value", value: 0 });
+    const filled = await _fill.process();
 
     expect((filled.output as { rows: Array<Record<string, unknown>> }).rows.length).toBe(2);
   });
 
   it("FilterNoneNode omits null and forwards non-null", async () => {
-    await expect(new FilterNoneNode().process({ value: null })).resolves.toEqual({
-      output: [],
-    });
-    await expect(new FilterNoneNode().process({ value: "ok" })).resolves.toEqual({
-      output: "ok",
-    });
+    const _fn1 = new FilterNoneNode();
+    await expect(_fn1.process()).resolves.toEqual({ output: [] });
+    const _fn2 = new FilterNoneNode();
+    _fn2.assign({ value: "ok" });
+    await expect(_fn2.process()).resolves.toEqual({ output: "ok" });
   });
 
   it("RunShellCommandNode executes shell command", async () => {
     const node = new RunShellCommandNode();
-    const result = await node.process({ command: "echo ts-code-node" });
+    node.assign({ command: "echo ts-code-node" });
+    const result = await node.process();
     expect(String(result.output)).toContain("ts-code-node");
     expect(result.exit_code).toBe(0);
   });
 
   it("WaitNode returns wait metadata", async () => {
-    const result = await new WaitNode().process({
-      timeout_seconds: 0.01,
-      input: { x: 1 },
-    });
+    const _w = new WaitNode();
+    _w.assign({ timeout_seconds: 0.01, input: { x: 1 } });
+    const result = await _w.process();
     expect(result.data).toEqual({ x: 1 });
     expect(typeof result.resumed_at).toBe("string");
     expect(Number(result.waited_seconds)).toBeGreaterThanOrEqual(0);
   });
 
   it("audio nodes can create concat and convert arrays", async () => {
-    const silenceA = await new CreateSilenceNode().process({ length: 8 });
-    const silenceB = await new CreateSilenceNode().process({ length: 4 });
-    const concat = await new ConcatAudioNode().process({
-      audio_a: silenceA.output,
-      audio_b: silenceB.output,
-    });
-    const arr = await new AudioToNumpyNode().process({ audio: concat.output });
-    const audio = await new NumpyToAudioNode().process({ values: arr.output });
+    const _sa = new CreateSilenceNode(); _sa.assign({ duration: 8 });
+    const silenceA = await _sa.process();
+    const _sb = new CreateSilenceNode(); _sb.assign({ duration: 4 });
+    const silenceB = await _sb.process();
+    const _cat = new ConcatAudioNode(); _cat.assign({ a: silenceA.output, b: silenceB.output });
+    const concat = await _cat.process();
+    const _a2n = new AudioToNumpyNode(); _a2n.assign({ audio: concat.output });
+    const arr = await _a2n.process();
+    const _n2a = new NumpyToAudioNode(); _n2a.assign({ array: arr.output });
+    const audio = await _n2a.process();
     expect(Array.isArray(arr.output)).toBe(true);
     expect((audio.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
   it("image nodes create and transform image refs", async () => {
-    const generated = await new TextToImageNode().process({
-      prompt: "hello-image",
-      width: 320,
-      height: 240,
-    });
-    const transformed = await new ImageToImageNode().process({
-      image: generated.output,
-      prompt: "style transfer",
-    });
-    const meta = await new GetMetadataNode().process({ image: transformed.output });
-    expect((transformed.output as { prompt: string }).prompt).toBe("style transfer");
+    const _gen = new TextToImageNode(); _gen.assign({ prompt: "hello-image", width: 320, height: 240 });
+    const generated = await _gen.process();
+    const _tr = new ImageToImageNode(); _tr.assign({ image: generated.output, prompt: "style transfer" });
+    const transformed = await _tr.process();
+    const _meta = new GetMetadataNode(); _meta.assign({ image: transformed.output });
+    const meta = await _meta.process();
+    expect((transformed.output as { type: string }).type).toBe("image");
     expect((meta.output as { size_bytes: number }).size_bytes).toBeGreaterThan(0);
   });
 
   it("video nodes create video refs and expose metadata", async () => {
-    const generated = await new TextToVideoNode().process({
-      prompt: "clip-one",
-    });
-    const info = await new GetVideoInfoNode().process({ video: generated.output });
+    const _gen = new TextToVideoNode(); _gen.assign({ prompt: "clip-one" });
+    const generated = await _gen.process();
+    const _info = new GetVideoInfoNode(); _info.assign({ video: generated.output });
+    const info = await _info.process();
     expect((info.output as { size_bytes: number }).size_bytes).toBeGreaterThan(0);
   });
 
   it("agent nodes create threads and classify text", async () => {
-    const thread = await new CreateThreadNode().process({ title: "T" });
+    const _thr = new CreateThreadNode(); _thr.assign({ title: "T" });
+    const thread = await _thr.process();
     expect(String(thread.thread_id)).toContain("thread_");
-    const classified = await new ClassifierNode().process(
-      {
-        text: "payment failed and card was charged twice",
-        categories: ["billing", "sales", "support"],
-        model: { provider: "openai", id: "gpt-4o-mini" },
-      },
+    const _cls = new ClassifierNode();
+    _cls.assign({
+      text: "payment failed and card was charged twice",
+      categories: ["billing", "sales", "support"],
+      model: { provider: "openai", id: "gpt-4o-mini" },
+    });
+    const classified = await _cls.process(
       {
         getProvider: async () => ({
           generateMessage: async () => ({ content: '{"category":"billing"}' }),
@@ -367,32 +360,34 @@ describe("input/output/workspace nodes", () => {
         async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
       }),
     } as unknown as ProcessingContext;
-    const result = await agent.process(
-      {
-        system: "You are helpful",
-        prompt: "Say hello",
-        model: { provider: "openai", id: "gpt-4o" },
-      },
-      context
-    );
+    agent.assign({
+      system: "You are helpful",
+      prompt: "Say hello",
+      model: { provider: "openai", id: "gpt-4o" },
+    });
+    const result = await agent.process(context);
     expect(result.text).toBe("provider-response");
   });
 
   it("generator nodes return structured/list outputs", async () => {
-    const structured = await new StructuredOutputGeneratorNode().process({
-      schema: { properties: { ok: { type: "boolean" }, name: { type: "string" } } },
-    });
+    const _so = new StructuredOutputGeneratorNode();
+    (_so as any)._dynamic_outputs = { ok: { type: "boolean" }, name: { type: "string" } };
+    const structured = await _so.process();
     expect(structured.ok).toBe(false);
     expect(structured.name).toBe("");
 
-    const listed = await new ListGeneratorNode().process({ prompt: "Generate 3 fruits" });
+    const _lg = new ListGeneratorNode();
+    _lg.assign({ prompt: "Generate 3 fruits" });
+    const listed = await _lg.process();
     expect(Array.isArray(listed.output)).toBe(true);
     expect((listed.output as unknown[]).length).toBe(3);
   });
 
   it("model3d nodes generate and inspect metadata", async () => {
-    const model = await new TextTo3DNode().process({ prompt: "cube" });
-    const meta = await new GetModel3DMetadataNode().process({ model: model.output });
+    const _t3d = new TextTo3DNode(); _t3d.assign({ prompt: "cube" });
+    const model = await _t3d.process();
+    const _m3d = new GetModel3DMetadataNode(); _m3d.assign({ model: model.output });
+    const meta = await _m3d.process();
     expect((meta.output as { size_bytes: number }).size_bytes).toBeGreaterThan(0);
   });
 });
@@ -407,7 +402,8 @@ describe("control nodes", () => {
       if_false: null,
     });
 
-    await expect(node.process({ condition: false, value: 42 })).resolves.toEqual({
+    node.assign({ condition: false, value: 42 });
+    await expect(node.process()).resolves.toEqual({
       if_true: null,
       if_false: 42,
     });
@@ -431,13 +427,16 @@ describe("control nodes", () => {
   it("CollectNode accumulates across invocations", async () => {
     const node = new CollectNode();
     await node.initialize();
-    await expect(node.process({ input_item: 1 })).resolves.toEqual({ output: [1] });
-    await expect(node.process({ input_item: 2 })).resolves.toEqual({ output: [1, 2] });
+    node.assign({ input_item: 1 });
+    await expect(node.process()).resolves.toEqual({ output: [1] });
+    node.assign({ input_item: 2 });
+    await expect(node.process()).resolves.toEqual({ output: [1, 2] });
   });
 
   it("RerouteNode passes through input_value", async () => {
     const node = new RerouteNode();
-    await expect(node.process({ input_value: "pass" })).resolves.toEqual({
+    node.assign({ input_value: "pass" });
+    await expect(node.process()).resolves.toEqual({
       output: "pass",
     });
   });
@@ -446,136 +445,104 @@ describe("control nodes", () => {
 
 describe("text nodes", () => {
   it("basic text transform nodes work", async () => {
-    await expect(
-      new SplitTextNode().process({ text: "a,b,c", delimiter: "," })
-    ).resolves.toEqual({
-      output: ["a", "b", "c"],
-    });
-    await expect(
-      new ExtractTextNode().process({ text: "abcdef", start: 1, end: 4 })
-    ).resolves.toEqual({ output: "bcd" });
-    await expect(
-      new ChunkTextNode().process({ text: "a b c d", length: 2, overlap: 1, separator: " " })
-    ).resolves.toEqual({ output: ["a b", "b c", "c d", "d"] });
+    const _sp = new SplitTextNode(); _sp.assign({ text: "a,b,c", delimiter: "," });
+    await expect(_sp.process()).resolves.toEqual({ output: ["a", "b", "c"] });
+    const _ex = new ExtractTextNode(); _ex.assign({ text: "abcdef", start: 1, end: 4 });
+    await expect(_ex.process()).resolves.toEqual({ output: "bcd" });
+    const _ch = new ChunkTextNode(); _ch.assign({ text: "a b c d", length: 2, overlap: 1, separator: " " });
+    await expect(_ch.process()).resolves.toEqual({ output: ["a b", "b c", "c d", "d"] });
   });
 
   it("regex/text comparison helpers work", async () => {
-    await expect(
-      new RegexReplaceNode().process({
-        text: "abc-123-def",
-        pattern: "\\d+",
-        replacement: "X",
-      })
-    ).resolves.toEqual({ output: "abc-X-def" });
+    const _rr = new RegexReplaceNode(); _rr.assign({ text: "abc-123-def", pattern: "\\d+", replacement: "X" });
+    await expect(_rr.process()).resolves.toEqual({ output: "abc-X-def" });
 
-    await expect(
-      new CompareTextNode().process({
-        text_a: "Alpha",
-        text_b: "alpha",
-        case_sensitive: false,
-      })
-    ).resolves.toEqual({ output: "equal" });
+    const _ct = new CompareTextNode(); _ct.assign({ text_a: "Alpha", text_b: "alpha", case_sensitive: false });
+    await expect(_ct.process()).resolves.toEqual({ output: "equal" });
   });
 
   it("contains/trim/slugify/pad/length/surround helpers work", async () => {
-    await expect(
-      new ContainsTextNode().process({
-        text: "hello world",
-        search_values: ["hello", "world"],
-        match_mode: "all",
-      })
-    ).resolves.toEqual({ output: true });
+    const _cn = new ContainsTextNode(); _cn.assign({ text: "hello world", search_values: ["hello", "world"], match_mode: "all" });
+    await expect(_cn.process()).resolves.toEqual({ output: true });
 
-    await expect(
-      new TrimWhitespaceNode().process({ text: "  hi  ", trim_start: true, trim_end: false })
-    ).resolves.toEqual({ output: "hi  " });
+    const _tw = new TrimWhitespaceNode(); _tw.assign({ text: "  hi  ", trim_start: true, trim_end: false });
+    await expect(_tw.process()).resolves.toEqual({ output: "hi  " });
 
-    await expect(
-      new SlugifyNode().process({ text: "Hello, World!", separator: "-", lowercase: true })
-    ).resolves.toEqual({ output: "hello-world" });
+    const _sl = new SlugifyNode(); _sl.assign({ text: "Hello, World!", separator: "-", lowercase: true });
+    await expect(_sl.process()).resolves.toEqual({ output: "hello-world" });
 
-    await expect(
-      new PadTextNode().process({ text: "x", length: 3, pad_character: ".", direction: "both" })
-    ).resolves.toEqual({ output: ".x." });
+    const _pd = new PadTextNode(); _pd.assign({ text: "x", length: 3, pad_character: ".", direction: "both" });
+    await expect(_pd.process()).resolves.toEqual({ output: ".x." });
 
-    await expect(
-      new LengthTextNode().process({ text: "a b c", measure: "words" })
-    ).resolves.toEqual({ output: 3 });
+    const _lt = new LengthTextNode(); _lt.assign({ text: "a b c", measure: "words" });
+    await expect(_lt.process()).resolves.toEqual({ output: 3 });
 
-    await expect(
-      new SurroundWithTextNode().process({
-        text: "value",
-        prefix: "[",
-        suffix: "]",
-        skip_if_wrapped: true,
-      })
-    ).resolves.toEqual({ output: "[value]" });
+    const _sw = new SurroundWithTextNode(); _sw.assign({ text: "value", prefix: "[", suffix: "]", skip_if_wrapped: true });
+    await expect(_sw.process()).resolves.toEqual({ output: "[value]" });
   });
 
   it("stream-style text filters keep state", async () => {
     const filter = new FilterStringNode();
     filter.assign({ filter_type: "contains", criteria: "ok" });
     await filter.initialize();
-    await expect(filter.process({ value: "hello" })).resolves.toEqual({});
-    await expect(filter.process({ value: "ok-now" })).resolves.toEqual({
+    filter.assign({ value: "hello" });
+    await expect(filter.process()).resolves.toEqual({});
+    filter.assign({ value: "ok-now" });
+    await expect(filter.process()).resolves.toEqual({
       output: "ok-now",
     });
 
     const regexFilter = new FilterRegexStringNode();
     regexFilter.assign({ pattern: "^a.+z$", full_match: true });
     await regexFilter.initialize();
-    await expect(regexFilter.process({ value: "abz" })).resolves.toEqual({
+    regexFilter.assign({ value: "abz" });
+    await expect(regexFilter.process()).resolves.toEqual({
       output: "abz",
     });
-    await expect(regexFilter.process({ value: "abzx" })).resolves.toEqual({});
+    regexFilter.assign({ value: "abzx" });
+    await expect(regexFilter.process()).resolves.toEqual({});
   });
 
   it("extract json / token count / html to text", async () => {
-    await expect(
-      new ExtractJSONNode().process({
-        text: "{\"a\":{\"b\":[1,2]}}",
-        json_path: "$.a.b[1]",
-        find_all: false,
-      })
-    ).resolves.toEqual({ output: 2 });
+    const _ej = new ExtractJSONNode(); _ej.assign({ text: "{\"a\":{\"b\":[1,2]}}", json_path: "$.a.b[1]", find_all: false });
+    await expect(_ej.process()).resolves.toEqual({ output: 2 });
 
-    await expect(new CountTokensNode().process({ text: "hello, world!" })).resolves
-      .toEqual({ output: 4 });
+    const _ct = new CountTokensNode(); _ct.assign({ text: "hello, world!" });
+    await expect(_ct.process()).resolves.toEqual({ output: 4 });
 
-    await expect(
-      new HtmlToTextNode().process({ html: "<p>Hello<br>World</p>" })
-    ).resolves.toEqual({ output: "Hello\nWorld" });
+    const _ht = new HtmlToTextNode(); _ht.assign({ html: "<p>Hello<br>World</p>" });
+    await expect(_ht.process()).resolves.toEqual({ output: "Hello\nWorld" });
   });
 
   it("filesystem text save/load and embedding fallback", async () => {
     const savePath = `/tmp/nodetool-save-text-${Date.now()}.txt`;
-    await expect(
-      new SaveTextNode().process({ text: "hello", name: savePath })
-    ).resolves.toEqual({
+    const _st = new SaveTextNode(); _st.assign({ text: "hello", name: savePath });
+    await expect(_st.process()).resolves.toEqual({
       output: { uri: savePath, data: "hello" },
     });
 
     const saveDir = `/tmp/nodetool-save-text-dir-${Date.now()}`;
-    await expect(
-      new SaveTextFileNode().process({ text: "abc", folder: saveDir, name: "x.txt" })
-    ).resolves.toEqual({
+    const _sf = new SaveTextFileNode(); _sf.assign({ text: "abc", folder: saveDir, name: "x.txt" });
+    await expect(_sf.process()).resolves.toEqual({
       output: { uri: `${saveDir}/x.txt`, data: "abc" },
     });
 
     const load = new LoadTextFolderNode();
-    const items: Array<Record<string, unknown>> = [];
-    for await (const row of load.genProcess({
+    load.assign({
       folder: saveDir,
       include_subdirectories: false,
       extensions: [".txt"],
       pattern: "",
-    })) {
+    });
+    const items: Array<Record<string, unknown>> = [];
+    for await (const row of load.genProcess()) {
       items.push(row);
     }
     expect(items.length).toBe(1);
     expect(items[0].text).toBe("abc");
 
-    const emb = await new EmbeddingTextNode().process({ input: "hello world" });
+    const _emb = new EmbeddingTextNode(); _emb.assign({ input: "hello world" });
+    const emb = await _emb.process();
     expect(Array.isArray(emb.output)).toBe(true);
     expect((emb.output as number[]).length).toBe(64);
   });
@@ -590,26 +557,24 @@ describe("constant nodes", () => {
 
   it("ConstantDictNode supports object output", async () => {
     const node = new ConstantDictNode();
-    await expect(node.process({ value: { ok: true } })).resolves.toEqual({
+    node.assign({ value: { ok: true } });
+    await expect(node.process()).resolves.toEqual({
       output: { ok: true },
     });
   });
 
   it("additional constant node variants work", async () => {
-    await expect(
-      new ConstantImageSizeNode().process({ value: { width: 640, height: 480 } })
-    ).resolves.toEqual({
+    const _cis = new ConstantImageSizeNode(); _cis.assign({ value: { width: 640, height: 480 } });
+    await expect(_cis.process()).resolves.toEqual({
       output: { width: 640, height: 480 },
       image_size: { width: 640, height: 480 },
       width: 640,
       height: 480,
     });
-    await expect(
-      new ConstantDateNode().process({ year: 2025, month: 3, day: 1 })
-    ).resolves.toEqual({ output: { year: 2025, month: 3, day: 1 } });
-    await expect(
-      new ConstantSelectNode().process({ value: "x", options: ["x", "y"] })
-    ).resolves.toEqual({ output: "x" });
+    const _cd = new ConstantDateNode(); _cd.assign({ year: 2025, month: 3, day: 1 });
+    await expect(_cd.process()).resolves.toEqual({ output: { year: 2025, month: 3, day: 1 } });
+    const _cs = new ConstantSelectNode(); _cs.assign({ value: "x", options: ["x", "y"] });
+    await expect(_cs.process()).resolves.toEqual({ output: "x" });
   });
 
   it("ConstantBaseNode emits null output", async () => {

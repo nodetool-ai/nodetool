@@ -39,30 +39,30 @@ const BASE_URL = "https://example.com";
 
 describe("lib.beautifulsoup.BaseUrl", () => {
   it("extracts protocol and host from a URL", async () => {
-    const result = await new BaseUrlLibNode().process({
+    const result = await new BaseUrlLibNode({
       url: "https://example.com/path/to/page?q=1",
-    });
+    }).process();
     expect(result).toEqual({ output: "https://example.com" });
   });
 
   it("handles URLs with ports", async () => {
-    const result = await new BaseUrlLibNode().process({
+    const result = await new BaseUrlLibNode({
       url: "http://localhost:3000/api",
-    });
+    }).process();
     expect(result).toEqual({ output: "http://localhost:3000" });
   });
 
   it("throws on empty URL", async () => {
-    await expect(new BaseUrlLibNode().process({ url: "" })).rejects.toThrow();
+    await expect(new BaseUrlLibNode({ url: "" }).process()).rejects.toThrow();
   });
 });
 
 describe("lib.beautifulsoup.ExtractLinks", () => {
   it("extracts links with text and type classification", async () => {
-    const result = await new ExtractLinksLibNode().process({
+    const result = await new ExtractLinksLibNode({
       html: SAMPLE_HTML,
       base_url: BASE_URL,
-    });
+    }).process();
     const output = result.output as { columns: unknown[]; data: string[][] };
     expect(output.columns).toHaveLength(3);
     expect(output.data).toHaveLength(3);
@@ -86,10 +86,10 @@ describe("lib.beautifulsoup.ExtractLinks", () => {
 
 describe("lib.beautifulsoup.ExtractImages", () => {
   it("extracts image sources resolved against base URL", async () => {
-    const result = await new ExtractImagesLibNode().process({
+    const result = await new ExtractImagesLibNode({
       html: SAMPLE_HTML,
       base_url: BASE_URL,
-    });
+    }).process();
     const output = result.output as Array<{ uri: string; type: string }>;
     expect(output).toHaveLength(2);
     expect(output[0]).toEqual({
@@ -105,10 +105,10 @@ describe("lib.beautifulsoup.ExtractImages", () => {
 
 describe("lib.beautifulsoup.ExtractAudio", () => {
   it("extracts audio sources from audio and source tags", async () => {
-    const result = await new ExtractAudioLibNode().process({
+    const result = await new ExtractAudioLibNode({
       html: SAMPLE_HTML,
       base_url: BASE_URL,
-    });
+    }).process();
     const output = result.output as Array<{ uri: string; type: string }>;
     expect(output).toHaveLength(2);
     expect(output[0]).toEqual({
@@ -124,10 +124,10 @@ describe("lib.beautifulsoup.ExtractAudio", () => {
 
 describe("lib.beautifulsoup.ExtractVideos", () => {
   it("extracts video sources from video, source, and iframe tags", async () => {
-    const result = await new ExtractVideosLibNode().process({
+    const result = await new ExtractVideosLibNode({
       html: SAMPLE_HTML,
       base_url: BASE_URL,
-    });
+    }).process();
     const output = result.output as Array<{ uri: string; type: string }>;
     expect(output).toHaveLength(3);
     expect(output[0]).toEqual({
@@ -147,18 +147,18 @@ describe("lib.beautifulsoup.ExtractVideos", () => {
 
 describe("lib.beautifulsoup.ExtractMetadata", () => {
   it("extracts title, description, and keywords", async () => {
-    const result = await new ExtractMetadataLibNode().process({
+    const result = await new ExtractMetadataLibNode({
       html: SAMPLE_HTML,
-    });
+    }).process();
     expect(result.title).toBe("Test Page");
     expect(result.description).toBe("A test page for extraction");
     expect(result.keywords).toBe("test, html, extraction");
   });
 
   it("returns null for missing metadata", async () => {
-    const result = await new ExtractMetadataLibNode().process({
+    const result = await new ExtractMetadataLibNode({
       html: "<html><body>No meta</body></html>",
-    });
+    }).process();
     expect(result.title).toBeNull();
     expect(result.description).toBeNull();
     expect(result.keywords).toBeNull();
@@ -167,18 +167,18 @@ describe("lib.beautifulsoup.ExtractMetadata", () => {
 
 describe("lib.beautifulsoup.HTMLToText", () => {
   it("converts HTML to plain text", async () => {
-    const result = await new HTMLToTextLibNode().process({
+    const result = await new HTMLToTextLibNode({
       text: "<p>Hello <b>World</b></p><p>Second paragraph</p>",
-    });
+    }).process();
     const output = String(result.output);
     expect(output).toContain("Hello World");
     expect(output).toContain("Second paragraph");
   });
 
   it("strips tags from complex HTML", async () => {
-    const result = await new HTMLToTextLibNode().process({
+    const result = await new HTMLToTextLibNode({
       text: '<div><h1>Title</h1><ul><li>Item 1</li><li>Item 2</li></ul></div>',
-    });
+    }).process();
     const output = String(result.output);
     expect(output.toUpperCase()).toContain("TITLE");
     expect(output).toContain("Item 1");
@@ -193,9 +193,9 @@ describe("lib.beautifulsoup.WebsiteContentExtractor", () => {
       <article><h1>Main Article</h1><p>This is the main content of the page.</p></article>
       <footer>Footer info</footer>
     </body></html>`;
-    const result = await new WebsiteContentExtractorLibNode().process({
+    const result = await new WebsiteContentExtractorLibNode({
       html_content: html,
-    });
+    }).process();
     const output = String(result.output);
     expect(output).toContain("Main Article");
     expect(output).toContain("main content");
@@ -206,12 +206,12 @@ describe("lib.beautifulsoup.WebsiteContentExtractor", () => {
 
 describe("lib.markitdown.ConvertToMarkdown", () => {
   it("converts HTML data to markdown", async () => {
-    const result = await new ConvertToMarkdownLibNode().process({
+    const result = await new ConvertToMarkdownLibNode({
       document: {
         uri: "",
         data: "<h1>Hello</h1><p>World with <strong>bold</strong> text</p>",
       },
-    });
+    }).process();
     const output = result.output as { type: string; uri: string; data: string };
     expect(output.type).toBe("document");
     expect(output.data).toContain("Hello");
@@ -219,16 +219,16 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
   });
 
   it("returns plain text data as-is", async () => {
-    const result = await new ConvertToMarkdownLibNode().process({
+    const result = await new ConvertToMarkdownLibNode({
       document: { uri: "", data: "Just plain text, no HTML." },
-    });
+    }).process();
     const output = result.output as { type: string; data: string };
     expect(output.data).toBe("Just plain text, no HTML.");
   });
 
   it("throws when no uri or data is provided", async () => {
     await expect(
-      new ConvertToMarkdownLibNode().process({ document: { uri: "", data: "" } })
+      new ConvertToMarkdownLibNode({ document: { uri: "", data: "" } }).process()
     ).rejects.toThrow("A document URI or data is required");
   });
 });
@@ -237,7 +237,7 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
 
 describe("lib.seaborn.ChartRenderer", () => {
   it("renders a bar chart and returns base64 image data", async () => {
-    const result = await new ChartRendererLibNode().process({
+    const result = await new ChartRendererLibNode({
       chart_config: {
         title: "Sales by Month",
         x_label: "Month",
@@ -259,7 +259,7 @@ describe("lib.seaborn.ChartRenderer", () => {
           ["Mar", 150],
         ],
       },
-    });
+    }).process();
     const output = result.output as { type: string; data: string };
     expect(output.type).toBe("image");
     expect(typeof output.data).toBe("string");
@@ -276,7 +276,7 @@ describe("lib.seaborn.ChartRenderer", () => {
 
   it("throws when data has no rows", async () => {
     await expect(
-      new ChartRendererLibNode().process({
+      new ChartRendererLibNode({
         chart_config: {
           title: "Empty",
           data: { series: [{ x: "x", y: "y", plot_type: "line" }] },
@@ -285,12 +285,12 @@ describe("lib.seaborn.ChartRenderer", () => {
           columns: [{ name: "x" }, { name: "y" }],
           data: [],
         },
-      })
+      }).process()
     ).rejects.toThrow("Data is required");
   });
 
   it("renders a line chart", async () => {
-    const result = await new ChartRendererLibNode().process({
+    const result = await new ChartRendererLibNode({
       chart_config: {
         title: "Temperature",
         data: {
@@ -310,7 +310,7 @@ describe("lib.seaborn.ChartRenderer", () => {
           ["Wed", 19],
         ],
       },
-    });
+    }).process();
     const output = result.output as { type: string; data: string };
     expect(output.type).toBe("image");
     expect(output.data.length).toBeGreaterThan(100);

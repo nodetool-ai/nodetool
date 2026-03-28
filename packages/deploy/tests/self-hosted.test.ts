@@ -116,8 +116,6 @@ import {
   isLocalhost,
   LocalExecutor,
   DockerDeployer,
-  SSHDeployer,
-  RootDeployer,
   type Executor,
   type DeployPlan,
   type DeployResult,
@@ -428,7 +426,7 @@ describe("DockerDeployer", () => {
   describe("apply()", () => {
     it("should return plan as result in dry-run mode", async () => {
       mockStateManager.readState.mockResolvedValue(null);
-      const result = await deployer.apply(true);
+      const result = await deployer.apply({ dryRun: true });
       // dry-run returns the plan structure
       expect(result.deployment_name).toBe("test-deploy");
       expect(result).toHaveProperty("changes");
@@ -460,7 +458,7 @@ describe("DockerDeployer", () => {
         return "";
       });
 
-      const result = await deployer.apply(false);
+      const result = await deployer.apply();
       expect(result.deployment_name).toBe("test-deploy");
       expect(result.status).toBe("success");
       expect(result.steps.length).toBeGreaterThan(0);
@@ -488,7 +486,7 @@ describe("DockerDeployer", () => {
       });
       vi.mocked(execFileSync).mockReturnValue("docker\n");
 
-      await expect(deployer.apply(false)).rejects.toThrow();
+      await expect(deployer.apply()).rejects.toThrow();
       expect(mockStateManager.updateDeploymentStatus).toHaveBeenCalledWith(
         "test-deploy",
         "error"
@@ -509,7 +507,7 @@ describe("DockerDeployer", () => {
       });
       vi.mocked(execFileSync).mockReturnValue("docker\n");
 
-      const result = await deployer.apply(false);
+      const result = await deployer.apply();
       expect(result.steps).toContain(
         "Deploying to localhost (skipping SSH)"
       );
@@ -562,13 +560,13 @@ describe("DockerDeployer", () => {
   describe("logs()", () => {
     it("should return container logs", async () => {
       vi.mocked(execSync).mockReturnValue("log line 1\nlog line 2\n");
-      const logs = await deployer.logs(undefined, false, 50);
+      const logs = await deployer.logs({ tail: 50 });
       expect(logs).toContain("log line 1");
     });
 
     it("should include -f flag when follow is true", async () => {
       vi.mocked(execSync).mockReturnValue("following...\n");
-      await deployer.logs(undefined, true, 100);
+      await deployer.logs({ follow: true });
       const calls = vi.mocked(execSync).mock.calls;
       const lastCmd = String(calls[calls.length - 1][0]);
       expect(lastCmd).toContain("-f");
@@ -576,7 +574,7 @@ describe("DockerDeployer", () => {
 
     it("should use specified tail count", async () => {
       vi.mocked(execSync).mockReturnValue("");
-      await deployer.logs(undefined, false, 25);
+      await deployer.logs({ tail: 25 });
       const calls = vi.mocked(execSync).mock.calls;
       const lastCmd = String(calls[calls.length - 1][0]);
       expect(lastCmd).toContain("--tail=25");
@@ -677,232 +675,6 @@ describe("DockerDeployer with port 7777", () => {
   });
 });
 
-describe("SSHDeployer (ShellDeployer)", () => {
-  let deployer: SSHDeployer;
-  let mockStateManager: ReturnType<typeof createMockStateManager>;
-
-  beforeEach(() => {
-    mockStateManager = createMockStateManager();
-    const deployment = makeShellDeployment();
-    deployer = new SSHDeployer("shell-deploy", deployment, mockStateManager as any);
-    vi.mocked(execSync).mockReset();
-    vi.mocked(execSync).mockReturnValue("");
-    vi.mocked(execFileSync).mockReset();
-    vi.mocked(fs.mkdirSync).mockReset();
-    vi.mocked(fs.writeFileSync).mockReset();
-  });
-
-  describe("plan()", () => {
-    it("should return local plan when host is localhost", async () => {
-      const plan = await deployer.plan();
-      expect(plan.deployment_name).toBe("shell-deploy");
-      expect(plan.type).toBe("local");
-      expect(plan.changes.length).toBeGreaterThan(0);
-    });
-
-    it("should report initial deployment when no state exists", async () => {
-      mockStateManager.readState.mockResolvedValue(null);
-      const plan = await deployer.plan();
-      expect(plan.changes[0]).toContain("Initial");
-    });
-
-    it("should report update when state exists", async () => {
-      mockStateManager.readState.mockResolvedValue({
-        last_deployed: "2024-01-01",
-        status: "running",
-      });
-      const plan = await deployer.plan();
-      expect(plan.changes[0]).toContain("Update");
-    });
-
-    it("should include required resources in will_create", async () => {
-      const plan = await deployer.plan();
-      const createStr = plan.will_create.join(" ");
-      expect(createStr).toContain("Directory");
-      expect(createStr).toContain("Micromamba");
-      expect(createStr).toContain("Conda");
-      expect(createStr).toContain("Systemd");
-    });
-  });
-
-  describe("plan() for SSH type", () => {
-    it("should report ssh type for remote deployment", async () => {
-      const deployment = makeSSHDeployment();
-      const sm = createMockStateManager();
-      const sshDeployer = new SSHDeployer("ssh-deploy", deployment, sm as any);
-      const plan = await sshDeployer.plan();
-      expect(plan.type).toBe("ssh");
-    });
-  });
-
-  describe("apply()", () => {
-    it("should return plan in dry-run mode", async () => {
-      const result = await deployer.apply(true);
-      expect(result.deployment_name).toBe("shell-deploy");
-      expect(result).toHaveProperty("changes");
-    });
-
-    it("should call state manager during apply", { timeout: 15000 }, async () => {
-      // Mock all the shell commands used during apply
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        const cmdStr = String(cmd);
-        // micromamba check
-        if (cmdStr.includes("[ -f") && cmdStr.includes("micromamba")) return "yes\n";
-        // conda env check
-        if (cmdStr.includes("[ -d") && cmdStr.includes("env")) return "yes\n";
-        if (cmdStr.includes("conda-meta")) return "yes\n";
-        // health check
-        if (cmdStr.includes("curl")) return "ok\n";
-        // uname
-        if (cmdStr.includes("uname -s")) return "Darwin\n";
-        if (cmdStr.includes("uname -m")) return "arm64\n";
-        // systemctl
-        if (cmdStr.includes("systemctl")) return "";
-        if (cmdStr.includes("loginctl")) return "";
-        return "";
-      });
-
-      const result = await deployer.apply(false);
-      expect(mockStateManager.updateDeploymentStatus).toHaveBeenCalledWith(
-        "shell-deploy",
-        "deploying"
-      );
-    });
-
-    it("should set error status on failure", async () => {
-      vi.mocked(execSync).mockImplementation(() => {
-        const err = new Error("fail") as any;
-        err.status = 1;
-        err.stdout = "";
-        err.stderr = "install error";
-        throw err;
-      });
-
-      await expect(deployer.apply(false)).rejects.toThrow();
-      expect(mockStateManager.updateDeploymentStatus).toHaveBeenCalledWith(
-        "shell-deploy",
-        "error"
-      );
-    });
-  });
-
-  describe("status()", () => {
-    it("should return local status info", async () => {
-      mockStateManager.readState.mockResolvedValue({
-        status: "running",
-        last_deployed: "2024-01-01",
-        url: "http://localhost:9000",
-      });
-      vi.mocked(execSync).mockReturnValue("active\n");
-
-      const status = await deployer.status();
-      expect(status.deployment_name).toBe("shell-deploy");
-      expect(status.type).toBe("local");
-      expect(status.status).toBe("running");
-    });
-
-    it("should handle missing state gracefully", async () => {
-      mockStateManager.readState.mockResolvedValue(null);
-      vi.mocked(execSync).mockReturnValue("");
-
-      const status = await deployer.status();
-      expect(status.deployment_name).toBe("shell-deploy");
-      expect(status.status).toBeUndefined();
-    });
-
-    it("should show live_status from systemctl output", async () => {
-      mockStateManager.readState.mockResolvedValue(null);
-      vi.mocked(execSync).mockReturnValue("active\n");
-
-      const status = await deployer.status();
-      expect(status.live_status).toBe("active");
-    });
-  });
-
-  describe("logs()", () => {
-    it("should return journalctl output", async () => {
-      vi.mocked(execSync).mockReturnValue("journal log 1\njournal log 2\n");
-      const logs = await deployer.logs(undefined, false, 50);
-      expect(logs).toContain("journal log");
-    });
-
-    it("should include -f for follow mode", async () => {
-      vi.mocked(execSync).mockReturnValue("");
-      await deployer.logs(undefined, true, 100);
-      const calls = vi.mocked(execSync).mock.calls;
-      const lastCmd = String(calls[calls.length - 1][0]);
-      expect(lastCmd).toContain("-f");
-    });
-
-    it("should use the configured service name", async () => {
-      vi.mocked(execSync).mockReturnValue("");
-      await deployer.logs(undefined, false, 10);
-      const calls = vi.mocked(execSync).mock.calls;
-      const lastCmd = String(calls[calls.length - 1][0]);
-      expect(lastCmd).toContain("nodetool-test");
-    });
-  });
-
-  describe("destroy()", () => {
-    it("should stop and disable the systemd service", async () => {
-      vi.mocked(execSync).mockReturnValue("");
-      const result = await deployer.destroy();
-      expect(result.status).toBe("success");
-      expect(result.steps).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining("Service stopped"),
-        ])
-      );
-      expect(mockStateManager.updateDeploymentStatus).toHaveBeenCalledWith(
-        "shell-deploy",
-        "destroyed"
-      );
-    });
-
-    it("should handle service stop failure gracefully (timeout)", async () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        const cmdStr = String(cmd);
-        if (cmdStr.includes("systemctl")) {
-          // Timeout always throws SSHCommandError regardless of check flag
-          const err = new Error("timeout") as any;
-          err.killed = true;
-          err.signal = "SIGTERM";
-          err.stdout = "";
-          err.stderr = "";
-          throw err;
-        }
-        return "";
-      });
-
-      const result = await deployer.destroy();
-      expect(result.steps).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/Warning.*Failed to stop/i),
-        ])
-      );
-    });
-
-    it("should use default service name when not specified", async () => {
-      const deployment = makeShellDeployment({
-        service_name: undefined,
-        port: 9999,
-      });
-      const sm = createMockStateManager();
-      const dep = new SSHDeployer("no-name-deploy", deployment, sm as any);
-
-      vi.mocked(execSync).mockReturnValue("");
-      const result = await dep.destroy();
-      // Should use nodetool-<port> as default service name
-      expect(result.steps.some((s: string) => s.includes("nodetool-9999"))).toBe(true);
-    });
-  });
-});
-
-describe("RootDeployer alias", () => {
-  it("should be the same class as SSHDeployer", () => {
-    expect(RootDeployer).toBe(SSHDeployer);
-  });
-});
 
 describe("BaseSSHDeployer common behavior", () => {
   it("should create state manager when not provided", () => {
@@ -949,33 +721,6 @@ describe("DockerDeployer with persistent paths", () => {
   });
 });
 
-describe("SSHDeployer with nginx config", () => {
-  it("should handle deployment with nginx enabled", async () => {
-    const deployment = makeShellDeployment({
-      nginx: {
-        enabled: true,
-        http_port: 80,
-        https_port: 443,
-        config_dir: "~/nodetool_data/nginx/conf.d",
-      },
-    });
-    const sm = createMockStateManager();
-    const deployer = new SSHDeployer("nginx-deploy", deployment, sm as any);
-    const plan = await deployer.plan();
-    expect(plan.deployment_name).toBe("nginx-deploy");
-  });
-});
-
-describe("SSHDeployer with server_auth_token", () => {
-  it("should accept server_auth_token in config", () => {
-    const deployment = makeShellDeployment({
-      server_auth_token: "test-token-123",
-    });
-    const sm = createMockStateManager();
-    const deployer = new SSHDeployer("auth-deploy", deployment, sm as any);
-    expect(deployer.deployment.server_auth_token).toBe("test-token-123");
-  });
-});
 
 describe("Interface types", () => {
   it("DeployResult should have required fields", () => {

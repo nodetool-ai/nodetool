@@ -77,8 +77,8 @@ describe("FalProvider constructor", () => {
     expect(provider).toBeInstanceOf(FalProvider);
   });
 
-  it("accepts an inputs object with _secrets.FAL_API_KEY", () => {
-    const provider = new FalProvider({ _secrets: { FAL_API_KEY: "secret-key" } });
+  it("accepts a secrets object with FAL_API_KEY", () => {
+    const provider = new FalProvider({ FAL_API_KEY: "secret-key" });
     expect(provider).toBeInstanceOf(FalProvider);
   });
 

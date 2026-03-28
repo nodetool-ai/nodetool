@@ -145,7 +145,9 @@ describe.skipIf(!sdkAvailable)("AgentNode E2E with ClaudeAgentProvider", () => {
     const outputs: Record<string, unknown>[] = [];
     let fullText = "";
 
-    for await (const item of node.genProcess(inputs, context)) {
+    node.assign(inputs);
+
+    for await (const item of node.genProcess(context)) {
       outputs.push(item);
       if (item.text && typeof item.text === "string") {
         fullText = item.text;

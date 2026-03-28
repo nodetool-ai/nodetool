@@ -217,9 +217,11 @@ describe("Job model", () => {
     expect(await job.acquireWithCas("worker-2", 0)).toBe(false);
 
     const failingJob = await Job.create<Job>({ user_id: "u1", workflow_id: "w2" });
-    const saveSpy = vi.spyOn(failingJob, "save").mockRejectedValueOnce(new Error("save failed"));
+    // Temporarily corrupt the id to force a DB error in acquireWithCas
+    const realId = failingJob.id;
+    Object.defineProperty(failingJob, "id", { get() { throw new Error("db error"); }, configurable: true });
     expect(await failingJob.acquireWithCas("worker-3", failingJob.version)).toBe(false);
-    saveSpy.mockRestore();
+    Object.defineProperty(failingJob, "id", { value: realId, writable: true, configurable: true });
   });
 
   it("paginate returns a cursor when jobs exceed the limit", async () => {

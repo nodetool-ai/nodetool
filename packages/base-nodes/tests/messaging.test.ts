@@ -54,10 +54,11 @@ describe("DiscordBotTrigger", () => {
     });
 
     const node = new DiscordBotTrigger();
-    const result = await node.process({
+    node.assign({
       token: "test-token",
       channel_id: "ch-456",
     });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, opts] = mockFetch.mock.calls[0];
@@ -77,9 +78,8 @@ describe("DiscordBotTrigger", () => {
     });
 
     const node = new DiscordBotTrigger();
-    await node.process({
-      _secrets: { DISCORD_BOT_TOKEN: "secret-token" },
-    });
+    node.setDynamic("_secrets", { DISCORD_BOT_TOKEN: "secret-token" });
+    await node.process();
 
     const [, opts] = mockFetch.mock.calls[0];
     expect(opts.headers.Authorization).toBe("Bot secret-token");
@@ -93,9 +93,8 @@ describe("DiscordBotTrigger", () => {
     });
 
     const node = new DiscordBotTrigger();
-    await expect(
-      node.process({ token: "bad-token" })
-    ).rejects.toThrow(/token validation failed.*401/i);
+    node.assign({ token: "bad-token" });
+    await expect(node.process()).rejects.toThrow(/token validation failed.*401/i);
   });
 });
 
@@ -118,9 +117,8 @@ describe("DiscordSendMessage", () => {
 
   it("throws without channel_id", async () => {
     const node = new DiscordSendMessage();
-    await expect(
-      node.process({ token: "tok", channel_id: "", content: "hi" })
-    ).rejects.toThrow(/channel ID is required/i);
+    node.assign({ token: "tok", channel_id: "", content: "hi" });
+    await expect(node.process()).rejects.toThrow(/channel ID is required/i);
   });
 
   it("sends message and returns message_id", async () => {
@@ -130,11 +128,12 @@ describe("DiscordSendMessage", () => {
     });
 
     const node = new DiscordSendMessage();
-    const result = await node.process({
+    node.assign({
       token: "test-token",
       channel_id: "ch-123",
       content: "Hello!",
     });
+    const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, opts] = mockFetch.mock.calls[0];
@@ -158,12 +157,13 @@ describe("DiscordSendMessage", () => {
 
     const embeds = [{ title: "Test", description: "Desc" }];
     const node = new DiscordSendMessage();
-    await node.process({
+    node.assign({
       token: "tok",
       channel_id: "ch",
       content: "hi",
       embeds,
     });
+    await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.embeds).toEqual(embeds);
@@ -177,9 +177,8 @@ describe("DiscordSendMessage", () => {
     });
 
     const node = new DiscordSendMessage();
-    await expect(
-      node.process({ token: "tok", channel_id: "bad", content: "hi" })
-    ).rejects.toThrow(/sendMessage failed.*404/i);
+    node.assign({ token: "tok", channel_id: "bad", content: "hi" });
+    await expect(node.process()).rejects.toThrow(/sendMessage failed.*404/i);
   });
 });
 
@@ -210,10 +209,11 @@ describe("TelegramBotTrigger", () => {
     });
 
     const node = new TelegramBotTrigger();
-    const result = await node.process({
+    node.assign({
       token: "tg-token",
       chat_id: 42,
     });
+    const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.telegram.org/bottg-token/getMe");
@@ -234,9 +234,8 @@ describe("TelegramBotTrigger", () => {
     });
 
     const node = new TelegramBotTrigger();
-    await node.process({
-      _secrets: { TELEGRAM_BOT_TOKEN: "secret-tg" },
-    });
+    node.setDynamic("_secrets", { TELEGRAM_BOT_TOKEN: "secret-tg" });
+    await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain("botsecret-tg");
@@ -250,9 +249,8 @@ describe("TelegramBotTrigger", () => {
     });
 
     const node = new TelegramBotTrigger();
-    await expect(
-      node.process({ token: "bad" })
-    ).rejects.toThrow(/token validation failed.*401/i);
+    node.assign({ token: "bad" });
+    await expect(node.process()).rejects.toThrow(/token validation failed.*401/i);
   });
 
   it("handles getMe failure (ok: false in response)", async () => {
@@ -262,9 +260,8 @@ describe("TelegramBotTrigger", () => {
     });
 
     const node = new TelegramBotTrigger();
-    await expect(
-      node.process({ token: "bad" })
-    ).rejects.toThrow(/getMe failed/i);
+    node.assign({ token: "bad" });
+    await expect(node.process()).rejects.toThrow(/getMe failed/i);
   });
 });
 
@@ -287,9 +284,8 @@ describe("TelegramSendMessage", () => {
 
   it("throws without chat_id", async () => {
     const node = new TelegramSendMessage();
-    await expect(
-      node.process({ token: "tok", chat_id: 0, text: "hi" })
-    ).rejects.toThrow(/chat ID is required/i);
+    node.assign({ token: "tok", chat_id: 0, text: "hi" });
+    await expect(node.process()).rejects.toThrow(/chat ID is required/i);
   });
 
   it("sends message and returns result", async () => {
@@ -306,11 +302,12 @@ describe("TelegramSendMessage", () => {
     });
 
     const node = new TelegramSendMessage();
-    const result = await node.process({
+    node.assign({
       token: "tg-token",
       chat_id: 42,
       text: "Hello Telegram!",
     });
+    const result = await node.process();
 
     const [url, opts] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.telegram.org/bottg-token/sendMessage");
@@ -334,13 +331,14 @@ describe("TelegramSendMessage", () => {
     });
 
     const node = new TelegramSendMessage();
-    await node.process({
+    node.assign({
       token: "tok",
       chat_id: 1,
       text: "hi",
       parse_mode: "HTML",
       reply_to_message_id: 55,
     });
+    await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.parse_mode).toBe("HTML");
@@ -357,9 +355,8 @@ describe("TelegramSendMessage", () => {
     });
 
     const node = new TelegramSendMessage();
-    await expect(
-      node.process({ token: "tok", chat_id: 999, text: "hi" })
-    ).rejects.toThrow(/sendMessage failed/i);
+    node.assign({ token: "tok", chat_id: 999, text: "hi" });
+    await expect(node.process()).rejects.toThrow(/sendMessage failed/i);
   });
 });
 

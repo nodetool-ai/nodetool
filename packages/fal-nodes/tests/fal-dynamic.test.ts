@@ -121,7 +121,8 @@ describe("FalRawNode.process", () => {
     mockSubscribe.mockResolvedValue({ data: response });
 
     const node = new FalRawNode();
-    const result = await node.process({
+    const executor = node.toExecutor();
+    const result = await executor.process({
       _secrets: { FAL_API_KEY: "test-key" },
       endpoint_id: "fal-ai/flux/dev",
       arguments: JSON.stringify({ prompt: "a cat" }),
@@ -144,7 +145,8 @@ describe("FalRawNode.process", () => {
     (node as Record<string, unknown>).endpoint_id = "fal-ai/test";
     (node as Record<string, unknown>).arguments = '{"x": 1}';
 
-    const result = await node.process({
+    const executor = node.toExecutor();
+    const result = await executor.process({
       _secrets: { FAL_API_KEY: "k" },
     });
     expect(result).toEqual({ result: { ok: true } });
@@ -152,8 +154,9 @@ describe("FalRawNode.process", () => {
 
   it("throws when endpoint_id is empty", async () => {
     const node = new FalRawNode();
+    const executor = node.toExecutor();
     await expect(
-      node.process({
+      executor.process({
         _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "",
         arguments: "{}",
@@ -163,8 +166,9 @@ describe("FalRawNode.process", () => {
 
   it("throws when arguments is not valid JSON", async () => {
     const node = new FalRawNode();
+    const executor = node.toExecutor();
     await expect(
-      node.process({
+      executor.process({
         _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "fal-ai/test",
         arguments: "not json",
@@ -175,8 +179,9 @@ describe("FalRawNode.process", () => {
   it("propagates FAL SDK errors", async () => {
     mockSubscribe.mockRejectedValue(new Error("FAL queue error"));
     const node = new FalRawNode();
+    const executor = node.toExecutor();
     await expect(
-      node.process({
+      executor.process({
         _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "fal-ai/test",
         arguments: "{}",
@@ -214,16 +219,18 @@ describe("FalDynamicNode static metadata", () => {
 describe("FalDynamicNode.process — model_info validation", () => {
   it("throws when model_info is empty", async () => {
     const node = new FalDynamicNode();
+    const executor = node.toExecutor();
     await expect(
-      node.process({ _secrets: { FAL_API_KEY: "k" }, model_info: "" })
+      executor.process({ _secrets: { FAL_API_KEY: "k" }, model_info: "" })
     ).rejects.toThrow("model_info is required");
   });
 
   it("throws when model_info cannot be resolved to a URL", async () => {
     const node = new FalDynamicNode();
+    const executor = node.toExecutor();
     // A URL that is not fal.ai and not parseable as endpoint id
     await expect(
-      node.process({
+      executor.process({
         _secrets: { FAL_API_KEY: "k" },
         model_info: "https://evil.com/some/path",
       })
@@ -260,7 +267,8 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
     mockSubscribe.mockResolvedValue({ data: apiResponse });
 
     const node = new FalDynamicNode();
-    const result = await node.process({
+    const executor = node.toExecutor();
+    const result = await executor.process({
       _secrets: { FAL_API_KEY: "test-key" },
       model_info: "fal-ai/flux/dev",
       prompt: "a dog",
@@ -320,7 +328,8 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
     mockSubscribe.mockResolvedValue({ data: apiResponse });
 
     const node = new FalDynamicNode();
-    const result = await node.process({
+    const executor = node.toExecutor();
+    const result = await executor.process({
       _secrets: { FAL_API_KEY: "key" },
       model_info: "fal-ai/flux/dev",
       prompt: "test",
@@ -342,7 +351,8 @@ describe("FalDynamicNode.process — direct OpenAPI URL", () => {
     mockSubscribe.mockResolvedValue({ data: { images: [{ url: "https://fal.media/x.png", width: 1, height: 1 }] } });
 
     const node = new FalDynamicNode();
-    const result = await node.process({
+    const executor = node.toExecutor();
+    const result = await executor.process({
       _secrets: { FAL_API_KEY: "k" },
       model_info:
         "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev",
@@ -365,6 +375,7 @@ describe("FalDynamicNode.process — domain validation", () => {
     // Actually, the only way to get a non-fal.ai URL into the fetch is to bypass
     // normalizeModelInfo. Let's test an invalid fal.ai URL that coerces to nothing.
     const node = new FalDynamicNode();
+    const executor = node.toExecutor();
     // Pass text with an openapi URL on a bad domain
     const maliciousText =
       `**Model ID**: \`fal-ai/test\`\n` +
@@ -382,7 +393,7 @@ describe("FalDynamicNode.process — domain validation", () => {
     });
 
     await expect(
-      node.process({
+      executor.process({
         _secrets: { FAL_API_KEY: "k" },
         model_info: "fal-ai/test",
       })
@@ -414,9 +425,10 @@ describe("FalDynamicNode.process — required input validation", () => {
     });
 
     const node = new FalDynamicNode();
+    const executor = node.toExecutor();
     // "prompt" is required in minimalOpenApi but we do not provide it
     await expect(
-      node.process({
+      executor.process({
         _secrets: { FAL_API_KEY: "k" },
         model_info: "fal-ai/flux/dev",
         // no "prompt" key
@@ -485,7 +497,8 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
     mockSubscribe.mockResolvedValue({ data: { result: "done" } });
 
     const node = new FalDynamicNode();
-    await node.process({
+    const executor = node.toExecutor();
+    await executor.process({
       _secrets: { FAL_API_KEY: "k" },
       model_info: "fal-ai/img2img",
       image_url: {
@@ -533,7 +546,8 @@ describe("FalDynamicNode.process — fal.ai model URL", () => {
     });
 
     const node = new FalDynamicNode();
-    await node.process({
+    const executor = node.toExecutor();
+    await executor.process({
       _secrets: { FAL_API_KEY: "k" },
       model_info: "https://fal.ai/models/fal-ai/flux/dev",
       prompt: "test",
