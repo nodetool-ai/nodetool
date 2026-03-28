@@ -17,11 +17,11 @@ const workspaces = [
   "@nodetool/security",
   "@nodetool/kernel",
   "@nodetool/node-sdk",
+  "@nodetool/models",
+  "@nodetool/agents",
   "@nodetool/fal-nodes",
   "@nodetool/replicate-nodes",
   "@nodetool/base-nodes",
-  "@nodetool/models",
-  "@nodetool/agents",
   "@nodetool/websocket",
 ];
 

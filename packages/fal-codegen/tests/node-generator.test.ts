@@ -87,6 +87,27 @@ describe("NodeGenerator.generate()", () => {
     expect(code).toContain("extends FalNode");
   });
 
+  it("emits untyped falUnitPricing null for single-class snippet", () => {
+    const code = gen.generate(makeSpec(), "text_to_image");
+    expect(code).toContain(`static readonly falUnitPricing = null;`);
+    expect(code).not.toContain("FalUnitPricing");
+  });
+
+  it("emits falUnitPricing literal without type annotation in single-class snippet", () => {
+    const spec = makeSpec({
+      falUnitPricing: {
+        endpointId: "fal-ai/flux/dev",
+        unitPrice: 0.01,
+        billingUnit: "image",
+        currency: "USD",
+      },
+    });
+    const code = gen.generate(spec, "text_to_image");
+    expect(code).toContain(`static readonly falUnitPricing = {`);
+    expect(code).toContain(`unitPrice: 0.01`);
+    expect(code).not.toContain(": FalUnitPricing");
+  });
+
   // ── @prop decorators ──────────────────────────────────────────────────────
 
   it("generates @prop decorator for str field", () => {
@@ -402,6 +423,33 @@ describe("NodeGenerator.generateModule()", () => {
     expect(code).toContain(`getFalApiKey`);
     expect(code).toContain(`falSubmit`);
     expect(code).toContain(`removeNulls`);
+  });
+
+  it("imports FalUnitPricing type from fal-base", () => {
+    const code = gen.generateModule("text_to_image", [makeSpec()]);
+    expect(code).toContain(`import type { FalUnitPricing } from "../fal-base.js"`);
+  });
+
+  it("emits typed falUnitPricing null when spec has no pricing", () => {
+    const code = gen.generateModule("text_to_image", [makeSpec()]);
+    expect(code).toContain(
+      `static readonly falUnitPricing: FalUnitPricing | null = null;`,
+    );
+  });
+
+  it("emits falUnitPricing when spec includes it", () => {
+    const spec = makeSpec({
+      falUnitPricing: {
+        endpointId: "fal-ai/flux/dev",
+        unitPrice: 0.025,
+        billingUnit: "megapixels",
+        currency: "USD",
+      },
+    });
+    const code = gen.generateModule("text_to_image", [spec]);
+    expect(code).toContain(`unitPrice: 0.025`);
+    expect(code).toContain(`billingUnit: "megapixels"`);
+    expect(code).toContain(`currency: "USD"`);
   });
 
   it("exports FAL_{MODULE}_NODES array", () => {

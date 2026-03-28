@@ -5,6 +5,14 @@
 
 import { createFalClient, type FalClient } from "@fal-ai/client";
 
+/** Unit list price for a model endpoint (from FAL Platform GET /v1/models/pricing, embedded at codegen). */
+export interface FalUnitPricing {
+  readonly endpointId: string;
+  readonly unitPrice: number;
+  readonly billingUnit: string;
+  readonly currency: string;
+}
+
 // ---------------------------------------------------------------------------
 // API Key extraction
 // ---------------------------------------------------------------------------

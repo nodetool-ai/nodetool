@@ -27,6 +27,7 @@ import { FAL_VISION_NODES } from "./generated/vision.js";
 
 export { FalProvider } from "./fal-provider.js";
 export { FalRawNode, FalDynamicNode } from "./fal-dynamic.js";
+export type { FalUnitPricing } from "./fal-base.js";
 
 export const FAL_NODES: readonly NodeClass[] = [
   ...FAL_3D_TO_3D_NODES,

@@ -1,3 +1,14 @@
+/**
+ * Published unit rate for a FAL model endpoint (GET /v1/models/pricing at codegen time).
+ * Same shape as `FalUnitPricing` in `@nodetool/fal-nodes` (`fal-base.ts`).
+ */
+export interface FalUnitPricing {
+  endpointId: string;
+  unitPrice: number;
+  billingUnit: string;
+  currency: string;
+}
+
 export interface EnumDef {
   name: string;
   values: [string, string][]; // [ENUM_KEY, rawValue]
@@ -29,6 +40,8 @@ export interface NodeSpec {
   outputType: string; // "image" | "video" | "audio" | "dict"
   outputFields: FieldDef[];
   enums: EnumDef[];
+  /** Filled at codegen when FAL_API_KEY can fetch GET /v1/models/pricing; otherwise null. */
+  falUnitPricing?: FalUnitPricing | null;
 }
 
 export interface NodeConfig {

@@ -129,7 +129,8 @@ export class NodeGenerator {
     if (config) {
       spec = this.applyConfig(spec, config);
     }
-    return this._renderClass(spec, moduleName);
+    // Single-class snippet: omit `FalUnitPricing` type annotation (no imports in output).
+    return this._renderClass(spec, moduleName, false);
   }
 
   /**
@@ -155,6 +156,7 @@ export class NodeGenerator {
       `  imageToDataUrl,`,
       `  coerceFalOutputForPropType,`,
       `} from "../fal-base.js";`,
+      `import type { FalUnitPricing } from "../fal-base.js";`,
       ``,
       `// Re-export alias`,
       `const FalNode = BaseNode;`,
@@ -168,7 +170,7 @@ export class NodeGenerator {
       const finalSpec = endpointConfig
         ? this.applyConfig({ ...spec }, endpointConfig)
         : spec;
-      lines.push(this._renderClass(finalSpec, moduleName));
+      lines.push(this._renderClass(finalSpec, moduleName, true));
       lines.push(``);
       classNames.push(finalSpec.className);
     }
@@ -262,7 +264,33 @@ export class NodeGenerator {
   // Private rendering methods
   // ---------------------------------------------------------------------------
 
-  private _renderClass(spec: NodeSpec, moduleName: string): string {
+  /**
+   * When `fullModule` is false (single-class snippet), omit `: FalUnitPricing | null`
+   * because the output has no `import type` from fal-base.
+   */
+  private _renderFalUnitPricingStatic(spec: NodeSpec, fullModule: boolean): string[] {
+    const standalone = !fullModule;
+    const p = spec.falUnitPricing;
+    const typeAnnot = standalone ? "" : ": FalUnitPricing | null";
+    if (!p) {
+      return [`  static readonly falUnitPricing${typeAnnot} = null;`, ``];
+    }
+    return [
+      `  static readonly falUnitPricing${typeAnnot} = {`,
+      `    endpointId: ${JSON.stringify(p.endpointId)},`,
+      `    unitPrice: ${p.unitPrice},`,
+      `    billingUnit: ${JSON.stringify(p.billingUnit)},`,
+      `    currency: ${JSON.stringify(p.currency)},`,
+      `  };`,
+      ``,
+    ];
+  }
+
+  private _renderClass(
+    spec: NodeSpec,
+    moduleName: string,
+    fullModule: boolean,
+  ): string {
     const moduleId = moduleNameToId(moduleName);
     const nodeType = `fal.${moduleId}.${spec.className}`;
     const title = toTitle(spec.className);
@@ -298,7 +326,7 @@ export class NodeGenerator {
       lines.push(`  static readonly outputTypes = { output: "dict" };`);
     }
 
-    lines.push(``);
+    lines.push(...this._renderFalUnitPricingStatic(spec, fullModule));
 
     // Field declarations
     for (const field of spec.inputFields) {
