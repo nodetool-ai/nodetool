@@ -109,6 +109,10 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       maxToRenderPerBatch={10}
       windowSize={15}
       initialNumToRender={15}
+      // Dismiss keyboard when scrolling
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
+      // Prevent scroll jumping when new messages arrive
       onContentSizeChange={() => {
         if (messages.length > 0 && isNearBottomRef.current) {
           flatListRef.current?.scrollToEnd({ animated: true });

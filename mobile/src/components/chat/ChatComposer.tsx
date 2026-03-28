@@ -17,6 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { MessageContent, ChatStatus } from '../../types';
@@ -80,6 +81,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       } as MessageContent);
     }
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSendMessage(content, trimmedText);
     setText('');
     

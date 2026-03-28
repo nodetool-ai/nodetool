@@ -2,19 +2,13 @@
  * Individual message view component.
  * Renders user or assistant messages with appropriate styling.
  * Supports text, images, videos, audio, and documents.
- * Long-press to copy message text.
+ * Long press to copy message text to clipboard.
  */
 
 import React, { useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Message, MessageContent } from '../../types';
 import { ChatMarkdown } from './ChatMarkdown';
 import { MessageContentRenderer } from './MessageContentRenderer';
@@ -87,18 +81,44 @@ function hasMediaContent(content: Message['content']): boolean {
   return items.some(item => item.type !== 'text');
 }
 
+/**
+ * Format a timestamp for display
+ */
+function formatTimestamp(dateStr: string | null | undefined): string {
+  if (!dateStr) { return ''; }
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) +
+      ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
   const isUser = message.role === 'user';
   const { colors } = useTheme();
 
   const textContent = getTextContent(message.content);
 
-  const handleCopyMessage = useCallback(async () => {
-    if (textContent) {
-      await Clipboard.setStringAsync(textContent);
-      Alert.alert('Copied', 'Message copied to clipboard');
+  /**
+   * Copy message text to clipboard on long press
+   */
+  const handleLongPress = useCallback(async () => {
+    const text = getTextContent(message.content);
+    if (!text) { return; }
+    try {
+      await Clipboard.setStringAsync(text);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      // Silently fail on clipboard errors
     }
-  }, [textContent]);
+  }, [message.content]);
 
   /**
    * Render text content (used as callback for MessageContentRenderer)
@@ -119,6 +139,7 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
 
   const contentItems = getContentItems(message.content);
   const hasMedia = hasMediaContent(message.content);
+  const timestamp = formatTimestamp(message.created_at);
 
   /**
    * Render simple text-only message
@@ -157,28 +178,29 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
       accessibilityRole="text"
       accessibilityLabel={`${isUser ? 'You' : 'Assistant'}: ${textContent}`}
     >
-      <View
-        style={[
+      <Pressable
+        onLongPress={handleLongPress}
+        delayLongPress={400}
+        style={({ pressed }) => [
           styles.bubble,
           isUser
             ? [styles.userBubble, { backgroundColor: colors.userBubbleBg }]
             : [styles.assistantBubble, { backgroundColor: colors.assistantBubbleBg }],
+          pressed && styles.bubblePressed,
         ]}
+        accessibilityHint="Long press to copy message"
       >
         {hasMedia ? renderMixedContent() : renderSimpleMessage()}
-      </View>
-      {/* Copy button for assistant messages */}
-      {!isUser && textContent.length > 0 && (
-        <TouchableOpacity
-          style={styles.copyButton}
-          onPress={handleCopyMessage}
-          accessibilityLabel="Copy message"
-          accessibilityRole="button"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="copy-outline" size={14} color={colors.textSecondary} />
-        </TouchableOpacity>
-      )}
+      </Pressable>
+      {timestamp ? (
+        <Text style={[
+          styles.timestamp,
+          isUser ? styles.timestampRight : styles.timestampLeft,
+          { color: colors.textSecondary },
+        ]}>
+          {timestamp}
+        </Text>
+      ) : null}
     </View>
   );
 };
@@ -201,6 +223,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
+  bubblePressed: {
+    opacity: 0.7,
+  },
   userBubble: {
     borderBottomRightRadius: 4,
   },
@@ -211,11 +236,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  copyButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  timestamp: {
+    fontSize: 11,
     marginTop: 2,
-    opacity: 0.6,
+    marginBottom: 2,
+    paddingHorizontal: 4,
+  },
+  timestampRight: {
+    alignSelf: 'flex-end',
+  },
+  timestampLeft: {
+    alignSelf: 'flex-start',
   },
 });
 

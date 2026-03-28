@@ -10,6 +10,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { apiService } from '../services/api';
@@ -46,6 +47,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   const { inputDefinitions, inputValues, updateInputValue } = useMiniAppInputs(workflow);
 
   const isRunning = state === 'running' || state === 'connecting';
+  const prevStateRef = React.useRef(state);
   const isCompleted = state === 'completed';
   const isError = state === 'error';
 
@@ -74,6 +76,16 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   useEffect(() => {
     navigation.setOptions({ title: workflowName || 'Mini App' });
   }, [navigation, workflowName]);
+
+  // Auto-scroll to results when execution finishes
+  useEffect(() => {
+    if (prevStateRef.current === 'running' && state === 'idle' && runResults) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+    }
+    prevStateRef.current = state;
+  }, [state, runResults]);
 
   const handleRun = async () => {
     // Validate inputs
@@ -125,6 +137,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     );
 
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await run(params, workflow as Workflow);
     } catch (error) {
       console.error('Failed to run workflow:', error);

@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
@@ -27,6 +28,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -60,8 +62,10 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
       const data = await apiService.getWorkflows();
       const workflowsList = Array.isArray(data) ? data : (data?.workflows || []);
       setWorkflows(workflowsList);
+      setIsConnected(true);
     } catch (error: any) {
       console.error('Failed to load workflows:', error);
+      setIsConnected(false);
       const errorMessage = error.message || 'Network Error';
       setLoadError(errorMessage);
       Alert.alert(
@@ -106,6 +110,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   };
 
   const handleWorkflowPress = (workflow: Workflow) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate('MiniApp', { workflowId: workflow.id, workflowName: workflow.name });
   };
 
@@ -151,7 +156,13 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
           paddingTop: insets.top + 10
         }
       ]}>
-        <Text style={[styles.title, { color: colors.text }]}>Mini Apps</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: colors.text }]}>Mini Apps</Text>
+          <View style={[
+            styles.statusDot,
+            { backgroundColor: isConnected ? colors.success : colors.error },
+          ]} />
+        </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.headerButton}
@@ -283,9 +294,20 @@ const styles = StyleSheet.create({
   headerButton: {
     padding: 8,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 2,
   },
   loadingText: {
     marginTop: 12,
