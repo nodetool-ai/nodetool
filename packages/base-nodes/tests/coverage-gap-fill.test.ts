@@ -1722,7 +1722,11 @@ describe("lib-beautifulsoup gaps", () => {
 // lib-seaborn.ts gaps
 // ============================================================================
 
-describe.skipIf(Boolean(process.env.CI))("lib-seaborn gaps", () => {
+// canvas native module required for chart rendering
+let hasCanvas = false;
+try { require("canvas"); hasCanvas = true; } catch { /* not installed */ }
+
+describe.skipIf(!hasCanvas)("lib-seaborn gaps", () => {
   it("ChartRenderer renders a basic bar chart", async () => {
     const __n115 = new ChartRendererLibNode();
     __n115.assign({

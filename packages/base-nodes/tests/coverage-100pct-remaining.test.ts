@@ -115,10 +115,17 @@ import {
   SearchNode,
 } from "../src/nodes/vector-faiss.js";
 
-describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock", () => {
+describe("vector-faiss backends", () => {
   const DIM = 4;
 
-  it("CreateIndexFlatL2Node creates native backend when faiss-node available", async () => {
+  // Detect whether faiss-node native module is available
+  let hasFaissNative = false;
+  try {
+    require("faiss-node");
+    hasFaissNative = true;
+  } catch { /* pure-TS fallback will be used */ }
+
+  it("CreateIndexFlatL2Node creates backend", async () => {
     const node = new CreateIndexFlatL2Node();
     node.assign({ dim: DIM });
     node.assign({ dim: DIM });
@@ -127,23 +134,26 @@ describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock"
     const ref = result.output as any;
     expect(ref.__faiss_index__).toBe(true);
     expect(ref.dim).toBe(DIM);
-    // The backend should be native (NativeFlatL2Backend)
-    expect(ref._index.indexType).toBe("FlatL2");
+    expect(ref._index.indexType).toBe(hasFaissNative ? "FlatL2" : "PureTSFlatL2");
   });
 
-  it("CreateIndexFlatIPNode creates native IP backend", async () => {
+  it("CreateIndexFlatIPNode creates IP backend", async () => {
     const node = new CreateIndexFlatIPNode();
     node.assign({ dim: DIM });
     node.assign({ dim: DIM });
     const result = await node.process();
     const ref = result.output as any;
-    expect(ref._index.indexType).toBe("FlatIP");
+    expect(ref._index.indexType).toBe(hasFaissNative ? "FlatIP" : "PureTSFlatIP");
   });
 
-  it("CreateIndexIVFFlatNode creates native IVF backend", async () => {
+  it("CreateIndexIVFFlatNode creates IVF backend", async () => {
     const node = new CreateIndexIVFFlatNode();
     node.assign({ dim: DIM, nlist: 2, metric: "L2" });
     node.assign({ dim: DIM, nlist: 2, metric: "L2" });
+    if (!hasFaissNative) {
+      await expect(node.process()).rejects.toThrow(/faiss-node/);
+      return;
+    }
     const result = await node.process();
     const ref = result.output as any;
     expect(ref._index.indexType).toBe("IVFFlat");
@@ -152,12 +162,16 @@ describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock"
   it("CreateIndexIVFFlatNode with IP metric", async () => {
     const node = new CreateIndexIVFFlatNode();
     node.assign({ dim: DIM, nlist: 2, metric: "IP" });
+    if (!hasFaissNative) {
+      await expect(node.process()).rejects.toThrow(/faiss-node/);
+      return;
+    }
     const result = await node.process();
     const ref = result.output as any;
     expect(ref._index.indexType).toBe("IVFFlat");
   });
 
-  it("native FlatL2 add + addWithIds + search + isTrained + ntotal", async () => {
+  it("FlatL2 add + addWithIds + search + isTrained + ntotal", async () => {
     const createNode = new CreateIndexFlatL2Node();
     createNode.assign({ dim: DIM });
     const { output: idx } = await createNode.process();
@@ -185,7 +199,7 @@ describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock"
     expect(searchResult.indices).toBeDefined();
   });
 
-  it("native FlatIP add + addWithIds + search", async () => {
+  it("FlatIP add + addWithIds + search", async () => {
     const createNode = new CreateIndexFlatIPNode();
     createNode.assign({ dim: DIM });
     const { output: idx } = await createNode.process();
@@ -208,9 +222,13 @@ describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock"
     expect(result.distances).toBeDefined();
   });
 
-  it("native IVFFlat train + add + addWithIds + search + setNprobe", async () => {
+  it("IVFFlat train + add + addWithIds + search + setNprobe", async () => {
     const createNode = new CreateIndexIVFFlatNode();
     createNode.assign({ dim: DIM, nlist: 2, metric: "L2" });
+    if (!hasFaissNative) {
+      await expect(createNode.process()).rejects.toThrow(/faiss-node/);
+      return;
+    }
     const { output: idx } = await createNode.process();
 
     // Train
@@ -244,6 +262,12 @@ describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock"
   });
 
   it("IVFFlat add before train throws", async () => {
+    if (!hasFaissNative) {
+      const node = new CreateIndexIVFFlatNode();
+      node.assign({ dim: DIM, nlist: 2, metric: "L2" });
+      await expect(node.process()).rejects.toThrow(/faiss-node/);
+      return;
+    }
     const createNode = new CreateIndexIVFFlatNode();
     createNode.assign({ dim: DIM, nlist: 2, metric: "L2" });
     const { output: idx } = await createNode.process();
@@ -255,6 +279,12 @@ describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock"
   });
 
   it("IVFFlat addWithIds before train throws", async () => {
+    if (!hasFaissNative) {
+      const node = new CreateIndexIVFFlatNode();
+      node.assign({ dim: DIM, nlist: 2, metric: "L2" });
+      await expect(node.process()).rejects.toThrow(/faiss-node/);
+      return;
+    }
     const createNode = new CreateIndexIVFFlatNode();
     createNode.assign({ dim: DIM, nlist: 2, metric: "L2" });
     const { output: idx } = await createNode.process();
@@ -265,7 +295,7 @@ describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock"
     ).rejects.toThrow(/trained/i);
   });
 
-  it("native FlatL2 search with label=-1 remapping", async () => {
+  it("FlatL2 search with label=-1 remapping", async () => {
     const createNode = new CreateIndexFlatL2Node();
     createNode.assign({ dim: DIM });
     const { output: idx } = await createNode.process();
