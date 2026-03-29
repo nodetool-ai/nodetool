@@ -3,7 +3,7 @@ import * as os from "os";
 import * as path from "path";
 
 // Use require for CJS module to avoid ESM interop issues across Node versions
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const afterPack = require("../../scripts/after-pack.cjs") as {
   promoteBackendNodeModules: (context: Record<string, unknown>) => Promise<void>;
 };
