@@ -16,8 +16,8 @@ import { test, expect, Page } from "./fixtures/electronApp";
 import {
   setupMockApiRoutes,
   getBackendApiUrl,
-} from "../../../web/tests/e2e/fixtures/mockData";
-import { navigateToPage, waitForAnimation } from "../../../web/tests/e2e/helpers/waitHelpers";
+} from "./fixtures/mockData";
+import { navigateToPage, waitForAnimation } from "./helpers/waitHelpers";
 
 // ---------------------------------------------------------------------------
 // Fake-provider data
