@@ -123,6 +123,16 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     await refetch();
   }, [refetch, isFetching]);
 
+  const handleSetFavoritesView = useCallback(() => {
+    setCustomView("favorites");
+    setSelectedProvider(null);
+  }, [setSelectedProvider]);
+
+  const handleSetRecentView = useCallback(() => {
+    setCustomView("recent");
+    setSelectedProvider(null);
+  }, [setSelectedProvider]);
+
   // Reset custom view when provider changes
   React.useEffect(() => {
     if (selectedProvider !== null && customView !== null) {
@@ -315,10 +325,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             <ListItemButton
               disableRipple
               selected={customView === "favorites"}
-              onClick={() => {
-                setCustomView("favorites");
-                setSelectedProvider(null);
-              }}
+              onClick={handleSetFavoritesView}
               sx={{
                 py: isIconOnly ? 1 : 0.25,
                 borderRadius: 1,
@@ -397,10 +404,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             <ListItemButton
               disableRipple
               selected={customView === "recent"}
-              onClick={() => {
-                setCustomView("recent");
-                setSelectedProvider(null);
-              }}
+              onClick={handleSetRecentView}
               sx={{
                 py: isIconOnly ? 1 : 0.25,
                 borderRadius: 1,
