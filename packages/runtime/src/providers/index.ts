@@ -106,9 +106,6 @@ registerBuiltinProvider("anthropic", AnthropicProvider, {
 registerBuiltinProvider("gemini", GeminiProvider, {
   GEMINI_API_KEY: process.env["GEMINI_API_KEY"],
 });
-registerBuiltinProvider("ollama", OllamaProvider, {
-  OLLAMA_API_URL: process.env["OLLAMA_API_URL"],
-});
 registerBuiltinProvider("groq", GroqProvider, {
   GROQ_API_KEY: process.env["GROQ_API_KEY"],
 });
@@ -130,5 +127,12 @@ registerBuiltinProvider("together", TogetherProvider, {
 registerBuiltinProvider("cerebras", CerebrasProvider, {
   CEREBRAS_API_KEY: process.env["CEREBRAS_API_KEY"],
 });
-registerBuiltinProvider("lmstudio", LMStudioProvider, {});
-registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});
+
+// Local-only providers — require local servers/CLIs, skip in production
+if (process.env["NODETOOL_ENV"] !== "production") {
+  registerBuiltinProvider("ollama", OllamaProvider, {
+    OLLAMA_API_URL: process.env["OLLAMA_API_URL"],
+  });
+  registerBuiltinProvider("lmstudio", LMStudioProvider, {});
+  registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});
+}
