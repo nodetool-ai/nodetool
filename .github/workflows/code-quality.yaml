@@ -106,12 +106,20 @@ jobs:
             - Missing ARIA labels, poor keyboard navigation
             - Security: unsanitized input, dangerouslySetInnerHTML, eval()
 
+            ## DO NOT TOUCH — Protected Patterns
+            These exist for good reasons. Never remove or modify them:
+            - **`@ts-expect-error` / `@ts-ignore` directives with comments** — these suppress known type incompatibilities between library versions (e.g. zundo/zustand). If the comment explains why, leave it alone.
+            - **`describe.skipIf()` / `test.skip()`** — these skip tests that require specific environments (native modules, API keys, Docker). Do not remove skip conditions.
+            - **Version pins in package.json** — do not bump major versions of dependencies. Major version bumps require manual review.
+            - **CI workflow files** (`.github/workflows/`) — do not modify these.
+
             ## Guidelines
             - **One issue type per PR** — don't mix type fixes with test fixes or perf fixes
             - **High impact first**: bugs > security > performance > style
             - Don't refactor working code without clear benefit
             - Follow existing patterns in the codebase
             - **Maximum 5-10 files per PR** — keep scope narrow for easier review
+            - **Never remove a suppression without understanding why it exists** — read the comment, check git blame, understand the context before touching it
 
             ## Mandatory Quality Checks
             Before submitting your PR, you MUST run and pass all quality checks:

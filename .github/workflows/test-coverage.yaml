@@ -80,6 +80,7 @@ jobs:
           claude_args: |
             --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
           prompt: |
+            ## MANDATORY: Read .github/bot-guardrails.md before making any changes
             # Test Coverage Improvement
 
             Add tests for untested or undertested code in NodeTool (React/TypeScript visual AI workflow builder).
