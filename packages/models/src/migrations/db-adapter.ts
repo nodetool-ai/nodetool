@@ -8,10 +8,10 @@
 
 import type Database from "better-sqlite3";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export type SqlParams = any[];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export type Row = Record<string, any>;
 
 /**
@@ -134,16 +134,16 @@ export class SQLiteMigrationAdapter implements MigrationDBAdapter {
  * for PostgreSQL compatibility with the SQLite-style migrations.
  */
 export class PostgresMigrationAdapter implements MigrationDBAdapter {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   private pool: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   private client: any = null;
   private lastRowCount = 0;
 
   /**
    * @param pool - A `pg.Pool` instance.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   constructor(pool: any) {
     this.pool = pool;
   }

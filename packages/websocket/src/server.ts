@@ -300,7 +300,7 @@ const host = process.env["HOST"] ?? (tlsEnabled ? "0.0.0.0" : "127.0.0.1");
 // Fastify app
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const app: FastifyInstance = (Fastify as any)({
   ...(httpsOptions ? { https: httpsOptions } : {}),
   trustProxy: true,

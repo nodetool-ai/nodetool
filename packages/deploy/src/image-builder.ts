@@ -32,8 +32,8 @@ const execFile = promisify(execFileCb);
  */
 export function generateDockerfile(spec: ImageBuildSpec): string {
   // --- Validate package names against shell injection ---
-  const SAFE_APT_PKG = /^[a-z0-9.+\-]+$/;
-  const SAFE_PIP_PKG = /^[a-zA-Z0-9._\-\[\]~=<>!,+]+$/;
+  const SAFE_APT_PKG = /^[a-z0-9.+-]+$/;
+  const SAFE_PIP_PKG = /^[a-zA-Z0-9._[\]~=<>!,+-]+$/;
   for (const pkg of spec.apt_packages) {
     if (!SAFE_APT_PKG.test(pkg)) throw new Error(`Invalid apt package name: ${pkg}`);
   }

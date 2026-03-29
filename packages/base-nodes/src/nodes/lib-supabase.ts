@@ -12,7 +12,7 @@ function getSupabaseClient(url: string, key: string): SupabaseClient {
   return createClient(url, key);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function applyFilters(query: any, filters: Filter[]): any {
   let q = query;
   for (const [field, op, value] of filters) {
@@ -140,7 +140,7 @@ export class InsertLibNode extends BaseNode {
       : [recordsInput as Record<string, unknown>];
 
     const client = getSupabaseClient(url, key);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let query: any = client.from(tableName).insert(data);
     if (returnRows) {
       query = query.select("*");
@@ -189,7 +189,7 @@ export class UpdateLibNode extends BaseNode {
     if (Object.keys(values).length === 0) throw new Error("values cannot be empty");
 
     const client = getSupabaseClient(url, key);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let query: any = client.from(tableName).update(values);
 
     if (filters.length > 0) {
@@ -236,7 +236,7 @@ export class DeleteLibNode extends BaseNode {
     }
 
     const client = getSupabaseClient(url, key);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let query: any = client.from(tableName).delete();
     query = applyFilters(query, filters);
 
@@ -282,7 +282,7 @@ export class UpsertLibNode extends BaseNode {
       : [recordsInput as Record<string, unknown>];
 
     const client = getSupabaseClient(url, key);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let query: any = client.from(tableName).upsert(data);
 
     if (returnRows) {

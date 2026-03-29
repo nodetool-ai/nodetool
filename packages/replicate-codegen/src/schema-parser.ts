@@ -8,7 +8,7 @@
 import type { ReplicateSchema } from "./schema-fetcher.js";
 import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type AnyRecord = Record<string, any>;
 
 export class SchemaParser {
@@ -251,16 +251,16 @@ export class SchemaParser {
 
     // Remove/replace special characters
     v = v
-      .replace(/[()'"!\?]/g, "")
+      .replace(/[()'"!?]/g, "")
       .replace(/&/g, "_AND_")
-      .replace(/[:;#@\$~\^\\|=<>]/g, "_")
+      .replace(/[:;#@$~^\\|=<>]/g, "_")
       .replace(/\{|\}|\[|\]/g, "")
       .replace(/,/g, "_");
 
     // Replace separators with underscores
     v = v
       .replace(/\//g, "__")
-      .replace(/[ \-\.]/g, "_");
+      .replace(/[ \-.]/g, "_");
 
     // Convert to uppercase
     let result = v.toUpperCase();
