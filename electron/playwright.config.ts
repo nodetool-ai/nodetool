@@ -33,6 +33,8 @@ export default defineConfig({
       /.*performance.*\.spec\.ts$/,
       /.*debug-.*\.spec\.ts$/,
       /.*global-chat-ollama\.spec\.ts$/,
+      /.*python-server\.spec\.ts$/,
+      /.*workflow-run-results\.spec\.ts$/,
     ],
   } : {}),
 
