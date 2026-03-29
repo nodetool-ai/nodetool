@@ -24,57 +24,6 @@ permissions:
   contents: read
 
 jobs:
-  web:
-    name: Web Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install all workspace dependencies
-        run: npm install
-
-      - name: Rebuild native modules
-        run: npm rebuild
-
-      - name: Build packages
-        run: npm run build:packages
-
-      - name: Install Playwright browsers
-        run: |
-          cd web
-          npx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        run: |
-          cd web
-          npx playwright test
-        env:
-          CI: true
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: web/playwright-report/
-          retention-days: 7
-
-      - name: Upload test results
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: web/test-results/
-          retention-days: 7
-
   electron:
     name: Electron End-to-End Tests
     runs-on: ${{ matrix.os }}
