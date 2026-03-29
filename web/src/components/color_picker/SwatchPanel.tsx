@@ -359,7 +359,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
                 <Box sx={{ display: "flex", gap: 0.25 }}>
                   {palette.colors.slice(0, 6).map((color, i) => (
                     <Box
-                      key={i}
+                      key={`${palette.id}-${color}-${i}`}
                       sx={{
                         width: 12,
                         height: 12,

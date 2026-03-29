@@ -454,9 +454,9 @@ const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
 
   return (
     <Command.Group heading="Workflows">
-      {workflows.workflows.map((workflow, idx) => (
+      {workflows.workflows.map((workflow) => (
         <Command.Item
-          key={idx}
+          key={workflow.id}
           onSelect={() => executeAndClose(() => openWorkflow(workflow))}
         >
           <FolderOpenRoundedIcon /> {workflow.name}
