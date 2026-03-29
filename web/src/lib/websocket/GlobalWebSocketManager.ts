@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 import { WebSocketManager } from "./WebSocketManager";
 import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { isLocalhost } from "../../stores/ApiClient";
