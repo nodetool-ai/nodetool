@@ -324,9 +324,12 @@ const localProvider = supabaseProvider ? null : new LocalAuthProvider();
 app.decorateRequest("userId", null);
 
 app.addHook("onRequest", async (req, reply) => {
+  // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
+  if (req.method === "OPTIONS") return;
+
   // Public routes — no auth required
   const pathname = req.url.split("?")[0];
-  if (pathname === "/health" || pathname.startsWith("/api/oauth/") || pathname.startsWith("/api/assets/packages/")) {
+  if (pathname === "/health" || pathname.startsWith("/api/oauth/") || pathname === "/api/assets/packages" || pathname.startsWith("/api/assets/packages/") || pathname === "/api/nodes/metadata") {
     return;
   }
 
