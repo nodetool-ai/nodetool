@@ -50,8 +50,9 @@ class FakeWebSocket {
 let currentFakeWs: FakeWebSocket;
 
 vi.mock("ws", () => {
-  const WebSocketCtor = vi.fn((url: string) => {
+  const WebSocketCtor = vi.fn(function (this: FakeWebSocket, url: string) {
     currentFakeWs = new FakeWebSocket(url);
+    Object.assign(this, currentFakeWs);
     return currentFakeWs;
   }) as unknown as typeof import("ws").default & { OPEN: number };
   WebSocketCtor.OPEN = 1;

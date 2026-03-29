@@ -23,6 +23,8 @@ try {
   await import("@anthropic-ai/claude-agent-sdk");
   // Also verify the claude CLI is actually available and runnable
   execSync("claude --version", { stdio: "pipe", timeout: 5000 });
+  // Verify the CLI is actually authenticated by checking for API key
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("No API key");
   sdkAvailable = true;
 } catch {}
 
