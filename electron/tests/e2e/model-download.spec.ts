@@ -1,8 +1,8 @@
 import { test, expect } from "./fixtures/electronApp";
-import { BACKEND_URL, BACKEND_WS_URL } from "../../../web/tests/e2e/support/backend";
+import { BACKEND_URL, BACKEND_WS_URL } from "./support/backend";
 import {
   navigateToPage,
-} from "../../../web/tests/e2e/helpers/waitHelpers";
+} from "./helpers/waitHelpers";
 
 // Test timeouts
 const TEST_TIMEOUT_MS = 180000;  // 3 minutes for the overall test

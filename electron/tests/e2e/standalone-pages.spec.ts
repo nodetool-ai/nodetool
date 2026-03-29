@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/electronApp";
-import { BACKEND_API_URL } from "../../../web/tests/e2e/support/backend";
-import { navigateToPage, waitForAnimation } from "../../../web/tests/e2e/helpers/waitHelpers";
+import { BACKEND_API_URL } from "./support/backend";
+import { navigateToPage, waitForAnimation } from "./helpers/waitHelpers";
 
 /**
  * Tests for standalone pages (miniapps, standalone chat).
