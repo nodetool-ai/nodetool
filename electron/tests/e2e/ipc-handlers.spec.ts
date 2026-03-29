@@ -110,7 +110,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -142,7 +143,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -179,7 +181,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -214,7 +217,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -245,7 +249,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -277,7 +282,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -304,7 +310,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -338,7 +345,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -381,7 +389,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -414,7 +423,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -443,7 +453,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -480,7 +491,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 
@@ -515,7 +527,8 @@ if (process.env.JEST_WORKER_ID) {
           ],
           env: {
             ...process.env,
-            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
+            ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+            NODE_ENV: 'test'
           }
         });
 

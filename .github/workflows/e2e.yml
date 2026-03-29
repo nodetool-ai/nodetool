@@ -101,7 +101,9 @@ jobs:
       - name: Rebuild native modules for Electron
         run: |
           cd electron
-          npx @electron/rebuild
+          ELECTRON_VERSION=$(node -e "console.log(require('electron/package.json').version)")
+          npx @electron/rebuild --version $ELECTRON_VERSION
+        shell: bash
 
       - name: Build Electron app
         run: |
