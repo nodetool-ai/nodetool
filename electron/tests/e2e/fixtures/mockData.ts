@@ -7,11 +7,7 @@
 
 import { Page, Route } from "@playwright/test";
 import { readFileSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from "path";
 
 const loadJson = <T>(filename: string): T => {
   const filePath = join(__dirname, filename);
