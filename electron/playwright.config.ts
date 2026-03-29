@@ -20,16 +20,28 @@ export default defineConfig({
   // Increase workers for better parallelization
   workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
-  
+
   // Test timeout settings - slightly increased for Electron startup
   timeout: 45000, // 45 seconds per test (Electron can be slower to launch)
-  
+
+  // Skip heavy / environment-specific tests in CI
+  ...(process.env.CI ? {
+    testIgnore: [
+      /.*-real\.spec\.ts$/,
+      /.*screenshots?\.spec\.ts$/,
+      /.*profiling\.spec\.ts$/,
+      /.*performance.*\.spec\.ts$/,
+      /.*debug-.*\.spec\.ts$/,
+      /.*global-chat-ollama\.spec\.ts$/,
+    ],
+  } : {}),
+
   use: {
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  
+
   projects: [
     {
       name: 'electron',
