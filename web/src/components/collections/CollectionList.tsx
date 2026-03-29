@@ -136,22 +136,20 @@ const CollectionList = () => {
               variant="extended"
               onClick={handleShowForm}
               aria-label="Create Collection"
-              sx={{
+              sx={(theme) => ({
                 position: "relative",
                 overflow: "hidden",
                 borderRadius: 2.5,
                 px: 2,
-                backgroundColor: (theme) => theme.vars.palette.primary.main,
+                backgroundColor: theme.vars.palette.primary.main,
                 color: "primary.contrastText",
-                border: (theme) =>
-                  `1px solid ${theme.vars.palette.primary.main}`,
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
+                border: `1px solid ${theme.vars.palette.primary.main}`,
+                boxShadow: theme.shadows[4],
                 backdropFilter: "blur(2px)",
                 textTransform: "none",
                 transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                 "&:hover": {
-                  boxShadow: (theme) =>
-                    `0 4px 12px rgba(0, 0, 0, 0.35), 0 0 16px ${theme.vars.palette.primary.main}20`,
+                  boxShadow: `${theme.shadows[6]}, 0 0 16px ${theme.vars.palette.primary.main}20`,
                   transform: "scale(1.03)"
                 },
                 "&:active": {
@@ -164,8 +162,7 @@ const CollectionList = () => {
                   left: 0,
                   right: 0,
                   height: "55%",
-                  background:
-                    "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
+                  background: `linear-gradient(to bottom, rgba(var(--mui-palette-common-whiteChannel, 255) / 0.18), rgba(var(--mui-palette-common-whiteChannel, 255) / 0.06) 45%, rgba(var(--mui-palette-common-whiteChannel, 255) / 0.02) 60%, transparent)`,
                   pointerEvents: "none",
                   zIndex: 0
                 },
@@ -174,7 +171,7 @@ const CollectionList = () => {
                   position: "absolute",
                   inset: 0,
                   borderRadius: "inherit",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+                  boxShadow: "inset 0 1px 0 rgba(var(--mui-palette-common-whiteChannel, 255) / 0.18)",
                   pointerEvents: "none"
                 },
                 "& .MuiSvgIcon-root": {
@@ -182,7 +179,7 @@ const CollectionList = () => {
                   position: "relative",
                   zIndex: 1
                 }
-              }}
+              })}
             >
               <AddIcon /> Create Collection
             </Fab>

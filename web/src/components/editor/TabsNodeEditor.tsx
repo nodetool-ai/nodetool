@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
         background: theme.vars.palette.action.selected,
         zIndex: 2,
         borderColor: theme.vars.palette.divider,
-        boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
+        boxShadow: theme.shadows[8],
         "&::before": {
           background: theme.vars.palette.primary.main,
           height: "1px",
