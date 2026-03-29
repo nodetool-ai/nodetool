@@ -39,7 +39,7 @@ export class Variable {
   constructor(public readonly name: string) {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export type ConditionValue = any;
 
 // ── Condition Nodes ──────────────────────────────────────────────────

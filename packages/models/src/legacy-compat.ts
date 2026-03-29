@@ -17,7 +17,7 @@ export interface IndexSpec {
 
 export type AdapterResolver = (schema: TableSchema) => DatabaseAdapter;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export type ModelClass<T extends DBModel = DBModel> = {
   new (data: Record<string, unknown>): T;
   name: string;

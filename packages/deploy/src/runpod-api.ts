@@ -845,7 +845,7 @@ export async function createRunpodEndpointGraphql(
     networkVolumeId,
   } = opts;
 
-  let dataCenterIds = opts.dataCenterIds ?? [];
+  const dataCenterIds = opts.dataCenterIds ?? [];
 
   // Ensure API key
   getApiKey();

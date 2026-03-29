@@ -1098,7 +1098,7 @@ export class UnifiedWebSocketRunner {
     // Tool execution loop — mirrors Python's RegularChatProcessor.process()
     const MAX_TOOL_ROUNDS = 10;
     let toolRound = 0;
-    let shouldIncludeTools = true;
+    const shouldIncludeTools = true;
     try {
       while (true) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;

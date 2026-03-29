@@ -261,7 +261,6 @@ export function App({
       client.disconnect();
       wsClientRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wsUrl]);
 
   // Unique ID generator
