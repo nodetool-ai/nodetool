@@ -14,31 +14,6 @@ import type { FalUnitPricing } from "../fal-base.js";
 // Re-export alias
 const FalNode = BaseNode;
 
-export class LongcatMultiAvatarImageAudioToVideoMultiSpeaker extends FalNode {
-  static readonly nodeType = "fal.audio_to_video.LongcatMultiAvatarImageAudioToVideoMultiSpeaker";
-  static readonly title = "Longcat Multi Avatar Image Audio To Video Multi Speaker";
-  static readonly description = `Longcat Multi Avatar
-video, generation, audio-to-video, visualization`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
-  static readonly falUnitPricing: FalUnitPricing | null = {
-    endpointId: "fal-ai/longcat-multi-avatar/image-audio-to-video/multi-speaker",
-    unitPrice: 0.1,
-    billingUnit: "units",
-    currency: "USD",
-  };
-
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
-    const args: Record<string, unknown> = {
-    };
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "", args);
-    return { output: res };
-  }
-}
-
 export class ArgilAvatarsAudioToVideo extends FalNode {
   static readonly nodeType = "fal.audio_to_video.ArgilAvatarsAudioToVideo";
   static readonly title = "Argil Avatars Audio To Video";
@@ -324,6 +299,31 @@ video, generation, audio-to-video, visualization`;
 
     const res = await falSubmit(apiKey, "fal-ai/longcat-multi-avatar/image-audio-to-video", args);
     return { output: { type: "video", uri: (res.video as any).url } };
+  }
+}
+
+export class LongcatMultiAvatarImageAudioToVideoMultiSpeaker extends FalNode {
+  static readonly nodeType = "fal.audio_to_video.LongcatMultiAvatarImageAudioToVideoMultiSpeaker";
+  static readonly title = "Longcat Multi Avatar Image Audio To Video Multi Speaker";
+  static readonly description = `Longcat Multi Avatar
+video, generation, audio-to-video, visualization`;
+  static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/longcat-multi-avatar/image-audio-to-video/multi-speaker",
+    unitPrice: 0.1,
+    billingUnit: "units",
+    currency: "USD",
+  };
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const args: Record<string, unknown> = {
+    };
+    removeNulls(args);
+
+    const res = await falSubmit(apiKey, "fal-ai/longcat-multi-avatar/image-audio-to-video/multi-speaker", args);
+    return { output: res };
   }
 }
 
@@ -1495,11 +1495,11 @@ video, generation, audio-to-video, visualization`;
 }
 
 export const FAL_AUDIO_TO_VIDEO_NODES: readonly NodeClass[] = [
-  LongcatMultiAvatarImageAudioToVideoMultiSpeaker,
   ArgilAvatarsAudioToVideo,
   EchomimicV3,
   ElevenlabsDubbing,
   LongcatMultiAvatarImageAudioToVideo,
+  LongcatMultiAvatarImageAudioToVideoMultiSpeaker,
   LongcatSingleAvatarAudioToVideo,
   LongcatSingleAvatarImageAudioToVideo,
   Ltx219BAudioToVideo,

@@ -205,11 +205,11 @@ audio, transcription, stt, speech-to-text`;
   }
 }
 
-export class SpeechToText extends FalNode {
-  static readonly nodeType = "fal.speech_to_text.SpeechToText";
-  static readonly title = "Speech To Text";
-  static readonly description = `General-purpose speech-to-text model for accurate audio transcription.
-audio, transcription, stt, speech-to-text`;
+export class SpeechToTextStream extends FalNode {
+  static readonly nodeType = "fal.speech_to_text.SpeechToTextStream";
+  static readonly title = "Speech To Text Stream";
+  static readonly description = `Streaming speech-to-text for real-time audio transcription.
+audio, transcription, stt, streaming, real-time, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "partial": "bool", "output": "str" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -286,11 +286,11 @@ audio, transcription, stt, turbo, fast, speech-to-text`;
   }
 }
 
-export class SpeechToTextTurbo extends FalNode {
-  static readonly nodeType = "fal.speech_to_text.SpeechToTextTurbo";
-  static readonly title = "Speech To Text Turbo";
-  static readonly description = `High-speed speech-to-text model optimized for fast transcription.
-audio, transcription, stt, turbo, fast, speech-to-text`;
+export class SpeechToTextTurboStream extends FalNode {
+  static readonly nodeType = "fal.speech_to_text.SpeechToTextTurboStream";
+  static readonly title = "Speech To Text Turbo Stream";
+  static readonly description = `High-speed streaming speech-to-text for real-time fast transcription.
+audio, transcription, stt, turbo, streaming, fast, speech-to-text`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "partial": "bool", "output": "str" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -409,8 +409,8 @@ export const FAL_SPEECH_TO_TEXT_NODES: readonly NodeClass[] = [
   ElevenLabsScribeV2,
   SmartTurn,
   SpeechToText,
-  SpeechToText,
+  SpeechToTextStream,
   SpeechToTextTurbo,
-  SpeechToTextTurbo,
+  SpeechToTextTurboStream,
   Whisper,
 ] as const;

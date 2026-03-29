@@ -14,31 +14,6 @@ import type { FalUnitPricing } from "../fal-base.js";
 // Re-export alias
 const FalNode = BaseNode;
 
-export class  extends FalNode {
-  static readonly nodeType = "fal.image_to_image.";
-  static readonly title = "";
-  static readonly description = `Realtime generation with FLUX.2 [klein] from Black Forest Labs.
-realtime, image-to-image`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
-  static readonly falUnitPricing: FalUnitPricing | null = {
-    endpointId: "fal-ai/flux-2/klein/realtime",
-    unitPrice: 0.00194,
-    billingUnit: "compute seconds",
-    currency: "USD",
-  };
-
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
-    const args: Record<string, unknown> = {
-    };
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "", args);
-    return { output: res };
-  }
-}
-
 export class BriaAestheticsUpscaler extends FalNode {
   static readonly nodeType = "fal.image_to_image.BriaAestheticsUpscaler";
   static readonly title = "Bria Aesthetics Upscaler";
@@ -6425,6 +6400,31 @@ image, editing, flux-2, flash, ultra-fast`;
       throw new Error("FAL image response missing url (expected images[] or image)");
     }
     return { "output": { type: "image", uri: _url } };
+  }
+}
+
+export class Flux2KleinRealtime extends FalNode {
+  static readonly nodeType = "fal.image_to_image.Flux2KleinRealtime";
+  static readonly title = "Flux2 Klein Realtime";
+  static readonly description = `Realtime generation with FLUX.2 [klein] from Black Forest Labs.
+realtime, image-to-image`;
+  static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/flux-2/klein/realtime",
+    unitPrice: 0.00194,
+    billingUnit: "compute seconds",
+    currency: "USD",
+  };
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const args: Record<string, unknown> = {
+    };
+    removeNulls(args);
+
+    const res = await falSubmit(apiKey, "fal-ai/flux-2/klein/realtime", args);
+    return { output: res };
   }
 }
 
@@ -20093,11 +20093,11 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlus extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlus";
-  static readonly title = "Qwen Image Edit Plus";
-  static readonly description = `Qwen Image Edit Plus
-editing, transformation, image-to-image, img2img`;
+export class QwenImageEdit2509 extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509";
+  static readonly title = "Qwen Image Edit2509";
+  static readonly description = `Qwen Image Edit 2509 provides powerful image editing with advanced AI capabilities and high-quality output.
+image, editing, qwen, 2509, ai-editing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -20309,11 +20309,11 @@ editing, transformation, image-to-image, img2img`;
   }
 }
 
-export class QwenImageEditPlusLora extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLora";
-  static readonly title = "Qwen Image Edit Plus Lora";
-  static readonly description = `Qwen Image Edit Plus Lora
-editing, transformation, image-to-image, img2img, lora`;
+export class QwenImageEdit2509Lora extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509Lora";
+  static readonly title = "Qwen Image Edit2509 Lora";
+  static readonly description = `Qwen Image Edit 2509 with LoRA enables fine-tuned models for specialized image editing applications.
+image, editing, qwen, lora, fine-tuned`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -20535,10 +20535,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryAddBackground extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryAddBackground";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Add Background";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryAddBackground extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryAddBackground";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Add Background";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -20761,10 +20761,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryFaceToFullPortrait extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryFaceToFullPortrait";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Face To Full Portrait";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryFaceToFullPortrait extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryFaceToFullPortrait";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Face To Full Portrait";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -20987,10 +20987,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryGroupPhoto extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryGroupPhoto";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Group Photo";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryGroupPhoto extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryGroupPhoto";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Group Photo";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -21213,10 +21213,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryIntegrateProduct extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryIntegrateProduct";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Integrate Product";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryIntegrateProduct extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryIntegrateProduct";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Integrate Product";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -21439,10 +21439,10 @@ editing, transformation, image-to-image, img2img, lora, professional`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryLightingRestoration extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryLightingRestoration";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Lighting Restoration";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryLightingRestoration extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryLightingRestoration";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Lighting Restoration";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -21645,10 +21645,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryMultipleAngles extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryMultipleAngles";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Multiple Angles";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryMultipleAngles extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryMultipleAngles";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Multiple Angles";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -21901,10 +21901,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryNextScene extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryNextScene";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Next Scene";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryNextScene extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryNextScene";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Next Scene";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -22127,10 +22127,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryRemoveElement extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryRemoveElement";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Remove Element";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryRemoveElement extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryRemoveElement";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Remove Element";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -22353,10 +22353,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryRemoveLighting extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryRemoveLighting";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Remove Lighting";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryRemoveLighting extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryRemoveLighting";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Remove Lighting";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -22559,10 +22559,10 @@ editing, transformation, image-to-image, img2img, lora`;
   }
 }
 
-export class QwenImageEditPlusLoraGalleryShirtDesign extends FalNode {
-  static readonly nodeType = "fal.image_to_image.QwenImageEditPlusLoraGalleryShirtDesign";
-  static readonly title = "Qwen Image Edit Plus Lora Gallery Shirt Design";
-  static readonly description = `Qwen Image Edit Plus Lora Gallery
+export class QwenImageEdit2509LoraGalleryShirtDesign extends FalNode {
+  static readonly nodeType = "fal.image_to_image.QwenImageEdit2509LoraGalleryShirtDesign";
+  static readonly title = "Qwen Image Edit2509 Lora Gallery Shirt Design";
+  static readonly description = `Qwen Image Edit 2509 Lora Gallery
 editing, transformation, image-to-image, img2img, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "images": "list[Image]", "seed": "int" };
@@ -26529,7 +26529,6 @@ editing, transformation, image-to-image, img2img`;
 }
 
 export const FAL_IMAGE_TO_IMAGE_NODES: readonly NodeClass[] = [
-  ,
   BriaAestheticsUpscaler,
   BriaEmbedProduct,
   BriaFiboEditAddObjectByText,
@@ -26605,6 +26604,7 @@ export const FAL_IMAGE_TO_IMAGE_NODES: readonly NodeClass[] = [
   Flux2ProEdit,
   Flux2Edit,
   Flux2FlashEdit,
+  Flux2KleinRealtime,
   Flux2LoraEdit,
   Flux2TurboEdit,
   FluxControlLoraCannyImageToImage,
@@ -26749,29 +26749,29 @@ export const FAL_IMAGE_TO_IMAGE_NODES: readonly NodeClass[] = [
   QwenImageEdit2511MultipleAngles,
   QwenImageEdit2511Lora,
   QwenImageEditLora,
+  QwenImageEdit2509,
   QwenImageEditPlus,
-  QwenImageEditPlus,
+  QwenImageEdit2509Lora,
   QwenImageEditPlusLora,
-  QwenImageEditPlusLora,
+  QwenImageEdit2509LoraGalleryAddBackground,
   QwenImageEditPlusLoraGalleryAddBackground,
-  QwenImageEditPlusLoraGalleryAddBackground,
+  QwenImageEdit2509LoraGalleryFaceToFullPortrait,
   QwenImageEditPlusLoraGalleryFaceToFullPortrait,
-  QwenImageEditPlusLoraGalleryFaceToFullPortrait,
+  QwenImageEdit2509LoraGalleryGroupPhoto,
   QwenImageEditPlusLoraGalleryGroupPhoto,
-  QwenImageEditPlusLoraGalleryGroupPhoto,
+  QwenImageEdit2509LoraGalleryIntegrateProduct,
   QwenImageEditPlusLoraGalleryIntegrateProduct,
-  QwenImageEditPlusLoraGalleryIntegrateProduct,
+  QwenImageEdit2509LoraGalleryLightingRestoration,
   QwenImageEditPlusLoraGalleryLightingRestoration,
-  QwenImageEditPlusLoraGalleryLightingRestoration,
+  QwenImageEdit2509LoraGalleryMultipleAngles,
   QwenImageEditPlusLoraGalleryMultipleAngles,
-  QwenImageEditPlusLoraGalleryMultipleAngles,
+  QwenImageEdit2509LoraGalleryNextScene,
   QwenImageEditPlusLoraGalleryNextScene,
-  QwenImageEditPlusLoraGalleryNextScene,
+  QwenImageEdit2509LoraGalleryRemoveElement,
   QwenImageEditPlusLoraGalleryRemoveElement,
-  QwenImageEditPlusLoraGalleryRemoveElement,
+  QwenImageEdit2509LoraGalleryRemoveLighting,
   QwenImageEditPlusLoraGalleryRemoveLighting,
-  QwenImageEditPlusLoraGalleryRemoveLighting,
-  QwenImageEditPlusLoraGalleryShirtDesign,
+  QwenImageEdit2509LoraGalleryShirtDesign,
   QwenImageEditPlusLoraGalleryShirtDesign,
   QwenImageEditImageToImage,
   QwenImageEditInpaint,

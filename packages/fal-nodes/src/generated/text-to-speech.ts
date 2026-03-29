@@ -438,11 +438,11 @@ audio, tts, maya, high-quality, text-to-speech`;
   }
 }
 
-export class Maya extends FalNode {
-  static readonly nodeType = "fal.text_to_speech.Maya";
-  static readonly title = "Maya";
-  static readonly description = `Maya generates high-quality natural speech from text with advanced voice synthesis capabilities.
-audio, tts, maya, high-quality, text-to-speech`;
+export class MayaStream extends FalNode {
+  static readonly nodeType = "fal.text_to_speech.MayaStream";
+  static readonly title = "Maya Stream";
+  static readonly description = `Maya Stream TTS generates high-quality speech in streaming mode for real-time applications.
+speech, synthesis, text-to-speech, tts, streaming, maya`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "duration": "float", "rtf": "float", "sample_rate": "str", "generation_time": "float", "audio": "audio" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -1747,7 +1747,7 @@ export const FAL_TEXT_TO_SPEECH_NODES: readonly NodeClass[] = [
   KlingVideoV1Tts,
   LuxTts,
   Maya,
-  Maya,
+  MayaStream,
   MayaBatch,
   MinimaxPreviewSpeech25Hd,
   MinimaxPreviewSpeech25Turbo,

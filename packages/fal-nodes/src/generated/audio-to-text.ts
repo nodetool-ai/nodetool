@@ -52,9 +52,9 @@ speech, recognition, transcription, audio-analysis`;
   }
 }
 
-export class NemotronAsr extends FalNode {
-  static readonly nodeType = "fal.audio_to_text.NemotronAsr";
-  static readonly title = "Nemotron Asr";
+export class NemotronAsrStream extends FalNode {
+  static readonly nodeType = "fal.audio_to_text.NemotronAsrStream";
+  static readonly title = "Nemotron Asr Stream";
   static readonly description = `Use the fast speed and pin point accuracy of nemotron to transcribe your texts.
 speech, recognition, transcription, audio-analysis`;
   static readonly requiredSettings = ["FAL_API_KEY"];
@@ -134,6 +134,6 @@ speech, recognition, transcription, audio-analysis`;
 
 export const FAL_AUDIO_TO_TEXT_NODES: readonly NodeClass[] = [
   NemotronAsr,
-  NemotronAsr,
+  NemotronAsrStream,
   SileroVad,
 ] as const;

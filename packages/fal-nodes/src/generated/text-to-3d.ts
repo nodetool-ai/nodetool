@@ -391,11 +391,11 @@ export class MeshyV6PreviewTextTo3d extends FalNode {
   }
 }
 
-export class MeshyV6PreviewTextTo3d extends FalNode {
-  static readonly nodeType = "fal.text_to_3d.MeshyV6PreviewTextTo3d";
-  static readonly title = "Meshy V6 Preview Text To3d";
-  static readonly description = `Meshy-6-Preview is the latest model from Meshy. It generates realistic and production ready 3D models.
-3d, generation, text-to-3d, modeling`;
+export class MeshyV6PreviewTextTo3d_textto3d extends FalNode {
+  static readonly nodeType = "fal.text_to_3d.MeshyV6PreviewTextTo3d_textto3d";
+  static readonly title = "Meshy V6 Preview Text To3d_textto3d";
+  static readonly description = `Meshy-6 is the latest model from Meshy. It generates realistic and production ready 3D models.
+text-to-3d`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "model_3d" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -524,5 +524,5 @@ export const FAL_TEXT_TO_3D_NODES: readonly NodeClass[] = [
   HunyuanMotionFast,
   Hunyuan3dV3TextTo3d,
   MeshyV6PreviewTextTo3d,
-  MeshyV6PreviewTextTo3d,
+  MeshyV6PreviewTextTo3d_textto3d,
 ] as const;

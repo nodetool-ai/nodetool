@@ -14,31 +14,6 @@ import type { FalUnitPricing } from "../fal-base.js";
 // Re-export alias
 const FalNode = BaseNode;
 
-export class WanV2113bTextToVideo extends FalNode {
-  static readonly nodeType = "fal.text_to_video.WanV2113bTextToVideo";
-  static readonly title = "Wan V2113b Text To Video";
-  static readonly description = `Wan-2.1 1.3B is a text-to-video model that generates high-quality videos with high visual quality and motion diversity from text promptsat faster speeds.
-video, generation, text-to-video, txt2vid`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
-  static readonly falUnitPricing: FalUnitPricing | null = {
-    endpointId: "fal-ai/wan/v2.1/1.3b/text-to-video",
-    unitPrice: 0.2,
-    billingUnit: "videos",
-    currency: "USD",
-  };
-
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
-    const args: Record<string, unknown> = {
-    };
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "", args);
-    return { output: res };
-  }
-}
-
 export class ArgilAvatarsTextToVideo extends FalNode {
   static readonly nodeType = "fal.text_to_video.ArgilAvatarsTextToVideo";
   static readonly title = "Argil Avatars Text To Video";
@@ -5870,6 +5845,31 @@ video, generation, text-to-video, txt2vid, lora`;
   }
 }
 
+export class WanV2113bTextToVideo extends FalNode {
+  static readonly nodeType = "fal.text_to_video.WanV2113bTextToVideo";
+  static readonly title = "Wan V2113b Text To Video";
+  static readonly description = `Wan-2.1 1.3B is a text-to-video model that generates high-quality videos with high visual quality and motion diversity from text promptsat faster speeds.
+video, generation, text-to-video, txt2vid`;
+  static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { output: "dict" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/wan/v2.1/1.3b/text-to-video",
+    unitPrice: 0.2,
+    billingUnit: "videos",
+    currency: "USD",
+  };
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const args: Record<string, unknown> = {
+    };
+    removeNulls(args);
+
+    const res = await falSubmit(apiKey, "fal-ai/wan/v2.1/1.3b/text-to-video", args);
+    return { output: res };
+  }
+}
+
 export class WanV225bTextToVideo extends FalNode {
   static readonly nodeType = "fal.text_to_video.WanV225bTextToVideo";
   static readonly title = "Wan V225b Text To Video";
@@ -6730,7 +6730,6 @@ video, generation, fabric, veed, text-to-video, txt2vid`;
 }
 
 export const FAL_TEXT_TO_VIDEO_NODES: readonly NodeClass[] = [
-  WanV2113bTextToVideo,
   ArgilAvatarsTextToVideo,
   SeeDanceV15ProTextToVideo,
   BytedanceSeedanceV1LiteTextToVideo,
@@ -6820,6 +6819,7 @@ export const FAL_TEXT_TO_VIDEO_NODES: readonly NodeClass[] = [
   WanProTextToVideo,
   WanT2v,
   WanT2vLora,
+  WanV2113bTextToVideo,
   WanV225bTextToVideo,
   WanV225bTextToVideoDistill,
   WanV225bTextToVideoFastWan,

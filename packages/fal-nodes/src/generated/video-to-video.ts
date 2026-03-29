@@ -69,11 +69,11 @@ video, object-removal, eraser, keypoints, bria, video-to-video`;
   }
 }
 
-export class BriaVideoEraserKeypoints extends FalNode {
-  static readonly nodeType = "fal.video_to_video.BriaVideoEraserKeypoints";
-  static readonly title = "Bria Video Eraser Keypoints";
-  static readonly description = `Bria Video Eraser removes objects from videos using keypoint-based selection.
-video, object-removal, eraser, keypoints, bria, video-to-video`;
+export class BriaVideoEraseKeypoints extends FalNode {
+  static readonly nodeType = "fal.video_to_video.BriaVideoEraseKeypoints";
+  static readonly title = "Bria Video Erase Keypoints";
+  static readonly description = `Video
+video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -183,11 +183,11 @@ video, object-removal, eraser, inpainting, bria, video-to-video`;
   }
 }
 
-export class BriaVideoEraserMask extends FalNode {
-  static readonly nodeType = "fal.video_to_video.BriaVideoEraserMask";
-  static readonly title = "Bria Video Eraser Mask";
-  static readonly description = `Bria Video Eraser removes objects from videos using mask-based selection.
-video, object-removal, eraser, inpainting, bria, video-to-video`;
+export class BriaVideoEraseMask extends FalNode {
+  static readonly nodeType = "fal.video_to_video.BriaVideoEraseMask";
+  static readonly title = "Bria Video Erase Mask";
+  static readonly description = `Video
+video, editing, video-to-video, vid2vid`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -297,11 +297,11 @@ video, object-removal, eraser, prompt, bria, video-to-video`;
   }
 }
 
-export class BriaVideoEraserPrompt extends FalNode {
-  static readonly nodeType = "fal.video_to_video.BriaVideoEraserPrompt";
-  static readonly title = "Bria Video Eraser Prompt";
-  static readonly description = `Bria Video Eraser removes objects from videos using text prompt descriptions.
-video, object-removal, eraser, prompt, bria, video-to-video`;
+export class BriaVideoErasePrompt extends FalNode {
+  static readonly nodeType = "fal.video_to_video.BriaVideoErasePrompt";
+  static readonly title = "Bria Video Erase Prompt";
+  static readonly description = `Video
+video, editing, video-to-video, vid2vid, professional`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -12048,11 +12048,11 @@ video, editing, video-to-video, vid2vid`;
 
 export const FAL_VIDEO_TO_VIDEO_NODES: readonly NodeClass[] = [
   BriaVideoEraserKeypoints,
-  BriaVideoEraserKeypoints,
+  BriaVideoEraseKeypoints,
   BriaVideoEraserMask,
-  BriaVideoEraserMask,
+  BriaVideoEraseMask,
   BriaVideoEraserPrompt,
-  BriaVideoEraserPrompt,
+  BriaVideoErasePrompt,
   BriaVideoBackgroundRemoval,
   BriaVideoIncreaseResolution,
   CassetteaiVideoSoundEffectsGenerator,

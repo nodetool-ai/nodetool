@@ -1283,10 +1283,10 @@ training, fine-tuning, lora, model-training`;
   }
 }
 
-export class QwenImageEditPlusTrainer extends FalNode {
-  static readonly nodeType = "fal.training.QwenImageEditPlusTrainer";
-  static readonly title = "Qwen Image Edit Plus Trainer";
-  static readonly description = `LoRA trainer for Qwen Image Edit Plus
+export class QwenImageEdit2509Trainer extends FalNode {
+  static readonly nodeType = "fal.training.QwenImageEdit2509Trainer";
+  static readonly title = "Qwen Image Edit2509 Trainer";
+  static readonly description = `Qwen Image Edit 2509 Trainer
 training, fine-tuning, lora, model-training`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "config_file": "str", "diffusers_lora_file": "str" };
@@ -2369,7 +2369,7 @@ export const FAL_TRAINING_NODES: readonly NodeClass[] = [
   QwenImage2512Trainer,
   QwenImage2512TrainerV2,
   QwenImageEdit2511Trainer,
-  QwenImageEditPlusTrainer,
+  QwenImageEdit2509Trainer,
   QwenImageEditPlusTrainer,
   QwenImageEditTrainer,
   QwenImageLayeredTrainer,

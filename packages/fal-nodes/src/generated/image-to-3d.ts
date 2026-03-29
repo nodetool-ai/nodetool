@@ -743,11 +743,11 @@ export class MeshyV6PreviewImageTo3D extends FalNode {
   }
 }
 
-export class MeshyV6PreviewImageTo3D extends FalNode {
-  static readonly nodeType = "fal.image_to_3d.MeshyV6PreviewImageTo3D";
-  static readonly title = "Meshy V6 Preview Image To3 D";
-  static readonly description = `Meshy 6 Preview
-3d, generation, image-to-3d, modeling`;
+export class MeshyV6PreviewImageTo3d extends FalNode {
+  static readonly nodeType = "fal.image_to_3d.MeshyV6PreviewImageTo3d";
+  static readonly title = "Meshy V6 Preview Image To3d";
+  static readonly description = `Meshy-6 is the latest model from Meshy. It generates realistic and production ready 3D models.
+image-to-3d`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "model_3d" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -1659,7 +1659,7 @@ export const FAL_IMAGE_TO_3D_NODES: readonly NodeClass[] = [
   Hyper3DRodinV2,
   MeshyV5MultiImageTo3D,
   MeshyV6PreviewImageTo3D,
-  MeshyV6PreviewImageTo3D,
+  MeshyV6PreviewImageTo3d,
   Omnipart,
   Pshuman,
   Sam33DBody,

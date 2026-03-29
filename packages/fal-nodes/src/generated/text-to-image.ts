@@ -4548,10 +4548,10 @@ flux, generation, text-to-image, txt2img, ai-art, lora`;
   }
 }
 
-export class FluxKreaLora extends FalNode {
-  static readonly nodeType = "fal.text_to_image.FluxKreaLora";
-  static readonly title = "Flux Krea Lora";
-  static readonly description = `FLUX.1 Krea [dev] with LoRAs
+export class FluxKreaLoraStream extends FalNode {
+  static readonly nodeType = "fal.text_to_image.FluxKreaLoraStream";
+  static readonly title = "Flux Krea Lora Stream";
+  static readonly description = `Flux Krea Lora
 flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "timings": "dict[str, any]", "has_nsfw_concepts": "list[bool]", "seed": "int" };
@@ -4735,11 +4735,11 @@ image, generation, flux, lora, fine-tuning, text-to-image, txt2img`;
   }
 }
 
-export class FluxLora extends FalNode {
-  static readonly nodeType = "fal.text_to_image.FluxLora";
-  static readonly title = "Flux Lora";
-  static readonly description = `FLUX with LoRA support enables fine-tuned image generation using custom LoRA models for specific styles or subjects.
-image, generation, flux, lora, fine-tuning, text-to-image, txt2img`;
+export class FluxLoraStream extends FalNode {
+  static readonly nodeType = "fal.text_to_image.FluxLoraStream";
+  static readonly title = "Flux Lora Stream";
+  static readonly description = `Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations for personalization, specific styles, brand identities, and product-specific outputs.
+flux, generation, text-to-image, txt2img, ai-art, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "prompt": "str", "images": "list[Image]", "seed": "int", "has_nsfw_concepts": "list[bool]", "timings": "dict[str, any]" };
   static readonly falUnitPricing: FalUnitPricing | null = {
@@ -4749,7 +4749,7 @@ image, generation, flux, lora, fine-tuning, text-to-image, txt2img`;
     currency: "USD",
   };
 
-  @prop({ type: "str", default: "", description: "The prompt to generate an image from" })
+  @prop({ type: "str", default: "", description: "The prompt to generate an image from." })
   declare prompt: any;
 
   @prop({ type: "int", default: 1, description: "The number of images to generate. This is always set to 1 for streaming output." })
@@ -4758,7 +4758,7 @@ image, generation, flux, lora, fine-tuning, text-to-image, txt2img`;
   @prop({ type: "enum", default: "none", values: ["none", "regular"], description: "Acceleration level for image generation. 'regular' balances speed and quality." })
   declare acceleration: any;
 
-  @prop({ type: "str", default: "landscape_4_3", description: "Size preset for the generated image" })
+  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated image." })
   declare image_size: any;
 
   @prop({ type: "enum", default: "jpeg", values: ["jpeg", "png"], description: "The format of the generated image." })
@@ -4767,19 +4767,19 @@ image, generation, flux, lora, fine-tuning, text-to-image, txt2img`;
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
 
-  @prop({ type: "list[LoraWeight]", default: [], description: "List of LoRA models to apply with their weights" })
+  @prop({ type: "list[LoraWeight]", default: [], description: "\n            The LoRAs to use for the image generation. You can use any number of LoRAs\n            and they will be merged together to generate the final image.\n        " })
   declare loras: any;
 
-  @prop({ type: "float", default: 3.5, description: "How strictly to follow the prompt" })
+  @prop({ type: "float", default: 3.5, description: "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        " })
   declare guidance_scale: any;
 
-  @prop({ type: "int", default: 28, description: "Number of denoising steps" })
+  @prop({ type: "int", default: 28, description: "The number of inference steps to perform." })
   declare num_inference_steps: any;
 
-  @prop({ type: "bool", default: true, description: "Enable safety checker to filter unsafe content" })
+  @prop({ type: "bool", default: true, description: "If set to true, the safety checker will be enabled." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "str", default: "", description: "Seed for reproducible results. Use -1 for random" })
+  @prop({ type: "str", default: "", description: "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        " })
   declare seed: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -12570,9 +12570,9 @@ export const FAL_TEXT_TO_IMAGE_NODES: readonly NodeClass[] = [
   FluxGeneral,
   FluxKontextLoraTextToImage,
   FluxKreaLora,
-  FluxKreaLora,
+  FluxKreaLoraStream,
   FluxLora,
-  FluxLora,
+  FluxLoraStream,
   FluxLoraInpainting,
   FluxProKontextMaxTextToImage,
   FluxProKontextTextToImage,
