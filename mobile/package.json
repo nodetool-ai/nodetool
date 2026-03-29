@@ -26,6 +26,7 @@
     "axios": "^1.13.5",
     "expo": "~54.0.30",
     "expo-av": "~16.0.8",
+    "expo-clipboard": "~3.0.0",
     "expo-document-picker": "~14.0.8",
     "expo-image-picker": "~17.0.10",
     "expo-status-bar": "~3.0.9",
