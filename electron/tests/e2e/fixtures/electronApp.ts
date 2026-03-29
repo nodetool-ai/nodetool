@@ -57,7 +57,7 @@ export const test = base.extend<ElectronFixtures>({
 
     const app = await electron.launch({
       args: [
-        path.join(__dirname, '../../../../dist-electron/main.js'),
+        path.join(__dirname, '../../../dist-electron/main.js'),
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage'
