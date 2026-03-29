@@ -485,6 +485,7 @@ const preloadComfyMetadata = async (): Promise<void> => {
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
+  const authState = useAuth((s) => s.state);
 
   // Allow dev-only test pages to render without backend metadata
   const isDevTestRoute =
@@ -496,8 +497,18 @@ const AppWrapper = () => {
   useEffect(() => {
     // Register frontend tools after initial render
     registerFrontendTools();
+  }, []);
 
-    // Existing effect for loading metadata
+  useEffect(() => {
+    // In production mode, wait until user is logged in before fetching metadata.
+    // When logged out, skip metadata so the router can render and redirect to /login.
+    if (!isLocalhost && authState !== "logged_in") {
+      if (authState === "logged_out" || authState === "error") {
+        setStatus("logged_out");
+      }
+      return;
+    }
+
     loadMetadata()
       .then((data) => {
         setStatus(data);
@@ -509,12 +520,12 @@ const AppWrapper = () => {
       })
       .catch((error) => {
         log.error("Failed to load metadata:", error);
-        setStatus("error"); // Ensure status is set to error on promise rejection
+        setStatus("error");
       });
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [authState]);
 
   const shouldRenderRouter =
-    isDevTestRoute || (status !== "pending" && status !== "error");
+    isDevTestRoute || status === "success" || status === "logged_out";
 
   return (
     <React.StrictMode>
