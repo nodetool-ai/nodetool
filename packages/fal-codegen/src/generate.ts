@@ -47,6 +47,10 @@ import {
   type FalCodegenModuleKey,
   type FalModelListItem,
 } from "./platform-models.js";
+import {
+  writeFalModelsSnapshot,
+  readFalModelsSnapshot,
+} from "./fal-models-snapshot.js";
 import type { FalUnitPricing, ModuleConfig, NodeSpec } from "./types.js";
 import { loadNodetoolDotenv, resolveNodetoolRepoRoot } from "./load-nodetool-env.js";
 import { fetchFalUnitPricingMap } from "./fetch-fal-unit-pricing.js";
@@ -84,11 +88,14 @@ const { values } = parseArgs({
     "fal-api-key": { type: "string" },
     "skip-pricing": { type: "boolean", default: false },
     "pricing-only": { type: "boolean", default: false },
+    "models-only": { type: "boolean", default: false },
     "pricing-snapshot": { type: "string" },
     "output-dir": {
       type: "string",
       default: join(process.cwd(), "..", "fal-nodes", "src", "generated"),
     },
+    "save-models-snapshot": { type: "string" },
+    "from-models-snapshot": { type: "string" },
   },
 });
 
@@ -249,12 +256,100 @@ async function generateModule(
   return { generated: specs.length, failedEndpoints };
 }
 
+/**
+ * Pure codegen from already-fetched data. No network calls.
+ * Used by both `generateFromPlatform` (after fetch) and `generateFromModelsSnapshot` (offline).
+ */
+async function runCodegenLoop(
+  catalog: FalModelListItem[],
+  allSchemas: Map<string, Record<string, unknown>>,
+  pricingMap: Map<string, FalUnitPricing>,
+  outputDir: string,
+  dryRun: boolean,
+): Promise<{ totalGenerated: number; parseFailures: { endpointId: string; error: string }[] }> {
+  const byModule = new Map<FalCodegenModuleKey, FalModelListItem[]>();
+  for (const m of catalog) {
+    const key = mapFalCategoryToModuleKey(m.metadata?.category);
+    const list = byModule.get(key) ?? [];
+    list.push(m);
+    byModule.set(key, list);
+  }
+
+  const parser = new SchemaParser();
+  const generator = new NodeGenerator();
+  let totalGenerated = 0;
+  const parseFailures: { endpointId: string; error: string }[] = [];
+
+  for (const moduleKey of Object.keys(allConfigs) as FalCodegenModuleKey[]) {
+    const dashName = moduleKey.replace(/_/g, "-");
+    const group = byModule.get(moduleKey) ?? [];
+    const moduleConfig = allConfigs[moduleKey];
+
+    console.log(`\n=== ${dashName} === (${group.length} in catalog)`);
+    if (group.length === 0) continue;
+
+    const endpointIds = [...new Set(group.map((g) => g.endpoint_id))].sort();
+    const itemByEndpoint = new Map(group.map((g) => [g.endpoint_id, g]));
+
+    const usedClassNames = new Set<string>();
+    const specs: NodeSpec[] = [];
+
+    for (const endpointId of endpointIds) {
+      const openapi = allSchemas.get(endpointId);
+      if (!openapi) continue;
+
+      try {
+        let spec = parser.parse(openapi);
+        const nodeConfig = moduleConfig.configs[endpointId];
+        if (nodeConfig) spec = generator.applyConfig(spec, nodeConfig);
+
+        spec = enrichSpecFromCatalog(
+          spec,
+          itemByEndpoint.get(endpointId),
+          Boolean(nodeConfig?.docstring),
+          Boolean(nodeConfig?.tags && nodeConfig.tags.length > 0),
+        );
+
+        let className = spec.className;
+        if (usedClassNames.has(className)) {
+          className = uniquifyClassName(className, endpointId, usedClassNames);
+        }
+        usedClassNames.add(className);
+        spec = { ...spec, className, falUnitPricing: pricingMap.get(endpointId) ?? null };
+        specs.push(spec);
+      } catch (e) {
+        parseFailures.push({ endpointId, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    if (specs.length === 0) {
+      console.log(`  (no nodes generated)`);
+      continue;
+    }
+
+    specs.sort((a, b) => a.endpointId.localeCompare(b.endpointId));
+    const moduleCode = generator.generateModule(dashName, specs, moduleConfig);
+    const outFile = join(outputDir, `${dashName}.ts`);
+    if (dryRun) {
+      console.log(`  [dry-run] Would write ${specs.length} nodes (${moduleCode.length} chars) → ${outFile}`);
+    } else {
+      await mkdir(outputDir, { recursive: true });
+      await writeFile(outFile, moduleCode);
+      console.log(`  Wrote ${specs.length} nodes to ${outFile}`);
+    }
+    totalGenerated += specs.length;
+  }
+
+  return { totalGenerated, parseFailures };
+}
+
 async function generateFromPlatform(
   outputDir: string,
   apiKey: string | undefined,
   dryRun: boolean,
   skipUnitPricing: boolean,
   pricingSnapshotFile: string | undefined,
+  saveModelsSnapshot: string | undefined,
 ): Promise<void> {
   console.log("Discovering models (GET https://api.fal.ai/v1/models, status=active)…");
   const { models: catalog, skippedMissingKind } =
@@ -281,16 +376,13 @@ async function generateFromPlatform(
       fetchOptions: { mode: "default" },
     });
     if (!apiKey && !pricingSnapshotFile?.trim()) {
-      console.warn(
-        "No FAL API key: falUnitPricing will be null on all generated nodes.\n",
-      );
+      console.warn("No FAL API key: falUnitPricing will be null on all generated nodes.\n");
     } else {
-      console.log(
-        `Unit pricing rows: ${pricingMap.size} / ${catalogEndpointIds.length}\n`,
-      );
+      console.log(`Unit pricing rows: ${pricingMap.size} / ${catalogEndpointIds.length}\n`);
     }
   }
 
+  // Fetch OpenAPI per module and collect into a single map for snapshot + codegen.
   const byModule = new Map<FalCodegenModuleKey, FalModelListItem[]>();
   for (const m of catalog) {
     const key = mapFalCategoryToModuleKey(m.metadata?.category);
@@ -299,124 +391,84 @@ async function generateFromPlatform(
     byModule.set(key, list);
   }
 
-  const parser = new SchemaParser();
-  const generator = new NodeGenerator();
-
-  let totalGenerated = 0;
+  const allSchemas = new Map<string, Record<string, unknown>>();
   const allOpenapiFailed: { endpointId: string; error: string }[] = [];
-  const parseFailures: { endpointId: string; error: string }[] = [];
 
-  const moduleKeys = Object.keys(allConfigs) as FalCodegenModuleKey[];
-
-  for (const moduleKey of moduleKeys) {
-    const dashName = moduleKey.replace(/_/g, "-");
+  for (const moduleKey of Object.keys(allConfigs) as FalCodegenModuleKey[]) {
     const group = byModule.get(moduleKey) ?? [];
-    const moduleConfig = allConfigs[moduleKey];
-
-    console.log(`\n=== ${dashName} === (${group.length} in catalog)`);
-
-    if (group.length === 0) {
-      continue;
-    }
-
+    if (group.length === 0) continue;
     const endpointIds = [...new Set(group.map((g) => g.endpoint_id))].sort();
-    const itemByEndpoint = new Map(group.map((g) => [g.endpoint_id, g]));
-
-    console.log(`  Fetching OpenAPI (${endpointIds.length} endpoints, batched)…`);
-    const { schemas, failed } = await fetchOpenapiForEndpoints(
-      endpointIds,
-      apiKey,
-    );
+    console.log(`\n  [fetch] ${moduleKey.replace(/_/g, "-")}: OpenAPI for ${endpointIds.length} endpoints…`);
+    const { schemas, failed } = await fetchOpenapiForEndpoints(endpointIds, apiKey);
+    for (const [id, schema] of schemas) allSchemas.set(id, schema);
     allOpenapiFailed.push(...failed);
     if (failed.length > 0) {
       console.log(`  OpenAPI: ${failed.length} failed (see summary at end)`);
     }
-
-    const usedClassNames = new Set<string>();
-    const specs: NodeSpec[] = [];
-
-    for (const endpointId of endpointIds) {
-      const openapi = schemas.get(endpointId);
-      if (!openapi) {
-        continue;
-      }
-
-      try {
-        let spec = parser.parse(openapi);
-        const nodeConfig = moduleConfig.configs[endpointId];
-        if (nodeConfig) {
-          spec = generator.applyConfig(spec, nodeConfig);
-        }
-
-        const item = itemByEndpoint.get(endpointId);
-        spec = enrichSpecFromCatalog(
-          spec,
-          item,
-          Boolean(nodeConfig?.docstring),
-          Boolean(nodeConfig?.tags && nodeConfig.tags.length > 0),
-        );
-
-        let className = spec.className;
-        if (usedClassNames.has(className)) {
-          className = uniquifyClassName(className, endpointId, usedClassNames);
-        }
-        usedClassNames.add(className);
-        spec = {
-          ...spec,
-          className,
-          falUnitPricing: pricingMap.get(endpointId) ?? null,
-        };
-
-        specs.push(spec);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        parseFailures.push({ endpointId, error: msg });
-      }
-    }
-
-    if (specs.length === 0) {
-      console.log(`  (no nodes generated)`);
-      continue;
-    }
-
-    specs.sort((a, b) => a.endpointId.localeCompare(b.endpointId));
-
-    const moduleCode = generator.generateModule(dashName, specs, moduleConfig);
-    const outFile = join(outputDir, `${dashName}.ts`);
-    if (dryRun) {
-      console.log(
-        `  [dry-run] Would write ${specs.length} nodes (${moduleCode.length} chars) → ${outFile}`,
-      );
-    } else {
-      await mkdir(outputDir, { recursive: true });
-      await writeFile(outFile, moduleCode);
-      console.log(`  Wrote ${specs.length} nodes to ${outFile}`);
-    }
-    totalGenerated += specs.length;
   }
 
-  console.log(
-    `\nTotal: ${totalGenerated} nodes ${dryRun ? "(dry run — no files written)" : "generated"}`,
+  if (saveModelsSnapshot) {
+    const snapPath = saveModelsSnapshot.trim();
+    if (!dryRun) {
+      await mkdir(join(snapPath, ".."), { recursive: true });
+      await writeFalModelsSnapshot(snapPath, catalog, allSchemas);
+      console.log(`\nModels snapshot written → ${snapPath} (${catalog.length} catalog rows, ${allSchemas.size} OpenAPI schemas)`);
+    } else {
+      console.log(`\n[dry-run] Would write models snapshot → ${snapPath}`);
+    }
+  }
+
+  const { totalGenerated, parseFailures } = await runCodegenLoop(
+    catalog, allSchemas, pricingMap, outputDir, dryRun,
   );
-  printGroupedEndpointFailures(
-    "OpenAPI fetch failures",
-    allOpenapiFailed,
-    PLATFORM_OPENAPI_LIST_CAP,
-  );
-  printGroupedEndpointFailures(
-    "Parse / codegen failures",
-    parseFailures,
-    PLATFORM_OPENAPI_LIST_CAP,
-  );
+
+  console.log(`\nTotal: ${totalGenerated} nodes ${dryRun ? "(dry run — no files written)" : "generated"}`);
+  printGroupedEndpointFailures("OpenAPI fetch failures", allOpenapiFailed, PLATFORM_OPENAPI_LIST_CAP);
+  printGroupedEndpointFailures("Parse / codegen failures", parseFailures, PLATFORM_OPENAPI_LIST_CAP);
 
   if (skippedMissingKind.length > 0) {
-    console.log(
-      `\nSkipped — missing metadata.kind (${skippedMissingKind.length}):`,
-    );
-    for (const id of skippedMissingKind) {
-      console.log(`  ${id}`);
-    }
+    console.log(`\nSkipped — missing metadata.kind (${skippedMissingKind.length}):`);
+    for (const id of skippedMissingKind) console.log(`  ${id}`);
   }
+}
+
+/**
+ * Offline codegen from a models snapshot written by `--save-models-snapshot`.
+ * No network calls — useful for iterating on parser/generator changes.
+ */
+async function generateFromModelsSnapshot(
+  snapshotFile: string,
+  outputDir: string,
+  dryRun: boolean,
+  skipUnitPricing: boolean,
+  pricingSnapshotFile: string | undefined,
+  apiKey: string | undefined,
+): Promise<void> {
+  console.log(`Loading models snapshot: ${snapshotFile}`);
+  const { catalog, openapi: allSchemas } = await readFalModelsSnapshot(snapshotFile);
+  console.log(`Snapshot: ${catalog.length} catalog rows, ${allSchemas.size} OpenAPI schemas.\n`);
+
+  const endpointIds = [...allSchemas.keys()].sort();
+  let pricingMap = new Map<string, FalUnitPricing>();
+  if (skipUnitPricing) {
+    console.log("Skipping unit pricing (--skip-pricing); falUnitPricing will be null.\n");
+  } else {
+    pricingMap = await resolveFalUnitPricingMap({
+      endpointIds,
+      apiKey,
+      skip: false,
+      snapshotFile: pricingSnapshotFile,
+      fetchOptions: { mode: "default" },
+    });
+    console.log(`Unit pricing rows: ${pricingMap.size} / ${endpointIds.length}\n`);
+  }
+
+  const { totalGenerated, parseFailures } = await runCodegenLoop(
+    catalog, allSchemas, pricingMap, outputDir, dryRun,
+  );
+
+  console.log(`\nTotal: ${totalGenerated} nodes ${dryRun ? "(dry run — no files written)" : "generated"}`);
+  printGroupedEndpointFailures("Parse / codegen failures", parseFailures, PLATFORM_OPENAPI_LIST_CAP);
 }
 
 /**
@@ -491,6 +543,65 @@ async function runPricingOnly(outputDir: string, dryRun: boolean): Promise<void>
   console.log(`Wrote ${snapshotPath}`);
 }
 
+/**
+ * Fetch catalog + all OpenAPI schemas and write a models snapshot. No codegen, no pricing.
+ * Use this to build `fal-models.json` once; then iterate offline with `--from-models-snapshot`.
+ */
+async function runModelsOnly(outputDir: string, dryRun: boolean): Promise<void> {
+  const apiKey = resolveFalApiKeyFromEnv();
+  if (!apiKey) {
+    console.error("--models-only requires FAL_API_KEY or --fal-api-key");
+    process.exit(1);
+  }
+  if (!values["from-platform"]) {
+    console.error("--models-only requires --from-platform");
+    process.exit(1);
+  }
+
+  const snapshotPath =
+    values["save-models-snapshot"]?.trim() || join(outputDir, "fal-models.json");
+
+  console.log("Discovering models (GET /v1/models, catalog for id list)…");
+  const { models: catalog, skippedMissingKind } = await fetchAllActiveCatalogModels(apiKey);
+  console.log(`Catalog: ${catalog.length} endpoints.\n`);
+
+  const byModule = new Map<FalCodegenModuleKey, FalModelListItem[]>();
+  for (const m of catalog) {
+    const key = mapFalCategoryToModuleKey(m.metadata?.category);
+    const list = byModule.get(key) ?? [];
+    list.push(m);
+    byModule.set(key, list);
+  }
+
+  const allSchemas = new Map<string, Record<string, unknown>>();
+  const allFailed: { endpointId: string; error: string }[] = [];
+
+  for (const moduleKey of Object.keys(allConfigs) as FalCodegenModuleKey[]) {
+    const group = byModule.get(moduleKey) ?? [];
+    if (group.length === 0) continue;
+    const endpointIds = [...new Set(group.map((g) => g.endpoint_id))].sort();
+    console.log(`  [fetch] ${moduleKey.replace(/_/g, "-")}: OpenAPI for ${endpointIds.length} endpoints…`);
+    const { schemas, failed } = await fetchOpenapiForEndpoints(endpointIds, apiKey);
+    for (const [id, schema] of schemas) allSchemas.set(id, schema);
+    allFailed.push(...failed);
+  }
+
+  console.log(`\nFetched ${allSchemas.size} / ${catalog.length} OpenAPI schemas.`);
+  printGroupedEndpointFailures("OpenAPI fetch failures", allFailed, PLATFORM_OPENAPI_LIST_CAP);
+
+  if (skippedMissingKind.length > 0) {
+    console.log(`\nSkipped — missing metadata.kind: ${skippedMissingKind.length}`);
+  }
+
+  if (dryRun) {
+    console.log(`\n[dry-run] Would write models snapshot → ${snapshotPath}`);
+    return;
+  }
+  await mkdir(outputDir, { recursive: true });
+  await writeFalModelsSnapshot(snapshotPath, catalog, allSchemas);
+  console.log(`\nWrote models snapshot → ${snapshotPath}`);
+}
+
 async function main(): Promise<void> {
   const outputDir = values["output-dir"]!;
   const useCache = !values["no-cache"];
@@ -515,6 +626,11 @@ async function main(): Promise<void> {
       console.log(`FAL auth: key from ${src} (length ${apiKey.length}).\n`);
     }
     await runPricingOnly(outputDir, dryRun);
+    return;
+  }
+
+  if (values["models-only"]) {
+    await runModelsOnly(outputDir, dryRun);
     return;
   }
 
@@ -547,6 +663,22 @@ async function main(): Promise<void> {
       dryRun,
       skipUnitPricing,
       pricingSnapshotFile,
+      values["save-models-snapshot"]?.trim() || undefined,
+    );
+    return;
+  }
+
+  if (values["from-models-snapshot"]) {
+    const snapshotFile = values["from-models-snapshot"].trim();
+    const apiKey = resolveFalApiKeyFromEnv();
+    console.log(`Offline codegen from models snapshot (no network for catalog/OpenAPI).\n`);
+    await generateFromModelsSnapshot(
+      snapshotFile,
+      outputDir,
+      dryRun,
+      skipUnitPricing,
+      pricingSnapshotFile,
+      apiKey,
     );
     return;
   }

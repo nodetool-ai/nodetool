@@ -12,6 +12,22 @@ const MODELS_URL = "https://api.fal.ai/v1/models";
 
 const CATALOG_PAGE_GAP_JITTER_MS = 380;
 
+/**
+ * Env: `FAL_OPENAPI_BATCH_GAP_MS` — ms pause between OpenAPI batch requests (default 500 + jitter;
+ * `0` to disable). Spreads the per-module batches so they don't exhaust quota before single-id retries.
+ */
+const OPENAPI_BATCH_GAP_JITTER_MS = 300;
+
+function openapiPageGapBaseMs(): number {
+  const raw = process.env.FAL_OPENAPI_BATCH_GAP_MS;
+  if (raw === "0") return 0;
+  if (raw != null && raw !== "") {
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isNaN(n) && n >= 0) return n;
+  }
+  return 500;
+}
+
 function catalogPageGapBaseMs(): number {
   const raw = process.env.FAL_CATALOG_PAGE_GAP_MS;
   if (raw === "0") {
@@ -34,10 +50,10 @@ function catalogPageGapBaseMs(): number {
 const OPENAPI_BATCH_SIZE = 12;
 
 /**
- * Parallel single-id OpenAPI retries (same `/v1/models`). Keep low: even with `FAL_API_KEY`,
- * many concurrent expands trigger HTTP 429.
+ * Parallel single-id OpenAPI retries (same `/v1/models`). Keep at 1: concurrent retries compete
+ * for the same rate-limit bucket and make 429 cascades worse.
  */
-const OPENAPI_SINGLE_ID_CONCURRENCY = 2;
+const OPENAPI_SINGLE_ID_CONCURRENCY = 1;
 
 export type FalCodegenModuleKey = keyof typeof allConfigs;
 
@@ -104,11 +120,11 @@ export function parseRetryAfterMs(res: Response): number | undefined {
 
 const RETRYABLE_HTTP_STATUS = new Set([429, 503]);
 
-/** Max sleep between retries (FAL may send very large Retry-After; cap for interactive use). */
-const FAL_RETRY_WAIT_CAP_MS = 8_000;
+/** Honor Retry-After up to this ceiling. High enough to respect real windows (~60s observed). */
+const FAL_RETRY_WAIT_CAP_MS = 90_000;
 const FAL_FETCH_MAX_ATTEMPTS = 6;
 const FAL_FETCH_BASE_MS = 600;
-const FAL_FETCH_MAX_BACKOFF_MS = FAL_RETRY_WAIT_CAP_MS;
+const FAL_FETCH_MAX_BACKOFF_MS = 8_000; // exponential cap; Retry-After header overrides this
 
 /**
  * GET with retries on 429/503. Backs off with capped waits (Retry-After and exponential both capped).
@@ -346,6 +362,13 @@ export async function fetchOpenapiForEndpoints(
     }
 
     const body = (await res.json()) as { models?: OpenapiModelRow[] };
+
+    if (i + OPENAPI_BATCH_SIZE < endpointIds.length) {
+      const gapBase = openapiPageGapBaseMs();
+      if (gapBase > 0) {
+        await sleep(gapBase + Math.random() * OPENAPI_BATCH_GAP_JITTER_MS);
+      }
+    }
 
     const seen = new Set<string>();
     for (const m of body.models ?? []) {
