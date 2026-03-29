@@ -15,13 +15,17 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-/** Compact label for node chrome (e.g. $0.04 / images). */
+/** Compact label for node chrome (e.g. $0.04). */
 export function formatFalUnitPricingShort(p: FalUnitPricing): string {
   return formatMoney(p.unit_price, p.currency);
 }
 
-/** Tooltip body: list price disclaimer + endpoint. */
+/** Tooltip body: price, when checked, endpoint. */
 export function formatFalUnitPricingTooltip(p: FalUnitPricing): string {
-  const line1 = `${formatMoney(p.unit_price, p.currency)} per ${p.billing_unit} (FAL list price).`;
-  return `${line1}\nEndpoint: ${p.endpoint_id}`;
+  const price = `${formatMoney(p.unit_price, p.currency)} per ${p.billing_unit}`;
+  const sourceLabel = p.source === "live" ? "Live price" : "List price";
+  const when = p.checked_at
+    ? `${sourceLabel} as of ${new Date(p.checked_at).toLocaleString()}`
+    : sourceLabel;
+  return [price, when, `Endpoint: ${p.endpoint_id}`].filter(Boolean).join("\n");
 }

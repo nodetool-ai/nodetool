@@ -73,6 +73,10 @@ export interface FalUnitPricing {
   unit_price: number;
   billing_unit: string;
   currency: string;
+  /** "live" = fetched at runtime from FAL API; "bundle" = baked in at codegen time */
+  source?: "live" | "bundle";
+  /** ISO timestamp of when the price was last fetched (live only) */
+  checked_at?: string;
 }
 
 export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];

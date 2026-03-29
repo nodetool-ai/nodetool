@@ -12,6 +12,7 @@ export const attachBundleFalUnitPricing = (
   if (raw == null || typeof raw !== "object") {
     return;
   }
+  const checkedAt = falNodeTypePricingBundle.writtenAt;
   for (const [nodeType, pricing] of Object.entries(raw)) {
     const md = metadataByType[nodeType];
     if (!md || pricing == null) {
@@ -20,6 +21,6 @@ export const attachBundleFalUnitPricing = (
     if (md.fal_unit_pricing != null) {
       continue;
     }
-    md.fal_unit_pricing = pricing as FalUnitPricing;
+    md.fal_unit_pricing = { ...(pricing as FalUnitPricing), source: "bundle", checked_at: checkedAt };
   }
 };

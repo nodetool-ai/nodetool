@@ -17,6 +17,8 @@ import { client } from "./ApiClient";
 import debounce from "lodash/debounce";
 import omit from "lodash/omit";
 import { createErrorMessage } from "../utils/errorHandling";
+import { fetchLiveFalPricing } from "../utils/fetchLiveFalPricing";
+import useMetadataStore from "./MetadataStore";
 import { uuidv4 } from "./uuidv4";
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -536,6 +538,32 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         }
 
         const newStore = createNodeStore(workflow);
+
+        // Fetch live FAL pricing for FAL nodes in this workflow.
+        // Uses a subscribe pattern to handle the case where metadata hasn't
+        // loaded yet (workflows restored from localStorage before metadata fetch).
+        const falNodeTypes = [...new Set((workflow.graph?.nodes ?? []).map((n) => n.type as string))]
+          .filter((t) => t.startsWith("fal."));
+
+        if (falNodeTypes.length > 0) {
+          const doFetch = () => {
+            const meta = useMetadataStore.getState().metadata;
+            const endpointIds = falNodeTypes
+              .map((t) => meta[t]?.fal_unit_pricing?.endpoint_id)
+              .filter((id): id is string => Boolean(id));
+            if (endpointIds.length === 0) return false;
+            fetchLiveFalPricing(meta, endpointIds)
+              .then((updated) => { if (updated) useMetadataStore.getState().setMetadata({ ...meta }); })
+              .catch(() => {});
+            return true;
+          };
+
+          if (!doFetch()) {
+            // Metadata not ready yet — subscribe and fetch on first update
+            const unsub = useMetadataStore.subscribe(() => { if (doFetch()) unsub(); });
+          }
+        }
+
         const workflowAttributes = omit(workflow, "graph");
         const newOpenWorkflows = [...get().openWorkflows, workflowAttributes];
         

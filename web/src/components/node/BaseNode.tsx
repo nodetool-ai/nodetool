@@ -874,6 +874,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               },
             }}
           >
+            {metadata.fal_unit_pricing.source === "live" && (
+              <span style={{ marginRight: 3, fontSize: "0.55rem", opacity: 0.85 }}>●</span>
+            )}
             {formatFalUnitPricingShort(metadata.fal_unit_pricing)}
           </Button>
         </Tooltip>
