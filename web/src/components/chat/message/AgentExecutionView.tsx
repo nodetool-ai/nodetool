@@ -331,7 +331,9 @@ const styles = (theme: Theme) =>
   });
 
 const formatToolArgs = (args: Record<string, unknown> | string | null | undefined): string => {
-  if (args === null || args === undefined) {return "";}
+  if (args === null || args === undefined) {
+    return "";
+  }
   try {
     const obj = typeof args === "string" ? JSON.parse(args) : args;
     // If it's a simple object with few keys, simpler display? For now just indent

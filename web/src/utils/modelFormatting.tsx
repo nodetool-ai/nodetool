@@ -3,7 +3,9 @@ import ModelIcon from "../icons/data_types/nodetool/model.svg";
 import PetsIcon from "@mui/icons-material/Pets";
 
 export const prettifyModelType = (type: string) => {
-  if (type === "All") {return type;}
+  if (type === "All") {
+    return type;
+  }
 
   if (type === "llama_model") {
     return (
@@ -73,7 +75,9 @@ export const prettifyModelType = (type: string) => {
 };
 
 export const getShortModelName = (fullName: string | undefined): string => {
-  if (!fullName) {return "";}
+  if (!fullName) {
+    return "";
+  }
   const lastSlashIndex = fullName.lastIndexOf("/");
   if (lastSlashIndex !== -1 && lastSlashIndex < fullName.length - 1) {
     return fullName.substring(lastSlashIndex + 1);

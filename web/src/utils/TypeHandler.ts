@@ -32,7 +32,9 @@ export const typeToString = (type: TypeMetadata): string => {
  * Create a slug from a string. Used for namespaces.
  */
 export const Slugify = (input: string): string => {
-  if (!input) {return "";}
+  if (!input) {
+    return "";
+  }
   return input.replaceAll(".", "_").replaceAll("-", "_").toLowerCase();
 };
 
