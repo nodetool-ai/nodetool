@@ -6,16 +6,21 @@ const mockSend = vi.fn();
 
 vi.mock("@aws-sdk/client-s3", () => {
   return {
-    S3Client: vi.fn().mockImplementation(() => ({
-      send: mockSend,
-    })),
-    PutObjectCommand: vi.fn().mockImplementation((input: any) => ({ _type: "put", ...input })),
-    GetObjectCommand: vi.fn().mockImplementation((input: any) => ({ _type: "get", ...input })),
-    DeleteObjectCommand: vi.fn().mockImplementation((input: any) => ({
-      _type: "delete",
-      ...input,
-    })),
-    HeadObjectCommand: vi.fn().mockImplementation((input: any) => ({ _type: "head", ...input })),
+    S3Client: vi.fn().mockImplementation(function (this: any) {
+      this.send = mockSend;
+    }),
+    PutObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+      Object.assign(this, { _type: "put", ...input });
+    }),
+    GetObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+      Object.assign(this, { _type: "get", ...input });
+    }),
+    DeleteObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+      Object.assign(this, { _type: "delete", ...input });
+    }),
+    HeadObjectCommand: vi.fn().mockImplementation(function (this: any, input: any) {
+      Object.assign(this, { _type: "head", ...input });
+    }),
   };
 });
 
