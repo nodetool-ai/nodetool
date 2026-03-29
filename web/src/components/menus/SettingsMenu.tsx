@@ -27,6 +27,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { client, isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import { getRemoteSidebarSections as getApiServicesSidebarSections } from "./remoteSidebarUtils";
+import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
 import { getFoldersSidebarSections } from "./foldersSidebarUtils";
 import SecretsMenu from "./SecretsMenu";
@@ -364,6 +365,27 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   }
 
+  // Subscribe to store data for sidebar sections to enable memoization
+  const remoteSettings = useRemoteSettingsStore((state) => state.settings);
+  const secrets = useSecretsStore((state) => state.secrets);
+
+  // Memoize expensive sidebar computations
+  // These functions perform filter/reduce/map operations on store data
+  const apiServicesSidebarSections = React.useMemo(
+    () => getApiServicesSidebarSections(remoteSettings),
+    [remoteSettings]
+  );
+
+  const foldersSidebarSections = React.useMemo(
+    () => getFoldersSidebarSections(remoteSettings),
+    [remoteSettings]
+  );
+
+  const secretsSidebarSections = React.useMemo(
+    () => getSecretsSidebarSections(secrets),
+    [secrets]
+  );
+
   const theme = useTheme();
 
   return (
@@ -431,11 +453,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     settingsTab === 0
                       ? generalSidebarSections
                       : settingsTab === 1
-                        ? getApiServicesSidebarSections()
+                        ? apiServicesSidebarSections
                         : settingsTab === 2
-                          ? getFoldersSidebarSections()
+                          ? foldersSidebarSections
                           : settingsTab === 3
-                            ? getSecretsSidebarSections()
+                            ? secretsSidebarSections
                             : settingsTab === 4
                               ? getAboutSidebarSections()
                               : []
