@@ -296,7 +296,7 @@ const SearchResultItem = memo(
                 {matchingTags.length > 0 && (
                   <div className="matched-tags-inline">
                     {matchingTags.slice(0, 2).map((tag, idx) => (
-                      <span key={idx} className="result-tag matched">
+                      <span key={`${node.node_type}-tag-${tag}-${idx}`} className="result-tag matched">
                         {tag}
                       </span>
                     ))}
