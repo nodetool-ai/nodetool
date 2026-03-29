@@ -299,7 +299,7 @@ describe("SearchErrorBoundary", () => {
 
   describe("edge cases", () => {
     it("should work without onRetry callback (re-throws on retry)", async () => {
-      const shouldThrow = true;
+      let shouldThrow = true;
 
       const ConditionalThrow = () => {
         if (shouldThrow) {
