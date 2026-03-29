@@ -19,12 +19,12 @@ import {
   setupMockApiRoutes,
   getBackendApiUrl,
   templates,
-} from "../../../web/tests/e2e/fixtures/mockData";
+} from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForEditorReady,
   waitForAnimation,
-} from "../../../web/tests/e2e/helpers/waitHelpers";
+} from "./helpers/waitHelpers";
 
 // ---------------------------------------------------------------------------
 // Fake-provider data (mirrors model-select-views.spec.ts constants)
