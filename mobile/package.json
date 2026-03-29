@@ -41,7 +41,7 @@
     "react-native-syntax-highlighter": "^2.1.0",
     "react-syntax-highlighter": "^16.1.0",
     "uuid": "13.0.0",
-    "zustand": "5.0.9"
+    "zustand": "5.0.12"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.5",
