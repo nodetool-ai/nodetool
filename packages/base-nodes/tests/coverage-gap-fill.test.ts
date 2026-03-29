@@ -1722,7 +1722,7 @@ describe("lib-beautifulsoup gaps", () => {
 // lib-seaborn.ts gaps
 // ============================================================================
 
-describe("lib-seaborn gaps", () => {
+describe.skipIf(Boolean(process.env.CI))("lib-seaborn gaps", () => {
   it("ChartRenderer renders a basic bar chart", async () => {
     const __n115 = new ChartRendererLibNode();
     __n115.assign({

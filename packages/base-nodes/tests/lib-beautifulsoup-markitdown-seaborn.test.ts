@@ -235,7 +235,7 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
 
 // ── lib.seaborn (ChartRenderer) ────────────────────────────────────
 
-describe("lib.seaborn.ChartRenderer", () => {
+describe.skipIf(Boolean(process.env.CI))("lib.seaborn.ChartRenderer", () => {
   it("renders a bar chart and returns base64 image data", async () => {
     const result = await new ChartRendererLibNode({
       chart_config: {

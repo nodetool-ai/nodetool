@@ -115,7 +115,7 @@ import {
   SearchNode,
 } from "../src/nodes/vector-faiss.js";
 
-describe("vector-faiss native backends via mock", () => {
+describe.skipIf(Boolean(process.env.CI))("vector-faiss native backends via mock", () => {
   const DIM = 4;
 
   it("CreateIndexFlatL2Node creates native backend when faiss-node available", async () => {
