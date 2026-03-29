@@ -8,10 +8,9 @@
  */
 
 import { join, resolve, dirname } from "node:path";
-import { homedir } from "node:os";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
@@ -21,7 +20,7 @@ import {
   setSecretResolver,
   PythonBridge,
 } from "@nodetool/runtime";
-import { getSecret } from "@nodetool/security";
+import { getSecret, initMasterKey } from "@nodetool/security";
 import { initDb } from "@nodetool/models";
 import {
   Tool,
@@ -59,6 +58,15 @@ import type { HttpApiOptions } from "./http-api.js";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
+import fastifyStatic from "@fastify/static";
+import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
+
+// Auth: extend FastifyRequest with userId
+declare module "fastify" {
+  interface FastifyRequest {
+    userId: string | null;
+  }
+}
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
@@ -81,19 +89,28 @@ import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
 
 const log = createLogger("nodetool.websocket.server");
+const startupT0 = performance.now();
+function startupMs(): string {
+  return `${(performance.now() - startupT0).toFixed(0)}ms`;
+}
 
 // ---------------------------------------------------------------------------
 // Database setup
 // ---------------------------------------------------------------------------
 
-const dbPath =
-  process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
+const dbPath = getDefaultDbPath();
 try {
+  mkdirSync(dirname(dbPath), { recursive: true });
   initDb(dbPath);
-  log.info("Database ready", { path: dbPath });
-  setSecretResolver((key) => getSecret(key, "1").then((v) => v ?? undefined));
+  log.info(`Database ready [${startupMs()}]`, { path: dbPath });
+  // Initialize master key from keychain before any secret access.
+  // This must happen before setSecretResolver so that getMasterKey() (sync)
+  // returns the keychain key rather than auto-generating a new one.
+  await initMasterKey();
+  setSecretResolver((key, userId) => getSecret(key, userId).then((v) => v ?? undefined));
 } catch (err) {
   log.error("Database setup failed", err instanceof Error ? err : new Error(String(err)));
+  process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -142,7 +159,7 @@ function detectMetadataRoots(): string[] {
 }
 
 const metadataRoots = detectMetadataRoots();
-log.info("Metadata roots", { roots: metadataRoots });
+log.info(`Metadata roots detected [${startupMs()}]`, { roots: metadataRoots });
 
 // ---------------------------------------------------------------------------
 // Node registry
@@ -150,10 +167,12 @@ log.info("Metadata roots", { roots: metadataRoots });
 
 const registry = new NodeRegistry();
 registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
+log.info(`Python metadata loaded [${startupMs()}]`);
 registerBaseNodes(registry);
 registerElevenLabsNodes(registry);
 registerFalNodes(registry);
 registerReplicateNodes(registry);
+log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------
 // Python bridge
@@ -212,11 +231,30 @@ const builtinToolClasses: (new () => Tool)[] = [
   ReadAssetTool,
 ];
 
-const toolClassMap = new Map<string, new () => Tool>();
-for (const cls of builtinToolClasses) {
-  const instance = new cls();
-  toolClassMap.set(instance.name, cls);
+// Lazy tool class map — defers instantiation until first access.
+let _toolClassMap: Map<string, new () => Tool> | null = null;
+function getToolClassMap(): Map<string, new () => Tool> {
+  if (!_toolClassMap) {
+    _toolClassMap = new Map();
+    for (const cls of builtinToolClasses) {
+      const instance = new cls();
+      _toolClassMap.set(instance.name, cls);
+    }
+    log.info(`Tool class map built (${_toolClassMap.size} tools) [${startupMs()}]`);
+  }
+  return _toolClassMap;
 }
+// Expose as a getter-backed object so existing code using toolClassMap works unchanged.
+const toolClassMap = new Proxy(new Map<string, new () => Tool>(), {
+  get(_target, prop, _receiver) {
+    const map = getToolClassMap();
+    const value = (map as unknown as Record<string | symbol, unknown>)[prop];
+    if (typeof value === "function") {
+      return value.bind(map);
+    }
+    return value;
+  },
+});
 
 // ---------------------------------------------------------------------------
 // TLS configuration
@@ -230,9 +268,6 @@ function findCert(envVar: string, filename: string): string | undefined {
   for (let i = 0; i < 5; i++) {
     const candidate = join(dir, filename);
     if (existsSync(candidate)) return candidate;
-    // Check sibling nodetool-core directory
-    const sibling = join(dir, "nodetool-core", filename);
-    if (existsSync(sibling)) return sibling;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
@@ -274,6 +309,61 @@ const app: FastifyInstance = (Fastify as any)({
   ignoreTrailingSlash: true,
 });
 
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+const supabaseUrl = process.env["SUPABASE_URL"];
+const supabaseKey = process.env["SUPABASE_KEY"];
+const supabaseMode = Boolean(supabaseUrl && supabaseKey);
+const supabaseProvider = supabaseMode
+  ? new SupabaseAuthProvider({ supabaseUrl: supabaseUrl!, supabaseKey: supabaseKey! })
+  : null;
+const localProvider = supabaseProvider ? null : new LocalAuthProvider();
+
+app.decorateRequest("userId", null);
+
+app.addHook("onRequest", async (req, reply) => {
+  // Public routes — no auth required
+  const pathname = req.url.split("?")[0];
+  if (pathname === "/health" || pathname.startsWith("/api/oauth/")) {
+    return;
+  }
+
+  // Extract token from the appropriate source
+  const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
+  const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
+  const provider = supabaseProvider ?? localProvider!;
+  const token = isWs
+    ? provider.extractTokenFromWs(req.headers as Record<string, string>, searchParams)
+    : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
+
+  if (supabaseMode) {
+    if (!token) {
+      reply.status(401).send({ error: "Unauthorized" });
+      return;
+    }
+    const result = await supabaseProvider!.verifyToken(token);
+    if (!result.ok) {
+      reply.status(401).send({ error: result.error ?? "Unauthorized" });
+      return;
+    }
+    req.userId = result.userId ?? null;
+    return;
+  }
+
+  // Dev mode: localhost only
+  // Use req.socket.remoteAddress rather than req.ip because trustProxy: true
+  // makes req.ip reflect x-forwarded-for (spoofable).
+  const remoteAddr = req.socket.remoteAddress ?? "";
+  const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
+  if (!isLocalhost) {
+    reply.status(401).send({ error: "Remote access requires authentication" });
+    return;
+  }
+  req.userId = "1";
+});
+
 // CORS
 await app.register(fastifyCors, { origin: true });
 
@@ -291,6 +381,8 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 // ---------------------------------------------------------------------------
 
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
+const staticFolder = process.env["STATIC_FOLDER"];
+const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 
 // ---------------------------------------------------------------------------
 // Register route plugins
@@ -326,10 +418,44 @@ await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
 
+log.info(`Routes registered [${startupMs()}]`);
+
+if (hasStaticApp && staticFolder) {
+  log.info("Serving static app", { root: staticFolder });
+
+  await app.register(fastifyStatic, {
+    root: staticFolder,
+    prefix: "/",
+  });
+
+  app.get("/", async (_req, reply) => {
+    return reply.sendFile("index.html");
+  });
+
+  app.get("/apps/index.html", async (_req, reply) => {
+    return reply.sendFile("index.html");
+  });
+}
+
 // Log all 404s so we can identify missing routes
 app.setNotFoundHandler((req, reply) => {
+  const pathname = req.url.split("?")[0] ?? "/";
+
+  if (
+    hasStaticApp &&
+    req.method === "GET" &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/health") &&
+    !pathname.startsWith("/ws") &&
+    !pathname.startsWith("/v1") &&
+    !pathname.startsWith("/oauth") &&
+    !pathname.includes(".")
+  ) {
+    return reply.sendFile("index.html");
+  }
+
   log.warn(`404 Not Found: ${req.method} ${req.url}`);
-  reply.status(404).send({ detail: "Not found" });
+  return reply.status(404).send({ detail: "Not found" });
 });
 
 // ---------------------------------------------------------------------------
@@ -358,15 +484,26 @@ if (tlsEnabled) {
 }
 
 // ---------------------------------------------------------------------------
-// Start Python bridge, then start Fastify
+// Start Fastify server immediately, Python bridge connects in background
 // ---------------------------------------------------------------------------
 
+const proto = tlsEnabled ? "https" : "http";
+app.listen({ port, host }, (err) => {
+  if (err) {
+    log.error("Failed to start server", err);
+    process.exit(1);
+  }
+  log.info(`Server listening on ${proto}://${host}:${port} [${startupMs()}]`);
+  log.info(`WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`);
+});
+
+// Python bridge connects in background — server is already accepting requests.
 pythonBridge
   .connect()
   .then(() => {
     pythonBridgeReady = true;
     const meta = pythonBridge.getNodeMetadata();
-    log.info(`Python bridge connected — ${meta.length} Python nodes available`);
+    log.info(`Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`);
 
     registerPythonProviders(pythonBridge)
       .then((registered) => {
@@ -383,15 +520,4 @@ pythonBridge
       "Python bridge failed to start (Python nodes will not be available)",
       err instanceof Error ? err : new Error(String(err)),
     );
-  })
-  .finally(() => {
-    const proto = tlsEnabled ? "https" : "http";
-    app.listen({ port, host }, (err) => {
-      if (err) {
-        log.error("Failed to start server", err);
-        process.exit(1);
-      }
-      log.info(`Server listening on ${proto}://${host}:${port}`);
-      log.info(`WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`);
-    });
   });

@@ -77,8 +77,8 @@ export class LoadModel3DFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = filePath(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = filePath(String(this.path ?? ""));
     const data = new Uint8Array(await fs.readFile(p));
     return { output: modelRef(data, { uri: `file://${p}`, format: extFormat(p) }) };
   }
@@ -116,12 +116,12 @@ export class SaveModel3DFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
-    const filename = String(inputs.filename ?? this.filename ?? "model.glb");
+  async process(): Promise<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
+    const filename = String(this.filename ?? "model.glb");
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = modelBytes(inputs.model ?? this.model);
+    const bytes = modelBytes(this.model);
     await fs.writeFile(full, bytes);
     return { output: modelRef(bytes, { uri: `file://${full}`, format: extFormat(full) }) };
   }
@@ -162,12 +162,12 @@ export class SaveModel3DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
-    const name = dateName(String(inputs.name ?? this.name ?? "model.glb"));
+  async process(): Promise<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
+    const name = dateName(String(this.name ?? "model.glb"));
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = modelBytes(inputs.model ?? this.model);
+    const bytes = modelBytes(this.model);
     await fs.writeFile(full, bytes);
     return { output: modelRef(bytes, { uri: `file://${full}`, format: extFormat(full) }) };
   }
@@ -179,14 +179,14 @@ abstract class ModelTransformNode extends BaseNode {
 
 
 
-  protected getModel(inputs: Record<string, unknown>): Model3DRefLike {
-    const value = inputs.model ?? this.model ?? {};
+  protected getModel(): Model3DRefLike {
+    const value = this.model ?? {};
     if (!value || typeof value !== "object") return {};
     return value as Model3DRefLike;
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const model = this.getModel(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const model = this.getModel();
     const bytes = modelBytes(model);
     return {
       output: modelRef(bytes, {
@@ -228,10 +228,10 @@ export class FormatConverterNode extends ModelTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const model = this.getModel(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const model = this.getModel();
     const bytes = modelBytes(model);
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "glb");
+    const outputFormat = String(this.output_format ?? "glb");
     return {
       output: modelRef(bytes, {
         uri: model.uri ?? "",
@@ -272,8 +272,8 @@ export class GetModel3DMetadataNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const model = (inputs.model ?? this.model ?? {}) as Model3DRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const model = (this.model ?? {}) as Model3DRefLike;
     const bytes = modelBytes(model);
     const vertices = model.vertices ?? Math.floor(bytes.length / 32);
     const faces = model.faces ?? Math.floor(vertices / 3);
@@ -366,10 +366,10 @@ export class DecimateNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const model = (inputs.model ?? this.model ?? {}) as Model3DRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const model = (this.model ?? {}) as Model3DRefLike;
     const bytes = modelBytes(model);
-    const ratio = Number(inputs.ratio ?? this.ratio ?? 0.5);
+    const ratio = Number(this.target_ratio ?? 0.5);
     const keep = Math.max(1, Math.floor(bytes.length * Math.max(0, Math.min(1, ratio))));
     return {
       output: modelRef(bytes.slice(0, keep), {
@@ -422,10 +422,10 @@ export class Boolean3DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = modelBytes(inputs.model_a ?? this.model_a);
-    const b = modelBytes(inputs.model_b ?? this.model_b);
-    const operation = String(inputs.operation ?? this.operation ?? "union").toLowerCase();
+  async process(): Promise<Record<string, unknown>> {
+    const a = modelBytes(this.model_a);
+    const b = modelBytes(this.model_b);
+    const operation = String(this.operation ?? "union").toLowerCase();
 
     if (operation === "difference") {
       const len = Math.max(a.length, b.length);
@@ -535,9 +535,9 @@ export class MergeMeshesNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = Array.isArray(inputs.models ?? this.models)
-      ? (inputs.models ?? this.models) as unknown[]
+  async process(): Promise<Record<string, unknown>> {
+    const values = Array.isArray(this.models)
+      ? this.models as unknown[]
       : [];
     const all = values.map((v) => modelBytes(v));
     return { output: modelRef(concatBytes(all), { format: "glb" }) };
@@ -599,8 +599,8 @@ export class TextTo3DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.prompt ?? "");
     const bytes = Uint8Array.from(Buffer.from(text, "utf8"));
     return { output: modelRef(bytes, { format: "glb" }) };
   }
@@ -664,8 +664,8 @@ export class ImageTo3DNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = (inputs.image ?? this.image ?? {}) as ImageRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
     const bytes = toBytes(image.data);
     return { output: modelRef(bytes, { format: "glb" }) };
   }

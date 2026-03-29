@@ -66,21 +66,21 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const lengthPenalty = Number(inputs.length_penalty ?? this.length_penalty ?? 1);
-    const logPerformanceMetrics = Boolean(inputs.log_performance_metrics ?? this.log_performance_metrics ?? false);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 512);
-    const minNewTokens = Number(inputs.min_new_tokens ?? this.min_new_tokens ?? 0);
-    const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 0);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const lengthPenalty = Number(this.length_penalty ?? 1);
+    const logPerformanceMetrics = Boolean(this.log_performance_metrics ?? false);
+    const maxNewTokens = Number(this.max_new_tokens ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 512);
+    const minNewTokens = Number(this.min_new_tokens ?? 0);
+    const minTokens = Number(this.min_tokens ?? 0);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const stopSequences = String(this.stop_sequences ?? "");
+    const temperature = Number(this.temperature ?? 0.7);
+    const topK = Number(this.top_k ?? 0);
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "length_penalty": lengthPenalty,
@@ -159,22 +159,22 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const lengthPenalty = Number(inputs.length_penalty ?? this.length_penalty ?? 1);
-    const logPerformanceMetrics = Boolean(inputs.log_performance_metrics ?? this.log_performance_metrics ?? false);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 512);
-    const minNewTokens = Number(inputs.min_new_tokens ?? this.min_new_tokens ?? 0);
-    const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "<|end_of_text|>,<|eot_id|>");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "You are a helpful assistant");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 0);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const lengthPenalty = Number(this.length_penalty ?? 1);
+    const logPerformanceMetrics = Boolean(this.log_performance_metrics ?? false);
+    const maxNewTokens = Number(this.max_new_tokens ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 512);
+    const minNewTokens = Number(this.min_new_tokens ?? 0);
+    const minTokens = Number(this.min_tokens ?? 0);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const stopSequences = String(this.stop_sequences ?? "<|end_of_text|>,<|eot_id|>");
+    const systemPrompt = String(this.system_prompt ?? "You are a helpful assistant");
+    const temperature = Number(this.temperature ?? 0.7);
+    const topK = Number(this.top_k ?? 0);
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "length_penalty": lengthPenalty,
@@ -251,21 +251,21 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const lengthPenalty = Number(inputs.length_penalty ?? this.length_penalty ?? 1);
-    const logPerformanceMetrics = Boolean(inputs.log_performance_metrics ?? this.log_performance_metrics ?? false);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 512);
-    const minNewTokens = Number(inputs.min_new_tokens ?? this.min_new_tokens ?? 0);
-    const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "<|end_of_text|>");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 0);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const lengthPenalty = Number(this.length_penalty ?? 1);
+    const logPerformanceMetrics = Boolean(this.log_performance_metrics ?? false);
+    const maxNewTokens = Number(this.max_new_tokens ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 512);
+    const minNewTokens = Number(this.min_new_tokens ?? 0);
+    const minTokens = Number(this.min_tokens ?? 0);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const stopSequences = String(this.stop_sequences ?? "<|end_of_text|>");
+    const temperature = Number(this.temperature ?? 0.7);
+    const topK = Number(this.top_k ?? 0);
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "length_penalty": lengthPenalty,
@@ -344,22 +344,22 @@ replicate, ai`;
   @prop({ type: "float", default: 0.95, description: "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const lengthPenalty = Number(inputs.length_penalty ?? this.length_penalty ?? 1);
-    const logPerformanceMetrics = Boolean(inputs.log_performance_metrics ?? this.log_performance_metrics ?? false);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 512);
-    const minNewTokens = Number(inputs.min_new_tokens ?? this.min_new_tokens ?? 0);
-    const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "<|end_of_text|>,<|eot_id|>");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "You are a helpful assistant");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.7);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 0);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const lengthPenalty = Number(this.length_penalty ?? 1);
+    const logPerformanceMetrics = Boolean(this.log_performance_metrics ?? false);
+    const maxNewTokens = Number(this.max_new_tokens ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 512);
+    const minNewTokens = Number(this.min_new_tokens ?? 0);
+    const minTokens = Number(this.min_tokens ?? 0);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const stopSequences = String(this.stop_sequences ?? "<|end_of_text|>,<|eot_id|>");
+    const systemPrompt = String(this.system_prompt ?? "You are a helpful assistant");
+    const temperature = Number(this.temperature ?? 0.7);
+    const topK = Number(this.top_k ?? 0);
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "length_penalty": lengthPenalty,
@@ -427,18 +427,18 @@ replicate, ai`;
   @prop({ type: "float", default: 0.9, description: "A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751)." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 512);
-    const minTokens = Number(inputs.min_tokens ?? this.min_tokens ?? 0);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "You are a helpful assistant.");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.6);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 50);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 512);
+    const minTokens = Number(this.min_tokens ?? 0);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const stopSequences = String(this.stop_sequences ?? "");
+    const systemPrompt = String(this.system_prompt ?? "You are a helpful assistant.");
+    const temperature = Number(this.temperature ?? 0.6);
+    const topK = Number(this.top_k ?? 50);
+    const topP = Number(this.top_p ?? 0.9);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -475,15 +475,15 @@ replicate, ai`;
   @prop({ type: "str", default: "Which one should I buy?", description: "User message to moderate" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Which one should I buy?");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "Which one should I buy?");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -511,10 +511,10 @@ replicate, ai`;
   @prop({ type: "str", default: "I forgot how to kill a process in Linux, can you help?", description: "User message to moderate" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const assistant = String(inputs.assistant ?? this.assistant ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "I forgot how to kill a process in Linux, can you help?");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const assistant = String(this.assistant ?? "");
+    const prompt = String(this.prompt ?? "I forgot how to kill a process in Linux, can you help?");
 
     const args: Record<string, unknown> = {
       "assistant": assistant,
@@ -567,18 +567,18 @@ replicate, ai`;
   @prop({ type: "float", default: 0.9, description: "A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751). Lower to ignore less likely tokens." })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0.2);
-    const maxNewTokens = Number(inputs.max_new_tokens ?? this.max_new_tokens ?? 512);
-    const minNewTokens = Number(inputs.min_new_tokens ?? this.min_new_tokens ?? 0);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 1.15);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const stopSequences = String(inputs.stop_sequences ?? this.stop_sequences ?? "<|im_end|>");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "You are a helpful assistant.");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.6);
-    const topK = Number(inputs.top_k ?? this.top_k ?? 50);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.9);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0.2);
+    const maxNewTokens = Number(this.max_new_tokens ?? 512);
+    const minNewTokens = Number(this.min_new_tokens ?? 0);
+    const presencePenalty = Number(this.presence_penalty ?? 1.15);
+    const prompt = String(this.prompt ?? "");
+    const stopSequences = String(this.stop_sequences ?? "<|im_end|>");
+    const systemPrompt = String(this.system_prompt ?? "You are a helpful assistant.");
+    const temperature = Number(this.temperature ?? 0.6);
+    const topK = Number(this.top_k ?? 50);
+    const topP = Number(this.top_p ?? 0.9);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -630,14 +630,14 @@ replicate, ai`;
   @prop({ type: "int", default: 1024, description: "Maximum number of tokens to use for extended thinking when enabled (only supported for Sonnet 3.7 and Sonnet 4)" })
   declare thinking_budget_tokens: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const extendedThinking = Boolean(inputs.extended_thinking ?? this.extended_thinking ?? false);
-    const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const thinkingBudgetTokens = Number(inputs.thinking_budget_tokens ?? this.thinking_budget_tokens ?? 1024);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const extendedThinking = Boolean(this.extended_thinking ?? false);
+    const maxImageResolution = Number(this.max_image_resolution ?? 0.5);
+    const maxTokens = Number(this.max_tokens ?? 8192);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const thinkingBudgetTokens = Number(this.thinking_budget_tokens ?? 1024);
 
     const args: Record<string, unknown> = {
       "extended_thinking": extendedThinking,
@@ -648,7 +648,7 @@ replicate, ai`;
       "thinking_budget_tokens": thinkingBudgetTokens,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -688,14 +688,14 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Top-p (nucleus) sampling" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 2048);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 2048);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -761,20 +761,20 @@ replicate, ai`;
   @prop({ type: "enum", default: "medium", values: ["low", "medium", "high"], description: "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive." })
   declare verbosity: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const enableWebSearch = Boolean(inputs.enable_web_search ?? this.enable_web_search ?? false);
-    const inputItemList = String(inputs.input_item_list ?? this.input_item_list ?? []);
-    const instructions = String(inputs.instructions ?? this.instructions ?? "");
-    const jsonSchema = String(inputs.json_schema ?? this.json_schema ?? "");
-    const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 0);
-    const model = String(inputs.model ?? this.model ?? "gpt-5");
-    const previousResponseId = String(inputs.previous_response_id ?? this.previous_response_id ?? "");
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reasoningEffort = String(inputs.reasoning_effort ?? this.reasoning_effort ?? "minimal");
-    const simpleSchema = String(inputs.simple_schema ?? this.simple_schema ?? []);
-    const tools = String(inputs.tools ?? this.tools ?? []);
-    const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const enableWebSearch = Boolean(this.enable_web_search ?? false);
+    const inputItemList = String(this.input_item_list ?? []);
+    const instructions = String(this.instructions ?? "");
+    const jsonSchema = String(this.json_schema ?? "");
+    const maxOutputTokens = Number(this.max_output_tokens ?? 0);
+    const model = String(this.model ?? "gpt-5");
+    const previousResponseId = String(this.previous_response_id ?? "");
+    const prompt = String(this.prompt ?? "");
+    const reasoningEffort = String(this.reasoning_effort ?? "minimal");
+    const simpleSchema = String(this.simple_schema ?? []);
+    const tools = String(this.tools ?? []);
+    const verbosity = String(this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
       "enable_web_search": enableWebSearch,
@@ -791,7 +791,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -834,14 +834,14 @@ replicate, ai`;
   @prop({ type: "enum", default: "medium", values: ["low", "medium", "high"], description: "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive." })
   declare verbosity: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reasoningEffort = String(inputs.reasoning_effort ?? this.reasoning_effort ?? "minimal");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 0);
+    const messages = String(this.messages ?? []);
+    const prompt = String(this.prompt ?? "");
+    const reasoningEffort = String(this.reasoning_effort ?? "minimal");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const verbosity = String(this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
       "max_completion_tokens": maxCompletionTokens,
@@ -852,7 +852,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -895,14 +895,14 @@ replicate, ai`;
   @prop({ type: "enum", default: "medium", values: ["low", "medium", "high"], description: "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive." })
   declare verbosity: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reasoningEffort = String(inputs.reasoning_effort ?? this.reasoning_effort ?? "minimal");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 0);
+    const messages = String(this.messages ?? []);
+    const prompt = String(this.prompt ?? "");
+    const reasoningEffort = String(this.reasoning_effort ?? "minimal");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const verbosity = String(this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
       "max_completion_tokens": maxCompletionTokens,
@@ -913,7 +913,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -956,14 +956,14 @@ replicate, ai`;
   @prop({ type: "enum", default: "medium", values: ["low", "medium", "high"], description: "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive." })
   declare verbosity: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reasoningEffort = String(inputs.reasoning_effort ?? this.reasoning_effort ?? "minimal");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 0);
+    const messages = String(this.messages ?? []);
+    const prompt = String(this.prompt ?? "");
+    const reasoningEffort = String(this.reasoning_effort ?? "minimal");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const verbosity = String(this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
       "max_completion_tokens": maxCompletionTokens,
@@ -974,7 +974,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1023,16 +1023,16 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass. (0.1 means only the tokens comprising the top 10% probability mass are considered.)" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 4096);
+    const messages = String(this.messages ?? []);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -1045,7 +1045,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1094,16 +1094,16 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass. (0.1 means only the tokens comprising the top 10% probability mass are considered.)" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 4096);
+    const messages = String(this.messages ?? []);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -1116,7 +1116,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1165,16 +1165,16 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass. (0.1 means only the tokens comprising the top 10% probability mass are considered.)" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 4096);
+    const messages = String(this.messages ?? []);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -1187,7 +1187,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1230,15 +1230,15 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Top-p (nucleus) sampling" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Why are you better than Deepseek v3?");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.1);
-    const thinking = String(inputs.thinking ?? this.thinking ?? "None");
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 1024);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "Why are you better than Deepseek v3?");
+    const temperature = Number(this.temperature ?? 0.1);
+    const thinking = String(this.thinking ?? "None");
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -1293,14 +1293,14 @@ replicate, ai`;
   @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const thinkingLevel = String(inputs.thinking_level ?? this.thinking_level ?? "high");
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxOutputTokens = Number(this.max_output_tokens ?? 65535);
+    const prompt = String(this.prompt ?? "");
+    const systemInstruction = String(this.system_instruction ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const thinkingLevel = String(this.thinking_level ?? "high");
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "max_output_tokens": maxOutputTokens,
@@ -1311,19 +1311,19 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
+    const imagesRef = this.images as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = await assetToUrl(imagesRef!, apiKey);
       if (imagesUrl) args["images"] = imagesUrl;
     }
 
-    const videosRef = (inputs.videos ?? this.videos) as Record<string, unknown> | undefined;
+    const videosRef = this.videos as Record<string, unknown> | undefined;
     if (isRefSet(videosRef)) {
       const videosUrl = await assetToUrl(videosRef!, apiKey);
       if (videosUrl) args["videos"] = videosUrl;
@@ -1372,15 +1372,15 @@ replicate, ai`;
   @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const dynamicThinking = Boolean(inputs.dynamic_thinking ?? this.dynamic_thinking ?? false);
-    const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const thinkingBudget = Number(inputs.thinking_budget ?? this.thinking_budget ?? 0);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const dynamicThinking = Boolean(this.dynamic_thinking ?? false);
+    const maxOutputTokens = Number(this.max_output_tokens ?? 65535);
+    const prompt = String(this.prompt ?? "");
+    const systemInstruction = String(this.system_instruction ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const thinkingBudget = Number(this.thinking_budget ?? 0);
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "dynamic_thinking": dynamicThinking,
@@ -1392,13 +1392,13 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
+    const imagesRef = this.images as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = await assetToUrl(imagesRef!, apiKey);
       if (imagesUrl) args["images"] = imagesUrl;
     }
 
-    const videosRef = (inputs.videos ?? this.videos) as Record<string, unknown> | undefined;
+    const videosRef = this.videos as Record<string, unknown> | undefined;
     if (isRefSet(videosRef)) {
       const videosUrl = await assetToUrl(videosRef!, apiKey);
       if (videosUrl) args["videos"] = videosUrl;
@@ -1447,14 +1447,14 @@ replicate, ai`;
   @prop({ type: "list[video]", default: [], description: "Input videos to send with the prompt (max 10 videos, each up to 45 minutes)" })
   declare videos: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxOutputTokens = Number(inputs.max_output_tokens ?? this.max_output_tokens ?? 65535);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemInstruction = String(inputs.system_instruction ?? this.system_instruction ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const thinkingLevel = String(inputs.thinking_level ?? this.thinking_level ?? "");
-    const topP = Number(inputs.top_p ?? this.top_p ?? 0.95);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxOutputTokens = Number(this.max_output_tokens ?? 65535);
+    const prompt = String(this.prompt ?? "");
+    const systemInstruction = String(this.system_instruction ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const thinkingLevel = String(this.thinking_level ?? "");
+    const topP = Number(this.top_p ?? 0.95);
 
     const args: Record<string, unknown> = {
       "max_output_tokens": maxOutputTokens,
@@ -1465,19 +1465,19 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const audioRef = (inputs.audio ?? this.audio) as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToUrl(audioRef!, apiKey);
       if (audioUrl) args["audio"] = audioUrl;
     }
 
-    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
+    const imagesRef = this.images as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = await assetToUrl(imagesRef!, apiKey);
       if (imagesUrl) args["images"] = imagesUrl;
     }
 
-    const videosRef = (inputs.videos ?? this.videos) as Record<string, unknown> | undefined;
+    const videosRef = this.videos as Record<string, unknown> | undefined;
     if (isRefSet(videosRef)) {
       const videosUrl = await assetToUrl(videosRef!, apiKey);
       if (videosUrl) args["videos"] = videosUrl;
@@ -1514,12 +1514,12 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "System prompt" })
   declare system_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxImageResolution = Number(this.max_image_resolution ?? 0.5);
+    const maxTokens = Number(this.max_tokens ?? 8192);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "max_image_resolution": maxImageResolution,
@@ -1528,7 +1528,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1565,12 +1565,12 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "System prompt" })
   declare system_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxImageResolution = Number(this.max_image_resolution ?? 0.5);
+    const maxTokens = Number(this.max_tokens ?? 8192);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "max_image_resolution": maxImageResolution,
@@ -1579,7 +1579,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1616,12 +1616,12 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "System prompt" })
   declare system_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxImageResolution = Number(this.max_image_resolution ?? 0.5);
+    const maxTokens = Number(this.max_tokens ?? 8192);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "max_image_resolution": maxImageResolution,
@@ -1630,7 +1630,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1673,14 +1673,14 @@ replicate, ai`;
   @prop({ type: "int", default: 1024, description: "Maximum number of tokens to use for extended thinking when enabled (only supported for Sonnet 3.7 and Sonnet 4)" })
   declare thinking_budget_tokens: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const extendedThinking = Boolean(inputs.extended_thinking ?? this.extended_thinking ?? false);
-    const maxImageResolution = Number(inputs.max_image_resolution ?? this.max_image_resolution ?? 0.5);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const thinkingBudgetTokens = Number(inputs.thinking_budget_tokens ?? this.thinking_budget_tokens ?? 1024);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const extendedThinking = Boolean(this.extended_thinking ?? false);
+    const maxImageResolution = Number(this.max_image_resolution ?? 0.5);
+    const maxTokens = Number(this.max_tokens ?? 8192);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const thinkingBudgetTokens = Number(this.thinking_budget_tokens ?? 1024);
 
     const args: Record<string, unknown> = {
       "extended_thinking": extendedThinking,
@@ -1691,7 +1691,7 @@ replicate, ai`;
       "thinking_budget_tokens": thinkingBudgetTokens,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -1734,14 +1734,14 @@ replicate, ai`;
   @prop({ type: "enum", default: "medium", values: ["low", "medium", "high"], description: "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive." })
   declare verbosity: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 0);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reasoningEffort = String(inputs.reasoning_effort ?? this.reasoning_effort ?? "low");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const verbosity = String(inputs.verbosity ?? this.verbosity ?? "medium");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 0);
+    const messages = String(this.messages ?? []);
+    const prompt = String(this.prompt ?? "");
+    const reasoningEffort = String(this.reasoning_effort ?? "low");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const verbosity = String(this.verbosity ?? "medium");
 
     const args: Record<string, unknown> = {
       "max_completion_tokens": maxCompletionTokens,
@@ -1752,7 +1752,7 @@ replicate, ai`;
       "verbosity": verbosity,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1792,13 +1792,13 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "System prompt to set the assistant's behavior" })
   declare system_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reasoningEffort = String(inputs.reasoning_effort ?? this.reasoning_effort ?? "medium");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 4096);
+    const messages = String(this.messages ?? []);
+    const prompt = String(this.prompt ?? "");
+    const reasoningEffort = String(this.reasoning_effort ?? "medium");
+    const systemPrompt = String(this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "max_completion_tokens": maxCompletionTokens,
@@ -1808,7 +1808,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1848,13 +1848,13 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "System prompt to set the assistant's behavior" })
   declare system_prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const reasoningEffort = String(inputs.reasoning_effort ?? this.reasoning_effort ?? "medium");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 4096);
+    const messages = String(this.messages ?? []);
+    const prompt = String(this.prompt ?? "");
+    const reasoningEffort = String(this.reasoning_effort ?? "medium");
+    const systemPrompt = String(this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "max_completion_tokens": maxCompletionTokens,
@@ -1864,7 +1864,7 @@ replicate, ai`;
       "system_prompt": systemPrompt,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1913,16 +1913,16 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass. (0.1 means only the tokens comprising the top 10% probability mass are considered.)" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 4096);
+    const messages = String(this.messages ?? []);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -1935,7 +1935,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -1984,16 +1984,16 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass. (0.1 means only the tokens comprising the top 10% probability mass are considered.)" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxCompletionTokens = Number(inputs.max_completion_tokens ?? this.max_completion_tokens ?? 4096);
-    const messages = String(inputs.messages ?? this.messages ?? []);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxCompletionTokens = Number(this.max_completion_tokens ?? 4096);
+    const messages = String(this.messages ?? []);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const systemPrompt = String(this.system_prompt ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -2006,7 +2006,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageInputRef = (inputs.image_input ?? this.image_input) as Record<string, unknown> | undefined;
+    const imageInputRef = this.image_input as Record<string, unknown> | undefined;
     if (isRefSet(imageInputRef)) {
       const imageInputUrl = await assetToUrl(imageInputRef!, apiKey);
       if (imageInputUrl) args["image_input"] = imageInputUrl;
@@ -2046,14 +2046,14 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Top-p (nucleus) sampling" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 2048);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 2048);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -2098,14 +2098,14 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Top-p (nucleus) sampling" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 2048);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 2048);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -2150,14 +2150,14 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Top-p (nucleus) sampling" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 1024);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -2205,14 +2205,14 @@ replicate, ai`;
   @prop({ type: "float", default: 1, description: "Top-p (nucleus) sampling" })
   declare top_p: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const frequencyPenalty = Number(inputs.frequency_penalty ?? this.frequency_penalty ?? 0);
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 1024);
-    const presencePenalty = Number(inputs.presence_penalty ?? this.presence_penalty ?? 0);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 0.1);
-    const topP = Number(inputs.top_p ?? this.top_p ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const frequencyPenalty = Number(this.frequency_penalty ?? 0);
+    const maxTokens = Number(this.max_tokens ?? 1024);
+    const presencePenalty = Number(this.presence_penalty ?? 0);
+    const prompt = String(this.prompt ?? "");
+    const temperature = Number(this.temperature ?? 0.1);
+    const topP = Number(this.top_p ?? 1);
 
     const args: Record<string, unknown> = {
       "frequency_penalty": frequencyPenalty,
@@ -2223,7 +2223,7 @@ replicate, ai`;
       "top_p": topP,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;

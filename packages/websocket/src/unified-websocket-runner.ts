@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { getSecret } from "@nodetool/security";
 import { pack, unpack } from "msgpackr";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import {
   Graph,
   WorkflowRunner,
@@ -109,11 +107,7 @@ function formatSanitizedError(error: unknown): string {
 }
 
 function getAssetStoragePath(): string {
-  return (
-    process.env.ASSET_FOLDER ??
-    process.env.STORAGE_PATH ??
-    join(homedir(), ".local", "share", "nodetool", "assets")
-  );
+  return getDefaultAssetsPath();
 }
 
 function createRuntimeContext(opts: {
@@ -184,22 +178,48 @@ interface ActiveJob {
 }
 
 class ToolBridge {
-  private waiters = new Map<string, (value: Record<string, unknown>) => void>();
+  private waiters = new Map<string, {
+    resolve: (value: Record<string, unknown>) => void;
+    reject: (reason: Error) => void;
+  }>();
 
-  createWaiter(toolCallId: string): Promise<Record<string, unknown>> {
-    return new Promise((resolve) => {
-      this.waiters.set(toolCallId, resolve);
+  createWaiter(toolCallId: string, timeoutMs = 300_000): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        this.waiters.delete(toolCallId);
+      };
+      const wrappedResolve = (value: Record<string, unknown>) => {
+        cleanup();
+        resolve(value);
+      };
+      const wrappedReject = (reason: Error) => {
+        cleanup();
+        reject(reason);
+      };
+      this.waiters.set(toolCallId, { resolve: wrappedResolve, reject: wrappedReject });
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          if (this.waiters.has(toolCallId)) {
+            wrappedReject(new Error(`Tool call ${toolCallId} timed out after ${timeoutMs}ms`));
+          }
+        }, timeoutMs);
+      }
     });
   }
 
   resolveResult(toolCallId: string, payload: Record<string, unknown>): void {
-    const resolve = this.waiters.get(toolCallId);
-    if (!resolve) return;
-    this.waiters.delete(toolCallId);
-    resolve(payload);
+    const waiter = this.waiters.get(toolCallId);
+    if (!waiter) return;
+    waiter.resolve(payload);
   }
 
   cancelAll(): void {
+    const error = new Error("All pending tool calls cancelled");
+    for (const waiter of this.waiters.values()) {
+      waiter.reject(error);
+    }
     this.waiters.clear();
   }
 }
@@ -242,12 +262,7 @@ class UIToolProxy extends Tool {
     });
 
     try {
-      const payload = await Promise.race([
-        this.bridge.createWaiter(toolCallId),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Frontend tool ${this.name} timed out after 60 seconds`)), 60000),
-        ),
-      ]);
+      const payload = await this.bridge.createWaiter(toolCallId, 60_000);
       if ((payload as Record<string, unknown>).ok) {
         return (payload as Record<string, unknown>).result ?? {};
       }
@@ -269,7 +284,7 @@ export interface UnifiedWebSocketRunnerOptions {
   defaultProvider?: string;
   resolveExecutor: (node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor;
   resolveNodeType?: NodeTypeResolver;
-  resolveProvider?: (providerId: string) => Promise<BaseProvider>;
+  resolveProvider?: (providerId: string, userId: string) => Promise<BaseProvider>;
   /** Resolve server-side Tool instances by name (for tool execution in chat). */
   resolveTools?: (toolNames: string[], userId: string) => Promise<Tool[]>;
   getSystemStats?: () => Record<string, unknown>;
@@ -470,11 +485,9 @@ export class UnifiedWebSocketRunner {
     if (message.type === "websocket.disconnect") return null;
 
     if (message.bytes) {
-      this.mode = "binary";
       return unpack(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {
-      this.mode = "text";
       return JSON.parse(message.text) as Record<string, unknown>;
     }
     return null;
@@ -750,8 +763,10 @@ export class UnifiedWebSocketRunner {
     }
 
     active.runner.cancel();
-    active.finished = true;
     active.status = "cancelled";
+    // Do NOT set active.finished = true here. Let the runner's cancellation
+    // propagate through executePromise's .finally() callback so that
+    // streamJobMessages can drain remaining messages and persist job state.
     return {
       message: "Job cancellation requested",
       job_id: jobId,
@@ -1025,7 +1040,7 @@ export class UnifiedWebSocketRunner {
       if (pm) chatHistory.push(pm);
     }
 
-    const provider = await this.resolveProvider(providerId);
+    const provider = await this.resolveProvider(providerId, userId);
 
     // Build provider-format tool schemas from raw tool data, filtering out entries with no name
     const rawTools = Array.isArray(data.tools) ? data.tools : [];
@@ -1101,6 +1116,7 @@ export class UnifiedWebSocketRunner {
           messages: messagesToSend,
           model,
           tools: shouldIncludeTools && providerToolSchemas.length > 0 ? providerToolSchemas : undefined,
+          threadId,
         });
 
         // Phase 1: Stream chunks and collect tool calls
@@ -1173,7 +1189,7 @@ export class UnifiedWebSocketRunner {
                 name: tc.name,
                 args: tc.args,
               });
-              const clientResult = await this.toolBridge.createWaiter(tc.id);
+              const clientResult = await this.toolBridge.createWaiter(tc.id, 300_000);
               toolResult = clientResult.result ?? clientResult.content ?? clientResult;
             } else {
               toolResult = { error: `Tool "${tc.name}" not available` };
@@ -1219,6 +1235,9 @@ export class UnifiedWebSocketRunner {
         if (unprocessedMessages.length === 0) {
           break;
         }
+        // Reset content for next tool round so the final message only contains
+        // text from the last generation pass (prior rounds were already streamed).
+        content = "";
         toolRound++;
         if (toolRound >= MAX_TOOL_ROUNDS) {
           log.warn("Max tool rounds reached, stopping tool loop", { rounds: toolRound });
@@ -1324,7 +1343,7 @@ export class UnifiedWebSocketRunner {
         done: true,
         thread_id: threadId,
       });
-      await this.sendMessage({
+      const errorMsgData: Record<string, unknown> = {
         type: "message",
         role: "assistant",
         content: errorType === "connection_error"
@@ -1336,7 +1355,9 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId,
         provider: providerId,
         model,
-      });
+      };
+      await this.saveMessageToDb(errorMsgData);
+      await this.sendMessage(errorMsgData);
     }
   }
 
@@ -1747,7 +1768,7 @@ export class UnifiedWebSocketRunner {
     const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
 
-    const provider = await this.resolveProvider!(providerId);
+    const provider = await this.resolveProvider!(providerId, userId);
 
     // Extract objective from content
     const objective = this.extractTextContent(data.content, "Complete the requested task");
@@ -2106,7 +2127,7 @@ export class UnifiedWebSocketRunner {
       })
       .filter((t) => t.name.length > 0);
 
-    const provider = await this.resolveProvider(providerId);
+    const provider = await this.resolveProvider(providerId, this.userId ?? "1");
     for await (const item of provider.generateMessagesTraced({ messages, model, tools: tools.length > 0 ? tools : undefined })) {
       if (requestSeq !== this.chatRequestSeq) break; // cancelled
       if ("type" in item && item.type === "chunk") {
@@ -2267,7 +2288,7 @@ export class UnifiedWebSocketRunner {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => {
-      void this.sendMessage({ type: "ping", ts: Date.now() / 1000 });
+      this.sendMessage({ type: "ping", ts: Date.now() / 1000 }).catch(() => {});
     }, 25_000);
   }
 
@@ -2281,7 +2302,7 @@ export class UnifiedWebSocketRunner {
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
     this.statsTimer = setInterval(() => {
-      void this.sendMessage({ type: "system_stats", stats: this.getSystemStats() });
+      this.sendMessage({ type: "system_stats", stats: this.getSystemStats() }).catch(() => {});
     }, 1_000);
   }
 

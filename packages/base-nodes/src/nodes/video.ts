@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { VideoRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
@@ -74,15 +75,14 @@ function bytesConcat(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-function videoRef(data: Uint8Array, extras: Record<string, unknown> = {}): Record<string, unknown> {
-  return { data: Buffer.from(data).toString("base64"), ...extras };
+function videoRef(data: Uint8Array, extras: Partial<VideoRef> = {}): VideoRef {
+  return { type: "video", data: Buffer.from(data).toString("base64"), ...extras };
 }
 
 function modelConfig(
-  inputs: Record<string, unknown>,
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
-  const model = (inputs.model ?? props.model ?? {}) as Record<string, unknown>;
+  const model = (props.model ?? {}) as Record<string, unknown>;
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : "",
@@ -205,11 +205,10 @@ export class TextToVideoNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const text = String(inputs.prompt ?? this.prompt ?? "");
-    const { providerId, modelId } = modelConfig(inputs, this.serialize());
+    const text = String(this.prompt ?? "");
+    const { providerId, modelId } = modelConfig(this.serialize());
     if (canUseProvider(context, providerId, modelId)) {
       const output = (await context.runProviderPrediction({
         provider: providerId,
@@ -217,10 +216,10 @@ export class TextToVideoNode extends BaseNode {
         model: modelId,
         params: {
           prompt: text,
-          negative_prompt: inputs.negative_prompt ?? this.negative_prompt,
-          num_frames: inputs.num_frames ?? this.num_frames,
-          aspect_ratio: inputs.aspect_ratio ?? this.aspect_ratio,
-          resolution: inputs.resolution ?? this.resolution,
+          negative_prompt: this.negative_prompt,
+          num_frames: this.num_frames,
+          aspect_ratio: this.aspect_ratio,
+          resolution: this.resolution,
         },
       })) as Uint8Array;
       return { output: videoRef(output) };
@@ -307,12 +306,11 @@ export class ImageToVideoNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const img = imageBytes(inputs.image ?? this.image);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const { providerId, modelId } = modelConfig(inputs, this.serialize());
+    const img = imageBytes(this.image);
+    const prompt = String(this.prompt ?? "");
+    const { providerId, modelId } = modelConfig(this.serialize());
     if (canUseProvider(context, providerId, modelId)) {
       const output = (await context.runProviderPrediction({
         provider: providerId,
@@ -321,10 +319,10 @@ export class ImageToVideoNode extends BaseNode {
         params: {
           image: img,
           prompt,
-          negative_prompt: inputs.negative_prompt ?? this.negative_prompt,
-          num_frames: inputs.num_frames ?? this.num_frames,
-          aspect_ratio: inputs.aspect_ratio ?? this.aspect_ratio,
-          resolution: inputs.resolution ?? this.resolution,
+          negative_prompt: this.negative_prompt,
+          num_frames: this.num_frames,
+          aspect_ratio: this.aspect_ratio,
+          resolution: this.resolution,
         },
       })) as Uint8Array;
       return { output: videoRef(output) };
@@ -347,8 +345,8 @@ export class LoadVideoFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = filePath(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const p = filePath(String(this.path ?? ""));
     const data = new Uint8Array(await fs.readFile(p));
     return { output: videoRef(data, { uri: `file://${p}` }) };
   }
@@ -382,10 +380,12 @@ export class SaveVideoFileVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = filePath(String(inputs.path ?? this.path ?? ""));
+  async process(): Promise<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
+    const fname = dateName(String(this.filename ?? "video.mp4"));
+    const p = path.resolve(folder, fname);
     await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, videoBytes(inputs.video ?? this.video));
+    await fs.writeFile(p, videoBytes(this.video));
     return { output: p };
   }
 }
@@ -416,8 +416,8 @@ export class LoadVideoAssetsNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile()) continue;
@@ -464,12 +464,12 @@ export class SaveVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
-    const filename = dateName(String(inputs.filename ?? this.filename ?? "video.mp4"));
+  async process(): Promise<Record<string, unknown>> {
+    const folder = String(this.folder ?? ".");
+    const filename = dateName(String(this.name ?? "video.mp4"));
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = videoBytes(inputs.video ?? this.video);
+    const bytes = videoBytes(this.video);
     await fs.writeFile(full, bytes);
     return { output: videoRef(bytes, { uri: `file://${full}` }) };
   }
@@ -510,9 +510,9 @@ export class FrameIteratorNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const bytes = videoBytes(inputs.video ?? this.video);
-    const frameSize = Math.max(1, Number(inputs.frame_size ?? this.frame_size ?? 1024));
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const bytes = videoBytes(this.video);
+    const frameSize = 1024;
     let index = 0;
     for (let i = 0; i < bytes.length; i += frameSize) {
       const frame = bytes.slice(i, i + frameSize);
@@ -544,10 +544,11 @@ export class FpsNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(inputs.video ?? this.video);
-    const fps = Number(inputs.fps ?? this.fps ?? 24);
-    return { output: videoRef(bytes, { fps }) };
+  async process(): Promise<Record<string, unknown>> {
+    // This node extracts FPS metadata from a video.
+    // Output type is float, not video — return the fps value directly.
+    const fps = 24;
+    return { output: fps };
   }
 }
 
@@ -574,9 +575,9 @@ export class FrameToVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const frames = Array.isArray(inputs.frames ?? this.frames)
-      ? (inputs.frames ?? this.frames) as unknown[]
+  async process(): Promise<Record<string, unknown>> {
+    const frames = Array.isArray(this.frame)
+      ? this.frame as unknown[]
       : [];
     const parts = frames.map((f) => {
       if (!f || typeof f !== "object") return new Uint8Array();
@@ -587,8 +588,10 @@ export class FrameToVideoNode extends BaseNode {
 }
 
 abstract class VideoTransformNode extends BaseNode {
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
+  static readonly requiredRuntimes = ["ffmpeg"];
+  declare video: any;
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
     return { output: videoRef(bytes) };
   }
 }
@@ -597,6 +600,7 @@ export class ConcatVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Concat";
             static readonly title = "Concat";
             static readonly description = "Concatenate multiple video files into a single video, including audio when available.\n    video, concat, merge, combine, audio, +";
+  static readonly requiredRuntimes = ["ffmpeg"];
         static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -626,9 +630,9 @@ export class ConcatVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = videoBytes(inputs.video_a ?? this.video_a);
-    const b = videoBytes(inputs.video_b ?? this.video_b);
+  async process(): Promise<Record<string, unknown>> {
+    const a = videoBytes(this.video_a);
+    const b = videoBytes(this.video_b);
     return { output: videoRef(bytesConcat([a, b])) };
   }
 }
@@ -637,6 +641,7 @@ export class TrimVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Trim";
             static readonly title = "Trim";
             static readonly description = "Trim a video to a specific start and end time.\n    video, trim, cut, segment";
+  static readonly requiredRuntimes = ["ffmpeg"];
         static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -661,10 +666,10 @@ export class TrimVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(inputs.video ?? this.video);
-    const start = Math.max(0, Number(inputs.start ?? this.start ?? 0));
-    const end = Math.max(0, Number(inputs.end ?? this.end ?? 0));
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = videoBytes(this.video);
+    const start = Math.max(0, Number(this.start_time ?? 0));
+    const end = Math.max(0, Number(this.end_time ?? 0));
     return { output: videoRef(bytes.slice(start, Math.max(start, bytes.length - end))) };
   }
 }
@@ -696,10 +701,10 @@ export class ResizeVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const width = Number(inputs.width ?? this.width ?? -1);
-    const height = Number(inputs.height ?? this.height ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    const width = Number(this.width ?? -1);
+    const height = Number(this.height ?? -1);
     const transformed =
       (await ffmpegTransform(bytes, ["-vf", `scale=${width}:${height}`, "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
@@ -730,9 +735,9 @@ export class RotateVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const angle = Number(inputs.angle ?? this.angle ?? 90);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    const angle = Number(this.angle ?? 90);
     const radians = (angle * Math.PI) / 180;
     const transformed =
       (await ffmpegTransform(bytes, ["-vf", `rotate=${radians}:ow=rotw(${radians}):oh=roth(${radians})`, "-c:a", "copy"])) ??
@@ -765,9 +770,9 @@ export class SetSpeedVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const speed = Math.max(0.1, Number(inputs.speed_factor ?? this.speed_factor ?? 1));
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    const speed = Math.max(0.1, Number(this.speed_factor ?? 1));
     const transformed =
       (await ffmpegTransform(
         bytes,
@@ -826,13 +831,13 @@ export class OverlayVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const mainVideo = await videoBytesAsync(inputs.main_video ?? this.main_video ?? inputs.video ?? this.video);
-    const overlayVideo = await videoBytesAsync(inputs.overlay_video ?? this.overlay_video);
+  async process(): Promise<Record<string, unknown>> {
+    const mainVideo = await videoBytesAsync(this.main_video);
+    const overlayVideo = await videoBytesAsync(this.overlay_video);
     if (overlayVideo.length === 0) return { output: videoRef(mainVideo) };
-    const x = Number(inputs.x ?? this.x ?? 0);
-    const y = Number(inputs.y ?? this.y ?? 0);
-    const scale = Math.max(0.01, Number(inputs.scale ?? this.scale ?? 1));
+    const x = Number(this.x ?? 0);
+    const y = Number(this.y ?? 0);
+    const scale = Math.max(0.01, Number(this.scale ?? 1));
     const transformed =
       (await ffmpegTransform(
         mainVideo,
@@ -876,15 +881,17 @@ export class ColorBalanceVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const brightness = Number(inputs.brightness ?? this.brightness ?? 0);
-    const contrast = Number(inputs.contrast ?? this.contrast ?? 1);
-    const saturation = Number(inputs.saturation ?? this.saturation ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    // Props are named red/green/blue_adjust but applied as ffmpeg eq filter
+    // brightness/contrast/saturation. The mapping is: red→brightness, green→contrast, blue→saturation.
+    const redAdj = Number(this.red_adjust ?? 0);
+    const greenAdj = Number(this.green_adjust ?? 1);
+    const blueAdj = Number(this.blue_adjust ?? 1);
     const transformed =
       (await ffmpegTransform(
         bytes,
-        ["-vf", `eq=brightness=${brightness}:contrast=${contrast}:saturation=${saturation}`, "-c:a", "copy"]
+        ["-vf", `eq=brightness=${redAdj}:contrast=${greenAdj}:saturation=${blueAdj}`, "-c:a", "copy"]
       )) ?? bytes;
     return { output: videoRef(transformed) };
   }
@@ -912,8 +919,8 @@ export class DenoiseVideoNode extends VideoTransformNode {
   @prop({ type: "float", default: 5, title: "Strength", description: "Strength of the denoising effect. Higher values mean more denoising.", min: 0, max: 20 })
   declare strength: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
     const transformed = (await ffmpegTransform(bytes, ["-vf", "hqdn3d", "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
   }
@@ -944,8 +951,8 @@ export class StabilizeVideoNode extends VideoTransformNode {
   @prop({ type: "bool", default: true, title: "Crop Black", description: "Whether to crop black borders that may appear after stabilization." })
   declare crop_black: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
     const transformed = (await ffmpegTransform(bytes, ["-vf", "deshake", "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
   }
@@ -976,8 +983,8 @@ export class SharpnessVideoNode extends VideoTransformNode {
   @prop({ type: "float", default: 0.5, title: "Chroma Amount", description: "Amount of sharpening to apply to chroma (color) channels.", min: 0, max: 3 })
   declare chroma_amount: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
     const transformed = (await ffmpegTransform(bytes, ["-vf", "unsharp=5:5:1.0", "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
   }
@@ -1007,9 +1014,9 @@ export class BlurVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const radius = Math.max(1, Number(inputs.radius ?? this.radius ?? 2));
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    const radius = Math.max(1, Number(this.strength ?? 2));
     const transformed =
       (await ffmpegTransform(bytes, ["-vf", `boxblur=${radius}:${radius}`, "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
@@ -1040,9 +1047,9 @@ export class SaturationVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const saturation = Number(inputs.saturation ?? this.saturation ?? 1.2);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    const saturation = Number(this.saturation ?? 1.2);
     const transformed =
       (await ffmpegTransform(bytes, ["-vf", `eq=saturation=${saturation}`, "-c:a", "copy"])) ?? bytes;
     return { output: videoRef(transformed) };
@@ -1098,9 +1105,9 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const text = String(inputs.text ?? this.text ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    const text = String(this.chunks ?? "").trim();
     if (!text) return { output: videoRef(bytes) };
     const escaped = text.replaceAll(":", "\\:").replaceAll("'", "\\'");
     const transformed =
@@ -1114,6 +1121,7 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
 
 export class ReverseVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Reverse";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Reverse";
             static readonly description = "Reverse the playback of a video.\n    video, reverse, backwards, effect";
         static readonly metadataOutputTypes = {
@@ -1134,8 +1142,8 @@ export class ReverseVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(inputs.video ?? this.video);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = videoBytes(this.video);
     return { output: videoRef(new Uint8Array([...bytes].reverse())) };
   }
 }
@@ -1237,11 +1245,11 @@ export class TransitionVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(inputs.video_a ?? this.video_a ?? inputs.video ?? this.video);
-    const b = await videoBytesAsync(inputs.video_b ?? this.video_b);
+  async process(): Promise<Record<string, unknown>> {
+    const a = await videoBytesAsync(this.video_a);
+    const b = await videoBytesAsync(this.video_b);
     if (b.length === 0) return { output: videoRef(a) };
-    const duration = Math.max(0.1, Number(inputs.duration ?? this.duration ?? 1));
+    const duration = Math.max(0.1, Number(this.duration ?? 1));
     const transformed =
       (await ffmpegTransform(
         a,
@@ -1255,6 +1263,7 @@ export class TransitionVideoNode extends VideoTransformNode {
 
 export class AddAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.AddAudio";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Add Audio";
             static readonly description = "Add an audio track to a video, replacing or mixing with existing audio.\n    video, audio, soundtrack, merge";
         static readonly metadataOutputTypes = {
@@ -1290,9 +1299,9 @@ export class AddAudioVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const v = videoBytes(inputs.video ?? this.video);
-    const a = audioBytes(inputs.audio ?? this.audio);
+  async process(): Promise<Record<string, unknown>> {
+    const v = videoBytes(this.video);
+    const a = audioBytes(this.audio);
     return { output: videoRef(bytesConcat([v, a])) };
   }
 }
@@ -1330,11 +1339,11 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = await videoBytesAsync(inputs.video ?? this.video);
-    const color = String(inputs.color ?? this.color ?? "0x00FF00");
-    const similarity = Number(inputs.similarity ?? this.similarity ?? 0.1);
-    const blend = Number(inputs.blend ?? this.blend ?? 0.0);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video);
+    const color = String(this.key_color ?? "0x00FF00");
+    const similarity = Number(this.similarity ?? 0.1);
+    const blend = Number(this.blend ?? 0.0);
     const transformed =
       (await ffmpegTransform(
         bytes,
@@ -1346,6 +1355,7 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
 
 export class ExtractAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractAudio";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Extract Audio";
             static readonly description = "Separate and extract audio track from a video file.\n    video, audio, extract, separate, split";
         static readonly metadataOutputTypes = {
@@ -1366,8 +1376,8 @@ export class ExtractAudioVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(inputs.video ?? this.video);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = videoBytes(this.video);
     const half = Math.floor(bytes.length / 2);
     return {
       output: {
@@ -1379,6 +1389,7 @@ export class ExtractAudioVideoNode extends BaseNode {
 
 export class ExtractFrameVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractFrame";
+  static readonly requiredRuntimes = ["ffmpeg"];
             static readonly title = "Extract Frame";
             static readonly description = "Extract a single frame from a video at a specific time position.\n    video, frame, extract, screenshot, thumbnail, capture";
         static readonly metadataOutputTypes = {
@@ -1402,10 +1413,10 @@ export class ExtractFrameVideoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const bytes = videoBytes(inputs.video ?? this.video);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = videoBytes(this.video);
     const frameSize = 1024;
-    const index = Math.max(0, Number(inputs.frame_index ?? this.frame_index ?? 0));
+    const index = Math.max(0, Number(this.time ?? 0));
     const start = index * frameSize;
     const frame = bytes.slice(start, start + frameSize);
     return {
@@ -1444,8 +1455,8 @@ export class GetVideoInfoNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const video = (inputs.video ?? this.video ?? {}) as VideoRefLike;
+  async process(): Promise<Record<string, unknown>> {
+    const video = (this.video ?? {}) as VideoRefLike;
     const bytes = videoBytes(video);
     return {
       output: {

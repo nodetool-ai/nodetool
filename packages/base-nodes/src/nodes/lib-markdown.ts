@@ -18,9 +18,9 @@ export class ExtractLinksMarkdownLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const markdown = String(inputs.markdown ?? this.markdown ?? "");
-    const includeTitles = Boolean(inputs.include_titles ?? this.include_titles ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const markdown = String(this.markdown ?? "");
+    const includeTitles = Boolean(this.include_titles ?? true);
     const links: Array<Record<string, string>> = [];
     const pattern = /\[([^\]]+)\]\(([^)]+)\)|<([^>]+)>/g;
     for (const match of markdown.matchAll(pattern)) {
@@ -52,9 +52,9 @@ export class ExtractHeadersMarkdownLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const markdown = String(inputs.markdown ?? this.markdown ?? "");
-    const maxLevel = Number(inputs.max_level ?? this.max_level ?? 6);
+  async process(): Promise<Record<string, unknown>> {
+    const markdown = String(this.markdown ?? "");
+    const maxLevel = Number(this.max_level ?? 6);
     const headers: Array<Record<string, unknown>> = [];
     for (const line of markdown.split("\n")) {
       const m = line.match(/^(#{1,6})\s+(.+)$/);
@@ -83,8 +83,8 @@ export class ExtractBulletListsMarkdownLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const markdown = String(inputs.markdown ?? this.markdown ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const markdown = String(this.markdown ?? "");
     const lists: Array<Array<Record<string, string>>> = [];
     let current: Array<Record<string, string>> = [];
 
@@ -117,8 +117,8 @@ export class ExtractNumberedListsMarkdownLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const markdown = String(inputs.markdown ?? this.markdown ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const markdown = String(this.markdown ?? "");
     const lists: string[][] = [];
     let current: string[] = [];
 
@@ -150,8 +150,8 @@ export class ExtractCodeBlocksMarkdownLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const markdown = String(inputs.markdown ?? this.markdown ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const markdown = String(this.markdown ?? "");
     const blocks: Array<Record<string, string>> = [];
     const pattern = /```(\w*)\n([\s\S]*?)\n```/g;
     for (const match of markdown.matchAll(pattern)) {
@@ -176,8 +176,8 @@ export class ExtractTablesMarkdownLibNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const markdown = String(inputs.markdown ?? this.markdown ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const markdown = String(this.markdown ?? "");
     const lines = markdown.split("\n");
     const currentTable: string[][] = [];
 

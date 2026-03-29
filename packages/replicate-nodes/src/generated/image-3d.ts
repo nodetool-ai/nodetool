@@ -66,21 +66,21 @@ replicate, ai`;
   @prop({ type: "int", default: 1024, description: "GLB Extraction - Texture Size (only used if generate_model=True)" })
   declare texture_size: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const generateColor = Boolean(inputs.generate_color ?? this.generate_color ?? true);
-    const generateModel = Boolean(inputs.generate_model ?? this.generate_model ?? false);
-    const generateNormal = Boolean(inputs.generate_normal ?? this.generate_normal ?? false);
-    const meshSimplify = Number(inputs.mesh_simplify ?? this.mesh_simplify ?? 0.95);
-    const randomizeSeed = Boolean(inputs.randomize_seed ?? this.randomize_seed ?? true);
-    const returnNoBackground = Boolean(inputs.return_no_background ?? this.return_no_background ?? false);
-    const saveGaussianPly = Boolean(inputs.save_gaussian_ply ?? this.save_gaussian_ply ?? false);
-    const seed = Number(inputs.seed ?? this.seed ?? 0);
-    const slatGuidanceStrength = Number(inputs.slat_guidance_strength ?? this.slat_guidance_strength ?? 3);
-    const slatSamplingSteps = Number(inputs.slat_sampling_steps ?? this.slat_sampling_steps ?? 12);
-    const ssGuidanceStrength = Number(inputs.ss_guidance_strength ?? this.ss_guidance_strength ?? 7.5);
-    const ssSamplingSteps = Number(inputs.ss_sampling_steps ?? this.ss_sampling_steps ?? 12);
-    const textureSize = Number(inputs.texture_size ?? this.texture_size ?? 1024);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const generateColor = Boolean(this.generate_color ?? true);
+    const generateModel = Boolean(this.generate_model ?? false);
+    const generateNormal = Boolean(this.generate_normal ?? false);
+    const meshSimplify = Number(this.mesh_simplify ?? 0.95);
+    const randomizeSeed = Boolean(this.randomize_seed ?? true);
+    const returnNoBackground = Boolean(this.return_no_background ?? false);
+    const saveGaussianPly = Boolean(this.save_gaussian_ply ?? false);
+    const seed = Number(this.seed ?? 0);
+    const slatGuidanceStrength = Number(this.slat_guidance_strength ?? 3);
+    const slatSamplingSteps = Number(this.slat_sampling_steps ?? 12);
+    const ssGuidanceStrength = Number(this.ss_guidance_strength ?? 7.5);
+    const ssSamplingSteps = Number(this.ss_sampling_steps ?? 12);
+    const textureSize = Number(this.texture_size ?? 1024);
 
     const args: Record<string, unknown> = {
       "generate_color": generateColor,
@@ -98,7 +98,7 @@ replicate, ai`;
       "texture_size": textureSize,
     };
 
-    const imagesRef = (inputs.images ?? this.images) as Record<string, unknown> | undefined;
+    const imagesRef = this.images as Record<string, unknown> | undefined;
     if (isRefSet(imagesRef)) {
       const imagesUrl = await assetToUrl(imagesRef!, apiKey);
       if (imagesUrl) args["images"] = imagesUrl;
@@ -141,14 +141,14 @@ replicate, ai`;
   @prop({ type: "bool", default: false, description: "Save the latents as meshes." })
   declare save_mesh: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const batchSize = Number(inputs.batch_size ?? this.batch_size ?? 1);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 15);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const renderMode = String(inputs.render_mode ?? this.render_mode ?? "nerf");
-    const renderSize = Number(inputs.render_size ?? this.render_size ?? 128);
-    const saveMesh = Boolean(inputs.save_mesh ?? this.save_mesh ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const batchSize = Number(this.batch_size ?? 1);
+    const guidanceScale = Number(this.guidance_scale ?? 15);
+    const prompt = String(this.prompt ?? "");
+    const renderMode = String(this.render_mode ?? "nerf");
+    const renderSize = Number(this.render_size ?? 128);
+    const saveMesh = Boolean(this.save_mesh ?? false);
 
     const args: Record<string, unknown> = {
       "batch_size": batchSize,
@@ -159,7 +159,7 @@ replicate, ai`;
       "save_mesh": saveMesh,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -187,15 +187,15 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Input video" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const model = String(inputs.model ?? this.model ?? "deep3d_v1.0_640x360");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const model = String(this.model ?? "deep3d_v1.0_640x360");
 
     const args: Record<string, unknown> = {
       "model": model,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;
@@ -241,15 +241,15 @@ replicate, ai`;
   @prop({ type: "enum", default: "Juiced 🔥 (fast)", values: ["Unsqueezed 🍋 (highest quality)", "Juiced 🔥 (fast)"], description: "Speed optimization level" })
   declare speed_mode: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const faceCount = Number(inputs.face_count ?? this.face_count ?? 40000);
-    const fileType = String(inputs.file_type ?? this.file_type ?? "glb");
-    const generatorSeed = Number(inputs.generator_seed ?? this.generator_seed ?? 12345);
-    const numChunks = Number(inputs.num_chunks ?? this.num_chunks ?? 20000);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 50);
-    const octreeResolution = Number(inputs.octree_resolution ?? this.octree_resolution ?? 200);
-    const speedMode = String(inputs.speed_mode ?? this.speed_mode ?? "Juiced 🔥 (fast)");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const faceCount = Number(this.face_count ?? 40000);
+    const fileType = String(this.file_type ?? "glb");
+    const generatorSeed = Number(this.generator_seed ?? 12345);
+    const numChunks = Number(this.num_chunks ?? 20000);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 50);
+    const octreeResolution = Number(this.octree_resolution ?? 200);
+    const speedMode = String(this.speed_mode ?? "Juiced 🔥 (fast)");
 
     const args: Record<string, unknown> = {
       "face_count": faceCount,
@@ -261,7 +261,7 @@ replicate, ai`;
       "speed_mode": speedMode,
     };
 
-    const imagePathRef = (inputs.image_path ?? this.image_path) as Record<string, unknown> | undefined;
+    const imagePathRef = this.image_path as Record<string, unknown> | undefined;
     if (isRefSet(imagePathRef)) {
       const imagePathUrl = await assetToUrl(imagePathRef!, apiKey);
       if (imagePathUrl) args["image_path"] = imagePathUrl;
@@ -301,13 +301,13 @@ replicate, ai`;
   @prop({ type: "int", default: 50, description: "Number of inference steps" })
   declare steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5.5);
-    const octreeResolution = String(inputs.octree_resolution ?? this.octree_resolution ?? 256);
-    const removeBackground = Boolean(inputs.remove_background ?? this.remove_background ?? true);
-    const seed = Number(inputs.seed ?? this.seed ?? 1234);
-    const steps = Number(inputs.steps ?? this.steps ?? 50);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const guidanceScale = Number(this.guidance_scale ?? 5.5);
+    const octreeResolution = String(this.octree_resolution ?? 256);
+    const removeBackground = Boolean(this.remove_background ?? true);
+    const seed = Number(this.seed ?? 1234);
+    const steps = Number(this.steps ?? 50);
 
     const args: Record<string, unknown> = {
       "guidance_scale": guidanceScale,
@@ -317,7 +317,7 @@ replicate, ai`;
       "steps": steps,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -378,17 +378,17 @@ replicate, ai`;
   @prop({ type: "int", default: 10000, description: "Target number of faces for mesh simplification" })
   declare target_face_num: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const fileType = String(inputs.file_type ?? this.file_type ?? "glb");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const numChunks = Number(inputs.num_chunks ?? this.num_chunks ?? 200000);
-    const octreeResolution = Number(inputs.octree_resolution ?? this.octree_resolution ?? 256);
-    const randomizeSeed = Boolean(inputs.randomize_seed ?? this.randomize_seed ?? true);
-    const removeBackground = Boolean(inputs.remove_background ?? this.remove_background ?? true);
-    const seed = Number(inputs.seed ?? this.seed ?? 1234);
-    const steps = Number(inputs.steps ?? this.steps ?? 30);
-    const targetFaceNum = Number(inputs.target_face_num ?? this.target_face_num ?? 10000);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const fileType = String(this.file_type ?? "glb");
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const numChunks = Number(this.num_chunks ?? 200000);
+    const octreeResolution = Number(this.octree_resolution ?? 256);
+    const randomizeSeed = Boolean(this.randomize_seed ?? true);
+    const removeBackground = Boolean(this.remove_background ?? true);
+    const seed = Number(this.seed ?? 1234);
+    const steps = Number(this.steps ?? 30);
+    const targetFaceNum = Number(this.target_face_num ?? 10000);
 
     const args: Record<string, unknown> = {
       "file_type": fileType,
@@ -402,25 +402,25 @@ replicate, ai`;
       "target_face_num": targetFaceNum,
     };
 
-    const backImageRef = (inputs.back_image ?? this.back_image) as Record<string, unknown> | undefined;
+    const backImageRef = this.back_image as Record<string, unknown> | undefined;
     if (isRefSet(backImageRef)) {
       const backImageUrl = await assetToUrl(backImageRef!, apiKey);
       if (backImageUrl) args["back_image"] = backImageUrl;
     }
 
-    const frontImageRef = (inputs.front_image ?? this.front_image) as Record<string, unknown> | undefined;
+    const frontImageRef = this.front_image as Record<string, unknown> | undefined;
     if (isRefSet(frontImageRef)) {
       const frontImageUrl = await assetToUrl(frontImageRef!, apiKey);
       if (frontImageUrl) args["front_image"] = frontImageUrl;
     }
 
-    const leftImageRef = (inputs.left_image ?? this.left_image) as Record<string, unknown> | undefined;
+    const leftImageRef = this.left_image as Record<string, unknown> | undefined;
     if (isRefSet(leftImageRef)) {
       const leftImageUrl = await assetToUrl(leftImageRef!, apiKey);
       if (leftImageUrl) args["left_image"] = leftImageUrl;
     }
 
-    const rightImageRef = (inputs.right_image ?? this.right_image) as Record<string, unknown> | undefined;
+    const rightImageRef = this.right_image as Record<string, unknown> | undefined;
     if (isRefSet(rightImageRef)) {
       const rightImageUrl = await assetToUrl(rightImageRef!, apiKey);
       if (rightImageUrl) args["right_image"] = rightImageUrl;
@@ -472,17 +472,17 @@ replicate, ai`;
   @prop({ type: "int", default: 1, description: "Sequence-parallel shard heuristic (single-GPU build only accepts 1)." })
   declare sp_size: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const applyColorFix = Boolean(inputs.apply_color_fix ?? this.apply_color_fix ?? false);
-    const cfgScale = Number(inputs.cfg_scale ?? this.cfg_scale ?? 1);
-    const fps = Number(inputs.fps ?? this.fps ?? 24);
-    const modelVariant = String(inputs.model_variant ?? this.model_variant ?? "3b");
-    const outputFormat = String(inputs.output_format ?? this.output_format ?? "webp");
-    const outputQuality = Number(inputs.output_quality ?? this.output_quality ?? 90);
-    const sampleSteps = Number(inputs.sample_steps ?? this.sample_steps ?? 1);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const spSize = Number(inputs.sp_size ?? this.sp_size ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const applyColorFix = Boolean(this.apply_color_fix ?? false);
+    const cfgScale = Number(this.cfg_scale ?? 1);
+    const fps = Number(this.fps ?? 24);
+    const modelVariant = String(this.model_variant ?? "3b");
+    const outputFormat = String(this.output_format ?? "webp");
+    const outputQuality = Number(this.output_quality ?? 90);
+    const sampleSteps = Number(this.sample_steps ?? 1);
+    const seed = Number(this.seed ?? -1);
+    const spSize = Number(this.sp_size ?? 1);
 
     const args: Record<string, unknown> = {
       "apply_color_fix": applyColorFix,
@@ -496,7 +496,7 @@ replicate, ai`;
       "sp_size": spSize,
     };
 
-    const mediaRef = (inputs.media ?? this.media) as Record<string, unknown> | undefined;
+    const mediaRef = this.media as Record<string, unknown> | undefined;
     if (isRefSet(mediaRef)) {
       const mediaUrl = await assetToUrl(mediaRef!, apiKey);
       if (mediaUrl) args["media"] = mediaUrl;

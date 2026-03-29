@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,19 +18,19 @@ export class Ltx219BDistilledAudioToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, generation, audio-to-video, visualization, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
 
-  @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
-  declare prompt: any;
+  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
+  declare match_audio_length: any;
 
   @prop({ type: "enum", default: "none", values: ["none", "regular", "high", "full"], description: "The acceleration level to use." })
   declare acceleration: any;
 
-  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
-  declare match_audio_length: any;
+  @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
+  declare prompt: any;
 
   @prop({ type: "float", default: 25, description: "The frames per second of the generated video." })
   declare fps: any;
@@ -37,26 +38,26 @@ video, generation, audio-to-video, visualization, lora`;
   @prop({ type: "list[LoRAInput]", default: [], description: "The LoRAs to use for the generation." })
   declare loras: any;
 
-  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
+
+  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
+  declare video_size: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
+  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
+  declare num_frames: any;
 
-  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
-  declare image_strength: any;
+  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
+  declare end_image: any;
 
   @prop({ type: "bool", default: true, description: "Whether to preprocess the audio before using it as conditioning." })
   declare preprocess_audio: any;
 
-  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
-  declare end_image: any;
+  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
+  declare image_strength: any;
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -67,17 +68,26 @@ video, generation, audio-to-video, visualization, lora`;
   @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
   declare negative_prompt: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
 
   @prop({ type: "image", default: "", description: "Optional URL of an image to use as the first frame of the video." })
   declare image: any;
 
+  @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
+  declare video_quality: any;
+
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
 
-  @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
-  declare video_quality: any;
+  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
+  declare audio: any;
+
+  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
+  declare seed: any;
+
+  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
+  declare end_image_strength: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
@@ -85,78 +95,69 @@ video, generation, audio-to-video, visualization, lora`;
   @prop({ type: "float", default: 1, description: "Audio conditioning strength. Values below 1.0 will allow the model to change the audio, while a value of exactly 1.0 will use the input audio without modification." })
   declare audio_strength: any;
 
-  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
-  declare end_image_strength: any;
-
-  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
-  declare seed: any;
-
-  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
-  declare audio: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "none");
-    const matchAudioLength = Boolean(inputs.match_audio_length ?? this.match_audio_length ?? true);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "landscape_4_3");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const preprocessAudio = Boolean(inputs.preprocess_audio ?? this.preprocess_audio ?? true);
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const audioStrength = Number(inputs.audio_strength ?? this.audio_strength ?? 1);
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const matchAudioLength = Boolean(this.match_audio_length ?? true);
+    const acceleration = String(this.acceleration ?? "none");
+    const prompt = String(this.prompt ?? "");
+    const fps = Number(this.fps ?? 25);
+    const loras = String(this.loras ?? []);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "landscape_4_3");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numFrames = Number(this.num_frames ?? 121);
+    const preprocessAudio = Boolean(this.preprocess_audio ?? true);
+    const imageStrength = Number(this.image_strength ?? 1);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const audioStrength = Number(this.audio_strength ?? 1);
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
-      "prompt": prompt,
-      "acceleration": acceleration,
       "match_audio_length": matchAudioLength,
+      "acceleration": acceleration,
+      "prompt": prompt,
       "fps": fps,
       "loras": loras,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
+      "video_size": videoSize,
       "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
-      "image_strength": imageStrength,
+      "num_frames": numFrames,
       "preprocess_audio": preprocessAudio,
+      "image_strength": imageStrength,
       "video_write_mode": videoWriteMode,
       "video_output_type": videoOutputType,
       "negative_prompt": negativePrompt,
-      "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
+      "sync_mode": syncMode,
+      "seed": seed,
+      "end_image_strength": endImageStrength,
       "enable_prompt_expansion": enablePromptExpansion,
       "audio_strength": audioStrength,
-      "end_image_strength": endImageStrength,
-      "seed": seed,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -174,19 +175,19 @@ export class Ltx219BAudioToVideoLora extends FalNode {
   static readonly description = `LTX-2 19B
 video, generation, audio-to-video, visualization, lora`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
 
-  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
-  declare audio: any;
+  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
+  declare match_audio_length: any;
 
   @prop({ type: "enum", default: "regular", values: ["none", "regular", "high", "full"], description: "The acceleration level to use." })
   declare acceleration: any;
 
-  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
-  declare match_audio_length: any;
+  @prop({ type: "float", default: 1, description: "Audio conditioning strength. Values below 1.0 will allow the model to change the audio, while a value of exactly 1.0 will use the input audio without modification." })
+  declare audio_strength: any;
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -197,17 +198,17 @@ video, generation, audio-to-video, visualization, lora`;
   @prop({ type: "list[LoRAInput]", default: [], description: "The LoRAs to use for the generation." })
   declare loras: any;
 
-  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
-  declare enable_safety_checker: any;
+  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
+  declare video_size: any;
 
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
+  @prop({ type: "float", default: 3, description: "The guidance scale to use." })
+  declare guidance_scale: any;
+
+  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
+  declare num_frames: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
   declare end_image: any;
@@ -215,8 +216,8 @@ video, generation, audio-to-video, visualization, lora`;
   @prop({ type: "bool", default: true, description: "Whether to preprocess the audio before using it as conditioning." })
   declare preprocess_audio: any;
 
-  @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
-  declare negative_prompt: any;
+  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
+  declare enable_safety_checker: any;
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -224,109 +225,109 @@ video, generation, audio-to-video, visualization, lora`;
   @prop({ type: "enum", default: "X264 (.mp4)", values: ["X264 (.mp4)", "VP9 (.webm)", "PRORES4444 (.mov)", "GIF (.gif)"], description: "The output type of the generated video." })
   declare video_output_type: any;
 
-  @prop({ type: "float", default: 3, description: "The guidance scale to use." })
-  declare guidance_scale: any;
+  @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
+  declare negative_prompt: any;
 
   @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
   declare image_strength: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
 
   @prop({ type: "image", default: "", description: "Optional URL of an image to use as the first frame of the video." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
-  declare sync_mode: any;
-
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
   declare video_quality: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
-  declare enable_prompt_expansion: any;
+  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
+  declare sync_mode: any;
 
-  @prop({ type: "float", default: 1, description: "Audio conditioning strength. Values below 1.0 will allow the model to change the audio, while a value of exactly 1.0 will use the input audio without modification." })
-  declare audio_strength: any;
-
-  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
-  declare end_image_strength: any;
-
-  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
-  declare num_inference_steps: any;
+  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
+  declare audio: any;
 
   @prop({ type: "str", default: "", description: "The seed for the random number generator." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const matchAudioLength = Boolean(inputs.match_audio_length ?? this.match_audio_length ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const loras = String(inputs.loras ?? this.loras ?? []);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "landscape_4_3");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const preprocessAudio = Boolean(inputs.preprocess_audio ?? this.preprocess_audio ?? true);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3);
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const audioStrength = Number(inputs.audio_strength ?? this.audio_strength ?? 1);
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
+  declare end_image_strength: any;
+
+  @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
+  declare enable_prompt_expansion: any;
+
+  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
+  declare num_inference_steps: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const matchAudioLength = Boolean(this.match_audio_length ?? true);
+    const acceleration = String(this.acceleration ?? "regular");
+    const audioStrength = Number(this.audio_strength ?? 1);
+    const prompt = String(this.prompt ?? "");
+    const fps = Number(this.fps ?? 25);
+    const loras = String(this.loras ?? []);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "landscape_4_3");
+    const guidanceScale = Number(this.guidance_scale ?? 3);
+    const numFrames = Number(this.num_frames ?? 121);
+    const preprocessAudio = Boolean(this.preprocess_audio ?? true);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const imageStrength = Number(this.image_strength ?? 1);
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
-      "acceleration": acceleration,
       "match_audio_length": matchAudioLength,
+      "acceleration": acceleration,
+      "audio_strength": audioStrength,
       "prompt": prompt,
       "fps": fps,
       "loras": loras,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
-      "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
+      "video_size": videoSize,
+      "guidance_scale": guidanceScale,
+      "num_frames": numFrames,
       "preprocess_audio": preprocessAudio,
-      "negative_prompt": negativePrompt,
+      "enable_safety_checker": enableSafetyChecker,
       "video_write_mode": videoWriteMode,
       "video_output_type": videoOutputType,
-      "guidance_scale": guidanceScale,
+      "negative_prompt": negativePrompt,
       "image_strength": imageStrength,
-      "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
-      "enable_prompt_expansion": enablePromptExpansion,
-      "audio_strength": audioStrength,
-      "end_image_strength": endImageStrength,
-      "num_inference_steps": numInferenceSteps,
+      "sync_mode": syncMode,
       "seed": seed,
+      "end_image_strength": endImageStrength,
+      "enable_prompt_expansion": enablePromptExpansion,
+      "num_inference_steps": numInferenceSteps,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
-    if (isRefSet(audioRef)) {
-      const audioUrl = await assetToFalUrl(apiKey, audioRef!);
-      if (audioUrl) args["audio_url"] = audioUrl;
-    }
-
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
+    }
+
+    const audioRef = this.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = await assetToFalUrl(apiKey, audioRef!);
+      if (audioUrl) args["audio_url"] = audioUrl;
     }
     removeNulls(args);
 
@@ -341,43 +342,43 @@ export class Ltx219BDistilledAudioToVideo extends FalNode {
   static readonly description = `LTX-2 19B Distilled
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
 
-  @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
-  declare prompt: any;
+  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
+  declare match_audio_length: any;
 
   @prop({ type: "enum", default: "none", values: ["none", "regular", "high", "full"], description: "The acceleration level to use." })
   declare acceleration: any;
 
-  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
-  declare match_audio_length: any;
+  @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
+  declare prompt: any;
 
   @prop({ type: "float", default: 25, description: "The frames per second of the generated video." })
   declare fps: any;
 
-  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
+
+  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
+  declare video_size: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
   declare enable_safety_checker: any;
 
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
+  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
+  declare num_frames: any;
 
-  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
-  declare image_strength: any;
+  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
+  declare end_image: any;
 
   @prop({ type: "bool", default: true, description: "Whether to preprocess the audio before using it as conditioning." })
   declare preprocess_audio: any;
 
-  @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
-  declare negative_prompt: any;
+  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
+  declare image_strength: any;
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -385,20 +386,29 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "enum", default: "X264 (.mp4)", values: ["X264 (.mp4)", "VP9 (.webm)", "PRORES4444 (.mov)", "GIF (.gif)"], description: "The output type of the generated video." })
   declare video_output_type: any;
 
-  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
-  declare end_image: any;
+  @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
+  declare negative_prompt: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
 
   @prop({ type: "image", default: "", description: "Optional URL of an image to use as the first frame of the video." })
   declare image: any;
 
+  @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
+  declare video_quality: any;
+
   @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
   declare sync_mode: any;
 
-  @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
-  declare video_quality: any;
+  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
+  declare audio: any;
+
+  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
+  declare seed: any;
+
+  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
+  declare end_image_strength: any;
 
   @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
   declare enable_prompt_expansion: any;
@@ -406,76 +416,67 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "float", default: 1, description: "Audio conditioning strength. Values below 1.0 will allow the model to change the audio, while a value of exactly 1.0 will use the input audio without modification." })
   declare audio_strength: any;
 
-  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
-  declare end_image_strength: any;
-
-  @prop({ type: "str", default: "", description: "The seed for the random number generator." })
-  declare seed: any;
-
-  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
-  declare audio: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "none");
-    const matchAudioLength = Boolean(inputs.match_audio_length ?? this.match_audio_length ?? true);
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "landscape_4_3");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const preprocessAudio = Boolean(inputs.preprocess_audio ?? this.preprocess_audio ?? true);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const audioStrength = Number(inputs.audio_strength ?? this.audio_strength ?? 1);
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const matchAudioLength = Boolean(this.match_audio_length ?? true);
+    const acceleration = String(this.acceleration ?? "none");
+    const prompt = String(this.prompt ?? "");
+    const fps = Number(this.fps ?? 25);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "landscape_4_3");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const numFrames = Number(this.num_frames ?? 121);
+    const preprocessAudio = Boolean(this.preprocess_audio ?? true);
+    const imageStrength = Number(this.image_strength ?? 1);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const audioStrength = Number(this.audio_strength ?? 1);
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
-      "prompt": prompt,
-      "acceleration": acceleration,
       "match_audio_length": matchAudioLength,
+      "acceleration": acceleration,
+      "prompt": prompt,
       "fps": fps,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
+      "video_size": videoSize,
       "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
-      "image_strength": imageStrength,
+      "num_frames": numFrames,
       "preprocess_audio": preprocessAudio,
-      "negative_prompt": negativePrompt,
+      "image_strength": imageStrength,
       "video_write_mode": videoWriteMode,
       "video_output_type": videoOutputType,
-      "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "negative_prompt": negativePrompt,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
+      "sync_mode": syncMode,
+      "seed": seed,
+      "end_image_strength": endImageStrength,
       "enable_prompt_expansion": enablePromptExpansion,
       "audio_strength": audioStrength,
-      "end_image_strength": endImageStrength,
-      "seed": seed,
     };
 
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -493,19 +494,19 @@ export class Ltx219BAudioToVideo extends FalNode {
   static readonly description = `LTX-2 19B
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "prompt": "str", "seed": "int", "video": "video" };
 
   @prop({ type: "bool", default: true, description: "Whether to use multi-scale generation. If True, the model will generate the video at a smaller scale first, then use the smaller video to guide the generation of a video at or above your requested size. This results in better coherence and details." })
   declare use_multiscale: any;
 
-  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
-  declare audio: any;
+  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
+  declare match_audio_length: any;
 
   @prop({ type: "enum", default: "regular", values: ["none", "regular", "high", "full"], description: "The acceleration level to use." })
   declare acceleration: any;
 
-  @prop({ type: "bool", default: true, description: "When enabled, the number of frames will be calculated based on the audio duration and FPS. When disabled, use the specified num_frames." })
-  declare match_audio_length: any;
+  @prop({ type: "float", default: 1, description: "Audio conditioning strength. Values below 1.0 will allow the model to change the audio, while a value of exactly 1.0 will use the input audio without modification." })
+  declare audio_strength: any;
 
   @prop({ type: "str", default: "", description: "The prompt to generate the video from." })
   declare prompt: any;
@@ -513,26 +514,26 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "float", default: 25, description: "The frames per second of the generated video." })
   declare fps: any;
 
-  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
-  declare video_size: any;
-
   @prop({ type: "enum", default: "none", values: ["dolly_in", "dolly_out", "dolly_left", "dolly_right", "jib_up", "jib_down", "static", "none"], description: "The camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
   declare camera_lora: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
-  declare enable_safety_checker: any;
+  @prop({ type: "str", default: "landscape_4_3", description: "The size of the generated video. Use 'auto' to match the input image dimensions if provided." })
+  declare video_size: any;
 
-  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
-  declare camera_lora_scale: any;
+  @prop({ type: "float", default: 3, description: "The guidance scale to use." })
+  declare guidance_scale: any;
 
-  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
-  declare image_strength: any;
+  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
+  declare num_frames: any;
+
+  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
+  declare end_image: any;
 
   @prop({ type: "bool", default: true, description: "Whether to preprocess the audio before using it as conditioning." })
   declare preprocess_audio: any;
 
-  @prop({ type: "image", default: "", description: "The URL of the image to use as the end of the video." })
-  declare end_image: any;
+  @prop({ type: "bool", default: true, description: "Whether to enable the safety checker." })
+  declare enable_safety_checker: any;
 
   @prop({ type: "enum", default: "balanced", values: ["fast", "balanced", "small"], description: "The write mode of the generated video." })
   declare video_write_mode: any;
@@ -540,107 +541,107 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "enum", default: "X264 (.mp4)", values: ["X264 (.mp4)", "VP9 (.webm)", "PRORES4444 (.mov)", "GIF (.gif)"], description: "The output type of the generated video." })
   declare video_output_type: any;
 
-  @prop({ type: "float", default: 3, description: "The guidance scale to use." })
-  declare guidance_scale: any;
-
   @prop({ type: "str", default: "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.", description: "The negative prompt to generate the video from." })
   declare negative_prompt: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate." })
-  declare num_frames: any;
+  @prop({ type: "float", default: 1, description: "The strength of the image to use for the video generation." })
+  declare image_strength: any;
+
+  @prop({ type: "float", default: 1, description: "The scale of the camera LoRA to use. This allows you to control the camera movement of the generated video more accurately than just prompting the model to move the camera." })
+  declare camera_lora_scale: any;
 
   @prop({ type: "image", default: "", description: "Optional URL of an image to use as the first frame of the video." })
   declare image: any;
 
-  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
-  declare sync_mode: any;
-
   @prop({ type: "enum", default: "high", values: ["low", "medium", "high", "maximum"], description: "The quality of the generated video." })
   declare video_quality: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
-  declare enable_prompt_expansion: any;
+  @prop({ type: "bool", default: false, description: "If 'True', the media will be returned as a data URI and the output data won't be available in the request history." })
+  declare sync_mode: any;
 
-  @prop({ type: "float", default: 1, description: "Audio conditioning strength. Values below 1.0 will allow the model to change the audio, while a value of exactly 1.0 will use the input audio without modification." })
-  declare audio_strength: any;
-
-  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
-  declare end_image_strength: any;
-
-  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
-  declare num_inference_steps: any;
+  @prop({ type: "audio", default: "", description: "The URL of the audio to generate the video from." })
+  declare audio: any;
 
   @prop({ type: "str", default: "", description: "The seed for the random number generator." })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const useMultiscale = Boolean(inputs.use_multiscale ?? this.use_multiscale ?? true);
-    const acceleration = String(inputs.acceleration ?? this.acceleration ?? "regular");
-    const matchAudioLength = Boolean(inputs.match_audio_length ?? this.match_audio_length ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const fps = Number(inputs.fps ?? this.fps ?? 25);
-    const videoSize = String(inputs.video_size ?? this.video_size ?? "landscape_4_3");
-    const cameraLora = String(inputs.camera_lora ?? this.camera_lora ?? "none");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const cameraLoraScale = Number(inputs.camera_lora_scale ?? this.camera_lora_scale ?? 1);
-    const imageStrength = Number(inputs.image_strength ?? this.image_strength ?? 1);
-    const preprocessAudio = Boolean(inputs.preprocess_audio ?? this.preprocess_audio ?? true);
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const videoOutputType = String(inputs.video_output_type ?? this.video_output_type ?? "X264 (.mp4)");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 121);
-    const syncMode = Boolean(inputs.sync_mode ?? this.sync_mode ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const enablePromptExpansion = Boolean(inputs.enable_prompt_expansion ?? this.enable_prompt_expansion ?? true);
-    const audioStrength = Number(inputs.audio_strength ?? this.audio_strength ?? 1);
-    const endImageStrength = Number(inputs.end_image_strength ?? this.end_image_strength ?? 1);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 40);
-    const seed = String(inputs.seed ?? this.seed ?? "");
+  @prop({ type: "float", default: 1, description: "The strength of the end image to use for the video generation." })
+  declare end_image_strength: any;
+
+  @prop({ type: "bool", default: true, description: "Whether to enable prompt expansion." })
+  declare enable_prompt_expansion: any;
+
+  @prop({ type: "int", default: 40, description: "The number of inference steps to use." })
+  declare num_inference_steps: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const useMultiscale = Boolean(this.use_multiscale ?? true);
+    const matchAudioLength = Boolean(this.match_audio_length ?? true);
+    const acceleration = String(this.acceleration ?? "regular");
+    const audioStrength = Number(this.audio_strength ?? 1);
+    const prompt = String(this.prompt ?? "");
+    const fps = Number(this.fps ?? 25);
+    const cameraLora = String(this.camera_lora ?? "none");
+    const videoSize = String(this.video_size ?? "landscape_4_3");
+    const guidanceScale = Number(this.guidance_scale ?? 3);
+    const numFrames = Number(this.num_frames ?? 121);
+    const preprocessAudio = Boolean(this.preprocess_audio ?? true);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const videoOutputType = String(this.video_output_type ?? "X264 (.mp4)");
+    const negativePrompt = String(this.negative_prompt ?? "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, wrong gaze direction, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio,incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.");
+    const imageStrength = Number(this.image_strength ?? 1);
+    const cameraLoraScale = Number(this.camera_lora_scale ?? 1);
+    const videoQuality = String(this.video_quality ?? "high");
+    const syncMode = Boolean(this.sync_mode ?? false);
+    const seed = String(this.seed ?? "");
+    const endImageStrength = Number(this.end_image_strength ?? 1);
+    const enablePromptExpansion = Boolean(this.enable_prompt_expansion ?? true);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 40);
 
     const args: Record<string, unknown> = {
       "use_multiscale": useMultiscale,
-      "acceleration": acceleration,
       "match_audio_length": matchAudioLength,
+      "acceleration": acceleration,
+      "audio_strength": audioStrength,
       "prompt": prompt,
       "fps": fps,
-      "video_size": videoSize,
       "camera_lora": cameraLora,
-      "enable_safety_checker": enableSafetyChecker,
-      "camera_lora_scale": cameraLoraScale,
-      "image_strength": imageStrength,
+      "video_size": videoSize,
+      "guidance_scale": guidanceScale,
+      "num_frames": numFrames,
       "preprocess_audio": preprocessAudio,
+      "enable_safety_checker": enableSafetyChecker,
       "video_write_mode": videoWriteMode,
       "video_output_type": videoOutputType,
-      "guidance_scale": guidanceScale,
       "negative_prompt": negativePrompt,
-      "num_frames": numFrames,
-      "sync_mode": syncMode,
+      "image_strength": imageStrength,
+      "camera_lora_scale": cameraLoraScale,
       "video_quality": videoQuality,
-      "enable_prompt_expansion": enablePromptExpansion,
-      "audio_strength": audioStrength,
-      "end_image_strength": endImageStrength,
-      "num_inference_steps": numInferenceSteps,
+      "sync_mode": syncMode,
       "seed": seed,
+      "end_image_strength": endImageStrength,
+      "enable_prompt_expansion": enablePromptExpansion,
+      "num_inference_steps": numInferenceSteps,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
-    if (isRefSet(audioRef)) {
-      const audioUrl = await assetToFalUrl(apiKey, audioRef!);
-      if (audioUrl) args["audio_url"] = audioUrl;
-    }
-
-    const endImageRef = inputs.end_image as Record<string, unknown> | undefined;
+    const endImageRef = this.end_image as Record<string, unknown> | undefined;
     if (isRefSet(endImageRef)) {
-      const endImageUrl = await assetToFalUrl(apiKey, endImageRef!);
+      const endImageUrl = await imageToDataUrl(endImageRef!) ?? await assetToFalUrl(apiKey, endImageRef!);
       if (endImageUrl) args["end_image_url"] = endImageUrl;
     }
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
+    }
+
+    const audioRef = this.audio as Record<string, unknown> | undefined;
+    if (isRefSet(audioRef)) {
+      const audioUrl = await assetToFalUrl(apiKey, audioRef!);
+      if (audioUrl) args["audio_url"] = audioUrl;
     }
     removeNulls(args);
 
@@ -655,47 +656,47 @@ export class ElevenlabsDubbing extends FalNode {
   static readonly description = `ElevenLabs Dubbing
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "target_lang": "str", "video": "video" };
 
   @prop({ type: "video", default: "", description: "URL of the video file to dub. Either audio_url or video_url must be provided. If both are provided, video_url takes priority." })
   declare video: any;
 
-  @prop({ type: "bool", default: true, description: "Whether to use the highest resolution for dubbing." })
-  declare highest_resolution: any;
-
   @prop({ type: "audio", default: "", description: "URL of the audio file to dub. Either audio_url or video_url must be provided." })
   declare audio: any;
+
+  @prop({ type: "bool", default: true, description: "Whether to use the highest resolution for dubbing." })
+  declare highest_resolution: any;
 
   @prop({ type: "str", default: "", description: "Number of speakers in the audio. If not provided, will be auto-detected." })
   declare num_speakers: any;
 
-  @prop({ type: "str", default: "", description: "Source language code. If not provided, will be auto-detected." })
-  declare source_lang: any;
-
   @prop({ type: "str", default: "", description: "Target language code for dubbing (ISO 639-1)" })
   declare target_lang: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const highestResolution = Boolean(inputs.highest_resolution ?? this.highest_resolution ?? true);
-    const numSpeakers = String(inputs.num_speakers ?? this.num_speakers ?? "");
-    const sourceLang = String(inputs.source_lang ?? this.source_lang ?? "");
-    const targetLang = String(inputs.target_lang ?? this.target_lang ?? "");
+  @prop({ type: "str", default: "", description: "Source language code. If not provided, will be auto-detected." })
+  declare source_lang: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const highestResolution = Boolean(this.highest_resolution ?? true);
+    const numSpeakers = String(this.num_speakers ?? "");
+    const targetLang = String(this.target_lang ?? "");
+    const sourceLang = String(this.source_lang ?? "");
 
     const args: Record<string, unknown> = {
       "highest_resolution": highestResolution,
       "num_speakers": numSpeakers,
-      "source_lang": sourceLang,
       "target_lang": targetLang,
+      "source_lang": sourceLang,
     };
 
-    const videoRef = inputs.video as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToFalUrl(apiKey, videoRef!);
       if (videoUrl) args["video_url"] = videoUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -713,7 +714,7 @@ export class LongcatMultiAvatarImageAudioToVideo extends FalNode {
   static readonly description = `Longcat Multi Avatar
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "Two people are having a conversation with natural expressions and movements.", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -760,22 +761,22 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "int", default: 1, description: "Number of video segments to generate. Each segment adds ~5 seconds of video. First segment is ~5.8s, additional segments are 5s each." })
   declare num_segments: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "Two people are having a conversation with natural expressions and movements.");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const audioUrlPerson2 = String(inputs.audio_url_person2 ?? this.audio_url_person2 ?? "https://raw.githubusercontent.com/meituan-longcat/LongCat-Video/refs/heads/main/assets/avatar/multi/sing_woman.WAV");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const bboxPerson1 = String(inputs.bbox_person1 ?? this.bbox_person1 ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
-    const textGuidanceScale = Number(inputs.text_guidance_scale ?? this.text_guidance_scale ?? 4);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const audioType = String(inputs.audio_type ?? this.audio_type ?? "para");
-    const audioUrlPerson1 = String(inputs.audio_url_person1 ?? this.audio_url_person1 ?? "https://raw.githubusercontent.com/meituan-longcat/LongCat-Video/refs/heads/main/assets/avatar/multi/sing_man.WAV");
-    const audioGuidanceScale = Number(inputs.audio_guidance_scale ?? this.audio_guidance_scale ?? 4);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const bboxPerson2 = String(inputs.bbox_person2 ?? this.bbox_person2 ?? "");
-    const numSegments = Number(inputs.num_segments ?? this.num_segments ?? 1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "Two people are having a conversation with natural expressions and movements.");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const audioUrlPerson2 = String(this.audio_url_person2 ?? "https://raw.githubusercontent.com/meituan-longcat/LongCat-Video/refs/heads/main/assets/avatar/multi/sing_woman.WAV");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const bboxPerson1 = String(this.bbox_person1 ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
+    const textGuidanceScale = Number(this.text_guidance_scale ?? 4);
+    const resolution = String(this.resolution ?? "480p");
+    const audioType = String(this.audio_type ?? "para");
+    const audioUrlPerson1 = String(this.audio_url_person1 ?? "https://raw.githubusercontent.com/meituan-longcat/LongCat-Video/refs/heads/main/assets/avatar/multi/sing_man.WAV");
+    const audioGuidanceScale = Number(this.audio_guidance_scale ?? 4);
+    const seed = String(this.seed ?? "");
+    const bboxPerson2 = String(this.bbox_person2 ?? "");
+    const numSegments = Number(this.num_segments ?? 1);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -794,9 +795,9 @@ video, generation, audio-to-video, visualization`;
       "num_segments": numSegments,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
@@ -812,7 +813,7 @@ export class LongcatSingleAvatarImageAudioToVideo extends FalNode {
   static readonly description = `LongCat-Video-Avatar is an audio-driven video generation model that can generates super-realistic, lip-synchronized long video generation with natural dynamics and consistent identity.
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -847,17 +848,17 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "float", default: 4, description: "The text guidance scale for classifier-free guidance." })
   declare text_guidance_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const audioGuidanceScale = Number(inputs.audio_guidance_scale ?? this.audio_guidance_scale ?? 4);
-    const numSegments = Number(inputs.num_segments ?? this.num_segments ?? 1);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
-    const textGuidanceScale = Number(inputs.text_guidance_scale ?? this.text_guidance_scale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const resolution = String(this.resolution ?? "480p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const audioGuidanceScale = Number(this.audio_guidance_scale ?? 4);
+    const numSegments = Number(this.num_segments ?? 1);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const seed = Number(this.seed ?? -1);
+    const negativePrompt = String(this.negative_prompt ?? "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
+    const textGuidanceScale = Number(this.text_guidance_scale ?? 4);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -871,13 +872,13 @@ video, generation, audio-to-video, visualization`;
       "text_guidance_scale": textGuidanceScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -895,7 +896,7 @@ export class LongcatSingleAvatarAudioToVideo extends FalNode {
   static readonly description = `LongCat-Video-Avatar is an audio-driven video generation model that can generates super-realistic, lip-synchronized long video generation with natural dynamics and consistent identity.
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "seed": "int", "video": "video" };
 
   @prop({ type: "str", default: "A person is talking naturally with natural expressions and movements.", description: "The prompt to guide the video generation." })
   declare prompt: any;
@@ -927,17 +928,17 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "float", default: 4, description: "The text guidance scale for classifier-free guidance." })
   declare text_guidance_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "A person is talking naturally with natural expressions and movements.");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? true);
-    const audioGuidanceScale = Number(inputs.audio_guidance_scale ?? this.audio_guidance_scale ?? 4);
-    const numSegments = Number(inputs.num_segments ?? this.num_segments ?? 1);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 30);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
-    const textGuidanceScale = Number(inputs.text_guidance_scale ?? this.text_guidance_scale ?? 4);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "A person is talking naturally with natural expressions and movements.");
+    const resolution = String(this.resolution ?? "480p");
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? true);
+    const audioGuidanceScale = Number(this.audio_guidance_scale ?? 4);
+    const numSegments = Number(this.num_segments ?? 1);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 30);
+    const seed = Number(this.seed ?? -1);
+    const negativePrompt = String(this.negative_prompt ?? "Close-up, Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards");
+    const textGuidanceScale = Number(this.text_guidance_scale ?? 4);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -951,7 +952,7 @@ video, generation, audio-to-video, visualization`;
       "text_guidance_scale": textGuidanceScale,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -969,7 +970,7 @@ export class ArgilAvatarsAudioToVideo extends FalNode {
   static readonly description = `High-quality avatar videos that feel real, generated from your audio
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "moderation_transcription": "str", "moderation_error": "str", "moderation_flagged": "bool", "video": "video" };
 
   @prop({ type: "enum", default: "", values: ["Mia outdoor (UGC)", "Lara (Masterclass)", "Ines (UGC)", "Maria (Masterclass)", "Emma (UGC)", "Sienna (Masterclass)", "Elena (UGC)", "Jasmine (Masterclass)", "Amara (Masterclass)", "Ryan podcast (UGC)", "Tyler (Masterclass)", "Jayse (Masterclass)", "Paul (Masterclass)", "Matteo (UGC)", "Daniel car (UGC)", "Dario (Masterclass)", "Viva (Masterclass)", "Chen (Masterclass)", "Alex (Masterclass)", "Vanessa (UGC)", "Laurent (UGC)", "Noemie car (UGC)", "Brandon (UGC)", "Byron (Masterclass)", "Calista (Masterclass)", "Milo (Masterclass)", "Fabien (Masterclass)", "Rose (UGC)"] })
   declare avatar: any;
@@ -980,17 +981,17 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "audio", default: "" })
   declare audio: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const avatar = String(inputs.avatar ?? this.avatar ?? "");
-    const removeBackground = Boolean(inputs.remove_background ?? this.remove_background ?? false);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const avatar = String(this.avatar ?? "");
+    const removeBackground = Boolean(this.remove_background ?? false);
 
     const args: Record<string, unknown> = {
       "avatar": avatar,
       "remove_background": removeBackground,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1008,7 +1009,7 @@ export class WanV2214bSpeechToVideo extends FalNode {
   static readonly description = `Wan-S2V is a video model that generates high-quality videos from static images and audio, with realistic facial expressions, body movements, and professional camera work for film and television applications
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The text prompt used for video generation." })
   declare prompt: any;
@@ -1049,27 +1050,27 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "audio", default: "", description: "The URL of the audio file." })
   declare audio: any;
 
-  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
-  declare seed: any;
-
   @prop({ type: "int", default: 27, description: "Number of inference steps for sampling. Higher values give better quality but take longer." })
   declare num_inference_steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const shift = Number(inputs.shift ?? this.shift ?? 5);
-    const framesPerSecond = String(inputs.frames_per_second ?? this.frames_per_second ?? 16);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
-    const numFrames = Number(inputs.num_frames ?? this.num_frames ?? 80);
-    const enableSafetyChecker = Boolean(inputs.enable_safety_checker ?? this.enable_safety_checker ?? false);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const videoWriteMode = String(inputs.video_write_mode ?? this.video_write_mode ?? "balanced");
-    const resolution = String(inputs.resolution ?? this.resolution ?? "480p");
-    const enableOutputSafetyChecker = Boolean(inputs.enable_output_safety_checker ?? this.enable_output_safety_checker ?? false);
-    const videoQuality = String(inputs.video_quality ?? this.video_quality ?? "high");
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 27);
+  @prop({ type: "str", default: "", description: "Random seed for reproducibility. If None, a random seed is chosen." })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const shift = Number(this.shift ?? 5);
+    const framesPerSecond = String(this.frames_per_second ?? 16);
+    const guidanceScale = Number(this.guidance_scale ?? 3.5);
+    const numFrames = Number(this.num_frames ?? 80);
+    const enableSafetyChecker = Boolean(this.enable_safety_checker ?? false);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const videoWriteMode = String(this.video_write_mode ?? "balanced");
+    const resolution = String(this.resolution ?? "480p");
+    const enableOutputSafetyChecker = Boolean(this.enable_output_safety_checker ?? false);
+    const videoQuality = String(this.video_quality ?? "high");
+    const numInferenceSteps = Number(this.num_inference_steps ?? 27);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -1083,17 +1084,17 @@ video, generation, audio-to-video, visualization`;
       "resolution": resolution,
       "enable_output_safety_checker": enableOutputSafetyChecker,
       "video_quality": videoQuality,
-      "seed": seed,
       "num_inference_steps": numInferenceSteps,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1111,7 +1112,7 @@ export class StableAvatar extends FalNode {
   static readonly description = `Stable Avatar generates audio-driven video avatars up to five minutes long
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for the video generation." })
   declare prompt: any;
@@ -1128,45 +1129,45 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "float", default: 5, description: "The guidance scale to use for the video generation." })
   declare guidance_scale: any;
 
-  @prop({ type: "int", default: -1, description: "The seed to use for the video generation." })
-  declare seed: any;
-
-  @prop({ type: "int", default: 50, description: "The number of inference steps to use for the video generation." })
-  declare num_inference_steps: any;
+  @prop({ type: "float", default: 4, description: "The audio guidance scale to use for the video generation." })
+  declare audio_guidance_scale: any;
 
   @prop({ type: "audio", default: "", description: "The URL of the audio to use as a reference for the video generation." })
   declare audio: any;
 
-  @prop({ type: "float", default: 4, description: "The audio guidance scale to use for the video generation." })
-  declare audio_guidance_scale: any;
+  @prop({ type: "int", default: 50, description: "The number of inference steps to use for the video generation." })
+  declare num_inference_steps: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const aspectRatio = String(inputs.aspect_ratio ?? this.aspect_ratio ?? "auto");
-    const perturbation = Number(inputs.perturbation ?? this.perturbation ?? 0.1);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 5);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const numInferenceSteps = Number(inputs.num_inference_steps ?? this.num_inference_steps ?? 50);
-    const audioGuidanceScale = Number(inputs.audio_guidance_scale ?? this.audio_guidance_scale ?? 4);
+  @prop({ type: "str", default: "", description: "The seed to use for the video generation." })
+  declare seed: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const aspectRatio = String(this.aspect_ratio ?? "auto");
+    const perturbation = Number(this.perturbation ?? 0.1);
+    const guidanceScale = Number(this.guidance_scale ?? 5);
+    const audioGuidanceScale = Number(this.audio_guidance_scale ?? 4);
+    const numInferenceSteps = Number(this.num_inference_steps ?? 50);
+    const seed = String(this.seed ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "aspect_ratio": aspectRatio,
       "perturbation": perturbation,
       "guidance_scale": guidanceScale,
-      "seed": seed,
-      "num_inference_steps": numInferenceSteps,
       "audio_guidance_scale": audioGuidanceScale,
+      "num_inference_steps": numInferenceSteps,
+      "seed": seed,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1184,57 +1185,57 @@ export class EchomimicV3 extends FalNode {
   static readonly description = `EchoMimic V3 generates a talking avatar model from a picture, audio and text prompt.
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "str", default: "", description: "The prompt to use for the video generation." })
   declare prompt: any;
 
-  @prop({ type: "float", default: 4.5, description: "The guidance scale to use for the video generation." })
-  declare guidance_scale: any;
+  @prop({ type: "float", default: 2.5, description: "The audio guidance scale to use for the video generation." })
+  declare audio_guidance_scale: any;
 
   @prop({ type: "image", default: "", description: "The URL of the image to use as a reference for the video generation." })
   declare image: any;
 
-  @prop({ type: "int", default: 121, description: "The number of frames to generate at once." })
-  declare num_frames_per_generation: any;
+  @prop({ type: "audio", default: "", description: "The URL of the audio to use as a reference for the video generation." })
+  declare audio: any;
 
   @prop({ type: "str", default: "", description: "The seed to use for the video generation." })
   declare seed: any;
 
-  @prop({ type: "float", default: 2.5, description: "The audio guidance scale to use for the video generation." })
-  declare audio_guidance_scale: any;
+  @prop({ type: "int", default: 121, description: "The number of frames to generate at once." })
+  declare num_frames_per_generation: any;
 
   @prop({ type: "str", default: "", description: "The negative prompt to use for the video generation." })
   declare negative_prompt: any;
 
-  @prop({ type: "audio", default: "", description: "The URL of the audio to use as a reference for the video generation." })
-  declare audio: any;
+  @prop({ type: "float", default: 4.5, description: "The guidance scale to use for the video generation." })
+  declare guidance_scale: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 4.5);
-    const numFramesPerGeneration = Number(inputs.num_frames_per_generation ?? this.num_frames_per_generation ?? 121);
-    const seed = String(inputs.seed ?? this.seed ?? "");
-    const audioGuidanceScale = Number(inputs.audio_guidance_scale ?? this.audio_guidance_scale ?? 2.5);
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const audioGuidanceScale = Number(this.audio_guidance_scale ?? 2.5);
+    const seed = String(this.seed ?? "");
+    const numFramesPerGeneration = Number(this.num_frames_per_generation ?? 121);
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const guidanceScale = Number(this.guidance_scale ?? 4.5);
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "guidance_scale": guidanceScale,
-      "num_frames_per_generation": numFramesPerGeneration,
-      "seed": seed,
       "audio_guidance_scale": audioGuidanceScale,
+      "seed": seed,
+      "num_frames_per_generation": numFramesPerGeneration,
       "negative_prompt": negativePrompt,
+      "guidance_scale": guidanceScale,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;
@@ -1252,7 +1253,7 @@ export class VeedAvatarsAudioToVideo extends FalNode {
   static readonly description = `Generate high-quality videos with UGC-like avatars from audio
 video, generation, audio-to-video, visualization`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "video" };
+  static readonly outputTypes = { "video": "video" };
 
   @prop({ type: "audio", default: "" })
   declare audio: any;
@@ -1260,15 +1261,15 @@ video, generation, audio-to-video, visualization`;
   @prop({ type: "enum", default: "", values: ["emily_vertical_primary", "emily_vertical_secondary", "marcus_vertical_primary", "marcus_vertical_secondary", "mira_vertical_primary", "mira_vertical_secondary", "jasmine_vertical_primary", "jasmine_vertical_secondary", "jasmine_vertical_walking", "aisha_vertical_walking", "elena_vertical_primary", "elena_vertical_secondary", "any_male_vertical_primary", "any_female_vertical_primary", "any_male_vertical_secondary", "any_female_vertical_secondary", "any_female_vertical_walking", "emily_primary", "emily_side", "marcus_primary", "marcus_side", "aisha_walking", "elena_primary", "elena_side", "any_male_primary", "any_female_primary", "any_male_side", "any_female_side"], description: "The avatar to use for the video" })
   declare avatar_id: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const avatarId = String(inputs.avatar_id ?? this.avatar_id ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const avatarId = String(this.avatar_id ?? "");
 
     const args: Record<string, unknown> = {
       "avatar_id": avatarId,
     };
 
-    const audioRef = inputs.audio as Record<string, unknown> | undefined;
+    const audioRef = this.audio as Record<string, unknown> | undefined;
     if (isRefSet(audioRef)) {
       const audioUrl = await assetToFalUrl(apiKey, audioRef!);
       if (audioUrl) args["audio_url"] = audioUrl;

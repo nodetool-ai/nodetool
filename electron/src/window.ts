@@ -4,6 +4,35 @@ import path from "path";
 import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
+
+/** Shared secure webPreferences for all windows */
+const secureWebPreferences: Electron.WebPreferences = {
+  preload: path.join(__dirname, "preload.js"),
+  contextIsolation: true,
+  nodeIntegration: false,
+  devTools: true,
+  webSecurity: true,
+};
+
+/** Registers the Ctrl/Cmd+Shift+I DevTools toggle on a window */
+function registerDevToolsShortcut(window: BrowserWindow): void {
+  window.webContents.on("before-input-event", (_event, input) => {
+    if (
+      (input.control || input.meta) &&
+      input.shift &&
+      input.key.toLowerCase() === "i"
+    ) {
+      if (window.webContents.isDevToolsOpened()) {
+        window.webContents.closeDevTools();
+      } else {
+        window.webContents.openDevTools();
+      }
+    }
+  });
+}
+
+let permissionHandlersInitialized = false;
+
 /**
  * Creates the main application window
  * @returns {BrowserWindow} The created window instance
@@ -21,17 +50,9 @@ function createWindow(): BrowserWindow {
     width: 1500,
     height: 1000,
     frame: true,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      devTools: true,
-      webSecurity: true,
-    },
-    // show: false,
+    webPreferences: { ...secureWebPreferences },
   });
 
-  // set window background color
   window.setBackgroundColor("#111111");
 
   if (isElectronDevMode()) {
@@ -39,26 +60,10 @@ function createWindow(): BrowserWindow {
       "data:text/html,<html><body style='margin:0;background:#111;color:#ddd;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;'>Starting NodeTool...</body></html>",
     );
   } else {
-    // Load the bundled index.html
     window.loadFile(path.join("dist-web", "index.html"));
   }
 
-  // DevTools
-  // window.webContents.openDevTools();
-
-  window.webContents.on("before-input-event", (event, input) => {
-    if (
-      (input.control || input.meta) &&
-      input.shift &&
-      input.key.toLowerCase() === "i"
-    ) {
-      if (window.webContents.isDevToolsOpened()) {
-        window.webContents.closeDevTools();
-      } else {
-        window.webContents.openDevTools();
-      }
-    }
-  });
+  registerDevToolsShortcut(window);
 
   // Handle window close
   window.on("close", (event) => {
@@ -77,7 +82,6 @@ function createWindow(): BrowserWindow {
 
 /**
  * Creates a window that opens the app in Package Manager mode
- * Loads: index.html?package-manager
  * @param {string} nodeSearch - Optional search query to prefill node search
  * @returns {BrowserWindow} The created window instance
  */
@@ -85,18 +89,11 @@ function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
   const window = new BrowserWindow({
     width: 1200,
     height: 900,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      devTools: true,
-      webSecurity: true,
-    },
+    webPreferences: { ...secureWebPreferences },
   });
 
   window.setBackgroundColor("#111111");
 
-  // Load the page with optional search query
   if (nodeSearch) {
     window.loadFile(path.join("dist-web", "pages", "packages.html"), {
       query: { nodeSearch }
@@ -105,20 +102,7 @@ function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
     window.loadFile(path.join("dist-web", "pages", "packages.html"));
   }
 
-  window.webContents.on("before-input-event", (_event, input) => {
-    if (
-      (input.control || input.meta) &&
-      input.shift &&
-      input.key.toLowerCase() === "i"
-    ) {
-      if (window.webContents.isDevToolsOpened()) {
-        window.webContents.closeDevTools();
-      } else {
-        window.webContents.openDevTools();
-      }
-    }
-  });
-
+  registerDevToolsShortcut(window);
   initializePermissionHandlers();
 
   return window;
@@ -126,39 +110,19 @@ function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
 
 /**
  * Creates a window that opens the Log Viewer
- * Loads: pages/logs.html
  * @returns {BrowserWindow} The created window instance
  */
 function createLogViewerWindow(): BrowserWindow {
   const window = new BrowserWindow({
     width: 1200,
     height: 800,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      devTools: true,
-      webSecurity: true,
-    },
+    webPreferences: { ...secureWebPreferences },
   });
 
   window.setBackgroundColor("#111111");
   window.loadFile(path.join("dist-web", "pages", "logs.html"));
 
-  window.webContents.on("before-input-event", (_event, input) => {
-    if (
-      (input.control || input.meta) &&
-      input.shift &&
-      input.key.toLowerCase() === "i"
-    ) {
-      if (window.webContents.isDevToolsOpened()) {
-        window.webContents.closeDevTools();
-      } else {
-        window.webContents.openDevTools();
-      }
-    }
-  });
-
+  registerDevToolsShortcut(window);
   initializePermissionHandlers();
 
   return window;
@@ -166,39 +130,19 @@ function createLogViewerWindow(): BrowserWindow {
 
 /**
  * Creates a window that opens the Settings page
- * Loads: pages/settings.html
  * @returns {BrowserWindow} The created window instance
  */
 function createSettingsWindow(): BrowserWindow {
   const window = new BrowserWindow({
     width: 600,
     height: 500,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      devTools: true,
-      webSecurity: true,
-    },
+    webPreferences: { ...secureWebPreferences },
   });
 
   window.setBackgroundColor("#111111");
   window.loadFile(path.join("dist-web", "pages", "settings.html"));
 
-  window.webContents.on("before-input-event", (_event, input) => {
-    if (
-      (input.control || input.meta) &&
-      input.shift &&
-      input.key.toLowerCase() === "i"
-    ) {
-      if (window.webContents.isDevToolsOpened()) {
-        window.webContents.closeDevTools();
-      } else {
-        window.webContents.openDevTools();
-      }
-    }
-  });
-
+  registerDevToolsShortcut(window);
   initializePermissionHandlers();
 
   return window;
@@ -208,6 +152,9 @@ function createSettingsWindow(): BrowserWindow {
  * Set permission handlers for Electron sessions.
  */
 function initializePermissionHandlers(): void {
+  if (permissionHandlersInitialized) return;
+  permissionHandlersInitialized = true;
+
   // Define allowed permissions at the top
   const allowedPermissions: string[] = [
     "media",

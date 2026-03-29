@@ -2,11 +2,11 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Tooltip,
-  Typography,
   LinearProgress,
   Popover
 } from "@mui/material";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
+import { FlexColumn, ProgressBar } from "../ui_primitives";
 
 // Memoized inline styles for progress bars
 const progressSx = {
@@ -18,22 +18,13 @@ const progressSx = {
   }
 } as const;
 
-const popoverProgressSx = {
-  height: 4,
-  borderRadius: 4,
-  backgroundColor: "rgba(255, 255, 255, 0.1)",
-  "& .MuiLinearProgress-bar": {
-    borderRadius: 4
-  }
-} as const;
-
-const statsBoxSx = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 1,
-  padding: "2px",
-  minWidth: 60,
-  cursor: "pointer"
+// ARIA labels for accessibility
+const STATS_ARIA_LABELS = {
+  cpu: "CPU usage",
+  memory: "Memory usage",
+  gpu: "GPU Memory usage",
+  statsTrigger: "View detailed system stats",
+  statsPopover: "Detailed system statistics"
 } as const;
 
 const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
@@ -44,15 +35,18 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
     () => [
       {
         label: "CPU",
-        value: systemStats?.cpu_percent ?? 0
+        value: systemStats?.cpu_percent ?? 0,
+        ariaLabel: STATS_ARIA_LABELS.cpu
       },
       {
         label: "Memory",
-        value: systemStats?.memory_percent ?? 0
+        value: systemStats?.memory_percent ?? 0,
+        ariaLabel: STATS_ARIA_LABELS.memory
       },
       {
         label: "GPU Memory",
-        value: systemStats?.vram_percent ?? 0
+        value: systemStats?.vram_percent ?? 0,
+        ariaLabel: STATS_ARIA_LABELS.gpu
       }
     ],
     [systemStats]
@@ -62,18 +56,42 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
     setAnchorEl(event.currentTarget);
   }, []);
 
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setAnchorEl(event.currentTarget);
+    }
+  }, []);
+
   const handleClose = useCallback(() => {
     setAnchorEl(null);
   }, []);
 
   if (!systemStats) {return null;}
 
+  const popoverId = "system-stats-popover";
+  const triggerId = "system-stats-trigger";
+
   return (
-    <Box className="system-stats" sx={{ mr: 2 }}>
+    <Box
+      className="system-stats"
+      sx={{ mr: 2 }}
+      role="region"
+      aria-label="System resource usage"
+    >
       <Tooltip title="System Stats">
-        <Box
+        <FlexColumn
+          id={triggerId}
           onClick={handleClick}
-          sx={statsBoxSx}
+          onKeyDown={handleKeyDown}
+          gap={1}
+          sx={{ padding: "2px", minWidth: 60, cursor: "pointer" }}
+          tabIndex={0}
+          role="button"
+          aria-label={STATS_ARIA_LABELS.statsTrigger}
+          aria-haspopup="dialog"
+          aria-expanded={Boolean(anchorEl)}
+          aria-controls={popoverId}
         >
           {stats.map((stat) => (
             <LinearProgress
@@ -81,11 +99,16 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
               variant="determinate"
               value={stat.value}
               sx={progressSx}
+              aria-label={stat.ariaLabel}
+              aria-valuenow={stat.value}
+              aria-valuemin={0}
+              aria-valuemax={100}
             />
           ))}
-        </Box>
+        </FlexColumn>
       </Tooltip>
       <Popover
+        id={popoverId}
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
         onClose={handleClose}
@@ -97,8 +120,14 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
           vertical: "top",
           horizontal: "center"
         }}
+        slotProps={{
+          paper: {
+            role: "dialog",
+            "aria-label": STATS_ARIA_LABELS.statsPopover
+          }
+        }}
       >
-        <Box sx={{ p: 2, minWidth: 150 }}>
+        <Box sx={{ p: 2, minWidth: 150 }} role="region" aria-live="polite">
           {stats.map((stat) => (
             <StatItem key={stat.label} label={stat.label} value={stat.value} />
           ))}
@@ -113,19 +142,17 @@ const StatItem: React.FC<{ label: string; value: number }> = React.memo(function
   value
 }) {
   return (
-    <Box className="system-stats-popover">
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-          {label}
-        </Typography>
-        <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-          {value.toFixed(0)}%
-        </Typography>
-      </Box>
-      <LinearProgress
-        variant="determinate"
+    <Box
+      className="system-stats-popover"
+      role="group"
+      aria-label={`${label}: ${value.toFixed(0)}%`}
+    >
+      <ProgressBar
         value={value}
-        sx={popoverProgressSx}
+        label={label}
+        showValue
+        formatValue={(v) => `${v.toFixed(0)}%`}
+        barHeight={4}
       />
     </Box>
   );

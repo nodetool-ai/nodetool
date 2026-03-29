@@ -1,7 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type { ImageRef, AudioRef, DataframeRef } from "../types.js";
+import type { ImageRef, AudioRef, DataframeRef, ChartConfig } from "../types.js";
 
 // Structured Output Generator — nodetool.generators.StructuredOutputGenerator
 export interface StructuredOutputGeneratorInputs {
@@ -64,7 +64,7 @@ export interface ChartGeneratorInputs {
 }
 
 export interface ChartGeneratorOutputs {
-  output: unknown;
+  output: ChartConfig;
 }
 
 export function chartGenerator(inputs: ChartGeneratorInputs): DslNode<ChartGeneratorOutputs, "output"> {

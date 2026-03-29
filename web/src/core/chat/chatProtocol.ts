@@ -146,6 +146,7 @@ export type MsgpackData =
   | OutputUpdate
   | StepResult
   | WorkflowCreatedUpdate
+  | WorkflowUpdatedUpdate
   | GenerationStoppedUpdate
   | ToolCallMessage
   | ToolResultMessage
@@ -1121,6 +1122,18 @@ export async function handleChatWebSocketMessage(
     );
     const stoppedData = data as GenerationStoppedUpdate;
     log.info("Generation stopped:", stoppedData.message);
+  } else if (data.type === "workflow_created" || data.type === "workflow_updated") {
+    const workflowData = data as WorkflowCreatedUpdate | WorkflowUpdatedUpdate;
+    const threadId = get().currentThreadId;
+    if (threadId && workflowData.workflow_id) {
+      set((state) => ({
+        threadWorkflowId: {
+          ...state.threadWorkflowId,
+          [threadId]: workflowData.workflow_id
+        }
+      }));
+    }
+    log.debug(`${data.type}:`, workflowData.workflow_id);
   } else if (data.type === "error") {
     const errorData = data as ErrorMessage;
     // Clear the safety timeout on error

@@ -14,6 +14,8 @@ import {
   RunJobRequest,
 } from "../types/workflow";
 
+const MAX_LOGS = 500;
+
 export type MessageHandler = (
   workflow: Workflow,
   data: MsgpackData
@@ -34,7 +36,7 @@ export type WorkflowRunner = {
 
   // Accumulated data for the UI
   logs: string[];
-  results: any | null;
+  results: Record<string, unknown> | unknown[] | unknown | null;
   nodeProgress: Record<string, number>;
   nodeStatus: Record<string, string>;
 
@@ -45,7 +47,7 @@ export type WorkflowRunner = {
   setMessageHandler: (handler: MessageHandler) => void;
 
   run: (
-    params: any,
+    params: Record<string, unknown>,
     workflow: Workflow,
   ) => Promise<void>;
 
@@ -57,6 +59,14 @@ export type WorkflowRunner = {
 export type WorkflowRunnerStore = UseBoundStore<StoreApi<WorkflowRunner>>;
 
 const runnerStores = new Map<string, WorkflowRunnerStore>();
+
+function appendLog(logs: string[], entry: string): string[] {
+  const updated = [...logs, entry];
+  if (updated.length > MAX_LOGS) {
+    return updated.slice(updated.length - MAX_LOGS);
+  }
+  return updated;
+}
 
 export const createWorkflowRunnerStore = (
   workflowId: string
@@ -73,52 +83,49 @@ export const createWorkflowRunnerStore = (
     statusMessage: null,
 
     messageHandler: (workflow: Workflow, data: MsgpackData) => {
-      // Default handler updates internal state
       const state = get();
 
-      // Log extraction (simplified)
-      if ((data as any).message) {
-         set({ logs: [...state.logs, `[${data.type}] ${(data as any).message}`] });
+      if ((data as Record<string, unknown>).message) {
+        set({ logs: appendLog(state.logs, `[${data.type}] ${(data as Record<string, unknown>).message}`) });
       }
 
       switch (data.type) {
-        case "job_update":
-          // @ts-ignore
-          const jobUpdate = data as JobUpdate;
+        case "job_update": {
+          const jobUpdate = data as unknown as JobUpdate;
           if (jobUpdate.status === "completed") {
-             set({ state: "completed", results: jobUpdate.result, statusMessage: "Completed" });
+            set({ state: "completed", results: jobUpdate.result, statusMessage: "Completed" });
           } else if (jobUpdate.status === "failed") {
-             set({ state: "error", statusMessage: `Failed: ${jobUpdate.error}` });
+            set({ state: "error", statusMessage: `Failed: ${jobUpdate.error}` });
           } else if (jobUpdate.status === "cancelled") {
-             set({ state: "cancelled", statusMessage: "Cancelled" });
+            set({ state: "cancelled", statusMessage: "Cancelled" });
           } else if (jobUpdate.status === "running") {
-             set({ state: "running", statusMessage: "Running..." });
+            set({ state: "running", statusMessage: "Running..." });
           }
           break;
-          
-        case "node_progress":
-          // @ts-ignore
-          const progress = data as NodeProgress;
-          set({ 
-            nodeProgress: { 
-              ...state.nodeProgress, 
-              [progress.node_id]: progress.progress 
-            } 
+        }
+
+        case "node_progress": {
+          const progress = data as unknown as NodeProgress;
+          set({
+            nodeProgress: {
+              ...state.nodeProgress,
+              [progress.node_id]: progress.progress
+            }
           });
           break;
+        }
 
-        case "node_update":
-           // @ts-ignore
-           const nodeUpdate = data as NodeUpdate;
-           set({
-             nodeStatus: {
-               ...state.nodeStatus,
-               [nodeUpdate.node_id]: nodeUpdate.status
-             },
-             // If we want logs from node updates
-             logs: [...state.logs, `Node ${nodeUpdate.node_id}: ${nodeUpdate.status}`]
-           });
-           break;
+        case "node_update": {
+          const nodeUpdate = data as unknown as NodeUpdate;
+          set({
+            nodeStatus: {
+              ...state.nodeStatus,
+              [nodeUpdate.node_id]: nodeUpdate.status
+            },
+            logs: appendLog(state.logs, `Node ${nodeUpdate.node_id}: ${nodeUpdate.status}`)
+          });
+          break;
+        }
       }
     },
 
@@ -136,7 +143,6 @@ export const createWorkflowRunnerStore = (
         await webSocketService.ensureConnection('/ws/predict');
         set({ state: "connected" });
 
-        // Subscribe to messages for this workflow
         const currentUnsubscribe = get().unsubscribe;
         if (currentUnsubscribe) {
           currentUnsubscribe();
@@ -144,14 +150,13 @@ export const createWorkflowRunnerStore = (
 
         const unsubscribe = webSocketService.subscribe(
           workflowId,
-          (message: any) => {
+          (message: Record<string, unknown>) => {
             const workflow = get().workflow;
             if (workflow) {
-              // Capture job_id from responses if present
               if (message.job_id && !get().job_id) {
-                set({ job_id: message.job_id });
+                set({ job_id: message.job_id as string });
               }
-              get().messageHandler(workflow, message);
+              get().messageHandler(workflow, message as unknown as MsgpackData);
             }
           }
         );
@@ -170,10 +175,12 @@ export const createWorkflowRunnerStore = (
         unsubscribe();
         set({ unsubscribe: null });
       }
+      // Remove from store map to prevent memory leaks
+      runnerStores.delete(workflowId);
     },
 
     run: async (
-      params: any,
+      params: Record<string, unknown>,
       workflow: Workflow,
     ) => {
       console.log(`WorkflowRunner[${workflowId}]: Starting workflow run`);
@@ -215,18 +222,18 @@ export const createWorkflowRunnerStore = (
     },
 
     cancel: async () => {
-       const { job_id } = get();
-       if (job_id && workflowId) {
-          await webSocketService.send({
-            type: "cancel_job",
-            command: "cancel_job",
-            data: {
-              job_id,
-              workflow_id: workflowId
-            }
-          }, '/ws/predict');
-       }
-       set({ state: "cancelled", statusMessage: "Cancelled" });
+      const { job_id } = get();
+      if (job_id && workflowId) {
+        await webSocketService.send({
+          type: "cancel_job",
+          command: "cancel_job",
+          data: {
+            job_id,
+            workflow_id: workflowId
+          }
+        }, '/ws/predict');
+      }
+      set({ state: "cancelled", statusMessage: "Cancelled" });
     }
   }));
 
@@ -247,5 +254,5 @@ export const getWorkflowRunnerStore = (
 };
 
 export const useWorkflowRunner = (workflowId: string) => {
-    return getWorkflowRunnerStore(workflowId);
-}
+  return getWorkflowRunnerStore(workflowId);
+};

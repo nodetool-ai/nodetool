@@ -20,9 +20,9 @@ export class IfNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const condition = Boolean(inputs.condition ?? this.condition ?? false);
-    const value = inputs.value ?? this.value ?? null;
+  async process(): Promise<Record<string, unknown>> {
+    const condition = Boolean(this.condition ?? this.condition ?? false);
+    const value = this.value ?? this.value ?? null;
 
     if (condition) {
       return { if_true: value, if_false: null };
@@ -47,14 +47,12 @@ export class ForEachNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>
-  ): AsyncGenerator<Record<string, unknown>> {
-    const values = (inputs.input_list ?? this.input_list ?? []) as unknown[];
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const values = (this.input_list ?? this.input_list ?? []) as unknown[];
     const list = Array.isArray(values) ? values : [values];
 
     for (const [index, item] of list.entries()) {
@@ -84,10 +82,8 @@ export class CollectNode extends BaseNode {
     this._items = [];
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("input_item" in inputs) {
-      this._items.push(inputs.input_item);
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._items.push(this.input_item);
     return { output: [...this._items] };
   }
 }
@@ -108,8 +104,8 @@ export class RerouteNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: inputs.input_value ?? this.input_value ?? null };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.input_value ?? this.input_value ?? null };
   }
 }
 

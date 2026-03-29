@@ -63,7 +63,7 @@ const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
     to: "reconnecting"
   },
   failed: {
-    from: ["connecting", "reconnecting"],
+    from: ["connecting", "reconnecting", "disconnected"],
     to: "failed"
   }
 };
@@ -312,11 +312,8 @@ export class WebSocketManager extends EventEmitter {
     if (shouldReconnect) {
       this.scheduleReconnect();
     } else if (!this.intentionalDisconnect) {
-      // Note: We can't transition to "failed" from "disconnected" state.
-      // The failed state is only reachable from "connecting" or "reconnecting".
-      // If we reach here from "disconnected", we just stay disconnected.
-      // This can happen when max reconnect attempts are exhausted.
-      log.warn(`Connection failed after ${this.reconnectAttempt} attempts, staying in disconnected state`);
+      this.transitionTo("failed");
+      log.warn(`Connection failed after ${this.reconnectAttempt} attempts`);
     }
   }
 
@@ -418,7 +415,7 @@ export class WebSocketManager extends EventEmitter {
   private getReconnectDelay(): number {
     const delay = Math.min(
       this.config.reconnectInterval *
-        Math.pow(this.config.reconnectDecay, this.reconnectAttempt - 1),
+        Math.pow(this.config.reconnectDecay, this.reconnectAttempt),
       30000 // Max 30 seconds
     );
     return delay;

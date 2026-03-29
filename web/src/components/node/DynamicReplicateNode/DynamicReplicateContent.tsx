@@ -20,9 +20,9 @@ export interface DynamicReplicateContentProps {
   onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
-  showResultOverlay: boolean;
-  result: unknown;
-  onShowInputs: () => void;
+  showResultOverlay?: boolean;
+  result?: unknown;
+  onShowInputs?: () => void;
   onShowResults?: () => void;
 }
 

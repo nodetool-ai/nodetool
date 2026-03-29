@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.run_lease`.
  */
 
-import { lt } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 import { DBModel } from "./base-model.js";
 import { getDb } from "./db.js";
 import { runLeases } from "./schema/run-leases.js";
@@ -23,7 +23,8 @@ export class RunLease extends DBModel {
     this.acquired_at ??= new Date().toISOString();
   }
 
-  /** Acquire a lease on a run. Returns the lease if acquired, null if already held. */
+  /** Acquire a lease on a run. Returns the lease if acquired, null if already held.
+   *  Uses an atomic transaction to prevent TOCTOU race conditions. */
   static async acquire(
     runId: string,
     workerId: string,
@@ -31,25 +32,54 @@ export class RunLease extends DBModel {
   ): Promise<RunLease | null> {
     const now = new Date();
     const expires = new Date(now.getTime() + ttlSeconds * 1000);
+    const nowIso = now.toISOString();
+    const expiresIso = expires.toISOString();
 
-    const existing = await RunLease.get<RunLease>(runId);
+    const db = getDb();
+    // Use a transaction with BEGIN IMMEDIATE to get an exclusive lock,
+    // preventing two workers from acquiring the same lease concurrently.
+    return db.transaction((tx: any) => {
+      const existing = tx.select().from(runLeases)
+        .where(eq(runLeases.run_id, runId))
+        .limit(1)
+        .get();
 
-    if (existing) {
-      if (new Date(existing.expires_at) < now) {
-        existing.worker_id = workerId;
-        existing.acquired_at = now.toISOString();
-        existing.expires_at = expires.toISOString();
-        await existing.save();
-        return existing;
+      if (existing) {
+        if (new Date(existing.expires_at) < now) {
+          // Expired lease -- reclaim it
+          tx.update(runLeases)
+            .set({
+              worker_id: workerId,
+              acquired_at: nowIso,
+              expires_at: expiresIso,
+            })
+            .where(eq(runLeases.run_id, runId))
+            .run();
+          return new RunLease({
+            ...existing,
+            worker_id: workerId,
+            acquired_at: nowIso,
+            expires_at: expiresIso,
+          } as Record<string, unknown>);
+        }
+        // Lease still held by another worker
+        return null;
       }
-      return null;
-    }
 
-    return RunLease.create<RunLease>({
-      run_id: runId,
-      worker_id: workerId,
-      acquired_at: now.toISOString(),
-      expires_at: expires.toISOString(),
+      // No existing lease -- create one
+      tx.insert(runLeases).values({
+        run_id: runId,
+        worker_id: workerId,
+        acquired_at: nowIso,
+        expires_at: expiresIso,
+      }).run();
+
+      return new RunLease({
+        run_id: runId,
+        worker_id: workerId,
+        acquired_at: nowIso,
+        expires_at: expiresIso,
+      } as Record<string, unknown>);
     });
   }
 

@@ -37,17 +37,15 @@ export class SendEmailLibNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const smtpServer = String(inputs.smtp_server ?? this.smtp_server ?? "smtp.gmail.com");
-    const smtpPort = Number(inputs.smtp_port ?? this.smtp_port ?? 587);
-    const username = String(inputs.username ?? this.username ?? "");
-    const password = String(inputs.password ?? this.password ?? "");
-    const fromAddress = String(inputs.from_address ?? this.from_address ?? "");
-    const toAddress = String(inputs.to_address ?? this.to_address ?? "");
-    const subject = String(inputs.subject ?? this.subject ?? "");
-    const body = String(inputs.body ?? this.body ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const smtpServer = String(this.smtp_server ?? "smtp.gmail.com");
+    const smtpPort = Number(this.smtp_port ?? 587);
+    const username = String(this.username ?? "");
+    const password = String(this.password ?? "");
+    const fromAddress = String(this.from_address ?? "");
+    const toAddress = String(this.to_address ?? "");
+    const subject = String(this.subject ?? "");
+    const body = String(this.body ?? "");
 
     if (!toAddress) throw new Error("Recipient email address is required");
 
@@ -134,9 +132,7 @@ export class GmailSearchLibNode extends BaseNode {
 
 
 
-  async process(
-    _inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     throw new Error(
       "GmailSearch requires Google OAuth2/IMAP credentials which are not available in the TypeScript runtime. " +
       "Configure GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD environment variables and use the Python runtime."
@@ -166,9 +162,7 @@ export class AddLabelLibNode extends BaseNode {
 
 
 
-  async process(
-    _inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     throw new Error(
       "AddLabel requires Google OAuth2/IMAP credentials which are not available in the TypeScript runtime. " +
       "Configure GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD environment variables and use the Python runtime."
@@ -195,9 +189,7 @@ export class MoveToArchiveLibNode extends BaseNode {
 
 
 
-  async process(
-    _inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     throw new Error(
       "MoveToArchive requires Google OAuth2/IMAP credentials which are not available in the TypeScript runtime. " +
       "Configure GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD environment variables and use the Python runtime."

@@ -30,13 +30,13 @@ export const useThemeStore = create<ThemeState>()(
       toggleTheme: () => {
         const currentMode = get().mode;
         let newMode: ThemeMode;
-        
+
         if (currentMode === 'system') {
           newMode = Appearance.getColorScheme() === 'dark' ? 'light' : 'dark';
         } else {
           newMode = currentMode === 'dark' ? 'light' : 'dark';
         }
-        
+
         set({
           mode: newMode,
           colors: getColorsForMode(newMode),
@@ -61,7 +61,16 @@ export const useThemeStore = create<ThemeState>()(
   )
 );
 
-// Listen for system theme changes
-Appearance.addChangeListener(() => {
-  useThemeStore.getState().updateSystemTheme();
-});
+// Listen for system theme changes with proper subscription tracking
+let themeSubscription: ReturnType<typeof Appearance.addChangeListener> | null = null;
+
+function setupThemeListener() {
+  if (themeSubscription) {
+    themeSubscription.remove();
+  }
+  themeSubscription = Appearance.addChangeListener(() => {
+    useThemeStore.getState().updateSystemTheme();
+  });
+}
+
+setupThemeListener();

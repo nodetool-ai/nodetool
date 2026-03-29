@@ -6,4 +6,7 @@ export type {
   TextRef,
   DataframeRef,
   FolderRef,
+  ChartConfig,
+  ChartData,
+  ChartSeries,
 } from "@nodetool/protocol";

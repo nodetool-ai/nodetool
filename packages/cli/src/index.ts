@@ -14,13 +14,12 @@ import { initTelemetry } from "@nodetool/runtime";
 import { program } from "commander";
 import { render } from "ink";
 import React from "react";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
 import { initDb } from "@nodetool/models";
 import { getSecret } from "@nodetool/security";
+import { getDefaultDbPath } from "@nodetool/config";
 
 // Initialize OpenLLMetry before any LLM SDK calls are made.
 // No-op if TRACELOOP_API_KEY / OTEL_EXPORTER_OTLP_ENDPOINT is not set.
@@ -50,9 +49,8 @@ const opts = program.opts<{
 }>();
 
 // Initialize database
-const dbPath = process.env["DB_PATH"] ?? join(homedir(), ".local", "share", "nodetool", "nodetool.sqlite3");
 try {
-  initDb(dbPath);
+  initDb(getDefaultDbPath());
 } catch {
   // DB unavailable — secret lookups will fall back to env vars
 }

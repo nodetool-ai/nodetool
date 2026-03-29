@@ -68,6 +68,9 @@ function parseMemLimit(mem: string): number {
   }
 }
 
+/** @internal Exported for unit testing only. */
+export { parseMemLimit as _parseMemLimit };
+
 /**
  * Attempt a TCP connection to `host:port`. Resolves `true` if successful,
  * `false` on connection error (with a per-attempt timeout).

@@ -13,9 +13,10 @@
 import type {
   DeploymentConfig,
   DockerDeployment,
-  SSHDeployment,
-  LocalDeployment,
   GCPDeployment,
+  FlyDeployment,
+  RailwayDeployment,
+  HuggingFaceDeployment,
   SSHConfig,
   AnyDeployment,
 } from "./deployment-config.js";
@@ -44,15 +45,15 @@ export interface ValidationResult {
 
 /** Interface for deployers — all share the same operation signatures. */
 export interface Deployer {
-  plan(): Record<string, unknown>;
-  apply(opts?: { dryRun?: boolean }): Record<string, unknown>;
-  status(): Record<string, unknown>;
+  plan(): Promise<Record<string, unknown>>;
+  apply(opts?: { dryRun?: boolean }): Promise<Record<string, unknown>>;
+  status(): Promise<Record<string, unknown>>;
   logs(opts?: {
     service?: string;
     follow?: boolean;
     tail?: number;
-  }): string;
-  destroy(): Record<string, unknown>;
+  }): Promise<string>;
+  destroy(): Promise<Record<string, unknown>>;
 }
 
 /** Factory function signature for creating deployers. */
@@ -120,13 +121,6 @@ export class DeploymentManager {
         const d = deployment as DockerDeployment;
         info.host = d.host;
         info.container = d.container.name;
-      } else if (
-        deployment.type === "ssh" ||
-        deployment.type === "local"
-      ) {
-        const d = deployment as SSHDeployment | LocalDeployment;
-        info.host = d.host;
-        info.service = d.service_name ?? undefined;
       } else if (deployment.type === "runpod") {
         info.pod_id = state?.["pod_id"]
           ? String(state["pod_id"])
@@ -135,6 +129,16 @@ export class DeploymentManager {
         const d = deployment as GCPDeployment;
         info.project = d.project_id;
         info.region = d.region;
+      } else if (deployment.type === "fly") {
+        const d = deployment as FlyDeployment;
+        info.host = `fly.io/${d.app}`;
+      } else if (deployment.type === "railway") {
+        const d = deployment as RailwayDeployment;
+        info.host = `railway/${d.project}`;
+        info.service = d.service;
+      } else if (deployment.type === "huggingface") {
+        const d = deployment as HuggingFaceDeployment;
+        info.host = `huggingface.co/${d.repo}`;
       }
 
       deployments.push(info);
@@ -162,43 +166,43 @@ export class DeploymentManager {
    * Generate a deployment plan showing what changes will be made.
    * Similar to 'terraform plan'.
    */
-  plan(name: string): Record<string, unknown> {
+  async plan(name: string): Promise<Record<string, unknown>> {
     const deployer = this.getDeployer(name);
-    return deployer.plan();
+    return await deployer.plan();
   }
 
   /**
    * Apply a deployment to its target platform.
    */
-  apply(
+  async apply(
     name: string,
     opts: { dryRun?: boolean; force?: boolean } = {}
-  ): Record<string, unknown> {
+  ): Promise<Record<string, unknown>> {
     const deployment = this.getDeployment(name);
     console.log(
       `Applying deployment '${name}' (type: ${deployment.type})`
     );
     const deployer = this.getDeployer(name);
-    return deployer.apply({ dryRun: opts.dryRun });
+    return await deployer.apply({ dryRun: opts.dryRun });
   }
 
   /**
    * Get current status of a deployment.
    */
-  status(name: string): Record<string, unknown> {
+  async status(name: string): Promise<Record<string, unknown>> {
     const deployer = this.getDeployer(name);
-    return deployer.status();
+    return await deployer.status();
   }
 
   /**
    * Get logs from a deployment.
    */
-  logs(
+  async logs(
     name: string,
     opts: { service?: string; follow?: boolean; tail?: number } = {}
-  ): string {
+  ): Promise<string> {
     const deployer = this.getDeployer(name);
-    return deployer.logs({
+    return await deployer.logs({
       service: opts.service,
       follow: opts.follow,
       tail: opts.tail ?? 100,
@@ -208,16 +212,16 @@ export class DeploymentManager {
   /**
    * Destroy a deployment (stop and remove all resources).
    */
-  destroy(
+  async destroy(
     name: string,
     _opts: { force?: boolean } = {}
-  ): Record<string, unknown> {
+  ): Promise<Record<string, unknown>> {
     const deployment = this.getDeployment(name);
     console.warn(
       `Destroying deployment '${name}' (type: ${deployment.type})`
     );
     const deployer = this.getDeployer(name);
-    return deployer.destroy();
+    return await deployer.destroy();
   }
 
   /**
@@ -238,38 +242,39 @@ export class DeploymentManager {
       try {
         const deployment = this.getDeployment(deploymentName);
 
-        if (
-          deployment.type === "docker" ||
-          deployment.type === "ssh" ||
-          deployment.type === "local"
-        ) {
+        if (deployment.type === "docker") {
           // Validate SSH config if applicable
-          const sshConfig = (deployment as { ssh?: SSHConfig }).ssh;
+          const d = deployment as DockerDeployment;
+          const sshConfig = (d as { ssh?: SSHConfig }).ssh;
           if (sshConfig && !sshConfig.key_path && !sshConfig.password) {
             results.warnings.push(
               `${deploymentName}: No SSH authentication method configured`
             );
           }
 
-          if (deployment.type === "docker") {
-            const d = deployment as DockerDeployment;
-            if (!d.container) {
-              results.errors.push(
-                `${deploymentName}: No container configured`
-              );
-              results.valid = false;
-            }
-          } else if (
-            deployment.type === "ssh" ||
-            deployment.type === "local"
-          ) {
-            const d = deployment as SSHDeployment | LocalDeployment;
-            if (!d.port) {
-              results.errors.push(
-                `${deploymentName}: No port configured`
-              );
-              results.valid = false;
-            }
+          if (!d.container) {
+            results.errors.push(
+              `${deploymentName}: No container configured`
+            );
+            results.valid = false;
+          }
+        } else if (deployment.type === "fly") {
+          const d = deployment as FlyDeployment;
+          if (!d.app) {
+            results.errors.push(`${deploymentName}: No app name configured`);
+            results.valid = false;
+          }
+        } else if (deployment.type === "railway") {
+          const d = deployment as RailwayDeployment;
+          if (!d.project || !d.service) {
+            results.errors.push(`${deploymentName}: Project and service are required`);
+            results.valid = false;
+          }
+        } else if (deployment.type === "huggingface") {
+          const d = deployment as HuggingFaceDeployment;
+          if (!d.repo) {
+            results.errors.push(`${deploymentName}: No repo configured`);
+            results.valid = false;
           }
         }
       } catch (e) {
@@ -286,9 +291,9 @@ export class DeploymentManager {
   /**
    * Check if a deployment has changes that need to be applied.
    */
-  hasChanges(name: string): boolean {
+  async hasChanges(name: string): Promise<boolean> {
     try {
-      const planResult = this.plan(name);
+      const planResult = await this.plan(name);
       const changes = planResult["changes"];
       return Array.isArray(changes) && changes.length > 0;
     } catch (e) {

@@ -1,6 +1,6 @@
 import { BaseNode } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -128,11 +128,8 @@ function createLibCompatNode(descriptor: LibCompatDescriptor): NodeClass {
     static readonly title = descriptor.title;
     static readonly description = descriptor.description;
 
-    async process(
-      inputs: Record<string, unknown>,
-      _context?: ProcessingContext
-    ): Promise<Record<string, unknown>> {
-      const props = { ...this.serialize(), ...inputs };
+    async process(): Promise<Record<string, unknown>> {
+      const props = { ...this.serialize() };
       delete (props as Record<string, unknown>).__node_id;
       delete (props as Record<string, unknown>).__node_name;
       const result = await runPythonBridge(descriptor.nodeType, props);

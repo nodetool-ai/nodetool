@@ -12,11 +12,11 @@
 
 import type { ProcessingMessage } from "@nodetool/protocol";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { BaseProvider } from "./providers/base-provider.js";
-import type { Message, ProviderStreamItem } from "./providers/types.js";
+import type { Message, MessageContent, ProviderStreamItem } from "./providers/types.js";
 
 // ---------------------------------------------------------------------------
 // Cache interface
@@ -273,7 +273,14 @@ export class FileStorageAdapter implements StorageAdapter {
   }
 
   async exists(uri: string): Promise<boolean> {
-    return (await this.retrieve(uri)) !== null;
+    const absolutePath = this.resolvePathFromUri(uri);
+    if (!absolutePath) return false;
+    try {
+      await access(absolutePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -773,6 +780,7 @@ export class ProcessingContext {
    */
   emit(msg: ProcessingMessage): void {
     this._messages.push(msg);
+    this._notifyMessage();
     if (msg.type === "node_update" && msg.node_id) {
       this._nodeStatuses.set(msg.node_id, msg);
     }
@@ -805,9 +813,22 @@ export class ProcessingContext {
     return this._messages.shift();
   }
 
+  private _messageResolve: (() => void) | null = null;
+
+  /** Notify that a new message has been pushed. */
+  private _notifyMessage(): void {
+    if (this._messageResolve) {
+      const resolve = this._messageResolve;
+      this._messageResolve = null;
+      resolve();
+    }
+  }
+
   async popMessageAsync(): Promise<ProcessingMessage> {
     while (this._messages.length === 0) {
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise<void>((r) => {
+        this._messageResolve = r;
+      });
     }
     return this._messages.shift() as ProcessingMessage;
   }
@@ -1136,6 +1157,49 @@ export class ProcessingContext {
     });
   }
 
+  /**
+   * Resolve /api/storage/ URIs in message content to data URIs so providers
+   * can fetch them without needing a base URL.
+   */
+  private async resolveMessageMediaUris(messages: Message[]): Promise<Message[]> {
+    if (!this.storage) return messages;
+    const resolved: Message[] = [];
+    for (const msg of messages) {
+      if (!Array.isArray(msg.content)) {
+        resolved.push(msg);
+        continue;
+      }
+      const parts: MessageContent[] = [];
+      for (const part of msg.content) {
+        if (part.type === "image" && part.image.uri && !part.image.uri.startsWith("data:") && !part.image.uri.startsWith("http")) {
+          const bytes = await this.storage.retrieve(part.image.uri);
+          if (bytes) {
+            const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
+            const mime: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
+            const mimeType = mime[ext] ?? part.image.mimeType ?? "image/png";
+            const b64 = Buffer.from(bytes).toString("base64");
+            parts.push({ type: "image", image: { uri: `data:${mimeType};base64,${b64}`, mimeType } });
+            continue;
+          }
+        }
+        if (part.type === "audio" && part.audio.uri && !part.audio.uri.startsWith("data:") && !part.audio.uri.startsWith("http")) {
+          const bytes = await this.storage.retrieve(part.audio.uri);
+          if (bytes) {
+            const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
+            const mime: Record<string, string> = { mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg", m4a: "audio/mp4", flac: "audio/flac" };
+            const mimeType = mime[ext] ?? part.audio.mimeType ?? "audio/mpeg";
+            const b64 = Buffer.from(bytes).toString("base64");
+            parts.push({ type: "audio", audio: { uri: `data:${mimeType};base64,${b64}`, mimeType } });
+            continue;
+          }
+        }
+        parts.push(part);
+      }
+      resolved.push({ ...msg, content: parts });
+    }
+    return resolved;
+  }
+
   private async dispatchCapability(
     provider: BaseProvider,
     req: ProviderPredictionRequest
@@ -1144,9 +1208,10 @@ export class ProcessingContext {
     switch (req.capability) {
       case "generate_message":
         return provider.generateMessageTraced({
-          messages: (params.messages as Message[]) ?? [],
+          messages: await this.resolveMessageMediaUris((params.messages as Message[]) ?? []),
           model: req.model,
           tools: params.tools as Parameters<BaseProvider["generateMessage"]>[0]["tools"],
+          toolChoice: params.tool_choice as string | undefined,
           maxTokens: params.max_tokens as number | undefined,
           responseFormat: params.response_format as Record<string, unknown> | undefined,
           jsonSchema: params.json_schema as Record<string, unknown> | undefined,
@@ -1238,7 +1303,7 @@ export class ProcessingContext {
 
       if (req.capability === "generate_messages") {
         for await (const item of provider.generateMessagesTraced({
-          messages: (params.messages as Message[]) ?? [],
+          messages: await this.resolveMessageMediaUris((params.messages as Message[]) ?? []),
           model: req.model,
           tools: params.tools as Parameters<BaseProvider["generateMessages"]>[0]["tools"],
           maxTokens: params.max_tokens as number | undefined,
@@ -1249,6 +1314,7 @@ export class ProcessingContext {
           presencePenalty: params.presence_penalty as number | undefined,
           frequencyPenalty: params.frequency_penalty as number | undefined,
           audio: params.audio as Record<string, unknown> | undefined,
+          threadId: params.thread_id as string | undefined,
         })) {
           yield item;
         }

@@ -157,26 +157,30 @@ function isToolCall(item: ProviderStreamItem): item is ToolCall {
   return "name" in item && "id" in item && !("type" in item);
 }
 
-/** Resolve a secret: encrypted DB first (user "1"), then env var. */
-async function resolveKey(key: string): Promise<string | undefined> {
-  return (await getSecret(key, "1")) ?? undefined;
+/** Resolve a secret for the authenticated user, then fall back to env vars. */
+async function resolveKey(key: string, userId: string): Promise<string | undefined> {
+  return (await getSecret(key, userId)) ?? undefined;
 }
 
 /**
  * Resolve a provider from the model name. Uses simple prefix matching.
  * If an explicit provider is given in options, returns that instead.
  */
-export async function resolveProvider(model: string, options?: OpenAIApiOptions): Promise<BaseProvider> {
+export async function resolveProvider(
+  model: string,
+  options?: OpenAIApiOptions,
+  userId = "1"
+): Promise<BaseProvider> {
   if (options?.provider) {
     return options.provider;
   }
 
   if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3")) {
-    return new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY") });
+    return new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY", userId) });
   }
 
   if (model.startsWith("claude-")) {
-    return new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY") });
+    return new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY", userId) });
   }
 
   // Default to Ollama
@@ -319,7 +323,7 @@ export function createSSEStream(
 
 async function handleChatCompletions(
   request: Request,
-  _userId: string,
+  userId: string,
   options?: OpenAIApiOptions,
 ): Promise<Response> {
   let body: ChatCompletionRequest;
@@ -331,13 +335,13 @@ async function handleChatCompletions(
 
   const model = body.model || options?.defaultModel || "llama3.2:latest";
   const openaiMessages = body.messages || [];
-  const stream = body.stream !== false; // default to streaming
+  const stream = body.stream === true; // default to non-streaming per OpenAI API spec
   const tools = convertTools(body.tools);
   const messages = convertMessages(openaiMessages);
 
   let provider: BaseProvider;
   try {
-    provider = await resolveProvider(model, options);
+    provider = await resolveProvider(model, options, userId);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return errorResponse(500, `Failed to initialize provider: ${msg}`, "server_error");

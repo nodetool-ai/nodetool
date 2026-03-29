@@ -9,9 +9,9 @@ const MAX_RESULTS_PER_PAGE = 100;
 
 const APIFY_API_BASE = "https://api.apify.com/v2";
 
-function getApifyApiKey(inputs: Record<string, unknown>): string {
+function getApifyApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.APIFY_API_KEY ||
+    secrets.APIFY_API_KEY ||
     process.env.APIFY_API_KEY;
   if (!key) throw new Error("APIFY_API_KEY not configured");
   return key;
@@ -94,28 +94,26 @@ export class ApifyWebScraperNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApifyApiKey(inputs);
-    const startUrls = (inputs.start_urls as string[]) ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApifyApiKey(this._secrets);
+    const startUrls = (this.start_urls as string[]) ?? [];
     if (startUrls.length === 0) throw new Error("start_urls is required");
 
     const pageFunction =
-      String(inputs.page_function ?? "") || DEFAULT_PAGE_FUNCTION;
+      String(this.page_function ?? "") || DEFAULT_PAGE_FUNCTION;
 
     const runInput = {
-      startUrls: startUrls.map((url) => ({ url })),
-      linkSelector: String(inputs.link_selector ?? "a[href]"),
+      startUrls: startUrls.map((url: string) => ({ url })),
+      linkSelector: String(this.link_selector ?? "a[href]"),
       pageFunction,
-      maxPagesPerCrawl: Number(inputs.max_pages ?? 10),
+      maxPagesPerCrawl: Number(this.max_pages ?? 10),
     };
 
     const items = await runActor(
       apiKey,
       "apify/web-scraper",
       runInput,
-      Number(inputs.wait_for_finish ?? 300)
+      Number(this.wait_for_finish ?? 300)
     );
     return { output: items };
   }
@@ -157,23 +155,21 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApifyApiKey(inputs);
-    const queries = (inputs.queries as string[]) ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApifyApiKey(this._secrets);
+    const queries = (this.queries as string[]) ?? [];
     if (queries.length === 0) throw new Error("queries is required");
 
     const resultsPerPage = Math.min(
-      Math.max(MIN_RESULTS_PER_PAGE, Number(inputs.results_per_page ?? 100)),
+      Math.max(MIN_RESULTS_PER_PAGE, Number(this.results_per_page ?? 100)),
       MAX_RESULTS_PER_PAGE
     );
 
     const runInput = {
       queries: queries.join("\n"),
-      countryCode: String(inputs.country_code ?? "us"),
-      languageCode: String(inputs.language_code ?? "en"),
-      maxPagesPerQuery: Number(inputs.max_pages ?? 1),
+      countryCode: String(this.country_code ?? "us"),
+      languageCode: String(this.language_code ?? "en"),
+      maxPagesPerQuery: Number(this.max_pages ?? 1),
       resultsPerPage,
     };
 
@@ -181,7 +177,7 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
       apiKey,
       "apify/google-search-scraper",
       runInput,
-      Number(inputs.wait_for_finish ?? 300)
+      Number(this.wait_for_finish ?? 300)
     );
     return { output: items };
   }
@@ -223,20 +219,18 @@ export class ApifyInstagramScraperNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApifyApiKey(inputs);
-    const usernames = (inputs.usernames as string[]) ?? [];
-    const hashtags = (inputs.hashtags as string[]) ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApifyApiKey(this._secrets);
+    const usernames = (this.usernames as string[]) ?? [];
+    const hashtags = (this.hashtags as string[]) ?? [];
     if (usernames.length === 0 && hashtags.length === 0) {
       throw new Error("Either usernames or hashtags is required");
     }
 
     const runInput: Record<string, unknown> = {
-      resultsLimit: Number(inputs.results_limit ?? 50),
-      scrapeComments: Boolean(inputs.scrape_comments ?? false),
-      scrapeLikes: Boolean(inputs.scrape_likes ?? false),
+      resultsLimit: Number(this.results_limit ?? 50),
+      scrapeComments: Boolean(this.scrape_comments ?? false),
+      scrapeLikes: Boolean(this.scrape_likes ?? false),
     };
 
     if (usernames.length > 0) runInput.usernames = usernames;
@@ -246,7 +240,7 @@ export class ApifyInstagramScraperNode extends BaseNode {
       apiKey,
       "apify/instagram-scraper",
       runInput,
-      Number(inputs.wait_for_finish ?? 600)
+      Number(this.wait_for_finish ?? 600)
     );
     return { output: items };
   }
@@ -288,20 +282,18 @@ export class ApifyAmazonScraperNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApifyApiKey(inputs);
-    const searchQueries = (inputs.search_queries as string[]) ?? [];
-    const productUrls = (inputs.product_urls as string[]) ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApifyApiKey(this._secrets);
+    const searchQueries = (this.search_queries as string[]) ?? [];
+    const productUrls = (this.product_urls as string[]) ?? [];
     if (searchQueries.length === 0 && productUrls.length === 0) {
       throw new Error("Either search_queries or product_urls is required");
     }
 
     const runInput: Record<string, unknown> = {
-      countryCode: String(inputs.country_code ?? "US"),
-      maxItems: Number(inputs.max_items ?? 20),
-      scrapeReviews: Boolean(inputs.scrape_reviews ?? false),
+      countryCode: String(this.country_code ?? "US"),
+      maxItems: Number(this.max_items ?? 20),
+      scrapeReviews: Boolean(this.scrape_reviews ?? false),
     };
 
     if (searchQueries.length > 0) runInput.searchQueries = searchQueries;
@@ -311,7 +303,7 @@ export class ApifyAmazonScraperNode extends BaseNode {
       apiKey,
       "apify/amazon-product-scraper",
       runInput,
-      Number(inputs.wait_for_finish ?? 600)
+      Number(this.wait_for_finish ?? 600)
     );
     return { output: items };
   }
@@ -353,13 +345,11 @@ export class ApifyYouTubeScraperNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApifyApiKey(inputs);
-    const searchQueries = (inputs.search_queries as string[]) ?? [];
-    const videoUrls = (inputs.video_urls as string[]) ?? [];
-    const channelUrls = (inputs.channel_urls as string[]) ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApifyApiKey(this._secrets);
+    const searchQueries = (this.search_queries as string[]) ?? [];
+    const videoUrls = (this.video_urls as string[]) ?? [];
+    const channelUrls = (this.channel_urls as string[]) ?? [];
     if (
       searchQueries.length === 0 &&
       videoUrls.length === 0 &&
@@ -385,15 +375,15 @@ export class ApifyYouTubeScraperNode extends BaseNode {
 
     const runInput = {
       startUrls,
-      maxResults: Number(inputs.max_results ?? 50),
-      scrapeComments: Boolean(inputs.scrape_comments ?? false),
+      maxResults: Number(this.max_results ?? 50),
+      scrapeComments: Boolean(this.scrape_comments ?? false),
     };
 
     const items = await runActor(
       apiKey,
       "apify/youtube-scraper",
       runInput,
-      Number(inputs.wait_for_finish ?? 600)
+      Number(this.wait_for_finish ?? 600)
     );
     return { output: items };
   }
@@ -432,13 +422,11 @@ export class ApifyTwitterScraperNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApifyApiKey(inputs);
-    const searchTerms = (inputs.search_terms as string[]) ?? [];
-    const usernames = (inputs.usernames as string[]) ?? [];
-    const tweetUrls = (inputs.tweet_urls as string[]) ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApifyApiKey(this._secrets);
+    const searchTerms = (this.search_terms as string[]) ?? [];
+    const usernames = (this.usernames as string[]) ?? [];
+    const tweetUrls = (this.tweet_urls as string[]) ?? [];
     if (
       searchTerms.length === 0 &&
       usernames.length === 0 &&
@@ -462,14 +450,14 @@ export class ApifyTwitterScraperNode extends BaseNode {
 
     const runInput = {
       startUrls,
-      maxItems: Number(inputs.max_tweets ?? 100),
+      maxItems: Number(this.max_tweets ?? 100),
     };
 
     const items = await runActor(
       apiKey,
       "apify/twitter-scraper",
       runInput,
-      Number(inputs.wait_for_finish ?? 600)
+      Number(this.wait_for_finish ?? 600)
     );
     return { output: items };
   }
@@ -508,13 +496,11 @@ export class ApifyLinkedInScraperNode extends BaseNode {
 
 
 
-  async process(
-    inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const apiKey = getApifyApiKey(inputs);
-    const profileUrls = (inputs.profile_urls as string[]) ?? [];
-    const companyUrls = (inputs.company_urls as string[]) ?? [];
-    const jobSearchUrls = (inputs.job_search_urls as string[]) ?? [];
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApifyApiKey(this._secrets);
+    const profileUrls = (this.profile_urls as string[]) ?? [];
+    const companyUrls = (this.company_urls as string[]) ?? [];
+    const jobSearchUrls = (this.job_search_urls as string[]) ?? [];
     if (
       profileUrls.length === 0 &&
       companyUrls.length === 0 &&
@@ -528,15 +514,15 @@ export class ApifyLinkedInScraperNode extends BaseNode {
     const allUrls = [...profileUrls, ...companyUrls, ...jobSearchUrls];
 
     const runInput = {
-      startUrls: allUrls.map((url) => ({ url })),
-      maxResults: Number(inputs.max_results ?? 50),
+      startUrls: allUrls.map((url: string) => ({ url })),
+      maxResults: Number(this.max_results ?? 50),
     };
 
     const items = await runActor(
       apiKey,
       "apify/linkedin-profile-scraper",
       runInput,
-      Number(inputs.wait_for_finish ?? 600)
+      Number(this.wait_for_finish ?? 600)
     );
     return { output: items };
   }

@@ -62,6 +62,18 @@ function pruneExpiredStates(): void {
   }
 }
 
+// ── HTML Sanitization ────────────────────────────────────────────────
+
+/** Escape HTML special characters to prevent XSS. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 // ── Response Helpers ─────────────────────────────────────────────────
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -105,14 +117,15 @@ function oauthHtmlResponse(opts: {
     heading = "Authentication Successful";
     message = "Your account has been connected successfully.";
     details = opts.username
-      ? `<strong>Username:</strong> ${opts.username}`
+      ? `<strong>Username:</strong> ${escapeHtml(opts.username)}`
       : "";
   } else {
     heading = "Authentication Failed";
-    message =
-      opts.errorDescription || "An error occurred during authentication.";
+    message = escapeHtml(
+      opts.errorDescription || "An error occurred during authentication."
+    );
     details = opts.error
-      ? `<strong>Error:</strong> ${opts.error}`
+      ? `<strong>Error:</strong> ${escapeHtml(opts.error)}`
       : "";
   }
 
@@ -125,7 +138,7 @@ function oauthHtmlResponse(opts: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${opts.title}</title>
+  <title>${escapeHtml(opts.title)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }

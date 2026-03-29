@@ -56,10 +56,14 @@ export class NodeRegistry {
   register(type: string, node: unknown) { this.nodes.set(type, node); }
 }
 
-// base-nodes / fal-nodes / replicate-nodes
+// base-nodes / fal-nodes / replicate-nodes / elevenlabs-nodes
 export const registerBaseNodes = (_reg?: unknown) => {};
+export const registerElevenLabsNodes = (_reg?: unknown) => {};
 export const registerFalNodes  = (_reg?: unknown) => {};
 export const registerReplicateNodes = (_reg?: unknown) => {};
+
+// dsl
+export const workflowToDsl = (_graph?: unknown, _opts?: unknown) => "// generated DSL";
 
 // chat
 export type Message = { role: string; content: string };

@@ -23,3 +23,7 @@
 ## 2024-04-10 - Adding role="status" to Empty States
 **Learning:** For dynamically rendered empty state components like `EmptyState`, screen readers may not announce the content when it appears, leaving users unaware of the state change.
 **Action:** Always add `role="status"` and `aria-live="polite"` to empty states to ensure screen readers announce them appropriately.
+
+## 2026-03-27 - Adding ARIA labels to ToolbarIconButton and StateIconButton with complex Tooltips
+**Learning:** `StateIconButton` and `ToolbarIconButton` try to automatically extract an `aria-label` from their `tooltip` prop (`typeof tooltip === 'string' ? tooltip : undefined`). However, when the `tooltip` prop receives a ReactNode (like a formatted complex tooltip with a title and shortcut), the `aria-label` becomes `undefined`, leaving the icon button inaccessible to screen readers.
+**Action:** When using `StateIconButton` or `ToolbarIconButton` with a ReactNode tooltip, always explicitly provide the `ariaLabel` prop with a descriptive string.

@@ -552,31 +552,10 @@ async function runMicromambaInstall(
 }
 
 /**
- * Check and update conda packages if needed
- * This is the main entry point for the package check on startup
+ * Check and update conda packages if needed.
+ * Previously compared against a lock file, now a no-op since packages are
+ * managed on-demand through the package manager.
  */
 export async function checkAndUpdateCondaPackages(): Promise<void> {
-  try {
-    logMessage("=== Starting Conda Package Check ===");
-
-    const result = await checkCondaPackages();
-
-    if (result.needsUpdate) {
-      logMessage(
-        `Found ${result.missingPackages.length} missing and ${result.outdatedPackages.length} outdated packages`
-      );
-      await updateCondaPackagesFromLockFile();
-    }
-
-    logMessage("=== Conda Package Check Complete ===");
-  } catch (error: any) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    
-    logMessage(`Conda package check failed: ${errorMessage}`, "error");
-    if (errorStack) {
-      logMessage(`Stack trace: ${errorStack}`, "error");
-    }
-    // Don't throw - allow startup to continue even if package check fails
-  }
+  logMessage("=== Conda Package Check skipped (managed by package manager) ===");
 }

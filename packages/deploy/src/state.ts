@@ -20,6 +20,9 @@ import {
   SelfHostedStateSchema,
   RunPodStateSchema,
   GCPStateSchema,
+  FlyStateSchema,
+  RailwayStateSchema,
+  HuggingFaceStateSchema,
 } from "./deployment-config.js";
 
 // ============================================================================
@@ -341,9 +344,13 @@ function revalidateState(
 ): AnyDeployment["state"] {
   switch (deployment.type) {
     case "docker":
-    case "ssh":
-    case "local":
       return SelfHostedStateSchema.parse(stateDict);
+    case "fly":
+      return FlyStateSchema.parse(stateDict);
+    case "railway":
+      return RailwayStateSchema.parse(stateDict);
+    case "huggingface":
+      return HuggingFaceStateSchema.parse(stateDict);
     case "runpod":
       return RunPodStateSchema.parse(stateDict);
     case "gcp":

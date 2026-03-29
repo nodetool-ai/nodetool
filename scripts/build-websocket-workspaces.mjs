@@ -21,6 +21,9 @@ const workspaces = [
   "@nodetool/base-nodes",
   "@nodetool/models",
   "@nodetool/agents",
+  "@nodetool/huggingface",
+  "@nodetool/elevenlabs-nodes",
+  "@nodetool/dsl",
   "@nodetool/websocket",
 ];
 

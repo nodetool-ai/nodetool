@@ -19,11 +19,10 @@ export class GetSecretLibNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const name = String(inputs.name ?? this.name ?? "");
-    const defaultValue = String(inputs.default ?? this.default ?? "");
+    const name = String(this.name ?? "");
+    const defaultValue = String(this.default ?? "");
     if (!name) {
       return { output: defaultValue };
     }

@@ -9,15 +9,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type {
   DockerDeployment,
-  SSHDeployment,
-  LocalDeployment,
   RunPodDeployment,
   GCPDeployment,
 } from "./deployment-config.js";
 import {
   DockerDeploymentSchema,
-  SSHDeploymentSchema,
-  LocalDeploymentSchema,
   RunPodDeploymentSchema,
   GCPDeploymentSchema,
 } from "./deployment-config.js";
@@ -109,113 +105,6 @@ export function configureDocker(
       gpu: params.gpu,
       workflows: params.workflows,
     },
-    paths: {
-      workspace:
-        params.workspacePath ?? join(homedir(), ".nodetool-workspace"),
-      hf_cache: params.hfCachePath ?? detectHfCacheDefault(),
-    },
-  });
-}
-
-// ============================================================================
-// SSH configuration
-// ============================================================================
-
-export interface SSHConfigParams {
-  /** Remote host address. */
-  host: string;
-  /** SSH username. */
-  sshUser: string;
-  /** SSH key path (default: ~/.ssh/id_rsa). */
-  sshKeyPath?: string;
-  /** Service port. */
-  port?: number;
-  /** Systemd service name. */
-  serviceName?: string;
-  /** GPU device(s). */
-  gpu?: string;
-  /** Workflow IDs. */
-  workflows?: string[];
-  /** Workspace folder path. */
-  workspacePath?: string;
-  /** HuggingFace cache folder path. */
-  hfCachePath?: string;
-}
-
-/**
- * Configure an SSH deployment from typed parameters.
- *
- * @param name - Deployment name.
- * @param params - Configuration parameters.
- * @returns A fully validated SSHDeployment object.
- */
-export function configureSSH(
-  _name: string,
-  params: SSHConfigParams
-): SSHDeployment {
-  const port = params.port ?? 8000;
-
-  return SSHDeploymentSchema.parse({
-    type: "ssh",
-    host: params.host,
-    ssh: {
-      user: params.sshUser,
-      key_path: params.sshKeyPath ?? "~/.ssh/id_rsa",
-      port: 22,
-    },
-    port,
-    service_name: params.serviceName ?? `nodetool-${port}`,
-    gpu: params.gpu,
-    workflows: params.workflows,
-    paths: {
-      workspace:
-        params.workspacePath ?? join(homedir(), ".nodetool-workspace"),
-      hf_cache: params.hfCachePath ?? detectHfCacheDefault(),
-    },
-  });
-}
-
-// ============================================================================
-// Local configuration
-// ============================================================================
-
-export interface LocalConfigParams {
-  /** Host address (default: "localhost"). */
-  host?: string;
-  /** Service port. */
-  port?: number;
-  /** Systemd service name. */
-  serviceName?: string;
-  /** GPU device(s). */
-  gpu?: string;
-  /** Workflow IDs. */
-  workflows?: string[];
-  /** Workspace folder path. */
-  workspacePath?: string;
-  /** HuggingFace cache folder path. */
-  hfCachePath?: string;
-}
-
-/**
- * Configure a Local deployment from typed parameters.
- *
- * @param name - Deployment name.
- * @param params - Configuration parameters.
- * @returns A fully validated LocalDeployment object.
- */
-export function configureLocal(
-  _name: string,
-  params: LocalConfigParams = {}
-): LocalDeployment {
-  const port = params.port ?? 8000;
-
-  return LocalDeploymentSchema.parse({
-    type: "local",
-    host: params.host ?? "localhost",
-    port,
-    service_name: params.serviceName ?? `nodetool-${port}`,
-    gpu: params.gpu,
-    workflows: params.workflows,
     paths: {
       workspace:
         params.workspacePath ?? join(homedir(), ".nodetool-workspace"),

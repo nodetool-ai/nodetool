@@ -3,7 +3,7 @@
  */
 
 // Types
-export type { Step, Task } from "./types.js";
+export type { Step, Task, AgentMode, SubAgentConfig } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -30,6 +30,7 @@ export {
   HttpRequestTool,
 } from "./tools/http-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
+export { MiniJSAgentTool } from "./tools/js-code-tool.js";
 export {
   GoogleSearchTool,
   GoogleNewsTool,
@@ -116,6 +117,10 @@ export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
 
+// Shared JS sandbox engine
+export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
+export type { RunSandboxOptions, RunSandboxResult } from "./js-sandbox.js";
+
 // Utilities
 export { extractJSON } from "./utils/json-parser.js";
 export { removeBase64Images } from "./utils/remove-base64-images.js";
@@ -136,9 +141,53 @@ export { BaseAgent } from "./base-agent.js";
 export { SimpleAgent } from "./simple-agent.js";
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
 export type { AgentSkill, AgentOptions } from "./agent.js";
+export { MultiModeAgent } from "./multi-mode-agent.js";
+export type { MultiModeAgentOptions } from "./multi-mode-agent.js";
+export { SubAgentPlanner } from "./sub-agent-planner.js";
+export type { SubAgentPlannerOptions } from "./sub-agent-planner.js";
 
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";
 export type { TaskPlannerOptions } from "./task-planner.js";
 export { TaskExecutor } from "./task-executor.js";
 export type { TaskExecutorOptions } from "./task-executor.js";
+
+// Multi-agent team system
+export {
+  // In-memory implementations
+  MessageBus,
+  TaskBoard,
+  // Edge-native implementations
+  EdgeMessageBus,
+  EdgeTaskBoard,
+  // DB-backed implementation
+  DbTaskBoard,
+  // Orchestration
+  TeamExecutor,
+  // Tools
+  createTeamTools,
+  SendMessageTool,
+  BroadcastTool,
+  CheckMessagesTool,
+  CreateTaskTool,
+  ListTasksTool,
+  ClaimTaskTool,
+  CompleteTaskTool,
+  FailTaskTool,
+  DecomposeTaskTool,
+} from "./team/index.js";
+export type {
+  AgentIdentity,
+  AgentMessage,
+  MessageType,
+  BoardTask,
+  TaskStatus,
+  TeamEvent,
+  TeamConfig,
+  TeamStrategy,
+  IMessageBus,
+  ITaskBoard,
+  TeamExecutorOptions,
+  MessageHandler,
+  BoardEventHandler,
+} from "./team/index.js";

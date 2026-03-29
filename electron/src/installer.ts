@@ -12,6 +12,7 @@ import path from "path";
 import {
   readSettings,
   updateSettings,
+  updateSetting,
   getModelServiceStartupDefaults,
 } from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
@@ -19,7 +20,7 @@ import os from "os";
 import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
-import { getCondaLockFilePath } from "./config";
+// Lock file no longer used — packages are specified directly via runtime configuration
 import { InstallToLocationData, IpcChannels, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
@@ -579,20 +580,24 @@ async function executeMicromambaCommand(
   });
 }
 
+/**
+ * Minimal bootstrap packages for creating an empty conda environment.
+ * Individual runtimes are installed on-demand via installCondaPackageBySpec().
+ */
+const BOOTSTRAP_CONDA_PACKAGES = [
+  "ca-certificates",
+];
+
 async function createEnvironmentWithMicromamba(
   micromambaExecutable: string,
-  lockFilePath: string,
-  destinationPrefix: string
+  destinationPrefix: string,
+  packages: string[],
 ): Promise<void> {
   if (!micromambaExecutable) {
     throw new Error("micromamba executable path is empty");
   }
 
-  emitBootMessage("Creating Python environment with micromamba...");
-
-  if (!(await fileExists(lockFilePath))) {
-    throw new Error(`Environment lock file not found at: ${lockFilePath}`);
-  }
+  emitBootMessage("Creating conda environment with micromamba...");
 
   if (await fileExists(destinationPrefix)) {
     logMessage(`Removing existing environment at ${destinationPrefix}`);
@@ -606,11 +611,13 @@ async function createEnvironmentWithMicromamba(
     "--yes",
     "--prefix",
     destinationPrefix,
-    "--file",
-    lockFilePath,
+    ...packages,
     "--override-channels",
     "--strict-channel-priority",
   ];
+  for (const channel of CONDA_CHANNELS) {
+    args.push("--channel", channel);
+  }
 
   await runMicromambaCommand(
     micromambaExecutable,
@@ -634,15 +641,12 @@ async function provisionCondaEnvironment(
   emitBootMessage(bootMessage);
   logMessage(`Setting up conda environment at: ${location} (Backend: ${modelBackend})`);
 
-  const lockFilePath = getCondaLockFilePath();
-  logMessage(`Using micromamba lock file at: ${lockFilePath}`);
-
   const micromambaExecutable = await ensureMicromambaAvailable();
 
   await createEnvironmentWithMicromamba(
     micromambaExecutable,
-    lockFilePath,
-    location
+    location,
+    BOOTSTRAP_CONDA_PACKAGES,
   );
 
   const condaEnvPath = location;
@@ -667,23 +671,19 @@ async function provisionCondaEnvironment(
  * Conda Environment Installer Module
  *
  * This module handles the installation of the conda environment for Nodetool.
- * It provisions a Conda environment using micromamba and a checked-in lock file to guarantee
- * reproducible dependency resolution across platforms.
+ * A minimal bootstrap env is created via `ensureCondaEnvironment()`, and
+ * individual runtimes are installed on-demand via `installCondaPackageBySpec()`.
  *
  * Key Features:
- * - Creates the conda environment directly from a micromamba lock manifest
+ * - Creates a minimal conda environment with BOOTSTRAP_CONDA_PACKAGES
  * - Provides interactive installation location selection
  * - Streams micromamba output for visibility into long-running operations
  * - Handles environment initialization and required dependency installation
  *
  * Installation Process:
- * 1. `promptForInstallLocation()` prompts the user for an installation directory
- * 2. `createEnvironmentWithMicromamba()` builds the environment from `environment.lock.yml`
- * 3. `installCondaPackages()` and `ensureLlamaCppInstalled()` ensure native binaries are present
- *
- * Configuration:
- * - Lock manifest path is resolved through getCondaLockFilePath()
- * - Default install location is determined by getDefaultInstallLocation()
+ * 1. `ensureCondaEnvironment()` creates a minimal env if none exists
+ * 2. `installCondaPackageBySpec()` installs runtime-specific packages on demand
+ * 3. `provisionCondaEnvironment()` (legacy) creates env with backend packages
  */
 
 /**
@@ -859,4 +859,95 @@ async function ensureOllamaInstalled(
   }
 }
 
-export { promptForInstallLocation, installCondaEnvironment, ensureOllamaInstalled, ensureLlamaCppInstalled };
+/**
+ * Install arbitrary conda packages into the existing conda environment.
+ * Used by the package manager to install packages like ffmpeg on demand.
+ */
+async function installCondaPackageBySpec(
+  envPrefix: string,
+  packageSpecs: string[],
+  progressLabel?: string,
+): Promise<void> {
+  if (packageSpecs.length === 0) {
+    return;
+  }
+
+  const micromambaExecutable = await ensureMicromambaAvailable();
+
+  const args = [
+    "install",
+    "--yes",
+    "--prefix",
+    envPrefix,
+    ...packageSpecs,
+    "--override-channels",
+    "--strict-channel-priority",
+  ];
+  for (const channel of CONDA_CHANNELS) {
+    args.push("--channel", channel);
+  }
+
+  logMessage(
+    `Installing conda packages (${packageSpecs.join(", ")}) into ${envPrefix}`,
+  );
+
+  await runMicromambaCommand(
+    micromambaExecutable,
+    args,
+    progressLabel ?? `Installing ${packageSpecs.join(", ")}`,
+  );
+}
+
+/**
+ * Set the conda environment install location in settings.
+ */
+function setCondaInstallLocation(location: string): void {
+  updateSetting("CONDA_ENV", location);
+  logMessage(`Conda environment location set to: ${location}`);
+}
+
+/**
+ * Ensure a conda environment exists, creating a minimal one if needed.
+ * If the env doesn't exist yet, the user is prompted for the install folder.
+ * Returns the conda env path.
+ */
+async function ensureCondaEnvironment(
+  installLocation?: string,
+): Promise<string> {
+  const condaEnvPath = installLocation || getCondaEnvPath();
+
+  // Check if env already exists
+  if (await fileExists(path.join(condaEnvPath, "conda-meta"))) {
+    return condaEnvPath;
+  }
+
+  // Env doesn't exist — create a minimal one
+  logMessage(`Conda environment not found, creating at: ${condaEnvPath}`);
+  emitBootMessage("Setting up conda environment...");
+
+  if (installLocation) {
+    setCondaInstallLocation(installLocation);
+  }
+
+  const micromambaExecutable = await ensureMicromambaAvailable();
+  await createEnvironmentWithMicromamba(
+    micromambaExecutable,
+    condaEnvPath,
+    BOOTSTRAP_CONDA_PACKAGES,
+  );
+
+  logMessage("Conda environment created successfully");
+  emitBootMessage("Conda environment is ready");
+  return condaEnvPath;
+}
+
+export {
+  promptForInstallLocation,
+  installCondaEnvironment,
+  provisionCondaEnvironment,
+  ensureCondaEnvironment,
+  ensureOllamaInstalled,
+  ensureLlamaCppInstalled,
+  installCondaPackageBySpec,
+  setCondaInstallLocation,
+};

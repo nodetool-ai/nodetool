@@ -90,8 +90,8 @@ export class LoadDocumentFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const p = String(inputs.path ?? this.path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const p = String(this.path ?? this.path ?? "");
     const full = toFilePath(p);
     const bytes = new Uint8Array(await fs.readFile(full));
     return {
@@ -126,9 +126,9 @@ export class SaveDocumentFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const document = (inputs.document ?? this.document ?? {}) as DocumentRefLike;
-    const p = String(inputs.path ?? this.path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const document = (this.document ?? this.document ?? {}) as DocumentRefLike;
+    const p = String((this as any).path ?? "");
     const full = toFilePath(p);
     await fs.mkdir(path.dirname(full), { recursive: true });
     if (document.data) {
@@ -165,14 +165,14 @@ export class ListDocumentsNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
-    const pattern = String(inputs.pattern ?? this.pattern ?? "*");
-    const recursive = Boolean(inputs.recursive ?? this.recursive ?? false);
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = String(this.folder ?? this.folder ?? ".");
+    const pattern = String(this.pattern ?? this.pattern ?? "*");
+    const recursive = Boolean(this.recursive ?? this.recursive ?? false);
     const allowed = new Set([".txt", ".md", ".markdown", ".json", ".html", ".pdf", ".docx"]);
     const matches = wildcardToRegExp(pattern);
     const visit = async function* (dir: string): AsyncGenerator<string> {
@@ -272,16 +272,16 @@ export class SplitDocumentNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const document = inputs.document ?? this.document;
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const document = this.document ?? this.document;
     const text = await readDocumentText(document);
     const sourceId = documentSourceId(document);
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 100);
+    const chunkSize = Number((this as any).chunk_size ?? 1200);
+    const overlap = Number((this as any).chunk_overlap ?? 100);
     let startIndex = 0;
     for (const chunk of splitByChunk(text, chunkSize, overlap)) {
       const idx = text.indexOf(chunk, startIndex);
@@ -315,17 +315,17 @@ export class SplitHTMLNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const document = inputs.document ?? this.document;
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const document = this.document ?? this.document;
     const html = await readDocumentText(document);
     const sourceId = documentSourceId(document);
     const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 100);
+    const chunkSize = Number((this as any).chunk_size ?? 1200);
+    const overlap = Number((this as any).chunk_overlap ?? 100);
     let startIndex = 0;
     for (const chunk of splitByChunk(text, chunkSize, overlap)) {
       const idx = text.indexOf(chunk, startIndex);
@@ -365,12 +365,12 @@ export class SplitJSONNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const document = inputs.document ?? this.document;
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const document = this.document ?? this.document;
     const raw = await readDocumentText(document);
     const sourceId = documentSourceId(document);
     let rendered: string;
@@ -379,8 +379,8 @@ export class SplitJSONNode extends BaseNode {
     } catch {
       rendered = raw;
     }
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 100);
+    const chunkSize = Number((this as any).chunk_size ?? 1200);
+    const overlap = Number((this as any).chunk_overlap ?? 100);
     let startIndex = 0;
     for (const chunk of splitByChunk(rendered, chunkSize, overlap)) {
       const idx = rendered.indexOf(chunk, startIndex);
@@ -427,18 +427,18 @@ export class SplitRecursivelyNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const document = inputs.document ?? this.document;
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const document = this.document ?? this.document;
     const text = await readDocumentText(document);
     const sourceId = documentSourceId(document);
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 100);
-    const separators = Array.isArray(inputs.separators ?? this.separators)
-      ? ((inputs.separators ?? this.separators) as unknown[]).map((s) => String(s))
+    const chunkSize = Number((this as any).chunk_size ?? (this as any).chunk_size ?? 1200);
+    const overlap = Number((this as any).chunk_overlap ?? (this as any).chunk_overlap ?? 100);
+    const separators = Array.isArray(this.separators ?? this.separators)
+      ? ((this.separators ?? this.separators) as unknown[]).map((s) => String(s))
       : ["\n\n", "\n", "."];
 
     const activeSeparator = separators.find((separator) => separator && text.includes(separator));
@@ -533,17 +533,17 @@ export class SplitMarkdownNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const document = inputs.document ?? this.document;
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const document = this.document ?? this.document;
     const markdown = await readDocumentText(document);
     const sourceId = documentSourceId(document);
-    const stripHeaders = Boolean(inputs.strip_headers ?? this.strip_headers ?? true);
-    const chunkSize = Number(inputs.chunk_size ?? this.chunk_size ?? 1200);
-    const overlap = Number(inputs.chunk_overlap ?? this.chunk_overlap ?? 30);
+    const stripHeaders = Boolean(this.strip_headers ?? this.strip_headers ?? true);
+    const chunkSize = Number((this as any).chunk_size ?? (this as any).chunk_size ?? 1200);
+    const overlap = Number((this as any).chunk_overlap ?? (this as any).chunk_overlap ?? 30);
 
     const sections: string[] = [];
     let current: string[] = [];

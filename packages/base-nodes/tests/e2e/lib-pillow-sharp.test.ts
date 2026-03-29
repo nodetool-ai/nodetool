@@ -21,10 +21,12 @@ describe("native lib.pillow via sharp", () => {
     const blurNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType === "lib.pillow.filter.Blur");
     if (!bgNodeClass || !blurNodeClass) throw new Error("missing pillow node classes");
     const bg = new bgNodeClass();
-    const outBg = await bg.process({ width: 64, height: 64, color: "#112233" });
+    bg.assign({ width: 64, height: 64, color: "#112233" });
+    const outBg = await bg.process();
 
     const blur = new blurNodeClass();
-    const outBlur = await blur.process({ image: outBg.output, sigma: 1.0 });
+    blur.assign({ image: outBg.output, sigma: 1.0 });
+    const outBlur = await blur.process();
 
     expect(typeof (outBg.output as { data: string }).data).toBe("string");
     expect(typeof (outBlur.output as { data: string }).data).toBe("string");
@@ -37,11 +39,14 @@ describe("native lib.pillow via sharp", () => {
     if (!bgNodeClass || !blendNodeClass) throw new Error("missing pillow node classes");
 
     const bg = new bgNodeClass();
-    const imgA = await bg.process({ width: 32, height: 32, color: "#ff0000" });
-    const imgB = await bg.process({ width: 32, height: 32, color: "#00ff00" });
+    bg.assign({ width: 32, height: 32, color: "#ff0000" });
+    const imgA = await bg.process();
+    bg.assign({ width: 32, height: 32, color: "#00ff00" });
+    const imgB = await bg.process();
 
     const blend = new blendNodeClass();
-    const out = await blend.process({ image: imgA.output, image2: imgB.output, alpha: 0.5 });
+    blend.assign({ image: imgA.output, image2: imgB.output, alpha: 0.5 });
+    const out = await blend.process();
     expect(typeof (out.output as { data: string }).data).toBe("string");
   });
 });

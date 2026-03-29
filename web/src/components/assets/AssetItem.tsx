@@ -18,6 +18,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 const styles = (theme: Theme) =>
   css({
@@ -364,7 +365,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           />
         </div>
       )}
-      <div className="asset">
+      <div className={`asset ${isImage ? "alpha-surface" : ""}`}>
         {!asset.get_url && <div className="asset-missing" />}
         {isImage && (
           <>

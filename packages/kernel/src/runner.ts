@@ -397,7 +397,9 @@ export class WorkflowRunner {
 
     for (const [key, count] of handleEdgeCounts) {
       if (count > 1) {
-        const [nodeId, handle] = key.split(":");
+        const sepIdx = key.lastIndexOf(":");
+        const nodeId = key.substring(0, sepIdx);
+        const handle = key.substring(sepIdx + 1);
 
         // Look up the target node to check its property type
         const node = this._graph.findNode(nodeId);
@@ -549,6 +551,15 @@ export class WorkflowRunner {
           // After actor completes, send EOS to all downstream inboxes
           await this._sendEOS(node.id);
 
+          // Reject any pending sendControlEvent promise if the actor errored
+          if (result.error) {
+            const pending = this._pendingControlResponses.get(node.id);
+            if (pending) {
+              this._pendingControlResponses.delete(node.id);
+              pending.reject(new Error(result.error));
+            }
+          }
+
           // If this is an output node, collect the result
           if (this._isOutputNode(node)) {
             const name = node.name ?? node.id;
@@ -569,10 +580,11 @@ export class WorkflowRunner {
     await Promise.all(actorPromises);
 
     // Check for in-flight messages after all actors complete (Python parity: _check_pending_inbox_work)
-    const COMPLETION_CHECK_DELAY_MS = 10;
     const pendingNodes = this._checkPendingInboxWork();
     if (pendingNodes.length > 0) {
-      await new Promise<void>(r => setTimeout(r, COMPLETION_CHECK_DELAY_MS));
+      log.warn("Pending inbox work detected after all actors completed — possible data loss", {
+        pendingNodes,
+      });
     }
   }
 

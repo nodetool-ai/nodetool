@@ -8,7 +8,7 @@ import { useCallback } from "react";
  * @example
  * const { secrets, isApiKeySet } = useSecrets();
  * if (isApiKeySet("openai_api_key")) {
- *   console.log("OpenAI API key is configured");
+ *   console.log("OpenAI API key exists for this user");
  * }
  */
 export const useSecrets = () => {
@@ -22,10 +22,14 @@ export const useSecrets = () => {
     staleTime: 30000 // Consider data fresh for 30 seconds
   });
 
+  /**
+   * Returns true if the user has this key in their secrets list (regardless of
+   * whether it has been configured with a value). Use the `is_configured` field
+   * on the returned secret object if you need to check for an actual value.
+   */
   const isApiKeySet = useCallback(
     (key: string) => {
-      const secret = secrets.find((s) => s.key === key);
-      return secret !== undefined && secret.is_configured === true;
+      return secrets.some((s) => s.key === key);
     },
     [secrets]
   );

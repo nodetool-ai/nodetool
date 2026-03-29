@@ -10,7 +10,9 @@ import type {
   ProviderStreamItem,
   ToolCall,
 } from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk, ProcessingMessage } from "@nodetool/protocol";
+import { MultiModeAgent, Tool as AgentTool } from "@nodetool/agents";
+
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -113,10 +115,9 @@ function getCategories(value: unknown): string[] {
 }
 
 function getModelConfig(
-  inputs: Record<string, unknown>,
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
-  const model = ((inputs.model ?? props.model ?? {}) as LanguageModelLike) ?? {};
+  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : "",
@@ -198,6 +199,14 @@ export async function* streamProviderMessages(
   for (const toolCall of result.toolCalls ?? []) {
     yield toolCall;
   }
+}
+
+/**
+ * Check whether a provider supports native agentic tool execution (MCP).
+ * When true, the provider handles tool calls internally via onToolCall callback.
+ */
+function isAgenticProvider(provider: BaseProvider): boolean {
+  return (provider as unknown as Record<string, unknown>).provider === "claude_agent";
 }
 
 function parseCategory(raw: string, categories: string[]): string {
@@ -596,6 +605,29 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
   return tools;
 }
 
+/**
+ * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool/agents).
+ * This bridges the tool systems so MultiModeAgent can use tools defined in the node graph.
+ */
+class ToolLikeAdapter extends AgentTool {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: Record<string, unknown>;
+  private readonly _process: (context: ProcessingContext, params: Record<string, unknown>) => Promise<unknown>;
+
+  constructor(toolLike: ToolLike) {
+    super();
+    this.name = toolLike.name;
+    this.description = toolLike.description ?? "";
+    this.inputSchema = toolLike.inputSchema ?? { type: "object", properties: {} };
+    this._process = toolLike.process ?? (async () => ({ error: "Tool has no process implementation" }));
+  }
+
+  async process(context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
+    return this._process(context, params);
+  }
+}
+
 export interface AgentLoopOptions {
   context: ProcessingContext;
   providerId: string;
@@ -606,6 +638,7 @@ export interface AgentLoopOptions {
   contentParts?: MessageContent[];
   maxTokens?: number;
   maxIterations?: number;
+  threadId?: string;
 }
 
 export interface AgentLoopResult {
@@ -641,7 +674,50 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   ];
 
   const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+  const provider = await context.getProvider(providerId);
   let lastAssistantText = "";
+
+  // --- Agentic provider fast-path ---
+  if (isAgenticProvider(provider) && tools.length > 0) {
+    const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+      const tool = tools.find((t) => t.name === name);
+      if (!tool || typeof tool.process !== "function") {
+        return JSON.stringify({ error: `Unknown tool: ${name}` });
+      }
+      try {
+        const result = await tool.process(context, args);
+        return typeof result === "string" ? result : JSON.stringify(serializeToolResult(result));
+      } catch (e) {
+        return JSON.stringify({ error: String(e) });
+      }
+    };
+
+    let assistantText = "";
+    for await (const item of streamProviderMessages(provider, {
+      messages,
+      model: modelId,
+      tools: providerTools,
+      maxTokens,
+      threadId: options.threadId,
+      onToolCall,
+    })) {
+      if (isChunkItem(item) && !item.thinking) {
+        assistantText += item.content ?? "";
+      }
+    }
+
+    if (assistantText) {
+      lastAssistantText = assistantText;
+      messages.push({
+        role: "assistant",
+        content: [{ type: "text", text: assistantText }],
+      });
+    }
+
+    return { text: lastAssistantText, messages };
+  }
+
+  // --- Standard multi-iteration loop ---
   let iteration = 0;
   let shouldContinue = true;
 
@@ -649,7 +725,6 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     shouldContinue = false;
     iteration++;
 
-    const provider = await context.getProvider(providerId);
     const assistantToolCalls: ToolCall[] = [];
     let assistantText = "";
 
@@ -658,6 +733,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
       model: modelId,
       tools: providerTools,
       maxTokens,
+      threadId: options.threadId,
     })) {
       if (isChunkItem(item)) {
         if (!item.thinking) {
@@ -934,12 +1010,11 @@ export class SummarizerNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const text = asText(inputs.text ?? this.text ?? "");
-    const maxSentences = Number(inputs.max_sentences ?? this.max_sentences ?? 3);
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const text = asText(this.text ?? this.text ?? "");
+    const maxSentences = Number((this as any).max_sentences ?? 3);
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
       const result = await generateProviderMessage(provider, {
@@ -977,13 +1052,13 @@ export class CreateThreadNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const requested = String(inputs.thread_id ?? this.thread_id ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const requested = String(this.thread_id ?? this.thread_id ?? "").trim();
     if (requested) {
       if (!THREAD_STORE.has(requested)) {
         THREAD_STORE.set(requested, {
           id: requested,
-          title: String(inputs.title ?? this.title ?? "Agent Conversation"),
+          title: String(this.title ?? this.title ?? "Agent Conversation"),
           messages: [],
         });
       }
@@ -993,7 +1068,7 @@ export class CreateThreadNode extends BaseNode {
     const id = makeThreadId();
     THREAD_STORE.set(id, {
       id,
-      title: String(inputs.title ?? this.title ?? "Agent Conversation"),
+      title: String(this.title ?? this.title ?? "Agent Conversation"),
       messages: [],
     });
     return { thread_id: id };
@@ -1151,17 +1226,20 @@ export class ExtractorNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const text = asText(inputs.text ?? this.text ?? "");
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const text = asText(this.text ?? this.text ?? "");
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
+      const dynamicSchema = getStructuredOutputSchema(this);
+      const responseFormat = dynamicSchema
+        ? { type: "json_schema" as const, json_schema: { name: "extraction_result", schema: dynamicSchema, strict: true } }
+        : { type: "json_object" as const };
       const raw = await generateProviderMessage(provider, {
         model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 1024),
-        responseFormat: { type: "json_object" },
+        maxTokens: Number((this as any).max_tokens ?? 1024),
+        responseFormat,
         messages: [
           { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
           { role: "user", content: text },
@@ -1333,21 +1411,20 @@ export class ClassifierNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const text = asText(inputs.text ?? this.text ?? "");
-    const categories = getCategories(inputs.categories ?? this.categories);
+    const text = asText(this.text ?? this.text ?? "");
+    const categories = getCategories(this.categories ?? this.categories);
     if (categories.length < 2) {
       throw new Error("At least 2 categories are required");
     }
 
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
       const raw = await generateProviderMessage(provider, {
         model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 256),
+        maxTokens: Number((this as any).max_tokens ?? 256),
         responseFormat: {
           type: "json_schema",
           json_schema: {
@@ -1881,6 +1958,9 @@ export class AgentNode extends BaseNode {
 }, title: "Model", description: "Model to use for execution" })
   declare model: any;
 
+  @prop({ type: "str", default: "loop", title: "Mode", description: "Agent execution mode: 'loop' for simple tool calling, 'plan' for automatic task planning, 'multi-agent' for parallel sub-agents" })
+  declare mode: any;
+
   @prop({ type: "str", default: "You are a friendly assistant", title: "System", description: "The system prompt for the LLM" })
   declare system: any;
 
@@ -1917,14 +1997,15 @@ export class AgentNode extends BaseNode {
   @prop({ type: "int", default: 8192, title: "Max Tokens", min: 1, max: 100000 })
   declare max_tokens: any;
 
+  @prop({ type: "int", default: 3, title: "Num Agents", description: "Number of sub-agents to auto-specialize in multi-agent mode", min: 2, max: 10 })
+  declare num_agents: any;
+
+  @prop({ type: "str", default: "coordinator", title: "Team Strategy", description: "Team strategy for multi-agent mode: 'coordinator', 'autonomous', or 'hybrid'" })
+  declare team_strategy: any;
 
 
-
-  async *genProcess(
-    inputs: Record<string, unknown>,
-    context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const { providerId, modelId } = getModelConfig(this.serialize());
     log.info("AgentNode starting", {
       nodeId: this.__node_id ?? null,
       providerId,
@@ -1932,14 +2013,14 @@ export class AgentNode extends BaseNode {
       hasContext: Boolean(context),
       hasGetProvider: Boolean(context && typeof context.getProvider === "function"),
       propKeys: Object.keys(this.serialize()),
-      inputKeys: Object.keys(inputs),
+      inputKeys: Object.keys(this.serialize()),
     });
     if (!providerId || !modelId) {
       log.error("AgentNode missing model selection", {
         nodeId: this.__node_id ?? null,
         providerId,
         modelId,
-        modelInput: inputs.model ?? null,
+        modelInput: this.model ?? null,
         modelProp: this.model ?? null,
       });
       throw new Error("Select a model");
@@ -1953,22 +2034,29 @@ export class AgentNode extends BaseNode {
       throw new Error("Processing context is required");
     }
 
-    const prompt = asText(inputs.prompt ?? this.prompt ?? "");
-    const system = asText(inputs.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
-    const image = inputs.image ?? this.image;
-    const audio = inputs.audio ?? this.audio;
-    const historyInput = inputs.history ?? this.history;
+    // --- Multi-mode dispatch for "plan" and "multi-agent" modes ---
+    const agentMode = String(this.mode ?? "loop").trim();
+    if (agentMode === "plan" || agentMode === "multi-agent") {
+      yield* this.genProcessMultiMode(context, providerId, modelId, agentMode as "plan" | "multi-agent");
+      return;
+    }
+
+    const prompt = asText(this.prompt ?? this.prompt ?? "");
+    const system = asText(this.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
+    const image = this.image ?? this.image;
+    const audio = this.audio ?? this.audio;
+    const historyInput = this.history ?? this.history;
     const history = Array.isArray(historyInput)
       ? historyInput.map((item) => normalizeMessage(item)).filter((item): item is Message => item !== null)
       : [];
-    const threadId = String(inputs.thread_id ?? this.thread_id ?? "").trim();
-    const maxTokens = Number(inputs.max_tokens ?? this.max_tokens ?? 8192);
-    const tools: ToolLike[] = normalizeTools(inputs.tools ?? this.tools);
+    const threadId = String(this.thread_id ?? this.thread_id ?? "").trim();
+    const maxTokens = Number(this.max_tokens ?? this.max_tokens ?? 8192);
+    const tools: ToolLike[] = normalizeTools(this.tools ?? this.tools);
 
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM
     // call controlled nodes as tools.
-    const controlContext = inputs._control_context;
+    const controlContext = (this as any)._control_context;
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       tools.push(...controlTools);
@@ -2015,27 +2103,51 @@ export class AgentNode extends BaseNode {
       await saveThreadMessage(context, threadId, messages[messages.length - 1]);
     }
 
-    let shouldContinue = false;
-    let firstIteration = true;
     let lastTextOutput: string | null = null;
     const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+    const provider = await context.getProvider(providerId);
 
-    while (firstIteration || shouldContinue) {
-      firstIteration = false;
-      shouldContinue = false;
-      log.info("AgentNode provider iteration starting", {
+    // --- Agentic provider fast-path (e.g. Claude Agent SDK with MCP) ---
+    // The provider handles the full tool-calling loop internally.
+    // We provide an onToolCall callback so tools execute natively via MCP.
+    if (isAgenticProvider(provider) && tools.length > 0) {
+      log.info("AgentNode using agentic provider path", {
         nodeId: this.__node_id ?? null,
         providerId,
         modelId,
-        threadId: threadId || null,
-        messageCount: messages.length,
+        toolCount: tools.length,
       });
-      const provider = await context.getProvider(providerId);
-      const assistantToolCalls: ToolCall[] = [];
+
+      // Build onToolCall callback that bridges into our tool set
+      const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
+        const tool = tools.find((t) => t.name === name);
+        if (!tool || typeof tool.process !== "function") {
+          return JSON.stringify({ error: `Unknown tool: ${name}` });
+        }
+
+        if (isControlTool(tool)) {
+          const callArgs = args ?? {};
+          if (context.hasControlEventSupport) {
+            try {
+              const controlResult = await context.sendControlEvent(tool.targetNodeId, callArgs);
+              return JSON.stringify({ status: "completed", target_node_id: tool.targetNodeId, result: controlResult });
+            } catch (err) {
+              return JSON.stringify({ status: "error", target_node_id: tool.targetNodeId, error: err instanceof Error ? err.message : String(err) });
+            }
+          }
+          return JSON.stringify({ status: "error", error: "Control event dispatch unavailable" });
+        }
+
+        try {
+          const result = await tool.process(context, args);
+          return typeof result === "string" ? result : JSON.stringify(serializeToolResult(result));
+        } catch (e) {
+          return JSON.stringify({ error: String(e) });
+        }
+      };
+
       let assistantText = "";
-      let chunkCount = 0;
-      let thinkingCount = 0;
-      let audioChunkCount = 0;
+      const assistantToolCalls: ToolCall[] = [];
 
       for await (const item of streamProviderMessages(provider, {
         messages,
@@ -2043,87 +2155,36 @@ export class AgentNode extends BaseNode {
         tools: providerTools,
         maxTokens,
         responseFormat,
+        threadId: threadId || undefined,
+        onToolCall,
       })) {
         if (isChunkItem(item)) {
-          chunkCount += 1;
           if (item.thinking) {
-            thinkingCount += 1;
-            log.debug("AgentNode received thinking chunk", {
-              nodeId: this.__node_id ?? null,
-              providerId,
-              modelId,
-              contentLength: (item.content ?? "").length,
-              done: Boolean(item.done),
-            });
             yield { chunk: null, thinking: item, text: null, audio: null };
-            continue;
-          }
-          if (item.content_type === "audio") {
-            audioChunkCount += 1;
-            log.debug("AgentNode received audio chunk", {
-              nodeId: this.__node_id ?? null,
-              providerId,
-              modelId,
-              contentLength: (item.content ?? "").length,
-              done: Boolean(item.done),
-            });
+          } else if (item.content_type === "audio") {
             yield { chunk: item, thinking: null, text: null, audio: null };
             const audioBytes = item.content ? Buffer.from(item.content, "base64") : Buffer.alloc(0);
-            yield {
-              chunk: null,
-              thinking: null,
-              text: null,
-              audio: { data: new Uint8Array(audioBytes) },
-            };
+            yield { chunk: null, thinking: null, text: null, audio: { data: new Uint8Array(audioBytes) } };
           } else {
             assistantText += item.content ?? "";
-            log.debug("AgentNode received text chunk", {
-              nodeId: this.__node_id ?? null,
-              providerId,
-              modelId,
-              chunkLength: (item.content ?? "").length,
-              accumulatedLength: assistantText.length,
-              done: Boolean(item.done),
-            });
             yield { chunk: item, thinking: null, text: null, audio: null };
           }
-          continue;
         }
         if (isToolCallItem(item)) {
           assistantToolCalls.push(item);
-          log.info("AgentNode received tool call", {
+          log.info("AgentNode MCP tool executed", {
             nodeId: this.__node_id ?? null,
-            providerId,
-            modelId,
-            toolCallId: item.id,
             toolName: item.name,
-            argKeys: Object.keys(item.args ?? {}),
           });
         }
       }
 
-      log.info("AgentNode provider iteration completed", {
-        nodeId: this.__node_id ?? null,
-        providerId,
-        modelId,
-        chunkCount,
-        thinkingCount,
-        audioChunkCount,
-        toolCallCount: assistantToolCalls.length,
-        assistantTextLength: assistantText.length,
-      });
-
       if (assistantText) {
         lastTextOutput = assistantText;
-        log.info("AgentNode yielding final text", {
-          nodeId: this.__node_id ?? null,
-          providerId,
-          modelId,
-          textLength: assistantText.length,
-        });
         yield { chunk: null, thinking: null, text: assistantText, audio: null };
       }
 
+      // Save messages to thread
       if (assistantText || assistantToolCalls.length > 0) {
         const assistantMessage: Message = {
           role: "assistant",
@@ -2134,101 +2195,170 @@ export class AgentNode extends BaseNode {
         await saveThreadMessage(context, threadId, assistantMessage);
       }
 
-      for (const toolCall of assistantToolCalls) {
-        const tool = tools.find((candidate) => candidate.name === toolCall.name);
-        if (!tool || typeof tool.process !== "function") {
-          log.warn("AgentNode tool call had no matching executable tool", {
-            nodeId: this.__node_id ?? null,
-            toolCallId: toolCall.id,
-            toolName: toolCall.name,
-            availableTools: tools.map((candidate) => candidate.name),
-          });
-          continue;
+      log.info("AgentNode agentic path completed", {
+        nodeId: this.__node_id ?? null,
+        textLength: assistantText.length,
+        toolCallCount: assistantToolCalls.length,
+      });
+
+    } else {
+      // --- Standard multi-iteration loop (for non-agentic providers) ---
+      let shouldContinue = false;
+      let firstIteration = true;
+
+      while (firstIteration || shouldContinue) {
+        firstIteration = false;
+        shouldContinue = false;
+        log.info("AgentNode provider iteration starting", {
+          nodeId: this.__node_id ?? null,
+          providerId,
+          modelId,
+          threadId: threadId || null,
+          messageCount: messages.length,
+        });
+        const assistantToolCalls: ToolCall[] = [];
+        let assistantText = "";
+        let chunkCount = 0;
+        let thinkingCount = 0;
+        let audioChunkCount = 0;
+
+        for await (const item of streamProviderMessages(provider, {
+          messages,
+          model: modelId,
+          tools: providerTools,
+          maxTokens,
+          responseFormat,
+          threadId: threadId || undefined,
+        })) {
+          if (isChunkItem(item)) {
+            chunkCount += 1;
+            if (item.thinking) {
+              thinkingCount += 1;
+              yield { chunk: null, thinking: item, text: null, audio: null };
+              continue;
+            }
+            if (item.content_type === "audio") {
+              audioChunkCount += 1;
+              yield { chunk: item, thinking: null, text: null, audio: null };
+              const audioBytes = item.content ? Buffer.from(item.content, "base64") : Buffer.alloc(0);
+              yield {
+                chunk: null,
+                thinking: null,
+                text: null,
+                audio: { data: new Uint8Array(audioBytes) },
+              };
+            } else {
+              assistantText += item.content ?? "";
+              yield { chunk: item, thinking: null, text: null, audio: null };
+            }
+            continue;
+          }
+          if (isToolCallItem(item)) {
+            assistantToolCalls.push(item);
+            log.info("AgentNode received tool call", {
+              nodeId: this.__node_id ?? null,
+              providerId,
+              modelId,
+              toolCallId: item.id,
+              toolName: item.name,
+              argKeys: Object.keys(item.args ?? {}),
+            });
+          }
         }
 
-        let result: unknown;
+        log.info("AgentNode provider iteration completed", {
+          nodeId: this.__node_id ?? null,
+          providerId,
+          modelId,
+          chunkCount,
+          thinkingCount,
+          audioChunkCount,
+          toolCallCount: assistantToolCalls.length,
+          assistantTextLength: assistantText.length,
+        });
 
-        if (isControlTool(tool)) {
-          // Control tool: dispatch control event to the controlled node
-          // and await its output, rather than calling tool.process().
-          const callArgs = toolCall.args ?? {};
-          log.info("AgentNode dispatching control tool", {
-            nodeId: this.__node_id ?? null,
-            toolCallId: toolCall.id,
-            toolName: toolCall.name,
-            targetNodeId: tool.targetNodeId,
-            argKeys: Object.keys(callArgs),
-          });
+        if (assistantText) {
+          lastTextOutput = assistantText;
+          yield { chunk: null, thinking: null, text: assistantText, audio: null };
+        }
 
-          if (context.hasControlEventSupport) {
-            try {
-              const controlResult = await context.sendControlEvent(
-                tool.targetNodeId,
-                callArgs,
-              );
-              result = {
-                status: "completed",
-                target_node_id: tool.targetNodeId,
-                result: controlResult,
-              };
-              log.info("AgentNode control tool completed", {
-                nodeId: this.__node_id ?? null,
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                targetNodeId: tool.targetNodeId,
-                resultKeys: controlResult ? Object.keys(controlResult) : [],
-              });
-            } catch (err) {
-              result = {
-                status: "error",
-                target_node_id: tool.targetNodeId,
-                error: err instanceof Error ? err.message : String(err),
-              };
-              log.error("AgentNode control tool failed", {
-                nodeId: this.__node_id ?? null,
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                targetNodeId: tool.targetNodeId,
-                error: String(err),
-              });
-            }
-          } else {
-            result = {
-              status: "error",
-              target_node_id: tool.targetNodeId,
-              error: "Control event dispatch is not available in this execution context",
-            };
-            log.warn("AgentNode control tool dispatch unavailable", {
+        if (assistantText || assistantToolCalls.length > 0) {
+          const assistantMessage: Message = {
+            role: "assistant",
+            content: [{ type: "text", text: assistantText }],
+            toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null,
+          };
+          messages.push(assistantMessage);
+          await saveThreadMessage(context, threadId, assistantMessage);
+        }
+
+        for (const toolCall of assistantToolCalls) {
+          const tool = tools.find((candidate) => candidate.name === toolCall.name);
+          if (!tool || typeof tool.process !== "function") {
+            log.warn("AgentNode tool call had no matching executable tool", {
+              nodeId: this.__node_id ?? null,
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+              availableTools: tools.map((candidate) => candidate.name),
+            });
+            continue;
+          }
+
+          let result: unknown;
+
+          if (isControlTool(tool)) {
+            const callArgs = toolCall.args ?? {};
+            log.info("AgentNode dispatching control tool", {
               nodeId: this.__node_id ?? null,
               toolCallId: toolCall.id,
               toolName: toolCall.name,
               targetNodeId: tool.targetNodeId,
+              argKeys: Object.keys(callArgs),
             });
-          }
-        } else {
-          // Regular tool: execute normally
-          log.info("AgentNode executing tool", {
-            nodeId: this.__node_id ?? null,
-            toolCallId: toolCall.id,
-            toolName: toolCall.name,
-          });
-          result = await tool.process(context, toolCall.args);
-        }
 
-        const toolMessage: Message = {
-          role: "tool",
-          toolCallId: toolCall.id,
-          content: JSON.stringify(serializeToolResult(result)),
-        };
-        messages.push(toolMessage);
-        await saveThreadMessage(context, threadId, toolMessage);
-        shouldContinue = true;
-        log.info("AgentNode tool execution completed", {
-          nodeId: this.__node_id ?? null,
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-          resultLength: String(toolMessage.content ?? "").length,
-        });
+            if (context.hasControlEventSupport) {
+              try {
+                const controlResult = await context.sendControlEvent(
+                  tool.targetNodeId,
+                  callArgs,
+                );
+                result = {
+                  status: "completed",
+                  target_node_id: tool.targetNodeId,
+                  result: controlResult,
+                };
+              } catch (err) {
+                result = {
+                  status: "error",
+                  target_node_id: tool.targetNodeId,
+                  error: err instanceof Error ? err.message : String(err),
+                };
+              }
+            } else {
+              result = {
+                status: "error",
+                target_node_id: tool.targetNodeId,
+                error: "Control event dispatch is not available in this execution context",
+              };
+            }
+          } else {
+            log.info("AgentNode executing tool", {
+              nodeId: this.__node_id ?? null,
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+            });
+            result = await tool.process(context, toolCall.args);
+          }
+
+          const toolMessage: Message = {
+            role: "tool",
+            toolCallId: toolCall.id,
+            content: JSON.stringify(serializeToolResult(result)),
+          };
+          messages.push(toolMessage);
+          await saveThreadMessage(context, threadId, toolMessage);
+          shouldContinue = true;
+        }
       }
     }
 
@@ -2281,14 +2411,13 @@ export class AgentNode extends BaseNode {
   }
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     let lastText = "";
     let lastAudio: Record<string, unknown> | null = null;
     let structuredResult: Record<string, unknown> | null = null;
 
-    for await (const item of this.genProcess(inputs, context)) {
+    for await (const item of this.genProcess(context)) {
       if (
         "chunk" in item ||
         "thinking" in item ||
@@ -2325,6 +2454,89 @@ export class AgentNode extends BaseNode {
       chunk: null,
       thinking: null,
       audio: lastAudio,
+    };
+  }
+
+  /**
+   * Dispatch to MultiModeAgent for "plan" and "multi-agent" modes.
+   * Converts ToolLike[] to AgentTool[] and bridges ProcessingMessage to node outputs.
+   */
+  private async *genProcessMultiMode(
+    context: ProcessingContext,
+    providerId: string,
+    modelId: string,
+    mode: "plan" | "multi-agent"
+  ): AsyncGenerator<Record<string, unknown>> {
+    const prompt = asText(this.prompt ?? "");
+    const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
+    const rawTools: ToolLike[] = normalizeTools(this.tools ?? []);
+
+    // Build control tools
+    const controlContext = (this as any)._control_context;
+    const controlTools = buildControlTools(controlContext);
+    if (controlTools.length > 0) {
+      rawTools.push(...controlTools);
+    }
+
+    // Convert ToolLike[] to AgentTool[] for MultiModeAgent
+    const agentTools = rawTools.map((t) => new ToolLikeAdapter(t));
+
+    const provider = await context.getProvider(providerId);
+
+    const agent = new MultiModeAgent({
+      name: `AgentNode_${this.__node_id ?? "default"}`,
+      objective: prompt,
+      provider,
+      model: modelId,
+      mode,
+      tools: agentTools,
+      systemPrompt: system,
+      maxTokenLimit: Number(this.max_tokens ?? 8192),
+      outputSchema: getStructuredOutputSchema(this) ?? undefined,
+      // Plan mode options
+      planningModel: modelId,
+      maxSteps: 10,
+      maxStepIterations: 5,
+      // Multi-agent options
+      numSubAgents: Number(this.num_agents ?? 3),
+      teamStrategy: (this.team_strategy ?? "coordinator") as "coordinator" | "autonomous" | "hybrid",
+      maxConcurrency: 5,
+    });
+
+    let lastText = "";
+
+    for await (const msg of agent.execute(context)) {
+      const pmsg = msg as ProcessingMessage;
+      if (pmsg.type === "chunk") {
+        const chunk = pmsg as Chunk;
+        const content = chunk.content ?? "";
+        lastText += content;
+        yield { chunk: { type: "chunk", content, done: false }, thinking: null, text: null, audio: null };
+      } else if (pmsg.type === "step_result") {
+        const result = (pmsg as any).result;
+        if (result != null) {
+          const resultText = typeof result === "string" ? result : JSON.stringify(result);
+          lastText = resultText;
+        }
+      } else if (pmsg.type === "log_update") {
+        log.info("MultiModeAgent log", {
+          nodeId: this.__node_id ?? null,
+          content: (pmsg as any).content,
+        });
+      }
+    }
+
+    const resultText = lastText || (agent.getResults() != null
+      ? (typeof agent.getResults() === "string" ? agent.getResults() as string : JSON.stringify(agent.getResults()))
+      : "");
+
+    yield { chunk: null, thinking: null, text: resultText, audio: null };
+    return {
+      text: resultText,
+      output: resultText,
+      chunk: null,
+      thinking: null,
+      audio: null,
     };
   }
 }
@@ -2463,48 +2675,55 @@ export class ResearchAgentNode extends BaseNode {
 
 
   async process(
-    inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const query = asText(inputs.query ?? this.query ?? this.prompt ?? inputs.prompt ?? "");
-    const { providerId, modelId } = getModelConfig(inputs, this.serialize());
+    const query = asText((this as any).query ?? (this as any).prompt ?? this.objective ?? "");
+    const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
-      const raw = await generateProviderMessage(provider, {
-        model: modelId,
-        maxTokens: Number(inputs.max_tokens ?? this.max_tokens ?? 2048),
-        responseFormat: {
-          type: "json_schema",
-          json_schema: {
-            name: "research_result",
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              required: ["summary", "findings"],
-              properties: {
-                summary: { type: "string" },
-                findings: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    required: ["title", "summary"],
-                    properties: {
-                      title: { type: "string" },
-                      summary: { type: "string" },
-                      source: { type: "string" },
+      const dynamicSchema = getStructuredOutputSchema(this);
+      const responseFormat = dynamicSchema
+        ? { type: "json_schema" as const, json_schema: { name: "research_result", schema: dynamicSchema, strict: true } }
+        : {
+            type: "json_schema" as const,
+            json_schema: {
+              name: "research_result",
+              schema: {
+                type: "object",
+                additionalProperties: false,
+                required: ["summary", "findings"],
+                properties: {
+                  summary: { type: "string" },
+                  findings: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["title", "summary"],
+                      properties: {
+                        title: { type: "string" },
+                        summary: { type: "string" },
+                        source: { type: "string" },
+                      },
                     },
                   },
                 },
               },
             },
-          },
-        },
+          };
+      const raw = await generateProviderMessage(provider, {
+        model: modelId,
+        maxTokens: Number(this.max_tokens ?? this.max_tokens ?? 2048),
+        responseFormat,
         messages: [
           { role: "system", content: RESEARCH_AGENT_SYSTEM_PROMPT },
           { role: "user", content: `Research objective: ${query}` },
         ],
       });
+      if (dynamicSchema) {
+        const parsed = extractJson(raw);
+        if (parsed) return parsed;
+      }
       return parseResearchOutput(raw, query);
     }
     const summary = summarize(query, 2);

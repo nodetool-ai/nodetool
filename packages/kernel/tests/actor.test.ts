@@ -159,7 +159,8 @@ describe("NodeActor – buffered mode", () => {
     const result = await actor.run();
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toEqual({ a: 5 });
+    // Node properties are merged as defaults; edge input "a" overrides
+    expect(calls[0]).toEqual({ label: "demo", a: 5 });
     expect(sentOutputs).toHaveLength(1);
     expect(sentOutputs[0].outputs).toEqual({ result: 10 });
     expect(result.outputs).toEqual({ result: 10 });

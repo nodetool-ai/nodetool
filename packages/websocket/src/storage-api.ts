@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path, { extname } from "node:path";
+import { getDefaultAssetsPath } from "@nodetool/config";
 
 // ── MIME types ────────────────────────────────────────────────────
 
@@ -243,11 +244,7 @@ export interface StorageHandlerOptions {
 export function createStorageHandler(
   opts?: StorageHandlerOptions
 ): (request: Request) => Promise<Response> {
-  const storagePath =
-    process.env.ASSET_FOLDER ??
-    opts?.storagePath ??
-    process.env.STORAGE_PATH ??
-    path.join(os.homedir(), ".local", "share", "nodetool", "assets");
+  const storagePath = opts?.storagePath ?? getDefaultAssetsPath();
 
   const tempStoragePath =
     opts?.tempStoragePath ??

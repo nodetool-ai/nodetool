@@ -21,6 +21,7 @@ import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
+import NodeDependencyWarning from "./NodeDependencyWarning";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import { hasNodeError } from "../../stores/ErrorStore";
@@ -37,7 +38,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
-import { NodeMetadata } from "../../stores/ApiTypes";
+import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
@@ -185,7 +186,7 @@ const getStyleProps = (
   parentId: string | undefined,
   nodeType: { isInputNode: boolean; isOutputNode: boolean },
   isLoading: boolean,
-  metadata: any
+  metadata: NodeMetadata | undefined
 ) => {
   const hasParent = Boolean(parentId);
   return {
@@ -202,16 +203,16 @@ const getStyleProps = (
   };
 };
 
-const getNodeColors = (metadata: any): string[] => {
+const getNodeColors = (metadata: NodeMetadata | undefined): string[] => {
   const outputColors = [
     ...new Set(
-      metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
+      metadata?.outputs?.map((output: OutputSlot) => colorForType(output.type.type)) ||
         []
     )
   ];
   const inputColors = [
     ...new Set(
-      metadata?.properties?.map((input: any) =>
+      metadata?.properties?.map((input: Property) =>
         colorForType(input.type.type)
       ) || []
     )
@@ -691,6 +692,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onShowInputs={handleShowInputs}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
+      {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
+        <NodeDependencyWarning requiredRuntimes={metadata.required_runtimes} />
+      )}
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
       {!isOverlayVisible &&

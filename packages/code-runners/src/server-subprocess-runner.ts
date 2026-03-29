@@ -22,7 +22,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { resolve as pathResolve, join as pathJoin, sep } from "node:path";
-import { homedir } from "node:os";
+import { getNodetoolDataDir } from "@nodetool/config";
 import { get as httpGet, type IncomingMessage } from "node:http";
 import { get as httpsGet } from "node:https";
 
@@ -94,8 +94,7 @@ function tcpProbe(host: string, port: number, timeoutMs = 1000): Promise<boolean
  * Return the default cache directory for nodetool binaries.
  */
 function defaultCacheDir(): string {
-  // ~/.local/share/nodetool/bin/
-  return pathJoin(homedir(), ".local", "share", "nodetool", "bin");
+  return pathJoin(getNodetoolDataDir(), "bin");
 }
 
 /**
@@ -720,3 +719,6 @@ function shellSplit(s: string): string[] {
 
   return tokens;
 }
+
+/** @internal Exported for unit testing only. */
+export { shellSplit as _shellSplit };

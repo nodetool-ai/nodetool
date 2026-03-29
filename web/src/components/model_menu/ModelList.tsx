@@ -95,6 +95,16 @@ function ModelList<TModel extends ModelSelectorModel>({
   const { isApiKeySet } = useSecrets();
   const theme = useTheme();
 
+  // Stable handler for model selection using data attributes
+  const handleModelClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const target = event.currentTarget;
+    const index = Number(target.dataset.index);
+    const available = target.dataset.available === "true";
+    if (available && models[index]) {
+      onSelect(models[index]);
+    }
+  }, [models, onSelect]);
+
   const renderRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
       const m = models[index];
@@ -121,7 +131,9 @@ function ModelList<TModel extends ModelSelectorModel>({
               className={`model-menu__model-item ${available ? "" : "is-unavailable"
                 } ${fav ? "is-favorite" : ""}`}
               aria-disabled={!available}
-              onClick={() => available && onSelect(m)}
+              data-index={index}
+              data-available={available}
+              onClick={handleModelClick}
               sx={{ width: "100%", textAlign: "left" }}
             >
               <ListItemIcon sx={{ minWidth: 30 }}>
@@ -276,7 +288,7 @@ function ModelList<TModel extends ModelSelectorModel>({
       isFavorite,
       enabledProviders,
       isApiKeySet,
-      onSelect,
+      handleModelClick,
       theme.vars.fontSizeTiny,
 
       theme.vars.palette.text.secondary,

@@ -10,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Text,
+  TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Message, MessageContent, ChatStatus } from '../../types';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatComposer } from './ChatComposer';
@@ -21,6 +23,7 @@ interface ChatViewProps {
   messages: Message[];
   onSendMessage: (content: MessageContent[], text: string) => Promise<void>;
   onStop?: () => void;
+  onRefresh?: () => Promise<void>;
   error?: string | null;
   statusMessage?: string | null;
 }
@@ -30,6 +33,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   messages,
   onSendMessage,
   onStop,
+  onRefresh,
   error,
   statusMessage,
 }) => {
@@ -48,10 +52,26 @@ export const ChatView: React.FC<ChatViewProps> = ({
     if (messages.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Welcome to Chat</Text>
+          <View style={[styles.emptyIconContainer, { backgroundColor: colors.primaryMuted }]}>
+            <Ionicons name="chatbubbles-outline" size={40} color={colors.primary} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Start a Conversation</Text>
           <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Start a conversation by typing a message below
+            Ask questions, get help with tasks, or explore ideas with AI.
           </Text>
+          <View style={styles.suggestionsContainer}>
+            {['Summarize a topic', 'Help me write', 'Explain a concept'].map((suggestion) => (
+              <TouchableOpacity
+                key={suggestion}
+                style={[styles.suggestionChip, { borderColor: colors.border, backgroundColor: colors.cardBg }]}
+                onPress={() => onSendMessage([{ type: 'text', text: suggestion } as MessageContent], suggestion)}
+                accessibilityRole="button"
+                accessibilityLabel={`Suggest: ${suggestion}`}
+              >
+                <Text style={[styles.suggestionText, { color: colors.primary }]}>{suggestion}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       );
     }
@@ -106,6 +126,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             messages={messages}
             isLoading={isLoading}
             isStreaming={isStreaming}
+            onRefresh={onRefresh}
           />
         )}
       </View>
@@ -132,9 +153,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -142,6 +171,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 24,
+  },
+  suggestionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  suggestionChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  suggestionText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   banner: {
     paddingVertical: 8,

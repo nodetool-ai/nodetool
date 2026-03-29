@@ -29,7 +29,7 @@
 import React, { useCallback, useMemo, memo } from "react";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import type { TooltipProps } from "@mui/material/Tooltip";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -93,7 +93,7 @@ export interface LabeledToggleProps {
   /**
    * Additional sx styles for the container
    */
-  sx?: object;
+  sx?: SxProps<Theme>;
   /**
    * Whether to show tooltip
    * @default true
@@ -145,14 +145,14 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
   );
 
   // Memoize expand icon button styles
-  const expandButtonSx = useMemo(() => ({
+  const expandButtonSx: SxProps<Theme> = useMemo(() => ({
     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
     transition: "transform 0.2s",
     padding: size === "small" ? 0.5 : 1
   }), [isOpen, size]);
 
   // Memoize icon box styles
-  const iconBoxSx = useMemo(() => ({
+  const iconBoxSx: SxProps<Theme> = useMemo(() => ({
     display: "inline-flex",
     alignItems: "center",
     gap: 0.5,
@@ -163,7 +163,7 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
   }), [isOpen, theme]);
 
   // Memoize container styles
-  const containerSx = useMemo(() => ({
+  const containerSx: SxProps<Theme> = useMemo(() => ({
     display: "flex",
     alignItems: "center",
     width: "fit-content",

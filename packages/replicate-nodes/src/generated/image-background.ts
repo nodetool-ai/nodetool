@@ -39,12 +39,12 @@ replicate, ai`;
   @prop({ type: "float", default: 0, description: "Threshold for hard segmentation (0.0-1.0). If 0.0, uses soft alpha." })
   declare threshold: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const backgroundType = String(inputs.background_type ?? this.background_type ?? "rgba");
-    const format = String(inputs.format ?? this.format ?? "png");
-    const reverse = Boolean(inputs.reverse ?? this.reverse ?? false);
-    const threshold = Number(inputs.threshold ?? this.threshold ?? 0);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const backgroundType = String(this.background_type ?? "rgba");
+    const format = String(this.format ?? "png");
+    const reverse = Boolean(this.reverse ?? false);
+    const threshold = Number(this.threshold ?? 0);
 
     const args: Record<string, unknown> = {
       "background_type": backgroundType,
@@ -53,7 +53,7 @@ replicate, ai`;
       "threshold": threshold,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -90,12 +90,12 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "[DEPRECATED] Preserve partial alpha. No longer used in V2 API - use preserve_alpha instead." })
   declare preserve_partial_alpha: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const contentModeration = Boolean(inputs.content_moderation ?? this.content_moderation ?? false);
-    const imageUrl = String(inputs.image_url ?? this.image_url ?? "");
-    const preserveAlpha = Boolean(inputs.preserve_alpha ?? this.preserve_alpha ?? true);
-    const preservePartialAlpha = Boolean(inputs.preserve_partial_alpha ?? this.preserve_partial_alpha ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const contentModeration = Boolean(this.content_moderation ?? false);
+    const imageUrl = String(this.image_url ?? "");
+    const preserveAlpha = Boolean(this.preserve_alpha ?? true);
+    const preservePartialAlpha = Boolean(this.preserve_partial_alpha ?? true);
 
     const args: Record<string, unknown> = {
       "content_moderation": contentModeration,
@@ -104,7 +104,7 @@ replicate, ai`;
       "preserve_partial_alpha": preservePartialAlpha,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -150,14 +150,14 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Synchronous response mode" })
   declare sync: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const contentModeration = Boolean(inputs.content_moderation ?? this.content_moderation ?? false);
-    const imageUrl = String(inputs.image_url ?? this.image_url ?? "");
-    const maskType = String(inputs.mask_type ?? this.mask_type ?? "manual");
-    const maskUrl = String(inputs.mask_url ?? this.mask_url ?? "");
-    const preserveAlpha = Boolean(inputs.preserve_alpha ?? this.preserve_alpha ?? true);
-    const sync = Boolean(inputs.sync ?? this.sync ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const contentModeration = Boolean(this.content_moderation ?? false);
+    const imageUrl = String(this.image_url ?? "");
+    const maskType = String(this.mask_type ?? "manual");
+    const maskUrl = String(this.mask_url ?? "");
+    const preserveAlpha = Boolean(this.preserve_alpha ?? true);
+    const sync = Boolean(this.sync ?? true);
 
     const args: Record<string, unknown> = {
       "content_moderation": contentModeration,
@@ -168,13 +168,13 @@ replicate, ai`;
       "sync": sync,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
+    const maskRef = this.mask as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
@@ -238,20 +238,20 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Synchronous response mode" })
   declare sync: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const bgPrompt = String(inputs.bg_prompt ?? this.bg_prompt ?? "");
-    const contentModeration = Boolean(inputs.content_moderation ?? this.content_moderation ?? false);
-    const enhanceRefImage = Boolean(inputs.enhance_ref_image ?? this.enhance_ref_image ?? true);
-    const fast = Boolean(inputs.fast ?? this.fast ?? true);
-    const forceRmbg = Boolean(inputs.force_rmbg ?? this.force_rmbg ?? false);
-    const imageUrl = String(inputs.image_url ?? this.image_url ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const originalQuality = Boolean(inputs.original_quality ?? this.original_quality ?? false);
-    const refImageUrl = String(inputs.ref_image_url ?? this.ref_image_url ?? "");
-    const refinePrompt = Boolean(inputs.refine_prompt ?? this.refine_prompt ?? true);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const sync = Boolean(inputs.sync ?? this.sync ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const bgPrompt = String(this.bg_prompt ?? "");
+    const contentModeration = Boolean(this.content_moderation ?? false);
+    const enhanceRefImage = Boolean(this.enhance_ref_image ?? true);
+    const fast = Boolean(this.fast ?? true);
+    const forceRmbg = Boolean(this.force_rmbg ?? false);
+    const imageUrl = String(this.image_url ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const originalQuality = Boolean(this.original_quality ?? false);
+    const refImageUrl = String(this.ref_image_url ?? "");
+    const refinePrompt = Boolean(this.refine_prompt ?? true);
+    const seed = Number(this.seed ?? -1);
+    const sync = Boolean(this.sync ?? true);
 
     const args: Record<string, unknown> = {
       "bg_prompt": bgPrompt,
@@ -268,13 +268,13 @@ replicate, ai`;
       "sync": sync,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const refImageFileRef = (inputs.ref_image_file ?? this.ref_image_file) as Record<string, unknown> | undefined;
+    const refImageFileRef = this.ref_image_file as Record<string, unknown> | undefined;
     if (isRefSet(refImageFileRef)) {
       const refImageFileUrl = await assetToUrl(refImageFileRef!, apiKey);
       if (refImageFileUrl) args["ref_image_file"] = refImageFileUrl;
@@ -323,15 +323,15 @@ replicate, ai`;
   @prop({ type: "bool", default: true, description: "Synchronous response mode" })
   declare sync: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const contentModeration = Boolean(inputs.content_moderation ?? this.content_moderation ?? false);
-    const maskType = String(inputs.mask_type ?? this.mask_type ?? "manual");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const preserveAlpha = Boolean(inputs.preserve_alpha ?? this.preserve_alpha ?? true);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const sync = Boolean(inputs.sync ?? this.sync ?? true);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const contentModeration = Boolean(this.content_moderation ?? false);
+    const maskType = String(this.mask_type ?? "manual");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const preserveAlpha = Boolean(this.preserve_alpha ?? true);
+    const prompt = String(this.prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const sync = Boolean(this.sync ?? true);
 
     const args: Record<string, unknown> = {
       "content_moderation": contentModeration,
@@ -343,13 +343,13 @@ replicate, ai`;
       "sync": sync,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
+    const maskRef = this.mask as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
@@ -392,13 +392,13 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "A string containing the structured edit instruction in JSON format. Use this instead of instruction for precise, programmatic control." })
   declare structured_instruction: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 0);
-    const instruction = String(inputs.instruction ?? this.instruction ?? "");
-    const negativePrompt = String(inputs.negative_prompt ?? this.negative_prompt ?? "");
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
-    const structuredInstruction = String(inputs.structured_instruction ?? this.structured_instruction ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const guidanceScale = Number(this.guidance_scale ?? 0);
+    const instruction = String(this.instruction ?? "");
+    const negativePrompt = String(this.negative_prompt ?? "");
+    const seed = Number(this.seed ?? -1);
+    const structuredInstruction = String(this.structured_instruction ?? "");
 
     const args: Record<string, unknown> = {
       "guidance_scale": guidanceScale,
@@ -408,13 +408,13 @@ replicate, ai`;
       "structured_instruction": structuredInstruction,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
     }
 
-    const maskRef = (inputs.mask ?? this.mask) as Record<string, unknown> | undefined;
+    const maskRef = this.mask as Record<string, unknown> | undefined;
     if (isRefSet(maskRef)) {
       const maskUrl = await assetToUrl(maskRef!, apiKey);
       if (maskUrl) args["mask"] = maskUrl;
@@ -439,12 +439,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -472,15 +472,15 @@ replicate, ai`;
   @prop({ type: "str", default: "", description: "Resolution in WxH format, e.g., '1024x1024'" })
   declare resolution: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const resolution = String(inputs.resolution ?? this.resolution ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const resolution = String(this.resolution ?? "");
 
     const args: Record<string, unknown> = {
       "resolution": resolution,
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -505,12 +505,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -535,12 +535,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Input image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -565,12 +565,12 @@ replicate, ai`;
   @prop({ type: "image", default: "", description: "Remove background from this image" })
   declare image: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
 
-    const imageRef = (inputs.image ?? this.image) as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
       const imageUrl = await assetToUrl(imageRef!, apiKey);
       if (imageUrl) args["image"] = imageUrl;
@@ -601,17 +601,17 @@ replicate, ai`;
   @prop({ type: "video", default: "", description: "Grayscale input image" })
   declare video: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const backgroundColor = String(inputs.background_color ?? this.background_color ?? "#FFFFFF");
-    const mode = String(inputs.mode ?? this.mode ?? "Normal");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const backgroundColor = String(this.background_color ?? "#FFFFFF");
+    const mode = String(this.mode ?? "Normal");
 
     const args: Record<string, unknown> = {
       "background_color": backgroundColor,
       "mode": mode,
     };
 
-    const videoRef = (inputs.video ?? this.video) as Record<string, unknown> | undefined;
+    const videoRef = this.video as Record<string, unknown> | undefined;
     if (isRefSet(videoRef)) {
       const videoUrl = await assetToUrl(videoRef!, apiKey);
       if (videoUrl) args["video"] = videoUrl;

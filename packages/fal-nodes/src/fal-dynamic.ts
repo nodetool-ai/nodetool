@@ -434,10 +434,10 @@ export class FalRawNode extends BaseNode {
   })
   declare arguments: string;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const endpointId = String(inputs.endpoint_id ?? this.endpoint_id ?? "").trim();
-    const argsStr = String(inputs.arguments ?? this.arguments ?? "{}");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const endpointId = String(this.endpoint_id ?? "").trim();
+    const argsStr = String(this.arguments ?? "{}");
 
     if (!endpointId) throw new Error("endpoint_id is required");
 
@@ -495,9 +495,9 @@ export class FalDynamicNode extends BaseNode {
   })
   declare model_info: string;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const modelInfo = String(inputs.model_info ?? this.model_info ?? "").trim();
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const modelInfo = String(this.model_info ?? "").trim();
 
     if (!modelInfo) {
       throw new Error(
@@ -512,7 +512,7 @@ export class FalDynamicNode extends BaseNode {
     const inputSchema = extractInputSchema(openapi);
     const outputSchema = extractOutputSchema(openapi);
 
-    // Build arguments from inputs (excluding known node meta keys)
+    // Build arguments from dynamic properties (excluding known node meta keys)
     const SKIP_KEYS = new Set(["model_info", "_secrets", "__node_id", "__node_name"]);
     const schemaProps = (inputSchema.properties as Record<string, Record<string, unknown>>) ?? {};
     const required = new Set<string>(
@@ -523,7 +523,7 @@ export class FalDynamicNode extends BaseNode {
 
     // First pass: schema-declared properties
     for (const [name, propSchema] of Object.entries(schemaProps)) {
-      const value = inputs[name] ?? (this as Record<string, unknown>)[name];
+      const value = this.getDynamic(name) ?? (this as any)[name];
       if (value === undefined || value === null) {
         if (required.has(name)) {
           throw new Error(`Missing required input: ${name}`);
@@ -533,8 +533,8 @@ export class FalDynamicNode extends BaseNode {
       args[name] = await coerceInputValue(apiKey, openapi, propSchema, value);
     }
 
-    // Second pass: any extra inputs not in schema are forwarded as-is
-    for (const [key, value] of Object.entries(inputs)) {
+    // Second pass: any extra dynamic properties not in schema are forwarded as-is
+    for (const [key, value] of this.dynamicProps.entries()) {
       if (SKIP_KEYS.has(key)) continue;
       if (key in args) continue; // already handled
       if (value !== undefined && value !== null) args[key] = value;

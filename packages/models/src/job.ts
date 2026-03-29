@@ -197,15 +197,26 @@ export class Job extends DBModel {
     workerId: string,
     expectedVersion: number,
   ): Promise<boolean> {
-    if (this.version !== expectedVersion) return false;
+    const db = getDb();
+    const now = new Date().toISOString();
+    const newVersion = expectedVersion + 1;
+    // Atomic CAS: only update if the database row still has the expected version.
+    const result = db.update(jobs)
+      .set({
+        worker_id: workerId,
+        heartbeat_at: now,
+        version: newVersion,
+        updated_at: now,
+      })
+      .where(and(eq(jobs.id, this.id), eq(jobs.version, expectedVersion)))
+      .run();
+    if (result.changes === 0) return false;
+    // Sync in-memory state
     this.worker_id = workerId;
-    this.heartbeat_at = new Date().toISOString();
-    try {
-      await this.save();
-      return true;
-    } catch {
-      return false;
-    }
+    this.heartbeat_at = now;
+    this.version = newVersion;
+    this.updated_at = now;
+    return true;
   }
 
   // ── Static queries ───────────────────────────────────────────────

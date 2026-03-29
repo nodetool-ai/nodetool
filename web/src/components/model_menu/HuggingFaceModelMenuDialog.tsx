@@ -1,4 +1,4 @@
-import React, { useMemo, memo } from "react";
+import { useMemo, memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelMenuStore } from "../../stores/ModelMenuStore";

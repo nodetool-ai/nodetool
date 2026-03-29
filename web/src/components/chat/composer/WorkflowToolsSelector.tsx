@@ -160,6 +160,32 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
     setSearchTerm(value);
   }, []);
 
+  // Stable handler for tool item click using curried pattern
+  const handleToolItemClick = useCallback(
+    (toolId: string) => () => {
+      handleToggleTool(toolId);
+    },
+    [handleToggleTool]
+  );
+
+  // Stable handler for mouse enter on tool items
+  const handleToolItemMouseEnter = useCallback(
+    (toolName: string) => () => {
+      setHoveredToolName(toolName);
+    },
+    []
+  );
+
+  // Stable handler for mouse leave on tool items
+  const handleToolItemMouseLeave = useCallback(
+    (toolName: string) => () => {
+      setHoveredToolName((prev) =>
+        prev === toolName ? null : prev
+      );
+    },
+    []
+  );
+
   // Positioning logic for Popover
   const [positionConfig, setPositionConfig] = useState<{
     anchorOrigin: PopoverOrigin;
@@ -197,6 +223,46 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
       return () => window.removeEventListener("resize", updatePosition);
     }
   }, [isMenuOpen, updatePosition]);
+
+  // Memoized component for hovered tool info to prevent inline function creation
+  const HoveredToolInfo = useMemo(() => {
+    if (!hoveredToolName) {
+      return null;
+    }
+    const t = workflowTools?.find((w) => w.tool_name === hoveredToolName);
+    if (!t) {
+      return null;
+    }
+    return (
+      <Box
+        sx={{
+          borderTop: `1px solid ${theme.vars.palette.divider}`,
+          p: 1.5,
+          flexShrink: 0,
+          bgcolor: theme.vars.palette.background.default
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ color: theme.vars.palette.text.primary, fontSize: "0.8rem" }}
+        >
+          {t.name}
+        </Typography>
+        {t.description && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: theme.vars.palette.text.secondary,
+              mt: 0.5,
+              fontSize: "0.75rem"
+            }}
+          >
+            {t.description}
+          </Typography>
+        )}
+      </Box>
+    );
+  }, [hoveredToolName, workflowTools, theme]);
 
   return (
     <>
@@ -330,15 +396,9 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
                     <Box
                       key={workflow.tool_name}
                       className={`workflow-tool-item ${isSelected ? "selected" : ""}`}
-                      onClick={() => handleToggleTool(toolId)}
-                      onMouseEnter={() =>
-                        setHoveredToolName(workflow.tool_name ?? null)
-                      }
-                      onMouseLeave={() =>
-                        setHoveredToolName((prev) =>
-                          prev === workflow.tool_name ? null : prev
-                        )
-                      }
+                      onClick={handleToolItemClick(toolId)}
+                      onMouseEnter={handleToolItemMouseEnter(workflow.tool_name ?? "")}
+                      onMouseLeave={handleToolItemMouseLeave(workflow.tool_name ?? "")}
                     >
                       <Checkbox
                         size="small"
@@ -378,41 +438,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
           </div>
 
           {/* Hovered Tool Info */}
-          {hoveredToolName && (() => {
-            const t = workflowTools?.find((w) => w.tool_name === hoveredToolName);
-            if (!t) {
-              return null;
-            }
-            return (
-              <Box
-                sx={{
-                  borderTop: `1px solid ${theme.vars.palette.divider}`,
-                  p: 1.5,
-                  flexShrink: 0,
-                  bgcolor: theme.vars.palette.background.default
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ color: theme.vars.palette.text.primary, fontSize: "0.8rem" }}
-                >
-                  {t.name}
-                </Typography>
-                {t.description && (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: theme.vars.palette.text.secondary,
-                      mt: 0.5,
-                      fontSize: "0.75rem"
-                    }}
-                  >
-                    {t.description}
-                  </Typography>
-                )}
-              </Box>
-            );
-          })()}
+          {HoveredToolInfo}
         </Box>
       </Popover>
     </>

@@ -23,6 +23,7 @@ export {
   predictions,
   runEvents,
   runLeases,
+  teamTasks,
 } from "./schema/index.js";
 
 // ── Base Model ───────────────────────────────────────────────────────

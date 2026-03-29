@@ -24,7 +24,11 @@
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@traceloop/node-server-sdk": "^0.22.8",
     "openai": "^4.104.0",
+    "replicate": "^1.4.0",
     "ws": "^8.19.0"
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

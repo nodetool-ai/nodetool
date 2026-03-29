@@ -45,13 +45,10 @@ export function createAuthMiddleware(
   return async (request: Request): Promise<AuthenticatedUser> => {
     const token = staticProvider.extractTokenFromHeaders(request.headers);
 
-    if (!enforceAuth) {
-      if (!token) {
+    if (!token) {
+      if (!enforceAuth) {
         return { userId: "1", tokenType: TokenType.STATIC };
       }
-    }
-
-    if (!token) {
       throw new HttpError(
         401,
         "Authorization header required. Use 'Authorization: Bearer <token>'."
@@ -76,10 +73,12 @@ export function createAuthMiddleware(
           tokenType: userResult.tokenType ?? TokenType.USER,
         };
       }
-      throw new HttpError(
-        401,
-        userResult.error ?? "Invalid user authentication token."
-      );
+    }
+
+    // All providers rejected the token.
+    // If auth is not enforced, fall back to default user.
+    if (!enforceAuth) {
+      return { userId: "1", tokenType: TokenType.STATIC };
     }
 
     throw new HttpError(

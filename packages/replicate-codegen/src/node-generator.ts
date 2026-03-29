@@ -315,9 +315,9 @@ export class NodeGenerator {
   ): string[] {
     const lines: string[] = [];
     lines.push(
-      `  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {`,
+      `  async process(): Promise<Record<string, unknown>> {`,
     );
-    lines.push(`    const apiKey = getReplicateApiKey(inputs);`);
+    lines.push(`    const apiKey = getReplicateApiKey(this._secrets);`);
 
     // Separate fields by kind
     const assetFields = spec.inputFields.filter(
@@ -329,13 +329,13 @@ export class NodeGenerator {
       (f) => !f.parentField && assetKind(f) === "none" && !EXCLUDED_FIELDS.has(f.name),
     );
 
-    // 1. Extract scalar fields from inputs or instance properties
+    // 1. Extract scalar fields from instance properties
     for (const field of scalarFields) {
       const varName = fieldToVarName(field.name);
       const defLit = defaultLiteral(field.default, field.propType);
       const cast = castFn(field.propType);
       lines.push(
-        `    const ${varName} = ${cast}(inputs.${field.name} ?? this.${field.name} ?? ${defLit});`,
+        `    const ${varName} = ${cast}(this.${field.name} ?? ${defLit});`,
       );
     }
 
@@ -357,7 +357,7 @@ export class NodeGenerator {
 
       lines.push(``);
       lines.push(
-        `    const ${varName}Ref = (inputs.${field.name} ?? this.${field.name}) as Record<string, unknown> | undefined;`,
+        `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
       );
       lines.push(`    if (isRefSet(${varName}Ref)) {`);
       lines.push(

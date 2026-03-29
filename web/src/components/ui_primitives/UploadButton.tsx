@@ -12,7 +12,7 @@ import { IconButton, Button, Tooltip } from "@mui/material";
 import UploadIcon from "@mui/icons-material/Upload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -85,7 +85,7 @@ export interface UploadButtonProps {
   /**
    * Additional sx styles
    */
-  sx?: object;
+  sx?: SxProps<Theme>;
   /**
    * Tab index for keyboard navigation
    * @default 0

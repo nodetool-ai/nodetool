@@ -161,8 +161,6 @@ export class Secret extends DBModel {
         log.error("Both AES-GCM and Fernet decryption failed", {
           key: this.key,
           userId: this.user_id,
-          masterKeyPrefix: masterKey.substring(0, 6),
-          encryptedPrefix: this.encrypted_value.substring(0, 10),
           fernetError: String(fernetErr),
         });
         throw fernetErr;

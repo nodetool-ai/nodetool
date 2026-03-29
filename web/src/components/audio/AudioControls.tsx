@@ -186,6 +186,14 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     setMute(!mute);
   }, [mute, setMute]);
 
+  const handleDownload = useCallback(() => {
+    if (assetUrl) {
+      download(filename || "audio.mp3", assetUrl);
+    } else {
+      log.warn("No assetUrl provided for download");
+    }
+  }, [assetUrl, filename]);
+
   return (
     <div
       css={styles(theme)}
@@ -237,13 +245,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 }`}
                 size="small"
                 color="primary"
-                onClick={() => {
-                  if (assetUrl) {
-                    download(filename || "audio.mp3", assetUrl);
-                  } else {
-                    log.warn("No assetUrl provided for download");
-                  }
-                }}
+                onClick={handleDownload}
               >
                 <DownloadIcon />
               </Button>

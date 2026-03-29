@@ -1,35 +1,32 @@
 /**
  * Shared Replicate API utilities.
- * Uses plain fetch() — no SDK dependency.
+ * Uses the official Replicate TypeScript SDK.
  */
 
-const REPLICATE_API_BASE = "https://api.replicate.com/v1";
+import Replicate from "replicate";
 
 // ---------------------------------------------------------------------------
-// Types
+// Client cache — one Replicate client instance per API key
 // ---------------------------------------------------------------------------
 
-export interface ReplicatePrediction {
-  id: string;
-  version: string;
-  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
-  input: Record<string, unknown>;
-  output: unknown;
-  error: string | null;
-  urls: { get: string; cancel: string };
-  created_at: string;
-  started_at: string | null;
-  completed_at: string | null;
-  metrics?: Record<string, unknown>;
+const _clients = new Map<string, Replicate>();
+
+function getClient(apiKey: string): Replicate {
+  let client = _clients.get(apiKey);
+  if (!client) {
+    client = new Replicate({ auth: apiKey });
+    _clients.set(apiKey, client);
+  }
+  return client;
 }
 
 // ---------------------------------------------------------------------------
 // API Key extraction
 // ---------------------------------------------------------------------------
 
-export function getReplicateApiKey(inputs: Record<string, unknown>): string {
+export function getReplicateApiKey(secrets: Record<string, string>): string {
   const key =
-    (inputs._secrets as Record<string, string>)?.REPLICATE_API_TOKEN ||
+    secrets?.REPLICATE_API_TOKEN ||
     process.env.REPLICATE_API_TOKEN ||
     "";
   if (!key) throw new Error("REPLICATE_API_TOKEN is not configured");
@@ -64,9 +61,9 @@ export function isRefSet(ref: unknown): boolean {
 /**
  * Convert an asset ref to a Replicate-accessible URL.
  *
- * External URLs (non-Replicate) are fetched and re-uploaded to
- * Replicate's files API so the model can access them. Data URIs
- * and Replicate-hosted URLs are passed through directly.
+ * Data URIs and Replicate-hosted URLs are passed through directly.
+ * External URLs and local paths are fetched and uploaded to Replicate's
+ * files API via the SDK so the model can access them.
  */
 export async function assetToUrl(
   ref: Record<string, unknown>,
@@ -82,16 +79,15 @@ export async function assetToUrl(
     if (uri.startsWith("data:")) {
       return uri;
     }
-    // External URLs: fetch and upload to Replicate
+    // External URLs: fetch and upload to Replicate via SDK
     if (apiKey && (uri.startsWith("http://") || uri.startsWith("https://"))) {
       try {
         return await uploadToReplicate(apiKey, uri);
       } catch {
-        // Fall back to direct URL if upload fails
         return uri;
       }
     }
-    // Local/relative paths (e.g. /api/storage/...): resolve via local server and upload
+    // Local/relative paths: resolve via local server and upload
     if (apiKey && uri.startsWith("/")) {
       const port = process.env.PORT ?? "7777";
       const localUrl = `http://127.0.0.1:${port}${uri}`;
@@ -123,154 +119,74 @@ async function uploadToReplicate(apiKey: string, sourceUrl: string): Promise<str
   const contentType = res.headers.get("content-type") || "application/octet-stream";
   const ext = contentType.split("/")[1]?.split(";")[0] || "bin";
 
-  const formData = new FormData();
-  formData.append("content", new Blob([bytes], { type: contentType }), `upload.${ext}`);
-
-  const uploadRes = await fetch(`${REPLICATE_API_BASE}/files`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: formData,
+  const client = getClient(apiKey);
+  const file = await (client.files as any).create({
+    content: new Blob([bytes], { type: contentType }),
+    filename: `upload.${ext}`,
   });
-
-  if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
-
-  const data = (await uploadRes.json()) as { urls?: { get?: string }; id?: string };
-  const replicateUrl = data.urls?.get;
-  if (!replicateUrl) throw new Error("No URL in upload response");
-  return replicateUrl;
-}
-
-/** Extract version hash from "owner/name:version" model identifier. */
-export function extractVersion(modelId: string): {
-  owner: string;
-  name: string;
-  version: string;
-} {
-  const colonIdx = modelId.lastIndexOf(":");
-  if (colonIdx === -1) {
-    throw new Error(
-      `Invalid model identifier "${modelId}": expected "owner/name:version"`
-    );
-  }
-  const ownerName = modelId.slice(0, colonIdx);
-  const version = modelId.slice(colonIdx + 1);
-  const slashIdx = ownerName.indexOf("/");
-  if (slashIdx === -1) {
-    throw new Error(
-      `Invalid model identifier "${modelId}": expected "owner/name:version"`
-    );
-  }
-  return {
-    owner: ownerName.slice(0, slashIdx),
-    name: ownerName.slice(slashIdx + 1),
-    version,
-  };
+  const fileUrl = (file as unknown as Record<string, unknown>).urls as Record<string, string> | undefined;
+  if (fileUrl?.get) return fileUrl.get;
+  throw new Error("No URL in upload response");
 }
 
 // ---------------------------------------------------------------------------
-// Submit + poll
+// Submit via SDK
 // ---------------------------------------------------------------------------
 
-const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_ITERATIONS = 900; // 900 * 2s = 30 min
-
-function isTerminal(status: string): boolean {
-  return status === "succeeded" || status === "failed" || status === "canceled";
+export interface ReplicateResult {
+  output: unknown;
 }
 
+/**
+ * Run a Replicate model and return the output.
+ *
+ * Uses `replicate.run()` which handles prediction creation, polling,
+ * and waiting for completion internally.
+ */
 export async function replicateSubmit(
   apiKey: string,
   modelId: string,
   input: Record<string, unknown>
-): Promise<ReplicatePrediction> {
-  // Replicate accepts either {version: "hash"} for pinned versions
-  // or {model: "owner/name"} for latest version.
-  const body: Record<string, unknown> = { input };
-  if (modelId.includes(":")) {
-    body.version = modelId.split(":")[1];
-  } else {
-    body.model = modelId;
-  }
-
-  const res = await fetch(`${REPLICATE_API_BASE}/predictions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      Prefer: "wait",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Replicate API error ${res.status}: ${body}`);
-  }
-
-  let prediction: ReplicatePrediction = await res.json();
-
-  if (isTerminal(prediction.status)) {
-    if (prediction.status === "failed") {
-      throw new Error(`Replicate prediction failed: ${prediction.error}`);
-    }
-    return prediction;
-  }
-
-  // Poll until terminal
-  for (let i = 0; i < MAX_POLL_ITERATIONS; i++) {
-    await sleep(POLL_INTERVAL_MS);
-
-    const pollRes = await fetch(
-      `${REPLICATE_API_BASE}/predictions/${prediction.id}`,
-      {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      }
-    );
-
-    if (!pollRes.ok) {
-      const body = await pollRes.text();
-      throw new Error(`Replicate poll error ${pollRes.status}: ${body}`);
-    }
-
-    prediction = await pollRes.json();
-
-    if (isTerminal(prediction.status)) {
-      if (prediction.status === "failed") {
-        throw new Error(`Replicate prediction failed: ${prediction.error}`);
-      }
-      return prediction;
-    }
-  }
-
-  throw new Error(
-    `Replicate prediction ${prediction.id} timed out after ${MAX_POLL_ITERATIONS * POLL_INTERVAL_MS / 1000}s`
+): Promise<ReplicateResult> {
+  const client = getClient(apiKey);
+  const output = await client.run(
+    modelId as `${string}/${string}`,
+    { input }
   );
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return { output };
 }
 
 // ---------------------------------------------------------------------------
 // Output converters
 // ---------------------------------------------------------------------------
 
-/** Extract the first URL from Replicate output (may be string, array, or object). */
+/** Extract the first URL from Replicate output (may be string, array, FileOutput, or object). */
 function extractUrl(output: unknown): string | null {
   if (typeof output === "string") return output;
+
+  // FileOutput (ReadableStream with .url() method)
+  if (output && typeof output === "object" && "url" in output) {
+    const urlFn = (output as { url: () => string }).url;
+    if (typeof urlFn === "function") {
+      const url = urlFn.call(output);
+      if (typeof url === "string") return url;
+    }
+    // .url might be a string property instead
+    if (typeof (output as Record<string, unknown>).url === "string") {
+      return (output as Record<string, unknown>).url as string;
+    }
+  }
+
   if (Array.isArray(output)) {
     for (const item of output) {
-      if (typeof item === "string") return item;
-      if (typeof item === "object" && item !== null) {
-        const url = (item as Record<string, unknown>).url as string | undefined;
-        if (url) return url;
-      }
+      const url = extractUrl(item);
+      if (url) return url;
     }
     return null;
   }
+
   if (typeof output === "object" && output !== null) {
     const o = output as Record<string, unknown>;
-    if (typeof o.url === "string") return o.url;
     if (typeof o.output === "string") return o.output;
   }
   return null;

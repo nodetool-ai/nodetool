@@ -215,7 +215,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const prompt = String(inputs.prompt ?? this.prompt ?? "");`,
+      `const prompt = String(this.prompt ?? "");`,
     );
   });
 
@@ -227,7 +227,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const numSteps = Number(inputs.num_steps ?? this.num_steps ?? 50);`,
+      `const numSteps = Number(this.num_steps ?? 50);`,
     );
   });
 
@@ -239,7 +239,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 7.5);`,
+      `const guidanceScale = Number(this.guidance_scale ?? 7.5);`,
     );
   });
 
@@ -251,7 +251,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     expect(code).toContain(
-      `const applyWatermark = Boolean(inputs.apply_watermark ?? this.apply_watermark ?? true);`,
+      `const applyWatermark = Boolean(this.apply_watermark ?? true);`,
     );
   });
 
@@ -389,7 +389,7 @@ describe("NodeGenerator.generate()", () => {
   it("calls getReplicateApiKey to extract api key", () => {
     const spec = makeSpec();
     const code = gen.generate(spec, "image-generate");
-    expect(code).toContain(`getReplicateApiKey(inputs)`);
+    expect(code).toContain(`getReplicateApiKey(this._secrets)`);
   });
 
   // ── parentField filtering ─────────────────────────────────────────────────
@@ -425,7 +425,7 @@ describe("NodeGenerator.generate()", () => {
     });
     const code = gen.generate(spec, "image-generate");
     // prompt_template should not appear in scalar extraction
-    expect(code).not.toContain(`inputs.prompt_template`);
+    expect(code).not.toContain(`this.prompt_template`);
   });
 });
 

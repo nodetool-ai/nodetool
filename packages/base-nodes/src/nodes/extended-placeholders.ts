@@ -12,13 +12,8 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
     static readonly title = titleFromNodeType(nodeType);
     static readonly description = `Placeholder node for ${nodeType}`;
 
-    async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-      if ("output" in inputs) return { output: inputs.output };
-      if ("value" in inputs) return { output: inputs.value };
-      if ("input_value" in inputs) return { output: inputs.input_value };
-      const keys = Object.keys(inputs);
-      if (keys.length === 1) return { output: inputs[keys[0]] };
-      return { output: inputs };
+    async process(): Promise<Record<string, unknown>> {
+      return { output: (this as any).value ?? this.serialize() };
     }
   }
 

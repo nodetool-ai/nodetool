@@ -1,37 +1,32 @@
 import { describe, test, expect, beforeAll } from "vitest";
 import { workflow, isOutputHandle } from "../src/core.js";
 
-let math: any;
 let constant: any;
 let control: any;
 
 beforeAll(async () => {
-  math = await import("../src/generated/lib.math.js");
   constant = await import("../src/generated/nodetool.constant.js");
   control = await import("../src/generated/nodetool.control.js");
 });
 
 describe("integration: multi-node workflows", () => {
-  test("math pipeline: 3 nodes, 3 edges", () => {
+  test("pipeline: 3 nodes, 2 edges", () => {
     const a = constant.integer({ value: 5 });
-    const b = math.add({ a: a.output(), b: 1 });
-    const c = math.multiply({ a: b.output(), b: a.output() });
-    const wf = workflow(c);
-    expect(wf.nodes).toHaveLength(3);
-    expect(wf.edges).toHaveLength(3);
-    expect(wf.edges).toContainEqual(
-      expect.objectContaining({ sourceHandle: "output", targetHandle: "a" })
-    );
+    const b = constant.integer({ value: 1 });
+    const c = control.collect({ input_item: a.output() });
+    const d = control.collect({ input_item: b.output() });
+    const wf = workflow(c, d);
+    expect(wf.nodes).toHaveLength(4);
+    expect(wf.edges).toHaveLength(2);
   });
 
   test("diamond dependency — shared node deduplicated", () => {
     const shared = constant.float({ value: 3.14 });
-    const left = math.add({ a: shared.output(), b: 1 });
-    const right = math.multiply({ a: shared.output(), b: 2 });
-    const final_ = math.add({ a: left.output(), b: right.output() });
-    const wf = workflow(final_);
-    expect(wf.nodes).toHaveLength(4);
-    expect(wf.edges).toHaveLength(4);
+    const left = control.collect({ input_item: shared.output() });
+    const right = control.reroute({ input: shared.output() });
+    const wf = workflow(left, right);
+    expect(wf.nodes).toHaveLength(3);
+    expect(wf.edges).toHaveLength(2);
     const sharedNodes = wf.nodes.filter((n: any) => n.id === shared.nodeId);
     expect(sharedNodes).toHaveLength(1);
   });
@@ -46,7 +41,7 @@ describe("integration: multi-node workflows", () => {
 
   test("serializes to valid JSON", () => {
     const a = constant.integer({ value: 42 });
-    const b = math.add({ a: a.output(), b: 8 });
+    const b = control.collect({ input_item: a.output() });
     const wf = workflow(b);
     const json = JSON.stringify(wf);
     const parsed = JSON.parse(json);
@@ -61,21 +56,19 @@ describe("integration: multi-node workflows", () => {
   test("edges match expected connections", () => {
     const x = constant.float({ value: 2.0 });
     const y = constant.float({ value: 3.0 });
-    const sum = math.add({ a: x.output(), b: y.output() });
-    const wf = workflow(sum);
+    const node = control.if_({ condition: x.output(), value: y.output() });
+    const wf = workflow(node);
     expect(wf.edges).toHaveLength(2);
-    const aEdge = wf.edges.find((e: any) => e.targetHandle === "a")!;
-    expect(aEdge.source).toBe(x.nodeId);
-    expect(aEdge.sourceHandle).toBe("output");
-    expect(aEdge.target).toBe(sum.nodeId);
-    const bEdge = wf.edges.find((e: any) => e.targetHandle === "b")!;
-    expect(bEdge.source).toBe(y.nodeId);
+    const condEdge = wf.edges.find((e: any) => e.targetHandle === "condition")!;
+    expect(condEdge.source).toBe(x.nodeId);
+    expect(condEdge.sourceHandle).toBe("output");
+    expect(condEdge.target).toBe(node.nodeId);
   });
 
   test("topological order: sources before consumers", () => {
     const a = constant.integer({ value: 1 });
-    const b = math.add({ a: a.output(), b: 2 });
-    const c = math.multiply({ a: b.output(), b: 3 });
+    const b = control.reroute({ input: a.output() });
+    const c = control.collect({ input_item: b.output() });
     const wf = workflow(c);
     const ids = wf.nodes.map((n: any) => n.id);
     expect(ids.indexOf(a.nodeId)).toBeLessThan(ids.indexOf(b.nodeId));

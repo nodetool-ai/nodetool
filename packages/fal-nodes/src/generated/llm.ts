@@ -6,6 +6,7 @@ import {
   removeNulls,
   isRefSet,
   assetToFalUrl,
+  imageToDataUrl,
 } from "../fal-base.js";
 
 // Re-export alias
@@ -17,7 +18,7 @@ export class OpenRouter extends FalNode {
   static readonly description = `OpenRouter provides unified access to any LLM (Large Language Model) through a single API.
 llm, chat, openrouter, multimodel, language-model`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
+  static readonly outputTypes = { "usage": "str", "error": "str", "partial": "bool", "reasoning": "str", "output": "str" };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the chat completion" })
   declare prompt: any;
@@ -31,33 +32,33 @@ llm, chat, openrouter, multimodel, language-model`;
   @prop({ type: "float", default: 1, description: "This setting influences the variety in the model's responses. Lower values lead to more predictable and typical responses, while higher values encourage more diverse and less common responses. At 0, the model always gives the same response for a given input." })
   declare temperature: any;
 
-  @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
-  declare system_prompt: any;
-
   @prop({ type: "bool", default: false, description: "Should reasoning be the part of the final answer." })
   declare reasoning: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
-    const model = String(inputs.model ?? this.model ?? "");
-    const maxTokens = String(inputs.max_tokens ?? this.max_tokens ?? "");
-    const temperature = Number(inputs.temperature ?? this.temperature ?? 1);
-    const systemPrompt = String(inputs.system_prompt ?? this.system_prompt ?? "");
-    const reasoning = Boolean(inputs.reasoning ?? this.reasoning ?? false);
+  @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
+  declare system_prompt: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const model = String(this.model ?? "");
+    const maxTokens = String(this.max_tokens ?? "");
+    const temperature = Number(this.temperature ?? 1);
+    const reasoning = Boolean(this.reasoning ?? false);
+    const systemPrompt = String(this.system_prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
       "model": model,
       "max_tokens": maxTokens,
       "temperature": temperature,
-      "system_prompt": systemPrompt,
       "reasoning": reasoning,
+      "system_prompt": systemPrompt,
     };
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "openrouter/router", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -69,8 +70,8 @@ llm, chat, openai-compatible, openrouter, chat-completions`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
     removeNulls(args);
@@ -86,14 +87,14 @@ export class Qwen3Guard extends FalNode {
   static readonly description = `Qwen 3 Guard provides content safety and moderation using Qwen's LLM.
 llm, safety, moderation, qwen, guard`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
+  static readonly outputTypes = { "categories": "list[str]", "label": "enum" };
 
   @prop({ type: "str", default: "", description: "The input text to be classified" })
   declare prompt: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const prompt = String(inputs.prompt ?? this.prompt ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
@@ -101,7 +102,7 @@ llm, safety, moderation, qwen, guard`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/qwen-3-guard", args);
-    return { output: res };
+    return res as Record<string, unknown>;
   }
 }
 
@@ -113,8 +114,8 @@ llm, language-model, text-generation, ai`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
     removeNulls(args);
@@ -132,8 +133,8 @@ llm, language-model, text-generation, ai`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { output: "dict" };
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
     const args: Record<string, unknown> = {
     };
     removeNulls(args);
@@ -149,7 +150,7 @@ export class VideoPromptGenerator extends FalNode {
   static readonly description = `Generate video prompts using a variety of techniques including camera direction, style, pacing, special effects and more.
 llm, language-model, text-generation, ai`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { output: "dict" };
+  static readonly outputTypes = { output: "str" };
 
   @prop({ type: "str", default: "", description: "Custom technical elements (optional)" })
   declare custom_elements: any;
@@ -172,26 +173,26 @@ llm, language-model, text-generation, ai`;
   @prop({ type: "enum", default: "google/gemini-2.0-flash-001", values: ["anthropic/claude-3.5-sonnet", "anthropic/claude-3-5-haiku", "anthropic/claude-3-haiku", "google/gemini-2.5-flash-lite", "google/gemini-2.0-flash-001", "meta-llama/llama-3.2-1b-instruct", "meta-llama/llama-3.2-3b-instruct", "meta-llama/llama-3.1-8b-instruct", "meta-llama/llama-3.1-70b-instruct", "openai/gpt-4o-mini", "openai/gpt-4o", "deepseek/deepseek-r1"], description: "Model to use" })
   declare model: any;
 
-  @prop({ type: "enum", default: "None", values: ["None", "Steadicam flow", "Drone aerials", "Handheld urgency", "Crane elegance", "Dolly precision", "VR 360", "Multi-angle rig", "Static tripod", "Gimbal smoothness", "Slider motion", "Jib sweep", "POV immersion", "Time-slice array", "Macro extreme", "Tilt-shift miniature", "Snorricam character", "Whip pan dynamics", "Dutch angle tension", "Underwater housing", "Periscope lens"], description: "Camera movement style" })
-  declare camera_style: any;
+  @prop({ type: "enum", default: "Medium", values: ["Short", "Medium", "Long"], description: "Length of the prompt" })
+  declare prompt_length: any;
 
   @prop({ type: "str", default: "", description: "Core concept or thematic input for the video prompt" })
   declare input_concept: any;
 
-  @prop({ type: "enum", default: "Medium", values: ["Short", "Medium", "Long"], description: "Length of the prompt" })
-  declare prompt_length: any;
+  @prop({ type: "enum", default: "None", values: ["None", "Steadicam flow", "Drone aerials", "Handheld urgency", "Crane elegance", "Dolly precision", "VR 360", "Multi-angle rig", "Static tripod", "Gimbal smoothness", "Slider motion", "Jib sweep", "POV immersion", "Time-slice array", "Macro extreme", "Tilt-shift miniature", "Snorricam character", "Whip pan dynamics", "Dutch angle tension", "Underwater housing", "Periscope lens"], description: "Camera movement style" })
+  declare camera_style: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(inputs);
-    const customElements = String(inputs.custom_elements ?? this.custom_elements ?? "");
-    const style = String(inputs.style ?? this.style ?? "Simple");
-    const cameraDirection = String(inputs.camera_direction ?? this.camera_direction ?? "None");
-    const pacing = String(inputs.pacing ?? this.pacing ?? "None");
-    const specialEffects = String(inputs.special_effects ?? this.special_effects ?? "None");
-    const model = String(inputs.model ?? this.model ?? "google/gemini-2.0-flash-001");
-    const cameraStyle = String(inputs.camera_style ?? this.camera_style ?? "None");
-    const inputConcept = String(inputs.input_concept ?? this.input_concept ?? "");
-    const promptLength = String(inputs.prompt_length ?? this.prompt_length ?? "Medium");
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const customElements = String(this.custom_elements ?? "");
+    const style = String(this.style ?? "Simple");
+    const cameraDirection = String(this.camera_direction ?? "None");
+    const pacing = String(this.pacing ?? "None");
+    const specialEffects = String(this.special_effects ?? "None");
+    const model = String(this.model ?? "google/gemini-2.0-flash-001");
+    const promptLength = String(this.prompt_length ?? "Medium");
+    const inputConcept = String(this.input_concept ?? "");
+    const cameraStyle = String(this.camera_style ?? "None");
 
     const args: Record<string, unknown> = {
       "custom_elements": customElements,
@@ -200,20 +201,20 @@ llm, language-model, text-generation, ai`;
       "pacing": pacing,
       "special_effects": specialEffects,
       "model": model,
-      "camera_style": cameraStyle,
-      "input_concept": inputConcept,
       "prompt_length": promptLength,
+      "input_concept": inputConcept,
+      "camera_style": cameraStyle,
     };
 
-    const imageRef = inputs.image as Record<string, unknown> | undefined;
+    const imageRef = this.image as Record<string, unknown> | undefined;
     if (isRefSet(imageRef)) {
-      const imageUrl = await assetToFalUrl(apiKey, imageRef!);
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
       if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/video-prompt-generator", args);
-    return { output: res };
+    return { output: (res as any).output ?? "" };
   }
 }
 

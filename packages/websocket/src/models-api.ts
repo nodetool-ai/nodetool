@@ -250,8 +250,9 @@ function isDownloadedFromFiles(
 }
 
 function getHfCacheRoot(): string {
-  return process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME
-    ? join(process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME ?? "", "hub")
+  const cacheEnv = process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME;
+  return cacheEnv
+    ? join(cacheEnv, "hub")
     : join(homedir(), ".cache", "huggingface", "hub");
 }
 
@@ -378,22 +379,22 @@ export async function registerPythonProviders(bridge: PythonBridge): Promise<str
   return registered;
 }
 
-/** Returns only providers whose required credentials are present (env or DB). */
-async function getAvailableProviderIds(): Promise<ProviderId[]> {
+/** Returns only providers whose required credentials are present (env or DB) for the given user. */
+async function getAvailableProviderIds(userId = "1"): Promise<ProviderId[]> {
   const ids = listRegisteredProviderIds();
   const checks = await Promise.all(
     ids.map(async (id) => ({
       id,
-      available: await isProviderConfigured(id),
+      available: await isProviderConfigured(id, userId),
     })),
   );
   return checks.filter((c) => c.available).map((c) => c.id);
 }
 
-async function instantiateProvider(provider: ProviderId): Promise<BaseProvider | null> {
-  if (!(await isProviderConfigured(provider))) return null;
+async function instantiateProvider(provider: ProviderId, userId = "1"): Promise<BaseProvider | null> {
+  if (!(await isProviderConfigured(provider, userId))) return null;
   try {
-    return await getProvider(provider);
+    return await getProvider(provider, userId);
   } catch {
     return null;
   }
@@ -419,67 +420,67 @@ function providerCapabilities(provider: BaseProvider): string[] {
   return capabilities;
 }
 
-async function getProvidersInfo(): Promise<ProviderInfo[]> {
+async function getProvidersInfo(userId = "1"): Promise<ProviderInfo[]> {
   const infos: ProviderInfo[] = [];
-  for (const provider of await getAvailableProviderIds()) {
-    const instance = await instantiateProvider(provider);
+  for (const provider of await getAvailableProviderIds(userId)) {
+    const instance = await instantiateProvider(provider, userId);
     if (!instance) continue;
     infos.push({ provider, capabilities: providerCapabilities(instance) });
   }
   return infos;
 }
 
-async function withProvider<T>(provider: ProviderId, run: (instance: BaseProvider) => Promise<T>): Promise<T> {
-  const instance = await instantiateProvider(provider);
+async function withProvider<T>(provider: ProviderId, run: (instance: BaseProvider) => Promise<T>, userId = "1"): Promise<T> {
+  const instance = await instantiateProvider(provider, userId);
   if (!instance) {
     throw new Error(`Provider ${provider} not available`);
   }
   return run(instance);
 }
 
-async function getLanguageModelsByProvider(provider: ProviderId): Promise<LanguageModel[]> {
+async function getLanguageModelsByProvider(provider: ProviderId, userId = "1"): Promise<LanguageModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableLanguageModels());
+    return await withProvider(provider, (instance) => instance.getAvailableLanguageModels(), userId);
   } catch {
     return [];
   }
 }
 
-async function getImageModelsByProvider(provider: ProviderId): Promise<ImageModel[]> {
+async function getImageModelsByProvider(provider: ProviderId, userId = "1"): Promise<ImageModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableImageModels());
+    return await withProvider(provider, (instance) => instance.getAvailableImageModels(), userId);
   } catch {
     return [];
   }
 }
 
-async function getTtsModelsByProvider(provider: ProviderId): Promise<TTSModel[]> {
+async function getTtsModelsByProvider(provider: ProviderId, userId = "1"): Promise<TTSModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableTTSModels());
+    return await withProvider(provider, (instance) => instance.getAvailableTTSModels(), userId);
   } catch {
     return [];
   }
 }
 
-async function getAsrModelsByProvider(provider: ProviderId): Promise<ASRModel[]> {
+async function getAsrModelsByProvider(provider: ProviderId, userId = "1"): Promise<ASRModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableASRModels());
+    return await withProvider(provider, (instance) => instance.getAvailableASRModels(), userId);
   } catch {
     return [];
   }
 }
 
-async function getVideoModelsByProvider(provider: ProviderId): Promise<VideoModel[]> {
+async function getVideoModelsByProvider(provider: ProviderId, userId = "1"): Promise<VideoModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableVideoModels());
+    return await withProvider(provider, (instance) => instance.getAvailableVideoModels(), userId);
   } catch {
     return [];
   }
 }
 
-async function getEmbeddingModelsByProvider(provider: ProviderId): Promise<EmbeddingModel[]> {
+async function getEmbeddingModelsByProvider(provider: ProviderId, userId = "1"): Promise<EmbeddingModel[]> {
   try {
-    return await withProvider(provider, (instance) => instance.getAvailableEmbeddingModels());
+    return await withProvider(provider, (instance) => instance.getAvailableEmbeddingModels(), userId);
   } catch {
     return [];
   }
@@ -538,17 +539,17 @@ function selectRecommended(modality: RecommendedUnifiedModel["modality"], task?:
   return RECOMMENDED_MODELS.filter((model) => model.modality === modality && (!task || model.task === task));
 }
 
-async function getAllModels(): Promise<UnifiedModel[]> {
+async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
 
   // Always include recommended models as a baseline
   all.push(...RECOMMENDED_MODELS);
 
   // Include language models from all available providers
-  const availableIds = await getAvailableProviderIds();
+  const availableIds = await getAvailableProviderIds(userId);
   for (const providerId of availableIds) {
     try {
-      const models = await getLanguageModelsByProvider(providerId);
+      const models = await getLanguageModelsByProvider(providerId, userId);
       all.push(...models.map(toUnifiedLanguageModel));
     } catch {
       // Provider unavailable — skip
@@ -673,10 +674,11 @@ async function fastCacheStatus(items: HFFastCacheStatusRequest[]): Promise<HFFas
 export async function handleModelsApiRequest(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
   const path = pathFromModelsPrefix(url.pathname);
+  const userId = request.headers.get("x-user-id") ?? "1";
 
   if (path === "/providers") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getProvidersInfo());
+    return jsonResponse(await getProvidersInfo(userId));
   }
 
   if (path === "/recommended") {
@@ -737,7 +739,7 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
 
   if (path === "/all") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getAllModels());
+    return jsonResponse(await getAllModels(userId));
   }
 
   if (path === "/huggingface") {
@@ -801,51 +803,51 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
     }
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
 
-    const models = await getLanguageModelsByProvider("ollama");
+    const models = await getLanguageModelsByProvider("ollama", userId);
     return jsonResponse(models.map((model) => toOllamaModel(model)));
   }
 
   const llmProvider = parseProvider(path, "/llm/");
   if (llmProvider) {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getLanguageModelsByProvider(llmProvider));
+    return jsonResponse(await getLanguageModelsByProvider(llmProvider, userId));
   }
 
   const imageProvider = parseProvider(path, "/image/");
   if (imageProvider) {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getImageModelsByProvider(imageProvider));
+    return jsonResponse(await getImageModelsByProvider(imageProvider, userId));
   }
 
   if (path === "/tts") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const availableIds = await getAvailableProviderIds();
-    const providers = await Promise.all(availableIds.map((provider) => getTtsModelsByProvider(provider)));
+    const availableIds = await getAvailableProviderIds(userId);
+    const providers = await Promise.all(availableIds.map((provider) => getTtsModelsByProvider(provider, userId)));
     return jsonResponse(providers.flat());
   }
 
   const ttsProvider = parseProvider(path, "/tts/");
   if (ttsProvider) {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getTtsModelsByProvider(ttsProvider));
+    return jsonResponse(await getTtsModelsByProvider(ttsProvider, userId));
   }
 
   const asrProvider = parseProvider(path, "/asr/");
   if (asrProvider) {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getAsrModelsByProvider(asrProvider));
+    return jsonResponse(await getAsrModelsByProvider(asrProvider, userId));
   }
 
   const videoProvider = parseProvider(path, "/video/");
   if (videoProvider) {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getVideoModelsByProvider(videoProvider));
+    return jsonResponse(await getVideoModelsByProvider(videoProvider, userId));
   }
 
   const embeddingProvider = parseProvider(path, "/embedding/");
   if (embeddingProvider) {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse(await getEmbeddingModelsByProvider(embeddingProvider));
+    return jsonResponse(await getEmbeddingModelsByProvider(embeddingProvider, userId));
   }
 
   if (path === "/ollama_model_info") {

@@ -141,7 +141,7 @@ export class SchemaNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.columns ?? {} };
   }
 }
@@ -171,9 +171,9 @@ export class FilterDataframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.df ?? this.df);
-    const condition = String(inputs.condition ?? this.condition ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.df ?? this.df);
+    const condition = String(this.condition ?? this.condition ?? "");
     return { output: toDataframe(applyFilter(rows, condition)) };
   }
 }
@@ -206,10 +206,10 @@ export class SliceDataframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const start = Number(inputs.start_index ?? this.start_index ?? 0);
-    let end = Number(inputs.end_index ?? this.end_index ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const start = Number(this.start_index ?? this.start_index ?? 0);
+    let end = Number(this.end_index ?? this.end_index ?? -1);
     if (end < 0) end = rows.length;
     return { output: toDataframe(rows.slice(start, end)) };
   }
@@ -249,10 +249,10 @@ export class SaveDataframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.df ?? this.df);
-    const folder = String(inputs.folder ?? this.folder ?? ".");
-    const filename = dateName(String(inputs.name ?? this.name ?? "output.csv"));
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.df ?? this.df);
+    const folder = String(this.folder ?? this.folder ?? ".");
+    const filename = dateName(String(this.name ?? this.name ?? "output.csv"));
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, toCsv(rows), "utf8");
@@ -275,8 +275,8 @@ export class ImportCSVNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const csv = String(inputs.csv_data ?? this.csv_data ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const csv = String(this.csv_data ?? this.csv_data ?? "");
     return { output: toDataframe(parseCsv(csv)) };
   }
 }
@@ -296,8 +296,8 @@ export class LoadCSVURLNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const url = String(inputs.url ?? this.url ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const url = String(this.url ?? this.url ?? "");
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch CSV URL: ${response.status}`);
@@ -322,8 +322,8 @@ export class LoadCSVFileDataNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const file = String(inputs.file_path ?? this.file_path ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const file = String(this.file_path ?? this.file_path ?? "");
     if (!file) throw new Error("file_path cannot be empty");
     const csv = await fs.readFile(file, "utf8");
     return { output: toDataframe(parseCsv(csv)) };
@@ -345,9 +345,9 @@ export class FromListNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = Array.isArray(inputs.values ?? this.values)
-      ? (inputs.values ?? this.values) as unknown[]
+  async process(): Promise<Record<string, unknown>> {
+    const values = Array.isArray(this.values ?? this.values)
+      ? (this.values ?? this.values) as unknown[]
       : [];
     const rows: Row[] = [];
     for (const item of values) {
@@ -390,8 +390,8 @@ export class JSONToDataframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.text ?? this.text ?? "[]");
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? this.text ?? "[]");
     const parsed = JSON.parse(text);
     return { output: toDataframe(asRows(parsed)) };
   }
@@ -419,8 +419,8 @@ export class ToListNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: asRows(inputs.dataframe ?? this.dataframe) };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: asRows(this.dataframe ?? this.dataframe) };
   }
 }
 
@@ -449,9 +449,9 @@ export class SelectColumnNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const cols = String(inputs.columns ?? this.columns ?? "")
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const cols = String(this.columns ?? this.columns ?? "")
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean);
@@ -489,9 +489,9 @@ export class ExtractColumnNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const column = String(inputs.column_name ?? this.column_name ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const column = String(this.column_name ?? this.column_name ?? "");
     return { output: rows.map((row) => row[column]) };
   }
 }
@@ -524,11 +524,11 @@ export class AddColumnNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const column = String(inputs.column_name ?? this.column_name ?? "");
-    const values = Array.isArray(inputs.values ?? this.values)
-      ? (inputs.values ?? this.values) as unknown[]
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const column = String(this.column_name ?? this.column_name ?? "");
+    const values = Array.isArray(this.values ?? this.values)
+      ? (this.values ?? this.values) as unknown[]
       : [];
     return {
       output: toDataframe(
@@ -573,9 +573,9 @@ export class MergeDataframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asRows(inputs.dataframe_a ?? this.dataframe_a);
-    const b = asRows(inputs.dataframe_b ?? this.dataframe_b);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asRows(this.dataframe_a ?? this.dataframe_a);
+    const b = asRows(this.dataframe_b ?? this.dataframe_b);
     const len = Math.max(a.length, b.length);
     const out: Row[] = [];
     for (let i = 0; i < len; i += 1) {
@@ -617,9 +617,9 @@ export class AppendDataframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asRows(inputs.dataframe_a ?? this.dataframe_a);
-    const b = asRows(inputs.dataframe_b ?? this.dataframe_b);
+  async process(): Promise<Record<string, unknown>> {
+    const a = asRows(this.dataframe_a ?? this.dataframe_a);
+    const b = asRows(this.dataframe_b ?? this.dataframe_b);
     if (a.length === 0) return { output: toDataframe(b) };
     if (b.length === 0) return { output: toDataframe(a) };
     const aCols = Object.keys(a[0]).sort().join(",");
@@ -666,10 +666,10 @@ export class JoinDataframeNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = asRows(inputs.dataframe_a ?? this.dataframe_a);
-    const b = asRows(inputs.dataframe_b ?? this.dataframe_b);
-    const joinOn = String(inputs.join_on ?? this.join_on ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const a = asRows(this.dataframe_a ?? this.dataframe_a);
+    const b = asRows(this.dataframe_b ?? this.dataframe_b);
+    const joinOn = String(this.join_on ?? this.join_on ?? "");
     const mapB = new Map<unknown, Row[]>();
     for (const row of b) {
       const key = row[joinOn];
@@ -710,12 +710,12 @@ export class RowIteratorNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
     for (const [index, row] of rows.entries()) {
       yield { dict: row, index };
     }
@@ -747,9 +747,9 @@ export class FindRowNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.df ?? this.df);
-    const condition = String(inputs.condition ?? this.condition ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.df ?? this.df);
+    const condition = String(this.condition ?? this.condition ?? "");
     const filtered = applyFilter(rows, condition).slice(0, 1);
     return { output: toDataframe(filtered) };
   }
@@ -779,9 +779,9 @@ export class SortByColumnNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.df ?? this.df);
-    const col = String(inputs.column ?? this.column ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.df ?? this.df);
+    const col = String(this.column ?? this.column ?? "");
     const sorted = [...rows].sort((a, b) => {
       const left = a[col];
       const right = b[col];
@@ -818,8 +818,8 @@ export class DropDuplicatesNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.df ?? this.df);
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.df ?? this.df);
     return { output: toDataframe(uniqueRows(rows)) };
   }
 }
@@ -846,8 +846,8 @@ export class DropNANode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.df ?? this.df);
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.df ?? this.df);
     const out = rows.filter((row) =>
       Object.values(row).every((v) => v !== null && v !== undefined && v !== "")
     );
@@ -879,12 +879,12 @@ export class ForEachRowNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
     for (const [index, row] of rows.entries()) {
       yield { row, index };
     }
@@ -914,12 +914,12 @@ export class LoadCSVAssetsNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
-    const folder = String(inputs.folder ?? this.folder ?? ".");
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const folder = String(this.folder ?? this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".csv")) continue;
@@ -958,13 +958,13 @@ export class AggregateNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const groupCols = String(inputs.columns ?? this.columns ?? "")
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const groupCols = String(this.columns ?? this.columns ?? "")
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean);
-    const agg = String(inputs.aggregation ?? this.aggregation ?? "sum");
+    const agg = String(this.aggregation ?? this.aggregation ?? "sum");
 
     const groups = new Map<string, Row[]>();
     for (const row of rows) {
@@ -1035,12 +1035,12 @@ export class PivotNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const indexCol = String(inputs.index ?? this.index ?? "");
-    const colCol = String(inputs.columns ?? this.columns ?? "");
-    const valCol = String(inputs.values ?? this.values ?? "");
-    const agg = String(inputs.aggfunc ?? this.aggfunc ?? "sum");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const indexCol = String(this.index ?? this.index ?? "");
+    const colCol = String(this.columns ?? this.columns ?? "");
+    const valCol = String(this.values ?? this.values ?? "");
+    const agg = String(this.aggfunc ?? this.aggfunc ?? "sum");
 
     const groups = new Map<unknown, Map<unknown, number[]>>();
     for (const row of rows) {
@@ -1098,9 +1098,9 @@ export class RenameNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const mapString = String(inputs.rename_map ?? this.rename_map ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const mapString = String(this.rename_map ?? this.rename_map ?? "");
     const rename = new Map<string, string>();
     for (const pair of mapString.split(",")) {
       if (!pair.includes(":")) continue;
@@ -1147,11 +1147,11 @@ export class FillNANode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const value = inputs.value ?? this.value ?? 0;
-    const method = String(inputs.method ?? this.method ?? "value");
-    const colsRaw = String(inputs.columns ?? this.columns ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const value = this.value ?? this.value ?? 0;
+    const method = String(this.method ?? this.method ?? "value");
+    const colsRaw = String(this.columns ?? this.columns ?? "");
     const allCols = [...new Set(rows.flatMap((r) => Object.keys(r)))];
     const cols = colsRaw
       ? colsRaw.split(",").map((c) => c.trim()).filter(Boolean)
@@ -1231,10 +1231,10 @@ export class SaveCSVDataframeFileNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const rows = asRows(inputs.dataframe ?? this.dataframe);
-    const folder = String(inputs.folder ?? this.folder ?? "");
-    const filenameRaw = String(inputs.filename ?? this.filename ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const rows = asRows(this.dataframe ?? this.dataframe);
+    const folder = String(this.folder ?? this.folder ?? "");
+    const filenameRaw = String(this.filename ?? this.filename ?? "");
     if (!folder) throw new Error("folder cannot be empty");
     if (!filenameRaw) throw new Error("filename cannot be empty");
     const filename = dateName(filenameRaw);
@@ -1261,8 +1261,8 @@ export class FilterNoneNode extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = inputs.value ?? this.value ?? null;
+  async process(): Promise<Record<string, unknown>> {
+    const value = this.value ?? this.value ?? null;
     if (value == null) {
       return {};
     }

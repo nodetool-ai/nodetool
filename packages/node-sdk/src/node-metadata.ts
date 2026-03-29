@@ -209,6 +209,7 @@ export function getNodeMetadata(nodeClass: NodeClass, options: GetNodeMetadataOp
     recommended_models: nodeClass.recommendedModels ?? [],
     basic_fields: nodeClass.basicFields ?? properties.map((property) => property.name),
     required_settings: nodeClass.requiredSettings ?? [],
+    required_runtimes: nodeClass.requiredRuntimes ?? [],
     is_streaming_input: nodeClass.isStreamingInput || false,
     is_streaming_output: nodeClass.isStreamingOutput || false,
     is_controlled: nodeClass.isControlled || false,

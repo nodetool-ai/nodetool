@@ -1,8 +1,9 @@
 /**
- * Universal Code Node — JavaScript execution via Function constructor.
+ * Universal Code Node — sandboxed JavaScript execution via vm module.
  *
- * Runs user code in the same V8 VM using `new Function()`.
- * Dynamic inputs are injected as function parameters; the return value defines outputs.
+ * Runs user code in an isolated vm context with standard JavaScript plus
+ * fetch(), workspace, getSecret(), uuid(), and sleep() APIs.
+ * Dynamic inputs are injected as global variables in the sandbox.
  *
  * Example:
  *   // inputs: { x: 5, text: "hello" }
@@ -14,6 +15,8 @@
  */
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
+import { runInSandbox } from "@nodetool/agents";
 
 /** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([
@@ -35,10 +38,16 @@ export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly title = "Code";
   static readonly description =
-    "Execute JavaScript code. Dynamic inputs become global variables; return an object to define outputs.\n    code, javascript, function, script, dynamic";
+    "Execute JavaScript in a sandboxed environment. " +
+    "Libraries: _ (lodash), dayjs (dates), cheerio (HTML parsing), csvParse (CSV), validator (email/URL/IP validation). " +
+    "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
+    "Dynamic inputs become global variables; return an object to define outputs.\n    code, javascript, function, script, dynamic, lodash, dayjs, cheerio, csv, validator";
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
+
+  /** Persistent state across streaming invocations; reset each workflow run. */
+  private _state: Record<string, unknown> = {};
 
   @prop({
     type: "str",
@@ -47,6 +56,9 @@ export class CodeNode extends BaseNode {
     description:
       "JavaScript code to execute. " +
       "Dynamic inputs are available as variables. " +
+      "Libraries: _ (lodash), dayjs (dates), cheerio (HTML parsing), csvParse (CSV), validator (string validation). " +
+      "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
+      "A persistent `state` object survives across streaming invocations. " +
       "Return an object — its keys become output handles.",
   })
   declare code: string;
@@ -59,40 +71,70 @@ export class CodeNode extends BaseNode {
   })
   declare timeout: number;
 
-  async process(
-    inputs: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "return {};");
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
+  @prop({
+    type: "enum",
+    default: "zip_all",
+    title: "Sync Mode",
+    description:
+      "How to handle streaming inputs. " +
+      "'zip_all' waits for all inputs before executing. " +
+      "'on_any' fires each time any input arrives (for stream processing).",
+    values: ["zip_all", "on_any"],
+  })
+  declare sync_mode: string;
+
+  async initialize(): Promise<void> {
+    this._state = {};
+  }
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? "return {};");
+    const timeout = Number(this.timeout ?? 30);
 
     // Extract dynamic inputs (filter reserved/invalid keys).
-    const dynamicInputs = extractDynamicInputs(inputs);
+    // Merge declared props with dynamicProps so that dynamic inputs are available.
+    const allInputs = {
+      ...this.serialize(),
+      ...Object.fromEntries(this.dynamicProps),
+    };
+    const dynamicInputs = extractDynamicInputs(allInputs);
 
     // Build the function body with implicit return support.
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
 
-    try {
-      const result = await executeCode(body, dynamicInputs, timeout);
-      return normalizeOutput(result);
-    } catch (err) {
-      throw translateError(err);
+    // Inject state as a direct reference so mutations persist across calls.
+    const globals = { ...deepCopyInputs(dynamicInputs), state: this._state };
+
+    const sandboxResult = await runInSandbox({
+      code: body,
+      context,
+      timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
+      globals,
+    });
+
+    if (!sandboxResult.success) {
+      throw new Error(sandboxResult.error ?? "Code execution failed");
     }
+
+    return normalizeOutput(sandboxResult.result);
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>,
-  ): AsyncGenerator<Record<string, unknown>> {
-    const code = String(inputs.code ?? this.code ?? "return {};");
-    const timeout = Number(inputs.timeout ?? this.timeout ?? 30);
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const code = String(this.code ?? "return {};");
+    const timeout = Number(this.timeout ?? 30);
 
     // If no yield in code, fall back to single-shot process().
     if (!hasYieldStatement(code)) {
-      yield await this.process(inputs);
+      yield await this.process(context);
       return;
     }
 
     // For streaming: collect all yielded values, then emit them.
-    const dynamicInputs = extractDynamicInputs(inputs);
+    const allInputs = {
+      ...this.serialize(),
+      ...Object.fromEntries(this.dynamicProps),
+    };
+    const dynamicInputs = extractDynamicInputs(allInputs);
 
     const wrappedBody = `
       const __yielded = [];
@@ -101,58 +143,29 @@ export class CodeNode extends BaseNode {
       return __yielded;
     `;
 
-    try {
-      const items = await executeCode(wrappedBody, dynamicInputs, timeout) as unknown[];
+    // Inject state as a direct reference so mutations persist across calls.
+    const globals = { ...deepCopyInputs(dynamicInputs), state: this._state };
+
+    const sandboxResult = await runInSandbox({
+      code: wrappedBody,
+      context,
+      timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
+      globals,
+    });
+
+    if (!sandboxResult.success) {
+      throw new Error(sandboxResult.error ?? "Code execution failed");
+    }
+
+    const items = sandboxResult.result as unknown[];
+    if (Array.isArray(items)) {
       for (const item of items) {
         if (item !== null && item !== undefined) {
           yield normalizeOutput(item);
         }
       }
-    } catch (err) {
-      throw translateError(err);
     }
   }
-}
-
-// ---------------------------------------------------------------------------
-// Execution
-// ---------------------------------------------------------------------------
-
-/**
- * Execute user code via AsyncFunction constructor.
- * Dynamic inputs are passed as named function parameters.
- */
-async function executeCode(
-  body: string,
-  dynamicInputs: Record<string, unknown>,
-  timeoutSeconds: number,
-): Promise<unknown> {
-  const paramNames = Object.keys(dynamicInputs);
-  const paramValues = Object.values(dynamicInputs).map(deepCopyable);
-
-  // Provide a no-op console to prevent ReferenceError if user code calls console.log
-  const consoleShim = { log() {}, warn() {}, error() {}, info() {}, debug() {} };
-
-  // Build an async function with named parameters + console
-  const allParamNames = [...paramNames, "console"];
-  const allParamValues = [...paramValues, consoleShim];
-
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-  const fn = new AsyncFunction(...allParamNames, body);
-
-  if (timeoutSeconds > 0) {
-    const timeoutMs = timeoutSeconds * 1000;
-    const result = await Promise.race([
-      fn(...allParamValues),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Script execution timed out")), timeoutMs),
-      ),
-    ]);
-    return result;
-  }
-
-  return fn(...allParamValues);
 }
 
 // ---------------------------------------------------------------------------
@@ -161,7 +174,7 @@ async function executeCode(
 
 /** Extract dynamic inputs, filtering reserved/invalid keys. */
 function extractDynamicInputs(inputs: Record<string, unknown>): Record<string, unknown> {
-  const reserved = new Set(["code", "timeout"]);
+  const reserved = new Set(["code", "timeout", "sync_mode"]);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (reserved.has(key) || key.startsWith("_")) continue;
@@ -173,18 +186,23 @@ function extractDynamicInputs(inputs: Record<string, unknown>): Record<string, u
 }
 
 /**
- * Make a value safe for passing to user code.
+ * Deep-copy all input values to make them safe for the sandbox.
  * Strips functions, symbols, and other non-serializable types.
  */
-function deepCopyable(value: unknown): unknown {
-  if (value === null || value === undefined) return value;
-  // JSON round-trip strips functions, symbols, undefined values, Dates→strings, etc.
-  try {
-    return JSON.parse(JSON.stringify(value));
-  } catch {
-    // Circular references or other issues — return null.
-    return null;
+function deepCopyInputs(inputs: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(inputs)) {
+    if (value === null || value === undefined) {
+      result[key] = value;
+      continue;
+    }
+    try {
+      result[key] = JSON.parse(JSON.stringify(value));
+    } catch {
+      result[key] = null;
+    }
   }
+  return result;
 }
 
 /** Normalize return value to Record<string, unknown>. */
@@ -198,19 +216,6 @@ function normalizeOutput(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   return { output: value };
-}
-
-/** Translate errors to user-friendly messages. */
-function translateError(err: unknown): Error {
-  const msg = (err as Error).message ?? String(err);
-  if (msg.includes("Script execution timed out")) {
-    return new Error(`Code execution timed out`);
-  }
-  // Check for syntax errors.
-  if (msg.includes("SyntaxError") || msg.includes("Unexpected")) {
-    return new Error(`Syntax error in code: ${msg}`);
-  }
-  return new Error(msg);
 }
 
 /**

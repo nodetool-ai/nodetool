@@ -14,6 +14,7 @@ import type {
   Edge,
   NodeDescriptor,
   GraphData,
+  SyncMode,
 } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.kernel.graph");
@@ -299,7 +300,7 @@ export class Graph {
         }
       }
 
-      const descriptorDefaults = resolved.descriptorDefaults ?? {};
+      const descriptorDefaults: Partial<NodeDescriptor> = resolved.descriptorDefaults ?? {};
       const hydratedNode: NodeDescriptor = {
         ...descriptorDefaults,
         ...node,
@@ -313,7 +314,7 @@ export class Graph {
           ...(resolved.outputs ?? {}),
           ...(node.outputs ?? {}),
         },
-        sync_mode: node.sync_mode ?? descriptorDefaults.sync_mode ?? "on_any",
+        sync_mode: node.sync_mode ?? ((node.properties as Record<string, unknown> | undefined)?.sync_mode as SyncMode | undefined) ?? descriptorDefaults.sync_mode ?? "on_any",
         // Streaming/control flags: registry metadata (descriptorDefaults) is
         // the source of truth.  Saved graph data may have stale or missing
         // values, so always prefer the registry if it declares true.

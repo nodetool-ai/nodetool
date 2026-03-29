@@ -6,8 +6,11 @@ export class Passthrough extends BaseNode {
   static readonly title = "Passthrough";
   static readonly description = "Passes input value through unchanged";
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: inputs.value };
+  @prop({ type: "any", default: null })
+  declare value: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.value };
   }
 }
 
@@ -23,9 +26,9 @@ export class Add extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = (inputs.a ?? this.a ?? 0) as number;
-    const b = (inputs.b ?? this.b ?? 0) as number;
+  async process(): Promise<Record<string, unknown>> {
+    const a = (this.a ?? 0) as number;
+    const b = (this.b ?? 0) as number;
     return { result: a + b };
   }
 }
@@ -42,9 +45,9 @@ export class Multiply extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = (inputs.a ?? this.a ?? 1) as number;
-    const b = (inputs.b ?? this.b ?? 1) as number;
+  async process(): Promise<Record<string, unknown>> {
+    const a = (this.a ?? 1) as number;
+    const b = (this.b ?? 1) as number;
     return { result: a * b };
   }
 }
@@ -58,7 +61,7 @@ export class Constant extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value };
   }
 }
@@ -78,9 +81,9 @@ export class StringConcat extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const a = String(inputs.a ?? this.a ?? "");
-    const b = String(inputs.b ?? this.b ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const a = String(this.a ?? "");
+    const b = String(this.b ?? "");
     const sep = String(this.separator ?? "");
     return { result: a + sep + b };
   }
@@ -98,11 +101,11 @@ export class FormatText extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     const template = String(
-      inputs.template ?? this.template ?? "{{ text }}"
+      this.template ?? "{{ text }}"
     );
-    const text = String(inputs.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     return { result: template.replace(/\{\{\s*text\s*\}\}/g, text) };
   }
 }
@@ -123,10 +126,10 @@ export class ThresholdProcessor extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = (inputs.value ?? this.value ?? 0) as number;
-    const threshold = (inputs.threshold ?? this.threshold ?? 0.5) as number;
-    const mode = String(inputs.mode ?? this.mode ?? "normal");
+  async process(): Promise<Record<string, unknown>> {
+    const value = (this.value ?? 0) as number;
+    const threshold = (this.threshold ?? 0.5) as number;
+    const mode = String(this.mode ?? "normal");
     const exceeds = mode === "strict" ? value > threshold : value >= threshold;
     return {
       result: `value=${value}, threshold=${threshold}, mode=${mode}, exceeds=${exceeds}`,
@@ -143,7 +146,7 @@ export class ErrorNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     throw new Error(String(this.message ?? "Node error"));
   }
 }
@@ -157,7 +160,7 @@ export class SlowNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     await new Promise((r) =>
       setTimeout(r, (this.delayMs as number) ?? 100)
     );
@@ -178,15 +181,11 @@ export class StreamingCounter extends BaseNode {
 
 
 
-  async process(
-    _inputs: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(
-    _inputs: Record<string, unknown>
-  ): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const count = (this.count as number) ?? 3;
     const start = (this.start as number) ?? 0;
     for (let i = 0; i < count; i++) {
@@ -208,9 +207,9 @@ export class IntAccumulator extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     this._execCount++;
-    const value = (inputs.value ?? this.value ?? 0) as number;
+    const value = (this.value ?? 0) as number;
     this._accumulated.push(value);
     return {
       count: this._execCount,
@@ -241,11 +240,11 @@ export class SimpleController extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(_inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     yield {
       __control__: {
         event_type: "run",
@@ -274,11 +273,11 @@ export class MultiTriggerController extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(_inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const count = (this.count as number) ?? 3;
     for (let i = 0; i < count; i++) {
       yield {
@@ -304,11 +303,11 @@ export class StopEventController extends BaseNode {
   static readonly description = "Emits a StopEvent via __control__ handle";
   static readonly isStreamingOutput = true;
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(_inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     yield { __control__: { event_type: "stop" } };
   }
 }
@@ -327,7 +326,7 @@ export class StreamingInputProcessor extends BaseNode {
   static readonly description = "Streaming input node – called once with empty inputs";
   static readonly isStreamingInput = true;
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { result: "processed" };
   }
 }
@@ -347,11 +346,11 @@ export class FullStreamingNode extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { result: "full-streaming" };
   }
 
-  async *genProcess(_inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const count = (this.count as number) ?? 2;
     for (let i = 0; i < count; i++) {
       yield { value: i };
@@ -371,8 +370,11 @@ export class ListSumProcessor extends BaseNode {
   static readonly title = "List Sum Processor";
   static readonly description = "Sums an array of numbers";
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const values = (inputs.values ?? []) as number[];
+  @prop({ type: "list[int]", default: [] })
+  declare values: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const values = (this.values ?? []) as number[];
     const sum = Array.isArray(values)
       ? values.reduce((a: number, b) => a + (b as number), 0)
       : 0;
@@ -395,8 +397,8 @@ export class ConditionalErrorProcessor extends BaseNode {
 
 
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const shouldFail = (inputs.shouldFail ?? this.shouldFail ?? false) as boolean;
+  async process(): Promise<Record<string, unknown>> {
+    const shouldFail = (this.shouldFail ?? false) as boolean;
     if (shouldFail) {
       throw new Error(String(this.message ?? "conditional error"));
     }
@@ -412,7 +414,7 @@ export class SilentNode extends BaseNode {
   static readonly title = "Silent Node";
   static readonly description = "Runs but emits no output";
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 }
@@ -430,7 +432,7 @@ export class IntInput extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? 0 };
   }
 }
@@ -444,7 +446,7 @@ export class FloatInput extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? 0.0 };
   }
 }
@@ -458,7 +460,7 @@ export class StringInput extends BaseNode {
 
 
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return { value: this.value ?? "" };
   }
 }

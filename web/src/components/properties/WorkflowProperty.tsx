@@ -2,13 +2,14 @@ import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 
 const WorkflowProperty = (props: PropertyProps) => {
-  const id = `workflow-${props.property.name}-${props.propertyIndex}`;
+  const { property, value, onChange } = props;
+  const id = `workflow-${property.name}-${props.propertyIndex}`;
   const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
@@ -18,24 +19,27 @@ const WorkflowProperty = (props: PropertyProps) => {
     }
   });
 
+  // Memoize handler to prevent unnecessary re-renders of memoized NodeSelect child
+  const handleChange = useCallback((e: any) => {
+    onChange({
+      type: "workflow",
+      id: String(e.target.value)
+    });
+  }, [onChange]);
+
   return (
     <>
       <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
+        name={property.name}
+        description={property.description}
         id={id}
       />
       <NodeSelect
         id={id}
         labelId={id}
         name=""
-        value={props.value?.id || ""}
-        onChange={(e) =>
-          props.onChange({
-            type: "workflow",
-            id: e.target.value
-          })
-        }
+        value={value?.id || ""}
+        onChange={handleChange}
       >
         {isLoading && <NodeMenuItem disabled>Loading...</NodeMenuItem>}
         {error && <NodeMenuItem disabled>Error: {error.message}</NodeMenuItem>}

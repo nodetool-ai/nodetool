@@ -16,12 +16,12 @@ describe("codegen output", () => {
     expect(fs.existsSync(indexPath)).toBe(true);
     const content = fs.readFileSync(indexPath, "utf-8");
     expect(content).toContain("export * as");
-    expect(content).toMatch(/export \* as libMath/);
+    expect(content).toMatch(/export \* as code/);
   });
 
-  test("lib.math.ts has add factory", async () => {
-    const mod = await import("../src/generated/lib.math.js");
-    expect(typeof mod.add).toBe("function");
+  test("nodetool.code.ts has code factory", async () => {
+    const mod = await import("../src/generated/nodetool.code.js");
+    expect(typeof mod.code).toBe("function");
   });
 
   test("nodetool.constant.ts has integer factory", async () => {

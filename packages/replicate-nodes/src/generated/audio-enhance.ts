@@ -36,11 +36,11 @@ replicate, ai`;
   @prop({ type: "int", default: -1, description: "Random seed. Leave blank to randomize the seed" })
   declare seed: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const apiKey = getReplicateApiKey(inputs);
-    const ddimSteps = Number(inputs.ddim_steps ?? this.ddim_steps ?? 50);
-    const guidanceScale = Number(inputs.guidance_scale ?? this.guidance_scale ?? 3.5);
-    const seed = Number(inputs.seed ?? this.seed ?? -1);
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getReplicateApiKey(this._secrets);
+    const ddimSteps = Number(this.ddim_steps ?? 50);
+    const guidanceScale = Number(this.guidance_scale ?? 3.5);
+    const seed = Number(this.seed ?? -1);
 
     const args: Record<string, unknown> = {
       "ddim_steps": ddimSteps,
@@ -48,7 +48,7 @@ replicate, ai`;
       "seed": seed,
     };
 
-    const inputFileRef = (inputs.input_file ?? this.input_file) as Record<string, unknown> | undefined;
+    const inputFileRef = this.input_file as Record<string, unknown> | undefined;
     if (isRefSet(inputFileRef)) {
       const inputFileUrl = await assetToUrl(inputFileRef!, apiKey);
       if (inputFileUrl) args["input_file"] = inputFileUrl;

@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.01em",
       lineHeight: "1.5em",
       color: theme.vars.palette.text.primary,
-      textShadow: "0px 0px 1px #22222266",
+      textShadow: `0px 0px 1px ${theme.vars.palette.common.black}${Math.round(0.4 * 255).toString(16).padStart(2, "0")}`,
       margin: 0
     },
 

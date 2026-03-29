@@ -149,6 +149,13 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
     addSwatch(currentColor);
   }, [addSwatch, currentColor]);
 
+  const handleAddSwatchKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      addSwatch(currentColor);
+    }
+  }, [addSwatch, currentColor]);
+
   const handleSwatchContextMenu = useCallback(
     (e: React.MouseEvent<HTMLDivElement>, swatchId: string) => {
       e.preventDefault();
@@ -284,7 +291,14 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
             </Tooltip>
           ))}
           <Tooltip title="Save current color">
-            <div className="add-swatch-button" onClick={handleAddSwatch}>
+            <div
+              className="add-swatch-button"
+              onClick={handleAddSwatch}
+              onKeyDown={handleAddSwatchKeyDown}
+              role="button"
+              tabIndex={0}
+              aria-label="Save current color as swatch"
+            >
               <AddIcon sx={{ fontSize: 16 }} />
             </div>
           </Tooltip>

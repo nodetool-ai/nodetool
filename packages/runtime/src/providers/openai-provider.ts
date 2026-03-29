@@ -735,6 +735,7 @@ export class OpenAIProvider extends BaseProvider {
     messages: Message[];
     model: string;
     tools?: ProviderTool[];
+    toolChoice?: string | "any";
     maxTokens?: number;
     responseFormat?: Record<string, unknown>;
     jsonSchema?: Record<string, unknown>;
@@ -746,6 +747,7 @@ export class OpenAIProvider extends BaseProvider {
     const {
       model,
       tools = [],
+      toolChoice,
       maxTokens = 16384,
       responseFormat,
       jsonSchema,
@@ -785,6 +787,11 @@ export class OpenAIProvider extends BaseProvider {
 
     if (tools.length > 0 && (await this.hasToolSupport(model))) {
       request.tools = this.formatTools(tools);
+      if (toolChoice) {
+        request.tool_choice = toolChoice === "any"
+          ? "required"
+          : { type: "function", function: { name: toolChoice } };
+      }
     }
 
     log.debug("OpenAI request", { model });

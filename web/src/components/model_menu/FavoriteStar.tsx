@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useMemo } from "react";
+import React, { useCallback, memo, useMemo } from "react";
 import { Tooltip } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -34,24 +34,31 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.info.light
     }
   });
-const FavoriteStar: React.FC<FavoriteStarProps> = ({
+
+const FavoriteStar: React.FC<FavoriteStarProps> = memo(function FavoriteStar({
   provider = "",
   id = "",
   size = "small",
   stopPropagation = true
-}) => {
+}) {
   const favorites = useModelPreferencesStore((s) => s.favorites);
   const toggleFavorite = useModelPreferencesStore((s) => s.toggleFavorite);
+  const theme = useTheme();
 
   const isFavorite = useMemo(() => {
     return favorites.has(`${provider}:${id}`);
   }, [favorites, provider, id]);
 
-  const handleClick: React.MouseEventHandler<HTMLSpanElement> = (e) => {
-    if (stopPropagation) {e.stopPropagation();}
-    toggleFavorite(provider, id);
-  };
-  const theme = useTheme();
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLSpanElement>) => {
+      if (stopPropagation) {
+        e.stopPropagation();
+      }
+      toggleFavorite(provider, id);
+    },
+    [stopPropagation, toggleFavorite, provider, id]
+  );
+
   return (
     <Tooltip
       enterDelay={TOOLTIP_ENTER_DELAY * 2}
@@ -69,15 +76,15 @@ const FavoriteStar: React.FC<FavoriteStarProps> = ({
         onClick={handleClick}
       >
         {isFavorite ? (
-          <StarIcon
-            fontSize={size}
-          />
+          <StarIcon fontSize={size} />
         ) : (
           <StarBorderIcon fontSize={size} />
         )}
       </span>
     </Tooltip>
   );
-};
+});
+
+FavoriteStar.displayName = "FavoriteStar";
 
 export default FavoriteStar;

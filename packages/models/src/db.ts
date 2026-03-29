@@ -162,6 +162,12 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
   run_leases: {
     run_id: "text", worker_id: "text", acquired_at: "text", expires_at: "text",
   },
+  nodetool_team_tasks: {
+    id: "text", team_id: "text", title: "text", description: "text", status: "text",
+    created_by: "text", claimed_by: "text", depends_on: "text", required_skills: "text",
+    priority: "integer", artifacts: "text", parent_task_id: "text", result: "text",
+    failure_reason: "text", created_at: "text", updated_at: "text",
+  },
 };
 
 /**
@@ -437,6 +443,29 @@ function getCreateSchemaSql(): string {
       "expires_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_run_leases_expires" ON "run_leases" ("expires_at");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_team_tasks" (
+      "id" text PRIMARY KEY NOT NULL,
+      "team_id" text NOT NULL,
+      "title" text NOT NULL,
+      "description" text NOT NULL DEFAULT '',
+      "status" text NOT NULL DEFAULT 'open',
+      "created_by" text NOT NULL,
+      "claimed_by" text,
+      "depends_on" text NOT NULL,
+      "required_skills" text NOT NULL,
+      "priority" integer NOT NULL DEFAULT 5,
+      "artifacts" text NOT NULL,
+      "parent_task_id" text,
+      "result" text,
+      "failure_reason" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_team_tasks_team_id" ON "nodetool_team_tasks" ("team_id");
+    CREATE INDEX IF NOT EXISTS "idx_team_tasks_status" ON "nodetool_team_tasks" ("status");
+    CREATE INDEX IF NOT EXISTS "idx_team_tasks_team_status" ON "nodetool_team_tasks" ("team_id", "status");
+    CREATE INDEX IF NOT EXISTS "idx_team_tasks_parent" ON "nodetool_team_tasks" ("parent_task_id");
   `;
 }
 

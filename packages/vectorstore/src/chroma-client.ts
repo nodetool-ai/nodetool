@@ -172,13 +172,12 @@ function splitByCharacters(
   chunkOverlap: number,
 ): RawChunk[] {
   const chunks: RawChunk[] = [];
+  const step = Math.max(1, chunkSize - chunkOverlap);
   let pos = 0;
   while (pos < text.length) {
     const end = Math.min(pos + chunkSize, text.length);
     chunks.push({ text: text.slice(pos, end), start: pos });
-    pos += chunkSize - chunkOverlap;
-    if (pos >= text.length) break;
-    if (chunkOverlap <= 0) continue;
+    pos += step;
   }
   return chunks;
 }

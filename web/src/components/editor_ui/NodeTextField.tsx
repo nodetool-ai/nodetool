@@ -11,7 +11,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { forwardRef, memo } from "react";
+import { forwardRef, memo } from "react";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
