@@ -24,13 +24,18 @@ describe('useTheme', () => {
     success: '#34C759',
   };
 
+  const mockState = {
+    mode: 'dark' as const,
+    colors: mockColors,
+    setTheme: mockSetTheme,
+    toggleTheme: mockToggleTheme,
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    (useThemeStore as unknown as jest.Mock).mockReturnValue({
-      mode: 'dark',
-      colors: mockColors,
-      setTheme: mockSetTheme,
-      toggleTheme: mockToggleTheme,
+    // Mock to handle Zustand selector pattern
+    (useThemeStore as unknown as jest.Mock).mockImplementation((selector?) => {
+      return selector ? selector(mockState) : mockState;
     });
   });
 
@@ -60,11 +65,9 @@ describe('useTheme', () => {
   });
 
   it('returns isDark as false when mode is light', () => {
-    (useThemeStore as unknown as jest.Mock).mockReturnValue({
-      mode: 'light',
-      colors: mockColors,
-      setTheme: mockSetTheme,
-      toggleTheme: mockToggleTheme,
+    const lightState = { ...mockState, mode: 'light' as const };
+    (useThemeStore as unknown as jest.Mock).mockImplementation((selector?) => {
+      return selector ? selector(lightState) : lightState;
     });
 
     const { result } = renderHook(() => useTheme());
@@ -77,11 +80,9 @@ describe('useTheme', () => {
   });
 
   it('returns effectiveMode as light when isDark is false', () => {
-    (useThemeStore as unknown as jest.Mock).mockReturnValue({
-      mode: 'light',
-      colors: mockColors,
-      setTheme: mockSetTheme,
-      toggleTheme: mockToggleTheme,
+    const lightState = { ...mockState, mode: 'light' as const };
+    (useThemeStore as unknown as jest.Mock).mockImplementation((selector?) => {
+      return selector ? selector(lightState) : lightState;
     });
 
     const { result } = renderHook(() => useTheme());
@@ -89,11 +90,9 @@ describe('useTheme', () => {
   });
 
   it('uses system appearance when mode is system', () => {
-    (useThemeStore as unknown as jest.Mock).mockReturnValue({
-      mode: 'system',
-      colors: mockColors,
-      setTheme: mockSetTheme,
-      toggleTheme: mockToggleTheme,
+    const systemState = { ...mockState, mode: 'system' as const };
+    (useThemeStore as unknown as jest.Mock).mockImplementation((selector?) => {
+      return selector ? selector(systemState) : systemState;
     });
 
     const { result } = renderHook(() => useTheme());
@@ -103,11 +102,9 @@ describe('useTheme', () => {
 
   it('uses system appearance as light when system is light', () => {
     (Appearance.getColorScheme as jest.Mock).mockReturnValue('light');
-    (useThemeStore as unknown as jest.Mock).mockReturnValue({
-      mode: 'system',
-      colors: mockColors,
-      setTheme: mockSetTheme,
-      toggleTheme: mockToggleTheme,
+    const systemState = { ...mockState, mode: 'system' as const };
+    (useThemeStore as unknown as jest.Mock).mockImplementation((selector?) => {
+      return selector ? selector(systemState) : systemState;
     });
 
     const { result } = renderHook(() => useTheme());

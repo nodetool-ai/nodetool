@@ -27,7 +27,6 @@ describe("PrefixTreeSearch", () => {
     description: description || "",
     properties: [],
     outputs: [],
-    the_model_info: {},
     layout: "default",
     recommended_models: [],
     basic_fields: [],

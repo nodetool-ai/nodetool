@@ -9,20 +9,23 @@ import {
   Checkbox,
   Tooltip,
   Box,
-  Button,
   Menu,
   MenuItem,
-  Divider
+  Divider,
+  Button
 } from "@mui/material";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-
 import { useSettingsStore } from "../../stores/SettingsStore";
+
+
 import {
   isHuggingFaceProvider,
   isHuggingFaceLocalProvider,
@@ -30,7 +33,6 @@ import {
   formatGenericProviderName,
   getProviderUrl
 } from "../../utils/providerDisplay";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   ModelMenuStoreHook,
   requiredSecretForProvider,
@@ -159,6 +161,8 @@ const providerIconMap: Record<string, string> = {
   // Anthropic / Claude
   anthropic: anthropicIcon,
   claude: claudeColorIcon,
+  claude_agent: claudeColorIcon,
+  "claude-agent": claudeColorIcon,
   
   // Google / Gemini
   google: geminiColorIcon,
@@ -512,7 +516,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
     (s) => s.setProviderEnabled
   );
   const { isApiKeySet } = useSecrets();
-  const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
+
   const isDarkMode = useIsDarkMode();
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
@@ -542,12 +546,21 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setSelected(null);
   }, [setSelected]);
 
-  const handleSelectProvider = useCallback((p: string) => () => {
-    setSelected(p);
+  const handleSelectProvider = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const provider = event.currentTarget.dataset.provider;
+    if (provider) {
+      setSelected(provider);
+    }
   }, [setSelected]);
 
-  const handleProviderChange = useCallback((p: string, enabled: boolean) => () => {
-    setProviderEnabled(p, enabled);
+  const handleProviderToggle = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    const target = event.currentTarget;
+    const provider = target.dataset.provider;
+    const newEnabled = target.dataset.enabled === "true";
+    if (provider) {
+      setProviderEnabled(provider, newEnabled);
+    }
   }, [setProviderEnabled]);
 
   const handleMenuOpen = useCallback((event: React.MouseEvent, p: string) => {
@@ -561,9 +574,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setMenuProvider(null);
   }, []);
 
-  const handleOpenSettings = useCallback(() => {
-    setMenuOpen(true, 1);
-  }, [setMenuOpen]);
 
   const handleStopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -583,12 +593,19 @@ const ProviderList: React.FC<ProviderListProps> = ({
     handleMenuClose();
   }, [menuProvider, isProviderEnabled, setProviderEnabled, handleMenuClose]);
 
+  const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
+  const handleOpenSettings = useCallback(() => {
+    // Open settings dialog on "API Settings" tab (index 1)
+    setMenuOpen(true, 1);
+    handleMenuClose();
+  }, [setMenuOpen, handleMenuClose]);
+
   return (
     <List
       dense
       css={listStyles}
       className="model-menu__providers-list"
-      sx={{ fontSize: (theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
+      sx={{ fontSize: (theme: Theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
     >
       {isLoading && (
         <div className="model-menu__providers-loading is-loading" style={{ padding: 8 }}>
@@ -627,17 +644,22 @@ const ProviderList: React.FC<ProviderListProps> = ({
           />
         )}
       </ListItemButton>
-      {[...sortedProviders.enabledList, ...sortedProviders.disabledList].map(
+      {[...sortedProviders.enabledList, ...sortedProviders.disabledList]
+        .filter((p) => {
+          const env = requiredSecretForProvider(p);
+          return env ? isApiKeySet(env) : true;
+        })
+        .map(
         (p, idx) => {
           const enabled = isProviderEnabled(p);
           const showDivider =
             idx === sortedProviders.enabledList.length &&
             sortedProviders.disabledList.length > 0;
-          const env = requiredSecretForProvider(p);
           const normKey = /gemini|google/i.test(p) ? "gemini" : p;
           const providerEnabled = (enabledProviders || {})[normKey] !== false;
+          const available = providerEnabled;
+          const env = requiredSecretForProvider(p);
           const hasKey = env ? isApiKeySet(env) : true;
-          const available = providerEnabled && hasKey;
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             const isHF = isHuggingFaceProvider(p);
@@ -706,7 +728,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 disableRipple
                 className={`model-menu__provider-item ${selected === p ? "is-selected" : ""} ${enabled && available ? "is-enabled" : "is-disabled"}`}
                 selected={selected === p}
-                onClick={handleSelectProvider(p)}
+                onClick={handleSelectProvider}
+                data-provider={p}
                 onContextMenu={(e) => handleMenuOpen(e, p)}
                 sx={{
                   gap: 0.1,
@@ -828,7 +851,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           <InfoOutlinedIcon
                             className="model-menu__provider-missing-key-icon"
                             sx={{
-                              fontSize: (theme) => theme.vars.fontSizeNormal,
+                              fontSize: (theme: Theme) => theme.vars.fontSizeNormal,
                               color: "warning.main"
                             }}
                           />
@@ -842,7 +865,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             sx={{
                               minWidth: "auto",
                               p: 0,
-                              fontSize: (theme) => theme.vars.fontSizeSmaller
+                              fontSize: (theme: Theme) => theme.vars.fontSizeSmaller
                             }}
                             onClick={handleOpenSettings}
                           >
@@ -866,19 +889,26 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         className="model-menu__provider-toggle-tooltip"
                         title={enabled ? "Disable provider" : "Enable provider"}
                       >
-                        <Checkbox
-                          className="model-menu__provider-toggle-checkbox"
-                          edge="end"
-                          size="small"
-                          sx={{
-                            padding: 0,
-                            "& .MuiSvgIcon-root": {
-                              fontSize: (theme) => theme.vars.fontSizeBig
-                            }
-                          }}
-                          checked={enabled}
-                          onChange={(e) => handleProviderChange(p, e.target.checked)}
-                        />
+                        <Box
+                          data-provider={p}
+                          data-enabled={!enabled}
+                          onClick={handleProviderToggle}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <Checkbox
+                            className="model-menu__provider-toggle-checkbox"
+                            edge="end"
+                            size="small"
+                            sx={{
+                              padding: 0,
+                              "& .MuiSvgIcon-root": {
+                                fontSize: (theme: Theme) => theme.vars.fontSizeBig
+                              },
+                              pointerEvents: 'none'
+                            }}
+                            checked={enabled}
+                          />
+                        </Box>
                       </Tooltip>
                     </Box>
                   </>

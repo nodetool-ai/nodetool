@@ -1,0 +1,28 @@
+{
+  "modelId": "cjwbw/night-enhancement",
+  "owner": "cjwbw",
+  "name": "night-enhancement",
+  "version": "4328e402cfedafa70ad7cec04412e86ab61832204deccd94108ae5222c9b1ae1",
+  "description": "Unsupervised Night Image Enhancement",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

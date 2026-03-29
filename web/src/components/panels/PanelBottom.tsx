@@ -2,18 +2,20 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip, Typography } from "@mui/material";
+import { Drawer, IconButton, Tooltip } from "@mui/material";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
+import TracePanel from "./TracePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import TimelineIcon from "@mui/icons-material/Timeline";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -111,6 +113,15 @@ const PanelBottom: React.FC = () => {
 
   // Add keyboard shortcut for toggle (Ctrl+`)
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
+  useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
+
+  const handleTerminalToggle = useCallback(() => {
+    handlePanelToggle("terminal");
+  }, [handlePanelToggle]);
+
+  const handleTraceToggle = useCallback(() => {
+    handlePanelToggle("trace");
+  }, [handlePanelToggle]);
 
   const handleTerminalToggle = useCallback(() => {
     handlePanelToggle("terminal");
@@ -138,9 +149,9 @@ const PanelBottom: React.FC = () => {
           className: `panel panel-bottom ${isDragging ? "dragging" : ""}`,
           style: {
             height: isVisible ? `${openHeight}px` : PANEL_HEIGHT_COLLAPSED,
-            left: "50px",
-            right: "50px",
-            width: "calc(100% - 100px)",
+            left: 0,
+            right: 0,
+            width: "100%",
             borderWidth: isVisible ? "1px" : "0px",
             borderTop: isVisible
               ? `1px solid ${theme.vars.palette.grey[800]}`
@@ -164,13 +175,29 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
+                <Tooltip title="Terminal (Ctrl+`)" enterDelay={TOOLTIP_ENTER_DELAY}>
+                  <IconButton
+                    size="small"
+                    onClick={handleTerminalToggle}
+                    sx={{ color: activeView === "terminal" ? "primary.main" : "text.secondary" }}
+                  >
+                    <TerminalIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Trace (Ctrl+Shift+T)" enterDelay={TOOLTIP_ENTER_DELAY}>
+                  <IconButton
+                    size="small"
+                    onClick={handleTraceToggle}
+                    sx={{ color: activeView === "trace" ? "primary.main" : "text.secondary" }}
+                  >
+                    <TimelineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </div>
               <Tooltip
                 title={
                   <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
+                    <div className="tooltip-title">Hide panel</div>
                     <div className="tooltip-key">
                       <kbd>Ctrl</kbd> + <kbd>`</kbd>
                     </div>
@@ -182,7 +209,7 @@ const PanelBottom: React.FC = () => {
                 <IconButton
                   size="small"
                   onClick={handleTerminalToggle}
-                  aria-label="Hide terminal"
+                  aria-label="Hide panel"
                 >
                   <CloseIcon />
                 </IconButton>
@@ -197,10 +224,23 @@ const PanelBottom: React.FC = () => {
           >
             <Terminal />
           </div>
+          <div
+            className="trace-wrapper"
+            style={{
+              display: activeView === "trace" && isVisible ? "flex" : "none",
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+            }}
+          >
+            <TracePanel />
+          </div>
         </div>
       </Drawer>
     </div>
   );
 };
+
+PanelBottom.displayName = "PanelBottom";
 
 export default memo(PanelBottom, isEqual);

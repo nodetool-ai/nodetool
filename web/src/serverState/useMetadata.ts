@@ -39,7 +39,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
         stream: false
       }
     ],
-    the_model_info: {},
+
     recommended_models: [],
     expose_as_tool: false,
     supports_dynamic_outputs: false,
@@ -57,7 +57,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     is_dynamic: true,
     properties: [],
     outputs: [],
-    the_model_info: {},
+
     recommended_models: [],
     expose_as_tool: false,
     supports_dynamic_outputs: true,

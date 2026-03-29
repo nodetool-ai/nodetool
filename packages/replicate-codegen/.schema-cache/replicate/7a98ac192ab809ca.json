@@ -1,0 +1,75 @@
+{
+  "modelId": "deepseek-ai/deepseek-v3.1",
+  "owner": "deepseek-ai",
+  "name": "deepseek-v3.1",
+  "version": "f257f380598d0760ba84e7d4b02532d3a45b03ede80096f516e81d68b375aff3",
+  "description": "Latest hybrid thinking model from Deepseek",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0,
+        "description": "Frequency penalty",
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 6
+      },
+      "max_tokens": {
+        "default": 1024,
+        "description": "The maximum number of tokens the model should generate as output.",
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 2
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "Presence penalty",
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 5
+      },
+      "prompt": {
+        "default": "Why are you better than Deepseek v3?",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "temperature": {
+        "default": 0.1,
+        "description": "The value used to modulate the next token probabilities.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 3
+      },
+      "thinking": {
+        "default": "None",
+        "description": "Reasoning effort level for DeepSeek models. Use 'medium' for enhanced reasoning or leave as None for default behavior.",
+        "enum": [
+          "medium",
+          "None"
+        ],
+        "title": "thinking",
+        "type": "string",
+        "x-order": 0
+      },
+      "top_p": {
+        "default": 1,
+        "description": "Top-p (nucleus) sampling",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

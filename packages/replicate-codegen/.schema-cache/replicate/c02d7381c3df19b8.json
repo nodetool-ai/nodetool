@@ -1,0 +1,52 @@
+{
+  "modelId": "nateraw/audio-super-resolution",
+  "owner": "nateraw",
+  "name": "audio-super-resolution",
+  "version": "0e453d5e4c2e0ef4f8d38a6167053dda09cf3c8dbca2355cde61dca55a915bc5",
+  "description": "AudioSR: Versatile Audio Super-resolution at Scale",
+  "inputSchema": {
+    "properties": {
+      "ddim_steps": {
+        "default": 50,
+        "description": "Number of inference steps",
+        "maximum": 500,
+        "minimum": 10,
+        "title": "Ddim Steps",
+        "type": "integer",
+        "x-order": 1
+      },
+      "guidance_scale": {
+        "default": 3.5,
+        "description": "Scale for classifier free guidance",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 2
+      },
+      "input_file": {
+        "description": "Audio to upsample",
+        "format": "uri",
+        "title": "Input File",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "input_file"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

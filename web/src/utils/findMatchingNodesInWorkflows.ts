@@ -40,7 +40,7 @@ export const findMatchingNodesInWorkflows = (
     const nodeInfos: NodeMatch[] = [];
     if (workflow.graph?.nodes) {
       Object.values(workflow.graph.nodes).forEach((node) => {
-        const workflowNode = node as WorkflowNode;
+        const workflowNode = node as unknown as WorkflowNode;
         const title = String(workflowNode.data?.title || "");
         const type = String(workflowNode.type || "");
 

@@ -189,3 +189,45 @@ Verify by checking the React Profiler during node drag operations with multiple 
 - Ran `cd web && pnpm typecheck`: Passed.
 - Ran `cd web && pnpm lint`: Passed.
 - Ran `make test-web`: Verified core tests pass.
+
+# ⚡ Bolt: WorkflowAssistantChat Nodes Subscription Optimization
+
+## 💡 What
+Added `areNodesEqualIgnoringPosition` equality function to the `useNodes` subscription in `WorkflowAssistantChat.tsx`.
+
+## 🎯 Why
+`WorkflowAssistantChat` was subscribing to `state.nodes` without a custom equality function. Since ReactFlow updates the `nodes` array reference on every drag frame (for positional updates), this caused the entire chat panel component to re-render unnecessarily on every single drag frame (60fps) even when node data didn't change.
+
+## 📊 Impact
+- **Eliminates Unnecessary Re-renders:** The chat component now ignores positional node updates during dragging.
+- **Reduces Main Thread Work:** Prevents evaluating complex message logic on every drag frame.
+- **Improved Responsiveness:** Smoother drag-and-drop experience in the node editor when the chat panel is open.
+
+## 🔬 Measurement
+Verify by opening the Workflow Assistant chat panel and dragging nodes around in a large workflow. Using React Profiler, observe that `WorkflowAssistantChat` no longer re-renders during drag operations.
+
+## 🧪 Testing
+- Ran `cd web && pnpm typecheck`: Passed.
+- Ran `cd web && pnpm lint`: Passed.
+- Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt: NodeStore getSelectedNodeCount Performance Optimization
+
+## 💡 What
+Optimized `getSelectedNodeCount()` in `NodeStore.ts` by adding an internal cache inside the state factory to memoize the selected node count based on the `state.nodes` array reference.
+
+## 🎯 Why
+`state.getSelectedNodeCount()` computes the result by iterating over all nodes (`O(N)`). Several UI components (like `Toolbar` in `BaseNode.tsx`, `NodeEditor`, and `DynamicNode`s) subscribed to this selector via `useNodes()`. Because it was evaluated on every store update (which occurs at 60fps during node dragging), this caused an `O(K * N)` bottleneck per frame (where K is the number of subscribed components). By caching the result internally, we reduce this to `O(N)` once per state update when the array actually changes, and `O(1)` for all subsequent selector executions within the same state frame.
+
+## 📊 Impact
+- **Eliminates Unnecessary Array Iterations:** Reduces `O(K * N)` loops per store update to `O(N)`.
+- **Improved Drag Smoothness:** Frees up main thread time for React Flow to handle drag updates more smoothly, especially when nodes are selected and the `Toolbar` is active.
+
+## 🔬 Measurement
+Verify by checking React Profiler during node drag operations with multiple nodes selected. The "Scripting" time will be reduced because the `getSelectedNodeCount` selector will return instantly from the cache.
+
+## 🧪 Testing
+- Created `web/src/__tests__/performance/NodeStoreSelection.performance.test.ts` to verify caching behavior.
+- Ran `cd web && pnpm typecheck`: Passed.
+- Ran `cd web && pnpm lint`: Passed.
+- Ran `make test-web`: All core and performance tests passed.

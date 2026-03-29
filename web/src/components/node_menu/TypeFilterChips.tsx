@@ -288,8 +288,11 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
     );
 
     const handleTypeChipClick = useCallback(
-      (type: string) => () => {
-        handleOutputClick(type);
+      (event: React.MouseEvent<HTMLElement>) => {
+        const type = event.currentTarget.dataset.type;
+        if (type) {
+          handleOutputClick(type);
+        }
       },
       [handleOutputClick]
     );
@@ -359,7 +362,8 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                     />
                   }
                   label={type.label}
-                  onClick={handleTypeChipClick(type.value)}
+                  data-type={type.value}
+                  onClick={handleTypeChipClick}
                 />
               </Tooltip>
             ))}

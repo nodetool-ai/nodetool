@@ -1,0 +1,34 @@
+{
+  "modelId": "bytedance/omni-human",
+  "owner": "bytedance",
+  "name": "omni-human",
+  "version": "566f1b03016969ac39e242c1ae4a39034686ca8850fc3dba83dceaceb96f74b2",
+  "description": "Turns your audio/video/images into professional-quality animated videos",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Input audio file (MP3, WAV, etc.). For the best quality outputs audio should be no longer than 15 seconds. After 15 seconds the video quality will begin to degrade. If you have a lot of audio you want to process, we recommend splitting it into 15 second chunks.",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string"
+      },
+      "image": {
+        "description": "Input image containing a human subject, face or character.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string"
+      }
+    },
+    "required": [
+      "image",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

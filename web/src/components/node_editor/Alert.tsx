@@ -88,7 +88,7 @@ const styles = () =>
 
 interface NotificationItemProps {
   notification: Notification;
-  nodeRef: React.RefObject<HTMLLIElement>;
+  nodeRef: React.RefObject<HTMLLIElement | null>;
   onClose: (id: string) => void;
   in?: boolean;
   onExited?: () => void;
@@ -219,13 +219,16 @@ const Alert: React.FC = memo(() => {
 
     setVisibleNotifications((prevNotifications) => {
       const combined = [...prevNotifications, ...newNotifications];
-      // Deduplicate notifications by id
-      return combined.reduce((acc, current) => {
-        if (acc.findIndex(({ id }) => id === current.id) === -1) {
-          acc.push(current);
+      // Deduplicate notifications by id (O(N) implementation)
+      const seenIds = new Set<string>();
+      const result: Notification[] = [];
+      for (const notification of combined) {
+        if (!seenIds.has(notification.id)) {
+          seenIds.add(notification.id);
+          result.push(notification);
         }
-        return acc;
-      }, [] as Notification[]);
+      }
+      return result;
     });
 
     const latestTimestamp = newNotifications.reduce(
@@ -288,7 +291,7 @@ const Alert: React.FC = memo(() => {
     <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
-          nodeRefs.current[notification.id] = createRef<HTMLLIElement>();
+          nodeRefs.current[notification.id] = createRef<HTMLLIElement>() as React.RefObject<HTMLLIElement>;
         }
         const nodeRef = nodeRefs.current[notification.id];
 

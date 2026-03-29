@@ -1,4 +1,4 @@
-.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev
+.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev dev dev-server
 
 # Default target
 help:
@@ -14,6 +14,8 @@ help:
 	@echo "Development:"
 	@echo "  make electron         - Build web and start electron app"
 	@echo "  make electron-dev     - Start Electron against web Vite server (requires active conda env)"
+	@echo "  make dev              - Start backend (tsx --watch) + web Vite server (auto-reload)"
+	@echo "  make dev-server       - Start backend dev server only (tsx --watch, no build needed)"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build            - Build all packages"
@@ -90,6 +92,15 @@ $(ELECTRON_BUILD_MARKER): $(ELECTRON_SOURCES)
 electron: $(WEB_BUILD_MARKER) $(ELECTRON_BUILD_MARKER)
 	@echo "Starting electron app..."
 	cd electron && npm start
+
+# tsx --watch dev server: runs TS source directly, restarts on changes.
+# NOTE: base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes
+# load from dist/ (decorators). Run `npm run build:packages` if those change.
+dev:
+	npm run dev:watch
+
+dev-server:
+	npm run dev:watch:server
 
 ifeq ($(OS),Windows_NT)
 electron-dev:
@@ -177,6 +188,8 @@ typecheck-electron:
 	cd electron && npm run typecheck
 
 typecheck-mobile:
+	@echo "Building shared protocol package for mobile..."
+	cd packages/protocol && npm run build
 	@echo "Type checking mobile package..."
 	cd mobile && npm run typecheck
 

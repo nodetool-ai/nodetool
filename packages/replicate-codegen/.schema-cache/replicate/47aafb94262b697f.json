@@ -1,0 +1,76 @@
+{
+  "modelId": "openai/o1",
+  "owner": "openai",
+  "name": "o1",
+  "version": "729043ff117dccc608d5b114e55ffed41bc849f4d85f9e61cc164d8ddde781df",
+  "description": "OpenAI's first o-series reasoning model",
+  "inputSchema": {
+    "properties": {
+      "image_input": {
+        "default": [],
+        "description": "List of images to send to the model",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 3
+      },
+      "max_completion_tokens": {
+        "default": 4096,
+        "description": "Maximum number of completion tokens to generate",
+        "title": "Max Completion Tokens",
+        "type": "integer",
+        "x-order": 5
+      },
+      "messages": {
+        "default": [],
+        "description": "A JSON string representing a list of messages. For example: [{\"role\": \"user\", \"content\": \"Hello, how are you?\"}]. If provided, prompt and system_prompt are ignored.",
+        "items": {
+          "type": "object"
+        },
+        "title": "Messages",
+        "type": "array",
+        "x-order": 2
+      },
+      "prompt": {
+        "description": "The prompt to send to the model. Do not use if using messages.",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "reasoning_effort": {
+        "default": "medium",
+        "description": "Constrains effort on reasoning for reasoning models. Currently supported values are low, medium, and high. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "reasoning_effort",
+        "type": "string",
+        "x-order": 4
+      },
+      "system_prompt": {
+        "description": "System prompt to set the assistant's behavior",
+        "nullable": true,
+        "title": "System Prompt",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

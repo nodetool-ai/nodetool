@@ -5,6 +5,7 @@ export default {
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__mocks__/styleMock.ts',
     '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/src/__mocks__/fileMock.ts',
+    '^@nodetool/protocol$': '<rootDir>/src/__mocks__/protocol.ts',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
@@ -16,6 +17,10 @@ export default {
   },
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
+  modulePathIgnorePatterns: [
+    '<rootDir>/backend-bundle/',
+    '<rootDir>/dist/',
+  ],
   collectCoverageFrom: [
     'src/**/*.{js,ts}',
     '!src/**/*.d.ts',
@@ -35,5 +40,5 @@ export default {
     '/dist-electron/',
     '/dist-web/',
     '/tests/e2e/',
-  ]
+  ],
 }

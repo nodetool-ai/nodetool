@@ -20,7 +20,7 @@ const serverState: ServerState = {
   isStarted: false,
   status: "idle",
   bootMsg: "Initializing...",
-  initialURL: `http://127.0.0.1:${7777}`,
+  initialURL: "http://127.0.0.1:7777",
   error: undefined,
   logs: [],
   serverPort: 7777,

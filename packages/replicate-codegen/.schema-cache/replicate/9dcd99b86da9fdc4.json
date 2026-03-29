@@ -1,0 +1,36 @@
+{
+  "modelId": "codeplugtech/object_remover",
+  "owner": "codeplugtech",
+  "name": "object_remover",
+  "version": "499559d430d997c34aa80142bfede2ad182b78e9dda9e8e03be5689d99969282",
+  "description": "",
+  "inputSchema": {
+    "properties": {
+      "mask_image": {
+        "description": "Mask image",
+        "format": "uri",
+        "title": "Mask Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "org_image": {
+        "description": "Original input image",
+        "format": "uri",
+        "title": "Org Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "org_image",
+      "mask_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -14,7 +14,7 @@
  * />
  */
 
-import React, { forwardRef, memo, useCallback } from "react";
+import { forwardRef, memo, useCallback } from "react";
 import { Button, ButtonProps, Box, Typography, Tooltip } from "@mui/material";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";

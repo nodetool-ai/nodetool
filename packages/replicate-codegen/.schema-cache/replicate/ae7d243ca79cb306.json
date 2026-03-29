@@ -1,0 +1,129 @@
+{
+  "modelId": "fermatresearch/magic-image-refiner",
+  "owner": "fermatresearch",
+  "name": "magic-image-refiner",
+  "version": "507ddf6f977a7e30e46c0daefd30de7d563c72322f9e4cf7cbac52ef0f667b13",
+  "description": "A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling.",
+  "inputSchema": {
+    "properties": {
+      "creativity": {
+        "default": 0.25,
+        "description": "Denoising strength. 1 means total destruction of the original image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Creativity",
+        "type": "number",
+        "x-order": 5
+      },
+      "guess_mode": {
+        "default": false,
+        "description": "In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts. The `guidance_scale` between 3.0 and 5.0 is recommended.",
+        "title": "Guess Mode",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "guidance_scale": {
+        "default": 7,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 30,
+        "minimum": 0.1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 9
+      },
+      "hdr": {
+        "default": 0,
+        "description": "HDR improvement over the original image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Hdr",
+        "type": "number",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Image to refine",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "mask": {
+        "description": "When provided, refines some section of the image. Must be the same size as the image",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 2
+      },
+      "negative_prompt": {
+        "default": "teeth, tooth, open mouth, longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, mutant",
+        "description": "Negative prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 11
+      },
+      "prompt": {
+        "description": "Prompt for the model",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resemblance": {
+        "default": 0.75,
+        "description": "Conditioning scale for controlnet",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Resemblance",
+        "type": "number",
+        "x-order": 4
+      },
+      "resolution": {
+        "default": "original",
+        "description": "Image resolution",
+        "enum": [
+          "original",
+          "1024",
+          "2048"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 3
+      },
+      "scheduler": {
+        "default": "DDIM",
+        "description": "Choose a scheduler.",
+        "enum": [
+          "DDIM",
+          "DPMSolverMultistep",
+          "K_EULER_ANCESTRAL",
+          "K_EULER"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "steps": {
+        "default": 20,
+        "description": "Steps",
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 8
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

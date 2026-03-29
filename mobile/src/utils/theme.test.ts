@@ -71,10 +71,10 @@ describe('theme', () => {
       });
     });
 
-    it('colors are valid hex values', () => {
-      const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+    it('colors are valid hex or rgba values', () => {
+      const hexOrRgbaRegex = /^(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|rgba?\([^)]+\))$/;
       Object.values(paletteLight).forEach((color) => {
-        expect(color).toMatch(hexRegex);
+        expect(color).toMatch(hexOrRgbaRegex);
       });
     });
   });
@@ -132,8 +132,10 @@ describe('theme', () => {
         'surface',
         'surfaceHeader',
         'primary',
+        'primaryMuted',
         'text',
         'textSecondary',
+        'textOnPrimary',
         'border',
         'error',
         'success',
@@ -141,8 +143,11 @@ describe('theme', () => {
         'info',
         'inputBg',
         'cardBg',
+        'userBubbleBg',
+        'userBubbleText',
+        'assistantBubbleBg',
       ];
-      
+
       keys.forEach((key) => {
         expect(paletteDark).toHaveProperty(key);
         expect(typeof paletteDark[key]).toBe('string');
@@ -155,8 +160,10 @@ describe('theme', () => {
         'surface',
         'surfaceHeader',
         'primary',
+        'primaryMuted',
         'text',
         'textSecondary',
+        'textOnPrimary',
         'border',
         'error',
         'success',
@@ -164,8 +171,11 @@ describe('theme', () => {
         'info',
         'inputBg',
         'cardBg',
+        'userBubbleBg',
+        'userBubbleText',
+        'assistantBubbleBg',
       ];
-      
+
       keys.forEach((key) => {
         expect(paletteLight).toHaveProperty(key);
         expect(typeof paletteLight[key]).toBe('string');

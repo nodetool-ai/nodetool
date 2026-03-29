@@ -1,0 +1,168 @@
+{
+  "modelId": "firtoz/trellis",
+  "owner": "firtoz",
+  "name": "trellis",
+  "version": "e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c",
+  "description": "A powerful 3D asset generation model",
+  "inputSchema": {
+    "properties": {
+      "generate_color": {
+        "default": true,
+        "description": "Generate color video render",
+        "title": "Generate Color",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "generate_model": {
+        "default": false,
+        "description": "Generate 3D model file (GLB)",
+        "title": "Generate Model",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "generate_normal": {
+        "default": false,
+        "description": "Generate normal video render",
+        "title": "Generate Normal",
+        "type": "boolean",
+        "x-order": 4
+      },
+      "images": {
+        "description": "List of input images to generate 3D asset from",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Images",
+        "type": "array",
+        "x-order": 0
+      },
+      "mesh_simplify": {
+        "default": 0.95,
+        "description": "GLB Extraction - Mesh Simplification (only used if generate_model=True)",
+        "maximum": 0.98,
+        "minimum": 0.9,
+        "title": "Mesh Simplify",
+        "type": "number",
+        "x-order": 12
+      },
+      "randomize_seed": {
+        "default": true,
+        "description": "Randomize seed",
+        "title": "Randomize Seed",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "return_no_background": {
+        "default": false,
+        "description": "Return the preprocessed images without background",
+        "title": "Return No Background",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "save_gaussian_ply": {
+        "default": false,
+        "description": "Save Gaussian point cloud as PLY file",
+        "title": "Save Gaussian Ply",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "seed": {
+        "default": 0,
+        "description": "Random seed for generation",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 1
+      },
+      "slat_guidance_strength": {
+        "default": 3,
+        "description": "Stage 2: Structured Latent Generation - Guidance Strength",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Slat Guidance Strength",
+        "type": "number",
+        "x-order": 10
+      },
+      "slat_sampling_steps": {
+        "default": 12,
+        "description": "Stage 2: Structured Latent Generation - Sampling Steps",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Slat Sampling Steps",
+        "type": "integer",
+        "x-order": 11
+      },
+      "ss_guidance_strength": {
+        "default": 7.5,
+        "description": "Stage 1: Sparse Structure Generation - Guidance Strength",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Ss Guidance Strength",
+        "type": "number",
+        "x-order": 8
+      },
+      "ss_sampling_steps": {
+        "default": 12,
+        "description": "Stage 1: Sparse Structure Generation - Sampling Steps",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Ss Sampling Steps",
+        "type": "integer",
+        "x-order": 9
+      },
+      "texture_size": {
+        "default": 1024,
+        "description": "GLB Extraction - Texture Size (only used if generate_model=True)",
+        "maximum": 2048,
+        "minimum": 512,
+        "title": "Texture Size",
+        "type": "integer",
+        "x-order": 13
+      }
+    },
+    "required": [
+      "images"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "color_video": {
+        "format": "uri",
+        "title": "Color Video",
+        "type": "string"
+      },
+      "combined_video": {
+        "format": "uri",
+        "title": "Combined Video",
+        "type": "string"
+      },
+      "gaussian_ply": {
+        "format": "uri",
+        "title": "Gaussian Ply",
+        "type": "string"
+      },
+      "model_file": {
+        "format": "uri",
+        "title": "Model File",
+        "type": "string"
+      },
+      "no_background_images": {
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "No Background Images",
+        "type": "array"
+      },
+      "normal_video": {
+        "format": "uri",
+        "title": "Normal Video",
+        "type": "string"
+      }
+    },
+    "title": "PredictOutput",
+    "type": "object"
+  }
+}

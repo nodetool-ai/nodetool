@@ -128,6 +128,8 @@ export interface GlobalChatState {
 
   // Safety timeout tracking for sendMessage
   sendMessageTimeoutId: ReturnType<typeof setTimeout> | null;
+  // Safety timeout tracking for loadMessages after delete
+  loadMessagesTimeoutId: ReturnType<typeof setTimeout> | null;
 
   // Frontend tool state
   frontendToolState: FrontendToolState;
@@ -267,6 +269,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Safety timeout tracking for sendMessage
       sendMessageTimeoutId: null,
+      loadMessagesTimeoutId: null,
 
       connect: async () => {
         log.info("Connecting to global chat");
@@ -420,7 +423,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const {
           wsEventUnsubscribes,
           wsThreadSubscriptions,
-          sendMessageTimeoutId
+          sendMessageTimeoutId,
+          loadMessagesTimeoutId
         } = get();
         wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
         Object.values(wsThreadSubscriptions).forEach((unsubscribe) =>
@@ -431,6 +435,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         if (sendMessageTimeoutId !== null) {
           clearTimeout(sendMessageTimeoutId);
         }
+        // Clear any pending loadMessages timeout
+        if (loadMessagesTimeoutId !== null) {
+          clearTimeout(loadMessagesTimeoutId);
+        }
 
         set({
           wsEventUnsubscribes: [],
@@ -438,7 +446,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           status: "disconnected",
           error: null,
           statusMessage: null,
-          sendMessageTimeoutId: null
+          sendMessageTimeoutId: null,
+          loadMessagesTimeoutId: null
         });
       },
 
@@ -773,8 +782,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 const newCurrentThreadId = threadIds[threadIds.length - 1];
                 newState.currentThreadId = newCurrentThreadId;
                 newState.lastUsedThreadId = newCurrentThreadId;
+                // Clear any existing loadMessages timeout before setting a new one
+                const existingTimeout = get().loadMessagesTimeoutId;
+                if (existingTimeout !== null) {
+                  clearTimeout(existingTimeout);
+                }
                 // Auto-load messages for the new current thread
-                setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
+                const timeoutId = setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
+                newState.loadMessagesTimeoutId = timeoutId;
               } else {
                 // No threads left, clear current thread (we will create a new one below)
                 newState.currentThreadId = null;
@@ -1002,11 +1017,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       stopGeneration: () => {
-        const { currentThreadId, sendMessageTimeoutId } = get();
+        const { currentThreadId, sendMessageTimeoutId, loadMessagesTimeoutId } = get();
 
         // Clear any pending sendMessage timeout
         if (sendMessageTimeoutId !== null) {
           clearTimeout(sendMessageTimeoutId);
+        }
+        // Clear any pending loadMessages timeout
+        if (loadMessagesTimeoutId !== null) {
+          clearTimeout(loadMessagesTimeoutId);
+          set({ loadMessagesTimeoutId: null });
         }
 
         // Abort any active frontend tools
@@ -1047,7 +1067,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             currentPlanningUpdate: null,
             currentTaskUpdate: null,
             currentTaskUpdateThreadId: null,
-            sendMessageTimeoutId: null
+            sendMessageTimeoutId: null,
+            loadMessagesTimeoutId: null
           });
         } catch (error) {
           log.error("Failed to send stop signal:", error);

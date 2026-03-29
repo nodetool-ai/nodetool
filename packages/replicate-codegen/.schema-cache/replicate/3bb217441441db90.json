@@ -1,0 +1,85 @@
+{
+  "modelId": "topazlabs/dust-and-scratch-v2",
+  "owner": "topazlabs",
+  "name": "dust-and-scratch-v2",
+  "version": "f9848c7feb1604b71c4d09a70ccfde538c86e3c82dbdacecb93cdc2513163c44",
+  "description": "Remove dust and scratches from old photos",
+  "inputSchema": {
+    "properties": {
+      "grain": {
+        "default": false,
+        "description": "Apply film grain effect to the output",
+        "title": "Grain",
+        "type": "boolean",
+        "x-order": 1
+      },
+      "grain_density": {
+        "default": 30,
+        "description": "Density of the grain particles from 0 to 60",
+        "maximum": 60,
+        "minimum": 0,
+        "title": "Grain Density",
+        "type": "integer",
+        "x-order": 4
+      },
+      "grain_model": {
+        "default": "silver rich",
+        "description": "Type of grain to apply: silver rich (classic film look), gaussian (uniform noise), or grey (monochromatic grain)",
+        "enum": [
+          "silver rich",
+          "gaussian",
+          "grey"
+        ],
+        "title": "grain_model",
+        "type": "string",
+        "x-order": 2
+      },
+      "grain_size": {
+        "default": 1,
+        "description": "Size of the grain particles from 1 to 5",
+        "maximum": 5,
+        "minimum": 1,
+        "title": "Grain Size",
+        "type": "integer",
+        "x-order": 5
+      },
+      "grain_strength": {
+        "default": 30,
+        "description": "Intensity of the grain effect from 0 to 60",
+        "maximum": 60,
+        "minimum": 0,
+        "title": "Grain Strength",
+        "type": "integer",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Image with dust, scratches, or surface imperfections to restore",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Output format",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 6
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

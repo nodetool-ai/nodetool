@@ -1,0 +1,99 @@
+{
+  "modelId": "meta/meta-llama-3.1-405b-instruct",
+  "owner": "meta",
+  "name": "meta-llama-3.1-405b-instruct",
+  "version": "6afbd4d46138efe696222131e0bf3481f21bb8956d71b81b37f866beb2fa53b7",
+  "description": "Meta's flagship 405 billion parameter language model, fine-tuned for chat completions",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0,
+        "description": "Frequency penalty",
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 8
+      },
+      "max_tokens": {
+        "default": 512,
+        "description": "The maximum number of tokens the model should generate as output.",
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 3
+      },
+      "min_tokens": {
+        "default": 0,
+        "description": "The minimum number of tokens the model should generate as output.",
+        "title": "Min Tokens",
+        "type": "integer",
+        "x-order": 2
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "Presence penalty",
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 7
+      },
+      "prompt": {
+        "default": "",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_template": {
+        "default": "",
+        "description": "A template to format the prompt with. If not provided, the default prompt template will be used.",
+        "title": "Prompt Template",
+        "type": "string",
+        "x-order": 10
+      },
+      "stop_sequences": {
+        "default": "",
+        "description": "A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
+        "title": "Stop Sequences",
+        "type": "string",
+        "x-order": 9
+      },
+      "system_prompt": {
+        "default": "You are a helpful assistant.",
+        "description": "System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Ignored for non-chat models.",
+        "title": "System Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "temperature": {
+        "default": 0.6,
+        "description": "The value used to modulate the next token probabilities.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 4
+      },
+      "top_k": {
+        "default": 50,
+        "description": "The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering).",
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 6
+      },
+      "top_p": {
+        "default": 0.9,
+        "description": "A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751).",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

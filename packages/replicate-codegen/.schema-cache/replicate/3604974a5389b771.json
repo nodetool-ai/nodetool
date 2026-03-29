@@ -1,0 +1,130 @@
+{
+  "modelId": "black-forest-labs/flux-pro",
+  "owner": "black-forest-labs",
+  "name": "flux-pro",
+  "version": "ce4035b99fc7bac18bc2f0384632858f126f6b4d96c88603a898a76b8e0c4ac2",
+  "description": "State-of-the-art image generation with top of the line prompt following, visual quality, image detail and output diversity.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for the generated image",
+        "enum": [
+          "custom",
+          "1:1",
+          "16:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "3:4",
+          "4:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "guidance": {
+        "default": 3,
+        "description": "Controls the balance between adherence to the text prompt and image quality/diversity. Higher values make the output more closely match the prompt but may reduce overall image quality. Lower values allow for more creative freedom but might produce results less relevant to the prompt.",
+        "maximum": 5,
+        "minimum": 2,
+        "title": "Guidance",
+        "type": "number"
+      },
+      "height": {
+        "description": "Height of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.",
+        "maximum": 1440,
+        "minimum": 256,
+        "title": "Height",
+        "type": "integer"
+      },
+      "image_prompt": {
+        "description": "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "title": "Image Prompt",
+        "type": "string"
+      },
+      "interval": {
+        "default": 2,
+        "deprecated": true,
+        "description": "Deprecated",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Interval",
+        "type": "number"
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images.",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 8
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer"
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_upsampling": {
+        "default": false,
+        "description": "Automatically modify the prompt for more creative generation",
+        "title": "Prompt Upsampling",
+        "type": "boolean"
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 1 is most strict and 6 is most permissive",
+        "maximum": 6,
+        "minimum": 1,
+        "title": "Safety Tolerance",
+        "type": "integer"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer"
+      },
+      "steps": {
+        "default": 25,
+        "deprecated": true,
+        "description": "Deprecated",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer"
+      },
+      "width": {
+        "description": "Width of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.",
+        "maximum": 1440,
+        "minimum": 256,
+        "title": "Width",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

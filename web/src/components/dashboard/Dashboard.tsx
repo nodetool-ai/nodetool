@@ -184,6 +184,7 @@ const Dashboard: React.FC = () => {
         handleExampleClick,
         handleViewAllTemplates
       },
+      runtimes: {},
       workflows: {},
       "recent-chats": {
         threads: threads as { [key: string]: Thread },

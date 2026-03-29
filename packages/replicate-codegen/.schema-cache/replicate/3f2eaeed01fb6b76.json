@@ -1,0 +1,46 @@
+{
+  "modelId": "arielreplicate/deoldify_image",
+  "owner": "arielreplicate",
+  "name": "deoldify_image",
+  "version": "0da600fab0c45a66211339f1c16b71345d22f26ef5fea3dca1bb90bb5711e950",
+  "description": "Add colours to old images",
+  "inputSchema": {
+    "properties": {
+      "input_image": {
+        "description": "Path to an image",
+        "format": "uri",
+        "title": "Input Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "model_name": {
+        "description": "Which model to use: Artistic has more vibrant color but may leave important parts of the image gray.Stable is better for nature scenery and is less prone to leaving gray human parts",
+        "enum": [
+          "Artistic",
+          "Stable"
+        ],
+        "title": "model_name",
+        "type": "string",
+        "x-order": 1
+      },
+      "render_factor": {
+        "default": 35,
+        "description": "The default value of 35 has been carefully chosen and should work -ok- for most scenarios (but probably won't be the -best-). This determines resolution at which the color portion of the image is rendered. Lower resolution will render faster, and colors also tend to look more vibrant. Older and lower quality images in particular will generally benefit by lowering the render factor. Higher render factors are often better for higher quality images, but the colors may get slightly washed out.",
+        "title": "Render Factor",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "input_image",
+      "model_name"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -2,7 +2,7 @@
  * used to test MUI components
  */
 
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Autocomplete,
   Button,

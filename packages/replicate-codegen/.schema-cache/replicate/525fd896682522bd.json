@@ -1,0 +1,64 @@
+{
+  "modelId": "yorickvp/llava-13b",
+  "owner": "yorickvp",
+  "name": "llava-13b",
+  "version": "80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb",
+  "description": "Visual instruction tuning towards large language and vision models with GPT-4 level capabilities",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "max_tokens": {
+        "default": 1024,
+        "description": "Maximum number of tokens to generate. A word is generally 2-3 tokens",
+        "minimum": 0,
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt": {
+        "description": "Prompt to use for text generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "temperature": {
+        "default": 0.2,
+        "description": "Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic",
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 3
+      },
+      "top_p": {
+        "default": 1,
+        "description": "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image",
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

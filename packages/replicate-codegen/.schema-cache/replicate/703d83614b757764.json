@@ -1,0 +1,89 @@
+{
+  "modelId": "datalab-to/ocr",
+  "owner": "datalab-to",
+  "name": "ocr",
+  "version": "3e6db0d5311d6fdc232eea333c1e26055ba4e542180043f12acb2967e5c77f4a",
+  "description": "Detect and transcribe text in images with accurate bounding boxes, layout analysis, reding order, and table recognition, in 90 languages",
+  "inputSchema": {
+    "properties": {
+      "file": {
+        "description": "Input file. Must be one of: .pdf, .doc, .docx, .ppt, .pptx, .png, .jpg, .jpeg, .webp",
+        "format": "uri",
+        "title": "File",
+        "type": "string"
+      },
+      "max_pages": {
+        "description": "Maximum number of pages to process. Cannot be specified if page_range is set - these parameters are mutually exclusive",
+        "minimum": 1,
+        "nullable": true,
+        "title": "Max Pages",
+        "type": "integer"
+      },
+      "page_range": {
+        "description": "Page range to parse, comma separated like 0,5-10,20. Example: '0,2-4' will process pages 0, 2, 3, and 4. Cannot be specified if max_pages is set - these parameters are mutually exclusive",
+        "nullable": true,
+        "title": "Page Range",
+        "type": "string"
+      },
+      "return_pages": {
+        "default": false,
+        "description": "Return detailed page information including text lines, bounding boxes, polygons, and character-level data. When disabled, only text and page_count will be returned",
+        "title": "Return Pages",
+        "type": "boolean"
+      },
+      "skip_cache": {
+        "default": false,
+        "description": "Bypass the server-side cache and force re-processing. By default, identical requests are cached to save time and cost. Enable this to get fresh results",
+        "title": "Skip Cache",
+        "type": "boolean"
+      },
+      "visualize": {
+        "default": false,
+        "description": "Draw red polygons on the input image(s) to visualize detected text regions and return the annotated images",
+        "title": "Visualize",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "file"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "page_count": {
+        "nullable": true,
+        "title": "Page Count",
+        "type": "integer"
+      },
+      "pages": {
+        "items": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "nullable": true,
+        "title": "Pages",
+        "type": "array"
+      },
+      "text": {
+        "title": "Text",
+        "type": "string"
+      },
+      "visualizations": {
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "nullable": true,
+        "title": "Visualizations",
+        "type": "array"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "OCROutput",
+    "type": "object"
+  }
+}

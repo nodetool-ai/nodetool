@@ -1,0 +1,76 @@
+{
+  "modelId": "zsxkib/mmaudio",
+  "owner": "zsxkib",
+  "name": "mmaudio",
+  "version": "62871fb59889b2d7c13777f08deb3b36bdff88f7e1d53a50ad7694548a41b484",
+  "description": "Add sound to video using the MMAudio V2 model. An advanced AI model that synthesizes high-quality audio from video content, enabling seamless video-to-audio transformation.",
+  "inputSchema": {
+    "properties": {
+      "cfg_strength": {
+        "default": 4.5,
+        "description": "Guidance strength (CFG)",
+        "minimum": 1,
+        "title": "Cfg Strength",
+        "type": "number",
+        "x-order": 5
+      },
+      "duration": {
+        "default": 8,
+        "description": "Duration of output in seconds",
+        "minimum": 1,
+        "title": "Duration",
+        "type": "number",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Optional image file for image-to-audio generation (experimental)",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 7
+      },
+      "negative_prompt": {
+        "default": "music",
+        "description": "Negative prompt to avoid certain sounds",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "num_steps": {
+        "default": 25,
+        "description": "Number of inference steps",
+        "title": "Num Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt": {
+        "default": "",
+        "description": "Text prompt for generated audio",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Use -1 or leave blank to randomize the seed",
+        "minimum": -1,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "video": {
+        "description": "Optional video file for video-to-audio generation",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

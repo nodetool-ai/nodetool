@@ -69,13 +69,16 @@ export const useModels = () => {
       const isOllama = model.type === "llama_model";
 
       // For Ollama models, they are always considered downloaded if returned by API
-      // For HF models, we check the cache status
+      // For HF models, check cache status first, fall back to API's downloaded field
       if (filterStatus === "downloaded") {
         // Only show if confirmed downloaded
         if (isOllama) {
           // Ollama models are always downloaded
-        } else if (cacheStatus !== true) {
-          // HF model not confirmed downloaded (undefined or false)
+        } else if (cacheStatus !== undefined) {
+          // Cache status is known — use it
+          if (!cacheStatus) {return false;}
+        } else if (!model.downloaded) {
+          // Cache status unknown — trust the API's downloaded field
           return false;
         }
       } else if (filterStatus === "not_downloaded") {
@@ -83,8 +86,11 @@ export const useModels = () => {
         if (isOllama) {
           // Ollama models are always downloaded, so exclude them
           return false;
-        } else if (cacheStatus !== false) {
-          // HF model not confirmed as not-downloaded (undefined or true)
+        } else if (cacheStatus !== undefined) {
+          // Cache status is known — use it
+          if (cacheStatus) {return false;}
+        } else if (model.downloaded) {
+          // Cache status unknown — trust the API's downloaded field
           return false;
         }
       }

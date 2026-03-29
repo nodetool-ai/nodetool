@@ -50,20 +50,20 @@ import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
  */
 const SpectraNode = {
   // Cyan / blue family aligns with app primary for technical types
-  scalar: "#22D3EE", // cyan 400 — numbers
-  boolean: "#10B981", // emerald 500 — booleans / flags
-  vector: "#06B6D4", // cyan 500 — vectors
-  matrix: "#6366F1", // indigo 500 — tensors / matrices
+  scalar: "#18E0F8", // cyan 400 boosted — numbers
+  boolean: "#0DD49A", // emerald 500 boosted — booleans / flags
+  vector: "#00C8E8", // cyan 500 boosted — vectors
+  matrix: "#5B5EFF", // indigo 500 boosted — tensors / matrices
   // Accents
-  spatial: "#A3E635", // lime 400 — geometry
-  texture: "#D946EF", // fuchsia 500 — images / textures
-  video: "#8B5CF6", // violet 500 — video
-  textual: "#F59E0B", // amber 500 — text / strings
-  collection: "#FACC15", // yellow 400 — list / dict / dataframe / enum
-  reference: "#3B82F6", // blue 500 — file‑like / objects / models / assets
-  event: "#F43F5E", // rose 500 — events / tasks
-  audio: "#0EA5E9", // sky/cyan 500 — audio / sound
-  execution: "#64748B" // slate 500 — misc / execution
+  spatial: "#B0F030", // lime 400 boosted — geometry
+  texture: "#E838FF", // fuchsia 500 boosted — images / textures
+  video: "#9460FF", // violet 500 boosted — video
+  textual: "#FFA808", // amber 500 boosted — text / strings
+  collection: "#FFD612", // yellow 400 boosted — list / dict / dataframe / enum
+  reference: "#3888FF", // blue 500 boosted — file‑like / objects / models / assets
+  event: "#FF3060", // rose 500 boosted — events / tasks
+  audio: "#08B8FF", // sky/cyan 500 boosted — audio / sound
+  execution: "#6880A0" // slate 500 boosted — misc / execution
 } as const;
 
 type SpectraKey = keyof typeof SpectraNode;

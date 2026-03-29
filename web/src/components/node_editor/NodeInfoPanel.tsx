@@ -253,7 +253,11 @@ const NodeInfoPanel: React.FC = memo(() => {
     });
   }, [nodeInfo]);
 
-  const handleTagClick = useCallback((tag: string) => {
+  const handleTagClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const tag = event.currentTarget.dataset.tag;
+    if (!tag) {
+      return;
+    }
     useNodeMenuStore.getState().openNodeMenu({
       x: 500,
       y: 200
@@ -320,10 +324,11 @@ const NodeInfoPanel: React.FC = memo(() => {
             </Typography>
             {parsedDescription.tags.length > 0 && (
               <div className="node-tags">
-                {parsedDescription.tags.map((tag, index) => (
+                {parsedDescription.tags.map((tag) => (
                   <span
-                    key={index}
-                    onClick={() => handleTagClick(tag)}
+                    key={tag}
+                    data-tag={tag}
+                    onClick={handleTagClick}
                   >
                     {tag}
                   </span>
@@ -334,8 +339,8 @@ const NodeInfoPanel: React.FC = memo(() => {
               <div className="node-use-cases">
                 <h5>Use cases</h5>
                 <ul>
-                  {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
-                    <li key={index}>{useCase}</li>
+                  {parsedDescription.useCases.raw.split("\n").map((useCase) => (
+                    <li key={useCase}>{useCase}</li>
                   ))}
                 </ul>
               </div>

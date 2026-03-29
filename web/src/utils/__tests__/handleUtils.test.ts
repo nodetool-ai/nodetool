@@ -91,7 +91,6 @@ const mockNodeMetadata: NodeMetadata = {
   supports_dynamic_outputs: false,
   layout: "default",
   expose_as_tool: false,
-  the_model_info: {},
   recommended_models: [],
   basic_fields: [],
   is_streaming_output: false,

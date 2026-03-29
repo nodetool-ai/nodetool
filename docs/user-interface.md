@@ -4,9 +4,9 @@ title: "NodeTool User Interface"
 description: "Visual guide to the NodeTool interface."
 ---
 
-This guide introduces the NodeTool interface. Covers both desktop app and web version.
+A complete tour of the NodeTool interface — covering the Dashboard, Workflow Canvas, Global Chat, Mini-Apps, and Assets. Everything described here applies to both the desktop app and web version.
 
-> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md).
+> **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) to run your first workflow, then come back here for the full interface walkthrough.
 
 ---
 

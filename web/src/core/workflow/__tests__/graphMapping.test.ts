@@ -38,7 +38,6 @@ const baseMetadata: NodeMetadata = {
       stream: false
     }
   ],
-  the_model_info: {},
   recommended_models: [],
   basic_fields: [],
   is_dynamic: false,

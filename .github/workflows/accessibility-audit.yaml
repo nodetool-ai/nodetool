@@ -73,6 +73,7 @@ jobs:
           claude_args: |
             --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
           prompt: |
+            ## MANDATORY: Read .github/bot-guardrails.md before making any changes
             # Accessibility Audit
 
             Audit and improve accessibility in NodeTool (React/TypeScript visual AI workflow builder). Target: WCAG 2.1 Level AA.

@@ -1,0 +1,39 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "condition", "type": "test.Input", "name": "condition" },
+      { "id": "payload", "type": "test.Input", "name": "payload" },
+      { "id": "if", "type": "nodetool.control.If" },
+      { "id": "when_true", "type": "nodetool.control.Reroute", "name": "when_true" },
+      { "id": "when_false", "type": "nodetool.control.Reroute", "name": "when_false" }
+    ],
+    "edges": [
+      {
+        "source": "condition",
+        "sourceHandle": "value",
+        "target": "if",
+        "targetHandle": "condition"
+      },
+      {
+        "source": "payload",
+        "sourceHandle": "value",
+        "target": "if",
+        "targetHandle": "value"
+      },
+      {
+        "source": "if",
+        "sourceHandle": "if_true",
+        "target": "when_true",
+        "targetHandle": "input_value"
+      },
+      {
+        "source": "if",
+        "sourceHandle": "if_false",
+        "target": "when_false",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {}
+}
+

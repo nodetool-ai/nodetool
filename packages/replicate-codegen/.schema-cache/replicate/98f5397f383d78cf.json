@@ -1,0 +1,58 @@
+{
+  "modelId": "zsxkib/aura-sr-v2",
+  "owner": "zsxkib",
+  "name": "aura-sr-v2",
+  "version": "5c137257cce8d5ce16e8a334b70e9e025106b5580affed0bc7d48940b594e74c",
+  "description": "AuraSR v2: Second-gen GAN-based Super-Resolution for real-world applications",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image to upscale",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "max_batch_size": {
+        "default": 8,
+        "description": "Maximum number of tiles to process in a single batch. Higher values may increase speed but require more GPU memory.",
+        "maximum": 64,
+        "minimum": 1,
+        "title": "Max Batch Size",
+        "type": "integer",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "The image file format of the generated output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 2
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "The image compression quality (for lossy formats like JPEG and WebP). 100 = best quality, 0 = lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

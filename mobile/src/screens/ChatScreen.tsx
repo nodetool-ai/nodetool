@@ -91,6 +91,14 @@ export default function ChatScreen({ navigation }: Props) {
     });
   }, [navigation, handleNewChat, selectedModel, colors.text]);
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      await connect();
+    } catch (err) {
+      console.error('Failed to reconnect:', err);
+    }
+  }, [connect]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
@@ -99,6 +107,7 @@ export default function ChatScreen({ navigation }: Props) {
         messages={messages}
         onSendMessage={sendMessage}
         onStop={stopGeneration}
+        onRefresh={handleRefresh}
         error={error}
         statusMessage={statusMessage}
       />

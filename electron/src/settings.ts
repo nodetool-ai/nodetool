@@ -125,16 +125,12 @@ function getAppConfigPath(filename: string): string {
  */
 function readSettings(): Record<string, any> {
   try {
-    logMessage("=== Reading Settings ===");
-
     // Return cached settings if available
     if (settingsCache !== null) {
-      logMessage("Returning cached settings");
       return settingsCache;
     }
 
     const settingsPath = getAppConfigPath("settings.yaml");
-    logMessage(`Settings path: ${settingsPath}`);
 
     if (!fs.existsSync(settingsPath)) {
       logMessage("Settings file does not exist, returning empty settings");
@@ -142,16 +138,50 @@ function readSettings(): Record<string, any> {
       return settingsCache;
     }
 
-    logMessage("Reading settings from " + settingsPath);
+    logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = fs.readFileSync(settingsPath, "utf8");
-    logMessage(`File contents: ${fileContents}`);
 
     settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
-    logMessage(`Parsed settings: ${JSON.stringify(settingsCache, null, 2)}`);
+    logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
-    for (const key in settingsCache) {
-      logMessage(`${key}: ${settingsCache[key]}`);
+    return settingsCache;
+  } catch (error) {
+    logMessage(`Error reading settings: ${error}`, "error");
+    throw new Error(
+      `Failed to read settings: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+/**
+ * Reads settings from cache or YAML file asynchronously
+ * @returns {Promise<Record<string, any>>} Settings object
+ * @throws {Error} If reading or parsing fails
+ */
+async function readSettingsAsync(): Promise<Record<string, any>> {
+  try {
+    // Return cached settings if available
+    if (settingsCache !== null) {
+      return settingsCache;
     }
+
+    const settingsPath = getAppConfigPath("settings.yaml");
+
+    try {
+      await fs.promises.access(settingsPath);
+    } catch {
+      logMessage("Settings file does not exist, returning empty settings");
+      settingsCache = {};
+      return settingsCache;
+    }
+
+    logMessage(`Reading settings from ${settingsPath}`);
+    const fileContents = await fs.promises.readFile(settingsPath, "utf8");
+
+    settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
+    logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
     return settingsCache;
   } catch (error) {

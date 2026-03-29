@@ -1,0 +1,39 @@
+{
+  "modelId": "lucataco/moondream2",
+  "owner": "lucataco",
+  "name": "moondream2",
+  "version": "72ccb656353c348c1385df54b237eeb7bfa874bf11486cf0b9473e691b662d31",
+  "description": "moondream2 is a small vision language model designed to run efficiently on edge devices",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt": {
+        "default": "Describe this image",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

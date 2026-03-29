@@ -1,15 +1,12 @@
 import { z } from "zod";
+import { uiUpdateNodeDataParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
+import { resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_update_node_data",
   description: "Update a node's properties (data.properties).",
-  parameters: z.object({
-    node_id: z.string(),
-    data: z.record(z.string(), z.any()),
-    workflow_id: optionalWorkflowIdSchema
-  }),
+  parameters: z.object(uiUpdateNodeDataParams),
   async execute({ node_id, data, workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);

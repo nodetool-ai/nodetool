@@ -1,0 +1,126 @@
+{
+  "modelId": "tencent/hunyuan3d-2mv",
+  "owner": "tencent",
+  "name": "hunyuan3d-2mv",
+  "version": "71798fbc3c9f7b7097e3bb85496e5a797d8b8f616b550692e7c3e176a8e9e5db",
+  "description": "Hunyuan3D-2mv is finetuned from Hunyuan3D-2 to support multiview controlled shape generation.",
+  "inputSchema": {
+    "properties": {
+      "back_image": {
+        "description": "Back view image",
+        "format": "uri",
+        "title": "Back Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "file_type": {
+        "default": "glb",
+        "description": "Output file type",
+        "enum": [
+          "glb",
+          "obj",
+          "ply",
+          "stl"
+        ],
+        "title": "file_type",
+        "type": "string",
+        "x-order": 12
+      },
+      "front_image": {
+        "description": "Front view image",
+        "format": "uri",
+        "title": "Front Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "guidance_scale": {
+        "default": 5,
+        "description": "Guidance scale",
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 5
+      },
+      "left_image": {
+        "description": "Left view image",
+        "format": "uri",
+        "title": "Left Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "num_chunks": {
+        "default": 200000,
+        "description": "Number of chunks",
+        "maximum": 5000000,
+        "minimum": 1000,
+        "title": "Num Chunks",
+        "type": "integer",
+        "x-order": 9
+      },
+      "octree_resolution": {
+        "default": 256,
+        "description": "Octree resolution",
+        "maximum": 512,
+        "minimum": 16,
+        "title": "Octree Resolution",
+        "type": "integer",
+        "x-order": 7
+      },
+      "randomize_seed": {
+        "default": true,
+        "description": "Randomize seed",
+        "title": "Randomize Seed",
+        "type": "boolean",
+        "x-order": 10
+      },
+      "remove_background": {
+        "default": true,
+        "description": "Remove image background",
+        "title": "Remove Background",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "right_image": {
+        "description": "Right view image",
+        "format": "uri",
+        "title": "Right Image",
+        "type": "string",
+        "x-order": 3
+      },
+      "seed": {
+        "default": 1234,
+        "description": "Random seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "steps": {
+        "default": 30,
+        "description": "Number of inference steps",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "target_face_num": {
+        "default": 10000,
+        "description": "Target number of faces for mesh simplification",
+        "maximum": 1000000,
+        "minimum": 100,
+        "title": "Target Face Num",
+        "type": "integer",
+        "x-order": 11
+      }
+    },
+    "required": [
+      "front_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

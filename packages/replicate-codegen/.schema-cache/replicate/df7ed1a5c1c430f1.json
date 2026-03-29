@@ -1,0 +1,140 @@
+{
+  "modelId": "playgroundai/playground-v2.5-1024px-aesthetic",
+  "owner": "playgroundai",
+  "name": "playground-v2.5-1024px-aesthetic",
+  "version": "a45f82a1382bed5c7aeb861dac7c7d191b0fdf74d8d57c4a0e6ed7d4d0bf7d24",
+  "description": "Playground v2.5 is the state-of-the-art open-source model in aesthetic quality",
+  "inputSchema": {
+    "properties": {
+      "apply_watermark": {
+        "default": true,
+        "description": "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.",
+        "title": "Apply Watermark",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 13
+      },
+      "guidance_scale": {
+        "default": 3,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 20,
+        "minimum": 0.1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 9
+      },
+      "height": {
+        "default": 1024,
+        "description": "Height of output image",
+        "maximum": 1536,
+        "minimum": 256,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Input image for img2img or inpaint mode",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "mask": {
+        "description": "Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "default": "ugly, deformed, noisy, blurry, distorted",
+        "description": "Negative Input prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "num_inference_steps": {
+        "default": 25,
+        "description": "Number of denoising steps",
+        "maximum": 60,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 8
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to output.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 6
+      },
+      "prompt": {
+        "default": "Astronaut in a jungle, cold color palette, muted colors, detailed, 8k",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_strength": {
+        "default": 0.8,
+        "description": "Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 10
+      },
+      "scheduler": {
+        "default": "DPMSolver++",
+        "description": "Scheduler. DPMSolver++ or DPM++2MKarras is recommended for most cases",
+        "enum": [
+          "DDIM",
+          "DPMSolverMultistep",
+          "HeunDiscrete",
+          "K_EULER_ANCESTRAL",
+          "K_EULER",
+          "PNDM",
+          "DPM++2MKarras",
+          "DPMSolver++"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 7
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 11
+      },
+      "width": {
+        "default": 1024,
+        "description": "Width of output image",
+        "maximum": 1536,
+        "minimum": 256,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

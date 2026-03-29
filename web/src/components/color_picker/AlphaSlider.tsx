@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -54,7 +54,7 @@ interface AlphaSliderProps {
   orientation?: "horizontal" | "vertical";
 }
 
-const AlphaSlider: React.FC<AlphaSliderProps> = React.memo(({
+const AlphaSlider: React.FC<AlphaSliderProps> = memo(({
   color,
   alpha,
   onChange,

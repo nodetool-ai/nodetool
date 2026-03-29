@@ -462,7 +462,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       {editable && (
         <>
           <Tooltip title="Add new row">
-            <IconButton onClick={handleAddRow}>
+            <IconButton onClick={handleAddRow} aria-label="Add new row">
               <AddIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>
@@ -471,6 +471,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             <IconButton
               className={selectedRows.length === 0 ? "disabled" : ""}
               onClick={handleDeleteRowsClick}
+              aria-label="Delete selected rows"
             >
               <DeleteIcon sx={{ fontSize: 12 }} />
             </IconButton>
@@ -481,6 +482,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               <IconButton
                 className={selectedRows.length === 0 ? "disabled" : ""}
                 onClick={handleDuplicateRows}
+                aria-label="Duplicate selected rows"
               >
                 <FileCopyIcon sx={{ fontSize: 12 }} />
               </IconButton>
@@ -491,7 +493,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
       {showSortingButton && (
         <Tooltip title="Reset table sorting">
-          <IconButton onClick={handleResetSorting}>
+          <IconButton onClick={handleResetSorting} aria-label="Reset table sorting">
             <RestartAltIcon sx={{ fontSize: 12 }} />
           </IconButton>
         </Tooltip>
@@ -502,10 +504,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <Tooltip title="Undo (Ctrl+Z)">
             <span>
-              <IconButton 
-                onClick={handleUndo} 
+              <IconButton
+                onClick={handleUndo}
                 disabled={!canUndo}
                 className={!canUndo ? "disabled" : ""}
+                aria-label="Undo"
               >
                 <UndoIcon sx={{ fontSize: 12 }} />
               </IconButton>
@@ -513,10 +516,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           </Tooltip>
           <Tooltip title="Redo (Ctrl+Y)">
             <span>
-              <IconButton 
+              <IconButton
                 onClick={handleRedo}
                 disabled={!canRedo}
                 className={!canRedo ? "disabled" : ""}
+                aria-label="Redo"
               >
                 <RedoIcon sx={{ fontSize: 12 }} />
               </IconButton>
@@ -524,7 +528,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           </Tooltip>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <Tooltip title="Paste from clipboard">
-            <IconButton onClick={handlePaste}>
+            <IconButton onClick={handlePaste} aria-label="Paste from clipboard">
               <ContentPasteIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>
@@ -535,7 +539,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         <>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <Tooltip title="Export as CSV">
-            <IconButton onClick={handleExportCSV}>
+            <IconButton onClick={handleExportCSV} aria-label="Export as CSV">
               <FileDownloadIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>
@@ -546,6 +550,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         <IconButton
           onClick={handleToggleSelect}
           color={showSelect ? "primary" : "default"}
+          aria-label="Show Select column"
         >
           <CheckBoxIcon sx={{ fontSize: 12 }} />
         </IconButton>
@@ -556,6 +561,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           <IconButton
             onClick={handleToggleRowNumbers}
             color={showRowNumbers ? "primary" : "default"}
+            aria-label="Show Row Numbers"
           >
             <NumbersIcon sx={{ fontSize: 12 }} />
           </IconButton>
@@ -563,7 +569,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       )}
 
       <Tooltip title="Copy table data to clipboard">
-        <IconButton onClick={handleCopyData}>
+        <IconButton onClick={handleCopyData} aria-label="Copy table data to clipboard">
           <ContentCopyIcon sx={{ fontSize: 12 }} />
         </IconButton>
       </Tooltip>

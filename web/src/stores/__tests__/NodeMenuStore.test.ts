@@ -9,7 +9,6 @@ const createMockNodeMetadata = (overrides: Partial<NodeMetadata> = {}): NodeMeta
   layout: "default",
   properties: [],
   outputs: [],
-  the_model_info: {},
   recommended_models: [],
   ...overrides,
 } as NodeMetadata);

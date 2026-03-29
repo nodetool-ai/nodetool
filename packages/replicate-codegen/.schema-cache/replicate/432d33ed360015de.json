@@ -1,0 +1,101 @@
+{
+  "modelId": "flux-kontext-apps/professional-headshot",
+  "owner": "flux-kontext-apps",
+  "name": "professional-headshot",
+  "version": "383e326b60ec0bd451af148f204579fc9dcc13c030df51ff2af628b2d2cdb21e",
+  "description": "Create a professional headshot photo from any single image",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "21:9",
+          "9:21",
+          "2:1",
+          "1:2"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 3
+      },
+      "background": {
+        "default": "neutral",
+        "description": "The background of the headshot",
+        "enum": [
+          "white",
+          "black",
+          "neutral",
+          "gray",
+          "office"
+        ],
+        "title": "background",
+        "type": "string",
+        "x-order": 2
+      },
+      "gender": {
+        "default": "none",
+        "description": "The gender of the person",
+        "enum": [
+          "none",
+          "male",
+          "female"
+        ],
+        "title": "gender",
+        "type": "string",
+        "x-order": 1
+      },
+      "input_image": {
+        "description": "Image of the person to create a professional headshot for. Must be jpeg, png, gif, or webp.",
+        "format": "uri",
+        "title": "Input Image",
+        "type": "string"
+      },
+      "output_format": {
+        "default": "png",
+        "description": "Output format for the generated image",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 5
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 0 is most strict and 2 is most permissive. 2 is currently the maximum allowed.",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Safety Tolerance",
+        "type": "integer"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "input_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

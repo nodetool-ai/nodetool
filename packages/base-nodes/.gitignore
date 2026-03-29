@@ -1,0 +1,5 @@
+# Test artifacts
+*.png
+*.mp4
+%Y-%m-%d-%H-%M-%S.txt
+\[object\ Object\]/

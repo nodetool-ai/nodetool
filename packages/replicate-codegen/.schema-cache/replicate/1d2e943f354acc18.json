@@ -1,0 +1,91 @@
+{
+  "modelId": "jaaari/kokoro-82m",
+  "owner": "jaaari",
+  "name": "kokoro-82m",
+  "version": "f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13",
+  "description": "Kokoro v1.0 - text-to-speech (82M params, based on StyleTTS2)",
+  "inputSchema": {
+    "properties": {
+      "speed": {
+        "default": 1,
+        "description": "Speech speed multiplier (0.5 = half speed, 2.0 = double speed)",
+        "maximum": 5,
+        "minimum": 0.1,
+        "title": "Speed",
+        "type": "number",
+        "x-order": 2
+      },
+      "text": {
+        "description": "Text input (long text is automatically split)",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      },
+      "voice": {
+        "default": "af_bella",
+        "description": "Voice to use for synthesis",
+        "enum": [
+          "af_alloy",
+          "af_aoede",
+          "af_bella",
+          "af_jessica",
+          "af_kore",
+          "af_nicole",
+          "af_nova",
+          "af_river",
+          "af_sarah",
+          "af_sky",
+          "am_adam",
+          "am_echo",
+          "am_eric",
+          "am_fenrir",
+          "am_liam",
+          "am_michael",
+          "am_onyx",
+          "am_puck",
+          "bf_alice",
+          "bf_emma",
+          "bf_isabella",
+          "bf_lily",
+          "bm_daniel",
+          "bm_fable",
+          "bm_george",
+          "bm_lewis",
+          "ff_siwis",
+          "hf_alpha",
+          "hf_beta",
+          "hm_omega",
+          "hm_psi",
+          "if_sara",
+          "im_nicola",
+          "jf_alpha",
+          "jf_gongitsune",
+          "jf_nezumi",
+          "jf_tebukuro",
+          "jm_kumo",
+          "zf_xiaobei",
+          "zf_xiaoni",
+          "zf_xiaoxiao",
+          "zf_xiaoyi",
+          "zm_yunjian",
+          "zm_yunxi",
+          "zm_yunxia",
+          "zm_yunyang"
+        ],
+        "title": "voice",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

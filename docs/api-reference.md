@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "API Reference"
+description: "REST, WebSocket, and OpenAI-compatible API endpoints for NodeTool workflows, chat, and model access."
 ---
 
 
@@ -9,19 +10,19 @@ title: "API Reference"
 
 NodeTool exposes three closely related API surfaces:
 
-- **Editor API (NodeTool application / desktop)**  
-  - Served by `nodetool serve` (`src/nodetool/api/server.py`).  
-  - Used by the NodeTool desktop app and local web UI to manage workflows, assets, jobs, and settings.  
-  - Acts as the **control plane** for authoring and debugging; includes dev-only endpoints such as the terminal WebSocket and debug tooling.  
+- **Editor API (NodeTool application / desktop)**
+  - Served by `nodetool serve` (`@nodetool/websocket` -- `server.ts`).
+  - Used by the NodeTool desktop app and local web UI to manage workflows, assets, jobs, and settings.
+  - Acts as the **control plane** for authoring and debugging; includes dev-only endpoints such as the terminal WebSocket and debug tooling.
   - Intended to run on a trusted local machine, not as a public internet API.
 
-- **Server API (deployable instance)**  
-  - Served by `nodetool serve --mode private` (`src/nodetool/api/run_server.py`).  
-  - Provides a **stable, hardened runtime surface** for external clients: OpenAI-compatible chat, workflow execution, admin and storage routes, and health checks.  
+- **Server API (deployable instance)**
+  - Served by `nodetool serve --mode private` (`@nodetool/websocket` -- `http-api.ts`).
+  - Provides a **stable, hardened runtime surface** for external clients: OpenAI-compatible chat, workflow execution, admin and storage routes, and health checks.
   - Designed for self-hosted, RunPod, Cloud Run, and other remote deployments; all non-health endpoints sit behind Bearer auth and TLS.
 
-- **Chat Server API (chat-only runtime)**  
-  - Served by `nodetool chat-server` (`src/nodetool/chat/server.py`).  
+- **Chat Server API (chat-only runtime)**
+  - Served by `nodetool chat-server` (`@nodetool/chat` -- `server.ts`).
   - Minimal OpenAI-compatible `/v1/chat/completions` and `/v1/models` plus `/health` for environments where you only need chat, not workflows or admin routes.
 
 This split exists because:
@@ -56,11 +57,23 @@ The table below summarizes key endpoints across the three surfaces. For detailed
 
 ## Authentication and Headers
 
-- HTTP: `Authorization: Bearer <token>` on all non-public routes.
-- WebSocket (Editor API): `Authorization: Bearer <token>` header (preferred) or `api_key`/`token` query parameter for legacy clients.
-- SSE: `Authorization: Bearer <token>` and `Accept: text/event-stream`.
+NodeTool uses Bearer token authentication. The behavior depends on your `AUTH_PROVIDER` setting:
 
-See [Authentication](authentication.md) for full token handling rules and the different `AUTH_PROVIDER` modes across editor and server deployments.
+| AUTH_PROVIDER | Token Required? | Use Case |
+|---------------|----------------|----------|
+| `local` / `none` | No | Local development, desktop app |
+| `static` | Yes — use the configured static token | Simple deployments with a shared secret |
+| `supabase` | Yes — use a Supabase JWT | Production deployments with user management |
+
+### How to include credentials
+
+- **HTTP requests:** `Authorization: Bearer <token>` header on all non-public routes
+- **WebSocket (Editor API):** `Authorization: Bearer <token>` header (preferred) or `api_key` query parameter
+- **SSE streams:** `Authorization: Bearer <token>` and `Accept: text/event-stream`
+
+> **Local development:** When running locally with the default config (`AUTH_PROVIDER=local`), no token is needed. You can omit the `Authorization` header entirely.
+
+See [Authentication](authentication.md) for full token handling rules.
 
 ## Streaming Behavior
 
@@ -271,76 +284,7 @@ nodetool run workflow_abc123 --jsonl
 echo '{"workflow_id": "abc123", "params": {"prompt": "test"}}' | nodetool run --stdin
 ```
 
-### Python Client Example
-
-```python
-import requests
-
-# Configuration
-BASE_URL = "http://localhost:7777"
-TOKEN = "your_token_here"
-HEADERS = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
-}
-
-# Run a workflow
-def run_workflow(workflow_id: str, params: dict) -> dict:
-    response = requests.post(
-        f"{BASE_URL}/api/workflows/{workflow_id}/run",
-        headers=HEADERS,
-        json={"params": params}
-    )
-    response.raise_for_status()
-    return response.json()
-
-# Stream workflow execution
-def stream_workflow(workflow_id: str, params: dict):
-    response = requests.post(
-        f"{BASE_URL}/workflows/{workflow_id}/run/stream",
-        headers={**HEADERS, "Accept": "text/event-stream"},
-        json={"params": params},
-        stream=True
-    )
-    
-    for line in response.iter_lines():
-        if line:
-            line = line.decode('utf-8')
-            if line.startswith('data: '):
-                data = line[6:]  # Remove 'data: ' prefix
-                if data != '[DONE]':
-                    import json
-                    event = json.loads(data)
-                    print(f"Event: {event['type']}")
-                    if event.get('status') == 'completed':
-                        return event.get('result')
-
-# Using OpenAI client (works with NodeTool!)
-from openai import OpenAI
-
-client = OpenAI(
-    api_key=TOKEN,
-    base_url=f"{BASE_URL}/v1"
-)
-
-# Chat completion
-response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-print(response.choices[0].message.content)
-
-# Streaming
-for chunk in client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Tell me a story"}],
-    stream=True
-):
-    if chunk.choices[0].delta.content:
-        print(chunk.choices[0].delta.content, end="")
-```
-
-### JavaScript/Node.js Example
+### TypeScript / Node.js Client Example
 
 ```javascript
 const BASE_URL = 'http://localhost:7777';
@@ -407,6 +351,61 @@ const completion = await openai.chat.completions.create({
 
 console.log(completion.choices[0].message.content);
 ```
+
+### Python Client Example
+
+```python
+import requests
+import json
+
+BASE_URL = "http://localhost:7777"
+TOKEN = "your_token_here"  # Not needed for local development
+HEADERS = {
+    "Authorization": f"Bearer {TOKEN}",
+    "Content-Type": "application/json",
+}
+
+# List workflows
+workflows = requests.get(f"{BASE_URL}/api/workflows", headers=HEADERS).json()
+
+# Run a workflow
+result = requests.post(
+    f"{BASE_URL}/api/workflows/{workflows[0]['id']}/run",
+    headers=HEADERS,
+    json={"params": {"prompt": "A sunset over mountains"}},
+).json()
+print("Output:", result["output"])
+
+# Stream a workflow execution
+response = requests.post(
+    f"{BASE_URL}/workflows/{workflows[0]['id']}/run/stream",
+    headers={**HEADERS, "Accept": "text/event-stream"},
+    json={"params": {"prompt": "Analyze this text"}},
+    stream=True,
+)
+for line in response.iter_lines():
+    if line and line.startswith(b"data: ") and line != b"data: [DONE]":
+        event = json.loads(line[6:])
+        print(f"Event: {event['type']} - {event.get('status', '')}")
+
+# Use with OpenAI Python SDK (works with NodeTool!)
+from openai import OpenAI
+
+client = OpenAI(api_key=TOKEN, base_url=f"{BASE_URL}/v1")
+completion = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(completion.choices[0].message.content)
+```
+
+### Finding Your Workflow ID
+
+To run a workflow via API, you need its ID. Here's how to find it:
+
+1. **From the UI:** Open a workflow in the editor — the ID appears in the browser URL bar
+2. **From the API:** Call `GET /api/workflows` (Editor) or `GET /workflows` (Server) to list all workflows with their IDs
+3. **From the CLI:** Run `nodetool list workflows`
 
 ### Error Handling
 

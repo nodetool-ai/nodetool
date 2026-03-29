@@ -1,0 +1,104 @@
+{
+  "modelId": "topazlabs/image-upscale",
+  "owner": "topazlabs",
+  "name": "image-upscale",
+  "version": "2fdc3b86a01d338ae89ad58e5d9241398a8a01de9b0dda41ba8a0434c8a00dc3",
+  "description": "Professional-grade image upscaling, from Topaz Labs",
+  "inputSchema": {
+    "properties": {
+      "enhance_model": {
+        "default": "Standard V2",
+        "description": "Model to use: Standard V2 (general purpose), Low Resolution V2 (for low-res images), CGI (for digital art), High Fidelity V2 (preserves details), Text Refine (optimized for text)",
+        "enum": [
+          "Standard V2",
+          "Low Resolution V2",
+          "CGI",
+          "High Fidelity V2",
+          "Text Refine"
+        ],
+        "title": "enhance_model",
+        "type": "string",
+        "x-order": 1
+      },
+      "face_enhancement": {
+        "default": false,
+        "description": "Enhance faces in the image",
+        "title": "Face Enhancement",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "face_enhancement_creativity": {
+        "default": 0,
+        "description": "Choose the level of creativity for face enhancement from 0 to 1. Defaults to 0, and is ignored if face_enhancement is false.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Face Enhancement Creativity",
+        "type": "number",
+        "x-order": 6
+      },
+      "face_enhancement_strength": {
+        "default": 0.8,
+        "description": "Control how sharp the enhanced faces are relative to the background from 0 to 1. Defaults to 0.8, and is ignored if face_enhancement is false.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Face Enhancement Strength",
+        "type": "number",
+        "x-order": 7
+      },
+      "image": {
+        "description": "Image to enhance",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Output format",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 3
+      },
+      "subject_detection": {
+        "default": "None",
+        "description": "Subject detection",
+        "enum": [
+          "None",
+          "All",
+          "Foreground",
+          "Background"
+        ],
+        "title": "subject_detection",
+        "type": "string",
+        "x-order": 4
+      },
+      "upscale_factor": {
+        "default": "None",
+        "description": "How much to upscale the image",
+        "enum": [
+          "None",
+          "2x",
+          "4x",
+          "6x"
+        ],
+        "title": "upscale_factor",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}
