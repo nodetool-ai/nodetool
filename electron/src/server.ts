@@ -444,7 +444,9 @@ async function startServer(): Promise<void> {
   } catch {
     const message = `Node.js backend not found at ${backendEntryPoint}. Run 'npm run build:packages' first.`;
     logMessage(message, "error");
-    dialog.showErrorBox("Backend Not Found", message);
+    if (!process.env.CI) {
+      dialog.showErrorBox("Backend Not Found", message);
+    }
     throw new Error(message);
   }
 
@@ -601,7 +603,9 @@ function handleServerOutput(data: Buffer): void {
     serverState.error = message;
     serverState.status = "error";
     serverState.isStarted = false;
-    dialog.showErrorBox("Server Error", message);
+    if (!process.env.CI) {
+      dialog.showErrorBox("Server Error", message);
+    }
     emitServerError(message);
   }
 
