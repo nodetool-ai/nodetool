@@ -74,8 +74,7 @@ test.describe("Asset Management", () => {
     await navigateToPage(page, "/assets");
 
     // Upload the test text file
-    // Note: fixture files are in the web e2e fixtures directory
-    const testFilePath = path.join(__dirname, "../../web/tests/e2e/fixtures/test-document.txt");
+    const testFilePath = path.join(__dirname, "fixtures/test-document.txt");
     await uploadFile(page, testFilePath);
 
     // Verify the page still loads correctly after upload
@@ -86,7 +85,7 @@ test.describe("Asset Management", () => {
     await navigateToPage(page, "/assets");
 
     // Upload the test image file
-    const testFilePath = path.join(__dirname, "../../web/tests/e2e/fixtures/test-image.png");
+    const testFilePath = path.join(__dirname, "fixtures/test-image.png");
     await uploadFile(page, testFilePath);
 
     // Verify the page still loads correctly after upload
