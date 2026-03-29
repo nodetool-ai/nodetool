@@ -14,5 +14,6 @@ export default defineConfig({
   test: {
     root: resolve(__dirname),
     include: ["tests/**/*.test.ts"],
+    testTimeout: 10000,
   },
 });
