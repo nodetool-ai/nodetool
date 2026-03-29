@@ -98,16 +98,16 @@ export function computeEtag(data: Record<string, unknown>): string {
 
 // ── DBModel Base ─────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export type DrizzleTable = SQLiteTableWithColumns<any>;
 
 /**
  * Helper to get column object from table by name.
  * Needed because Drizzle tables store columns as properties.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function getTableColumn(table: DrizzleTable, colName: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   return (table as any)[colName];
 }
 
@@ -116,7 +116,7 @@ function getTableColumn(table: DrizzleTable, colName: string): any {
  */
 function getColumnNames(table: DrizzleTable): string[] {
   // Drizzle stores column config under Symbol.for("drizzle:Columns")
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const cols = (table as any)[Symbol.for("drizzle:Columns")];
   if (cols) return Object.keys(cols);
   // Fallback: iterate own enumerable string keys that look like columns
@@ -131,7 +131,7 @@ export abstract class DBModel {
   static primaryKey = "id";
 
   // Allow dynamic property access for column data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   [key: string]: any;
 
   constructor(data: Record<string, unknown>) {
@@ -140,7 +140,7 @@ export abstract class DBModel {
 
   // ── CRUD ─────────────────────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   static async create<T extends DBModel>(this: any, data: Record<string, unknown>): Promise<T> {
     const instance = new this(data) as T;
     await instance.save();
@@ -148,7 +148,7 @@ export abstract class DBModel {
     return instance;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   static async get<T extends DBModel>(this: any, key: string | number): Promise<T | null> {
     const db = getDb();
     const table = this.table as DrizzleTable;
@@ -194,7 +194,7 @@ export abstract class DBModel {
   }
 
   async reload(): Promise<this> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const ctor = this.constructor as any;
     const db = getDb();
     const table = (ctor as typeof DBModel).table;
