@@ -7,7 +7,6 @@
 
 import React from "react";
 import { Box, BoxProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 
 export interface OverlayProps extends BoxProps {
   /** Whether the overlay is visible */
@@ -54,8 +53,6 @@ export const Overlay: React.FC<OverlayProps> = ({
   children,
   ...props
 }) => {
-  const theme = useTheme();
-
   if (!open) {return null;}
 
   return (

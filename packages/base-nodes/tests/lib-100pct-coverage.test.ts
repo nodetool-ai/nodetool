@@ -22,9 +22,7 @@ import {
   // lib-pedalboard-extra
   PitchShiftNode,
   TimeStretchNode,
-  // lib-pdf
-  ExtractTablesPdfPlumberNode,
-  ExtractMarkdownPyMuPdfNode,
+  // lib-pdf (ExtractTablesPdfPlumberNode, ExtractMarkdownPyMuPdfNode removed)
   // lib-os
   OpenWorkspaceDirectoryLibNode,
   // lib-librosa-spectral
@@ -152,6 +150,13 @@ function buildMinimalPdf(
   return new Uint8Array(Buffer.from(body, "ascii"));
 }
 
+/** Create a node with all props (including undeclared ones like supabase_url) set directly. */
+function makeNode<T>(Cls: new () => T, props: Record<string, unknown>): T {
+  const node = new Cls();
+  Object.assign(node, props);
+  return node;
+}
+
 // ── lib-compat: exercise createLibCompatNode via module internals ──
 
 describe("lib-compat coverage", () => {
@@ -217,7 +222,7 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SelectLibNode().process({
+    const result = await makeNode(SelectLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
@@ -236,7 +241,7 @@ describe("lib-supabase success paths (mocked)", () => {
       order_by: "id",
       descending: true,
       limit: 10,
-    });
+    }).process();
     expect(result.output).toEqual([{ id: 1 }]);
   });
 
@@ -247,12 +252,12 @@ describe("lib-supabase success paths (mocked)", () => {
     });
 
     await expect(
-      new SelectLibNode().process({
+      makeNode(SelectLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
         filters: [["id", "invalid_op" as any, 1]],
-      })
+      }).process()
     ).rejects.toThrow("Unsupported filter operator");
   });
 
@@ -272,11 +277,11 @@ describe("lib-supabase success paths (mocked)", () => {
     });
 
     await expect(
-      new SelectLibNode().process({
+      makeNode(SelectLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
-      })
+      }).process()
     ).rejects.toThrow("Supabase select error");
   });
 
@@ -287,13 +292,13 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SupabaseInsertLibNode().process({
+    const result = await makeNode(SupabaseInsertLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ a: 1 }],
       return_rows: true,
-    });
+    }).process();
     expect(result.output).toEqual([{ id: 1, a: 1 }]);
   });
 
@@ -304,13 +309,13 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SupabaseInsertLibNode().process({
+    const result = await makeNode(SupabaseInsertLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ a: 1 }],
       return_rows: false,
-    });
+    }).process();
     expect((result.output as any).inserted).toBe(1);
   });
 
@@ -328,12 +333,12 @@ describe("lib-supabase success paths (mocked)", () => {
     });
 
     await expect(
-      new SupabaseInsertLibNode().process({
+      makeNode(SupabaseInsertLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
         records: [{ a: 1 }],
-      })
+      }).process()
     ).rejects.toThrow("Supabase insert error");
   });
 
@@ -344,14 +349,14 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SupabaseUpdateLibNode().process({
+    const result = await makeNode(SupabaseUpdateLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
       values: { x: 2 },
       filters: [["id", "eq", 1]],
       return_rows: true,
-    });
+    }).process();
     expect(result.output).toEqual([{ id: 1, x: 2 }]);
   });
 
@@ -362,14 +367,14 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SupabaseUpdateLibNode().process({
+    const result = await makeNode(SupabaseUpdateLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
       values: { x: 2 },
       filters: [],
       return_rows: false,
-    });
+    }).process();
     expect((result.output as any).updated).toBe(true);
   });
 
@@ -387,12 +392,12 @@ describe("lib-supabase success paths (mocked)", () => {
     });
 
     await expect(
-      new SupabaseUpdateLibNode().process({
+      makeNode(SupabaseUpdateLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
         values: { x: 1 },
-      })
+      }).process()
     ).rejects.toThrow("Supabase update error");
   });
 
@@ -403,12 +408,12 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SupabaseDeleteLibNode().process({
+    const result = await makeNode(SupabaseDeleteLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
       filters: [["id", "eq", 1]],
-    });
+    }).process();
     expect((result.output as any).deleted).toBe(true);
   });
 
@@ -426,12 +431,12 @@ describe("lib-supabase success paths (mocked)", () => {
     });
 
     await expect(
-      new SupabaseDeleteLibNode().process({
+      makeNode(SupabaseDeleteLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
         filters: [["id", "eq", 1]],
-      })
+      }).process()
     ).rejects.toThrow("Supabase delete error");
   });
 
@@ -442,13 +447,13 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SupabaseUpsertLibNode().process({
+    const result = await makeNode(SupabaseUpsertLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ id: 1 }],
       return_rows: true,
-    });
+    }).process();
     expect(result.output).toEqual([{ id: 1 }]);
   });
 
@@ -459,13 +464,13 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: mockRpc,
     });
 
-    const result = await new SupabaseUpsertLibNode().process({
+    const result = await makeNode(SupabaseUpsertLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       table_name: "test_table",
       records: [{ id: 1 }],
       return_rows: false,
-    });
+    }).process();
     expect((result.output as any).upserted).toBe(1);
   });
 
@@ -483,12 +488,12 @@ describe("lib-supabase success paths (mocked)", () => {
     });
 
     await expect(
-      new SupabaseUpsertLibNode().process({
+      makeNode(SupabaseUpsertLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         table_name: "test_table",
         records: [{ id: 1 }],
-      })
+      }).process()
     ).rejects.toThrow("Supabase upsert error");
   });
 
@@ -498,12 +503,12 @@ describe("lib-supabase success paths (mocked)", () => {
       rpc: vi.fn().mockResolvedValue({ data: { result: 42 }, error: null }),
     });
 
-    const result = await new SupabaseRPCLibNode().process({
+    const result = await makeNode(SupabaseRPCLibNode, {
       supabase_url: "https://test.supabase.co",
       supabase_key: "key123",
       function: "my_func",
       params: { x: 1 },
-    });
+    }).process();
     expect(result.output).toEqual({ result: 42 });
   });
 
@@ -514,11 +519,11 @@ describe("lib-supabase success paths (mocked)", () => {
     });
 
     await expect(
-      new SupabaseRPCLibNode().process({
+      makeNode(SupabaseRPCLibNode, {
         supabase_url: "https://test.supabase.co",
         supabase_key: "key123",
         function: "my_func",
-      })
+      }).process()
     ).rejects.toThrow("Supabase RPC error");
   });
 });
@@ -528,60 +533,60 @@ describe("lib-supabase success paths (mocked)", () => {
 describe("lib-pedalboard-extra coverage", () => {
   it("PitchShift with 8-bit WAV", async () => {
     const wav = makeWav({ bitsPerSample: 8, durationSec: 0.2, numChannels: 1 });
-    const result = await new PitchShiftNode().process({
+    const result = await new PitchShiftNode({
       audio: audioRef(wav),
       semitones: 2,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
 
   it("PitchShift with >2 channel WAV (takes first 2 channels)", async () => {
     const wav = makeWav({ numChannels: 3, durationSec: 0.2 });
-    const result = await new PitchShiftNode().process({
+    const result = await new PitchShiftNode({
       audio: audioRef(wav),
       semitones: 3,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
 
   it("PitchShift with stereo WAV", async () => {
     const wav = makeWav({ numChannels: 2, durationSec: 0.2 });
-    const result = await new PitchShiftNode().process({
+    const result = await new PitchShiftNode({
       audio: audioRef(wav),
       semitones: -2,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
 
   it("TimeStretch with >2 channel WAV", async () => {
     const wav = makeWav({ numChannels: 3, durationSec: 0.2 });
-    const result = await new TimeStretchNode().process({
+    const result = await new TimeStretchNode({
       audio: audioRef(wav),
       rate: 1.5,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
 
   it("TimeStretch with stereo WAV", async () => {
     const wav = makeWav({ numChannels: 2, durationSec: 0.2 });
-    const result = await new TimeStretchNode().process({
+    const result = await new TimeStretchNode({
       audio: audioRef(wav),
       rate: 0.8,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
 
   it("TimeStretch with mono WAV", async () => {
     const wav = makeWav({ numChannels: 1, durationSec: 0.2 });
-    const result = await new TimeStretchNode().process({
+    const result = await new TimeStretchNode({
       audio: audioRef(wav),
       rate: 1.5,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
@@ -590,47 +595,14 @@ describe("lib-pedalboard-extra coverage", () => {
 // ── lib-pdf: use real minimal PDFs for table and markdown extraction ──
 
 describe("lib-pdf table extraction coverage", () => {
-  it("ExtractTables with a multi-page PDF with tabular content", async () => {
-    // Create a real PDF with text content that looks like a table
-    // using pdfjs-dist by generating a minimal PDF
-    const pdfBytes = buildMinimalPdf([
-      // 3 columns x 3 rows, evenly spaced on Y axis
-      { text: "Name", x: 10, y: 100 },
-      { text: "Age", x: 100, y: 100 },
-      { text: "City", x: 200, y: 100 },
-      { text: "Alice", x: 10, y: 80 },
-      { text: "30", x: 100, y: 80 },
-      { text: "NYC", x: 200, y: 80 },
-      { text: "Bob", x: 10, y: 60 },
-      { text: "25", x: 100, y: 60 },
-      { text: "LA", x: 200, y: 60 },
-    ]);
-
-    const result = await new ExtractTablesPdfPlumberNode().process({
-      pdf: { data: Buffer.from(pdfBytes).toString("base64") },
-    });
-    const output = result.output as any[];
-    expect(Array.isArray(output)).toBe(true);
-    // The table detection may or may not find tables depending on PDF rendering
-    // but the code path for table analysis is exercised
+  it.skip("ExtractTables with a multi-page PDF with tabular content (node class removed)", async () => {
+    // ExtractTablesPdfPlumberNode no longer exists
   });
 });
 
 describe("lib-pdf markdown extraction coverage", () => {
-  it("ExtractMarkdownPyMuPdf with varied font sizes", async () => {
-    // Create a real PDF with text at different sizes
-    const pdfBytes = buildMinimalPdf([
-      { text: "Big Title", x: 10, y: 200, fontSize: 24 },
-      { text: "Subtitle", x: 10, y: 170, fontSize: 16 },
-      { text: "Body text here", x: 10, y: 140, fontSize: 12 },
-      { text: "More content", x: 10, y: 110, fontSize: 12 },
-    ]);
-
-    const result = await new ExtractMarkdownPyMuPdfNode().process({
-      pdf: { data: Buffer.from(pdfBytes).toString("base64") },
-    });
-    const output = String(result.output);
-    expect(output.length).toBeGreaterThan(0);
+  it.skip("ExtractMarkdownPyMuPdf with varied font sizes (node class removed)", async () => {
+    // ExtractMarkdownPyMuPdfNode no longer exists
   });
 });
 
@@ -638,12 +610,12 @@ describe("lib-pdf markdown extraction coverage", () => {
 
 describe("lib-os OpenWorkspaceDirectory coverage", () => {
   it("OpenWorkspaceDirectory returns empty when no context", async () => {
-    const result = await new OpenWorkspaceDirectoryLibNode().process({});
+    const result = await new OpenWorkspaceDirectoryLibNode({}).process();
     expect(result).toEqual({});
   });
 
   it("OpenWorkspaceDirectory returns empty when no workspaceDir", async () => {
-    const result = await new OpenWorkspaceDirectoryLibNode().process({}, {} as any);
+    const result = await new OpenWorkspaceDirectoryLibNode({}).process({} as any);
     expect(result).toEqual({});
   });
 
@@ -651,10 +623,7 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
     // Use a temp dir that exists, but the open command will fail (or succeed on macOS)
     const tmpDir = mkdtempSync(join(tmpdir(), "os-test-"));
     try {
-      const result = await new OpenWorkspaceDirectoryLibNode().process(
-        {},
-        { workspaceDir: tmpDir } as any
-      );
+      const result = await new OpenWorkspaceDirectoryLibNode({}).process({ workspaceDir: tmpDir } as any);
       expect(result).toEqual({});
     } catch {
       // On CI or non-macOS, the "open" command may fail - that's ok, we covered the code path
@@ -667,53 +636,53 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
 describe("lib-librosa-spectral coverage", () => {
   it("STFT with 8-bit WAV input", async () => {
     const wav = makeWav({ bitsPerSample: 8, durationSec: 0.5, sampleRate: 22050 });
-    const result = await new STFTNode().process({
+    const result = await new STFTNode({
       audio: audioRef(wav),
       n_fft: 2048,
       hop_length: 512,
-    });
+    }).process();
     const output = result.output as { data: unknown[] };
     expect(Array.isArray(output.data)).toBe(true);
   });
 
   it("STFT with Uint8Array data (not base64)", async () => {
     const wav = makeWav({ durationSec: 0.5, sampleRate: 22050 });
-    const result = await new STFTNode().process({
+    const result = await new STFTNode({
       audio: { type: "audio", uri: "", data: new Uint8Array(wav) },
       n_fft: 2048,
       hop_length: 512,
-    });
+    }).process();
     const output = result.output as { data: unknown[] };
     expect(Array.isArray(output.data)).toBe(true);
   });
 
   it("STFT with invalid audio data throws", async () => {
     await expect(
-      new STFTNode().process({
+      new STFTNode({
         audio: { type: "audio", uri: "", data: 12345 },
         n_fft: 2048,
         hop_length: 512,
-      })
+      }).process()
     ).rejects.toThrow("Invalid audio data");
   });
 
   it("STFT with non-RIFF data throws", async () => {
     await expect(
-      new STFTNode().process({
+      new STFTNode({
         audio: { type: "audio", uri: "", data: Buffer.from("NOT_A_WAV_FILE_HEADER_ENOUGH_BYTES______________").toString("base64") },
         n_fft: 2048,
         hop_length: 512,
-      })
+      }).process()
     ).rejects.toThrow("Invalid WAV file");
   });
 
   it("SegmentAudioByOnsets with Uint8Array data segments", async () => {
     const wav = makeWav({ durationSec: 0.5, sampleRate: 22050 });
-    const result = await new SegmentAudioByOnsetsNode().process({
+    const result = await new SegmentAudioByOnsetsNode({
       audio: audioRef(wav),
       onsets: { data: [0.0, 0.2] },
       min_segment_length: 0.05,
-    });
+    }).process();
     const output = result.output as unknown[];
     expect(Array.isArray(output)).toBe(true);
     expect(output.length).toBeGreaterThan(0);
@@ -723,13 +692,13 @@ describe("lib-librosa-spectral coverage", () => {
     const wav = makeWav({ durationSec: 0.5, sampleRate: 22050 });
     const tmpDir = mkdtempSync(join(tmpdir(), "librosa-test-"));
 
-    const result = await new SegmentAudioByOnsetsNode().process({
+    const result = await new SegmentAudioByOnsetsNode({
       audio: audioRef(wav),
       onsets: { data: [0.0, 0.2] },
       min_segment_length: 0.05,
       folder: { path: tmpDir },
       prefix: "seg",
-    });
+    }).process();
     const output = result.output;
     // When folder is set, output should be the folder ref
     expect(output).toBeDefined();
@@ -768,11 +737,11 @@ describe("lib-librosa-spectral coverage", () => {
       buf.writeInt16LE(Math.round(sample * 0x7fff * 0.5), dataChunkOffset + 8 + i * 2);
     }
 
-    const result = await new STFTNode().process({
+    const result = await new STFTNode({
       audio: audioRef(buf),
       n_fft: 512,
       hop_length: 256,
-    });
+    }).process();
     const output = result.output as { data: unknown[] };
     expect(Array.isArray(output.data)).toBe(true);
   });
@@ -782,10 +751,10 @@ describe("lib-librosa-spectral coverage", () => {
 
 describe("lib-numpy coverage", () => {
   it("SaveArray without storage context", async () => {
-    const result = await new SaveArrayNode().process({
+    const result = await new SaveArrayNode({
       values: { data: [1, 2, 3], shape: [3] },
       name: "test.json",
-    });
+    }).process();
     const output = result.output as { data: number[]; shape: number[] };
     expect(output.data).toEqual([1, 2, 3]);
     expect(output.shape).toEqual([3]);
@@ -793,23 +762,20 @@ describe("lib-numpy coverage", () => {
 
   it("SaveArray with storage context", async () => {
     const storeFn = vi.fn().mockResolvedValue("file:///test.json");
-    const result = await new SaveArrayNode().process(
-      {
+    const result = await new SaveArrayNode({
         values: { data: [1, 2, 3], shape: [3] },
         name: "test.json",
-      },
-      { storage: { store: storeFn } } as any
-    );
+      }).process({ storage: { store: storeFn } } as any);
     const output = result.output as { data: number[]; shape: number[]; uri: string };
     expect(output.uri).toBe("file:///test.json");
     expect(storeFn).toHaveBeenCalled();
   });
 
   it("SaveArray with date template name", async () => {
-    const result = await new SaveArrayNode().process({
+    const result = await new SaveArrayNode({
       values: { data: [1], shape: [1] },
       name: "%Y-%m-%d_%H-%M-%S.npy",
-    });
+    }).process();
     const output = result.output as { data: number[]; shape: number[] };
     expect(output.data).toEqual([1]);
   });
@@ -822,9 +788,9 @@ describe("lib-numpy coverage", () => {
       .png()
       .toBuffer();
 
-    const result = await new ConvertToArrayNumpyNode().process({
+    const result = await new ConvertToArrayNumpyNode({
       image: { type: "image", data: pngBuf.toString("base64") },
-    });
+    }).process();
     const output = result.output as { data: number[]; shape: number[] };
     // sharp may expand to 3 or 4 channels, but the code path for shape assignment is hit
     expect(output.shape.length).toBe(3);
@@ -847,12 +813,12 @@ describe("lib-docx AddImage coverage", () => {
       .toBuffer();
     writeFileSync(imgPath, pngBuf);
 
-    const result = await new AddImageLibNode().process({
+    const result = await new AddImageLibNode({
       document: { elements: [] },
       image: imgPath,
       width: 100,
       height: 100,
-    });
+    }).process();
     expect((result.output as any).elements.length).toBe(1);
   });
 
@@ -867,39 +833,39 @@ describe("lib-docx AddImage coverage", () => {
       .toBuffer();
     writeFileSync(imgPath, pngBuf);
 
-    const result = await new AddImageLibNode().process({
+    const result = await new AddImageLibNode({
       document: { elements: [] },
       image: { uri: `file://${imgPath}` },
       width: 50,
       height: 50,
-    });
+    }).process();
     expect((result.output as any).elements.length).toBe(1);
   });
 
   it("AddImage with image object with empty uri throws", async () => {
     await expect(
-      new AddImageLibNode().process({
+      new AddImageLibNode({
         document: { elements: [] },
         image: { uri: "" },
-      })
+      }).process()
     ).rejects.toThrow("Image path is not set");
   });
 
   it("AddImage with invalid image input throws", async () => {
     await expect(
-      new AddImageLibNode().process({
+      new AddImageLibNode({
         document: { elements: [] },
         image: 12345,
-      })
+      }).process()
     ).rejects.toThrow("Invalid image input");
   });
 
   it("AddImage with no elements in document", async () => {
     await expect(
-      new AddImageLibNode().process({
+      new AddImageLibNode({
         document: "not_a_doc",
         image: 12345,
-      })
+      }).process()
     ).rejects.toThrow("Invalid image input");
   });
 });
@@ -911,13 +877,13 @@ describe("lib-excel coverage", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "excel-test-"));
 
     // Create a workbook first
-    const wb = await new CreateWorkbookLibNode().process({ sheet_name: "Test" });
+    const wb = await new CreateWorkbookLibNode({ sheet_name: "Test" }).process();
 
-    const result = await new SaveWorkbookLibNode().process({
+    const result = await new SaveWorkbookLibNode({
       workbook: wb.output,
       folder: tmpDir,
       filename: "test_%Y.xlsx",
-    });
+    }).process();
     // output is the full file path string
     expect(typeof result.output).toBe("string");
     expect(String(result.output)).toContain("test_");
@@ -928,21 +894,21 @@ describe("lib-excel coverage", () => {
     const rawWb = new ExcelJS.Workbook();
     rawWb.addWorksheet("Test");
 
-    const result = await new SaveWorkbookLibNode().process({
+    const result = await new SaveWorkbookLibNode({
       workbook: rawWb,
       folder: mkdtempSync(join(tmpdir(), "excel-test-")),
       filename: "raw.xlsx",
-    });
+    }).process();
     expect(typeof result.output).toBe("string");
   });
 
   it("getWorkbook throws on invalid input", async () => {
     await expect(
-      new SaveWorkbookLibNode().process({
+      new SaveWorkbookLibNode({
         workbook: "not-a-workbook",
         folder: "/tmp",
         filename: "test.xlsx",
-      })
+      }).process()
     ).rejects.toThrow("Workbook is not connected");
   });
 });
@@ -955,9 +921,9 @@ describe("lib-ytdlp runCommand coverage", () => {
     process.env.PATH = "/nonexistent";
     try {
       await expect(
-        new YtDlpDownloadLibNode().process({
+        new YtDlpDownloadLibNode({
           url: "https://example.com/video",
-        })
+        }).process()
       ).rejects.toThrow();
     } finally {
       process.env.PATH = origPath;
@@ -974,10 +940,10 @@ describe("lib-ytdlp runCommand coverage", () => {
 describe("lib-audio-dsp 8-bit WAV coverage", () => {
   it("Gain with 8-bit WAV input", async () => {
     const wav = makeWav({ bitsPerSample: 8, durationSec: 0.1 });
-    const result = await new GainNode_().process({
+    const result = await new GainNode_({
       audio: audioRef(wav),
       gain_db: 6.0,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
@@ -1013,10 +979,10 @@ describe("lib-audio-dsp 8-bit WAV coverage", () => {
       buf.writeInt16LE(Math.round(Math.sin(i * 0.1) * 16000), dOff + 8 + i * 2);
     }
 
-    const result = await new GainNode_().process({
+    const result = await new GainNode_({
       audio: audioRef(buf),
       gain_db: 3.0,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
   });
@@ -1027,13 +993,13 @@ describe("lib-audio-dsp 8-bit WAV coverage", () => {
 describe("lib-synthesis Envelope coverage", () => {
   it("Envelope with Uint8Array audio data (not base64)", async () => {
     const wav = makeWav({ durationSec: 0.2 });
-    const result = await new EnvelopeLibNode().process({
+    const result = await new EnvelopeLibNode({
       audio: { type: "audio", uri: "", data: new Uint8Array(wav) },
       attack: 0.02,
       decay: 0.05,
       release: 0.1,
       peak_amplitude: 0.8,
-    });
+    }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toBeDefined();
   });
@@ -1067,12 +1033,12 @@ describe("lib-synthesis Envelope coverage", () => {
       buf.writeInt16LE(Math.round(Math.sin(i * 0.1) * 16000), dOff + 8 + i * 2);
     }
 
-    const result = await new EnvelopeLibNode().process({
+    const result = await new EnvelopeLibNode({
       audio: audioRef(buf),
       attack: 0.01,
       decay: 0.02,
       release: 0.05,
-    });
+    }).process();
     expect(result.output).toBeDefined();
   });
 });
@@ -1082,8 +1048,8 @@ describe("lib-synthesis Envelope coverage", () => {
 describe("lib-grid coverage", () => {
   it("SliceImageGrid with null/undefined data returns error", async () => {
     await expect(
-      new SliceImageGridLibNode().process({ image: null })
-    ).rejects.toThrow("ImageRef must include data or uri.");
+      new SliceImageGridLibNode({ image: null }).process()
+    ).rejects.toThrow("Image input is required.");
   });
 
   it("SliceImageGrid with Uint8Array data", async () => {
@@ -1094,11 +1060,11 @@ describe("lib-grid coverage", () => {
       .png()
       .toBuffer();
 
-    const result = await new SliceImageGridLibNode().process({
+    const result = await new SliceImageGridLibNode({
       image: { data: new Uint8Array(pngBuf) },
       columns: 2,
       rows: 2,
-    });
+    }).process();
     const output = result.output as unknown[];
     expect(Array.isArray(output)).toBe(true);
     expect(output.length).toBe(4);
@@ -1121,7 +1087,7 @@ vi.mock("nodemailer", () => {
 
 describe("lib-mail SendEmail success (mocked)", () => {
   it("sends email successfully", async () => {
-    const result = await new SendEmailLibNode().process({
+    const result = await new SendEmailLibNode({
       smtp_server: "localhost",
       smtp_port: 1025,
       username: "user",
@@ -1130,7 +1096,7 @@ describe("lib-mail SendEmail success (mocked)", () => {
       to_address: "to@test.com",
       subject: "Test",
       body: "Hello",
-    });
+    }).process();
     expect(result.output).toBe(true);
     expect(mockSendMail).toHaveBeenCalled();
   });
@@ -1144,9 +1110,9 @@ describe("lib-markitdown coverage", () => {
     const htmlPath = join(tmpDir, "test.html");
     writeFileSync(htmlPath, "<h1>Hello</h1><p>World</p>");
 
-    const result = await new ConvertToMarkdownLibNode().process({
+    const result = await new ConvertToMarkdownLibNode({
       document: { uri: htmlPath, data: "" },
-    });
+    }).process();
     const output = result.output as { data: string };
     expect(output.data).toContain("Hello");
   });
@@ -1156,9 +1122,9 @@ describe("lib-markitdown coverage", () => {
     const txtPath = join(tmpDir, "test.txt");
     writeFileSync(txtPath, "Just plain text without any HTML");
 
-    const result = await new ConvertToMarkdownLibNode().process({
+    const result = await new ConvertToMarkdownLibNode({
       document: { uri: txtPath, data: "" },
-    });
+    }).process();
     const output = result.output as { data: string };
     expect(output.data).toContain("Just plain text");
   });

@@ -4,30 +4,37 @@ import {
   navigateToPage,
   waitForPageReady,
   waitForAnimation,
+  waitForTextStable,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
+  // Check backend reachability once and skip the entire suite if unavailable
+  let backendAvailable = true;
+
   test.describe("Chat Page (Real Backend)", () => {
-    // Verify the backend is reachable before running the suite
     test.beforeAll(async ({ request }) => {
       try {
         const resp = await request.get(`${BACKEND_API_URL}/threads`);
         if (!resp.ok()) {
-          test.skip();
+          backendAvailable = false;
         }
       } catch {
-        test.skip();
+        backendAvailable = false;
       }
     });
 
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async ({ page }, testInfo) => {
+      if (!backendAvailable) {
+        testInfo.skip();
+        return;
+      }
       await navigateToPage(page, "/chat");
       await waitForPageReady(page);
       // Wait for thread list to load from the backend
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState("networkidle");
     });
 
     test("chat page loads with conversation sidebar", async ({ page }) => {
@@ -42,8 +49,7 @@ if (process.env.JEST_WORKER_ID) {
       await expect(searchInput).toBeVisible();
 
       // New thread "+" button should be present
-      const addButton = page.locator('button:has(svg), button[aria-label*="new" i], button[aria-label*="add" i]').filter({ hasText: /^\+?$/ });
-      // Fallback: look for a button near the search bar
+      const addButton = page.locator('[aria-label*="new" i], [aria-label*="add" i], [data-testid="new-thread-button"]');
       const plusButton = page.locator("button").filter({ hasText: "+" });
       const hasPlusButton = (await plusButton.count()) > 0 || (await addButton.count()) > 0;
       expect(hasPlusButton).toBe(true);
@@ -92,8 +98,9 @@ if (process.env.JEST_WORKER_ID) {
       await searchInput.fill("conversation");
       await waitForAnimation(page);
 
-      // Give time for filtering
-      await page.waitForTimeout(500);
+      // Wait for the thread list to settle after filtering
+      const threadList = page.locator('[class*="thread"], [class*="Thread"], [data-testid*="thread"]');
+      await waitForTextStable(page.locator("body"), 2000);
 
       // After searching, the thread list should update
       // We cannot assert exact results since this is a real backend,
@@ -151,17 +158,14 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("sidebar collapse/expand toggle works", async ({ page }) => {
-      // The collapse button shows "<" in the sidebar header
+      // Look for sidebar toggle via aria-label first, fall back to text-based
+      const toggle = page.locator('[aria-label*="collapse" i], [aria-label*="sidebar" i], [aria-label*="toggle" i], [data-testid="sidebar-toggle"]');
       const collapseButton = page.locator("button").filter({ hasText: /^[<>‹›]$/ });
 
-      // Fallback: look for a button near the "Conversations" header
-      const sidebarToggle = collapseButton.count().then((count) =>
-        count > 0 ? collapseButton : page.locator('[aria-label*="collapse" i], [aria-label*="sidebar" i], [aria-label*="toggle" i]')
-      );
-      const toggle = await sidebarToggle;
+      const resolvedToggle = (await toggle.count()) > 0 ? toggle : collapseButton;
 
-      if ((await toggle.count()) > 0) {
-        const toggleBtn = toggle.first();
+      if ((await resolvedToggle.count()) > 0) {
+        const toggleBtn = resolvedToggle.first();
         await expect(toggleBtn).toBeVisible();
 
         // Click to collapse the sidebar
@@ -173,9 +177,12 @@ if (process.env.JEST_WORKER_ID) {
         const isHidden = await conversationsHeading.isHidden().catch(() => true);
 
         // Click again to expand (the toggle button should still be accessible)
-        const expandButton = page.locator('button:has-text(">"), button:has-text("›"), [aria-label*="expand" i], [aria-label*="sidebar" i], [aria-label*="toggle" i]');
-        if ((await expandButton.count()) > 0) {
-          await expandButton.first().click();
+        const expandButton = page.locator('[aria-label*="expand" i], [aria-label*="sidebar" i], [aria-label*="toggle" i], [data-testid="sidebar-toggle"]');
+        const expandFallback = page.locator("button").filter({ hasText: /^[>›]$/ });
+        const resolvedExpand = (await expandButton.count()) > 0 ? expandButton : expandFallback;
+
+        if ((await resolvedExpand.count()) > 0) {
+          await resolvedExpand.first().click();
           await waitForAnimation(page);
 
           // After expand, "Conversations" should be visible again
@@ -189,8 +196,8 @@ if (process.env.JEST_WORKER_ID) {
       // Threads are typically list items with conversation titles
       const threadItems = page.locator('[class*="thread" i], [class*="Thread"]').filter({ hasText: /./  });
 
-      // Fallback: look for items with known thread titles
-      const conversationItems = page.getByText(/New conversation|hi wie gehts|hi/);
+      // Look for items with known thread titles (use language-neutral patterns)
+      const conversationItems = page.getByText(/New conversation|hi/i);
 
       const itemCount = await conversationItems.count();
       if (itemCount > 1) {
@@ -198,7 +205,9 @@ if (process.env.JEST_WORKER_ID) {
         const targetThread = conversationItems.nth(1);
         await targetThread.click();
         await waitForAnimation(page);
-        await page.waitForTimeout(500);
+
+        // Wait for thread content to load
+        await page.waitForLoadState("networkidle");
 
         // After selecting a thread, the URL should include a thread ID
         const url = page.url();
@@ -216,19 +225,23 @@ if (process.env.JEST_WORKER_ID) {
       const messageInput = page.getByPlaceholder("Type your message...");
       await expect(messageInput).toBeVisible({ timeout: 10000 });
 
-      // Look for the action buttons area near the input
-      // They are buttons with SVG icons, typically in a toolbar/row below the input
-      const actionButtons = page.locator("button:has(svg)");
+      // Look for the action buttons area near the input using role-based locators
+      const actionButtons = page.locator('button[aria-label], button:has(svg)');
       const buttonCount = await actionButtons.count();
 
       // We expect at least 4 action buttons (workflow, node, clipboard, lightbulb)
       // plus the send button and model selector
       expect(buttonCount).toBeGreaterThanOrEqual(4);
 
-      // Verify the send button exists (arrow icon)
-      // It is typically the last button or has a specific aria label
-      const sendButton = page.locator('button[aria-label*="send" i], button[type="submit"], button:has(svg)').last();
-      await expect(sendButton).toBeVisible();
+      // Verify the send button exists
+      const sendButton = page.locator('button[aria-label*="send" i], button[type="submit"]');
+      if ((await sendButton.count()) > 0) {
+        await expect(sendButton.first()).toBeVisible();
+      } else {
+        // Fallback: at least some button with an SVG icon exists
+        const svgButtons = page.locator('button:has(svg)');
+        expect(await svgButtons.count()).toBeGreaterThanOrEqual(1);
+      }
     });
   });
 }

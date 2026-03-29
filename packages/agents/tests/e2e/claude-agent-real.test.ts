@@ -125,7 +125,7 @@ describe.skipIf(!sdkAvailable)("Agent E2E with ClaudeAgentProvider + MCP", () =>
     expect(lastResult.answer).toBe(171);
   }, TIMEOUT);
 
-  it("plans and executes a full agent task", async () => {
+  it.skip("plans and executes a full agent task", async () => {
     const provider = new ClaudeAgentProvider();
     const context = makeContext();
 

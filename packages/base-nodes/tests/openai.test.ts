@@ -47,7 +47,8 @@ describe("EmbeddingNode (OpenAI)", () => {
   it("throws without API key", async () => {
     delete process.env.OPENAI_API_KEY;
     const node = new EmbeddingNode();
-    await expect(node.process({ input: "hi" })).rejects.toThrow(
+    node.assign({ input: "hi" });
+    await expect(node.process()).rejects.toThrow(
       /OPENAI_API_KEY/i
     );
   });
@@ -61,10 +62,11 @@ describe("EmbeddingNode (OpenAI)", () => {
     });
 
     const node = new EmbeddingNode();
-    const result = await node.process({
-      input: "test",
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      input: "test"
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const [url, opts] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/embeddings");
@@ -84,11 +86,12 @@ describe("EmbeddingNode (OpenAI)", () => {
     });
 
     const node = new EmbeddingNode();
-    const result = await node.process({
+    node.assign({
       input: "abcdefgh",
-      chunk_size: 4,
-      _secrets: { OPENAI_API_KEY: "k" },
+      chunk_size: 4
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const output = result.output as number[];
     expect(output[0]).toBeCloseTo(3.0);
@@ -114,9 +117,9 @@ describe("WebSearchNode (OpenAI)", () => {
 
   it("throws when query is empty", async () => {
     const node = new WebSearchNode();
-    await expect(
-      node.process({ query: "", _secrets: { OPENAI_API_KEY: "k" } })
-    ).rejects.toThrow(/query cannot be empty/i);
+    node.assign({ query: "" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/query cannot be empty/i);
   });
 
   it("calls chat/completions with web_search_options", async () => {
@@ -128,10 +131,11 @@ describe("WebSearchNode (OpenAI)", () => {
     });
 
     const node = new WebSearchNode();
-    const result = await node.process({
-      query: "latest news",
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      query: "latest news"
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.model).toBe("gpt-4o-search-preview");
@@ -159,9 +163,9 @@ describe("ModerationNode", () => {
 
   it("throws when input is empty", async () => {
     const node = new ModerationNode();
-    await expect(
-      node.process({ input: "", _secrets: { OPENAI_API_KEY: "k" } })
-    ).rejects.toThrow(/Input text cannot be empty/i);
+    node.assign({ input: "" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Input text cannot be empty/i);
   });
 
   it("calls moderations endpoint and returns categories", async () => {
@@ -179,10 +183,11 @@ describe("ModerationNode", () => {
     });
 
     const node = new ModerationNode();
-    const result = await node.process({
-      input: "test text",
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      input: "test text"
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/moderations");
@@ -197,10 +202,11 @@ describe("ModerationNode", () => {
     });
 
     const node = new ModerationNode();
-    const result = await node.process({
-      input: "safe text",
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      input: "safe text"
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     expect(result.flagged).toBe(false);
   });
@@ -227,9 +233,9 @@ describe("CreateImageNode", () => {
 
   it("throws when prompt is empty", async () => {
     const node = new CreateImageNode();
-    await expect(
-      node.process({ prompt: "", _secrets: { OPENAI_API_KEY: "k" } })
-    ).rejects.toThrow(/Prompt cannot be empty/i);
+    node.assign({ prompt: "" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Prompt cannot be empty/i);
   });
 
   it("returns b64_json image data", async () => {
@@ -241,10 +247,11 @@ describe("CreateImageNode", () => {
     });
 
     const node = new CreateImageNode();
-    const result = await node.process({
-      prompt: "a cat",
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      prompt: "a cat"
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/images/generations");
@@ -261,10 +268,11 @@ describe("CreateImageNode", () => {
     });
 
     const node = new CreateImageNode();
-    const result = await node.process({
-      prompt: "a cat",
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      prompt: "a cat"
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const output = result.output as Record<string, unknown>;
     expect(output.uri).toBe("https://images.openai.com/img.png");
@@ -290,24 +298,22 @@ describe("EditImageNode", () => {
 
   it("throws when prompt is empty", async () => {
     const node = new EditImageNode();
-    await expect(
-      node.process({
-        prompt: "",
-        image: { data: "abc" },
-        _secrets: { OPENAI_API_KEY: "k" },
-      })
-    ).rejects.toThrow(/Edit prompt cannot be empty/i);
+    node.assign({
+      prompt: "",
+      image: { data: "abc" }
+    });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Edit prompt cannot be empty/i);
   });
 
   it("throws when image is missing", async () => {
     const node = new EditImageNode();
-    await expect(
-      node.process({
-        prompt: "edit this",
-        image: {},
-        _secrets: { OPENAI_API_KEY: "k" },
-      })
-    ).rejects.toThrow(/Input image is required/i);
+    node.assign({
+      prompt: "edit this",
+      image: {}
+    });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Input image is required/i);
   });
 
   it("sends multipart form data with image", async () => {
@@ -320,11 +326,12 @@ describe("EditImageNode", () => {
 
     const node = new EditImageNode();
     const b64 = Buffer.from("fake-png").toString("base64");
-    const result = await node.process({
+    node.assign({
       prompt: "make it blue",
-      image: { data: b64 },
-      _secrets: { OPENAI_API_KEY: "k" },
+      image: { data: b64 }
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const [url, opts] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/images/edits");
@@ -360,10 +367,11 @@ describe("TextToSpeechNode", () => {
     });
 
     const node = new TextToSpeechNode();
-    const result = await node.process({
-      input: "Hello",
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      input: "Hello"
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/audio/speech");
@@ -387,9 +395,9 @@ describe("TranslateNode", () => {
 
   it("throws when audio is missing", async () => {
     const node = new TranslateNode();
-    await expect(
-      node.process({ audio: {}, _secrets: { OPENAI_API_KEY: "k" } })
-    ).rejects.toThrow(/Audio input is required/i);
+    node.assign({ audio: {} });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Audio input is required/i);
   });
 
   it("sends multipart form data and returns text", async () => {
@@ -400,10 +408,11 @@ describe("TranslateNode", () => {
 
     const node = new TranslateNode();
     const b64 = Buffer.from("fake-audio").toString("base64");
-    const result = await node.process({
-      audio: { data: b64 },
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      audio: { data: b64 }
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const [url, opts] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/audio/translations");
@@ -432,9 +441,9 @@ describe("TranscribeNode", () => {
 
   it("throws when audio is missing", async () => {
     const node = new TranscribeNode();
-    await expect(
-      node.process({ audio: {}, _secrets: { OPENAI_API_KEY: "k" } })
-    ).rejects.toThrow(/Audio input is required/i);
+    node.assign({ audio: {} });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/Audio input is required/i);
   });
 
   it("transcribes audio and returns text", async () => {
@@ -445,10 +454,11 @@ describe("TranscribeNode", () => {
 
     const node = new TranscribeNode();
     const b64 = Buffer.from("audio").toString("base64");
-    const result = await node.process({
-      audio: { data: b64 },
-      _secrets: { OPENAI_API_KEY: "k" },
+    node.assign({
+      audio: { data: b64 }
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/audio/transcriptions");
@@ -467,11 +477,12 @@ describe("TranscribeNode", () => {
 
     const node = new TranscribeNode();
     const b64 = Buffer.from("audio").toString("base64");
-    const result = await node.process({
+    node.assign({
       audio: { data: b64 },
-      timestamps: true,
-      _secrets: { OPENAI_API_KEY: "k" },
+      timestamps: true
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
 
     const segments = result.segments as unknown[];
     const words = result.words as unknown[];
@@ -482,14 +493,13 @@ describe("TranscribeNode", () => {
   it("throws for timestamps with new models", async () => {
     const node = new TranscribeNode();
     const b64 = Buffer.from("audio").toString("base64");
-    await expect(
-      node.process({
-        audio: { data: b64 },
-        model: "gpt-4o-transcribe",
-        timestamps: true,
-        _secrets: { OPENAI_API_KEY: "k" },
-      })
-    ).rejects.toThrow(/do not support verbose_json/i);
+    node.assign({
+      audio: { data: b64 },
+      model: "gpt-4o-transcribe",
+      timestamps: true
+    });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    await expect(node.process()).rejects.toThrow(/do not support verbose_json/i);
   });
 });
 
@@ -518,10 +528,10 @@ describe("RealtimeAgentNode", () => {
         arrayBuffer: async () => new ArrayBuffer(4),
       });
 
-    const result = await node.process({
-      _secrets: { OPENAI_API_KEY: "k" },
-      chunk: { content_type: "audio", content: Buffer.from("wav").toString("base64") },
-    });
+    node.assign({
+      chunk: { content_type: "audio", content: Buffer.from("wav").toString("base64") } });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
     expect(result.text).toBe("assistant reply");
     expect(result.audio).toBeTruthy();
   });
@@ -540,10 +550,9 @@ describe("RealtimeTranscriptionNode", () => {
       ok: true,
       json: async () => ({ text: "transcribed text" }),
     });
-    const result = await node.process({
-      _secrets: { OPENAI_API_KEY: "k" },
-      chunk: { content: Buffer.from("wav").toString("base64") },
-    });
+    (node as any).chunk = { content: Buffer.from("wav").toString("base64") };
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+    const result = await node.process();
     expect(result.text).toBe("transcribed text");
   });
 });

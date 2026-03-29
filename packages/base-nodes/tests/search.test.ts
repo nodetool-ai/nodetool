@@ -44,22 +44,23 @@ describe("GoogleSearchNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ organic_results: [{ title: "Result 1" }] })
     );
-    const result = await node.process({ keyword: "test", ...secrets });
+    node.assign({ keyword: "test" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toEqual([{ title: "Result 1" }]);
   });
 
   it("throws on empty keyword", async () => {
     const node = new GoogleSearchNode();
-    await expect(
-      node.process({ keyword: "", ...secrets })
-    ).rejects.toThrow("Keyword is required");
+    node.assign({ keyword: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Keyword is required");
   });
 
   it("throws when API key missing", async () => {
     const node = new GoogleSearchNode();
-    await expect(
-      node.process({ keyword: "test" })
-    ).rejects.toThrow("SERPAPI_API_KEY is required");
+    node.assign({ keyword: "test" });
+    await expect(node.process()).rejects.toThrow("SERPAPI_API_KEY is required");
   });
 
   it("throws on SerpAPI error status", async () => {
@@ -67,17 +68,17 @@ describe("GoogleSearchNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ search_metadata: { status: "Error" }, error: "bad query" })
     );
-    await expect(
-      node.process({ keyword: "test", ...secrets })
-    ).rejects.toThrow("bad query");
+    node.assign({ keyword: "test" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("bad query");
   });
 
   it("throws on HTTP error", async () => {
     const node = new GoogleSearchNode();
     mockFetch.mockResolvedValueOnce(jsonResponse("err", 500));
-    await expect(
-      node.process({ keyword: "test", ...secrets })
-    ).rejects.toThrow("SerpAPI HTTP error: 500");
+    node.assign({ keyword: "test" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("SerpAPI HTTP error: 500");
   });
 });
 
@@ -89,15 +90,17 @@ describe("GoogleNewsNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ news_results: [{ title: "News 1" }] })
     );
-    const result = await node.process({ keyword: "ai", ...secrets });
+    node.assign({ keyword: "ai" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toEqual([{ title: "News 1" }]);
   });
 
   it("throws on empty keyword", async () => {
     const node = new GoogleNewsNode();
-    await expect(
-      node.process({ keyword: "", ...secrets })
-    ).rejects.toThrow("Keyword is required");
+    node.assign({ keyword: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Keyword is required");
   });
 });
 
@@ -111,7 +114,9 @@ describe("GoogleImagesNode", () => {
         images_results: [{ original: "https://img.com/1.png" }],
       })
     );
-    const result = await node.process({ keyword: "cats", ...secrets });
+    node.assign({ keyword: "cats" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toEqual([{ uri: "https://img.com/1.png" }]);
   });
 
@@ -120,19 +125,20 @@ describe("GoogleImagesNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ images_results: [] })
     );
-    await node.process({
-      image_url: "https://example.com/img.jpg",
-      ...secrets,
+    node.assign({
+      image_url: "https://example.com/img.jpg"
     });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await node.process();
     const url = mockFetch.mock.calls[0][0];
     expect(url).toContain("google_reverse_image");
   });
 
   it("throws when both empty", async () => {
     const node = new GoogleImagesNode();
-    await expect(
-      node.process({ keyword: "", image_url: "", ...secrets })
-    ).rejects.toThrow("One of 'keyword' or 'image_url' is required");
+    node.assign({ keyword: "", image_url: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("One of 'keyword' or 'image_url' is required");
   });
 });
 
@@ -144,14 +150,18 @@ describe("GoogleFinanceNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ summary: { price: 150 } })
     );
-    const result = await node.process({ query: "AAPL:NASDAQ", ...secrets });
+    node.assign({ query: "AAPL:NASDAQ" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output.success).toBe(true);
   });
 
   it("returns error when query empty", async () => {
     const node = new GoogleFinanceNode();
-    const result = await node.process({ query: "", ...secrets });
+    node.assign({ query: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output.error).toBeDefined();
   });
@@ -165,15 +175,17 @@ describe("GoogleJobsNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ jobs_results: [{ title: "Engineer" }] })
     );
-    const result = await node.process({ query: "software", ...secrets });
+    node.assign({ query: "software" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toEqual([{ title: "Engineer" }]);
   });
 
   it("throws on empty query", async () => {
     const node = new GoogleJobsNode();
-    await expect(
-      node.process({ query: "", ...secrets })
-    ).rejects.toThrow("Query is required");
+    node.assign({ query: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Query is required");
   });
 });
 
@@ -187,10 +199,11 @@ describe("GoogleLensNode", () => {
         visual_matches: [{ image: "https://img.com/match.png", title: "Match" }],
       })
     );
-    const result = await node.process({
-      image_url: "https://example.com/img.jpg",
-      ...secrets,
+    node.assign({
+      image_url: "https://example.com/img.jpg"
     });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect((output.results as unknown[]).length).toBe(1);
     expect((output.images as { uri: string }[])[0].uri).toBe(
@@ -200,9 +213,9 @@ describe("GoogleLensNode", () => {
 
   it("throws on empty image_url", async () => {
     const node = new GoogleLensNode();
-    await expect(
-      node.process({ image_url: "", ...secrets })
-    ).rejects.toThrow("Image URL is required");
+    node.assign({ image_url: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Image URL is required");
   });
 });
 
@@ -216,7 +229,9 @@ describe("GoogleMapsNode", () => {
         local_results: [{ title: "Cafe", type: "restaurant", rating: 4.5 }],
       })
     );
-    const result = await node.process({ query: "cafes", ...secrets });
+    node.assign({ query: "cafes" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Array<Record<string, unknown>>;
     expect(output[0].place_type).toBe("restaurant");
     expect(output[0].type).toBeUndefined();
@@ -224,9 +239,9 @@ describe("GoogleMapsNode", () => {
 
   it("throws on empty query", async () => {
     const node = new GoogleMapsNode();
-    await expect(
-      node.process({ query: "", ...secrets })
-    ).rejects.toThrow("Query is required");
+    node.assign({ query: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Query is required");
   });
 });
 
@@ -238,7 +253,9 @@ describe("GoogleShoppingNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ shopping_results: [{ title: "Widget", price: "$10" }] })
     );
-    const result = await node.process({ query: "widget", ...secrets });
+    node.assign({ query: "widget" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toEqual([{ title: "Widget", price: "$10" }]);
   });
 
@@ -247,14 +264,15 @@ describe("GoogleShoppingNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ shopping_results: [] })
     );
-    await node.process({
+    node.assign({
       query: "phone",
       min_price: 100,
       max_price: 500,
       condition: "new",
-      sort_by: "review_score",
-      ...secrets,
+      sort_by: "review_score"
     });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await node.process();
     const url = mockFetch.mock.calls[0][0];
     expect(url).toContain("ppr_min%3A100");
     expect(url).toContain("ppr_max%3A500");
@@ -264,8 +282,8 @@ describe("GoogleShoppingNode", () => {
 
   it("throws on empty query", async () => {
     const node = new GoogleShoppingNode();
-    await expect(
-      node.process({ query: "", ...secrets })
-    ).rejects.toThrow("Query is required");
+    node.assign({ query: "" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Query is required");
   });
 });

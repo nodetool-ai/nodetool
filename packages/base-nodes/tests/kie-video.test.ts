@@ -87,7 +87,7 @@ const SECRETS = { KIE_API_KEY: "test" };
 const IMG_REF = { data: "imgdata", uri: "" };
 const AUDIO_REF = { data: "audiodata", uri: "" };
 const VIDEO_REF = { data: "videodata", uri: "" };
-const EXPECTED_OUTPUT = { output: { data: "dmlkZW9kYXRh" } };
+const EXPECTED_OUTPUT = { output: { type: "video", data: "dmlkZW9kYXRh" } };
 
 function metadataDefaults(NodeCls: any) {
   const metadata = getNodeMetadata(NodeCls);
@@ -122,18 +122,17 @@ describe("KlingTextToVideoNode", () => {
 
   it("process succeeds with valid prompt", async () => {
     const n = new (KlingTextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A flying eagle",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A flying eagle" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(kieExecuteTask).toHaveBeenCalled();
   });
 
   it("throws on empty prompt", async () => {
     const n = new (KlingTextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -153,19 +152,17 @@ describe("KlingImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (KlingImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate this",
-      image1: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate this", image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
 
   it("throws when no images provided", async () => {
     const n = new (KlingImageToVideoNode as any)();
+    n.assign({ prompt: "Animate" });
     await expect(
-      n.process({ prompt: "Animate", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("At least one image is required");
   });
 });
@@ -187,11 +184,8 @@ describe("KlingAIAvatarStandardNode", () => {
 
   it("process with image and audio", async () => {
     const n = new (KlingAIAvatarStandardNode as any)();
-    const result = await n.process({
-      image: IMG_REF,
-      audio: AUDIO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image: IMG_REF, audio: AUDIO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
     expect(uploadAudioInput).toHaveBeenCalled();
@@ -213,11 +207,8 @@ describe("KlingAIAvatarProNode", () => {
 
   it("process with image and audio", async () => {
     const n = new (KlingAIAvatarProNode as any)();
-    const result = await n.process({
-      image: IMG_REF,
-      audio: AUDIO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image: IMG_REF, audio: AUDIO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
     expect(uploadAudioInput).toHaveBeenCalled();
@@ -241,17 +232,16 @@ describe("GrokImagineTextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (GrokImagineTextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A sunset",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A sunset" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (GrokImagineTextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -273,11 +263,8 @@ describe("GrokImagineImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (GrokImagineImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -300,17 +287,16 @@ describe("SeedanceV1LiteTextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (SeedanceV1LiteTextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A river",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A river" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (SeedanceV1LiteTextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -332,17 +318,16 @@ describe("SeedanceV1ProTextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (SeedanceV1ProTextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A mountain",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A mountain" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (SeedanceV1ProTextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -364,10 +349,8 @@ describe("SeedanceV1LiteImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (SeedanceV1LiteImageToVideoNode as any)();
-    const result = await n.process({
-      image1: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -375,7 +358,7 @@ describe("SeedanceV1LiteImageToVideoNode", () => {
   it("throws when no images provided", async () => {
     const n = new (SeedanceV1LiteImageToVideoNode as any)();
     await expect(
-      n.process({ _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("At least one image is required");
   });
 });
@@ -397,10 +380,8 @@ describe("SeedanceV1ProImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (SeedanceV1ProImageToVideoNode as any)();
-    const result = await n.process({
-      image1: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -408,7 +389,7 @@ describe("SeedanceV1ProImageToVideoNode", () => {
   it("throws when no images provided", async () => {
     const n = new (SeedanceV1ProImageToVideoNode as any)();
     await expect(
-      n.process({ _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("At least one image is required");
   });
 });
@@ -430,10 +411,8 @@ describe("SeedanceV1ProFastImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (SeedanceV1ProFastImageToVideoNode as any)();
-    const result = await n.process({
-      image1: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -441,7 +420,7 @@ describe("SeedanceV1ProFastImageToVideoNode", () => {
   it("throws when no images provided", async () => {
     const n = new (SeedanceV1ProFastImageToVideoNode as any)();
     await expect(
-      n.process({ _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("At least one image is required");
   });
 });
@@ -463,29 +442,24 @@ describe("HailuoTextToVideoProNode", () => {
 
   it("process succeeds", async () => {
     const n = new (HailuoTextToVideoProNode as any)();
-    const result = await n.process({
-      prompt: "A city at night",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A city at night" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (HailuoTextToVideoProNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoTextToVideoProNode as any)();
+    n.assign({ prompt: "Test", resolution: "1080P", duration: "10" });
     await expect(
-      n.process({
-        prompt: "Test",
-        resolution: "1080P",
-        duration: "10",
-        _secrets: SECRETS,
-      })
+      n.process()
     ).rejects.toThrow("1080P resolution with 10s duration is not supported");
   });
 });
@@ -507,29 +481,24 @@ describe("HailuoTextToVideoStandardNode", () => {
 
   it("process succeeds", async () => {
     const n = new (HailuoTextToVideoStandardNode as any)();
-    const result = await n.process({
-      prompt: "A forest",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A forest" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (HailuoTextToVideoStandardNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoTextToVideoStandardNode as any)();
+    n.assign({ prompt: "Test", resolution: "1080P", duration: "10" });
     await expect(
-      n.process({
-        prompt: "Test",
-        resolution: "1080P",
-        duration: "10",
-        _secrets: SECRETS,
-      })
+      n.process()
     ).rejects.toThrow("1080P resolution with 10s duration is not supported");
   });
 });
@@ -551,23 +520,17 @@ describe("HailuoImageToVideoProNode", () => {
 
   it("process with image", async () => {
     const n = new (HailuoImageToVideoProNode as any)();
-    const result = await n.process({
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
 
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoImageToVideoProNode as any)();
+    n.assign({ image: IMG_REF, resolution: "1080P", duration: "10" });
     await expect(
-      n.process({
-        image: IMG_REF,
-        resolution: "1080P",
-        duration: "10",
-        _secrets: SECRETS,
-      })
+      n.process()
     ).rejects.toThrow("1080P resolution with 10s duration is not supported");
   });
 });
@@ -589,23 +552,17 @@ describe("HailuoImageToVideoStandardNode", () => {
 
   it("process with image", async () => {
     const n = new (HailuoImageToVideoStandardNode as any)();
-    const result = await n.process({
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
 
   it("throws on 1080P with duration 10", async () => {
     const n = new (HailuoImageToVideoStandardNode as any)();
+    n.assign({ image: IMG_REF, resolution: "1080P", duration: "10" });
     await expect(
-      n.process({
-        image: IMG_REF,
-        resolution: "1080P",
-        duration: "10",
-        _secrets: SECRETS,
-      })
+      n.process()
     ).rejects.toThrow("1080P resolution with 10s duration is not supported");
   });
 });
@@ -627,17 +584,16 @@ describe("Kling25TurboTextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Kling25TurboTextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A car racing",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A car racing" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Kling25TurboTextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -659,11 +615,8 @@ describe("Kling25TurboImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Kling25TurboImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -686,17 +639,16 @@ describe("Sora2ProTextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Sora2ProTextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A whale breaching",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A whale breaching" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Sora2ProTextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -718,11 +670,8 @@ describe("Sora2ProImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Sora2ProImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -745,18 +694,18 @@ describe("Sora2ProStoryboardNode", () => {
 
   it("process succeeds with prompt", async () => {
     const n = new (Sora2ProStoryboardNode as any)();
-    const result = await n.process({
-      prompt: "A story",
-      images: [IMG_REF],
-      _secrets: SECRETS,
-    });
+    n.assign({ images: [IMG_REF] });
+    // Sora2ProStoryboard accesses (this as any).prompt — set directly on instance
+    n.prompt = "A story";
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Sora2ProStoryboardNode as any)();
+    n.prompt = "";
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -776,17 +725,16 @@ describe("Sora2TextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Sora2TextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A spaceship launch",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A spaceship launch" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Sora2TextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -808,17 +756,16 @@ describe("WanMultiShotTextToVideoProNode", () => {
 
   it("process succeeds", async () => {
     const n = new (WanMultiShotTextToVideoProNode as any)();
-    const result = await n.process({
-      prompt: "A multi-shot video",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A multi-shot video" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (WanMultiShotTextToVideoProNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -838,17 +785,16 @@ describe("Wan26TextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Wan26TextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A waterfall",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A waterfall" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Wan26TextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -868,11 +814,8 @@ describe("Wan26ImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Wan26ImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -893,11 +836,8 @@ describe("Wan26VideoToVideoNode", () => {
 
   it("process with video", async () => {
     const n = new (Wan26VideoToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Transform",
-      video: VIDEO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Transform", video1: VIDEO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadVideoInput).toHaveBeenCalled();
   });
@@ -918,10 +858,8 @@ describe("TopazVideoUpscaleNode", () => {
 
   it("process with video", async () => {
     const n = new (TopazVideoUpscaleNode as any)();
-    const result = await n.process({
-      video: VIDEO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ video: VIDEO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadVideoInput).toHaveBeenCalled();
   });
@@ -942,11 +880,8 @@ describe("InfinitalkV1Node", () => {
 
   it("process with image and audio", async () => {
     const n = new (InfinitalkV1Node as any)();
-    const result = await n.process({
-      image: IMG_REF,
-      audio: AUDIO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image: IMG_REF, audio: AUDIO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
     expect(uploadAudioInput).toHaveBeenCalled();
@@ -968,17 +903,16 @@ describe("Veo31TextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Veo31TextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A galaxy",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A galaxy" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Veo31TextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -1000,17 +934,16 @@ describe("RunwayGen3AlphaTextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (RunwayGen3AlphaTextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A robot walking",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A robot walking" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (RunwayGen3AlphaTextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -1032,11 +965,8 @@ describe("RunwayGen3AlphaImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (RunwayGen3AlphaImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1059,11 +989,10 @@ describe("RunwayGen3AlphaExtendVideoNode", () => {
 
   it("process with video", async () => {
     const n = new (RunwayGen3AlphaExtendVideoNode as any)();
-    const result = await n.process({
-      prompt: "Continue",
-      video: VIDEO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Continue" });
+    // Source uses (this as any).video via uploadVideoInput — set directly on instance
+    n.video = VIDEO_REF;
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadVideoInput).toHaveBeenCalled();
   });
@@ -1084,21 +1013,18 @@ describe("RunwayAlephVideoNode", () => {
 
   it("process without image", async () => {
     const n = new (RunwayAlephVideoNode as any)();
-    const result = await n.process({
-      prompt: "A scene",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A scene" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).not.toHaveBeenCalled();
   });
 
   it("process with optional image", async () => {
     const n = new (RunwayAlephVideoNode as any)();
-    const result = await n.process({
-      prompt: "A scene",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A scene" });
+    // Source uses (this as any).image via isRefSet — set directly on instance
+    n.image = IMG_REF;
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1119,11 +1045,8 @@ describe("LumaModifyVideoNode", () => {
 
   it("process with video", async () => {
     const n = new (LumaModifyVideoNode as any)();
-    const result = await n.process({
-      prompt: "Add effects",
-      video: VIDEO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Add effects", video: VIDEO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadVideoInput).toHaveBeenCalled();
   });
@@ -1144,11 +1067,8 @@ describe("Veo31ImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Veo31ImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1171,11 +1091,8 @@ describe("Veo31ReferenceToVideoNode", () => {
 
   it("process with reference images", async () => {
     const n = new (Veo31ReferenceToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Generate",
-      images: [IMG_REF, IMG_REF],
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Generate", image1: IMG_REF, image2: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalledTimes(2);
   });
@@ -1198,11 +1115,8 @@ describe("KlingMotionControlNode", () => {
 
   it("process with image", async () => {
     const n = new (KlingMotionControlNode as any)();
-    const result = await n.process({
-      prompt: "Pan left",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Pan left", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1225,17 +1139,16 @@ describe("Kling21TextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Kling21TextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A dolphin jumping",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A dolphin jumping" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Kling21TextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -1257,11 +1170,8 @@ describe("Kling21ImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Kling21ImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1282,17 +1192,16 @@ describe("Wan25TextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Wan25TextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A sunset over the ocean",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A sunset over the ocean" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Wan25TextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -1312,11 +1221,8 @@ describe("Wan25ImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Wan25ImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image1: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1337,11 +1243,8 @@ describe("WanAnimateNode", () => {
 
   it("process with image", async () => {
     const n = new (WanAnimateNode as any)();
-    const result = await n.process({
-      prompt: "Bring to life",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Bring to life", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1362,12 +1265,8 @@ describe("WanSpeechToVideoNode", () => {
 
   it("process with image and audio", async () => {
     const n = new (WanSpeechToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Talk",
-      image: IMG_REF,
-      audio: AUDIO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ image: IMG_REF, audio: AUDIO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
     expect(uploadAudioInput).toHaveBeenCalled();
@@ -1389,17 +1288,16 @@ describe("Wan22TextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Wan22TextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A snow scene",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A snow scene" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Wan22TextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -1419,11 +1317,8 @@ describe("Wan22ImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Wan22ImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1446,17 +1341,16 @@ describe("Hailuo02TextToVideoNode", () => {
 
   it("process succeeds", async () => {
     const n = new (Hailuo02TextToVideoNode as any)();
-    const result = await n.process({
-      prompt: "A dance",
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "A dance" });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
   });
 
   it("throws on empty prompt", async () => {
     const n = new (Hailuo02TextToVideoNode as any)();
+    n.assign({ prompt: "" });
     await expect(
-      n.process({ prompt: "", _secrets: SECRETS })
+      n.process()
     ).rejects.toThrow("Prompt is required");
   });
 });
@@ -1478,11 +1372,8 @@ describe("Hailuo02ImageToVideoNode", () => {
 
   it("process with image", async () => {
     const n = new (Hailuo02ImageToVideoNode as any)();
-    const result = await n.process({
-      prompt: "Animate",
-      image: IMG_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ prompt: "Animate", image: IMG_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadImageInput).toHaveBeenCalled();
   });
@@ -1505,10 +1396,8 @@ describe("Sora2WatermarkRemoverNode", () => {
 
   it("process with video", async () => {
     const n = new (Sora2WatermarkRemoverNode as any)();
-    const result = await n.process({
-      video: VIDEO_REF,
-      _secrets: SECRETS,
-    });
+    n.assign({ video: VIDEO_REF });
+    const result = await n.process();
     expect(result).toEqual(EXPECTED_OUTPUT);
     expect(uploadVideoInput).toHaveBeenCalled();
   });

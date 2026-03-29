@@ -46,6 +46,11 @@ jest.mock("@nodetool/protocol", () => ({
   uiToolSchemas: {},
 }));
 
+jest.mock("../codexAgent", () => ({
+  CodexQuerySession: jest.fn(),
+  listCodexModels: jest.fn().mockResolvedValue([]),
+}));
+
 // Force CLI session path for existing tests that test the CLI-pipe behavior
 process.env.NODETOOL_AGENT_USE_CLI = "1";
 

@@ -9,10 +9,29 @@ jest.mock('child_process', () => ({
   spawn: jest.fn(),
 }));
 
+// Mock config
+jest.mock('../config', () => ({
+  getProcessEnv: () => ({}),
+  getUVPath: () => '/usr/bin/uv',
+  getPythonPath: () => '/usr/bin/python',
+  getCondaEnvPath: () => '/test/conda',
+}));
+
+// Mock events
+jest.mock('../events', () => ({
+  emitServerLog: jest.fn(),
+  emitBootMessage: jest.fn(),
+}));
+
 // Mock utils
 jest.mock('../utils', () => ({
   fileExists: jest.fn().mockResolvedValue(true),
   checkPermissions: jest.fn().mockResolvedValue({ accessible: true, error: null }),
+}));
+
+// Mock torchPlatformCache
+jest.mock('../torchPlatformCache', () => ({
+  getTorchIndexUrl: jest.fn().mockReturnValue('https://download.pytorch.org/whl/cpu'),
 }));
 
 describe('Performance Optimization', () => {

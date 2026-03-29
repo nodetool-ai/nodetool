@@ -2,7 +2,11 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 
-import afterPack from "../../scripts/after-pack.cjs";
+// Use require for CJS module to avoid ESM interop issues across Node versions
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const afterPack = require("../../scripts/after-pack.cjs") as {
+  promoteBackendNodeModules: (context: Record<string, unknown>) => Promise<void>;
+};
 
 describe("promoteBackendNodeModules", () => {
   let tempDir: string;

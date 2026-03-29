@@ -17,11 +17,12 @@ import {
 
 /** Shorthand: instantiate a node, optionally set props, and call process(). */
 async function run<T extends Record<string, unknown>>(
-  NodeCls: new () => { process(inputs: Record<string, unknown>): Promise<T> },
+  NodeCls: new () => { assign(inputs: Record<string, unknown>): void; process(): Promise<T> },
   inputs: Record<string, unknown> = {}
 ): Promise<T> {
   const node = new NodeCls();
-  return node.process(inputs);
+  Object.assign(node, inputs);
+  return node.process();
 }
 
 /** Create an L2 index with given dimension via the node. */
@@ -188,7 +189,7 @@ describe("TrainIndexNode", () => {
         index: null,
         vectors: { data: [1, 2, 3], shape: [1, 3] },
       })
-    ).rejects.toThrow(/Invalid FAISS index/);
+    ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
 
   it("throws on empty vectors", async () => {
@@ -238,7 +239,7 @@ describe("AddVectorsNode", () => {
         index: null,
         vectors: [[1, 2]],
       })
-    ).rejects.toThrow(/Invalid FAISS index/);
+    ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
 
   it("throws on empty vectors", async () => {
@@ -267,7 +268,7 @@ describe("AddVectorsNode", () => {
         index: { fake: true },
         vectors: [[1, 2]],
       })
-    ).rejects.toThrow(/Invalid FAISS index/);
+    ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
 });
 
@@ -311,7 +312,7 @@ describe("AddWithIdsNode", () => {
         vectors: [[1, 2]],
         ids: [1],
       })
-    ).rejects.toThrow(/Invalid FAISS index/);
+    ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
 
   it("throws on empty vectors", async () => {
@@ -513,7 +514,7 @@ describe("SearchNode", () => {
         query: [[1, 2, 3]],
         k: 1,
       })
-    ).rejects.toThrow(/Invalid FAISS index/);
+    ).rejects.toThrow(/Invalid FAISS index|FAISS index is not set/);
   });
 
   it("throws on empty query", async () => {

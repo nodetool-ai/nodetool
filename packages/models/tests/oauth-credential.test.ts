@@ -172,7 +172,7 @@ describe("OAuthCredential model", () => {
     });
 
     expect(cred.id).toBeTruthy();
-    expect(cred.encrypted_access_token).toBe("tok-new");
+    expect(await cred.getDecryptedAccessToken()).toBe("tok-new");
   });
 
   it("upsert updates an existing credential", async () => {
@@ -200,8 +200,8 @@ describe("OAuthCredential model", () => {
     });
 
     expect(updated.id).toBe(createdId);
-    expect(updated.encrypted_access_token).toBe("tok-updated");
-    expect(updated.encrypted_refresh_token).toBe("refresh-new");
+    expect(await updated.getDecryptedAccessToken()).toBe("tok-updated");
+    expect(await updated.getDecryptedRefreshToken()).toBe("refresh-new");
     expect(updated.username).toBe("user@example.com");
     expect(updated.scope).toBe("read write");
     expect(updated.received_at).toBe("2024-06-01T00:00:00.000Z");
@@ -250,7 +250,7 @@ describe("OAuthCredential model", () => {
       // not providing refresh_token, username, scope, expires_at
     });
 
-    expect(updated.encrypted_refresh_token).toBe("existing-refresh");
+    expect(await updated.getDecryptedRefreshToken()).toBe("existing-refresh");
     expect(updated.username).toBe("existing-user");
     expect(updated.scope).toBe("existing-scope");
     expect(updated.expires_at).toBe("2025-12-31T00:00:00.000Z");

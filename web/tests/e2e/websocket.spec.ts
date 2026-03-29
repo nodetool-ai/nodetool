@@ -110,18 +110,16 @@ if (process.env.JEST_WORKER_ID) {
         // Wait for chat interface to initialize
         await waitForChatInterface(page);
 
-        // Look for new chat button
+        // Look for new chat button - it should be present in the chat interface
         const newChatButton = page.locator('button').filter({ hasText: /new/i }).first();
-        
-        if (await isElementVisible(newChatButton)) {
-          // Click to create new thread
-          await newChatButton.click();
-          await waitForPageReady(page);
-          
-          // URL should potentially include thread ID after creation
-          // Or we should stay on chat page without errors
-          await expect(page).toHaveURL(/\/chat/);
-        }
+        await expect(newChatButton).toBeVisible();
+
+        // Click to create new thread
+        await newChatButton.click();
+        await waitForPageReady(page);
+
+        // Should stay on chat page without errors
+        await expect(page).toHaveURL(/\/chat/);
       });
     });
 
@@ -154,28 +152,17 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("WebSocket Message Format", () => {
       test("should send messages in command-wrapped format", async ({ page }) => {
-        // Track WebSocket frames
-        let commandMessageSent = false;
-        
+        // Track WebSocket connections and frames before navigating
+        const wsConnections: string[] = [];
+        let frameSentCount = 0;
+
         page.on("websocket", (ws) => {
           if (ws.url().includes("/ws")) {
+            wsConnections.push(ws.url());
             ws.on("framesent", (frame) => {
               const payload = frame.payload;
-              // The payload might be binary (msgpack) or string
-              // We're checking that messages are being sent
               if (payload && payload.toString().length > 0) {
-                // If it's a string that looks like JSON with command field
-                try {
-                  if (typeof payload === "string") {
-                    const parsed = JSON.parse(payload);
-                    if (parsed.command) {
-                      commandMessageSent = true;
-                    }
-                  }
-                } catch {
-                  // Binary msgpack encoded - this is expected
-                  // The fact that frames are being sent is what we're testing
-                }
+                frameSentCount++;
               }
             });
           }
@@ -184,10 +171,12 @@ if (process.env.JEST_WORKER_ID) {
         await navigateToPage(page, "/chat");
         await waitForChatInterface(page);
 
-        // The test passes if WebSocket connection is established
-        // Command format validation is done in unit tests
-        // Here we just verify the connection works
-        expect(true).toBe(true);
+        // Verify the chat interface loaded without connection errors
+        const connectionErrorAlert = page.locator('.global-chat-status-alert[severity="error"], [role="alert"][class*="error"]').first();
+        await expect(connectionErrorAlert).not.toBeVisible();
+
+        // Verify that at least one WebSocket connection was established to /ws
+        expect(wsConnections.length).toBeGreaterThan(0);
       });
     });
 
@@ -213,12 +202,9 @@ if (process.env.JEST_WORKER_ID) {
         // If disconnected, should show reconnecting message
         const bodyText = await page.textContent("body");
         
-        // Either connected (no error) or showing appropriate reconnection status
-        const hasProperState = 
-          !bodyText?.includes("Internal Server Error") &&
-          !bodyText?.includes("500");
-        
-        expect(hasProperState).toBe(true);
+        // Should not contain server error indicators
+        expect(bodyText).not.toContain("Internal Server Error");
+        expect(bodyText).not.toContain("500");
       });
     });
   });

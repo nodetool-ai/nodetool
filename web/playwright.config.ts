@@ -58,15 +58,28 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   // Workers: balance parallelism with stability
-  workers: process.env.CI ? 4 : undefined,
+  workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
   // Timeout must accommodate navigation + editor load + actions in CI
   timeout: process.env.CI ? 30_000 : 20_000,
   // Global timeout to account for parallel workers and retries
   globalTimeout: process.env.CI ? 40 * 60_000 : 0,
+  // Skip heavy tests on CI — these need real APIs, Python, or are for local profiling
+  ...(process.env.CI ? {
+    testIgnore: [
+      /.*-real\.spec\.ts$/,
+      /.*screenshots?\.spec\.ts$/,
+      /.*profiling\.spec\.ts$/,
+      /.*performance.*\.spec\.ts$/,
+      /.*debug-.*\.spec\.ts$/,
+      /.*global-chat-ollama\.spec\.ts$/,
+    ],
+  } : {}),
   use: {
     baseURL: FRONTEND_URL,
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     tsconfig: './tsconfig.e2e.json',
     // Reasonable navigation timeout to handle slow starts
     navigationTimeout: 30_000,

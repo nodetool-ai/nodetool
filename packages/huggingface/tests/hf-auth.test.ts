@@ -31,6 +31,9 @@ beforeEach(() => {
     savedEnv[key] = process.env[key];
     delete process.env[key];
   }
+  // Point HF_HOME to a non-existent directory so the default token file
+  // at ~/.cache/huggingface/token is never picked up during tests.
+  process.env["HF_HOME"] = path.join(os.tmpdir(), "hf-auth-test-no-token-dir");
   clearHfTokenCache();
 });
 

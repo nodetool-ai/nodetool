@@ -18,7 +18,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+
 
 const styles = (theme: Theme) =>
   css({

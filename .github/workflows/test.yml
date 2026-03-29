@@ -7,14 +7,20 @@ on:
     paths:
       - "web/**"
       - "electron/**"
-      - "packages/protocol/**"
+      - "packages/**"
+      - "mobile/**"
+      - "package.json"
+      - ".github/workflows/test.yml"
   pull_request:
     branches:
       - main
     paths:
       - "web/**"
       - "electron/**"
-      - "packages/protocol/**"
+      - "packages/**"
+      - "mobile/**"
+      - "package.json"
+      - ".github/workflows/test.yml"
 
 jobs:
   web:
@@ -62,6 +68,33 @@ jobs:
         run: |
           cd web
           npm test
+
+  packages:
+    name: Packages Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install all workspace dependencies
+        run: npm install --ignore-scripts
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Rebuild native modules
+        run: npm rebuild better-sqlite3 || true
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Run package tests
+        run: npm run test:packages
 
   electron:
     name: Electron Test
