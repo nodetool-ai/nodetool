@@ -231,10 +231,8 @@ describe("ToolAgentNode agent loop integration", () => {
       workspaceDir,
     } as any;
 
-    const result = await node.process(
-      { prompt: "Say hello", model: { provider: "mock", id: "test-model" } },
-      context
-    );
+    node.assign({ prompt: "Say hello", model: { provider: "mock", id: "test-model" } });
+    const result = await node.process(context);
 
     expect(result.text).toBe("Done.");
     await rm(workspaceDir, { recursive: true, force: true });
@@ -265,10 +263,8 @@ describe("ToolAgentNode agent loop integration", () => {
     } as any;
 
     const node = new ImageAgentNode();
-    const result = await node.process(
-      { prompt: "Create an image", model: { provider: "mock", id: "test-model" } },
-      context
-    );
+    node.assign({ prompt: "Create an image", model: { provider: "mock", id: "test-model" } });
+    const result = await node.process(context);
 
     expect(result.text).toBe("Created image.");
     expect(result.image).toBeDefined();

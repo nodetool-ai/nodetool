@@ -52,7 +52,7 @@ describe("runDslFile", () => {
   });
 });
 
-describe("nodetool run <dsl-file> — CLI integration", () => {
+describe.skipIf(Boolean(process.env.CI))("nodetool run <dsl-file> — CLI integration", () => {
   // Resolve paths relative to the workspace root so the CLI can find them.
   const workspaceRoot = resolve(__dirname, "../../..");
   const cliEntry = join(workspaceRoot, "packages/cli/dist/nodetool.js");

@@ -279,241 +279,129 @@ describe("Tool agent node types", () => {
 describe("ToolAgentNode process", () => {
   it("throws Prompt is required when prompt is empty", async () => {
     const node = new ShellAgentNode();
-    await expect(node.process({})).rejects.toThrow("Prompt is required");
+    node.assign({});
+    await expect(node.process()).rejects.toThrow("Prompt is required");
   });
 
   it("throws Prompt is required when prompt is whitespace", async () => {
     const node = new ShellAgentNode();
-    await expect(node.process({ prompt: "   " })).rejects.toThrow("Prompt is required");
+
+    node.assign({
+      prompt: "   "
+    });
+
+    await expect(node.process()).rejects.toThrow("Prompt is required");
   });
 
   it("throws Select a model when provider is empty", async () => {
     const node = new ShellAgentNode();
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "", id: "" }
+    });
+
     await expect(
-      node.process({ prompt: "do something", model: { provider: "", id: "" } })
+      node.process()
     ).rejects.toThrow("Select a model for this skill.");
   });
 
   it("throws Select a model when model id is empty", async () => {
     const node = new ShellAgentNode();
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "openai", id: "" }
+    });
+
     await expect(
-      node.process({ prompt: "do something", model: { provider: "openai", id: "" } })
+      node.process()
     ).rejects.toThrow("Select a model for this skill.");
   });
 
   it("throws no API key when key is missing for openai", async () => {
     const node = new ShellAgentNode();
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "openai", id: "gpt-4" }
+    });
+
     await expect(
-      node.process({ prompt: "do something", model: { provider: "openai", id: "gpt-4" } })
-    ).rejects.toThrow("No API key found");
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
 
   it("throws no API key when key is missing for anthropic", async () => {
     const node = new ShellAgentNode();
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "anthropic", id: "claude-3" }
+    });
+
     await expect(
-      node.process({ prompt: "do something", model: { provider: "anthropic", id: "claude-3" } })
-    ).rejects.toThrow("No API key found");
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
 });
 
-// ── OpenAI direct HTTP path ──────────────────────────────────────────────
+// ── Context required path (direct HTTP paths removed) ───────────────────
 
-describe("ToolAgentNode OpenAI direct path", () => {
-  it("calls OpenAI and returns text", async () => {
+describe("ToolAgentNode requires processing context", () => {
+  it("throws when no context provided for OpenAI", async () => {
     const node = new ShellAgentNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        choices: [{ message: { content: "hello world" } }],
-      })
-    );
-    const result = await node.process({
+
+    node.assign({
       prompt: "say hello",
-      model: { provider: "openai", id: "gpt-4" },
-      _secrets: { OPENAI_API_KEY: "sk-test" },
+      model: { provider: "openai", id: "gpt-4" }
     });
-    expect(result.text).toBe("hello world");
-    expect(mockFetch.mock.calls[0][0]).toBe("https://api.openai.com/v1/chat/completions");
-  });
 
-  it("returns empty string when choices are missing", async () => {
-    const node = new ShellAgentNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({}));
-    const result = await node.process({
-      prompt: "say hello",
-      model: { provider: "openai", id: "gpt-4" },
-      _secrets: { OPENAI_API_KEY: "sk-test" },
-    });
-    expect(result.text).toBe("");
-  });
-
-  it("throws on OpenAI API error", async () => {
-    const node = new ShellAgentNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ error: "bad" }, 400));
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "sk-test" });
     await expect(
-      node.process({
-        prompt: "say hello",
-        model: { provider: "openai", id: "gpt-4" },
-        _secrets: { OPENAI_API_KEY: "sk-test" },
-      })
-    ).rejects.toThrow("OpenAI API error 400");
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
 
-  it("resolves key from env", async () => {
-    process.env.OPENAI_API_KEY = "sk-env";
-    const node = new ShellAgentNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ choices: [{ message: { content: "ok" } }] })
-    );
-    const result = await node.process({
-      prompt: "test",
-      model: { provider: "openai", id: "gpt-4" },
-    });
-    expect(result.text).toBe("ok");
-  });
-});
-
-// ── Anthropic direct HTTP path ───────────────────────────────────────────
-
-describe("ToolAgentNode Anthropic direct path", () => {
-  it("calls Anthropic and returns text", async () => {
+  it("throws when no context provided for Anthropic", async () => {
     const node = new BrowserAgentNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        content: [
-          { type: "text", text: "anthropic response" },
-          { type: "text", text: " more" },
-        ],
-      })
-    );
-    const result = await node.process({
+
+    node.assign({
       prompt: "browse",
-      model: { provider: "anthropic", id: "claude-3" },
-      _secrets: { ANTHROPIC_API_KEY: "ak-test" },
+      model: { provider: "anthropic", id: "claude-3" }
     });
-    expect(result.text).toBe("anthropic response more");
-  });
 
-  it("returns empty when content is missing", async () => {
-    const node = new BrowserAgentNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({}));
-    const result = await node.process({
-      prompt: "browse",
-      model: { provider: "anthropic", id: "claude-3" },
-      _secrets: { ANTHROPIC_API_KEY: "ak-test" },
-    });
-    expect(result.text).toBe("");
-  });
-
-  it("throws on Anthropic API error", async () => {
-    const node = new BrowserAgentNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ error: "bad" }, 401));
+    node.setDynamic("_secrets", { ANTHROPIC_API_KEY: "ak-test" });
     await expect(
-      node.process({
-        prompt: "browse",
-        model: { provider: "anthropic", id: "claude-3" },
-        _secrets: { ANTHROPIC_API_KEY: "ak-test" },
-      })
-    ).rejects.toThrow("Anthropic API error 401");
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
-});
 
-// ── Ollama direct HTTP path ──────────────────────────────────────────────
-
-describe("ToolAgentNode Ollama direct path", () => {
-  it("calls Ollama and returns text (no API key needed)", async () => {
+  it("throws when no context provided for Ollama", async () => {
     const node = new SQLiteAgentNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ message: { content: "ollama response" } })
-    );
-    const result = await node.process({
+
+    node.assign({
       prompt: "query db",
-      model: { provider: "ollama", id: "llama3" },
+      model: { provider: "ollama", id: "llama3" }
     });
-    expect(result.text).toBe("ollama response");
-    expect(mockFetch.mock.calls[0][0]).toBe("http://127.0.0.1:11434/api/chat");
+
+    await expect(
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
 
-  it("uses custom OLLAMA_API_URL", async () => {
-    process.env.OLLAMA_API_URL = "http://custom:9999";
-    const node = new SQLiteAgentNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ message: { content: "custom" } })
-    );
-    await node.process({
-      prompt: "query",
-      model: { provider: "ollama", id: "llama3" },
+  it("throws when no context provided for unsupported provider", async () => {
+    const node = new ShellAgentNode();
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "gemini", id: "gemini-pro" }
     });
-    expect(mockFetch.mock.calls[0][0]).toBe("http://custom:9999/api/chat");
-  });
 
-  it("returns empty when message is missing", async () => {
-    const node = new SQLiteAgentNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({}));
-    const result = await node.process({
-      prompt: "query",
-      model: { provider: "ollama", id: "llama3" },
-    });
-    expect(result.text).toBe("");
-  });
-
-  it("throws on Ollama API error", async () => {
-    const node = new SQLiteAgentNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({}, 500));
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "gk-test" });
     await expect(
-      node.process({
-        prompt: "query",
-        model: { provider: "ollama", id: "llama3" },
-      })
-    ).rejects.toThrow("Ollama API error 500");
-  });
-});
-
-// ── Unsupported provider ─────────────────────────────────────────────────
-
-describe("ToolAgentNode unsupported provider", () => {
-  it("throws unsupported provider error", async () => {
-    const node = new ShellAgentNode();
-    // Ollama doesn't need API key, so we can test unsupported by using a fake provider
-    // But we need to bypass the API key check - use ollama-like (no key needed) but unsupported name
-    // Actually, the key check happens before callChatCompletionDirect for non-ollama providers
-    // So we need a provider that's not in PROVIDER_KEY_MAP and not ollama
-    // The code: if (provider !== "ollama" && !apiKey) throw
-    // So we need to provide an API key for the unknown provider
-    // But PROVIDER_KEY_MAP won't have an entry, so resolveApiKey returns null
-    // Wait - let's check: resolveApiKey checks PROVIDER_KEY_MAP[provider], which for unknown returns undefined
-    // Then envName is undefined, so it returns null
-    // Then provider !== "ollama" && !apiKey → throws "No API key found"
-    // We can't reach "Unsupported provider" via direct path for unknown providers.
-    // But we CAN set a key in env that matches the pattern
-    // Actually, the code does: const envName = PROVIDER_KEY_MAP[provider]; if (!envName) return null;
-    // So for unknown providers, resolveApiKey always returns null, and we get "No API key found" first.
-    // The "Unsupported provider" only triggers if provider is somehow valid for key check but not for HTTP call.
-    // This can't happen with the current code for unknown providers.
-    // Let's verify by checking if we can reach it through context fallback path.
-  });
-
-  it("throws unsupported provider for gemini (has key but no HTTP path)", async () => {
-    const node = new ShellAgentNode();
-    // gemini is in PROVIDER_KEY_MAP so resolveApiKey will find it
-    mockFetch.mockResolvedValueOnce(jsonResponse({}, 200)); // won't be called
-    await expect(
-      node.process({
-        prompt: "do something",
-        model: { provider: "gemini", id: "gemini-pro" },
-        _secrets: { GEMINI_API_KEY: "gk-test" },
-      })
-    ).rejects.toThrow('Unsupported provider "gemini"');
-  });
-
-  it("throws unsupported provider for mistral", async () => {
-    const node = new ShellAgentNode();
-    await expect(
-      node.process({
-        prompt: "do something",
-        model: { provider: "mistral", id: "mistral-large" },
-        _secrets: { MISTRAL_API_KEY: "mk-test" },
-      })
-    ).rejects.toThrow('Unsupported provider "mistral"');
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
 });
 
@@ -528,13 +416,13 @@ describe("ToolAgentNode runtime provider path", () => {
     const context = {
       getProvider: vi.fn().mockResolvedValue(mockProvider),
     };
-    const result = await node.process(
-      {
-        prompt: "do something",
-        model: { provider: "openai", id: "gpt-4" },
-      },
-      context as any
-    );
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "openai", id: "gpt-4" }
+    });
+
+    const result = await node.process(context as any);
     expect(result.text).toBe("from provider");
     expect(context.getProvider).toHaveBeenCalledWith("openai");
   });
@@ -547,13 +435,13 @@ describe("ToolAgentNode runtime provider path", () => {
     const context = {
       getProvider: vi.fn().mockResolvedValue(mockProvider),
     };
-    const result = await node.process(
-      {
-        prompt: "do something",
-        model: { provider: "openai", id: "gpt-4" },
-      },
-      context as any
-    );
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "openai", id: "gpt-4" }
+    });
+
+    const result = await node.process(context as any);
     expect(result.text).toBe('{"key":"val"}');
   });
 
@@ -565,58 +453,62 @@ describe("ToolAgentNode runtime provider path", () => {
     const context = {
       getProvider: vi.fn().mockResolvedValue(mockProvider),
     };
-    const result = await node.process(
-      {
-        prompt: "do something",
-        model: { provider: "openai", id: "gpt-4" },
-      },
-      context as any
-    );
-    expect(result.text).toBe('""');
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "openai", id: "gpt-4" }
+    });
+
+    const result = await node.process(context as any);
+    expect(result.text).toBe("");
   });
 
-  it("falls back to direct HTTP when provider throws", async () => {
+  it("throws when provider rejects", async () => {
     const node = new ShellAgentNode();
     const context = {
       getProvider: vi.fn().mockRejectedValue(new Error("no provider")),
     };
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ choices: [{ message: { content: "fallback" } }] })
-    );
-    const result = await node.process(
-      {
-        prompt: "do something",
-        model: { provider: "openai", id: "gpt-4" },
-        _secrets: { OPENAI_API_KEY: "sk-test" },
-      },
-      context as any
-    );
-    expect(result.text).toBe("fallback");
+
+    node.assign({
+      prompt: "do something",
+      model: { provider: "openai", id: "gpt-4" }
+    });
+
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "sk-test" });
+    await expect(
+      node.process(context as any)
+    ).rejects.toThrow("no provider");
   });
 });
 
 // ── secretsMap edge cases ────────────────────────────────────────────────
 
 describe("secretsMap handling", () => {
-  it("handles _secrets as array (returns empty map)", async () => {
+  it("handles _secrets as array (requires context)", async () => {
     const node = new ShellAgentNode();
+
+    node.assign({
+      prompt: "test",
+      model: { provider: "openai", id: "gpt-4" }
+    });
+
+    node.setDynamic("_secrets", ["not", "a", "map"]);
     await expect(
-      node.process({
-        prompt: "test",
-        model: { provider: "openai", id: "gpt-4" },
-        _secrets: ["not", "a", "map"],
-      })
-    ).rejects.toThrow("No API key found");
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
 
-  it("handles _secrets as null", async () => {
+  it("handles _secrets as null (requires context)", async () => {
     const node = new ShellAgentNode();
+
+    node.assign({
+      prompt: "test",
+      model: { provider: "openai", id: "gpt-4" }
+    });
+
+    node.setDynamic("_secrets", null);
     await expect(
-      node.process({
-        prompt: "test",
-        model: { provider: "openai", id: "gpt-4" },
-        _secrets: null,
-      })
-    ).rejects.toThrow("No API key found");
+      node.process()
+    ).rejects.toThrow("Processing context with provider access is required");
   });
 });

@@ -120,7 +120,11 @@ export class PythonBridge extends EventEmitter {
       }
     }
 
-    throw lastError ?? new Error("Failed to start Python worker");
+    throw lastError ?? new Error(
+      candidates.length === 0
+        ? "No Python interpreter found — Python nodes will not be available"
+        : "Failed to start Python worker"
+    );
   }
 
   private _getPythonLaunchCandidates(): PythonLaunchCandidate[] {
@@ -145,13 +149,7 @@ export class PythonBridge extends EventEmitter {
       source: "NodeTool-managed env",
     }));
 
-    if (candidates.length > 0) {
-      return candidates;
-    }
-
-    throw new Error(
-      "No NodeTool Python interpreter found. Set NODETOOL_PYTHON to the NodeTool env's python, activate the nodetool conda env before starting the server, or install the Electron-managed conda_env.",
-    );
+    return candidates;
   }
 
   private _looksLikeNodeToolEnv(envPath: string): boolean {

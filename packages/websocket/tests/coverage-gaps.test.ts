@@ -361,6 +361,7 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
   it("run_job with nonexistent workflow_id throws error", async () => {
     const ws = new MockWebSocket();
     const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner.mode = "text";
     await runner.connect(ws);
 
     // handleCommand should catch and return error
@@ -384,6 +385,7 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
   it("run_job without graph or workflow_id throws error", async () => {
     const ws = new MockWebSocket();
     const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    runner.mode = "text";
     await runner.connect(ws);
 
     ws.queue.push({

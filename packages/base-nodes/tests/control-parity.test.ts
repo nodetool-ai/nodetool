@@ -6,7 +6,6 @@ import {
   registerBaseNodes,
   CollectNode,
   ForEachNode,
-  GenerateSequenceNode,
   IfNode,
   OutputNode,
   RerouteNode,
@@ -23,8 +22,8 @@ function makeRunner(registry: NodeRegistry): WorkflowRunner {
     resolveExecutor: (node) => {
       if (!registry.has(node.type)) {
         return {
-          async process(inputs: Record<string, unknown>) {
-            return inputs;
+          async process() {
+            return {};
           },
         };
       }
@@ -113,9 +112,9 @@ describe("control parity: If node", () => {
       [
         {
           id: "src",
-          type: GenerateSequenceNode.nodeType,
+          type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { start: 0, stop: 3, step: 1 },
+          properties: { input_list: [0, 1, 2] },
         },
         { id: "if", type: IfNode.nodeType, properties: { condition: true } },
         { id: "collect", type: CollectNode.nodeType },
@@ -206,9 +205,9 @@ describe("control parity: Collect node", () => {
       [
         {
           id: "src",
-          type: GenerateSequenceNode.nodeType,
+          type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { start: 0, stop: 3, step: 1 },
+          properties: { input_list: [0, 1, 2] },
         },
         { id: "collect", type: CollectNode.nodeType },
         { id: "out", type: OutputNode.nodeType, name: "items" },
@@ -235,7 +234,7 @@ describe("control parity: Collect node", () => {
     );
 
     expect(result.status).toBe("completed");
-    expect(result.outputs.items).toEqual([[]]);
+    expect(result.outputs.items).toEqual([[[]]]);
   });
 
   it("resets collected state across separate workflow runs on the same runner", async () => {
@@ -243,9 +242,9 @@ describe("control parity: Collect node", () => {
     const nodes: NodeDescriptor[] = [
       {
         id: "src",
-        type: GenerateSequenceNode.nodeType,
+        type: ForEachNode.nodeType,
         is_streaming_output: true,
-        properties: { start: 0, stop: 2, step: 1 },
+        properties: { input_list: [0, 1] },
       },
       { id: "collect", type: CollectNode.nodeType },
       { id: "out", type: OutputNode.nodeType, name: "items" },
@@ -262,7 +261,7 @@ describe("control parity: Collect node", () => {
       [
         {
           ...nodes[0],
-          properties: { start: 3, stop: 5, step: 1 },
+          properties: { input_list: [3, 4] },
         },
         nodes[1],
         nodes[2],
@@ -284,9 +283,9 @@ describe("control parity: Reroute node", () => {
       [
         {
           id: "src",
-          type: GenerateSequenceNode.nodeType,
+          type: ForEachNode.nodeType,
           is_streaming_output: true,
-          properties: { start: 0, stop: 3, step: 1 },
+          properties: { input_list: [0, 1, 2] },
         },
         { id: "reroute", type: RerouteNode.nodeType },
         { id: "collect", type: CollectNode.nodeType },

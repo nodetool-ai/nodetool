@@ -5,14 +5,29 @@
  * find, paginate, getDefault, hasLinkedWorkflows, unsetOtherDefaults.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { ModelObserver } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import { Workspace } from "../src/workspace.js";
 import { Workflow } from "../src/workflow.js";
 import * as os from "node:os";
-import { chmodSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
+
+const { forceAccessSyncThrow } = vi.hoisted(() => {
+  return { forceAccessSyncThrow: { value: false } };
+});
+
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    accessSync: (...args: Parameters<typeof actual.accessSync>) => {
+      if (forceAccessSyncThrow.value) {
+        throw new Error("Mock: permission denied");
+      }
+      return actual.accessSync(...args);
+    },
+  };
+});
 
 // ── Setup ────────────────────────────────────────────────────────────
 
@@ -98,21 +113,19 @@ describe("Workspace model", () => {
   });
 
   it("isAccessible returns false when accessSync throws", () => {
-    const lockedDir = mkdtempSync(join(os.tmpdir(), "workspace-access-"));
-    chmodSync(lockedDir, 0o400);
+    const tmpDir = os.tmpdir();
+    const ws = new Workspace({
+      user_id: "u1",
+      name: "ws",
+      path: tmpDir,
+      id: "x",
+    });
 
+    forceAccessSyncThrow.value = true;
     try {
-      const ws = new Workspace({
-        user_id: "u1",
-        name: "ws",
-        path: lockedDir,
-        id: "x",
-      });
-
       expect(ws.isAccessible()).toBe(false);
     } finally {
-      chmodSync(lockedDir, 0o700);
-      rmSync(lockedDir, { recursive: true, force: true });
+      forceAccessSyncThrow.value = false;
     }
   });
 

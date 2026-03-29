@@ -23,7 +23,7 @@ async function getHfInference(apiKey: string): Promise<any> {
   if (!_hfModule) {
     try {
       // Dynamic import — @huggingface/inference is an optional dependency
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       _hfModule = await (Function('return import("@huggingface/inference")')() as Promise<any>);
     } catch {
       throw new Error(

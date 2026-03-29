@@ -47,21 +47,24 @@ describe("EmbeddingNode (OpenAI)", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ data: [{ embedding: [0.1, 0.2, 0.3] }] })
     );
-    const result = await node.process({ input: "test", ...secrets });
+    node.assign({ input: "test" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toEqual([0.1, 0.2, 0.3]);
   });
 
   it("throws on API error", async () => {
     const node = new EmbeddingNode();
     mockFetch.mockResolvedValueOnce(jsonResponse("err", 400));
-    await expect(
-      node.process({ input: "test", ...secrets })
-    ).rejects.toThrow("OpenAI Embedding API error 400");
+    node.assign({ input: "test" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("OpenAI Embedding API error 400");
   });
 
   it("throws when API key missing", async () => {
     const node = new EmbeddingNode();
-    await expect(node.process({ input: "test" })).rejects.toThrow(
+    node.assign({ input: "test" });
+    await expect(node.process()).rejects.toThrow(
       "OPENAI_API_KEY is not configured"
     );
   });
@@ -77,21 +80,25 @@ describe("WebSearchNode", () => {
         choices: [{ message: { content: "Search result" } }],
       })
     );
-    const result = await node.process({ query: "test", ...secrets });
+    node.assign({ query: "test" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toBe("Search result");
   });
 
   it("throws on empty query", async () => {
     const node = new WebSearchNode();
-    await expect(
-      node.process({ query: "", ...secrets })
-    ).rejects.toThrow("Search query cannot be empty");
+    node.assign({ query: "" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Search query cannot be empty");
   });
 
   it("handles response without choices", async () => {
     const node = new WebSearchNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ result: "raw" }));
-    const result = await node.process({ query: "test", ...secrets });
+    node.assign({ query: "test" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toContain("raw");
   });
 });
@@ -112,7 +119,9 @@ describe("ModerationNode", () => {
         ],
       })
     );
-    const result = await node.process({ input: "test", ...secrets });
+    node.assign({ input: "test" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.flagged).toBe(true);
     expect((result.categories as Record<string, boolean>).violence).toBe(true);
   });
@@ -120,15 +129,17 @@ describe("ModerationNode", () => {
   it("returns defaults when no results", async () => {
     const node = new ModerationNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ results: [] }));
-    const result = await node.process({ input: "test", ...secrets });
+    node.assign({ input: "test" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.flagged).toBe(false);
   });
 
   it("throws on empty input", async () => {
     const node = new ModerationNode();
-    await expect(
-      node.process({ input: "", ...secrets })
-    ).rejects.toThrow("Input text cannot be empty");
+    node.assign({ input: "" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Input text cannot be empty");
   });
 });
 
@@ -140,7 +151,9 @@ describe("CreateImageNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ data: [{ b64_json: "imgdata" }] })
     );
-    const result = await node.process({ prompt: "a cat", ...secrets });
+    node.assign({ prompt: "a cat" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Record<string, string>;
     expect(output.data).toContain("imgdata");
   });
@@ -150,24 +163,26 @@ describe("CreateImageNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ data: [{ url: "https://img.com/cat.png" }] })
     );
-    const result = await node.process({ prompt: "a cat", ...secrets });
+    node.assign({ prompt: "a cat" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Record<string, string>;
     expect(output.uri).toBe("https://img.com/cat.png");
   });
 
   it("throws on empty prompt", async () => {
     const node = new CreateImageNode();
-    await expect(
-      node.process({ prompt: "", ...secrets })
-    ).rejects.toThrow("Prompt cannot be empty");
+    node.assign({ prompt: "" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Prompt cannot be empty");
   });
 
   it("throws when no image data", async () => {
     const node = new CreateImageNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ data: [{}] }));
-    await expect(
-      node.process({ prompt: "cat", ...secrets })
-    ).rejects.toThrow("No image data in response");
+    node.assign({ prompt: "cat" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("No image data in response");
   });
 });
 
@@ -176,20 +191,19 @@ describe("CreateImageNode", () => {
 describe("EditImageNode", () => {
   it("throws when image missing", async () => {
     const node = new EditImageNode();
-    await expect(
-      node.process({ prompt: "edit", ...secrets })
-    ).rejects.toThrow("Input image is required");
+    node.assign({ prompt: "edit" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Input image is required");
   });
 
   it("throws on empty prompt", async () => {
     const node = new EditImageNode();
-    await expect(
-      node.process({
-        prompt: "",
-        image: { data: "b64" },
-        ...secrets,
-      })
-    ).rejects.toThrow("Edit prompt cannot be empty");
+    node.assign({
+      prompt: "",
+      image: { data: "b64" }
+    });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Edit prompt cannot be empty");
   });
 
   it("sends multipart with image", async () => {
@@ -197,11 +211,12 @@ describe("EditImageNode", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ data: [{ b64_json: "edited" }] })
     );
-    const result = await node.process({
+    node.assign({
       prompt: "make blue",
-      image: { data: "base64data" },
-      ...secrets,
+      image: { data: "base64data" }
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Record<string, string>;
     expect(output.data).toContain("edited");
   });
@@ -213,7 +228,9 @@ describe("TextToSpeechNode (OpenAI)", () => {
   it("returns audio data", async () => {
     const node = new TextToSpeechNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
-    const result = await node.process({ input: "Hello", ...secrets });
+    node.assign({ input: "Hello" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     const output = result.output as Record<string, string>;
     expect(output.data).toContain("base64");
   });
@@ -221,9 +238,9 @@ describe("TextToSpeechNode (OpenAI)", () => {
   it("throws on API error", async () => {
     const node = new TextToSpeechNode();
     mockFetch.mockResolvedValueOnce(jsonResponse("err", 500));
-    await expect(
-      node.process({ input: "Hello", ...secrets })
-    ).rejects.toThrow("OpenAI TTS API error 500");
+    node.assign({ input: "Hello" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("OpenAI TTS API error 500");
   });
 });
 
@@ -232,18 +249,18 @@ describe("TextToSpeechNode (OpenAI)", () => {
 describe("TranslateNode", () => {
   it("throws when audio missing", async () => {
     const node = new TranslateNode();
-    await expect(
-      node.process({ ...secrets })
-    ).rejects.toThrow("Audio input is required");
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Audio input is required");
   });
 
   it("translates audio with base64 data", async () => {
     const node = new TranslateNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ text: "Hello" }));
-    const result = await node.process({
-      audio: { data: Buffer.from("audio").toString("base64") },
-      ...secrets,
+    node.assign({
+      audio: { data: Buffer.from("audio").toString("base64") }
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.output).toBe("Hello");
   });
 });
@@ -253,7 +270,8 @@ describe("TranslateNode", () => {
 describe("TranscribeNode", () => {
   it("throws when audio missing", async () => {
     const node = new TranscribeNode();
-    await expect(node.process({ ...secrets })).rejects.toThrow(
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow(
       "Audio input is required"
     );
   });
@@ -261,23 +279,23 @@ describe("TranscribeNode", () => {
   it("transcribes audio", async () => {
     const node = new TranscribeNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ text: "Transcribed text" }));
-    const result = await node.process({
-      audio: { data: Buffer.from("audio").toString("base64") },
-      ...secrets,
+    node.assign({
+      audio: { data: Buffer.from("audio").toString("base64") }
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.text).toBe("Transcribed text");
   });
 
   it("throws on new model with timestamps", async () => {
     const node = new TranscribeNode();
-    await expect(
-      node.process({
-        audio: { data: Buffer.from("audio").toString("base64") },
-        model: "gpt-4o-transcribe",
-        timestamps: true,
-        ...secrets,
-      })
-    ).rejects.toThrow("New transcription models do not support verbose_json");
+    node.assign({
+      audio: { data: Buffer.from("audio").toString("base64") },
+      model: "gpt-4o-transcribe",
+      timestamps: true
+    });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("New transcription models do not support verbose_json");
   });
 
   it("parses timestamps from whisper", async () => {
@@ -289,11 +307,12 @@ describe("TranscribeNode", () => {
         words: [{ start: 0, end: 0.5, word: "Hello" }],
       })
     );
-    const result = await node.process({
+    node.assign({
       audio: { data: Buffer.from("audio").toString("base64") },
-      timestamps: true,
-      ...secrets,
+      timestamps: true
     });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect((result.segments as unknown[]).length).toBe(1);
     expect((result.words as unknown[]).length).toBe(1);
   });
@@ -310,7 +329,9 @@ describe("RealtimeAgentNode", () => {
         .mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: "ok" } }] }))
         .mockResolvedValueOnce(jsonResponse({}))
     ) as any;
-    const result = await node.process({ prompt: "hello", ...secrets });
+    node.assign({ prompt: "hello" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.text).toBe("ok");
   });
 });
@@ -319,10 +340,9 @@ describe("RealtimeTranscriptionNode", () => {
   it("returns transcription fallback output", async () => {
     const node = new RealtimeTranscriptionNode();
     globalThis.fetch = vi.fn().mockResolvedValueOnce(jsonResponse({ text: "heard" })) as any;
-    const result = await node.process({
-      chunk: { content: Buffer.from("wav").toString("base64") },
-      ...secrets,
-    });
+    (node as any).chunk = { content: Buffer.from("wav").toString("base64") };
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
     expect(result.text).toBe("heard");
   });
 });

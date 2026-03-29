@@ -300,7 +300,7 @@ const host = process.env["HOST"] ?? (tlsEnabled ? "0.0.0.0" : "127.0.0.1");
 // Fastify app
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const app: FastifyInstance = (Fastify as any)({
   ...(httpsOptions ? { https: httpsOptions } : {}),
   trustProxy: true,
@@ -324,9 +324,12 @@ const localProvider = supabaseProvider ? null : new LocalAuthProvider();
 app.decorateRequest("userId", null);
 
 app.addHook("onRequest", async (req, reply) => {
+  // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
+  if (req.method === "OPTIONS") return;
+
   // Public routes — no auth required
   const pathname = req.url.split("?")[0];
-  if (pathname === "/health" || pathname.startsWith("/api/oauth/")) {
+  if (pathname === "/health" || pathname.startsWith("/api/oauth/") || pathname === "/api/assets/packages" || pathname.startsWith("/api/assets/packages/") || pathname === "/api/nodes/metadata") {
     return;
   }
 

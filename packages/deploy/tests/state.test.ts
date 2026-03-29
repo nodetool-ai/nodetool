@@ -36,7 +36,7 @@ async function writeTestConfig(
   await fs.mkdir(dir, { recursive: true });
 
   const defaultConfig = config ?? {
-    version: "1.0",
+    version: "2.0",
     defaults: {},
     deployments: {
       prod: {
@@ -50,8 +50,10 @@ async function writeTestConfig(
         image: { name: "nodetool/api", tag: "staging" },
       },
       dev: {
-        type: "local",
-        port: 8000,
+        type: "docker",
+        host: "localhost",
+        image: { name: "nodetool/api" },
+        container: { name: "nodetool-dev", port: 8000 },
       },
       cloud: {
         type: "gcp",
@@ -149,7 +151,7 @@ describe("StateManager", () => {
       expect(state!.revision).toBeNull();
     });
 
-    it("returns default state for local deployment", async () => {
+    it("returns default state for dev (docker) deployment", async () => {
       const state = await manager.readState("dev");
       expect(state).not.toBeNull();
       expect(state!.status).toBe("unknown");
@@ -273,7 +275,7 @@ describe("StateManager", () => {
       const emptyConfigPath = path.join(tmpDir, "empty.yaml");
       await fs.writeFile(
         emptyConfigPath,
-        yaml.dump({ version: "1.0", defaults: {}, deployments: {} }),
+        yaml.dump({ version: "2.0", defaults: {}, deployments: {} }),
         "utf-8"
       );
       const emptyManager = new StateManager(emptyConfigPath);
@@ -491,7 +493,7 @@ describe("createStateSnapshot", () => {
     });
     const snapshot = createStateSnapshot(config);
     expect(snapshot.timestamp).toBeDefined();
-    expect(snapshot.version).toBe("1.0");
+    expect(snapshot.version).toBe("2.0");
     const deps = snapshot.deployments as Record<string, Record<string, unknown>>;
     expect(deps.prod).toBeDefined();
     expect(deps.prod.type).toBe("docker");
@@ -621,7 +623,7 @@ describe("restoreStateFromSnapshot", () => {
   it("throws when deployment not in snapshot", async () => {
     const snapshot = {
       timestamp: new Date().toISOString(),
-      version: "1.0",
+      version: "2.0",
       deployments: {},
       config_path: configPath,
     };

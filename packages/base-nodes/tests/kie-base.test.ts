@@ -45,7 +45,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe("getApiKey", () => {
   it("returns key from _secrets.KIE_API_KEY", () => {
-    const key = getApiKey({ _secrets: { KIE_API_KEY: "secret-from-secrets" } });
+    const key = getApiKey({ KIE_API_KEY: "secret-from-secrets" });
     expect(key).toBe("secret-from-secrets");
   });
 
@@ -57,7 +57,7 @@ describe("getApiKey", () => {
 
   it("prefers _secrets over process.env", () => {
     process.env.KIE_API_KEY = "env-key";
-    const key = getApiKey({ _secrets: { KIE_API_KEY: "secrets-key" } });
+    const key = getApiKey({ KIE_API_KEY: "secrets-key" });
     expect(key).toBe("secrets-key");
   });
 
@@ -66,7 +66,7 @@ describe("getApiKey", () => {
   });
 
   it("throws when _secrets exists but KIE_API_KEY is empty string", () => {
-    expect(() => getApiKey({ _secrets: { KIE_API_KEY: "" } })).toThrow(
+    expect(() => getApiKey({ KIE_API_KEY: "" })).toThrow(
       "KIE_API_KEY is not configured"
     );
   });
@@ -720,27 +720,44 @@ describe("KieAINode", () => {
 
   it("defaults() returns the current serialized metadata fields", () => {
     const node = new KieAINode();
-    expect(node.serialize()).toEqual({ timeout_seconds: 0, model_info: "" });
+    expect(node.serialize()).toEqual({ model_info: 0 });
   });
 
   it("throws on empty model_info", async () => {
     const node = new KieAINode();
+
+    node.assign({
+      model_info: ""
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({ model_info: "", _secrets: { KIE_API_KEY: "k" } })
+      node.process()
     ).rejects.toThrow("model_info is empty");
   });
 
   it("throws on whitespace-only model_info", async () => {
     const node = new KieAINode();
+
+    node.assign({
+      model_info: "   "
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "k" });
     await expect(
-      node.process({ model_info: "   ", _secrets: { KIE_API_KEY: "k" } })
+      node.process()
     ).rejects.toThrow("model_info is empty");
   });
 
   it("throws on missing API key", async () => {
     const node = new KieAINode();
+
+    node.assign({
+      model_info: "some docs"
+    });
+
     await expect(
-      node.process({ model_info: "some docs" })
+      node.process()
     ).rejects.toThrow("KIE_API_KEY is not configured");
   });
 });

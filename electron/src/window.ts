@@ -331,6 +331,11 @@ function handleActivation(): void {
   }
 }
 
+/** @internal Reset the permission-handlers-initialized flag (for tests only). */
+function _resetPermissionHandlersForTesting(): void {
+  permissionHandlersInitialized = false;
+}
+
 export {
   createWindow,
   createPackageManagerWindow,
@@ -338,4 +343,5 @@ export {
   createSettingsWindow,
   forceQuit,
   handleActivation,
+  _resetPermissionHandlersForTesting,
 };

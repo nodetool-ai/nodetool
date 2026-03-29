@@ -295,7 +295,7 @@ describe("OpenAI-compatible API", () => {
       expect(finalData.choices[0].finish_reason).toBe("tool_calls");
     });
 
-    it("defaults to streaming when stream is not specified", async () => {
+    it("defaults to non-streaming when stream is not specified", async () => {
       const mockProvider = createMockProvider([makeChunk("test")]);
       const options: OpenAIApiOptions = { provider: mockProvider };
       const request = new Request("http://localhost/v1/chat/completions", {
@@ -314,7 +314,8 @@ describe("OpenAI-compatible API", () => {
         options,
       );
 
-      expect(response!.headers.get("content-type")).toBe("text/event-stream");
+      // Per OpenAI API spec, default is non-streaming (stream must be explicitly true)
+      expect(response!.headers.get("content-type")).toBe("application/json");
     });
   });
 

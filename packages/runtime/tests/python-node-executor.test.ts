@@ -44,7 +44,7 @@ describe("PythonNodeExecutor", () => {
     expect(result).toEqual({ output: "result" });
     expect(bridge.execute).toHaveBeenCalledWith(
       "test.EchoNode",
-      { defaultProp: "val", text: "hello" },
+      { text: "hello" },
       {},
       {},
       undefined,

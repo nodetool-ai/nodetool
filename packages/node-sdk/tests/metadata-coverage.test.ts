@@ -13,7 +13,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadPythonPackageMetadata } from "../src/metadata.js";
 
 const tmpDirs: string[] = [];
@@ -217,37 +217,46 @@ describe("loadPythonPackageMetadata – edge cases", () => {
     const metadataDir = path.join(root, "nodetool", "package_metadata");
     fs.mkdirSync(metadataDir, { recursive: true });
     fs.writeFileSync(path.join(metadataDir, "test.json"), JSON.stringify({ name: "test" }));
-    // Make it unreadable - this triggers the catch at lines 97-98
-    // because walkForMetadataFiles enters the first branch (root ends with package_metadata)
-    fs.chmodSync(metadataDir, 0o000);
+
+    // Mock readdirSync to throw for the metadata dir (chmod doesn't work as root)
+    const origReaddirSync = fs.readdirSync;
+    const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
+      if (String(args[0]) === metadataDir) {
+        throw new Error("EACCES: permission denied");
+      }
+      return origReaddirSync.apply(fs, args as any);
+    });
 
     const result = loadPythonPackageMetadata({ roots: [root] });
-    fs.chmodSync(metadataDir, 0o755);
+    spy.mockRestore();
 
     expect(result.warnings.some((w) => w.includes("Failed to scan metadata dir"))).toBe(true);
   });
 
   it("warns when directory read fails", () => {
     const root = makeTmpRoot();
-    // Create a file named like a directory that will fail readdir
     const fakeDirPath = path.join(root, "src");
     fs.mkdirSync(fakeDirPath, { recursive: true });
     const metadataParent = path.join(fakeDirPath, "nodetool");
     fs.mkdirSync(metadataParent, { recursive: true });
-    // Make the metadata directory unreadable
     const metadataDir = path.join(metadataParent, "package_metadata");
     fs.mkdirSync(metadataDir);
-    // Create a valid metadata file first
     fs.writeFileSync(
       path.join(metadataDir, "test.json"),
       JSON.stringify({ name: "test", nodes: [] })
     );
-    // Now make it unreadable by removing permissions
-    fs.chmodSync(metadataDir, 0o000);
+
+    // Mock readdirSync to throw for the metadata dir (chmod doesn't work as root)
+    const origReaddirSync = fs.readdirSync;
+    const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
+      if (String(args[0]) === metadataDir) {
+        throw new Error("EACCES: permission denied");
+      }
+      return origReaddirSync.apply(fs, args as any);
+    });
 
     const result = loadPythonPackageMetadata({ roots: [root] });
-    // Restore permissions for cleanup
-    fs.chmodSync(metadataDir, 0o755);
+    spy.mockRestore();
 
     // Should have a warning about failed scan
     expect(result.warnings.some((w) => w.includes("Failed to scan metadata dir"))).toBe(true);
@@ -255,14 +264,20 @@ describe("loadPythonPackageMetadata – edge cases", () => {
 
   it("warns when a non-metadata directory read fails (lines 106-108)", () => {
     const root = makeTmpRoot();
-    // Create a regular subdirectory but make it unreadable
     const subDir = path.join(root, "some-package");
     fs.mkdirSync(subDir, { recursive: true });
-    fs.chmodSync(subDir, 0o000);
+
+    // Mock readdirSync to throw for the subdirectory (chmod doesn't work as root)
+    const origReaddirSync = fs.readdirSync;
+    const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
+      if (String(args[0]) === subDir) {
+        throw new Error("EACCES: permission denied");
+      }
+      return origReaddirSync.apply(fs, args as any);
+    });
 
     const result = loadPythonPackageMetadata({ roots: [root] });
-    // Restore permissions for cleanup
-    fs.chmodSync(subDir, 0o755);
+    spy.mockRestore();
 
     expect(result.warnings.some((w) => w.includes("Failed to read directory"))).toBe(true);
   });

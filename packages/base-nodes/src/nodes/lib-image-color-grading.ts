@@ -122,9 +122,9 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const gainM = Number((this as any).gain_master ?? self.gain_master ?? 1);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         for (let i = 0; i < data.length; i += 3) {
-          let r = (data[i] * gainR * gainM) + liftR + liftM;
-          let g = (data[i+1] * gainG * gainM) + liftG + liftM;
-          let b = (data[i+2] * gainB * gainM) + liftB + liftM;
+          const r = (data[i] * gainR * gainM) + liftR + liftM;
+          const g = (data[i+1] * gainG * gainM) + liftG + liftM;
+          const b = (data[i+2] * gainB * gainM) + liftB + liftM;
           const gr = 1 / Math.max(0.01, gammaR * gammaM);
           const gg = 1 / Math.max(0.01, gammaG * gammaM);
           const gb = 1 / Math.max(0.01, gammaB * gammaM);

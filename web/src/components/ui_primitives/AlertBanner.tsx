@@ -8,7 +8,6 @@
 
 import { forwardRef } from "react";
 import { Alert, AlertTitle, AlertProps as MuiAlertProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 
 export interface AlertBannerProps extends Omit<MuiAlertProps, 'variant'> {
   /** Alert title (optional) */
@@ -52,8 +51,6 @@ export const AlertBanner = forwardRef<HTMLDivElement, AlertBannerProps>(({
   children,
   ...props
 }, ref) => {
-  const theme = useTheme();
-
   return (
     <Alert
       ref={ref}

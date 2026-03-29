@@ -21,6 +21,8 @@ try {
   sdkAvailable = true;
 } catch {}
 
+const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+
 // --- Mock tools matching ToolLike interface ---
 
 const calculatorTool = {
@@ -83,7 +85,7 @@ function createMockContext(provider: BaseProvider): ProcessingContext {
   } as unknown as ProcessingContext;
 }
 
-describe.skipIf(!sdkAvailable)("AgentNode E2E with ClaudeAgentProvider", () => {
+describe.skipIf(!sdkAvailable || !hasApiKey)("AgentNode E2E with ClaudeAgentProvider", () => {
 
   it("runAgentLoop with calculator tool via MCP", async () => {
     const provider = new ClaudeAgentProvider();
@@ -145,7 +147,9 @@ describe.skipIf(!sdkAvailable)("AgentNode E2E with ClaudeAgentProvider", () => {
     const outputs: Record<string, unknown>[] = [];
     let fullText = "";
 
-    for await (const item of node.genProcess(inputs, context)) {
+    node.assign(inputs);
+
+    for await (const item of node.genProcess(context)) {
       outputs.push(item);
       if (item.text && typeof item.text === "string") {
         fullText = item.text;

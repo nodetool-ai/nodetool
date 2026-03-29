@@ -1,0 +1,121 @@
+{
+  "thread-001": [
+    {
+      "id": "msg-001",
+      "thread_id": "thread-001",
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Hello! I'm new to NodeTool. Can you help me get started?"
+        }
+      ],
+      "created_at": "2024-01-01T10:00:00Z",
+      "tool_calls": null
+    },
+    {
+      "id": "msg-002",
+      "thread_id": "thread-001",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Welcome to NodeTool! I'd be happy to help you get started. NodeTool is a visual workflow builder for AI applications. Here are some key concepts:\n\n1. **Workflows**: Visual graphs that connect nodes together\n2. **Nodes**: Individual processing units (like text input, image generation, etc.)\n3. **Edges**: Connections between nodes that pass data\n\nWould you like me to help you create your first workflow?"
+        }
+      ],
+      "created_at": "2024-01-01T10:00:30Z",
+      "tool_calls": null
+    },
+    {
+      "id": "msg-003",
+      "thread_id": "thread-001",
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Yes, please! I want to create a simple image generation workflow."
+        }
+      ],
+      "created_at": "2024-01-01T10:01:00Z",
+      "tool_calls": null
+    },
+    {
+      "id": "msg-004",
+      "thread_id": "thread-001",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Great! I'll help you create an image generation workflow. Let me set that up for you."
+        }
+      ],
+      "created_at": "2024-01-01T10:01:30Z",
+      "tool_calls": [
+        {
+          "id": "call-001",
+          "type": "function",
+          "function": {
+            "name": "create_workflow",
+            "arguments": "{\"name\": \"Image Generation Workflow\", \"description\": \"Simple workflow for generating images\"}"
+          }
+        }
+      ]
+    }
+  ],
+  "thread-002": [
+    {
+      "id": "msg-005",
+      "thread_id": "thread-002",
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "What are the best models for generating realistic images?"
+        }
+      ],
+      "created_at": "2024-01-02T14:00:00Z",
+      "tool_calls": null
+    },
+    {
+      "id": "msg-006",
+      "thread_id": "thread-002",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "For realistic image generation, I recommend:\n\n1. **Stable Diffusion XL (SDXL)**: Excellent for photorealistic images\n2. **Stable Diffusion 2.1**: Good balance of quality and speed\n3. **Flux**: Latest model with great detail\n\nEach has different strengths. Would you like me to help you set up a workflow with one of these models?"
+        }
+      ],
+      "created_at": "2024-01-02T14:00:45Z",
+      "tool_calls": null
+    }
+  ],
+  "thread-003": [
+    {
+      "id": "msg-007",
+      "thread_id": "thread-003",
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "My workflow isn't working. It's stuck on the second node."
+        }
+      ],
+      "created_at": "2024-01-03T09:00:00Z",
+      "tool_calls": null
+    },
+    {
+      "id": "msg-008",
+      "thread_id": "thread-003",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "I'd be happy to help debug your workflow. Can you tell me:\n\n1. What type of node is stuck?\n2. Are there any error messages?\n3. What was the workflow trying to do?\n\nThis information will help me diagnose the issue."
+        }
+      ],
+      "created_at": "2024-01-03T09:00:30Z",
+      "tool_calls": null
+    }
+  ]
+}

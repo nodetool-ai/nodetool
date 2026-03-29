@@ -24,7 +24,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/ssh2": "^1.15.0",
     "typescript": "^5.4.0",
-    "vitest": "^1.6.1"
+    "vitest": "^4.1.2"
   },
   "exports": {
     ".": {

@@ -1,237 +1,92 @@
-import { test, expect, _electron as electron } from '@playwright/test';
-import * as path from 'path';
-import { spawn } from 'child_process';
-import * as fs from 'fs/promises';
-import * as os from 'os';
+import { test, expect } from './fixtures/electronApp';
+import { BACKEND_HOST } from "./support/backend";
+import { navigateToPage, waitForPageReady } from "./helpers/waitHelpers";
 
-// PID file path matching the one in config.ts
-// The Electron app uses app.getPath("temp") which returns os.tmpdir()
-const PID_DIRECTORY = path.join(os.tmpdir(), 'nodetool-electron');
-const PID_FILE_PATH = path.join(PID_DIRECTORY, 'server.pid');
-
-// Helper function to kill existing NodeTool server processes
-async function killExistingNodeToolProcesses(): Promise<void> {
-  try {
-    const pidContent = await fs.readFile(PID_FILE_PATH, 'utf8');
-    const pid = parseInt(pidContent.trim(), 10);
-    
-    if (pid && !isNaN(pid)) {
-      try {
-        process.kill(pid, 'SIGTERM');
-        await new Promise<void>((resolve) => {
-          const checkInterval = setInterval(() => {
-            try {
-              process.kill(pid, 0);
-            } catch (e) {
-              if ((e as NodeJS.ErrnoException).code === 'ESRCH') {
-                clearInterval(checkInterval);
-                resolve();
-              }
-            }
-          }, 100);
-          
-          setTimeout(() => {
-            clearInterval(checkInterval);
-            resolve();
-          }, 3000);
-        });
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
-          console.log(`Error killing process ${pid}:`, error);
-        }
-      }
-      
-      try {
-        await fs.unlink(PID_FILE_PATH);
-      } catch (error) {
-        // Ignore
-      }
-    }
-  } catch (error) {
-    // PID file doesn't exist, that's OK
-  }
-}
-
-// Helper function to kill servers on default port
-async function killServersOnDefaultPort(): Promise<void> {
-  const defaultPort = 7777;
-  const platform = os.platform();
-  
-  return new Promise<void>((resolve) => {
-    if (platform === 'darwin' || platform === 'linux') {
-      const command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
-      spawn(command, {
-        shell: true,
-        stdio: 'ignore'
-      }).on('exit', () => {
-        resolve();
-      }).on('error', () => {
-        resolve();
-      });
-    } else if (platform === 'win32') {
-      // Use PowerShell on Windows for more reliable execution
-      const command = `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`;
-      spawn('powershell.exe', ['-Command', command], {
-        stdio: 'ignore'
-      }).on('exit', () => {
-        resolve();
-      }).on('error', () => {
-        resolve();
-      });
-    } else {
-      resolve();
-    }
+test.describe("Electron App Loading", () => {
+  test("should launch the Electron app successfully", async ({ page }) => {
+    expect(page).toBeTruthy();
+    const url = page.url();
+    expect(url).toBeTruthy();
   });
-}
 
-// Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
-if (process.env.JEST_WORKER_ID) {
-  test.skip("skipped in jest runner", () => {});
-} else {
-  test.describe("Electron App Loading", () => {
-    // Clean up any existing servers before tests
-    test.beforeAll(async () => {
-      await killExistingNodeToolProcesses();
-      await killServersOnDefaultPort();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    });
-
-    test.afterAll(async () => {
-      await killExistingNodeToolProcesses();
-      await killServersOnDefaultPort();
-    });
-
-    test("should launch the Electron app successfully", async () => {
-      // Launch the Electron app
-      const electronApp = await electron.launch({
-        args: [
-          path.join(__dirname, '../../dist-electron/main.js'),
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage'
-        ],
-        env: {
-          ...process.env,
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-        }
-      });
-
-      // Wait for the first window to open
-      const window = await electronApp.firstWindow();
-      
-      // Verify window is created
-      expect(window).toBeTruthy();
-      
-      // Wait for the app to load with a longer timeout
-      try {
-        await window.waitForLoadState('load', { timeout: 15000 });
-      } catch (e) {
-        // If load state times out, that's okay - we just want to verify the app launched
-      }
-      
-      // Check that the window has a URL (even if it's about:blank)
-      const url = window.url();
-      expect(url).toBeTruthy();
-      
-      // Close the app
-      await electronApp.close();
-    });
-
-    test("should have working main window", async () => {
-      const electronApp = await electron.launch({
-        args: [
-          path.join(__dirname, '../../dist-electron/main.js'),
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage'
-        ],
-        env: {
-          ...process.env,
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-        }
-      });
-
-      const window = await electronApp.firstWindow();
-      
-      // Wait for any content to load
-      try {
-        await window.waitForLoadState('load', { timeout: 15000 });
-      } catch (e) {
-        // Timeout is acceptable, continue with test
-      }
-      
-      // Check window is not null
-      expect(window).toBeTruthy();
-      
-      // Check that the window has a valid URL
-      const url = window.url();
-      expect(url).toBeTruthy();
-      
-      await electronApp.close();
-    });
-
-    test("should handle IPC communication", async () => {
-      const electronApp = await electron.launch({
-        args: [
-          path.join(__dirname, '../../dist-electron/main.js'),
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage'
-        ],
-        env: {
-          ...process.env,
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-        }
-      });
-
-      const window = await electronApp.firstWindow();
-      
-      // Wait for content to load
-      try {
-        await window.waitForLoadState('load', { timeout: 15000 });
-      } catch (e) {
-        // Timeout is acceptable
-      }
-      
-      // Verify that window.api is available (from preload script)
-      const hasApi = await window.evaluate(() => {
-        return typeof (window as any).api !== 'undefined';
-      });
-      
-      expect(hasApi).toBe(true);
-      
-      await electronApp.close();
-    });
-
-    test("should load application without crashes", async () => {
-      const electronApp = await electron.launch({
-        args: [
-          path.join(__dirname, '../../dist-electron/main.js'),
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage'
-        ],
-        env: {
-          ...process.env,
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-        },
-        timeout: 20000
-      });
-
-      const window = await electronApp.firstWindow();
-      
-      // Wait for content to load
-      try {
-        await window.waitForLoadState('load', { timeout: 15000 });
-      } catch (e) {
-        // Timeout is acceptable
-      }
-      
-      // Verify the app is still running
-      expect(electronApp).toBeTruthy();
-      expect(window).toBeTruthy();
-      
-      await electronApp.close();
-    });
+  test("should have working main window", async ({ page }) => {
+    expect(page).toBeTruthy();
+    const url = page.url();
+    expect(url).toBeTruthy();
   });
-}
+
+  test("should handle IPC communication", async ({ page }) => {
+    const hasApi = await page.evaluate(() => {
+      return typeof (window as any).api !== 'undefined';
+    });
+    expect(hasApi).toBe(true);
+  });
+
+  test("should load application without crashes", async ({ electronApp, page }) => {
+    expect(electronApp).toBeTruthy();
+    expect(page).toBeTruthy();
+  });
+});
+
+test.describe("App Loading", () => {
+  test("should load the home page successfully", async ({ page }) => {
+    // Navigate to the root
+    await navigateToPage(page, "/");
+
+    // Check that we're on a valid page (not an error page)
+    const title = await page.title();
+    expect(title).toBeTruthy();
+
+    // Check that the page doesn't show a generic error
+    const bodyText = await page.textContent("body");
+    expect(bodyText).not.toContain("500");
+    expect(bodyText).not.toContain("Internal Server Error");
+  });
+
+  test("should have working navigation", async ({ page }) => {
+    // Navigate to the root
+    await navigateToPage(page, "/");
+
+    // Try to navigate to dashboard page
+    await navigateToPage(page, "/dashboard");
+
+    // Check URL changed (use pathname to handle Electron base URLs)
+    const url = page.url();
+    const pathname = new URL(url).pathname;
+    expect(pathname).toMatch(/\/dashboard/);
+  });
+
+  test("should connect to backend API", async ({ page }) => {
+    // Set up a request interceptor to check for API calls
+    let apiCallMade = false;
+
+    const responseHandler = (response: any) => {
+      const url = response.url();
+      if (url.includes(BACKEND_HOST) || url.includes("/api/")) {
+        apiCallMade = true;
+      }
+    };
+
+    page.on("response", responseHandler);
+
+    // Navigate to the app
+    await navigateToPage(page, "/");
+
+    // Wait for initial API calls with a proper condition check
+    await page.waitForFunction(
+      () => {
+        // Check if any API elements or data have loaded
+        const body = document.querySelector("body");
+        return body && body.textContent && body.textContent.length > 100;
+      },
+      { timeout: 5000 }
+    );
+
+    // Clean up listener
+    page.off("response", responseHandler);
+
+    // We expect at least some API call to have been made
+    // This verifies the frontend can reach the backend
+    expect(apiCallMade).toBe(true);
+  });
+});

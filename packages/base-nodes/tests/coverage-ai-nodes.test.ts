@@ -59,10 +59,12 @@ describe("SummarizerNode", () => {
 
   it("summarizes text to max_sentences", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({
+    n.assign({
       text: "First sentence. Second sentence. Third sentence. Fourth sentence.",
-      max_sentences: 2,
     });
+    // max_sentences is not a declared prop, so set it directly on the instance
+    n.max_sentences = 2;
+    const result = await n.process();
     expect(result.text).toBe("First sentence. Second sentence.");
     expect(result.output).toBe(result.text);
   });
@@ -78,66 +80,71 @@ describe("SummarizerNode", () => {
     const mockContext = {
       getProvider: async () => mockProvider,
     };
-    const result = await n.process(
-      {
-        text: "Long text",
-        max_sentences: 2,
-        model: { provider: "test", id: "m1" },
-      },
-      mockContext as any
-    );
+    n.assign({
+      text: "Long text",
+      model: { provider: "test", id: "m1" },
+    });
+    n.max_sentences = 2;
+    const result = await n.process(mockContext as any);
     expect(result.text).toContain("Long text");
   });
 
   it("returns empty string for empty text", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({ text: "", max_sentences: 3 });
+    n.assign({ text: "", max_sentences: 3 });
+    const result = await n.process();
     expect(result.text).toBe("");
   });
 
   it("handles text with no sentence terminators", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({ text: "just a phrase", max_sentences: 5 });
+    n.assign({ text: "just a phrase", max_sentences: 5 });
+    const result = await n.process();
     expect(result.text).toBe("just a phrase");
   });
 
   it("handles numeric input via asText", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({ text: 42, max_sentences: 1 });
+    n.assign({ text: 42, max_sentences: 1 });
+    const result = await n.process();
     expect(result.text).toBe("42");
   });
 
   it("handles boolean input via asText", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({ text: true, max_sentences: 1 });
+    n.assign({ text: true, max_sentences: 1 });
+    const result = await n.process();
     expect(result.text).toBe("true");
   });
 
   it("handles null/undefined input via asText", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({ text: null });
+    n.assign({ text: null });
+    const result = await n.process();
     expect(result.text).toBe("");
   });
 
   it("handles array input via asText", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({ text: ["Hello", "World"], max_sentences: 1 });
+    n.assign({ text: ["Hello", "World"], max_sentences: 1 });
+    const result = await n.process();
     // asText joins array elements with space
     expect(result.text).toBe("Hello World");
   });
 
   it("handles object with content string via asText", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({
+    n.assign({
       text: { content: "Message content here." },
       max_sentences: 1,
     });
+    const result = await n.process();
     expect(result.text).toBe("Message content here.");
   });
 
   it("handles object with content array (MessagePart) via asText", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({
+    n.assign({
       text: {
         content: [
           { type: "text", text: "Part one." },
@@ -147,32 +154,36 @@ describe("SummarizerNode", () => {
       },
       max_sentences: 2,
     });
+    const result = await n.process();
     expect(result.text).toContain("Part one.");
     expect(result.text).toContain("Part two.");
   });
 
   it("handles object without content (falls back to JSON.stringify)", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({
+    n.assign({
       text: { foo: "bar" },
       max_sentences: 1,
     });
+    const result = await n.process();
     expect(result.text).toContain("foo");
   });
 
   it("handles function input via asText (returns empty string)", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({ text: () => "fn", max_sentences: 1 });
+    n.assign({ text: () => "fn", max_sentences: 1 });
+    const result = await n.process();
     // A function is not string/number/boolean/falsy/array/object, so asText returns ""
     expect(result.text).toBe("");
   });
 
   it("handles non-finite max_sentences by defaulting to 3", async () => {
     const n = new (SummarizerNode as any)();
-    const result = await n.process({
+    n.assign({
       text: "A. B. C. D. E.",
       max_sentences: NaN,
     });
+    const result = await n.process();
     // NaN is not finite, so defaults to 3
     expect(result.text).toBe("A. B. C.");
   });
@@ -180,7 +191,7 @@ describe("SummarizerNode", () => {
   it("uses assigned defaults when inputs are missing", async () => {
     const n = new (SummarizerNode as any)();
     n.assign({ text: "From props. Second.", max_sentences: 1 });
-    const result = await n.process({});
+    const result = await n.process();
     expect(result.text).toBe("From props. Second.");
   });
 });
@@ -197,24 +208,27 @@ describe("CreateThreadNode", () => {
 
   it("creates a new thread with auto-generated id", async () => {
     const n = new (CreateThreadNode as any)();
-    const result = await n.process({ title: "My Thread" });
+    n.assign({ title: "My Thread" });
+    const result = await n.process();
     expect(result.thread_id).toMatch(/^thread_\d+_/);
   });
 
   it("reuses existing thread when thread_id provided", async () => {
     const n = new (CreateThreadNode as any)();
     // First call creates the thread
-    const r1 = await n.process({ thread_id: "test_reuse_123", title: "T1" });
+    n.assign({ thread_id: "test_reuse_123", title: "T1" });
+    const r1 = await n.process();
     expect(r1.thread_id).toBe("test_reuse_123");
     // Second call reuses it
-    const r2 = await n.process({ thread_id: "test_reuse_123", title: "T2" });
+    n.assign({ thread_id: "test_reuse_123", title: "T2" });
+    const r2 = await n.process();
     expect(r2.thread_id).toBe("test_reuse_123");
   });
 
   it("creates thread from assigned defaults when inputs are empty", async () => {
     const n = new (CreateThreadNode as any)();
     n.assign({ thread_id: "", title: "PropTitle" });
-    const result = await n.process({});
+    const result = await n.process();
     expect(result.thread_id).toMatch(/^thread_/);
   });
 });
@@ -231,47 +245,54 @@ describe("ExtractorNode", () => {
 
   it("extracts valid JSON object from text", async () => {
     const n = new (ExtractorNode as any)();
-    const result = await n.process({ text: '{"name": "Alice", "age": 30}' });
+    n.assign({ text: '{"name": "Alice", "age": 30}' });
+    const result = await n.process();
     expect(result.name).toBe("Alice");
     expect(result.age).toBe(30);
   });
 
   it("extracts JSON embedded in surrounding text", async () => {
     const n = new (ExtractorNode as any)();
-    const result = await n.process({
+    n.assign({
       text: 'Here is the data: {"key": "value"} end.',
     });
+    const result = await n.process();
     expect(result.key).toBe("value");
   });
 
   it("returns { output: text } when no JSON found", async () => {
     const n = new (ExtractorNode as any)();
-    const result = await n.process({ text: "no json here" });
+    n.assign({ text: "no json here" });
+    const result = await n.process();
     expect(result.output).toBe("no json here");
   });
 
   it("returns { output: text } for JSON array (not object)", async () => {
     const n = new (ExtractorNode as any)();
-    const result = await n.process({ text: "[1,2,3]" });
+    n.assign({ text: "[1,2,3]" });
+    const result = await n.process();
     expect(result.output).toBe("[1,2,3]");
   });
 
   it("returns { output: text } for embedded JSON array", async () => {
     const n = new (ExtractorNode as any)();
     // The braces extraction will find { but inner content is not valid object
-    const result = await n.process({ text: "prefix [1,2,3] suffix" });
+    n.assign({ text: "prefix [1,2,3] suffix" });
+    const result = await n.process();
     expect(result.output).toBe("prefix [1,2,3] suffix");
   });
 
   it("handles embedded invalid JSON gracefully", async () => {
     const n = new (ExtractorNode as any)();
-    const result = await n.process({ text: "prefix {invalid json} suffix" });
+    n.assign({ text: "prefix {invalid json} suffix" });
+    const result = await n.process();
     expect(result.output).toBe("prefix {invalid json} suffix");
   });
 
   it("handles no braces at all", async () => {
     const n = new (ExtractorNode as any)();
-    const result = await n.process({ text: "plain text only" });
+    n.assign({ text: "plain text only" });
+    const result = await n.process();
     expect(result.output).toBe("plain text only");
   });
 
@@ -287,7 +308,8 @@ describe("ExtractorNode", () => {
     // the braces — which can't happen since {..} is always an object in JSON.
     // Line 78 is effectively dead code for the inner parse path.
     // However we can still test the case where there are braces but inner parse fails.
-    const result = await n.process({ text: "before {not: valid, json} after" });
+    n.assign({ text: "before {not: valid, json} after" });
+    const result = await n.process();
     expect(result.output).toBe("before {not: valid, json} after");
   });
 });
@@ -304,56 +326,62 @@ describe("ClassifierNode", () => {
 
   it("throws when fewer than two categories are provided", async () => {
     const n = new (ClassifierNode as any)();
-    await expect(n.process({ text: "hello", categories: [] })).rejects.toThrow(
+    n.assign({ text: "hello", categories: [] });
+    await expect(n.process()).rejects.toThrow(
       "At least 2 categories are required"
     );
   });
 
   it("classifies text to matching category by token overlap", async () => {
     const n = new (ClassifierNode as any)();
-    const result = await n.process({
+    n.assign({
       text: "I love programming in python",
       categories: ["sports", "programming", "cooking"],
     });
+    const result = await n.process();
     expect(result.output).toBe("programming");
     expect(result.category).toBe("programming");
   });
 
   it("returns first category when no tokens match", async () => {
     const n = new (ClassifierNode as any)();
-    const result = await n.process({
+    n.assign({
       text: "xyzzy",
       categories: ["alpha", "beta", "gamma"],
     });
+    const result = await n.process();
     expect(result.output).toBe("alpha");
   });
 
   it("handles non-array categories via getCategories", async () => {
     const n = new (ClassifierNode as any)();
-    await expect(
-      n.process({
+    n.assign({
         text: "test",
         categories: "not-an-array",
-      })
+      });
+    await expect(
+      n.process()
     ).rejects.toThrow("At least 2 categories are required");
   });
 
   it("filters empty strings from categories", async () => {
     const n = new (ClassifierNode as any)();
-    await expect(
-      n.process({
+    n.assign({
         text: "hello world",
         categories: ["", "  ", "hello"],
-      })
+      });
+    await expect(
+      n.process()
     ).rejects.toThrow("At least 2 categories are required");
   });
 
   it("handles multi-word categories", async () => {
     const n = new (ClassifierNode as any)();
-    const result = await n.process({
+    n.assign({
       text: "machine learning is great",
       categories: ["web development", "machine learning", "data science"],
     });
+    const result = await n.process();
     expect(result.output).toBe("machine learning");
   });
 
@@ -366,14 +394,12 @@ describe("ClassifierNode", () => {
     const mockContext = {
       getProvider: async () => mockProvider,
     };
-    const result = await n.process(
-      {
-        text: "help me",
-        categories: ["billing", "support"],
-        model: { provider: "test", id: "m1" },
-      },
-      mockContext as any
-    );
+    n.assign({
+      text: "help me",
+      categories: ["billing", "support"],
+      model: { provider: "test", id: "m1" },
+    });
+    const result = await n.process(mockContext as any);
     expect(result.category).toBe("support");
   });
 });
@@ -391,7 +417,8 @@ describe("AgentNode", () => {
 
   it("requires a model selection", async () => {
     const n = new (AgentNode as any)();
-    await expect(n.process({ prompt: "Hello" })).rejects.toThrow("Select a model");
+    n.assign({ prompt: "Hello" });
+    await expect(n.process()).rejects.toThrow("Select a model");
   });
 
   it("streams text chunks and final text from the provider", async () => {
@@ -402,13 +429,13 @@ describe("AgentNode", () => {
         yield { type: "chunk", content: "world", content_type: "text", done: true };
       },
     };
+    n.assign({
+      prompt: "Test prompt",
+      model: { provider: "openai", id: "gpt-4", name: "GPT-4" },
+      max_tokens: 512,
+    });
     const streamed: any[] = [];
     for await (const item of n.genProcess(
-      {
-        prompt: "Test prompt",
-        model: { provider: "openai", id: "gpt-4", name: "GPT-4" },
-        max_tokens: 512,
-      },
       { getProvider: async () => mockProvider } as any
     )) {
       streamed.push(item);
@@ -422,10 +449,6 @@ describe("AgentNode", () => {
       audio: null,
     });
     const result = await n.process(
-      {
-        prompt: "Test prompt",
-        model: { provider: "openai", id: "gpt-4", name: "GPT-4" },
-      },
       { getProvider: async () => mockProvider } as any
     );
     expect(result.text).toBe("Hello world");
@@ -450,22 +473,20 @@ describe("AgentNode", () => {
         next: null,
       }),
     };
-    await n.process(
-      {
-        system: "Be concise.",
-        prompt: "Hi",
-        image: { uri: "file://image.png" },
-        audio: { data: "YXVkaW8=" },
-        history: [
-          { role: "user", content: "history-user" },
-          { role: "assistant", content: "history-assistant" },
-          { role: "invalid_role", content: "skip-me" },
-        ],
-        thread_id: "thread-1",
-        model: { provider: "test", id: "m1" },
-      },
-      mockContext as any
-    );
+    n.assign({
+      system: "Be concise.",
+      prompt: "Hi",
+      image: { uri: "file://image.png" },
+      audio: { data: "YXVkaW8=" },
+      history: [
+        { role: "user", content: "history-user" },
+        { role: "assistant", content: "history-assistant" },
+        { role: "invalid_role", content: "skip-me" },
+      ],
+      thread_id: "thread-1",
+      model: { provider: "test", id: "m1" },
+    });
+    await n.process(mockContext as any);
     expect(capturedMessages[0]).toEqual({ role: "system", content: "Be concise." });
     expect(capturedMessages[1]).toEqual({ role: "user", content: "persisted-user", toolCalls: null, toolCallId: null, threadId: null });
     expect(capturedMessages[2].content[0].text).toBe("persisted-assistant");
@@ -491,14 +512,12 @@ describe("AgentNode", () => {
         created.push(req);
       },
     };
-    await n.process(
-      {
-        prompt: "persist me",
-        thread_id: "thread-2",
-        model: { provider: "test", id: "m1" },
-      },
-      mockContext as any
-    );
+    n.assign({
+      prompt: "persist me",
+      thread_id: "thread-2",
+      model: { provider: "test", id: "m1" },
+    });
+    await n.process(mockContext as any);
     expect(created).toHaveLength(2);
     expect(created[0].thread_id).toBe("thread-2");
     expect(created[0].role).toBe("user");
@@ -528,12 +547,12 @@ describe("AgentNode", () => {
         };
       },
     };
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "Listen",
+    });
     const streamed: any[] = [];
     for await (const item of n.genProcess(
-      {
-        model: { provider: "test", id: "m1" },
-        prompt: "Listen",
-      },
       { getProvider: async () => mockProvider } as any
     )) {
       streamed.push(item);
@@ -559,12 +578,12 @@ describe("AgentNode", () => {
         };
       },
     };
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "Hi",
+    });
     const streamed: any[] = [];
     for await (const item of n.genProcess(
-      {
-        model: { provider: "test", id: "m1" },
-        prompt: "Hi",
-      },
       { getProvider: async () => mockProvider } as any
     )) {
       streamed.push(item);
@@ -599,22 +618,18 @@ describe("AgentNode", () => {
         };
       },
     };
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "Return JSON",
+    });
     const streamed: any[] = [];
     for await (const item of n.genProcess(
-      {
-        model: { provider: "test", id: "m1" },
-        prompt: "Return JSON",
-      },
       { getProvider: async () => mockProvider } as any
     )) {
       streamed.push(item);
     }
     expect(streamed[streamed.length - 1]).toEqual({ answer: "ready", score: 7 });
     const result = await n.process(
-      {
-        model: { provider: "test", id: "m1" },
-        prompt: "Return JSON",
-      },
       { getProvider: async () => mockProvider } as any
     );
     expect(result).toEqual({ answer: "ready", score: 7 });
@@ -622,39 +637,36 @@ describe("AgentNode", () => {
 
   it("replays locally stored thread messages when model persistence is unavailable", async () => {
     const create = new (CreateThreadNode as any)();
-    const { thread_id } = await create.process({ thread_id: "thread_replay_case" });
+    create.assign({ thread_id: "thread_replay_case" });
+    const { thread_id } = await create.process();
     const n = new (AgentNode as any)();
-    await n.process(
-      {
-        prompt: "first",
-        thread_id,
-        model: { provider: "test", id: "m1" },
-      },
-      {
-        getProvider: async () => ({
-          async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
-            yield { type: "chunk", content: "first-reply", content_type: "text", done: true };
-          },
-        }),
-      } as any
-    );
+    n.assign({
+      prompt: "first",
+      thread_id,
+      model: { provider: "test", id: "m1" },
+    });
+    await n.process({
+      getProvider: async () => ({
+        async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
+          yield { type: "chunk", content: "first-reply", content_type: "text", done: true };
+        },
+      }),
+    } as any);
 
     const secondCalls: any[] = [];
-    await n.process(
-      {
-        prompt: "second",
-        thread_id,
-        model: { provider: "test", id: "m1" },
-      },
-      {
-        getProvider: async () => ({
-          async *generateMessages({ messages }: any): AsyncGenerator<Record<string, unknown>> {
-            secondCalls.push(messages);
-            yield { type: "chunk", content: "second-reply", content_type: "text", done: true };
-          },
-        }),
-      } as any
-    );
+    n.assign({
+      prompt: "second",
+      thread_id,
+      model: { provider: "test", id: "m1" },
+    });
+    await n.process({
+      getProvider: async () => ({
+        async *generateMessages({ messages }: any): AsyncGenerator<Record<string, unknown>> {
+          secondCalls.push(messages);
+          yield { type: "chunk", content: "second-reply", content_type: "text", done: true };
+        },
+      }),
+    } as any);
     const replayed = secondCalls[0];
     expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text === "first")).toBe(true);
     expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text === "first-reply")).toBe(true);
@@ -667,11 +679,11 @@ describe("AgentNode", () => {
         yield { type: "chunk", content: "", content_type: "text", done: true };
       },
     };
+    n.assign({
+      prompt: "Hi",
+      model: { provider: "test", id: "m1" },
+    });
     const result = await n.process(
-      {
-        prompt: "Hi",
-        model: { provider: "test", id: "m1" },
-      },
       { getProvider: async () => mockProvider } as any
     );
     expect(result.text).toBe("");
@@ -691,7 +703,8 @@ describe("ResearchAgentNode", () => {
 
   it("produces research notes from query", async () => {
     const n = new (ResearchAgentNode as any)();
-    const result = await n.process({ query: "What is TypeScript?" });
+    n.assign({ objective: "What is TypeScript?" });
+    const result = await n.process();
     expect(result.output).toContain("Question: What is TypeScript?");
     expect(result.output).toContain("Summary:");
     expect(result.output).toContain("Confidence: low");
@@ -702,13 +715,14 @@ describe("ResearchAgentNode", () => {
 
   it("falls back to prompt when query is empty", async () => {
     const n = new (ResearchAgentNode as any)();
-    const result = await n.process({ prompt: "Fallback prompt." });
+    n.assign({ objective: "Fallback prompt." });
+    const result = await n.process();
     expect(result.output).toContain("Question: Fallback prompt.");
   });
 
   it("handles empty inputs", async () => {
     const n = new (ResearchAgentNode as any)();
-    const result = await n.process({});
+    const result = await n.process();
     expect(result.output).toContain("Question:");
   });
 
@@ -721,11 +735,11 @@ describe("ResearchAgentNode", () => {
       }),
       async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
     };
+    n.assign({
+      objective: "What is TypeScript?",
+      model: { provider: "test", id: "m1" },
+    });
     const result = await n.process(
-      {
-        query: "What is TypeScript?",
-        model: { provider: "test", id: "m1" },
-      },
       { getProvider: async () => mockProvider } as any
     );
     expect(result.text).toContain("typed superset");
@@ -762,19 +776,17 @@ describe("StructuredOutputGeneratorNode", () => {
 
   it("generates defaults from schema with various types", async () => {
     const n = new (StructuredOutputGeneratorNode as any)();
-    const result = await n.process({
-      schema: {
-        properties: {
-          name: { type: "string" },
-          age: { type: "number" },
-          count: { type: "integer" },
-          active: { type: "boolean" },
-          tags: { type: "array" },
-          meta: { type: "object" },
-          other: {}, // no type specified
-        },
-      },
-    });
+    // _dynamic_outputs is used by buildSchemaFromDynamicOutputs to create the schema
+    n._dynamic_outputs = {
+      name: { type: "str" },
+      age: { type: "number" },
+      count: { type: "integer" },
+      active: { type: "boolean" },
+      tags: { type: "array" },
+      meta: { type: "object" },
+      other: {}, // no type specified, defaults to "str" -> "string"
+    };
+    const result = await n.process();
     expect(result.name).toBe("");
     expect(result.age).toBe(0);
     expect(result.count).toBe(0);
@@ -786,19 +798,21 @@ describe("StructuredOutputGeneratorNode", () => {
 
   it("generates schema defaults with no properties key", async () => {
     const n = new (StructuredOutputGeneratorNode as any)();
-    const result = await n.process({
-      schema: { type: "object" }, // no properties
-    });
-    // Empty object, no properties to iterate
-    expect(Object.keys(result)).toHaveLength(0);
+    // No _dynamic_outputs set, so schema is null; falls through to instructions/context fallback
+    // with empty defaults
+    n.assign({});
+    const result = await n.process();
+    // Falls through to { output: { instructions, context } }
+    expect(result.output).toEqual({ instructions: "", context: "" });
   });
 
   it("falls back to instructions/context when no schema", async () => {
     const n = new (StructuredOutputGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       instructions: "Generate a list",
       context: "user context",
     });
+    const result = await n.process();
     expect(result.output).toEqual({
       instructions: "Generate a list",
       context: "user context",
@@ -807,28 +821,31 @@ describe("StructuredOutputGeneratorNode", () => {
 
   it("falls back when schema is null", async () => {
     const n = new (StructuredOutputGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       schema: null,
       instructions: "test",
     });
+    const result = await n.process();
     expect(result.output).toEqual({ instructions: "test", context: "" });
   });
 
   it("falls back when schema is an array", async () => {
     const n = new (StructuredOutputGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       schema: [1, 2, 3],
       instructions: "test",
     });
+    const result = await n.process();
     expect(result.output).toEqual({ instructions: "test", context: "" });
   });
 
   it("handles numeric input for instructions via asText", async () => {
     const n = new (StructuredOutputGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       instructions: 42,
       context: true,
     });
+    const result = await n.process();
     expect(result.output).toEqual({
       instructions: "42",
       context: "true",
@@ -838,10 +855,12 @@ describe("StructuredOutputGeneratorNode", () => {
   it("handles null/undefined/object inputs via asText in generators", async () => {
     const n = new (StructuredOutputGeneratorNode as any)();
     // null triggers asText !value branch
-    const r1 = await n.process({ instructions: null, context: undefined });
+    n.assign({ instructions: null, context: undefined });
+    const r1 = await n.process();
     expect(r1.output).toEqual({ instructions: "", context: "" });
     // object triggers JSON.stringify branch
-    const r2 = await n.process({ instructions: { a: 1 }, context: [1, 2] });
+    n.assign({ instructions: { a: 1 }, context: [1, 2] });
+    const r2 = await n.process();
     expect(r2.output.instructions).toBe('{"a":1}');
     expect(r2.output.context).toBe("[1,2]");
   });
@@ -860,7 +879,8 @@ describe("DataGeneratorNode", () => {
 
   it("generates rows with default 5 count", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({ prompt: "generate data" });
+    n.assign({ prompt: "generate data" });
+    const result = await n.process();
     const rows = (result.output as any).rows;
     expect(rows).toHaveLength(5);
     // default column is "value"
@@ -869,16 +889,18 @@ describe("DataGeneratorNode", () => {
 
   it("parses count from prompt", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({ prompt: "generate 3 items" });
+    n.assign({ prompt: "generate 3 items" });
+    const result = await n.process();
     expect((result.output as any).rows).toHaveLength(3);
   });
 
   it("uses columns array with name objects", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       prompt: "2 records",
       columns: [{ name: "id" }, { name: "name" }, { name: "score" }],
     });
+    const result = await n.process();
     const rows = (result.output as any).rows;
     expect(rows).toHaveLength(2);
     expect(rows[0].id).toBe(1);
@@ -888,10 +910,11 @@ describe("DataGeneratorNode", () => {
 
   it("uses columns from nested object with columns key", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       prompt: "2 records",
       columns: { columns: ["id", "date", "active"] },
     });
+    const result = await n.process();
     const rows = (result.output as any).rows;
     expect(rows).toHaveLength(2);
     expect(rows[0].id).toBe(1);
@@ -901,10 +924,11 @@ describe("DataGeneratorNode", () => {
 
   it("handles price/amount column type", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       prompt: "2 items",
       columns: ["price", "amount"],
     });
+    const result = await n.process();
     const rows = (result.output as any).rows;
     expect(typeof rows[0].price).toBe("number");
     expect(typeof rows[0].amount).toBe("number");
@@ -912,10 +936,11 @@ describe("DataGeneratorNode", () => {
 
   it("handles is_ prefixed columns as booleans", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       prompt: "3 items",
       columns: ["is_on"],
     });
+    const result = await n.process();
     const rows = (result.output as any).rows;
     // "is_on" starts with "is_" and does not include "id"/"name"/"date"/"price"/"amount"/"score"/"active"
     expect(rows[0].is_on).toBe(true); // i=0, even
@@ -925,7 +950,8 @@ describe("DataGeneratorNode", () => {
 
   it("caps count at 200", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({ prompt: "generate 999 rows" });
+    n.assign({ prompt: "generate 999 rows" });
+    const result = await n.process();
     // parseRequestedCount caps at 200
     // But 999 has 3 digits, and regex matches \b(\d{1,3})\b
     const rows = (result.output as any).rows;
@@ -935,7 +961,8 @@ describe("DataGeneratorNode", () => {
   it("genProcess yields individual rows then final dataframe", async () => {
     const n = new (DataGeneratorNode as any)();
     const results: any[] = [];
-    for await (const chunk of n.genProcess({ prompt: "3 items" })) {
+    n.assign({ prompt: "3 items" });
+    for await (const chunk of n.genProcess()) {
       results.push(chunk);
     }
     // 3 row yields + 1 final dataframe yield
@@ -950,17 +977,19 @@ describe("DataGeneratorNode", () => {
 
   it("uses input_text as seed when no prompt", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({ input_text: "mydata" });
+    n.assign({ input_text: "mydata" });
+    const result = await n.process();
     const rows = (result.output as any).rows;
     expect(rows[0].value).toContain("mydata");
   });
 
   it("handles empty columns from parseColumns", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       prompt: "2 items",
       columns: [{ name: "" }, ""],
     });
+    const result = await n.process();
     const rows = (result.output as any).rows;
     // Empty names are filtered, defaults to ["value"]
     expect(rows[0]).toHaveProperty("value");
@@ -968,42 +997,39 @@ describe("DataGeneratorNode", () => {
 
   it("parseRequestedCount returns fallback for no digit in prompt", async () => {
     const n = new (DataGeneratorNode as any)();
-    const result = await n.process({ prompt: "some data please" });
+    n.assign({ prompt: "some data please" });
+    const result = await n.process();
     expect((result.output as any).rows).toHaveLength(5);
   });
 
   it("ensures minimum count of 1", async () => {
     const n = new (DataGeneratorNode as any)();
     // parseRequestedCount: Math.max(1, ...)
-    const result = await n.process({ prompt: "0 items" });
+    n.assign({ prompt: "0 items" });
+    const result = await n.process();
     // 0 matches but max(1, 0) = 1... actually it is clamped to min 1
     // Actually the regex matches "0", n=0, max(1,min(200,0))=max(1,0)=1
     expect((result.output as any).rows).toHaveLength(1);
   });
 
-  it("parses provider markdown table into records and dataframe", async () => {
+  it("parses provider CSV into records and dataframe", async () => {
     const n = new (DataGeneratorNode as any)();
     const mockContext = {
       runProviderPrediction: async () => ({
-        content: `| name | age |
-|------|-----|
-| Alice | 30 |
-| Bob | 25 |`,
+        content: `name,age\nAlice,30\nBob,25`,
       }),
       streamProviderPrediction: async function* () {},
     };
 
-    const result = await n.process(
-      {
-        prompt: "Generate people",
-        columns: [
-          { name: "name", data_type: "string" },
-          { name: "age", data_type: "int" },
-        ],
-        model: { provider: "mock", id: "gpt-4" },
-      },
-      mockContext as any
-    );
+    n.assign({
+      prompt: "Generate people",
+      columns: [
+        { name: "name", data_type: "string" },
+        { name: "age", data_type: "int" },
+      ],
+      model: { provider: "mock", id: "gpt-4" },
+    });
+    const result = await n.process(mockContext as any);
 
     expect((result.output as any).rows).toEqual([
       { name: "Alice", age: 30 },
@@ -1015,28 +1041,25 @@ describe("DataGeneratorNode", () => {
     ]);
   });
 
-  it("streams provider markdown table into row chunks and final dataframe", async () => {
+  it("streams provider CSV into row chunks and final dataframe", async () => {
     const n = new (DataGeneratorNode as any)();
     const mockContext = {
-      runProviderPrediction: async () => ({ content: "" }),
-      streamProviderPrediction: async function* () {
-        yield { type: "chunk", content: "| name | age |\n|------|-----|\n" };
-        yield { type: "chunk", content: "| Alice | 30 |\n| Bob | 25 |" };
-      },
+      runProviderPrediction: async () => ({
+        content: `name,age\nAlice,30\nBob,25`,
+      }),
+      streamProviderPrediction: async function* () {},
     };
 
+    n.assign({
+      prompt: "Generate people",
+      columns: [
+        { name: "name", data_type: "string" },
+        { name: "age", data_type: "int" },
+      ],
+      model: { provider: "mock", id: "gpt-4" },
+    });
     const results: any[] = [];
-    for await (const chunk of n.genProcess(
-      {
-        prompt: "Generate people",
-        columns: [
-          { name: "name", data_type: "string" },
-          { name: "age", data_type: "int" },
-        ],
-        model: { provider: "mock", id: "gpt-4" },
-      },
-      mockContext as any
-    )) {
+    for await (const chunk of n.genProcess(mockContext as any)) {
       results.push(chunk);
     }
 
@@ -1064,27 +1087,31 @@ describe("ListGeneratorNode", () => {
 
   it("generates a list with default count 5", async () => {
     const n = new (ListGeneratorNode as any)();
-    const result = await n.process({ prompt: "list things" });
+    n.assign({ prompt: "list things" });
+    const result = await n.process();
     expect(result.output).toHaveLength(5);
     expect(result.output[0]).toContain("_1");
   });
 
   it("parses count from prompt", async () => {
     const n = new (ListGeneratorNode as any)();
-    const result = await n.process({ prompt: "give me 7 colors" });
+    n.assign({ prompt: "give me 7 colors" });
+    const result = await n.process();
     expect(result.output).toHaveLength(7);
   });
 
   it("uses input_text as seed", async () => {
     const n = new (ListGeneratorNode as any)();
-    const result = await n.process({ input_text: "fruit" });
+    n.assign({ input_text: "fruit" });
+    const result = await n.process();
     expect(result.output[0]).toBe("fruit_1");
   });
 
   it("genProcess yields individual items", async () => {
     const n = new (ListGeneratorNode as any)();
     const results: any[] = [];
-    for await (const chunk of n.genProcess({ prompt: "3 items" })) {
+    n.assign({ prompt: "3 items" });
+    for await (const chunk of n.genProcess()) {
       results.push(chunk);
     }
     expect(results).toHaveLength(3);
@@ -1097,7 +1124,7 @@ describe("ListGeneratorNode", () => {
     // Override process to return non-array
     n.process = async () => ({ output: "not-array" });
     const results: any[] = [];
-    for await (const chunk of n.genProcess({})) {
+    for await (const chunk of n.genProcess()) {
       results.push(chunk);
     }
     expect(results).toHaveLength(0);
@@ -1114,13 +1141,11 @@ describe("ListGeneratorNode", () => {
       streamProviderPrediction: async function* () {},
     };
 
-    const result = await n.process(
-      {
-        prompt: "Generate items",
-        model: { provider: "mock", id: "gpt-4" },
-      },
-      mockContext as any
-    );
+    n.assign({
+      prompt: "Generate items",
+      model: { provider: "mock", id: "gpt-4" },
+    });
+    const result = await n.process(mockContext as any);
 
     expect(result.output).toEqual(["First item", "Second item", "Third item"]);
   });
@@ -1139,14 +1164,12 @@ describe("ListGeneratorNode", () => {
       },
     };
 
+    n.assign({
+      prompt: "Generate items",
+      model: { provider: "mock", id: "gpt-4" },
+    });
     const results: any[] = [];
-    for await (const chunk of n.genProcess(
-      {
-        prompt: "Generate items",
-        model: { provider: "mock", id: "gpt-4" },
-      },
-      mockContext as any
-    )) {
+    for await (const chunk of n.genProcess(mockContext as any)) {
       results.push(chunk);
     }
 
@@ -1166,26 +1189,19 @@ describe("ListGeneratorNode", () => {
       },
     };
 
+    n.assign({
+      prompt: "Generate items",
+      model: { provider: "mock", id: "gpt-4" },
+    });
+
     await expect(
-      n.process(
-        {
-          prompt: "Generate items",
-          model: { provider: "mock", id: "gpt-4" },
-        },
-        mockContext as any
-      )
+      n.process(mockContext as any)
     ).rejects.toThrow("<LIST_ITEM> tags");
 
     await expect(
       (async () => {
         const chunks: any[] = [];
-        for await (const chunk of n.genProcess(
-          {
-            prompt: "Generate items",
-            model: { provider: "mock", id: "gpt-4" },
-          },
-          mockContext as any
-        )) {
+        for await (const chunk of n.genProcess(mockContext as any)) {
           chunks.push(chunk);
         }
         return chunks;
@@ -1206,7 +1222,7 @@ describe("ChartGeneratorNode", () => {
 
   it("generates chart config from data rows", async () => {
     const n = new (ChartGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       prompt: "Sales Chart",
       data: {
         rows: [
@@ -1215,48 +1231,54 @@ describe("ChartGeneratorNode", () => {
         ],
       },
     });
+    const result = await n.process();
     const output = result.output as any;
-    expect(output.data[0].type).toBe("bar");
-    expect(output.data[0].x).toEqual(["Jan", "Feb"]);
-    expect(output.data[0].y).toEqual([100, 200]);
-    expect(output.data[0].name).toBe("Sales Chart");
-    expect(output.layout.title).toBe("Sales Chart");
+    // output.data is { type: "chart_data", series: [...] }
+    expect(output.data.series[0].type).toBe("bar");
+    expect(output.data.series[0].x_column).toBe("month");
+    expect(output.data.series[0].y_column).toBe("revenue");
+    expect(output.data.series[0].label).toBe("Sales Chart");
+    expect(output.title).toBe("Sales Chart");
   });
 
   it("uses default series name when no prompt", async () => {
     const n = new (ChartGeneratorNode as any)();
-    const result = await n.process({
+    n.assign({
       data: { rows: [{ a: 1 }] },
     });
+    const result = await n.process();
     const output = result.output as any;
-    expect(output.data[0].name).toBe("series");
-    expect(output.layout.title).toBe("Generated Chart");
+    expect(output.data.series[0].label).toBe("series");
+    expect(output.title).toBe("Generated Chart");
   });
 
   it("handles empty rows", async () => {
     const n = new (ChartGeneratorNode as any)();
-    const result = await n.process({ prompt: "Empty", data: { rows: [] } });
+    n.assign({ prompt: "Empty", data: { rows: [] } });
+    const result = await n.process();
     const output = result.output as any;
-    expect(output.data[0].x).toEqual([]);
-    expect(output.data[0].y).toEqual([]);
+    expect(output.data.series[0].x_column).toBe("x");
+    expect(output.data.series[0].y_column).toBe("x");
   });
 
   it("handles data without rows key", async () => {
     const n = new (ChartGeneratorNode as any)();
-    const result = await n.process({ data: {} });
+    n.assign({ data: {} });
+    const result = await n.process();
     const output = result.output as any;
-    expect(output.data[0].x).toEqual([]);
+    expect(output.data.series[0].x_column).toBe("x");
   });
 
   it("uses index as fallback when key missing in row", async () => {
     const n = new (ChartGeneratorNode as any)();
     // Only one key so xKey and yKey are the same
-    const result = await n.process({
+    n.assign({
       data: { rows: [{ only: 10 }, { only: 20 }] },
     });
+    const result = await n.process();
     const output = result.output as any;
-    expect(output.data[0].x).toEqual([10, 20]);
-    expect(output.data[0].y).toEqual([10, 20]);
+    expect(output.data.series[0].x_column).toBe("only");
+    expect(output.data.series[0].y_column).toBe("only");
   });
 });
 
@@ -1272,7 +1294,8 @@ describe("SVGGeneratorNode", () => {
 
   it("generates SVG with prompt text", async () => {
     const n = new (SVGGeneratorNode as any)();
-    const result = await n.process({ prompt: "Hello World" });
+    n.assign({ prompt: "Hello World" });
+    const result = await n.process();
     const svg = (result.output as any[])[0].content;
     expect(svg).toContain("<svg");
     expect(svg).toContain("Hello World");
@@ -1282,7 +1305,11 @@ describe("SVGGeneratorNode", () => {
 
   it("uses custom dimensions", async () => {
     const n = new (SVGGeneratorNode as any)();
-    const result = await n.process({ prompt: "Test", width: 100, height: 200 });
+    n.assign({ prompt: "Test" });
+    // width and height are not declared props, set them directly
+    n.width = 100;
+    n.height = 200;
+    const result = await n.process();
     const svg = (result.output as any[])[0].content;
     expect(svg).toContain('width="100"');
     expect(svg).toContain('height="200"');
@@ -1290,7 +1317,8 @@ describe("SVGGeneratorNode", () => {
 
   it("escapes HTML entities in prompt", async () => {
     const n = new (SVGGeneratorNode as any)();
-    const result = await n.process({ prompt: "A & B <C>" });
+    n.assign({ prompt: "A & B <C>" });
+    const result = await n.process();
     const svg = (result.output as any[])[0].content;
     expect(svg).toContain("A &amp; B &lt;C&gt;");
     expect(svg).not.toContain("A & B <C>");
@@ -1298,7 +1326,7 @@ describe("SVGGeneratorNode", () => {
 
   it("uses 'SVG' as default text when no prompt", async () => {
     const n = new (SVGGeneratorNode as any)();
-    const result = await n.process({});
+    const result = await n.process();
     const svg = (result.output as any[])[0].content;
     expect(svg).toContain(">SVG</text>");
   });

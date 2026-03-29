@@ -4,6 +4,23 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import { OpenAIWebSearchTool, OpenAIImageGenerationTool, OpenAITextToSpeechTool } from "../src/tools/openai-tools.js";
 
+// Mock OpenAI to avoid real network calls
+const mockCreate = vi.fn();
+const mockImagesGenerate = vi.fn();
+const mockSpeechCreate = vi.fn();
+
+vi.mock("openai", () => {
+  return {
+    OpenAI: function () {
+      return {
+        chat: { completions: { create: mockCreate } },
+        images: { generate: mockImagesGenerate },
+        audio: { speech: { create: mockSpeechCreate } },
+      };
+    },
+  };
+});
+
 const ctx = {} as any;
 
 // ---------------------------------------------------------------------------
@@ -60,6 +77,7 @@ describe("OpenAIWebSearchTool", () => {
 
   it("returns error shape when API call fails with fake key", async () => {
     setApiKey("fake");
+    mockCreate.mockRejectedValueOnce(new Error("Invalid API key"));
     const result = await tool.process(ctx, { query: "test query" }) as any;
     // With a fake key the openai SDK will throw, caught and returned as error
     expect(result).toHaveProperty("error");
@@ -120,6 +138,7 @@ describe("OpenAIImageGenerationTool", () => {
 
   it("returns error shape when API call fails with fake key", async () => {
     setApiKey("fake");
+    mockImagesGenerate.mockRejectedValueOnce(new Error("Invalid API key"));
     const result = await tool.process(ctx, { prompt: "a cute cat", output_file: "cat.png" }) as any;
     expect(result).toHaveProperty("error");
     expect(typeof result.error).toBe("string");
@@ -190,6 +209,7 @@ describe("OpenAITextToSpeechTool", () => {
 
   it("returns error shape when API call fails with fake key", async () => {
     setApiKey("fake");
+    mockSpeechCreate.mockRejectedValueOnce(new Error("Invalid API key"));
     const result = await tool.process(ctx, {
       input: "hello world",
       voice: "nova",

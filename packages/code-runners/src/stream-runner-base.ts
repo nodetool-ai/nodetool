@@ -80,6 +80,7 @@ export class StreamRunnerBase {
   private _stopped = false;
   private _activeContainerId: string | null = null;
   private _activeChild: ChildProcess | null = null;
+  private _resolveInterleaveWait: (() => void) | null = null;
 
   constructor(options?: StreamRunnerOptions) {
     this.image = options?.image ?? "bash:5.2";
@@ -132,6 +133,13 @@ export class StreamRunnerBase {
    */
   stop(): void {
     this._stopped = true;
+
+    // Wake up the interleave loop so it can exit
+    if (this._resolveInterleaveWait) {
+      const r = this._resolveInterleaveWait;
+      this._resolveInterleaveWait = null;
+      r();
+    }
 
     // Kill local subprocess if active
     const child = this._activeChild;
@@ -638,13 +646,17 @@ export class StreamRunnerBase {
       // Create async line iterators for stdout and stderr
       yield* this._interleaveStreams(child);
 
-      // Wait for exit
+      // Wait for exit — listen for both "exit" and "close" since on some
+      // platforms "close" may be delayed when child processes keep stdio open.
       const exitCode = await new Promise<number>((resolve) => {
         if (child.exitCode !== null) {
           resolve(child.exitCode);
           return;
         }
-        child.on("close", (code, signal) => {
+        let resolved = false;
+        const onDone = (code: number | null, signal: string | NodeJS.Signals | null): void => {
+          if (resolved) return;
+          resolved = true;
           if (signal) {
             // Killed by a signal (e.g. SIGTERM from timeout or stop()).
             // Use 128 + signal number as a conventional non-zero exit code.
@@ -652,7 +664,9 @@ export class StreamRunnerBase {
           } else {
             resolve(code ?? 0);
           }
-        });
+        };
+        child.on("exit", onDone);
+        child.on("close", onDone);
       });
 
       if (exitCode !== 0) {
@@ -735,10 +749,22 @@ export class StreamRunnerBase {
     setupStream(child.stderr, "stderr");
 
     while (endCount < totalStreams) {
+      // If stopped, break out immediately
+      if (this._stopped) {
+        break;
+      }
+
       if (queue.length === 0) {
         await new Promise<void>((resolve) => {
           resolveWait = resolve;
+          this._resolveInterleaveWait = resolve;
         });
+        this._resolveInterleaveWait = null;
+      }
+
+      // Check again after waking up
+      if (this._stopped) {
+        break;
       }
 
       while (queue.length > 0) {

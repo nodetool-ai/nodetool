@@ -100,46 +100,46 @@ describe("native lib.pandoc and lib.ytdlp", () => {
 
   it("converts text and file via pandoc cli", async () => {
     await withMockBins(async () => {
-      const textOut = await new ConvertTextPandocLibNode().process({
+      const textOut = await new ConvertTextPandocLibNode({
         content: "# hello",
         input_format: "markdown",
         output_format: "plain",
-      });
+      }).process();
       expect(textOut.output).toBe("converted(markdown->plain):# hello");
 
       const inputFile = join(await mkdtemp(join(tmpdir(), "nt-pandoc-in-")), "in.md");
       await writeFile(inputFile, "sample file", "utf8");
-      const fileOut = await new ConvertFilePandocLibNode().process({
+      const fileOut = await new ConvertFilePandocLibNode({
         input_path: { path: inputFile },
         input_format: "markdown",
         output_format: "plain",
-      });
+      }).process();
       expect(fileOut.output).toBe("converted(markdown->plain):sample file");
     });
   });
 
   it("handles ytdlp metadata and download modes", async () => {
     await withMockBins(async () => {
-      const metadata = await new YtDlpDownloadLibNode().process({
+      const metadata = await new YtDlpDownloadLibNode({
         url: "https://example.com/video",
         mode: "metadata",
-      });
+      }).process();
       expect(metadata.metadata).toMatchObject({ id: "mockid", title: "Mock Title" });
 
-      const video = await new YtDlpDownloadLibNode().process({
+      const video = await new YtDlpDownloadLibNode({
         url: "https://example.com/video",
         mode: "video",
         subtitles: true,
         thumbnail: true,
-      });
+      }).process();
       expect(typeof (video.video as { data?: string }).data).toBe("string");
       expect(video.subtitles).toBe("sub text");
       expect(video.thumbnail).not.toBeNull();
 
-      const audio = await new YtDlpDownloadLibNode().process({
+      const audio = await new YtDlpDownloadLibNode({
         url: "https://example.com/video",
         mode: "audio",
-      });
+      }).process();
       expect(typeof (audio.audio as { data?: string }).data).toBe("string");
     });
   });
