@@ -46,15 +46,35 @@ jobs:
           cache-dependency-path: electron/package-lock.json
           check-latest: true
 
+      - name: Set up Python (for node-gyp)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install Electron dependencies
         run: |
           cd electron
           npm ci
 
-      - name: Install mobile dependencies
+      - name: Build @nodetool/protocol
         run: |
-          cd mobile
-          npm ci
+          cd packages/protocol
+          npm install
+          npm run build
+
+      - name: Link @nodetool/protocol into electron
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p electron/node_modules/@nodetool
+          ln -s "$(pwd)/packages/protocol" electron/node_modules/@nodetool/protocol
+
+      - name: Link @nodetool/protocol into electron (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force electron/node_modules/@nodetool -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path electron/node_modules/@nodetool
+          New-Item -ItemType Junction -Path electron/node_modules/@nodetool/protocol -Target (Resolve-Path packages/protocol)
 
       - name: Install Playwright browsers
         run: |
