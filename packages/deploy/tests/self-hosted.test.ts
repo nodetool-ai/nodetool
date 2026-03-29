@@ -22,12 +22,12 @@ vi.mock("../src/ssh.js", () => ({
       this.stderr = stderr;
     }
   },
-  SSHConnection: vi.fn().mockImplementation(() => ({
-    execute: vi.fn().mockResolvedValue([0, "", ""]),
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    connect: vi.fn().mockResolvedValue(undefined),
-    disconnect: vi.fn(),
-  })),
+  SSHConnection: class SSHConnection {
+    execute = vi.fn().mockResolvedValue([0, "", ""]);
+    mkdir = vi.fn().mockResolvedValue(undefined);
+    connect = vi.fn().mockResolvedValue(undefined);
+    disconnect = vi.fn();
+  },
 }));
 
 vi.mock("../src/docker.js", () => ({
@@ -46,21 +46,27 @@ vi.mock("../src/docker-run.js", () => {
     generateHash: vi.fn().mockReturnValue("abc123hash"),
     getContainerName: vi.fn().mockReturnValue("nodetool-test"),
   };
+  const DockerRunGenerator = class DockerRunGenerator {
+    generateCommand = mockGenerator.generateCommand;
+    generateHash = mockGenerator.generateHash;
+    getContainerName = mockGenerator.getContainerName;
+  };
   return {
-    DockerRunGenerator: vi.fn().mockImplementation(() => mockGenerator),
+    DockerRunGenerator,
     INTERNAL_API_PORT: 7777,
     APP_ENV_PORT: 8000,
     __mockGenerator: mockGenerator,
   };
 });
 
-vi.mock("../src/state.js", () => ({
-  StateManager: vi.fn().mockImplementation(() => ({
-    readState: vi.fn().mockResolvedValue(null),
-    writeState: vi.fn(),
-    updateDeploymentStatus: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+vi.mock("../src/state.js", () => {
+  const StateManager = class StateManager {
+    readState = vi.fn().mockResolvedValue(null);
+    writeState = vi.fn();
+    updateDeploymentStatus = vi.fn().mockResolvedValue(undefined);
+  };
+  return { StateManager };
+});
 
 vi.mock("../src/deployment-config.js", () => ({
   DeploymentStatus: {

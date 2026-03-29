@@ -36,9 +36,9 @@ vi.mock("@nodetool/vectorstore", () => {
   return {
     getVecStore: vi.fn().mockResolvedValue(mockStore),
     getCollection: vi.fn().mockResolvedValue(mockCollection),
-    OllamaEmbeddingFunction: vi.fn().mockImplementation(() => ({
-      generate: ollamaGenerateMock,
-    })),
+    OllamaEmbeddingFunction: vi.fn().mockImplementation(function () {
+      this.generate = ollamaGenerateMock;
+    }),
   };
 });
 

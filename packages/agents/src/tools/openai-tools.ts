@@ -9,10 +9,9 @@ import * as path from "node:path";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { Tool } from "./base-tool.js";
 
-function getOpenAIClient() {
+async function getOpenAIClient() {
   // Dynamic import to avoid hard dependency
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { OpenAI } = require("openai");
+  const { OpenAI } = await import("openai");
   const apiKey = process.env["OPENAI_API_KEY"];
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
   return new OpenAI({ apiKey });
@@ -42,7 +41,7 @@ export class OpenAIWebSearchTool extends Tool {
     }
 
     try {
-      const client = getOpenAIClient();
+      const client = await getOpenAIClient();
       const completion = await client.chat.completions.create({
         model: "gpt-4o-search-preview",
         web_search_options: {},
@@ -95,7 +94,7 @@ export class OpenAIImageGenerationTool extends Tool {
     if (typeof outputFile !== "string" || !outputFile) return { error: "Output file is required" };
 
     try {
-      const client = getOpenAIClient();
+      const client = await getOpenAIClient();
       const response = await client.images.generate({
         model: "gpt-image-1",
         prompt,
@@ -167,7 +166,7 @@ export class OpenAITextToSpeechTool extends Tool {
     if (textInput.length > 4096) return { error: "Input text exceeds maximum length of 4096 characters" };
 
     try {
-      const client = getOpenAIClient();
+      const client = await getOpenAIClient();
       const response = await client.audio.speech.create({
         model: "tts-1",
         voice,
