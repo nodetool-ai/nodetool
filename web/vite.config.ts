@@ -1,4 +1,4 @@
-import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
+import { defineConfig, loadEnv, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
@@ -9,13 +9,16 @@ const configDir = dirname(fileURLToPath(import.meta.url));
 const rootNodeModules = resolve(configDir, "../node_modules");
 
 export default defineConfig(async ({ mode }) => {
+  // Load all env vars (including non-VITE_ prefixed ones) for server-side config
+  const env = loadEnv(mode, configDir, "");
   const browserslistToEsbuild = (await import("browserslist-to-esbuild"))
     .default;
   const isDebug = mode === "debug";
 
+  const apiTarget = env.PROXY_API_TARGET || "http://localhost:7777";
   const proxyConfig: Record<string, ProxyOptions> = {
     "/api": {
-      target: "http://localhost:7777",
+      target: apiTarget,
       changeOrigin: true,
       secure: false
     },
@@ -27,12 +30,12 @@ export default defineConfig(async ({ mode }) => {
       rewrite: (path) => path.replace(/^\/comfy-api/, "/api")
     },
     "/ws": {
-      target: "http://localhost:7777",
+      target: apiTarget,
       ws: true,
       changeOrigin: true
     },
     "/storage": {
-      target: "http://localhost:7777",
+      target: apiTarget,
       changeOrigin: true,
       secure: false,
       rewrite: (path) => path.replace(/^\/storage/, "/api/storage")
