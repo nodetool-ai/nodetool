@@ -14,6 +14,7 @@ import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { Dialog } from "../ui_primitives";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
 
@@ -48,7 +49,7 @@ const styles = (theme: Theme, gap: number) =>
       aspectRatio: "1 / 1",
       borderRadius: 6,
       overflow: "hidden",
-      background: theme.vars.palette.background.default,
+      ...alphaSurfaceBg,
       border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
       transition: "transform 0.08s ease-out, box-shadow 0.08s ease-out",
@@ -62,8 +63,7 @@ const styles = (theme: Theme, gap: number) =>
       width: "100%",
       height: "100%",
       objectFit: "cover" as const,
-      display: "block",
-      backgroundColor: theme.vars.palette.grey[900]
+      display: "block"
     },
     ".kind-badge": {
       position: "absolute",
@@ -463,6 +463,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                       className="tile-action-btn"
                       size="small"
                       onClick={(e) => handleDownloadImage(idx, e)}
+                      aria-label={`Download image ${idx + 1}`}
                     >
                       <DownloadIcon />
                     </IconButton>
@@ -472,6 +473,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                       className="tile-action-btn"
                       size="small"
                       onClick={(e) => handleOpenInViewer(idx, e)}
+                      aria-label={`Open image ${idx + 1} in viewer`}
                     >
                       <OpenInNewIcon />
                     </IconButton>
@@ -510,7 +512,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             </span>
           </Tooltip>
           <Tooltip title="Clear selection">
-            <IconButton size="small" onClick={clearSelection} sx={{ color: theme.vars.palette.common.white }}>
+            <IconButton size="small" onClick={clearSelection} sx={{ color: theme.vars.palette.common.white }} aria-label="Clear image selection">
               <ClearIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -540,6 +542,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 color: theme.vars.palette.common.white,
                 "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }
               }}
+              aria-label="Close image comparison dialog"
             >
               <ClearIcon />
             </IconButton>

@@ -1,0 +1,43 @@
+{
+  "modelId": "bytedance/dreamactor-m2.0",
+  "owner": "bytedance",
+  "name": "dreamactor-m2.0",
+  "version": "b23bf8e6d5f31dd67ad219fac057fd43d3ac38fc58343025ab557be74a9450ca",
+  "description": "Animate any character, humans, cartoons, animals, even non-humans, from a single image + driving video",
+  "inputSchema": {
+    "properties": {
+      "cut_first_second": {
+        "default": true,
+        "description": "Whether to crop the first second of the output video (removes the 1-second transition at the beginning).",
+        "title": "Cut First Second",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "image": {
+        "description": "Input image containing a human subject. Supported formats: JPEG, JPG, PNG. Max size: 4.7 MB. Resolution: 480x480 to 1920x1080.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "video": {
+        "description": "Template video whose motion, facial expressions, and lip movements will be applied to the image subject. Supported formats: MP4, MOV, WebM. Max duration: 30 seconds. Resolution: 200x200 to 2048x1440.",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image",
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

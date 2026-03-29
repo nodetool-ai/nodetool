@@ -10,7 +10,7 @@ const EdgeGradientDefinitions: React.FC<EdgeGradientDefinitionsProps> = memo(({
   dataTypes,
   activeGradientKeys
 }) => {
-  const gradients: JSX.Element[] = [];
+  const gradients: React.JSX.Element[] = [];
 
   activeGradientKeys.forEach((key) => {
     // key is like "gradient-slug1-slug2"

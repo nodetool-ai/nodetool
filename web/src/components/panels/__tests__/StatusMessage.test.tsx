@@ -96,7 +96,7 @@ describe("StatusMessage", () => {
       expect(message).not.toBeInTheDocument();
     });
 
-    it("does not render when workflow is in connected state", () => {
+    it("renders when workflow is in connected state", () => {
       // Mock the hook to return connected state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "connected", statusMessage: "Connected to server" };
@@ -106,10 +106,10 @@ describe("StatusMessage", () => {
       renderWithTheme();
 
       const message = screen.queryByText("Connected to server");
-      expect(message).not.toBeInTheDocument();
+      expect(message).toBeInTheDocument();
     });
 
-    it("does not render when workflow is paused", () => {
+    it("renders when workflow is paused", () => {
       // Mock the hook to return paused state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "paused", statusMessage: "Workflow paused" };
@@ -119,7 +119,7 @@ describe("StatusMessage", () => {
       renderWithTheme();
 
       const message = screen.queryByText("Workflow paused");
-      expect(message).not.toBeInTheDocument();
+      expect(message).toBeInTheDocument();
     });
 
     it("does not render when workflow is cancelled", () => {

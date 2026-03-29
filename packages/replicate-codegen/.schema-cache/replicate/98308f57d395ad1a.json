@@ -1,0 +1,75 @@
+{
+  "modelId": "google/imagen-4",
+  "owner": "google",
+  "name": "imagen-4",
+  "version": "19335492dbe879d4b5983bff2149f597db8314ccc7fe374e6313af7c2b52792f",
+  "description": "Google's Imagen 4 flagship model",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "3:4",
+          "4:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "image_size": {
+        "default": "1K",
+        "description": "Resolution of the generated image",
+        "enum": [
+          "1K",
+          "2K"
+        ],
+        "title": "image_size",
+        "type": "string",
+        "x-order": 2
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output image",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 4
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "safety_filter_level": {
+        "default": "block_only_high",
+        "description": "block_low_and_above is strictest, block_medium_and_above blocks some prompts, block_only_high is most permissive but some prompts will still be blocked",
+        "enum": [
+          "block_low_and_above",
+          "block_medium_and_above",
+          "block_only_high"
+        ],
+        "title": "safety_filter_level",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

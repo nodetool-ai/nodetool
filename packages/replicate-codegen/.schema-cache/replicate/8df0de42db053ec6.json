@@ -1,0 +1,54 @@
+{
+  "modelId": "kwaivgi/kling-avatar-v2",
+  "owner": "kwaivgi",
+  "name": "kling-avatar-v2",
+  "version": "af77ed5d1753d98aaabbbfd7d0147bf073c1b7c25a0bb739b82da94ac2716a12",
+  "description": "Create avatar videos with realistic humans, animals, cartoons, or stylized characters",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Audio file for avatar. Supports .mp3/.wav/.m4a/.aac, max 5MB.",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "image": {
+        "description": "Avatar reference image. Supports .jpg/.jpeg/.png, max 10MB, dimensions >= 300px, aspect ratio 1:2.5 to 2.5:1.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "mode": {
+        "default": "std",
+        "description": "Video generation mode.",
+        "enum": [
+          "std",
+          "pro"
+        ],
+        "title": "mode",
+        "type": "string",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Positive text prompt to define avatar actions, emotions, and camera movements.",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

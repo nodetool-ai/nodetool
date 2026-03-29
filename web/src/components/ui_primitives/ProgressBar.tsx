@@ -68,7 +68,15 @@ export const ProgressBar: React.FC<ProgressBarProps> = memo(({
   const displayValue = formatValue ? formatValue(value) : `${Math.round(value)}%`;
 
   return (
-    <Box css={styles(theme)} className={`progress-bar-container ${className || ""}`}>
+    <Box
+      css={styles(theme)}
+      className={`progress-bar-container ${className || ""}`}
+      role="progressbar"
+      aria-label={label || "Progress"}
+      aria-valuenow={progressVariant === "determinate" || progressVariant === "buffer" ? Math.round(value) : undefined}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       {(label || showValue) && (
         <Box className="progress-header">
           {label && (

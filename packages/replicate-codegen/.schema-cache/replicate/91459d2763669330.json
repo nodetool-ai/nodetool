@@ -1,0 +1,86 @@
+{
+  "modelId": "easel/advanced-face-swap",
+  "owner": "easel",
+  "name": "advanced-face-swap",
+  "version": "602d8c526aca9e5081f0515649ff8998e058cf7e6b9ff32717d25327f18c5145",
+  "description": "Face swap one or two people into a target image",
+  "inputSchema": {
+    "properties": {
+      "detailer": {
+        "default": false,
+        "description": "(Beta) Apply detailer to the image. Detailer will improve certain image details, but slightly increase generation time.",
+        "title": "Detailer",
+        "type": "boolean",
+        "x-order": 7
+      },
+      "hair_source": {
+        "default": "user",
+        "description": "Choose whose hairstyle to preserve: 'user' preserves hairstyle from face image, 'target' preserves from target image",
+        "enum": [
+          "user",
+          "target"
+        ],
+        "title": "hair_source",
+        "type": "string",
+        "x-order": 5
+      },
+      "swap_image": {
+        "description": "The face image to swap from",
+        "format": "uri",
+        "title": "Swap Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "swap_image_b": {
+        "description": "Optional second face image to swap from",
+        "format": "uri",
+        "title": "Swap Image B",
+        "type": "string",
+        "x-order": 2
+      },
+      "target_image": {
+        "description": "The image to swap onto",
+        "format": "uri",
+        "title": "Target Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "upscale": {
+        "default": true,
+        "description": "Apply 2x upscale and boost quality. Upscaling will refine the image and make the subjects brighter. Default value: true",
+        "title": "Upscale",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "user_b_gender": {
+        "default": "a woman",
+        "description": "Optional description of second user's gender for multi-user swaps",
+        "enum": [
+          "a man",
+          "a woman"
+        ],
+        "title": "user_b_gender",
+        "type": "string",
+        "x-order": 4
+      },
+      "user_gender": {
+        "default": "a woman",
+        "description": "Optional description of user gender ('a man', 'a woman'), used for multi-user swaps",
+        "enum": [
+          "a man",
+          "a woman"
+        ],
+        "title": "user_gender",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

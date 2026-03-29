@@ -1,0 +1,79 @@
+{
+  "modelId": "openai/sora-2-pro",
+  "owner": "openai",
+  "name": "sora-2-pro",
+  "version": "ccf1a58e3ec72e86d01ab19ef240009409f26a9a0470cc246a1728e54b0a6b8f",
+  "description": "OpenAI's Most advanced synced-audio video generation",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "portrait",
+        "description": "Aspect ratio of the video. Portrait is 720x1280, landscape is 1280x720",
+        "enum": [
+          "portrait",
+          "landscape"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "input_reference": {
+        "description": "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Input Reference",
+        "type": "string",
+        "x-order": 2
+      },
+      "openai_api_key": {
+        "description": "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI.",
+        "format": "password",
+        "nullable": true,
+        "title": "Openai Api Key",
+        "type": "string",
+        "writeOnly": true,
+        "x-cog-secret": true,
+        "x-order": 0
+      },
+      "prompt": {
+        "description": "A text description of the video to generate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "resolution": {
+        "default": "standard",
+        "description": "Resolution quality. Standard is 720p, high is 1024p",
+        "enum": [
+          "standard",
+          "high"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 5
+      },
+      "seconds": {
+        "default": 4,
+        "description": "Duration of the video in seconds",
+        "enum": [
+          4,
+          8,
+          12
+        ],
+        "title": "seconds",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

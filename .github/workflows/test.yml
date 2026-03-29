@@ -7,12 +7,20 @@ on:
     paths:
       - "web/**"
       - "electron/**"
+      - "packages/**"
+      - "mobile/**"
+      - "package.json"
+      - ".github/workflows/test.yml"
   pull_request:
     branches:
       - main
     paths:
       - "web/**"
       - "electron/**"
+      - "packages/**"
+      - "mobile/**"
+      - "package.json"
+      - ".github/workflows/test.yml"
 
 jobs:
   web:
@@ -35,6 +43,17 @@ jobs:
           cd web
           npm ci
 
+      - name: Build @nodetool/protocol
+        run: |
+          cd packages/protocol
+          npm install
+          npm run build
+
+      - name: Link @nodetool/protocol into web
+        run: |
+          mkdir -p web/node_modules/@nodetool
+          ln -s "$(pwd)/packages/protocol" web/node_modules/@nodetool/protocol
+
       - name: Run TypeScript type check
         run: |
           cd web
@@ -49,6 +68,33 @@ jobs:
         run: |
           cd web
           npm test
+
+  packages:
+    name: Packages Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install all workspace dependencies
+        run: npm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Rebuild native modules
+        run: npm rebuild better-sqlite3
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Run package tests
+        run: npm run test:packages
 
   electron:
     name: Electron Test

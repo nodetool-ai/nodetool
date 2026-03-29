@@ -1,0 +1,137 @@
+{
+  "modelId": "openai/gpt-5-structured",
+  "owner": "openai",
+  "name": "gpt-5-structured",
+  "version": "9f4cd9ec1133f55d442aeb426e42df5180a56e79a33183623611d62d4c3b44ae",
+  "description": "GPT-5 with support for structured outputs, web search and custom tools",
+  "inputSchema": {
+    "properties": {
+      "enable_web_search": {
+        "default": false,
+        "description": "Allow GPT-5 to use web search for the response.",
+        "title": "Enable Web Search",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "image_input": {
+        "default": [],
+        "description": "List of images to send to the model",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 3
+      },
+      "input_item_list": {
+        "default": [],
+        "description": "A list of one or many input items to the model, containing different content types. This parameter corresponds with the `input` OpenAI API parameter. For more details see: https://platform.openai.com/docs/api-reference/responses/create#responses_create-input. Similar to the `messages` parameter, but with more flexibility in the content types.",
+        "items": {
+          "type": "object"
+        },
+        "title": "Input Item List",
+        "type": "array",
+        "x-order": 8
+      },
+      "instructions": {
+        "description": "A system (or developer) message inserted into the model's context. When using along with previous_response_id, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses.",
+        "nullable": true,
+        "title": "Instructions",
+        "type": "string",
+        "x-order": 2
+      },
+      "json_schema": {
+        "default": {},
+        "description": "A JSON schema that the response must conform to. For simple data structures we recommend using `simple_text_format_schema` which will be converted to a JSON schema for you.",
+        "title": "Json Schema",
+        "type": "object",
+        "x-order": 11
+      },
+      "max_output_tokens": {
+        "description": "Maximum number of completion tokens to generate. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning).",
+        "nullable": true,
+        "title": "Max Output Tokens",
+        "type": "integer",
+        "x-order": 12
+      },
+      "model": {
+        "default": "gpt-5",
+        "description": "GPT-5 model to use.",
+        "enum": [
+          "gpt-5",
+          "gpt-5-mini",
+          "gpt-5-nano"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 0
+      },
+      "previous_response_id": {
+        "description": "The ID of a previous response to continue from.",
+        "nullable": true,
+        "title": "Previous Response Id",
+        "type": "string",
+        "x-order": 9
+      },
+      "prompt": {
+        "description": "A simple text input to the model, equivalent to a text input with the user role. Ignored if input_item_list is provided.",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "reasoning_effort": {
+        "default": "minimal",
+        "description": "Constrains effort on reasoning for GPT-5 models. Currently supported values are minimal, low, medium, and high. The minimal value gets answers back faster without extensive reasoning first. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response. For higher reasoning efforts you may need to increase your max_completion_tokens to avoid empty responses (where all the tokens are used on reasoning).",
+        "enum": [
+          "minimal",
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "reasoning_effort",
+        "type": "string",
+        "x-order": 4
+      },
+      "simple_schema": {
+        "default": [],
+        "description": "Create a JSON schema for the output to conform to. The schema will be created from a simple list of field specifications. Strings: 'thing' (defaults to string), 'thing:str', 'thing:string'. Booleans: 'is_a_thing:bool' or 'is_a_thing:boolean'. Numbers: 'count:number', 'count:int'. Lists: 'things:list' (defaults to list of strings), 'things:list:str', 'number_things:list:number', etc. Nested objects are not supported, use `json_schema` instead.",
+        "items": {
+          "type": "string"
+        },
+        "title": "Simple Schema",
+        "type": "array",
+        "x-order": 7
+      },
+      "tools": {
+        "default": [],
+        "description": "Tools to make available to the model. Should be a JSON object containing a list of tool definitions.",
+        "items": {
+          "type": "object"
+        },
+        "title": "Tools",
+        "type": "array",
+        "x-order": 10
+      },
+      "verbosity": {
+        "default": "medium",
+        "description": "Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in more verbose responses. Currently supported values are low, medium, and high. GPT-5 supports this parameter to help control whether answers are short and to the point or long and comprehensive.",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "verbosity",
+        "type": "string",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "object"
+  }
+}

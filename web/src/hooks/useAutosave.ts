@@ -77,11 +77,12 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
     (state) => state.addNotification
   );
 
-  const { getLastAutosaveTime, updateLastAutosaveTime } =
-    useVersionHistoryStore((state) => ({
-      getLastAutosaveTime: state.getLastAutosaveTime,
-      updateLastAutosaveTime: state.updateLastAutosaveTime
-    }));
+  const getLastAutosaveTime = useVersionHistoryStore(
+    (state) => state.getLastAutosaveTime
+  );
+  const updateLastAutosaveTime = useVersionHistoryStore(
+    (state) => state.updateLastAutosaveTime
+  );
 
   const isSavingRef = useRef(false);
   const [lastAutosaveTime, setLastAutosaveTime] = useState(0);

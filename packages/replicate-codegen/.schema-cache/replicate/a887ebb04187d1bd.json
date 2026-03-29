@@ -1,0 +1,102 @@
+{
+  "modelId": "zsxkib/stable-video-face-restoration",
+  "owner": "zsxkib",
+  "name": "stable-video-face-restoration",
+  "version": "63512c77555a80ca5c84c590641036ba9f938d38b9a1841ea369780072561373",
+  "description": "SVFR: A Unified Framework for Generalized Video Face Restoration",
+  "inputSchema": {
+    "properties": {
+      "decode_chunk_size": {
+        "default": 16,
+        "description": "Chunk size for decoding long videos.",
+        "title": "Decode Chunk Size",
+        "type": "integer",
+        "x-order": 4
+      },
+      "i2i_noise_strength": {
+        "default": 1,
+        "description": "Image-to-image noise strength.",
+        "title": "I2I Noise Strength",
+        "type": "number",
+        "x-order": 9
+      },
+      "mask": {
+        "description": "An inpainting mask image (white areas will be restored). Only required when tasks includes inpainting.",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 2
+      },
+      "max_appearance_guidance_scale": {
+        "default": 2,
+        "description": "Maximum guidance scale for restoration.",
+        "title": "Max Appearance Guidance Scale",
+        "type": "number",
+        "x-order": 8
+      },
+      "min_appearance_guidance_scale": {
+        "default": 2,
+        "description": "Minimum guidance scale for restoration.",
+        "title": "Min Appearance Guidance Scale",
+        "type": "number",
+        "x-order": 7
+      },
+      "noise_aug_strength": {
+        "default": 0,
+        "description": "Noise augmentation strength.",
+        "title": "Noise Aug Strength",
+        "type": "number",
+        "x-order": 6
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of diffusion steps.",
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 3
+      },
+      "overlap": {
+        "default": 3,
+        "description": "Number of overlapping frames between segments.",
+        "title": "Overlap",
+        "type": "integer",
+        "x-order": 5
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "tasks": {
+        "default": "face-restoration",
+        "description": "Which restoration tasks to apply.",
+        "enum": [
+          "face-restoration",
+          "face-restoration-and-colorization",
+          "face-restoration-and-colorization-and-inpainting"
+        ],
+        "title": "tasks",
+        "type": "string",
+        "x-order": 1
+      },
+      "video": {
+        "description": "Input video file (e.g. MP4).",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

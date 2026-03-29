@@ -25,7 +25,6 @@ import SearchInput from "../../search/SearchInput";
 import ModelFiltersBar from "../ModelFiltersBar";
 import ProviderList from "../ProviderList";
 import ModelList from "../ModelList";
-import ProviderApiKeyWarningBanner from "./ProviderApiKeyWarningBanner";
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
@@ -513,7 +512,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               iconOnly={isIconOnly}
             />
           </Box>
-          <ProviderApiKeyWarningBanner providers={providers} />
         </Box>
 
         {/* Center: Model List */}

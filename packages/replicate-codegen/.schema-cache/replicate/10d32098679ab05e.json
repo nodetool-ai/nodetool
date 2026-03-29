@@ -1,0 +1,58 @@
+{
+  "modelId": "elevenlabs/music",
+  "owner": "elevenlabs",
+  "name": "music",
+  "version": "66fa53d463ca3a0fd826c06b5b44804b32f74185c0c905162bb052c3a60a39fa",
+  "description": "Compose a song from a prompt or a composition plan",
+  "inputSchema": {
+    "properties": {
+      "force_instrumental": {
+        "default": true,
+        "description": "If true, removes vocal elements from the generated music",
+        "title": "Force Instrumental",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "music_length_ms": {
+        "default": 10000,
+        "description": "Target duration of the music in milliseconds (optional, defaults to ~10 seconds)",
+        "maximum": 300000,
+        "minimum": 5000,
+        "title": "Music Length Ms",
+        "type": "integer",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "mp3_standard",
+        "description": "Audio output format: mp3_standard (128kbps MP3, balanced quality/size), mp3_high_quality (192kbps MP3, higher quality), wav_16khz (16kHz WAV, good for voice), wav_22khz (22kHz WAV), wav_24khz (24kHz WAV), wav_cd_quality (44.1kHz WAV, uncompressed CD quality)",
+        "enum": [
+          "mp3_standard",
+          "mp3_high_quality",
+          "wav_16khz",
+          "wav_22khz",
+          "wav_24khz",
+          "wav_cd_quality"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Description of the music you want to generate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -11,7 +11,7 @@
  * />
  */
 
-import React, { useState, useCallback, useRef, useEffect, memo, forwardRef } from "react";
+import { useState, useCallback, useRef, useEffect, memo, forwardRef } from "react";
 import { IconButton, Tooltip } from "@mui/material";
 import { SxProps, Theme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";

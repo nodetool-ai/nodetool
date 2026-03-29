@@ -1,0 +1,88 @@
+{
+  "modelId": "thomasmol/whisper-diarization",
+  "owner": "thomasmol",
+  "name": "whisper-diarization",
+  "version": "1495a9cddc83b2203b0d8d3516e38b80fd1572ebc4bc5700ac1da56a9b3ed886",
+  "description": "⚡️ Blazing fast audio transcription with speaker diarization | Whisper Large V3 Turbo | word & sentence level timestamps | prompt",
+  "inputSchema": {
+    "properties": {
+      "file": {
+        "description": "Or an audio file",
+        "format": "uri",
+        "title": "File",
+        "type": "string",
+        "x-order": 2
+      },
+      "file_string": {
+        "description": "Either provide: Base64 encoded audio file,",
+        "title": "File String",
+        "type": "string",
+        "x-order": 0
+      },
+      "file_url": {
+        "description": "Or provide: A direct audio file URL",
+        "title": "File Url",
+        "type": "string",
+        "x-order": 1
+      },
+      "group_segments": {
+        "default": true,
+        "description": "Group segments of same speaker shorter apart than 2 seconds",
+        "title": "Group Segments",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "language": {
+        "description": "Language of the spoken words as a language code like 'en'. Leave empty to auto detect language.",
+        "title": "Language",
+        "type": "string",
+        "x-order": 6
+      },
+      "num_speakers": {
+        "description": "Number of speakers, leave empty to autodetect.",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Num Speakers",
+        "type": "integer",
+        "x-order": 4
+      },
+      "prompt": {
+        "description": "Vocabulary: provide names, acronyms and loanwords in a list. Use punctuation for best accuracy.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 7
+      },
+      "translate": {
+        "default": false,
+        "description": "Translate the speech into English.",
+        "title": "Translate",
+        "type": "boolean",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "language": {
+        "title": "Language",
+        "type": "string"
+      },
+      "num_speakers": {
+        "title": "Num Speakers",
+        "type": "integer"
+      },
+      "segments": {
+        "items": {},
+        "title": "Segments",
+        "type": "array"
+      }
+    },
+    "required": [
+      "segments"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

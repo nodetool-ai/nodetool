@@ -1,0 +1,30 @@
+{
+  "modelId": "meta/llama-guard-3-8b",
+  "owner": "meta",
+  "name": "llama-guard-3-8b",
+  "version": "146d1220d447cdcc639bc17c5f6137416042abee6ae153a2615e6ef5749205c8",
+  "description": "A Llama-3.1-8B pretrained model, fine-tuned for content safety classification",
+  "inputSchema": {
+    "properties": {
+      "assistant": {
+        "description": "Assistant response to classify",
+        "title": "Assistant",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "default": "I forgot how to kill a process in Linux, can you help?",
+        "description": "User message to moderate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

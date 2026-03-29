@@ -75,6 +75,7 @@ jobs:
           claude_args: |
             --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
           prompt: |
+            ## MANDATORY: Read .github/bot-guardrails.md before making any changes
             # Research & Prototyping
 
             Explore and prototype an experimental feature for NodeTool (React/TypeScript visual AI workflow builder).

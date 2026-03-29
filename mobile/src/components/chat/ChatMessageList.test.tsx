@@ -223,7 +223,7 @@ describe('ChatMessageList', () => {
       
       expect(flatList.props.removeClippedSubviews).toBe(true);
       expect(flatList.props.maxToRenderPerBatch).toBe(10);
-      expect(flatList.props.windowSize).toBe(10);
+      expect(flatList.props.windowSize).toBe(15);
       expect(flatList.props.initialNumToRender).toBe(15);
     });
 

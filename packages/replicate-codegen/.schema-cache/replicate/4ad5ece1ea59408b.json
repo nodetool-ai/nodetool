@@ -1,0 +1,82 @@
+{
+  "modelId": "wan-video/wan-2.5-t2v",
+  "owner": "wan-video",
+  "name": "wan-2.5-t2v",
+  "version": "4e22e64c604706aa4ac1929a7ae146ea033f39bb228e896da79d91b7a39e8d32",
+  "description": "Alibaba Wan 2.5 text to video generation model",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Audio file (wav/mp3, 3-30s, ≤15MB) for voice/music synchronization",
+        "format": "uri",
+        "nullable": true,
+        "title": "Audio",
+        "type": "string",
+        "x-order": 2
+      },
+      "duration": {
+        "default": 5,
+        "description": "Duration of the generated video in seconds",
+        "enum": [
+          5,
+          10
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 4
+      },
+      "enable_prompt_expansion": {
+        "default": true,
+        "description": "If set to true, the prompt optimizer will be enabled",
+        "title": "Enable Prompt Expansion",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Negative prompt to avoid certain elements",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "size": {
+        "default": "1280*720",
+        "description": "Video resolution and aspect ratio",
+        "enum": [
+          "832*480",
+          "480*832",
+          "1280*720",
+          "720*1280",
+          "1920*1080",
+          "1080*1920"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

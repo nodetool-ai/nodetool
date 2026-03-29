@@ -1,0 +1,36 @@
+{
+  "modelId": "chenxwh/video-retalking",
+  "owner": "chenxwh",
+  "name": "video-retalking",
+  "version": "db5a650c807b007dc5f9e5abe27c53e1b62880d1f94d218d27ce7fa802711d67",
+  "description": "Audio-based Lip Synchronization for Talking Head Video",
+  "inputSchema": {
+    "properties": {
+      "face": {
+        "description": "Input video file of a talking-head.",
+        "format": "uri",
+        "title": "Face",
+        "type": "string",
+        "x-order": 0
+      },
+      "input_audio": {
+        "description": "Input audio file. Avoid special symbol in the filename as it may cause ffmpeg erros.",
+        "format": "uri",
+        "title": "Input Audio",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "face",
+      "input_audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

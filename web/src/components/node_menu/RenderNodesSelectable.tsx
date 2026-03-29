@@ -317,6 +317,14 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
   const nodesByNamespaceAll = useMemo(() => groupNodes(nodes), [nodes]);
 
+  // Memoize grouped search results to avoid re-grouping on every render
+  const groupedSearchResultsGrouped = useMemo(() => {
+    return groupedSearchResults.map(group => ({
+      ...group,
+      groupedNodes: groupNodes(group.nodes)
+    }));
+  }, [groupedSearchResults]);
+
   const computeNamespaceSelectionState = useCallback(
     (namespace: string) => {
       const allInNamespace = nodesByNamespaceAll[namespace] || [];
@@ -355,9 +363,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   );
 
   const renderGroup = useCallback(
-    (group: SearchResultGroup) => {
-      // Keep all nodes visible, including selected ones
-      const groupedNodes = groupNodes(group.nodes);
+    (group: SearchResultGroup & { groupedNodes?: ReturnType<typeof groupNodes> }) => {
+      // Use pre-computed grouped nodes if available, otherwise compute
+      const groupedNodes = group.groupedNodes || groupNodes(group.nodes);
 
       return (
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
@@ -455,11 +463,11 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   const elements = useMemo(() => {
     // If we're searching, use the grouped results (show nodes)
     if (searchTerm) {
-      return groupedSearchResults.map(renderGroup);
+      return groupedSearchResultsGrouped.map(renderGroup);
     }
 
     // Otherwise, only show namespaces (collapsible)
-    return Object.entries(groupNodes(nodes)).map(
+    return Object.entries(nodesByNamespaceAll).map(
         ([namespace, nodesInNamespace], namespaceIndex) => {
           let textForNamespaceHeader = namespace; // Default to full namespace string
 
@@ -574,8 +582,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       );
   }, [
     searchTerm,
-    nodes,
-    groupedSearchResults,
+    nodesByNamespaceAll,
+    groupedSearchResultsGrouped,
     renderGroup,
     selectedPath,
     handleDragStart,

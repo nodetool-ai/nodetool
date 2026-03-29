@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";

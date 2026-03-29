@@ -9,6 +9,7 @@ import AssetViewer from "../assets/AssetViewer";
 import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -47,7 +48,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     alignItems: "center",
     width: "100%",
     height: "100%",
-    minHeight: "80px"
+    minHeight: "80px",
+    borderRadius: "4px",
+    overflow: "hidden" as const,
+    ...alphaSurfaceBg
   }), []);
 
   const actionsStyle = useMemo(() => ({
@@ -177,6 +181,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
             size="small"
             onClick={handleDownload}
             sx={iconButtonStyle}
+            aria-label="Download image"
           >
             <DownloadIcon />
           </IconButton>
@@ -186,6 +191,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
             size="small"
             onClick={handleOpenInViewer}
             sx={iconButtonStyle}
+            aria-label="Open image in full-screen viewer"
           >
             <OpenInNewIcon />
           </IconButton>
@@ -194,7 +200,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       <img
         ref={imageRef}
         src={imageUrl}
-        alt=""
+        alt="Generated image output"
         onLoad={handleImageLoad}
         style={imageStyle}
         onDoubleClick={handleDoubleClick}

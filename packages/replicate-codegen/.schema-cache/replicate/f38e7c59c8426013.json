@@ -1,0 +1,155 @@
+{
+  "modelId": "lucataco/omnigen2",
+  "owner": "lucataco",
+  "name": "omnigen2",
+  "version": "5b9ea1d0821a60be9c861ebfc3513d121ecd8cab1932d3aa8d703e517988502e",
+  "description": "OmniGen2: a powerful and efficient unified multimodal model",
+  "inputSchema": {
+    "properties": {
+      "cfg_range_end": {
+        "default": 1,
+        "description": "CFG range end",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Cfg Range End",
+        "type": "number",
+        "x-order": 11
+      },
+      "cfg_range_start": {
+        "default": 0,
+        "description": "CFG range start",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Cfg Range Start",
+        "type": "number",
+        "x-order": 10
+      },
+      "height": {
+        "default": 1024,
+        "description": "Height of output image",
+        "maximum": 1024,
+        "minimum": 256,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Input image to edit",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "image_2": {
+        "description": "Optional second input image for multi-image operations",
+        "format": "uri",
+        "title": "Image 2",
+        "type": "string",
+        "x-order": 2
+      },
+      "image_3": {
+        "description": "Optional third input image for multi-image operations",
+        "format": "uri",
+        "title": "Image 3",
+        "type": "string",
+        "x-order": 3
+      },
+      "image_guidance_scale": {
+        "default": 2,
+        "description": "Guidance scale for input image. Higher values increase consistency with input image",
+        "maximum": 3,
+        "minimum": 1,
+        "title": "Image Guidance Scale",
+        "type": "number",
+        "x-order": 9
+      },
+      "max_input_image_side_length": {
+        "default": 2048,
+        "description": "Maximum input image side length",
+        "maximum": 2048,
+        "minimum": 256,
+        "title": "Max Input Image Side Length",
+        "type": "integer",
+        "x-order": 13
+      },
+      "max_pixels": {
+        "default": 1048576,
+        "description": "Maximum number of pixels in output",
+        "maximum": 2359296,
+        "minimum": 65536,
+        "title": "Max Pixels",
+        "type": "integer",
+        "x-order": 14
+      },
+      "negative_prompt": {
+        "default": "(((deformed))), blurry, over saturation, bad anatomy, disfigured, poorly drawn face, mutation, mutated, (extra_limb), (ugly), (poorly drawn hands), fused fingers, messy drawing, broken legs censor, censored, censor_bar",
+        "description": "Negative prompt to guide what should not be in the image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "num_inference_steps": {
+        "default": 50,
+        "description": "Number of denoising steps",
+        "maximum": 100,
+        "minimum": 20,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "default": "Make the person smile",
+        "description": "Text prompt describing the desired image edit",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "scheduler": {
+        "default": "euler",
+        "description": "Scheduler to use",
+        "enum": [
+          "euler",
+          "dpmsolver"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 12
+      },
+      "seed": {
+        "default": -1,
+        "description": "Random seed. Set to -1 for random seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 15
+      },
+      "text_guidance_scale": {
+        "default": 5,
+        "description": "Guidance scale for text prompt",
+        "maximum": 8,
+        "minimum": 1,
+        "title": "Text Guidance Scale",
+        "type": "number",
+        "x-order": 8
+      },
+      "width": {
+        "default": 1024,
+        "description": "Width of output image",
+        "maximum": 1024,
+        "minimum": 256,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

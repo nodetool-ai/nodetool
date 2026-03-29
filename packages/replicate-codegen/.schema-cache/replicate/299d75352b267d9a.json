@@ -1,0 +1,26 @@
+{
+  "modelId": "meronym/speaker-diarization",
+  "owner": "meronym",
+  "name": "speaker-diarization",
+  "version": "64b78c82f74d78164b49178443c819445f5dca2c51c8ec374783d49382342119",
+  "description": "Segments an audio recording based on who is speaking",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "default": "https://pyannote-speaker-diarization.s3.eu-west-2.amazonaws.com/lex-levin-4min.mp3",
+        "description": "Audio file",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

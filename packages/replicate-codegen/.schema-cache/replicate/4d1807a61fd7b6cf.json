@@ -1,0 +1,192 @@
+{
+  "modelId": "zsxkib/realistic-voice-cloning",
+  "owner": "zsxkib",
+  "name": "realistic-voice-cloning",
+  "version": "0a9c7c558af4c0f20667c1bd1260ce32a2879944a0b9e44e1398660c077b1550",
+  "description": "Create song covers with any RVC v2 trained AI voice from audio files.",
+  "inputSchema": {
+    "properties": {
+      "backup_vocals_volume_change": {
+        "default": 0,
+        "description": "Control volume of backup AI vocals.",
+        "title": "Backup Vocals Volume Change",
+        "type": "number",
+        "x-order": 11
+      },
+      "crepe_hop_length": {
+        "default": 128,
+        "description": "When `pitch_detection_algo` is set to `mangio-crepe`, this controls how often it checks for pitch changes in milliseconds. Lower values lead to longer conversions and higher risk of voice cracks, but better pitch accuracy.",
+        "title": "Crepe Hop Length",
+        "type": "integer",
+        "x-order": 8
+      },
+      "custom_rvc_model_download_url": {
+        "description": "URL to download a custom RVC model. If provided, the model will be downloaded (if it doesn't already exist) and used for prediction, regardless of the 'rvc_model' value.",
+        "title": "Custom Rvc Model Download Url",
+        "type": "string",
+        "x-order": 2
+      },
+      "filter_radius": {
+        "default": 3,
+        "description": "If >=3: apply median filtering median filtering to the harvested pitch results.",
+        "maximum": 7,
+        "minimum": 0,
+        "title": "Filter Radius",
+        "type": "integer",
+        "x-order": 5
+      },
+      "index_rate": {
+        "default": 0.5,
+        "description": "Control how much of the AI's accent to leave in the vocals.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Index Rate",
+        "type": "number",
+        "x-order": 4
+      },
+      "instrumental_volume_change": {
+        "default": 0,
+        "description": "Control volume of the background music/instrumentals.",
+        "title": "Instrumental Volume Change",
+        "type": "number",
+        "x-order": 12
+      },
+      "main_vocals_volume_change": {
+        "default": 0,
+        "description": "Control volume of main AI vocals. Use -3 to decrease the volume by 3 decibels, or 3 to increase the volume by 3 decibels.",
+        "title": "Main Vocals Volume Change",
+        "type": "number",
+        "x-order": 10
+      },
+      "output_format": {
+        "default": "mp3",
+        "description": "wav for best quality and large file size, mp3 for decent quality and small file size.",
+        "enum": [
+          "mp3",
+          "wav"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 18
+      },
+      "pitch_change": {
+        "default": "no-change",
+        "description": "Adjust pitch of AI vocals. Options: `no-change`, `male-to-female`, `female-to-male`.",
+        "enum": [
+          "no-change",
+          "male-to-female",
+          "female-to-male"
+        ],
+        "title": "pitch_change",
+        "type": "string",
+        "x-order": 3
+      },
+      "pitch_change_all": {
+        "default": 0,
+        "description": "Change pitch/key of background music, backup vocals and AI vocals in semitones. Reduces sound quality slightly.",
+        "title": "Pitch Change All",
+        "type": "number",
+        "x-order": 13
+      },
+      "pitch_detection_algorithm": {
+        "default": "rmvpe",
+        "description": "Best option is rmvpe (clarity in vocals), then mangio-crepe (smoother vocals).",
+        "enum": [
+          "rmvpe",
+          "mangio-crepe"
+        ],
+        "title": "pitch_detection_algorithm",
+        "type": "string",
+        "x-order": 7
+      },
+      "protect": {
+        "default": 0.33,
+        "description": "Control how much of the original vocals' breath and voiceless consonants to leave in the AI vocals. Set 0.5 to disable.",
+        "maximum": 0.5,
+        "minimum": 0,
+        "title": "Protect",
+        "type": "number",
+        "x-order": 9
+      },
+      "reverb_damping": {
+        "default": 0.7,
+        "description": "Absorption of high frequencies in the reverb.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Reverb Damping",
+        "type": "number",
+        "x-order": 17
+      },
+      "reverb_dryness": {
+        "default": 0.8,
+        "description": "Level of AI vocals without reverb.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Reverb Dryness",
+        "type": "number",
+        "x-order": 16
+      },
+      "reverb_size": {
+        "default": 0.15,
+        "description": "The larger the room, the longer the reverb time.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Reverb Size",
+        "type": "number",
+        "x-order": 14
+      },
+      "reverb_wetness": {
+        "default": 0.2,
+        "description": "Level of AI vocals with reverb.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Reverb Wetness",
+        "type": "number",
+        "x-order": 15
+      },
+      "rms_mix_rate": {
+        "default": 0.25,
+        "description": "Control how much to use the original vocal's loudness (0) or a fixed loudness (1).",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Rms Mix Rate",
+        "type": "number",
+        "x-order": 6
+      },
+      "rvc_model": {
+        "default": "Squidward",
+        "description": "RVC model for a specific voice. If using a custom model, this should match the name of the downloaded model. If a 'custom_rvc_model_download_url' is provided, this will be automatically set to the name of the downloaded model.",
+        "enum": [
+          "Squidward",
+          "MrKrabs",
+          "Plankton",
+          "Drake",
+          "Vader",
+          "Trump",
+          "Biden",
+          "Obama",
+          "Guitar",
+          "Voilin",
+          "CUSTOM"
+        ],
+        "title": "rvc_model",
+        "type": "string",
+        "x-order": 1
+      },
+      "song_input": {
+        "description": "Upload your audio file here.",
+        "format": "uri",
+        "title": "Song Input",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

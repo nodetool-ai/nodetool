@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, session } from 'electron';
 import path from 'path';
-import { createWindow, createPackageManagerWindow, handleActivation, forceQuit } from '../window';
+import { createWindow, createPackageManagerWindow, handleActivation, forceQuit, _resetPermissionHandlersForTesting } from '../window';
 import { setMainWindow, getMainWindow } from '../state';
 import { isAppQuitting } from '../main';
 import { logMessage } from '../logger';
@@ -88,6 +88,7 @@ jest.mock('../logger', () => ({
 jest.mock('../state', () => ({
   setMainWindow: jest.fn(),
   getMainWindow: jest.fn(),
+  serverState: { serverPort: 7777 },
 }));
 
 // Create a controllable mock for isAppQuitting
@@ -102,6 +103,11 @@ jest.mock('../main', () => ({
 
 jest.mock('path', () => ({
   join: jest.fn().mockImplementation((...args) => args.join('/')),
+}));
+
+jest.mock('../devMode', () => ({
+  isElectronDevMode: jest.fn().mockReturnValue(false),
+  getWebDevServerUrl: jest.fn().mockReturnValue('http://127.0.0.1:3000'),
 }));
 
 describe('Window Module', () => {
@@ -394,11 +400,12 @@ describe('Window Module', () => {
   describe('permission handlers', () => {
     beforeEach(() => {
       (getMainWindow as jest.Mock).mockReturnValue(null);
+      _resetPermissionHandlersForTesting();
     });
 
     it('should initialize permission handlers when creating window', () => {
       createWindow();
-      
+
       expect(session.defaultSession.setPermissionRequestHandler).toHaveBeenCalled();
       expect(session.defaultSession.setPermissionCheckHandler).toHaveBeenCalled();
       expect(logMessage).toHaveBeenCalledWith('Permission handlers initialized with device enumeration support');
@@ -406,7 +413,7 @@ describe('Window Module', () => {
 
     it('should handle permission requests correctly', () => {
       createWindow();
-      
+
       const setPermissionRequestHandlerCall = (session.defaultSession.setPermissionRequestHandler as jest.Mock).mock.calls[0];
       const permissionHandler = setPermissionRequestHandlerCall[0];
       
@@ -451,7 +458,7 @@ describe('Window Module', () => {
 
     it('should handle permission checks correctly', () => {
       createWindow();
-      
+
       const setPermissionCheckHandlerCall = (session.defaultSession.setPermissionCheckHandler as jest.Mock).mock.calls[0];
       const permissionCheckHandler = setPermissionCheckHandlerCall[0];
       

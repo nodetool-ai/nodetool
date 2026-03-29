@@ -1,0 +1,89 @@
+{
+  "modelId": "recraft-ai/recraft-v3-svg",
+  "owner": "recraft-ai",
+  "name": "recraft-v3-svg",
+  "version": "df041379628fa1d16bd406409930775b0904dc2bc0f3e3f38ecd2a4389e9329d",
+  "description": "Recraft V3 SVG (code-named red_panda) is a text-to-image model with the ability to generate high quality SVG images including logotypes, and icons. The model supports a wide list of styles.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "Not set",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "Not set",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "1:2",
+          "2:1",
+          "7:5",
+          "5:7",
+          "4:5",
+          "5:4",
+          "3:5",
+          "5:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "size": {
+        "default": "1024x1024",
+        "description": "Width and height of the generated image. Size is ignored if an aspect ratio is set.",
+        "enum": [
+          "1024x1024",
+          "1365x1024",
+          "1024x1365",
+          "1536x1024",
+          "1024x1536",
+          "1820x1024",
+          "1024x1820",
+          "1024x2048",
+          "2048x1024",
+          "1434x1024",
+          "1024x1434",
+          "1024x1280",
+          "1280x1024",
+          "1024x1707",
+          "1707x1024"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 2
+      },
+      "style": {
+        "default": "any",
+        "description": "Style of the generated image.",
+        "enum": [
+          "any",
+          "engraving",
+          "line_art",
+          "line_circuit",
+          "linocut"
+        ],
+        "title": "style",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

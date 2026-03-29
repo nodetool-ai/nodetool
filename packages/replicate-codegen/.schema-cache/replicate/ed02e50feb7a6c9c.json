@@ -1,0 +1,111 @@
+{
+  "modelId": "collectiveai-team/speaker-diarization-3",
+  "owner": "collectiveai-team",
+  "name": "speaker-diarization-3",
+  "version": "6e29843b8c1b751ec384ad96d3566af2392046465152fef3cc22ad701090b64c",
+  "description": "Segments an audio recording based on who is speaking",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "default": "https://replicate.delivery/pbxt/IZjTvet2ZGiyiYaMEEPrzn0xY1UDNsh0NfcO9qeTlpwCo7ig/lex-levin-4min.mp3",
+        "description": "Audio file or url",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 0
+      },
+      "max_speakers": {
+        "description": "Maximum number of speakers to diarize. Default: None",
+        "minimum": 1,
+        "title": "Max Speakers",
+        "type": "integer",
+        "x-order": 3
+      },
+      "min_speakers": {
+        "description": "Minimum number of speakers to diarize. Default: None",
+        "minimum": 1,
+        "title": "Min Speakers",
+        "type": "integer",
+        "x-order": 2
+      },
+      "num_speakers": {
+        "description": "Number of speakers to diarize. Default: infer",
+        "minimum": 1,
+        "title": "Num Speakers",
+        "type": "integer",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "segments": {
+        "items": {
+          "properties": {
+            "speaker": {
+              "title": "Speaker",
+              "type": "string"
+            },
+            "start": {
+              "title": "Start",
+              "type": "string"
+            },
+            "stop": {
+              "title": "Stop",
+              "type": "string"
+            }
+          },
+          "required": [
+            "speaker",
+            "start",
+            "stop"
+          ],
+          "title": "SpeakerSegment",
+          "type": "object"
+        },
+        "title": "Segments",
+        "type": "array"
+      },
+      "speakers": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "embeddings": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Embeddings",
+            "type": "object"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "labels",
+          "embeddings"
+        ],
+        "title": "Speakers",
+        "type": "object"
+      }
+    },
+    "required": [
+      "segments",
+      "speakers"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

@@ -52,7 +52,7 @@ const AVAILABLE_TOOLS = [
   "google_finance",
   "google_jobs",
   "browser",
-  "chroma_hybrid_search",
+  "vector_hybrid_search",
 ];
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
@@ -69,10 +69,10 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   google_finance: "Search Google Finance",
   google_jobs: "Search Google Jobs",
   browser: "Browse the web",
-  chroma_hybrid_search: "Search for documents in the Chroma database",
+  vector_hybrid_search: "Search for documents in the vector database",
 };
 
-const TOOL_ICONS: Record<string, JSX.Element> = {
+const TOOL_ICONS: Record<string, React.JSX.Element> = {
   read_file: <Description fontSize="small" sx={{ mr: 0.5 }} />,
   write_file: <EditNote fontSize="small" sx={{ mr: 0.5 }} />,
   list_directory: <Folder fontSize="small" sx={{ mr: 0.5 }} />,
@@ -85,7 +85,7 @@ const TOOL_ICONS: Record<string, JSX.Element> = {
   google_finance: <Analytics fontSize="small" sx={{ mr: 0.5 }} />,
   google_jobs: <Work fontSize="small" sx={{ mr: 0.5 }} />,
   browser: <Language fontSize="small" sx={{ mr: 0.5 }} />,
-  chroma_hybrid_search: <ManageSearch fontSize="small" sx={{ mr: 0.5 }} />,
+  vector_hybrid_search: <ManageSearch fontSize="small" sx={{ mr: 0.5 }} />,
   search_email: <MailOutline fontSize="small" sx={{ mr: 0.5 }} />
 };
 
@@ -111,8 +111,12 @@ const ToolsListProperty = (props: PropertyProps) => {
     [props]
   );
 
-  const handleToggleTool = useCallback(
-    (toolName: string) => {
+  const handleToolClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const toolName = event.currentTarget.dataset.tool;
+      if (!toolName) {
+        return;
+      }
       const newToolNames = toolNames.includes(toolName)
         ? toolNames.filter((name) => name !== toolName)
         : [...toolNames, toolName];
@@ -152,7 +156,8 @@ const ToolsListProperty = (props: PropertyProps) => {
           >
             <IconButton
               size="small"
-              onClick={handleToolClick(tool)}
+              onClick={handleToolClick}
+              data-tool={tool}
               sx={{
                 padding: "1px",
                 marginLeft: "0 !important",
@@ -202,7 +207,7 @@ const ToolsListProperty = (props: PropertyProps) => {
         {AVAILABLE_TOOLS.map((tool) => {
           const selected = toolNames.includes(tool);
           return (
-            <MenuItem key={tool} onClick={handleToolClick(tool)} dense>
+            <MenuItem key={tool} onClick={handleToolClick} data-tool={tool} dense>
               <ListItemIcon sx={{ minWidth: 24 }}>
                 {TOOL_ICONS[tool] || <Search fontSize="small" />}
               </ListItemIcon>

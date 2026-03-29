@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Typography,
   CircularProgress,
   ListItem,
   ListItemIcon,
@@ -11,6 +10,7 @@ import {
   Collapse,
   Tooltip
 } from "@mui/material";
+import { FlexColumn, Text, LoadingSpinner } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -89,16 +89,16 @@ const JobAssets = ({ jobId }: { jobId: string }) => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 1 }}>
-        <CircularProgress size={16} />
-      </Box>
+      <FlexColumn align="center" padding={1}>
+        <LoadingSpinner size="small" />
+      </FlexColumn>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 1, color: "error.main" }}>
-        <Typography variant="caption">Failed to load assets</Typography>
+      <Box sx={{ p: 1 }}>
+        <Text size="tiny" color="error">Failed to load assets</Text>
       </Box>
     );
   }
@@ -106,9 +106,7 @@ const JobAssets = ({ jobId }: { jobId: string }) => {
   if (!assets || assets.length === 0) {
     return (
       <Box sx={{ p: 1, pl: 7 }}>
-        <Typography variant="caption" color="text.secondary">
-          No assets generated
-        </Typography>
+        <Text size="tiny" color="secondary">No assets generated</Text>
       </Box>
     );
   }
@@ -242,28 +240,21 @@ const JobItem = ({ job }: { job: Job }) => {
         <Tooltip title={job.id}>
           <ListItemText
             primary={
-              <Typography
-                variant="body2"
-                noWrap
-                sx={{ fontWeight: 500, fontSize: "0.8rem" }}
-              >
+              <Text size="small" weight={500} truncate>
                 {workflowName}
-              </Typography>
+              </Text>
             }
             secondary={
-              <Box
-                component="span"
-                sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
-              >
-                <Typography variant="caption" color="text.secondary">
+              <FlexColumn component="span" gap={0.25}>
+                <Text size="tiny" color="secondary">
                   {statusText}
-                </Typography>
+                </Text>
                 {job.error && (
-                  <Typography variant="caption" color="error" noWrap>
+                  <Text size="tiny" color="error" truncate>
                     {job.error}
-                  </Typography>
+                  </Text>
                 )}
-              </Box>
+              </FlexColumn>
             }
           />
         </Tooltip>
@@ -292,21 +283,13 @@ const JobItem = ({ job }: { job: Job }) => {
           </IconButton>
         )}
         <ListItemText sx={{ flex: "0 0 auto", textAlign: "right", mr: 1 }}>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block" }}
-          >
+          <Text size="tiny" color="secondary" sx={{ display: "block" }}>
             {startedTime}
-          </Typography>
+          </Text>
           {duration && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: "block", fontSize: "0.7rem" }}
-            >
+            <Text size="tinyer" color="secondary" sx={{ display: "block" }}>
               {duration}
-            </Typography>
+            </Text>
           )}
         </ListItemText>
       </ListItem>

@@ -1,0 +1,70 @@
+{
+  "modelId": "center-for-curriculum-redesign/bge_1-5_query_embeddings",
+  "owner": "center-for-curriculum-redesign",
+  "name": "bge_1-5_query_embeddings",
+  "version": "438621acdb4511d2d9c6296860588ee6c60c3df63c93e2012297db8bb965732d",
+  "description": "Query embedding generator for BAAI's bge-large-en v1.5 embedding model",
+  "inputSchema": {
+    "properties": {
+      "batchtoken_max": {
+        "default": 200,
+        "description": "You probably don't need to worry about this parameter if you're just getting the embeddings for a handful of queries. This parameter sets the maximumum number of kibiTokens (1 kibiToken = 1024 tokens) to try to stuff into a batch (to avoid out of memory errors but maximize throughput). If the total number of tokens across the flattened list of requested embeddings exceed this value, the list will be split internally and run across multiple forward passes. This will not affect the shape of your output, just the time it takes to run.",
+        "minimum": 0.5,
+        "title": "Batchtoken Max",
+        "type": "number",
+        "x-order": 2
+      },
+      "normalize": {
+        "default": true,
+        "description": "normalizes returned embedding vectors to a magnitude of 1. (default: true, as this model presumes cosine similarity comparisons downstream)",
+        "title": "Normalize",
+        "type": "boolean",
+        "x-order": 1
+      },
+      "precision": {
+        "default": "full",
+        "description": "numerical precision for inference computations. Either full or half. Defaults to a paranoid value of full. You may want to test if 'half' is sufficient for your needs, though regardless you should probably prefer to use the same precision for querying as you do for archiving.",
+        "enum": [
+          "full",
+          "half"
+        ],
+        "title": "precision",
+        "type": "string",
+        "x-order": 3
+      },
+      "query_texts": {
+        "default": "[]",
+        "description": "A serialized JSON array of strings you wish to generate *retreival* embeddings for. (note, that you should keep this list short to avoid Replicate response size limitations). Use this to embed short text queries intended for comparison against document text. A vector will be returned corresponding to each line of text in the input array (in order of input). This endpoint will automatically format your query strings for retrieval, you do not need to preprocess them.",
+        "title": "Query Texts",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "extra_metrics": {
+        "title": "Extra Metrics",
+        "type": "string"
+      },
+      "query_embeddings": {
+        "items": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "title": "Query Embeddings",
+        "type": "array"
+      }
+    },
+    "required": [
+      "query_embeddings",
+      "extra_metrics"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

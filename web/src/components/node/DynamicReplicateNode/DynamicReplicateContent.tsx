@@ -19,9 +19,9 @@ export interface DynamicReplicateContentProps {
   onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
-  showResultOverlay: boolean;
-  result: unknown;
-  onShowInputs: () => void;
+  showResultOverlay?: boolean;
+  result?: unknown;
+  onShowInputs?: () => void;
   onShowResults?: () => void;
 }
 
@@ -39,9 +39,7 @@ export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =
       hasAdvancedFields,
       onToggleAdvancedFields,
       status,
-      workflowId,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      onShowInputs
+      workflowId
     }) => {
       const hasModel =
         data.dynamic_inputs && Object.keys(data.dynamic_inputs).length > 0;

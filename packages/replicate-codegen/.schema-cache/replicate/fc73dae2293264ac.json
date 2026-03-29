@@ -1,0 +1,44 @@
+{
+  "modelId": "alexgenovese/upscaler",
+  "owner": "alexgenovese",
+  "name": "upscaler",
+  "version": "4f7eb3da655b5182e559d50a0437440f242992d47e5e20bd82829a79dee61ff3",
+  "description": "GFPGAN aims at developing Practical Algorithms for Real-world Face and Object Restoration",
+  "inputSchema": {
+    "properties": {
+      "face_enhance": {
+        "default": true,
+        "description": "Face enhance",
+        "title": "Face Enhance",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "scale": {
+        "default": 4,
+        "description": "Factor to scale image by",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Scale",
+        "type": "number",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

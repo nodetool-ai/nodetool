@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View, ScrollView, Platform } from 'react-native';
 import Markdown, { RenderRules } from 'react-native-markdown-display';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
@@ -11,15 +11,16 @@ interface ChatMarkdownProps {
 
 export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   const { colors, mode } = useTheme();
-  
+
   if (!content) {
     return null;
   }
 
   const codeTheme = mode === 'dark' ? atomDark : tomorrow;
+  const fontFamily = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
-  const rules: RenderRules = {
-    fence: (node, children, parent, styles) => {
+  const rules: RenderRules = useMemo(() => ({
+    fence: (node, _children, _parent, styles) => {
       const language = (node as any).sourceInfo || (node as any).attributes?.lang || 'text';
 
       return (
@@ -35,7 +36,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
                 margin: 0,
               }}
               fontSize={13}
-              fontFamily={Platform.OS === 'ios' ? 'Menlo' : 'monospace'}
+              fontFamily={fontFamily}
               PreTag={View}
               CodeTag={View}
             >
@@ -45,7 +46,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         </View>
       );
     },
-    code_block: (node, children, parent, styles) => {
+    code_block: (node, _children, _parent, styles) => {
       return (
         <View key={node.key} style={styles.code_block}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -59,7 +60,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
                 margin: 0,
               }}
               fontSize={13}
-              fontFamily={Platform.OS === 'ios' ? 'Menlo' : 'monospace'}
+              fontFamily={fontFamily}
               PreTag={View}
               CodeTag={View}
             >
@@ -69,9 +70,9 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         </View>
       );
     },
-  };
+  }), [codeTheme, fontFamily]);
 
-  const markdownStyles = StyleSheet.create({
+  const markdownStyles = useMemo(() => StyleSheet.create({
     body: {
       color: colors.text,
       fontSize: 15,
@@ -113,7 +114,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
     code_inline: {
       backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
       color: colors.primary,
-      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontFamily: fontFamily,
       fontSize: 13,
       paddingHorizontal: 6,
       paddingVertical: 2,
@@ -178,7 +179,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       fontStyle: 'italic',
       color: colors.text,
     },
-  });
+  }), [colors, mode, fontFamily]);
 
   return (
     <Markdown style={markdownStyles} rules={rules}>

@@ -107,7 +107,7 @@ export function initFrontendToolsIpc(): void {
   }
 
   const manifest = FrontendToolRegistry.getManifest();
-  console.info(
+  log.info(
     `[frontend-tools] Registered ${manifest.length} tools: ${manifest
       .map((tool) => tool.name)
       .join(", ")}`
@@ -230,7 +230,7 @@ export function initFrontendToolsIpc(): void {
     "frontend-tools-abort",
     (_event: unknown, ...args: unknown[]) => {
       const data = args[0] as { sessionId: string };
-      console.info(`[frontend-tools] Abort requested (session=${data.sessionId})`);
+      log.info(`[frontend-tools] Abort requested (session=${data.sessionId})`);
       // Abort all tool calls for this session
       FrontendToolRegistry.abortAll();
     },

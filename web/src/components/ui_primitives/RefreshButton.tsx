@@ -13,7 +13,7 @@
  * />
  */
 
-import React, { forwardRef, memo } from "react";
+import { forwardRef, memo } from "react";
 import { IconButton, IconButtonProps, Tooltip, CircularProgress } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";

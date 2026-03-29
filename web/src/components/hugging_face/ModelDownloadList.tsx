@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Grid, Box } from "@mui/material";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { UnifiedModel } from "../../stores/ApiTypes";
@@ -30,17 +30,16 @@ interface ModelDownloadListProps {
 const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   const theme = useTheme();
   const { downloads } = useModelDownloadStore(
-    (state) => ({
+    useShallow((state) => ({
       startDownload: state.startDownload,
       downloads: state.downloads
-    }),
-    shallow
+    }))
   );
 
   return (
     <Box css={styles(theme)}>
       <Grid container spacing={2} className="models-grid">
-        {models.map((model, index) => {
+        {models.map((model) => {
           const modelId = model.id;
           return (
             <Grid
@@ -52,7 +51,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
                   lg: "span 12"
                 }
               }}
-              key={index}
+              key={modelId}
             >
               <Box className="model-container">
                 {!downloads[modelId] && (

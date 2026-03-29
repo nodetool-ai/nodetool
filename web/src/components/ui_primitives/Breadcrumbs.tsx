@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -118,12 +118,16 @@ const BreadcrumbsInternal: React.FC<BreadcrumbsProps> = ({
   className
 }) => {
   const theme = useTheme();
-  
-  const handleClick = (item: BreadcrumbItem, index: number) => (e: React.MouseEvent) => {
+
+  const handleClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
     e.preventDefault();
-    onNavigate?.(item, index);
-  };
-  
+    const index = Number(e.currentTarget.dataset.index);
+    const item = items[index];
+    if (item) {
+      onNavigate?.(item, index);
+    }
+  }, [items, onNavigate]);
+
   const getIcon = (item: BreadcrumbItem, index: number) => {
     if (item.icon) {
       return item.icon;
@@ -147,7 +151,7 @@ const BreadcrumbsInternal: React.FC<BreadcrumbsProps> = ({
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const icon = getIcon(item, index);
-          
+
           if (isLast) {
             return (
               <Typography key={item.path || index} className="breadcrumb-current">
@@ -156,32 +160,33 @@ const BreadcrumbsInternal: React.FC<BreadcrumbsProps> = ({
               </Typography>
             );
           }
-          
+
           const linkContent = (
             <Link
               key={item.path || index}
               className="breadcrumb-link"
               href={item.path || "#"}
-              onClick={handleClick(item, index)}
+              data-index={index}
+              onClick={handleClick}
               underline="none"
             >
               {icon}
               {item.label}
             </Link>
           );
-          
+
           if (item.tooltip) {
             return (
-              <Tooltip 
+              <Tooltip
                 key={item.path || index}
-                title={item.tooltip} 
+                title={item.tooltip}
                 enterDelay={TOOLTIP_ENTER_DELAY}
               >
                 {linkContent}
               </Tooltip>
             );
           }
-          
+
           return linkContent;
         })}
       </MuiBreadcrumbs>
