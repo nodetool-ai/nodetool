@@ -319,6 +319,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
                 onClick={handleSelectTool("select")}
                 size="small"
+                aria-label="Select or Pan tool"
               >
                 <PanToolIcon fontSize="small" />
               </IconButton>
@@ -328,6 +329,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
                 onClick={handleSelectTool("crop")}
                 size="small"
+                aria-label="Crop tool"
               >
                 <CropIcon fontSize="small" />
               </IconButton>
@@ -337,6 +339,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
                 onClick={handleSelectTool("draw")}
                 size="small"
+                aria-label="Draw or Paint tool"
               >
                 <BrushIcon fontSize="small" />
               </IconButton>
@@ -346,6 +349,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
                 onClick={handleSelectTool("erase")}
                 size="small"
+                aria-label="Erase tool"
               >
                 <AutoFixHighIcon fontSize="small" />
               </IconButton>
@@ -355,6 +359,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "fill" ? "active" : ""}`}
                 onClick={handleSelectTool("fill")}
                 size="small"
+                aria-label="Fill tool"
               >
                 <FormatColorFillIcon fontSize="small" />
               </IconButton>
@@ -364,6 +369,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "text" ? "active" : ""}`}
                 onClick={handleSelectTool("text")}
                 size="small"
+                aria-label="Text tool"
               >
                 <TextFieldsIcon fontSize="small" />
               </IconButton>
@@ -373,6 +379,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "rectangle" ? "active" : ""}`}
                 onClick={handleSelectTool("rectangle")}
                 size="small"
+                aria-label="Rectangle tool"
               >
                 <RectangleOutlinedIcon fontSize="small" />
               </IconButton>
@@ -382,6 +389,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "ellipse" ? "active" : ""}`}
                 onClick={handleSelectTool("ellipse")}
                 size="small"
+                aria-label="Ellipse tool"
               >
                 <CircleOutlinedIcon fontSize="small" />
               </IconButton>
@@ -391,6 +399,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "line" ? "active" : ""}`}
                 onClick={handleSelectTool("line")}
                 size="small"
+                aria-label="Line tool"
               >
                 <RemoveIcon fontSize="small" />
               </IconButton>
@@ -400,6 +409,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className={`tool-button ${tool === "arrow" ? "active" : ""}`}
                 onClick={handleSelectTool("arrow")}
                 size="small"
+                aria-label="Arrow tool"
               >
                 <ArrowRightAltIcon fontSize="small" />
               </IconButton>
@@ -666,6 +676,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleRotateCCW}
                 size="small"
+                aria-label="Rotate 90 degrees counter-clockwise"
               >
                 <Rotate90DegreesCcwIcon fontSize="small" />
               </IconButton>
@@ -675,6 +686,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleRotateCW}
                 size="small"
+                aria-label="Rotate 90 degrees clockwise"
               >
                 <Rotate90DegreesCwIcon fontSize="small" />
               </IconButton>
@@ -684,6 +696,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleFlipH}
                 size="small"
+                aria-label="Flip image horizontally"
               >
                 <FlipIcon fontSize="small" />
               </IconButton>
@@ -693,6 +706,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleFlipV}
                 size="small"
+                aria-label="Flip image vertically"
               >
                 <FlipIcon fontSize="small" />
               </IconButton>
@@ -761,6 +775,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               className="action-button"
               onClick={handleZoomOut}
               size="small"
+              aria-label="Zoom out"
             >
               <ZoomOutIcon fontSize="small" />
             </IconButton>
@@ -769,6 +784,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               className="action-button"
               onClick={handleZoomIn}
               size="small"
+              aria-label="Zoom in"
             >
               <ZoomInIcon fontSize="small" />
             </IconButton>
@@ -777,6 +793,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleZoomReset}
                 size="small"
+                aria-label="Reset zoom to 100%"
               >
                 <RestartAltIcon fontSize="small" />
               </IconButton>
@@ -795,6 +812,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                   onClick={onUndo}
                   disabled={!canUndo}
                   size="small"
+                  aria-label="Undo last action"
                 >
                   <UndoIcon fontSize="small" />
                 </IconButton>
@@ -807,6 +825,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                   onClick={onRedo}
                   disabled={!canRedo}
                   size="small"
+                  aria-label="Redo last action"
                 >
                   <RedoIcon fontSize="small" />
                 </IconButton>
@@ -817,6 +836,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 className="action-button"
                 onClick={handleReset}
                 size="small"
+                aria-label="Reset image to original"
               >
                 <RestartAltIcon fontSize="small" />
               </IconButton>

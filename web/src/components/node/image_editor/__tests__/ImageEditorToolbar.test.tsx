@@ -173,4 +173,69 @@ describe("ImageEditorToolbar", () => {
     expect(screen.getByText("Bold")).toBeInTheDocument();
     expect(screen.getByText("Italic")).toBeInTheDocument();
   });
+
+  describe("Accessibility", () => {
+    it("has aria-label on all tool selection buttons", () => {
+      render(<ImageEditorToolbar {...defaultProps} />);
+
+      const buttons = screen.getAllByRole("button").filter((button) => {
+        const ariaLabel = button.getAttribute("aria-label");
+        return ariaLabel && (
+          ariaLabel.includes("Select or Pan tool") ||
+          ariaLabel.includes("Crop tool") ||
+          ariaLabel.includes("Draw or Paint tool") ||
+          ariaLabel.includes("Erase tool") ||
+          ariaLabel.includes("Fill tool") ||
+          ariaLabel.includes("Text tool") ||
+          ariaLabel.includes("Rectangle tool") ||
+          ariaLabel.includes("Ellipse tool") ||
+          ariaLabel.includes("Line tool") ||
+          ariaLabel.includes("Arrow tool")
+        );
+      });
+
+      expect(buttons.length).toBeGreaterThan(0);
+      buttons.forEach((button) => {
+        expect(button.getAttribute("aria-label")).toBeTruthy();
+      });
+    });
+
+    it("has aria-label on transform action buttons", () => {
+      render(<ImageEditorToolbar {...defaultProps} />);
+
+      const rotateCCWButton = screen.getByRole("button", { name: /rotate 90 degrees counter-clockwise/i });
+      expect(rotateCCWButton).toBeInTheDocument();
+      expect(rotateCCWButton.getAttribute("aria-label")).toBe("Rotate 90 degrees counter-clockwise");
+
+      const rotateCWButton = screen.getByRole("button", { name: /rotate 90 degrees clockwise/i });
+      expect(rotateCWButton).toBeInTheDocument();
+      expect(rotateCWButton.getAttribute("aria-label")).toBe("Rotate 90 degrees clockwise");
+    });
+
+    it("has aria-label on zoom controls", () => {
+      render(<ImageEditorToolbar {...defaultProps} />);
+
+      const zoomInButton = screen.getByRole("button", { name: /zoom in/i });
+      const zoomOutButton = screen.getByRole("button", { name: /zoom out/i });
+
+      expect(zoomInButton).toBeInTheDocument();
+      expect(zoomInButton.getAttribute("aria-label")).toBe("Zoom in");
+
+      expect(zoomOutButton).toBeInTheDocument();
+      expect(zoomOutButton.getAttribute("aria-label")).toBe("Zoom out");
+    });
+
+    it("has aria-label on history buttons", () => {
+      render(<ImageEditorToolbar {...defaultProps} canUndo={true} canRedo={true} />);
+
+      const undoButton = screen.getByRole("button", { name: /undo/i });
+      const redoButton = screen.getByRole("button", { name: /redo/i });
+
+      expect(undoButton).toBeInTheDocument();
+      expect(undoButton.getAttribute("aria-label")).toBe("Undo last action");
+
+      expect(redoButton).toBeInTheDocument();
+      expect(redoButton.getAttribute("aria-label")).toBe("Redo last action");
+    });
+  });
 });
