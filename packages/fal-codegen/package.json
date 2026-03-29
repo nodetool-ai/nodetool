@@ -9,6 +9,8 @@
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
     "generate": "tsx src/generate.ts",
+    "generate:platform": "tsx src/generate.ts --from-platform",
+    "generate:platform:dry": "tsx src/generate.ts --from-platform --dry-run",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
@@ -16,6 +18,7 @@
   "devDependencies": {
     "@nodetool/node-sdk": "*",
     "@types/node": "^20.0.0",
+    "dotenv": "^16.4.5",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.1"
