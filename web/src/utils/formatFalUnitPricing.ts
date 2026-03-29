@@ -17,7 +17,7 @@ function formatMoney(amount: number, currency: string): string {
 
 /** Compact label for node chrome (e.g. $0.04 / images). */
 export function formatFalUnitPricingShort(p: FalUnitPricing): string {
-  return `${formatMoney(p.unit_price, p.currency)} / ${p.billing_unit}`;
+  return formatMoney(p.unit_price, p.currency);
 }
 
 /** Tooltip body: list price disclaimer + endpoint. */

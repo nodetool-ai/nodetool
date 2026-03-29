@@ -866,7 +866,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               textTransform: "none",
               zIndex: 1000,
               border: "1px solid",
-              borderColor: "success.main",
+              borderColor: "transparent",
               whiteSpace: "nowrap",
               cursor: "default",
               "&:hover": {
