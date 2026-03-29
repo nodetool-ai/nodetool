@@ -461,7 +461,7 @@ export const MessageView: React.FC<
               {Array.isArray(content) &&
                 content.map((c: MessageContent, i: number) => (
                   <MessageContentRenderer
-                    key={i}
+                    key={`${message.id}-content-${c.type}-${i}`}
                     content={c}
                     renderTextContent={renderTextContent}
                     index={i}

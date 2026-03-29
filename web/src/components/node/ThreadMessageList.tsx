@@ -136,19 +136,23 @@ const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = ({
   if (!toolCalls || toolCalls.length === 0) {return null;}
   return (
     <div className="tool-calls">
-      {toolCalls.map((tc, idx) => (
-        <div key={tc.id || idx} className="tool-call">
-          <div className="tool-call__header">
-            <span className="tool-call__badge">Agent Task</span>
-            <span className="tool-call__name">{formatToolName(tc.name)}</span>
-          </div>
-          {tc.message && (
-            <div className="tool-call__message">
-              <MarkdownRenderer content={tc.message} />
+      {toolCalls.map((tc, idx) => {
+        // Generate a stable key using tool call properties
+        const stableKey = tc.id || `tool-${tc.name}-${idx}`;
+        return (
+          <div key={stableKey} className="tool-call">
+            <div className="tool-call__header">
+              <span className="tool-call__badge">Agent Task</span>
+              <span className="tool-call__name">{formatToolName(tc.name)}</span>
             </div>
-          )}
-        </div>
-      ))}
+            {tc.message && (
+              <div className="tool-call__message">
+                <MarkdownRenderer content={tc.message} />
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
