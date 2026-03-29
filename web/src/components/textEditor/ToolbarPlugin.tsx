@@ -4,20 +4,16 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $getSelection,
   $isRangeSelection,
-  FORMAT_TEXT_COMMAND,
-  TextNode
+  FORMAT_TEXT_COMMAND
 } from "lexical";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import FormatSizeIcon from "@mui/icons-material/FormatSize";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   addClassNamesToElement,
   removeClassNamesFromElement
 } from "@lexical/utils";
-import {
-  $patchStyleText,
-  $getSelectionStyleValueForProperty
-} from "@lexical/selection";
+import { $patchStyleText } from "@lexical/selection";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./HorizontalRulePlugin";
 
@@ -53,6 +49,8 @@ const ToolbarPlugin = () => {
   const [isItalic, setIsItalic] = useState(false);
   const [isLargeFont, setIsLargeFont] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fontToggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -82,7 +80,19 @@ const ToolbarPlugin = () => {
     });
   }, [editor, updateToolbar]);
 
-  const toggleFontSize = () => {
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      if (fontToggleTimeoutRef.current) {
+        clearTimeout(fontToggleTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const toggleFontSize = useCallback(() => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
@@ -106,7 +116,11 @@ const ToolbarPlugin = () => {
         });
 
         // Apply CSS classes and data attributes (without inline font-size)
-        setTimeout(() => {
+        // Clear any existing timeout before setting a new one
+        if (fontToggleTimeoutRef.current) {
+          clearTimeout(fontToggleTimeoutRef.current);
+        }
+        fontToggleTimeoutRef.current = setTimeout(() => {
           editor.getEditorState().read(() => {
             const newSelection = $getSelection();
             if ($isRangeSelection(newSelection)) {
@@ -144,26 +158,36 @@ const ToolbarPlugin = () => {
         }, 0);
       }
     });
-  };
+  }, [editor]);
 
-  const handleCopyAsMarkdown = async () => {
+  const handleCopyAsMarkdown = useCallback(async () => {
     const success = await copyAsMarkdown(editor);
     if (success) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timeout before setting a new one
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
-  };
+  }, [editor]);
 
-  const handleInsertHR = () => {
+  const handleInsertHR = useCallback(() => {
     editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
-  };
+  }, [editor]);
+
+  const handleFormatBold = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
+  }, [editor]);
+
+  const handleFormatItalic = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
+  }, [editor]);
 
   return (
     <div className="format-toolbar-actions" css={toolbarStyles}>
       <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
-        }}
+        onClick={handleFormatBold}
         className={isBold ? "active" : ""}
         aria-label="Format Bold"
         title="Bold (Ctrl+B / ⌘+B)"
@@ -171,9 +195,7 @@ const ToolbarPlugin = () => {
         <b>B</b>
       </button>
       <button
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
-        }}
+        onClick={handleFormatItalic}
         className={isItalic ? "active" : ""}
         aria-label="Format Italic"
         title="Italic (Ctrl+I / ⌘+I)"

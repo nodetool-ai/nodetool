@@ -1,0 +1,64 @@
+{
+  "modelId": "deepseek-ai/deepseek-v3",
+  "owner": "deepseek-ai",
+  "name": "deepseek-v3",
+  "version": "b65d70e71acdaa2c26b32eb763b0b691eae862f3f9c34a5e5c2167565b2caff1",
+  "description": "DeepSeek-V3-0324 is the leading non-reasoning model, a milestone for open source",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0,
+        "description": "Frequency penalty",
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 4
+      },
+      "max_tokens": {
+        "default": 2048,
+        "description": "The maximum number of tokens the model should generate as output.",
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 1
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "Presence penalty",
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 3
+      },
+      "prompt": {
+        "default": "",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "temperature": {
+        "default": 0.1,
+        "description": "The value used to modulate the next token probabilities.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 2
+      },
+      "top_p": {
+        "default": 1,
+        "description": "Top-p (nucleus) sampling",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 5
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

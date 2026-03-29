@@ -31,7 +31,12 @@
   padding: 0;
 }
 
-
+/* tables – prevent wide tables from pushing the chat view wider */
+.markdown-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
 
 /* list */
 ol > li {

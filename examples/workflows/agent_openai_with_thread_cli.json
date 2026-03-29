@@ -1,0 +1,69 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "title", "type": "test.Input", "name": "title" },
+      { "id": "system", "type": "test.Input", "name": "system" },
+      { "id": "prompt", "type": "test.Input", "name": "prompt" },
+      { "id": "model", "type": "nodetool.input.LanguageModelInput", "name": "model" },
+      { "id": "thread", "type": "nodetool.agents.CreateThread" },
+      { "id": "thread_sink", "type": "nodetool.control.Reroute", "name": "thread_id" },
+      { "id": "agent", "type": "nodetool.agents.Agent" },
+      { "id": "text_sink", "type": "nodetool.control.Reroute", "name": "agent_text" }
+    ],
+    "edges": [
+      {
+        "source": "title",
+        "sourceHandle": "value",
+        "target": "thread",
+        "targetHandle": "title"
+      },
+      {
+        "source": "thread",
+        "sourceHandle": "thread_id",
+        "target": "thread_sink",
+        "targetHandle": "input_value"
+      },
+      {
+        "source": "thread",
+        "sourceHandle": "thread_id",
+        "target": "agent",
+        "targetHandle": "thread_id"
+      },
+      {
+        "source": "system",
+        "sourceHandle": "value",
+        "target": "agent",
+        "targetHandle": "system"
+      },
+      {
+        "source": "prompt",
+        "sourceHandle": "value",
+        "target": "agent",
+        "targetHandle": "prompt"
+      },
+      {
+        "source": "model",
+        "sourceHandle": "value",
+        "target": "agent",
+        "targetHandle": "model"
+      },
+      {
+        "source": "agent",
+        "sourceHandle": "text",
+        "target": "text_sink",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {
+    "title": "OpenAI Agent Demo",
+    "system": "You are an assistant that answers in bullet points.",
+    "prompt": "List two benefits of workflow automation.",
+    "model": {
+      "provider": "openai",
+      "id": "gpt-4o-mini",
+      "name": "GPT-4o Mini"
+    }
+  }
+}
+

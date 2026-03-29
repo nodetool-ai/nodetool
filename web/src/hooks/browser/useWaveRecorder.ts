@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
 import Record from "wavesurfer.js/dist/plugins/record";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -29,7 +29,8 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const [error, setError] = useState<string | null>(null);
   const [audioInputDevices, setAudioInputDevices] = useState<AudioDevice[]>([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState<string[]>([]);
-  const [selectedInputDeviceId, setSelectedInputDeviceId] = useState<string>("");
+  const [selectedInputDeviceId, setSelectedInputDeviceId] =
+    useState<string>("");
 
   const fetchAudioDeviceNames = useCallback(() => {
     if (!navigator.mediaDevices) {
@@ -206,15 +207,6 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
     fetchAudioDeviceNames();
   }, [fetchAudioDeviceNames]);
 
-  const memoizedAudioInputDevices = useMemo(
-    () => audioInputDevices,
-    [audioInputDevices]
-  );
-  const memoizedAudioOutputDevices = useMemo(
-    () => audioOutputDevices,
-    [audioOutputDevices]
-  );
-
   const handleInputDeviceChange = useCallback((deviceId: string) => {
     setSelectedInputDeviceId(deviceId);
   }, []);
@@ -226,8 +218,8 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
     handleRecord,
     isRecording,
     isLoading,
-    audioInputDevices: memoizedAudioInputDevices,
-    audioOutputDevices: memoizedAudioOutputDevices,
+    audioInputDevices,
+    audioOutputDevices,
     isDeviceListVisible,
     toggleDeviceListVisibility,
     selectedInputDeviceId,

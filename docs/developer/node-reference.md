@@ -1,282 +1,387 @@
 ---
 layout: page
 title: "Node Implementation Quick Reference"
+description: "Copy-paste templates and common patterns for building TypeScript nodes with @prop, process(), and genProcess()."
 ---
 
+## Essential Node Templates
+
+```ts
+import { BaseNode, prop } from "@nodetool/node-sdk";
 
 
-## Essential Node Template
+// SIMPLE PROCESSING NODE
+export class SimpleNode extends BaseNode {
+  static readonly nodeType = "mypackage.example.Simple";
+  static readonly title = "Simple Node";
+  static readonly description =
+    "Clear description of what this node does.\n" +
+    "    keyword1, keyword2, keyword3";
 
-```python
-from typing import Any, AsyncGenerator, TypedDict, ClassVar
-from pydantic import Field
-from nodetool.workflows.base_node import BaseNode, InputNode, OutputNode
-from nodetool.workflows.processing_context import ProcessingContext
+  static readonly metadataOutputTypes = {
+    output: "str",
+  };
 
+  @prop({ type: "str", default: "", title: "Input Value", description: "Help text" })
+  declare input_value: any;
 
-# SIMPLE PROCESSING NODE
-class SimpleNode(BaseNode):
-    """
-    Clear description of what this node does.
-    keyword1, keyword2, keyword3
-    
-    Use cases:
-    - What you can do with this
-    - Another useful application
-    - And one more example
-    """
-    
-    # Input properties
-    input_value: str = Field(default="", description="Help text")
-    threshold: int = Field(default=100, ge=0, le=255)
-    
-    # Optional: Custom title in UI
-    @classmethod
-    def get_title(cls):
-        return "Node Title"
-    
-    # Main execution method
-    async def process(self, context: ProcessingContext) -> str:
-        # Do work here
-        return f"Result: {self.input_value}"
+  @prop({ type: "int", default: 100, title: "Threshold", min: 0, max: 255 })
+  declare threshold: any;
+
+  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const value = String(inputs.input_value ?? this.input_value ?? "");
+    return { output: `Result: ${value}` };
+  }
+}
 
 
-# TYPED OUTPUT NODE
-class TypedNode(BaseNode):
-    """Multi-value output. keywords"""
-    
-    class OutputType(TypedDict):
-        text: str
-        count: int
-        success: bool
-    
-    async def process(self, context: ProcessingContext) -> OutputType:
-        return {
-            "text": "hello",
-            "count": 42,
-            "success": True
-        }
+// MULTI-OUTPUT NODE
+export class MultiOutputNode extends BaseNode {
+  static readonly nodeType = "mypackage.example.MultiOutput";
+  static readonly title = "Multi Output";
+  static readonly description = "Produces multiple outputs.\n    multi, output";
+
+  static readonly metadataOutputTypes = {
+    if_true: "any",
+    if_false: "any",
+  };
+
+  static readonly isStreamingOutput = true;
+
+  @prop({ type: "bool", default: false, title: "Condition" })
+  declare condition: any;
+
+  @prop({ type: "any", default: [], title: "Value" })
+  declare value: any;
+
+  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const condition = Boolean(inputs.condition ?? this.condition ?? false);
+    const value = inputs.value ?? this.value ?? null;
+    if (condition) {
+      return { if_true: value, if_false: null };
+    }
+    return { if_true: null, if_false: value };
+  }
+}
 
 
-# STREAMING/GENERATOR NODE
-class StreamingNode(BaseNode):
-    """Emit multiple items. keywords"""
-    
-    items: list[str] = []
-    
-    class OutputType(TypedDict):
-        item: str
-        index: int
-    
-    async def gen_process(
-        self, context: ProcessingContext
-    ) -> AsyncGenerator[OutputType, None]:
-        for i, item in enumerate(self.items):
-            yield {"item": item, "index": i}
+// STREAMING / GENERATOR NODE
+export class StreamingNode extends BaseNode {
+  static readonly nodeType = "mypackage.example.Streaming";
+  static readonly title = "Streaming Node";
+  static readonly description = "Emit multiple items.\n    stream, iterate";
+
+  static readonly metadataOutputTypes = {
+    output: "any",
+    index: "int",
+  };
+
+  static readonly isStreamingOutput = true;
+
+  @prop({ type: "list[any]", default: [], title: "Input List" })
+  declare input_list: any;
+
+  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async *genProcess(
+    inputs: Record<string, unknown>
+  ): AsyncGenerator<Record<string, unknown>> {
+    const values = (inputs.input_list ?? this.input_list ?? []) as unknown[];
+    const list = Array.isArray(values) ? values : [values];
+    for (const [index, item] of list.entries()) {
+      yield { output: item, index };
+    }
+  }
+}
 
 
-# INPUT NODE
-class CustomInput(InputNode):
-    """Parameter input. keywords"""
-    
-    value: str = ""
-    
-    @classmethod
-    def return_type(cls):
-        return str
-    
-    async def process(self, context: ProcessingContext) -> str:
-        return self.value
+// STATEFUL COLLECTOR NODE
+export class CollectorNode extends BaseNode {
+  static readonly nodeType = "mypackage.example.Collector";
+  static readonly title = "Collector";
+  static readonly description = "Collect streamed items.\n    collect, aggregate";
 
+  static readonly metadataOutputTypes = {
+    output: "list[any]",
+  };
 
-# OUTPUT NODE
-class CustomOutput(OutputNode):
-    """Collect output. keywords"""
-    
-    value: str = ""
-    
-    async def process(self, context: ProcessingContext) -> str:
-        return self.value
+  static readonly syncMode = "on_any" as const;
+
+  private _items: unknown[] = [];
+
+  @prop({ type: "any", default: [], title: "Input Item" })
+  declare input_item: any;
+
+  async initialize(): Promise<void> {
+    this._items = [];
+  }
+
+  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    if ("input_item" in inputs) {
+      this._items.push(inputs.input_item);
+    }
+    return { output: [...this._items] };
+  }
+}
 ```
 
-## Common Field Patterns
+## Common @prop Patterns
 
-```python
-# Text input
-text: str = Field(default="")
-text: str = Field(default="", description="Help text")
+```ts
+// Text input
+@prop({ type: "str", default: "", title: "Text" })
+declare text: any;
 
-# Number with constraints
-count: int = Field(default=0, ge=0, le=100)
-threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+@prop({ type: "str", default: "", title: "Text", description: "Help text" })
+declare text: any;
 
-# Optional
-optional_value: str | None = Field(default=None)
+// Number with constraints
+@prop({ type: "int", default: 0, title: "Count", min: 0, max: 100 })
+declare count: any;
 
-# List
-items: list[str] = Field(default=[])
-tags: list[str] = Field(
-    default=["tag1", "tag2"],
-    description="List of tags"
-)
+@prop({ type: "float", default: 0.5, title: "Threshold", min: 0.0, max: 1.0 })
+declare threshold: any;
 
-# Enum choices
-class MyEnum(str, Enum):
-    OPTION_A = "a"
-    OPTION_B = "b"
+// Boolean
+@prop({ type: "bool", default: false, title: "Enabled" })
+declare enabled: any;
 
-choice: MyEnum = Field(default=MyEnum.OPTION_A)
+// Optional (nullable)
+@prop({ type: "str", default: null, title: "Label" })
+declare label: any;
 
-# Model selections
-from nodetool.metadata.types import LanguageModel, ImageModel
+// List
+@prop({ type: "list[str]", default: [], title: "Tags", description: "List of tags" })
+declare tags: any;
 
-model: LanguageModel = Field(default=LanguageModel())
-image_model: ImageModel = Field(default=ImageModel())
+@prop({ type: "list[any]", default: [], title: "Items" })
+declare items: any;
 
-# Asset references
-from nodetool.metadata.types import ImageRef, AudioRef, VideoRef, DocumentRef, FolderRef
+// Enum choices (dropdown in UI)
+@prop({
+  type: "enum",
+  default: "option_a",
+  title: "Choice",
+  values: ["option_a", "option_b", "option_c"],
+})
+declare choice: any;
 
-image: ImageRef = Field(default=ImageRef())
-audio: AudioRef = Field(default=AudioRef())
-folder: FolderRef = Field(default=FolderRef())
+// Model selections
+@prop({ type: "language_model", default: null, title: "Model", required: true })
+declare model: any;
 
-# Data structures
-dataframe: DataframeRef = Field(default=DataframeRef())
-columns: RecordType = Field(default=RecordType())
+@prop({ type: "image_model", default: null, title: "Image Model", required: true })
+declare image_model: any;
+
+@prop({ type: "tts_model", default: null, title: "TTS Model", required: true })
+declare tts_model: any;
+
+// Asset references
+@prop({ type: "image", default: { type: "image", uri: "", data: null }, title: "Image" })
+declare image: any;
+
+@prop({ type: "audio", default: { type: "audio", uri: "", data: null }, title: "Audio" })
+declare audio: any;
+
+@prop({ type: "video", default: { type: "video", uri: "", data: null }, title: "Video" })
+declare video: any;
+
+@prop({ type: "document", default: { type: "document", uri: "", data: null }, title: "Document" })
+declare document: any;
+
+@prop({ type: "folder", default: { type: "folder", uri: "" }, title: "Folder" })
+declare folder: any;
+
+// Data structures
+@prop({ type: "dataframe", default: { type: "dataframe", uri: "", data: null }, title: "Data" })
+declare dataframe: any;
+
+@prop({ type: "dict[str, any]", default: {}, title: "Config" })
+declare config: any;
 ```
 
-## Processing Context Essentials
+## ProcessingContext Essentials
 
-```python
-# Get provider for LLM calls
-provider = await context.get_provider(Provider.OpenAI)
-result = await provider.generate_message(model="gpt-4", ...)
+The optional second argument to `process()` is a **`ProcessingContext`** from `@nodetool/runtime`. It provides access to secrets, provider predictions, and runtime services.
 
-# Work with images
-image = await context.image_from_bytes(bytes_data)
-pil_image = await context.image_to_pil(image_ref)
-new_image = await context.image_from_pil(pil_image)
+```ts
+import type { ProcessingContext } from "@nodetool/runtime";
 
-# Work with dataframes
-df = await context.dataframe_to_pandas(df_ref)
-new_df_ref = await context.dataframe_from_pandas(df)
+async process(
+  inputs: Record<string, unknown>,
+  context?: ProcessingContext
+): Promise<Record<string, unknown>> {
 
-# Work with assets
-asset = await context.create_asset(filename, mime_type, file_obj, parent_id)
-asset_url = await context.get_asset_url(asset_id)
-file_bytes = await context.asset_to_bytes(ref)
+  // Access injected secrets (requires static requiredSettings)
+  const apiKey =
+    (inputs._secrets as Record<string, string>)?.MY_API_KEY ||
+    process.env.MY_API_KEY ||
+    "";
 
-# Emit updates to UI
-context.post_message(SaveUpdate(
-    node_id=self.id,
-    name="filename",
-    value=result,
-    output_type="text"
-))
+  // Run a provider prediction (image generation, TTS, etc.)
+  if (context && typeof context.runProviderPrediction === "function") {
+    const output = await context.runProviderPrediction({
+      provider: "openai",
+      capability: "text_to_image",
+      model: "dall-e-3",
+      params: { prompt: "a cat" },
+    });
+  }
+
+  // Stream a provider prediction (e.g., TTS chunks)
+  if (context && typeof context.streamProviderPrediction === "function") {
+    for await (const chunk of context.streamProviderPrediction({
+      provider: "openai",
+      capability: "text_to_speech",
+      model: "tts-1",
+      params: { text: "hello" },
+    })) {
+      // process each chunk
+    }
+  }
+
+  // Resolve a secret manually
+  if (context && typeof context.getSecret === "function") {
+    const secret = await context.getSecret("SOME_KEY");
+  }
+
+  return { output: result };
+}
 ```
 
-## Input Nodes Quick List
+### Working with Media Bytes
 
-```text
-StringInput          - Text value
-IntegerInput         - Whole number (min/max)
-FloatInput           - Decimal (min/max)
-BooleanInput         - True/False toggle
-StringListInput      - List of strings
+Nodes handle media as ref objects. Extract bytes, process them, and return a new ref:
 
-HuggingFaceModelInput    - Select HF model
-LanguageModelInput       - Select LLM
-ImageModelInput          - Select image model
+```ts
+// Image: load bytes from ref
+async function imageBytesAsync(image: unknown): Promise<Uint8Array> {
+  if (!image || typeof image !== "object") return new Uint8Array();
+  const ref = image as { uri?: string; data?: Uint8Array | string };
+  if (ref.data) {
+    return ref.data instanceof Uint8Array
+      ? ref.data
+      : Uint8Array.from(Buffer.from(ref.data as string, "base64"));
+  }
+  if (ref.uri) {
+    const res = await fetch(ref.uri);
+    return new Uint8Array(await res.arrayBuffer());
+  }
+  return new Uint8Array();
+}
 
-ImageInput           - Image asset reference
-AudioInput           - Audio asset reference
-VideoInput           - Video asset reference
-DocumentInput        - Document asset reference
-AssetFolderInput     - Folder asset reference
-ColorInput           - Color picker
-CollectionInput      - Vector DB collection
+// Image: create ref from bytes
+function imageRef(data: Uint8Array, extras: Record<string, unknown> = {}): Record<string, unknown> {
+  return { data: Buffer.from(data).toString("base64"), ...extras };
+}
 
-FolderPathInput      - Local folder path
-FilePathInput        - Local file path
-DocumentFileInput    - Load document from file
+// Audio: same pattern
+function audioRefFromBytes(data: Uint8Array, uri?: string): Record<string, unknown> {
+  return { uri: uri ?? "", data: Buffer.from(data).toString("base64") };
+}
 ```
 
-## Output Nodes Quick List
+## Static Class Properties
 
-```text
-Output               - Generic output for any data type
+```ts
+// Declare output types (required for UI connectors)
+static readonly metadataOutputTypes = { output: "str", count: "int" };
+
+// Make available to agents
+static readonly exposeAsTool = true;
+
+// Enable dynamic input connectors
+static readonly isDynamic = true;
+
+// Support dynamic output slots
+static readonly supportsDynamicOutputs = true;
+
+// Stream output to downstream nodes one-at-a-time
+static readonly isStreamingOutput = true;
+
+// Accept streaming input
+static readonly isStreamingInput = true;
+
+// Control when the node fires
+static readonly syncMode = "zip_all" as const;   // wait for all inputs (default)
+static readonly syncMode = "on_any" as const;     // fire on any single input
+
+// Declare required secrets
+static readonly requiredSettings = ["OPENAI_API_KEY"];
+
+// Set basic fields shown first in UI
+static readonly basicFields = ["prompt", "model"];
 ```
 
-## Special Node Features
+## Lifecycle Hooks
 
-```python
-# Make available to agents
-_expose_as_tool: ClassVar[bool] = True
+```ts
+// Called once at the start of a workflow run -- reset state here
+async initialize(): Promise<void> {
+  this._items = [];
+}
 
-# Enable dynamic input connectors
-_is_dynamic: ClassVar[bool] = True
+// Called before each process() invocation
+async preProcess(): Promise<void> {}
 
-# Support dynamic output slots
-_supports_dynamic_outputs: ClassVar[bool] = True
-
-# Stream input instead of batching
-@classmethod
-def is_streaming_input(cls) -> bool:
-    return True
-
-# Emit streaming output
-@classmethod
-def is_streaming_output(cls) -> bool:
-    return True
-
-# Hide from UI (for base classes)
-@classmethod
-def is_visible(cls):
-    return cls is not BaseClass
-
-# Set basic fields shown first
-@classmethod
-def get_basic_fields(cls) -> list[str]:
-    return ["prompt", "model"]
-
-# Define required inputs
-def required_inputs(self):
-    return ["text"]
-
-# Set return type
-@classmethod
-def return_type(cls):
-    return dict
+// Called after all processing is complete
+async finalize(): Promise<void> {}
 ```
 
 ## Return Type Patterns
 
-```python
-# Simple return
-async def process(self, context) -> str:
-    return "result"
+```ts
+// Single output
+async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  return { output: "result" };
+}
 
-# Structured return (TypedDict)
-class OutputType(TypedDict):
-    text: str
-    score: float
+// Multiple outputs
+async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  return { text: "hello", score: 0.95 };
+}
 
-async def process(self, context) -> OutputType:
-    return {"text": "...", "score": 0.95}
+// Streaming (generator)
+async *genProcess(
+  inputs: Record<string, unknown>
+): AsyncGenerator<Record<string, unknown>> {
+  for (const item of items) {
+    yield { output: item, index: i };
+  }
+}
+```
 
-# Multiple possible types
-async def process(self, context) -> int | float | str:
-    return result
+## Input Node Quick List
 
-# Streaming (generator)
-async def gen_process(self, context) -> AsyncGenerator[dict, None]:
-    for item in items:
-        yield {"output": item}
+```text
+StringInput           - Text value
+IntegerInput          - Whole number (min/max)
+FloatInput            - Decimal (min/max)
+BooleanInput          - True/False toggle
+StringListInput       - List of strings
 
-# Custom run method (advanced)
-async def run(self, context, inputs: NodeInputs, outputs: NodeOutputs):
-    async for item in inputs.stream("input_field"):
-        await outputs.emit("output", processed_item)
+LanguageModelInput    - Select LLM
+ImageModelInput       - Select image model
+
+ImageInput            - Image asset reference
+AudioInput            - Audio asset reference
+VideoInput            - Video asset reference
+DocumentInput         - Document asset reference
+AssetFolderInput      - Folder asset reference
+ColorInput            - Color picker
+CollectionInput       - Vector DB collection
+
+FolderPathInput       - Local folder path
+FilePathInput         - Local file path
+DocumentFileInput     - Load document from file
+```
+
+## Output Node Quick List
+
+```text
+Output                - Generic output for any data type
 ```
 
 ## Docstring Keywords by Category
@@ -299,130 +404,47 @@ flow, condition, loop, iterator, generator, stream, branch, switch
 **I/O**
 input, output, load, save, read, write, import, export, download, upload
 
-## Common Node Patterns
-
-### Text Processing
-
-```python
-# Concatenate
-a: str
-b: str
-→ return self.a + self.b
-
-# Split by delimiter
-text: str
-delimiter: str
-→ return self.text.split(self.delimiter)
-
-# Pattern matching
-text: str
-pattern: str
-→ return re.findall(self.pattern, self.text)
-```
-
-### List Operations
-
-```python
-# Iterate with streaming
-input_list: list[Any]
-→ async def gen_process(...) -> AsyncGenerator[OutputType, None]:
-    for index, item in enumerate(self.input_list):
-        yield {"output": item, "index": index}
-
-# Collect streamed items
-input_item: Any
-→ async for item in inputs.stream("input_item"):
-    collected.append(item)
-```
-
-### Media Processing
-
-```python
-# Load and process image
-image: ImageRef
-→ pil_img = await context.image_to_pil(self.image)
-   processed = PIL.Image.apply_filter(pil_img)
-   return await context.image_from_pil(processed)
-
-# Work with files
-folder: str
-pattern: str
-→ async def gen_process(...) -> AsyncGenerator[OutputType, None]:
-    for file in os.listdir(self.folder):
-        if fnmatch(file, self.pattern):
-            yield {"file": file, ...}
-```
-
-### Provider Integration
-
-```python
-model: LanguageModel
-text: str
-→ provider = await context.get_provider(self.model.provider)
-   response = await provider.generate_message(
-       model=self.model.id,
-       messages=[...],
-       ...
-   )
-   return response.content
-```
-
-## File Organization
-
-```python
-my_node_file.py
-
-from pydantic import Field
-from typing import TypedDict, AsyncGenerator
-from nodetool.workflows.base_node import BaseNode
-from nodetool.workflows.processing_context import ProcessingContext
-
-class Node1(BaseNode):
-    """..."""
-    ...
-
-class Node2(BaseNode):
-    """..."""
-    ...
-
-# Multiple nodes can be in one file
-# All will be auto-discovered
-```
-
 ## Testing Pattern
 
-```python
-# nodes/nodetool/my_nodes.py
-class MyNode(BaseNode):
-    """My node. keywords"""
-    value: str = ""
-    
-    async def process(self, context: ProcessingContext) -> str:
-        return self.value.upper()
+```ts
+// packages/base-nodes/src/nodes/my-nodes.ts
+export class MyNode extends BaseNode {
+  static readonly nodeType = "mypackage.MyNode";
+  static readonly title = "My Node";
+  static readonly description = "My node.\n    keywords";
 
-# tests/nodetool/test_my_nodes.py
-import pytest
-from nodetool.nodes.nodetool.my_nodes import MyNode
+  static readonly metadataOutputTypes = { output: "str" };
 
-@pytest.mark.asyncio
-async def test_my_node():
-    # Mock context
-    node = MyNode(value="hello")
-    
-    # Would need proper context mock
-    # result = await node.process(context)
-    # assert result == "HELLO"
+  @prop({ type: "str", default: "", title: "Value" })
+  declare value: any;
+
+  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return { output: String(inputs.value ?? this.value ?? "").toUpperCase() };
+  }
+}
+
+// tests/my-nodes.test.ts
+import { describe, it, expect } from "vitest";
+import { MyNode } from "../src/nodes/my-nodes.js";
+
+describe("MyNode", () => {
+  it("uppercases input", async () => {
+    const node = new MyNode({ value: "hello" });
+    const result = await node.process({ value: "hello" });
+    expect(result.output).toBe("HELLO");
+  });
+});
 ```
 
 ## Key Reminders
 
-1. All nodes must be **async** (use `async def`)
-2. Docstring **keywords** are searchable and categorize the node
-3. Pydantic **Field** provides validation and UI hints
-4. **ProcessingContext** is your gateway to all services
-5. Use **TypedDict** for multiple outputs
-6. Use **AsyncGenerator** for streaming outputs
-7. Docstring format matters: "description. keywords" + "Use cases:"
-8. Node auto-discovery is automatic based on inheritance
-9. Always include helpful **descriptions** in Field
-10. Test with `pytest-asyncio` marker: `@pytest.mark.asyncio`
+1. All `process()` and `genProcess()` methods must be **async**
+2. Always declare **`metadataOutputTypes`** -- it drives the UI output connectors
+3. Use **`@prop`** for every input -- it provides validation, defaults, and UI hints
+4. Resolve inputs with `inputs.field ?? this.field ?? default`
+5. Return a plain object whose keys match the `metadataOutputTypes` keys
+6. Use **`genProcess()`** with `yield` for streaming outputs
+7. Use **`initialize()`** to reset state in stateful / collector nodes
+8. Declare **`requiredSettings`** for API keys; read them from `inputs._secrets`
+9. Node discovery is automatic when classes are registered in the package index
+10. Test with `vitest` -- nodes are plain classes, easy to instantiate and call

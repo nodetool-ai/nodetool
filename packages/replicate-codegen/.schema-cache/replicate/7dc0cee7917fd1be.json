@@ -1,0 +1,66 @@
+{
+  "modelId": "minimax/image-01",
+  "owner": "minimax",
+  "name": "image-01",
+  "version": "928f3bd6ac899108d0ab8cf7f91dfa39a03eda0175e94c9b4cd075776dececf0",
+  "description": "Minimax's first image model, with character reference support",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Image aspect ratio",
+        "enum": [
+          "1:1",
+          "16:9",
+          "4:3",
+          "3:2",
+          "2:3",
+          "3:4",
+          "9:16",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "number_of_images": {
+        "default": 1,
+        "description": "Number of images to generate",
+        "maximum": 9,
+        "minimum": 1,
+        "title": "Number Of Images",
+        "type": "integer"
+      },
+      "prompt": {
+        "description": "Text prompt for generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_optimizer": {
+        "default": true,
+        "description": "Use prompt optimizer",
+        "title": "Prompt Optimizer",
+        "type": "boolean"
+      },
+      "subject_reference": {
+        "description": "An optional character reference image (human face) to use as the subject in the generated image(s).",
+        "format": "uri",
+        "title": "Subject Reference",
+        "type": "string"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

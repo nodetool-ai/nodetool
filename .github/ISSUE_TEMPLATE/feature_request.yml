@@ -1,0 +1,68 @@
+name: Feature Request
+description: Suggest a new node, workflow capability, or improvement to NodeTool
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please describe your idea clearly so we can evaluate it.
+
+        **Before submitting**, please check:
+        - [Existing issues](https://github.com/nodetool-ai/nodetool/issues) for similar requests
+        - [Discord](https://discord.gg/WmQTWZRcYE) to discuss ideas with the community
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature Area
+      description: Which part of NodeTool does this relate to?
+      options:
+        - New node type
+        - Workflow editor (canvas / UI)
+        - Backend / execution engine
+        - Model management
+        - Chat / agent interface
+        - Asset management
+        - API / integrations
+        - Desktop app (Electron)
+        - Docker / deployment
+        - Developer / plugin API
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What problem does this feature solve? What use case does it enable?
+      placeholder: "I often need to... but currently I have to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature or change you'd like to see.
+      placeholder: "It would be great if NodeTool could..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you tried any workarounds or alternative approaches?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any mockups, examples, links, or other context that helps explain the request.
+    validations:
+      required: false

@@ -1,101 +1,162 @@
 ---
 layout: page
 title: "Global Chat"
+description: "Chat with AI models, run autonomous agents, and integrate workflows from anywhere in NodeTool."
 ---
 
 Global Chat is NodeTool's AI assistant interface for interacting with AI models from anywhere in the application. It supports multiple providers, autonomous agents, specialized tools, and workflow integration.
+
+---
 
 ## Overview
 
 Global Chat provides:
 
-- Chat with AI models (OpenAI, Anthropic, Google, local models)
-- Specialized tools for web search, image generation, etc.
-- Autonomous agents for complex task execution
-- Workflow and asset integration
-- Multiple conversation threads
+- Chat with AI models (OpenAI, Anthropic, Google, Ollama, and 20+ providers)
+- Specialized tools for web search, file operations, code execution, and more
+- Autonomous agents for complex multi-step task execution
+- Workflow integration -- run saved workflows directly from chat
+- Multiple conversation threads with history
+- Standalone chat window from system tray
 
 The chat maintains a persistent WebSocket connection and automatically reconnects after app reloads.
+
+---
 
 ## Getting Started
 
 ### Opening Global Chat
 
-- **From Dashboard**: Click the **Chat** icon in the left sidebar
-- **From Recent Threads**: Select a conversation from your Dashboard
-- **Quick Access**: Use the keyboard shortcut or system tray
+- **From the App**: Click **Chat** in the navigation menu
+- **Standalone Window**: Click the NodeTool system tray icon and select **Chat** for a dedicated, focused window
 
-### Interface Layout
+### Choosing a Model
 
-The Global Chat interface consists of:
+Select your preferred AI model from the model picker at the top of the chat. Available models depend on your configured providers:
 
-- **Thread List**: Left sidebar showing all your conversations
-- **Chat View**: Main conversation area with message history
-- **Input Area**: Message composer with tools and model selection
-- **Control Panel**: Model selection, tools, and settings
+- **Cloud models** -- OpenAI GPT, Anthropic Claude, Google Gemini (requires API keys)
+- **Local models** -- Ollama, LM Studio models (requires local installation)
 
-## Thread Management
+Configure providers in **Settings > Providers**. See [Models & Providers](models-and-providers.md).
 
-### Creating and Managing Threads
+---
 
-- **New Thread**: Click **New Chat** to start a fresh conversation
-- **Thread Switching**: Click any thread in the sidebar to switch
-- **Auto-Naming**: Threads are automatically named from your first message
-- **Thread Deletion**: Use the delete button to remove unwanted threads
-- **Thread Persistence**: All threads are saved and synced across sessions
+## Conversation Threads
 
-### Thread Features
+Global Chat organizes conversations into threads:
 
-- **Message History**: Complete conversation history with timestamps
-- **Rich Content**: Support for text, images, audio, and video messages
-- **Search**: Find specific messages within threads
-- **Export**: Save conversation history for external use
+- **Create threads** -- Click the **New Chat** button to start a fresh conversation
+- **Switch threads** -- Use the sidebar to navigate between conversations
+- **Delete threads** -- Remove conversations you no longer need
+- **Message history** -- Scroll through past messages with cursor-based pagination
+- **Message caching** -- Recent messages are cached locally for fast loading
 
-Use the search bar to find messages inside the current thread. The search is exact match and supports timestamp
-filtering.
-
-Threads are stored locally and synced via the backend. After restarts, the last used thread reopens automatically.
+---
 
 ## Agent Mode
 
 ### What is Agent Mode?
 
-Agent Mode enables autonomous task execution:
+Agent Mode enables autonomous task execution. When enabled, the AI can break down complex requests into steps, select appropriate tools, and execute multi-step plans without manual intervention.
 
-- **Plan tasks**: Break down requests into steps
-- **Use tools**: Select and apply available tools
-- **Execute workflows**: Complete multi-step tasks
-- **Analyze results**: Adjust strategy based on outcomes
+Toggle Agent Mode using the switch in the chat controls.
+
+### How Agents Work
+
+1. **Planning** -- The agent analyzes your request and creates a task plan with ordered steps
+2. **Tool selection** -- For each step, the agent chooses from 20+ available tools
+3. **Execution** -- Steps run sequentially, with results feeding into subsequent steps
+4. **Adaptation** -- The agent adjusts its plan based on intermediate results
+5. **Reporting** -- Progress updates stream in real-time as tasks complete
 
 ### Agent Capabilities
 
-With Agent Mode enabled:
+With Agent Mode enabled, the assistant can:
 
-- **Web Research**: Conduct research using search tools
-- **Content Creation**: Generate and refine content
-- **Problem Solving**: Work through problems step by step
-- **Task Management**: Execute multi-part projects
+| Capability | Examples |
+|------------|---------|
+| **Web research** | Search the web, browse pages, extract content |
+| **File operations** | Read, write, and organize files in your workspace |
+| **Code execution** | Run JavaScript in a sandboxed environment |
+| **Data analysis** | Perform calculations, query vector databases |
+| **Document processing** | Extract text from PDFs, process emails |
+| **Asset management** | Create, organize, and index assets |
+| **HTTP requests** | Call external APIs and process responses |
+| **Workflow execution** | Run saved NodeTool workflows with custom inputs |
 
-### Agent Planning
+### Viewing Agent Progress
 
-The agent:
+When an agent is executing tasks, you'll see:
 
-- **Divides tasks** into subtasks
-- **Sequences operations** optimally
-- **Manages dependencies** between tasks
-- **Adapts** based on intermediate results
+- **Task plan** -- The breakdown of steps the agent will execute
+- **Step status** -- Real-time updates as each step starts, completes, or fails
+- **Tool calls** -- Which tools the agent is using and their results
+- **Thinking process** -- The agent's reasoning (when supported by the model)
 
-### Planning Updates
+---
 
-During agent execution, you'll see:
+## Workflow Integration
 
-- **Current Plan**: The agent's overall strategy
-- **Active Task**: What the agent is currently working on
-- **Progress Updates**: Real-time status of task execution
-- **Reasoning**: The agent's thought process and decision-making
+### Running Workflows from Chat
 
-When an agent creates or modifies a workflow, Global Chat sends `workflow_created` or `workflow_updated` events. Open
-editors update automatically through auto-layout.
+1. Save a workflow in the workflow editor
+2. Open Global Chat
+3. Select a **workflow** in the composer dropdown
+4. Provide inputs and run -- results stream back into the chat
 
-Frontend tools (`ui_add_node`, `ui_align_nodes`, etc.) allow the agent to manipulate the editor directly. You can
-inspect which tools are available by opening the Tools menu in the Chat input panel.
+### Creating Workflows from Chat
+
+In Agent Mode, you can ask the agent to create or modify workflows. The agent uses workspace tools to build workflow configurations programmatically.
+
+---
+
+## Available Tools
+
+Global Chat agents have access to a comprehensive tool suite:
+
+### Built-in Tools
+
+| Tool Category | What It Does |
+|--------------|--------------|
+| **Browser** | Navigate web pages, extract content, take screenshots |
+| **Search** | Web search via multiple search providers |
+| **Filesystem** | Read/write files, list directories, manage workspace |
+| **Code** | Execute JavaScript in a sandboxed environment |
+| **Calculator** | Perform mathematical calculations |
+| **HTTP** | Make HTTP requests to external APIs |
+| **PDF** | Extract text and data from PDF documents |
+| **Email** | Read and process email messages |
+| **Assets** | Upload, organize, and manage NodeTool assets |
+| **Vectors** | Query and manage vector database collections |
+| **Google** | Interact with Google APIs (search, drive, etc.) |
+| **Workspace** | Manage NodeTool workspace settings and files |
+
+### MCP Tools (Model Context Protocol)
+
+NodeTool supports MCP for connecting to external tool servers. This enables integrating custom tools and services beyond the built-in set. See the [MCP documentation](https://modelcontextprotocol.io/) for details on available MCP servers.
+
+---
+
+## Standalone Chat Window
+
+Access chat in a focused, dedicated window outside the main app:
+
+1. Click the NodeTool icon in your system tray
+2. Select **Chat** from the menu
+3. A new window opens with just the chat interface
+
+The standalone window is useful for:
+- Quick questions without switching to the full app
+- Running agents in the background while doing other work
+- Using chat as a general-purpose AI assistant
+
+---
+
+## Next Steps
+
+- [Global Chat & Agents](global-chat-agents.md) -- Agent CLI and API integration
+- [Chat API](chat-api.md) -- Programmatic access for running chats
+- [Chat CLI](chat-cli.md) -- Command-line chat interface
+- [Agent CLI](agent-cli.md) -- Run autonomous agents from the terminal
+- [Models & Providers](models-and-providers.md) -- Configure AI providers
+- [Cookbook](cookbook.md) -- Agent workflow patterns

@@ -1,0 +1,100 @@
+{
+  "modelId": "openai/gpt-4.1",
+  "owner": "openai",
+  "name": "gpt-4.1",
+  "version": "f7e65222875892b7893e5c7581bdde9056c78cd77171a315c369b63b8907a619",
+  "description": "OpenAI's Flagship GPT model for complex tasks.",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0,
+        "description": "Frequency penalty parameter - positive values penalize the repetition of tokens.",
+        "maximum": 2,
+        "minimum": -2,
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 7
+      },
+      "image_input": {
+        "default": [],
+        "description": "List of images to send to the model",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 3
+      },
+      "max_completion_tokens": {
+        "default": 4096,
+        "description": "Maximum number of completion tokens to generate",
+        "title": "Max Completion Tokens",
+        "type": "integer",
+        "x-order": 5
+      },
+      "messages": {
+        "default": [],
+        "description": "A JSON string representing a list of messages. For example: [{\"role\": \"user\", \"content\": \"Hello, how are you?\"}]. If provided, prompt and system_prompt are ignored.",
+        "items": {
+          "type": "object"
+        },
+        "title": "Messages",
+        "type": "array",
+        "x-order": 2
+      },
+      "presence_penalty": {
+        "default": 0,
+        "description": "Presence penalty parameter - positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.",
+        "maximum": 2,
+        "minimum": -2,
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 8
+      },
+      "prompt": {
+        "description": "The prompt to send to the model. Do not use if using messages.",
+        "nullable": true,
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "system_prompt": {
+        "description": "System prompt to set the assistant's behavior",
+        "nullable": true,
+        "title": "System Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Sampling temperature between 0 and 2",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 4
+      },
+      "top_p": {
+        "default": 1,
+        "description": "Nucleus sampling parameter - the model considers the results of the tokens with top_p probability mass. (0.1 means only the tokens comprising the top 10% probability mass are considered.)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Top P",
+        "type": "number",
+        "x-order": 6
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

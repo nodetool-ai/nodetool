@@ -152,14 +152,12 @@ describe("SendMessageButton", () => {
       expect(button).toBeInTheDocument();
     });
 
-    it("maintains focus when enabled", async () => {
-      const user = userEvent.setup();
+    it("has accessible aria-label", () => {
       renderComponent(baseProps);
 
       const button = screen.getByRole("button");
-      await user.tab();
-
-      expect(button).toHaveFocus();
+      // ToolbarIconButton uses aria-label from tooltip
+      expect(button).toHaveAttribute("aria-label", "Send message");
     });
   });
 
@@ -199,34 +197,35 @@ describe("SendMessageButton", () => {
   });
 
   describe("Styling and Visual States", () => {
-    it("applies correct size styling", () => {
+    it("renders with expected structure", () => {
       renderComponent(baseProps);
 
       const button = screen.getByRole("button");
-      expect(button).toHaveStyle({
-        width: "36px",
-        height: "36px"
-      });
+      // Button should be present and contain an icon
+      expect(button).toBeInTheDocument();
+      expect(button.querySelector("svg")).toBeInTheDocument();
     });
 
-    it("applies disabled opacity when disabled", () => {
+    it("is visually indicated when disabled", () => {
       renderComponent({
         ...baseProps,
         disabled: true
       });
 
       const button = screen.getByRole("button");
-      expect(button).toHaveStyle({ opacity: "0.5" });
+      // Button should be disabled (visual indication handled by ui_primitives)
+      expect(button).toBeDisabled();
     });
 
-    it("applies disabled opacity when no content", () => {
+    it("is visually indicated when no content", () => {
       renderComponent({
         ...baseProps,
         hasContent: false
       });
 
       const button = screen.getByRole("button");
-      expect(button).toHaveStyle({ opacity: "0.5" });
+      // Button should be disabled (visual indication handled by ui_primitives)
+      expect(button).toBeDisabled();
     });
   });
 

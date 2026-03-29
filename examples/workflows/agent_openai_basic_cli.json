@@ -1,0 +1,47 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "system", "type": "test.Input", "name": "system" },
+      { "id": "prompt", "type": "test.Input", "name": "prompt" },
+      { "id": "model", "type": "nodetool.input.LanguageModelInput", "name": "model" },
+      { "id": "agent", "type": "nodetool.agents.Agent" },
+      { "id": "sink", "type": "nodetool.control.Reroute", "name": "agent_text" }
+    ],
+    "edges": [
+      {
+        "source": "system",
+        "sourceHandle": "value",
+        "target": "agent",
+        "targetHandle": "system"
+      },
+      {
+        "source": "prompt",
+        "sourceHandle": "value",
+        "target": "agent",
+        "targetHandle": "prompt"
+      },
+      {
+        "source": "model",
+        "sourceHandle": "value",
+        "target": "agent",
+        "targetHandle": "model"
+      },
+      {
+        "source": "agent",
+        "sourceHandle": "text",
+        "target": "sink",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {
+    "system": "You are a concise assistant.",
+    "prompt": "Write one sentence about NodeTool workflows.",
+    "model": {
+      "provider": "openai",
+      "id": "gpt-4o",
+      "name": "GPT-4o"
+    }
+  }
+}
+

@@ -6,7 +6,7 @@
  * messages until connected, retries with exponential-ish backoff, and enforces
  * valid transitions to avoid double-connect/disconnect races.
  */
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 import { encode, decode } from "@msgpack/msgpack";
 import log from "loglevel";
 
@@ -32,7 +32,7 @@ export interface WebSocketConfig {
 export interface WebSocketMessage {
   type?: string;
   command?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ConnectionStateTransition {
@@ -63,7 +63,7 @@ const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
     to: "reconnecting"
   },
   failed: {
-    from: ["connecting", "reconnecting"],
+    from: ["connecting", "reconnecting", "disconnected"],
     to: "failed"
   }
 };
@@ -208,10 +208,12 @@ export class WebSocketManager extends EventEmitter {
   private setupEventHandlers(): void {
     if (!this.ws) {return;}
 
-    this.ws.onopen = this.handleOpen.bind(this);
-    this.ws.onmessage = this.handleMessage.bind(this);
-    this.ws.onerror = this.handleError.bind(this);
-    this.ws.onclose = this.handleClose.bind(this);
+    // Assign handlers directly (already bound as class methods)
+    // This avoids creating new function references on each call
+    this.ws.onopen = () => this.handleOpen();
+    this.ws.onmessage = (event) => this.handleMessage(event);
+    this.ws.onerror = (event) => this.handleError(event);
+    this.ws.onclose = (event) => this.handleClose(event);
   }
 
   private handleOpen(): void {
@@ -239,7 +241,7 @@ export class WebSocketManager extends EventEmitter {
 
   private async handleMessage(event: MessageEvent): Promise<void> {
     try {
-      let data: any;
+      let data: unknown;
 
       if (this.config.binaryType === "arraybuffer") {
         if (event.data instanceof ArrayBuffer) {
@@ -311,6 +313,7 @@ export class WebSocketManager extends EventEmitter {
       this.scheduleReconnect();
     } else if (!this.intentionalDisconnect) {
       this.transitionTo("failed");
+      log.warn(`Connection failed after ${this.reconnectAttempt} attempts`);
     }
   }
 
@@ -412,7 +415,7 @@ export class WebSocketManager extends EventEmitter {
   private getReconnectDelay(): number {
     const delay = Math.min(
       this.config.reconnectInterval *
-        Math.pow(this.config.reconnectDecay, this.reconnectAttempt - 1),
+        Math.pow(this.config.reconnectDecay, this.reconnectAttempt),
       30000 // Max 30 seconds
     );
     return delay;

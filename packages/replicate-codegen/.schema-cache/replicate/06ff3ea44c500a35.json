@@ -1,0 +1,35 @@
+{
+  "modelId": "men1scus/birefnet",
+  "owner": "men1scus",
+  "name": "birefnet",
+  "version": "f74986db0355b58403ed20963af156525e2891ea3c2d499bfbfb2a28cd87c5d7",
+  "description": "Bilateral Reference for High-Resolution Dichotomous Image Segmentation (CAAI AIR 2024)",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "resolution": {
+        "default": "",
+        "description": "Resolution in WxH format, e.g., '1024x1024'",
+        "title": "Resolution",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

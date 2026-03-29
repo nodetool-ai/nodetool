@@ -2,12 +2,12 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-export const outputStyles = (theme: Theme) =>
+export const outputStyles = (theme: Theme, hasActions = true) =>
   css({
     "&": {
       position: "relative",
       backgroundColor: "transparent",
-      height: "calc(100% - 43px)",
+      height: hasActions ? "calc(100% - 43px)" : "100%",
       width: "100%",
       padding: ".25em",
       overflow: "auto",

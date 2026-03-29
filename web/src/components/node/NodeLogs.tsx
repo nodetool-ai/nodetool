@@ -17,10 +17,13 @@ import {
   Box
 } from "@mui/material";
 import useLogsStore from "../../stores/LogStore";
+import { shallow } from "zustand/shallow";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import isEqual from "lodash/isEqual";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
+import log from "loglevel";
 
 type NodeLogsProps = {
   id: string;
@@ -61,7 +64,14 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();
     const logsRef = useRef<HTMLDivElement>(null);
-    const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+    const logs = useStoreWithEqualityFn(
+      useLogsStore,
+      (state) =>
+        state.logs.filter(
+          (log) => log.workflowId === workflowId && log.nodeId === id
+        ),
+      shallow
+    );
     const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>(
       []
     );
@@ -80,7 +90,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
         return;
       }
       navigator.clipboard?.writeText(text).catch((err) => {
-        console.warn("Failed to copy logs to clipboard:", err);
+        log.warn("Failed to copy logs to clipboard:", err);
       });
     }, [logs]);
 
@@ -89,6 +99,30 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
         logsRef.current.scrollTop = logsRef.current.scrollHeight;
       }
     }, [logs]);
+
+    const toggleSeverity = useCallback(
+      (severity: Severity) => () => {
+        setSelectedSeverities((prev) =>
+          prev.includes(severity)
+            ? prev.filter((s) => s !== severity)
+            : [...prev, severity]
+        );
+      },
+      []
+    );
+
+    const toggleInfoSeverity = useCallback(
+      () => toggleSeverity("info"),
+      [toggleSeverity]
+    );
+    const toggleWarningSeverity = useCallback(
+      () => toggleSeverity("warning"),
+      [toggleSeverity]
+    );
+    const toggleErrorSeverity = useCallback(
+      () => toggleSeverity("error"),
+      [toggleSeverity]
+    );
 
     return (
       <Dialog
@@ -135,13 +169,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("info") ? "filled" : "outlined"
               }
-              onClick={() =>
-                setSelectedSeverities((prev) =>
-                  prev.includes("info")
-                    ? prev.filter((s) => s !== "info")
-                    : [...prev, "info"]
-                )
-              }
+              onClick={toggleInfoSeverity}
             />
             <Chip
               size="small"
@@ -150,13 +178,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("warning") ? "filled" : "outlined"
               }
-              onClick={() =>
-                setSelectedSeverities((prev) =>
-                  prev.includes("warning")
-                    ? prev.filter((s) => s !== "warning")
-                    : [...prev, "warning"]
-                )
-              }
+              onClick={toggleWarningSeverity}
             />
             <Chip
               size="small"
@@ -165,13 +187,25 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("error") ? "filled" : "outlined"
               }
-              onClick={() =>
-                setSelectedSeverities((prev) =>
-                  prev.includes("error")
-                    ? prev.filter((s) => s !== "error")
-                    : [...prev, "error"]
-                )
+              onClick={toggleErrorSeverity}
+            />
+            <Chip
+              size="small"
+              label={`Warnings`}
+              color="warning"
+              variant={
+                selectedSeverities.includes("warning") ? "filled" : "outlined"
               }
+              onClick={toggleWarningSeverity}
+            />
+            <Chip
+              size="small"
+              label={`Errors`}
+              color="error"
+              variant={
+                selectedSeverities.includes("error") ? "filled" : "outlined"
+              }
+              onClick={toggleErrorSeverity}
             />
           </Box>
           <div style={{ padding: 10 }} ref={logsRef}>
@@ -201,10 +235,25 @@ NodeLogsDialog.displayName = "NodeLogsDialog";
 
 export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const theme = useTheme();
-  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+  const logs = useStoreWithEqualityFn(
+    useLogsStore,
+    (state) =>
+      state.logs.filter(
+        (log) => log.workflowId === workflowId && log.nodeId === id
+      ),
+    shallow
+  );
   const [open, setOpen] = useState(false);
 
   const count = logs?.length || 0;
+
+  const handleOpen = useCallback(() => {
+    setOpen(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, []);
 
   if (count === 0) {
     return null;
@@ -217,7 +266,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
           className="logs-button"
           size="small"
           variant="contained"
-          onClick={() => setOpen(true)}
+          onClick={handleOpen}
           startIcon={<ListAltIcon />}
         >
           <span>Logs</span>
@@ -229,7 +278,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
         id={id}
         workflowId={workflowId}
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
       />
     </div>
   );

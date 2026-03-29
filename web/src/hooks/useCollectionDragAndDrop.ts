@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
+import log from "loglevel";
 
 // Define a type for the expected error structure from the API
 interface ApiErrorDetail {
@@ -18,6 +19,29 @@ interface IndexResponseData {
   error?: string | null;
 }
 
+/**
+ * Custom hook for handling drag-and-drop file operations on collections.
+ * 
+ * Manages file indexing when files are dropped onto a collection, tracking
+ * progress and errors for each file processed. Uses React Query for cache
+ * invalidation after file operations.
+ * 
+ * @returns Object containing drag state, progress tracking, and event handlers
+ * 
+ * @example
+ * ```typescript
+ * const { dragOverCollection, indexProgress, handleDrop } = useCollectionDragAndDrop();
+ * 
+ * return (
+ *   <div
+ *     onDragOver={(e) => handleDragOver(e, "my-collection")}
+ *     onDrop={handleDrop("my-collection")}
+ *   >
+ *     Drop files here
+ *   </div>
+ * );
+ * ```
+ */
 export const useCollectionDragAndDrop = () => {
   const queryClient = useQueryClient();
   const [dragOverCollection, setDragOverCollection] = useState<string | null>(
@@ -61,12 +85,13 @@ export const useCollectionDragAndDrop = () => {
           formData.append("file", file);
 
           try {
-            // Prepare options object separately to bypass strict body typing
-            const requestOptions: any = {
+            // Prepare options object with proper types for FormData
+            // The API client expects specific body types, but FormData needs special handling
+            const requestOptions = {
               params: {
                 path: { name: collectionName }
               },
-              body: formData
+              body: formData as unknown as { file: string }
               // Content-Type is set automatically for FormData
             };
 
@@ -88,11 +113,11 @@ export const useCollectionDragAndDrop = () => {
                   "Unknown error"
               });
             }
-          } catch (err: any) {
-            console.error(`Failed to index file ${file.name}:`, err);
+          } catch (err: unknown) {
+            log.error(`Failed to index file ${file.name}:`, err);
             errors.push({
               file: file.name,
-              error: String(err?.message || err)
+              error: err instanceof Error ? err.message : String(err)
             });
           } finally {
             completed++;

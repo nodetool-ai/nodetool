@@ -1,14 +1,16 @@
 import { NodeMetadata } from "../stores/ApiTypes";
+import { sanitizeText } from "./sanitize";
 
 export const escapeHtml = (text: string): string => {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+  return sanitizeText(text);
 };
 
 // Convert hex color to RGB values
 export const hexToRgb = (hex: string) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const normalizedHex = hex.trim();
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
+    normalizedHex
+  );
   if (!result) {return null;}
   return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
     result[3],
@@ -38,31 +40,30 @@ export const highlightText = (
     return { html, highlightedWords };
   }
 
+  // Memoize expensive string operations
+  const searchTermLower = searchTerm.toLowerCase();
+  const searchTermNoSpace = searchTermLower.replace(/\s+/g, "");
+
   // Get matches for this key
   const matches = searchInfo.matches
     .filter((match) => match.key === key)
     .flatMap((match) =>
-      match.indices.map(([start, end]) => ({
-        start,
-        end,
-        text: text.slice(start, end + 1),
-        length: end - start + 1,
-        // Calculate similarity to search term
-        relevance: searchTerm
-          ? text
-              .slice(start, end + 1)
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())
+      match.indices.map(([start, end]) => {
+        const matchText = text.slice(start, end + 1);
+        const matchTextLower = matchText.toLowerCase();
+        return {
+          start,
+          end,
+          text: matchText,
+          length: end - start + 1,
+          // Calculate similarity to search term
+          relevance: matchTextLower.includes(searchTermLower)
             ? 2
-            : text
-                .slice(start, end + 1)
-                .toLowerCase()
-                .replace(/\s+/g, "")
-                .includes(searchTerm.toLowerCase().replace(/\s+/g, ""))
-            ? 1
-            : 0
-          : 0
-      }))
+            : matchTextLower.replace(/\s+/g, "").includes(searchTermNoSpace)
+              ? 1
+              : 0
+        };
+      })
     )
     .filter((match) => match.start < text.length); // Validate bounds
 
@@ -100,8 +101,6 @@ export const highlightText = (
 
   // Find the best match for coloring (most relevant and longest)
   const bestMatch = nonOverlappingMatches[0];
-  const longestLength =
-    orderedMatches.length > 0 ? orderedMatches[0].length : 0;
 
   // Build highlighted HTML
   const parts: string[] = [];

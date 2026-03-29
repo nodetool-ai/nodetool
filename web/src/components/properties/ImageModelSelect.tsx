@@ -2,12 +2,12 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import ImageModelMenuDialog from "../model_menu/ImageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ImageModel } from "../../stores/ApiTypes";
+import type { ImageModel, ImageModelValue } from "../../stores/ApiTypes";
 import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface ImageModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: ImageModelValue) => void;
   value: string;
   task?: "text_to_image" | "image_to_image";
 }
@@ -17,7 +17,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   value,
   task
 }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
@@ -83,12 +83,12 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
     return { label: "Select Image Model", secondaryLabel: undefined };
   }, [currentSelectedModelDetails, value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -106,7 +106,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         id: model.id || "",
         name: model.name || ""
       });
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent]
   );
@@ -115,7 +115,6 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
     <>
       <ModelSelectButton
         ref={buttonRef}
-        className="image-model-button"
         active={!!value}
         label={displayInfo.label}
         secondaryLabel={displayInfo.secondaryLabel}
@@ -123,7 +122,8 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         onClick={handleClick}
       />
       <ImageModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}

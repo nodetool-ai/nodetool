@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, memo } from "react";
 import {
   Node,
   Edge,
@@ -15,6 +15,7 @@ import {
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
+import log from "loglevel";
 
 const styles = (_theme: Theme) =>
   css({
@@ -26,7 +27,8 @@ const styles = (_theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      minHeight: 0
+      minHeight: 0,
+      padding: "0 20px 20px 20px",
     },
     ".chat-thread-container": {
       flex: 1,
@@ -53,15 +55,15 @@ const styles = (_theme: Theme) =>
 
 type ChatViewProps = {
   status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
   progress: number;
   total: number;
   messages: Array<Message>;
@@ -164,7 +166,7 @@ const ChatView = ({
           workflow_target: graph ? "workflow" : undefined
         });
       } catch (error) {
-        console.error("Error sending message:", error);
+        log.error("Error sending message:", error);
       }
     },
     [
@@ -224,4 +226,4 @@ const ChatView = ({
   );
 };
 
-export default ChatView;
+export default memo(ChatView);

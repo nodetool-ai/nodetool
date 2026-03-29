@@ -8,7 +8,7 @@ type Log = {
   content: string;
   severity: "info" | "warning" | "error";
   timestamp: number;
-  data?: any;
+  data?: unknown;
 };
 
 type LogsStore = {

@@ -115,10 +115,12 @@ describe("selectionBounds", () => {
   });
 
   describe("getNodesWithinSelection", () => {
+    // Nodes that are fully enclosed within rect { x: 0, y: 0, width: 100, height: 100 }
     const mockNode1: Node = {
       id: "1",
       type: "default",
       position: { x: 10, y: 10 },
+      measured: { width: 20, height: 20 },
       data: {}
     };
 
@@ -126,14 +128,25 @@ describe("selectionBounds", () => {
       id: "2",
       type: "group",
       position: { x: 50, y: 50 },
+      measured: { width: 20, height: 20 },
       data: {}
     };
 
-    const mockInstance = {
-      getIntersectingNodes: jest.fn()
-    } as unknown as ReactFlowInstance<Node, Edge>;
+    // Node that is NOT fully enclosed (extends beyond rect boundary)
+    const mockNodeOutside: Node = {
+      id: "3",
+      type: "default",
+      position: { x: 80, y: 80 },
+      measured: { width: 50, height: 50 },
+      data: {}
+    };
+
+    let mockInstance: ReactFlowInstance<Node, Edge>;
 
     beforeEach(() => {
+      mockInstance = {
+        getNodes: jest.fn()
+      } as unknown as ReactFlowInstance<Node, Edge>;
       jest.clearAllMocks();
     });
 
@@ -148,21 +161,22 @@ describe("selectionBounds", () => {
       expect(result).toEqual([]);
     });
 
-    it("returns all intersecting nodes when no predicate provided", () => {
+    it("returns all fully enclosed nodes when no predicate provided", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
-      const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue(mockNodes);
+      const mockNodes = [mockNode1, mockNode2, mockNodeOutside];
+      (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
 
       const result = getNodesWithinSelection(mockInstance, rect);
       
-      expect(mockInstance.getIntersectingNodes).toHaveBeenCalledWith(rect, false);
-      expect(result).toEqual(mockNodes);
+      expect(mockInstance.getNodes).toHaveBeenCalled();
+      // Only mockNode1 and mockNode2 are fully enclosed
+      expect(result).toEqual([mockNode1, mockNode2]);
     });
 
     it("filters nodes with predicate", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
       const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue(mockNodes);
+      (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
 
       const predicate = (node: Node) => node.type === "group";
       const result = getNodesWithinSelection(mockInstance, rect, predicate);
@@ -173,7 +187,7 @@ describe("selectionBounds", () => {
     it("returns empty array when no nodes match predicate", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
       const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue(mockNodes);
+      (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
 
       const predicate = (node: Node) => node.type === "custom";
       const result = getNodesWithinSelection(mockInstance, rect, predicate);
@@ -181,9 +195,9 @@ describe("selectionBounds", () => {
       expect(result).toEqual([]);
     });
 
-    it("handles empty intersecting nodes array", () => {
+    it("handles empty nodes array", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue([]);
+      (mockInstance.getNodes as jest.Mock).mockReturnValue([]);
 
       const result = getNodesWithinSelection(mockInstance, rect);
       

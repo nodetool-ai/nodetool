@@ -1,0 +1,110 @@
+{
+  "modelId": "zsxkib/seedvr2",
+  "owner": "zsxkib",
+  "name": "seedvr2",
+  "version": "ca98249be9cb623f02a80a7851a2b1a33d5104c251a8f5a1588f251f79bf7c78",
+  "description": "🔥 SeedVR2: one-step video & image restoration with 3B/7B hot‑swap and optional color fix 🎬✨",
+  "inputSchema": {
+    "properties": {
+      "apply_color_fix": {
+        "default": false,
+        "description": "Apply optional wavelet color correction (matches official demo).",
+        "title": "Apply Color Fix",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "cfg_scale": {
+        "default": 1,
+        "description": "Classifier-free guidance scale (higher = stronger restoration).",
+        "maximum": 15,
+        "minimum": 0,
+        "title": "Cfg Scale",
+        "type": "number",
+        "x-order": 1
+      },
+      "fps": {
+        "default": 24,
+        "description": "Frames-per-second for video outputs.",
+        "maximum": 120,
+        "minimum": 1,
+        "title": "Fps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "media": {
+        "description": "Video (mp4/mov) or image (png/jpg/webp) to restore.",
+        "format": "uri",
+        "title": "Media",
+        "type": "string",
+        "x-order": 0
+      },
+      "model_variant": {
+        "default": "3b",
+        "description": "Model size to run.",
+        "enum": [
+          "3b",
+          "7b"
+        ],
+        "title": "model_variant",
+        "type": "string",
+        "x-order": 9
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Image output format (only used for image inputs).",
+        "enum": [
+          "png",
+          "webp",
+          "jpg"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 6
+      },
+      "output_quality": {
+        "default": 90,
+        "description": "Image quality for lossy formats (jpg/webp).",
+        "maximum": 100,
+        "minimum": 10,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 7
+      },
+      "sample_steps": {
+        "default": 1,
+        "description": "Sampling steps (1 = fast one-step mode).",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Sample Steps",
+        "type": "integer",
+        "x-order": 2
+      },
+      "seed": {
+        "description": "Random seed. Leave blank for a random seed each call.",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 5
+      },
+      "sp_size": {
+        "default": 1,
+        "description": "Sequence-parallel shard heuristic (single-GPU build only accepts 1).",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Sp Size",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "media"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

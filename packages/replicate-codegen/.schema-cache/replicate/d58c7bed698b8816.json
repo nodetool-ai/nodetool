@@ -1,0 +1,36 @@
+{
+  "modelId": "codeplugtech/face-swap",
+  "owner": "codeplugtech",
+  "name": "face-swap",
+  "version": "278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34",
+  "description": "Advance Face Swap powered by pixalto.app",
+  "inputSchema": {
+    "properties": {
+      "input_image": {
+        "description": "Target image",
+        "format": "uri",
+        "title": "Input Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "swap_image": {
+        "description": "Swap image",
+        "format": "uri",
+        "title": "Swap Image",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "input_image",
+      "swap_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "modelId": "fofr/style-transfer",
+  "owner": "fofr",
+  "name": "style-transfer",
+  "version": "f1023890703bc0a5a3a2c21b5e498833be5f6ef6e70e9daf6b9b3a4fd8309cf0",
+  "description": "Transfer the style of one image to another",
+  "inputSchema": {
+    "properties": {
+      "height": {
+        "default": 1024,
+        "description": "Height of the output image (ignored if structure image given)",
+        "title": "Height",
+        "type": "integer",
+        "x-order": 5
+      },
+      "model": {
+        "default": "fast",
+        "description": "Model to use for the generation",
+        "enum": [
+          "fast",
+          "high-quality",
+          "realistic",
+          "cinematic",
+          "animated"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 6
+      },
+      "negative_prompt": {
+        "default": "",
+        "description": "Things you do not want to see in your image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "number_of_images": {
+        "default": 1,
+        "description": "Number of images to generate",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Number Of Images",
+        "type": "integer",
+        "x-order": 7
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 10
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 11
+      },
+      "prompt": {
+        "default": "An astronaut riding a unicorn",
+        "description": "Prompt for the image",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "seed": {
+        "description": "Set a seed for reproducibility. Random by default.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 12
+      },
+      "structure_denoising_strength": {
+        "default": 0.65,
+        "description": "How much of the original image (and colors) to preserve (0 is all, 1 is none, 0.65 is a good balance)",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Structure Denoising Strength",
+        "type": "number",
+        "x-order": 9
+      },
+      "structure_depth_strength": {
+        "default": 1,
+        "description": "Strength of the depth controlnet",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Structure Depth Strength",
+        "type": "number",
+        "x-order": 8
+      },
+      "structure_image": {
+        "description": "An optional image to copy structure from. Output images will use the same aspect ratio.",
+        "format": "uri",
+        "title": "Structure Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "style_image": {
+        "description": "Copy the style from this image",
+        "format": "uri",
+        "title": "Style Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "width": {
+        "default": 1024,
+        "description": "Width of the output image (ignored if structure image given)",
+        "title": "Width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "style_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

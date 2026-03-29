@@ -1,0 +1,27 @@
+{
+  "modelId": "falcons-ai/nsfw_image_detection",
+  "owner": "falcons-ai",
+  "name": "nsfw_image_detection",
+  "version": "97116600cabd3037e5f22ca08ffcc33b92cfacebf7ccd3609e9c1d29e43d3a8d",
+  "description": "Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

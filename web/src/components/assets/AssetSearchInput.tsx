@@ -11,6 +11,7 @@ import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -136,7 +137,7 @@ const styles = (theme: Theme) =>
   });
 
 interface AssetSearchInputProps {
-  onLocalSearchChange: (value: string) => void;
+  onLocalSearchChange: (_value: string) => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   debounceTime?: number;
@@ -150,7 +151,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   focusSearchInput = false,
   focusOnTyping = false,
   debounceTime = 500,
-  width = 150
+  width
 }) => {
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -219,7 +220,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       } catch (error) {
         // Don't log errors for aborted requests
         if (!abortController.signal.aborted) {
-          console.error("Global search error:", error);
+          log.error("Global search error:", error);
           setIsGlobalSearchActive(false);
           setGlobalSearchResults([]);
         }

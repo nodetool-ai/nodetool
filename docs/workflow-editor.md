@@ -1,99 +1,117 @@
 ---
 layout: page
 title: "Workflow Editor"
-description: "Build AI workflows visually – guide to the NodeTool canvas."
+description: "Build AI workflows visually."
 ---
 
-The Workflow Editor is where you build AI workflows by connecting visual nodes.
+The Workflow Editor is where you build, test, and refine AI workflows. This page covers everything from basic canvas navigation to advanced features like node bypass and auto layout.
 
-> **First time?** Start with the [Getting Started guide](getting-started.md).
+> **New to NodeTool?** Start with the [Getting Started](getting-started.md) guide to run your first workflow, then come back here to learn the editor in depth.
 
 ---
 
-## Understanding the Editor
+## Editor Layout
 
-The editor has three main areas:
-
-| Area | Location | Purpose |
-|------|----------|---------|
-| **Canvas** | Center | Where you place and connect nodes |
+| Area | Where | What It Does |
+|------|-------|--------------|
+| **Canvas** | Center | Place and connect nodes |
 | **Side Panels** | Left/Right | Workflows, assets, settings |
 | **Toolbar** | Bottom | Run, save, layout controls |
 
 ---
 
-## The Canvas
+## Canvas Basics
 
-The canvas is your infinite workspace. Here's how to navigate:
+Your infinite workspace.
 
-### Moving Around
+**Navigate:**
 
-| Action | How |
-|--------|-----|
-| **Pan** (scroll view) | `Space` + drag, or right-click drag |
-| **Zoom** | `Ctrl/⌘` + scroll wheel |
-| **Fit everything** | Press `F` |
-| **Reset zoom** | `Ctrl/⌘ + 0` |
+| Do This | How |
+|---------|-----|
+| Pan | `Space` + drag, or right-click drag |
+| Zoom | `Ctrl/⌘` + scroll |
+| Fit everything | `F` |
+| Reset zoom | `Ctrl/⌘ + 0` |
 
-### The Grid
-
-The faint grid helps you align nodes. Enable **Snap to Grid** in the View menu for perfect alignment.
+**The grid** helps align nodes. Turn on **Snap to Grid** in View menu.
 
 ---
 
 ## Working with Nodes
 
-Nodes are the building blocks of your workflow. Each node does one specific thing.
+Each node does one thing.
 
-### Adding Nodes
+### Add Nodes
 
-**Method 1: Node Menu**
-1. Press `Space` anywhere on the canvas
-2. Search by typing what you want (e.g., "image" or "text")
-3. Click a node to add it
+**Space bar:**
+1. Press `Space` anywhere
+2. Type what you want ("image", "text")
+3. Click to add
 
-**Method 2: Double-Click**
-1. Double-click empty space on the canvas
-2. Opens the same Node Menu
+**Double-click:**
+1. Double-click empty space
+2. Opens node menu
 
-**Method 3: Smart Connect**
-1. Drag a connection from a node's output
-2. Drop it on empty space
-3. See a list of compatible nodes that can receive this data
+**Smart connect:**
+1. Drag from a node's output
+2. Drop on empty space
+3. See compatible nodes
 
-### Understanding Nodes
+### Node Structure
 
-Every node has:
+- **Header** (top) - Name, drag to move
+- **Inputs** (left circles) - Data in
+- **Outputs** (right circles) - Data out
+- **Properties** - Settings panel
 
-- **Header** (top): Node name, drag here to move
-- **Inputs** (left side circles): Where data comes in
-- **Outputs** (right side circles): Where data goes out
-- **Properties**: Settings you can adjust in the node or Properties panel
+### Select Nodes
 
-### Selecting Nodes
+| Do This | How |
+|---------|-----|
+| One | Click it |
+| Multiple | `Shift` + click, or drag box |
+| All | `Ctrl/⌘ + A` |
+| None | Click canvas |
 
-| Action | How |
-|--------|-----|
-| Select one | Click the node |
-| Select multiple | `Shift` + click, or drag a box |
-| Select all | `Ctrl/⌘ + A` |
-| Deselect | Click empty canvas |
+### Move Nodes
 
-### Moving Nodes
+- **Drag** header to move
+- **Arrow keys** to nudge
+- **Auto Layout** button to organize
 
-- **Drag** the header bar to move
-- **Arrow keys** for precise nudging
-- **Auto Layout** button to organize automatically
+### Bypass Nodes
+
+Skip temporarily without deleting:
+
+1. Right-click node
+2. Select **Bypass Node**
+3. Node dims, data passes through
+
+Good for:
+- **Testing** - Compare with/without
+- **Debugging** - Isolate problems
+- **A/B testing** - Toggle effects
+
+Re-enable: Right-click → **Enable Node**
+
+### Result Overlays
+
+Nodes show outputs on canvas:
+
+- **Images** - Thumbnail preview
+- **Text** - Text snippet
+- **Audio** - Waveform
+- **Progress** - Live status
 
 ---
 
-## Making Connections
+## Connections
 
-Connections show how data flows between nodes.
+Connections are the lines between nodes that show how data flows through your workflow. Data always flows **left to right** — from output ports (right side of a node) to input ports (left side of another node).
 
-### Creating Connections
+### Make Connections
 
-1. Click and hold on an **output** circle (right side of a node)
+1. Click output circle (right side)
 2. Drag the line to an **input** circle (left side of another node)
 3. Release to connect
 
@@ -133,12 +151,43 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 - **Streaming nodes** show output as it's generated
 - **Preview nodes** display intermediate results
 - **Node borders** indicate status (running, complete, error)
+- **Edge animations** show data flowing between nodes
+
+### Pausing and Resuming
+
+You can temporarily pause a running workflow:
+
+| Action | Button | Description |
+|--------|--------|-------------|
+| **Pause** | ⏸ (blue) | Temporarily stops execution - workflow state is preserved |
+| **Resume** | ▶ (blue) | Continues from where it paused |
+
+The pause button appears in the floating toolbar while a workflow is running.
+
+### Suspended Workflows
+
+Some nodes (like the **WaitNode**) can suspend a workflow to wait for external input:
+
+| State | Button | Description |
+|-------|--------|-------------|
+| **Suspended** | ▶ (purple) | Workflow is waiting for input - click to resume |
+
+When a workflow is suspended:
+- A notification shows why the workflow is waiting
+- The purple Resume button appears in the toolbar
+- Click Resume to continue the workflow with any required data
+- The workflow can be stopped (cancelled) if no longer needed
+
+Suspended workflows are useful for:
+- **Human-in-the-loop** approvals
+- **Waiting for external data** or API responses
+- **Checkpoint-based processing** where you review intermediate results
 
 ### Stopping a Run
 
 | Method | How |
 |--------|-----|
-| Button | Click **Stop** |
+| Button | Click **Stop** (enabled when running, paused, or suspended) |
 | Keyboard | `Esc` |
 
 ### Missing Models
@@ -230,9 +279,39 @@ Right-click for options anywhere:
 | Location | Options |
 |----------|---------|
 | **Canvas** | Add node, paste, select all |
-| **Node header** | Copy, duplicate, delete, group |
+| **Node header** | Copy, duplicate, delete, group, bypass |
 | **Input/Output** | Disconnect, add compatible node |
 | **Connection** | Delete, add node in middle |
+
+---
+
+## Built-in Editors
+
+NodeTool includes professional editing tools for creative work.
+
+### Image Editor
+
+Click the edit icon on image outputs or properties to open the full-featured editor:
+
+- **Crop & Resize**: Adjust image dimensions and composition
+- **Rotate & Flip**: Transform orientation
+- **Draw Tools**: Brush, shapes, and text overlays
+- **Adjustments**: Brightness, contrast, saturation controls
+- **History**: Undo/redo all changes
+
+> **📖 Full Guide:** See [Image Editor](image-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
+
+### Color Picker
+
+The professional color picker appears when selecting colors in properties:
+
+- **Visual Selection**: Saturation/brightness picker with hue slider
+- **Multiple Formats**: Enter values as HEX, RGB, or HSL
+- **Harmony Modes**: Complementary, triadic, analogous color suggestions
+- **Gradient Builder**: Create and edit color gradients
+- **Swatches**: Save and reuse favorite colors
+- **Contrast Checker**: Verify accessibility compliance
+- **Eyedropper**: Pick colors from anywhere on screen
 
 ---
 
@@ -274,23 +353,25 @@ Right-click for options anywhere:
 
 ### Design Principles
 
-1. **Left to right**: Data flows left to right
-2. **Preview often**: Add Preview nodes for intermediate results
-3. **Name clearly**: Rename nodes to describe their purpose
-4. **Group logically**: Keep related nodes together
+1. **Left to right** — Arrange nodes so data flows left to right across the canvas for readability
+2. **Preview often** — Add Preview nodes after each major step to inspect intermediate results
+3. **Name clearly** — Rename nodes (double-click the header) to describe their purpose, e.g., "Resize to 512px" instead of "Resize"
+4. **Group logically** — Keep related nodes together and use Groups (`Ctrl/⌘ + G`) to visually organize complex workflows
 
 ### Debugging
 
-- **Add Preview nodes** between steps
-- **Check connections** – verify data types match
-- **Look at errors** – nodes show error messages
-- **Test incrementally** – run partial workflows first
+- **Add Preview nodes** between steps to see exactly what data each node produces
+- **Check connections** — verify data types match (connection colors indicate type)
+- **Look at node borders** — red = error, yellow = running, green = completed
+- **Test incrementally** — bypass downstream nodes and run partial workflows to isolate problems
+- **Use the Inspector** — press `i` to see detailed error messages and validation warnings
 
 ### Performance
 
-- **Local models** – slower but work offline
-- **Cloud models** – faster, require internet
-- **Streaming nodes** – show progress during execution
+- **Local models** — slower but work offline and are free to use
+- **Cloud models** — faster response times, require internet and API keys
+- **Streaming nodes** — show progress during long-running operations (look for the streaming indicator)
+- **Parallel branches** — NodeTool automatically runs independent branches in parallel for faster execution
 
 ---
 

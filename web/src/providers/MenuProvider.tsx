@@ -5,12 +5,13 @@ import {
   useCallback,
   useEffect
 } from "react";
+import type { MenuEventData } from "../window";
 
 // MenuProvider exposes a simple pub/sub mechanism for Electron menu events.
 // Components can register handlers to respond to menu actions emitted from the
 // main process via `window.api`.
 
-type MenuEventHandler = (data: any) => void;
+type MenuEventHandler = (data: MenuEventData) => void;
 
 interface MenuContextType {
   registerHandler: (handler: MenuEventHandler) => void;
@@ -24,7 +25,7 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
   const handlers = useRef<Set<MenuEventHandler>>(new Set());
 
   // Single global event handler that dispatches to all registered handlers
-  const globalHandler = useCallback((data: any) => {
+  const globalHandler = useCallback((data: MenuEventData) => {
     handlers.current.forEach((handler) => handler(data));
   }, []);
 

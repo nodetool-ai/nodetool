@@ -10,6 +10,10 @@ const RIGHT_OFFSET_X = 32;
 const Y_OFFSET = -20;
 const ENTER_DELAY = 600;
 
+// Generate a unique ID for tooltip descriptions
+let tooltipIdCounter = 0;
+const generateTooltipId = () => `handle-tooltip-${tooltipIdCounter++}`;
+
 /**
  * Checks if a TypeMetadata is a union of float and int (in any order)
  * and returns "number" if so, otherwise returns the formatted type string.
@@ -39,6 +43,8 @@ type HandleTooltipProps = {
   className?: string;
   children: React.ReactNode;
   handlePosition: "left" | "right";
+  isStreamingOutput?: boolean;
+  isCollectInput?: boolean;
 };
 
 const HandleTooltip = memo(function HandleTooltip({
@@ -46,10 +52,14 @@ const HandleTooltip = memo(function HandleTooltip({
   paramName,
   className = "",
   children,
-  handlePosition
+  handlePosition,
+  isStreamingOutput,
+  isCollectInput
 }: HandleTooltipProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const tooltipIdRef = useRef<string>(generateTooltipId());
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Ref to keep track of the timer used for delaying tooltip appearance
   const showTimerRef = useRef<number | null>(null);
@@ -91,6 +101,22 @@ const HandleTooltip = memo(function HandleTooltip({
     setShowTooltip(false);
   }, []);
 
+  const handleFocus = useCallback(() => {
+    // Show tooltip immediately on keyboard focus for accessibility
+    if (wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      });
+    }
+    setShowTooltip(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setShowTooltip(false);
+  }, []);
+
   const tooltipContent = (
     <div
       className={`handle-tooltip ${showTooltip ? "show" : ""}`}
@@ -116,6 +142,16 @@ const HandleTooltip = memo(function HandleTooltip({
         <div className="handle-tooltip-type">
           {displayType}
         </div>
+        {isStreamingOutput && (
+          <div className="handle-tooltip-info">
+            Streaming output - emits values continuously during execution
+          </div>
+        )}
+        {isCollectInput && (
+          <div className="handle-tooltip-info">
+            Collect input - accepts multiple connections that are combined into a list
+          </div>
+        )}
       </div>
     </div>
   );
@@ -123,15 +159,32 @@ const HandleTooltip = memo(function HandleTooltip({
   return (
     <>
       <div
+        ref={wrapperRef}
         className={`handle-tooltip-wrapper ${className}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        tabIndex={0}
+        role="button"
+        aria-label={`${prettyName} (${displayType})`}
+        aria-describedby={showTooltip ? tooltipIdRef.current : undefined}
       >
         {children}
       </div>
-      {showTooltip && createPortal(tooltipContent, document.body)}
+      {showTooltip && createPortal(
+        <div
+          role="tooltip"
+          id={tooltipIdRef.current}
+          aria-live="polite"
+        >
+          {tooltipContent}
+        </div>,
+        document.body
+      )}
     </>
   );
 });
 
+export { HandleTooltip };
 export default HandleTooltip;

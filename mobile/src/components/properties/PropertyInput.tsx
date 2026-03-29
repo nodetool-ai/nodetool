@@ -30,8 +30,8 @@ export const PropertyRenderer: React.FC<PropertyProps> = (props) => {
       return <FloatProperty {...props} />;
     case 'string':
       // Check for specific string subtypes if needed (e.g. file paths, specialized inputs)
-      if (nodeType.includes('Image')) return <ImageProperty {...props} />;
-      if (nodeType.includes('Audio')) return <AudioProperty {...props} />;
+      if (nodeType.includes('Image')) {return <ImageProperty {...props} />;}
+      if (nodeType.includes('Audio')) {return <AudioProperty {...props} />;}
       return <StringProperty {...props} />;
     default:
       return (

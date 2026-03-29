@@ -91,9 +91,8 @@ describe("findMatchingNodesInWorkflows", () => {
     });
 
     it("should handle null workflows gracefully", () => {
-      // The actual function tries to map over null, which throws an error
-      // This is expected behavior - the function doesn't handle null input
-      expect(() => findMatchingNodesInWorkflows(null as any, "test")).toThrow();
+      const results = findMatchingNodesInWorkflows(null as any, "test");
+      expect(results).toEqual([]);
     });
 
     it("should return empty array when workflows is empty", () => {

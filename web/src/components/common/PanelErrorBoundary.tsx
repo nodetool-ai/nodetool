@@ -1,4 +1,6 @@
 import React from "react";
+import { Box, Typography } from "@mui/material";
+import log from "loglevel";
 
 interface PanelErrorBoundaryProps {
   fallback?: React.ReactNode;
@@ -10,6 +12,13 @@ interface PanelErrorBoundaryState {
   error?: Error;
 }
 
+/**
+ * Error boundary component for catching and handling rendering errors in panel components.
+ * Used to prevent one panel's error from crashing the entire application.
+ *
+ * Note: React error boundaries require class components as they need lifecycle methods
+ * (getDerivedStateFromError and componentDidCatch) that are not available in functional components.
+ */
 export default class PanelErrorBoundary extends React.Component<
   PanelErrorBoundaryProps,
   PanelErrorBoundaryState
@@ -24,16 +33,31 @@ export default class PanelErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-     
-    console.error("Panel crashed:", error, errorInfo);
+    // Log panel errors for debugging while preventing the entire app from crashing
+    log.error("Panel crashed:", error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? (
-        <div style={{ padding: 12, color: "var(--palette-error-main)" }}>
-          Panel failed to render.
-        </div>
+      return (
+        this.props.fallback ?? (
+          <Box
+            sx={{
+              padding: 3,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 200,
+              bgcolor: "error.dark",
+              color: "error.contrastText",
+              borderRadius: 1
+            }}
+          >
+            <Typography variant="body2" component="div">
+              Panel failed to render.
+            </Typography>
+          </Box>
+        )
       );
     }
     return this.props.children;

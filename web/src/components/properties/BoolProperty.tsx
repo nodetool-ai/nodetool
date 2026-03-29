@@ -1,26 +1,49 @@
-import { Switch } from "@mui/material";
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import isEqual from "lodash/isEqual";
+import { NodeSwitch } from "../editor_ui";
+import { useTheme } from "@mui/material/styles";
 
 const BoolProperty = (props: PropertyProps) => {
-  const id = `switch-${props.property.name}-${props.propertyIndex}`;
+  const { property, value, changed, onChange } = props;
+  const id = `switch-${property.name}-${props.propertyIndex}`;
+  const theme = useTheme();
+
+  // Memoize handler to prevent unnecessary re-renders of memoized NodeSwitch child
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.checked);
+  }, [onChange]);
 
   return (
-    <div className="bool-property">
-      <Switch
+    <div
+      className="bool-property"
+      css={css({
+        position: "relative",
+        padding: 0,
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "5px",
+        borderRadius: ".2em",
+        borderRight: changed
+          ? `2px solid ${theme.vars.palette.primary.main}`
+          : "none"
+      })}
+    >
+      <NodeSwitch
         id={id}
         inputProps={{ "aria-labelledby": id }}
-        checked={props.value}
-        onChange={(e) => props.onChange(e.target.checked)}
-        name={props.property.name}
-        className="nodrag"
-        size="small"
+        checked={value}
+        onChange={handleChange}
+        name={property.name}
+        changed={changed}
       />
       <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
+        name={property.name}
+        description={property.description}
+        density="compact"
         id={id}
       />
     </div>

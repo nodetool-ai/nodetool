@@ -45,12 +45,16 @@ header_pages:
   - key-concepts.md
   - user-interface.md
   - workflow-editor.md
+  - image-editor.md
+  - vibecoding.md
   - workflow-debugging.md
+  - mobile-app.md
   - cookbook.md
   - workflows/index.md
   - models-and-providers.md
   - global-chat-agents.md
   - deployment.md
+  - deployment-e2e-guide.md
   - storage.md
   - api-reference.md
   - developer/index.md

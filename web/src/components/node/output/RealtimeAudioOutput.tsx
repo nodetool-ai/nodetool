@@ -58,13 +58,7 @@ const RealtimeAudioOutput: React.FC<Props> = ({
 
   // Stop playback when workflow stops
   React.useEffect(() => {
-    console.debug(
-      `[RealtimeAudioOutput] Workflow state: ${workflowState}, isPlaying: ${isPlaying}`
-    );
     if (workflowState !== "running" && workflowState !== "idle" && isPlaying) {
-      console.debug(
-        "[RealtimeAudioOutput] Auto-stopping due to workflow state"
-      );
       stop();
     }
   }, [workflowState, isPlaying, stop]);

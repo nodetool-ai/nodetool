@@ -4,6 +4,8 @@ import {
   PackageModel,
   PackageListResponse,
   InstalledPackageListResponse,
+  RuntimePackageStatus,
+  RuntimePackageId,
 } from "../types";
 
 interface PackageManagerProps {
@@ -15,12 +17,25 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   const [installedPackages, setInstalledPackages] = useState<PackageModel[]>(
     []
   );
+  const [runtimePackages, setRuntimePackages] = useState<
+    RuntimePackageStatus[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [installLocation, setInstallLocation] = useState<string>("");
 
-  useEffect(() => {
-    loadPackages();
+  const loadRuntimeStatuses = useCallback(async () => {
+    try {
+      const [statuses, location] = await Promise.all([
+        window.api.packages.getRuntimeStatuses(),
+        window.api.packages.getInstallLocation(),
+      ]);
+      setRuntimePackages(statuses);
+      setInstallLocation(location);
+    } catch (err) {
+      console.error("Failed to load runtime statuses:", err);
+    }
   }, []);
 
   const loadPackages = useCallback(async () => {
@@ -28,21 +43,68 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
       setLoading(true);
       setError(null);
 
-      // Load available packages
-      const availableResponse: PackageListResponse =
-        await window.api.packages.listAvailable();
-      setAvailablePackages(availableResponse.packages || []);
+      const [availableResponse, installedResponse] = await Promise.all([
+        window.api.packages.listAvailable().catch(() => ({ packages: [] })),
+        window.api.packages.listInstalled().catch(() => ({ packages: [] })),
+      ]);
 
-      // Load installed packages
-      const installedResponse: InstalledPackageListResponse =
-        await window.api.packages.listInstalled();
-      setInstalledPackages(installedResponse.packages || []);
+      setAvailablePackages(
+        (availableResponse as PackageListResponse).packages || []
+      );
+      setInstalledPackages(
+        (installedResponse as InstalledPackageListResponse).packages || []
+      );
+
+      await loadRuntimeStatuses();
     } catch (err) {
       setError("Failed to load packages. Please try again.");
     } finally {
       setLoading(false);
     }
+  }, [loadRuntimeStatuses]);
+
+  useEffect(() => {
+    loadPackages();
+  }, [loadPackages]);
+
+  const handleSelectLocation = useCallback(async () => {
+    try {
+      const selected = await window.api.packages.selectInstallLocation();
+      if (selected) {
+        setInstallLocation(selected);
+      }
+    } catch (err) {
+      console.error("Failed to select location:", err);
+    }
   }, []);
+
+  const handleRuntimeInstall = useCallback(
+    async (packageId: RuntimePackageId) => {
+      setInstalling((prev) => new Set(prev).add(packageId));
+      try {
+        const location = installLocation || undefined;
+        const result = await window.api.packages.installRuntime(
+          packageId,
+          location
+        );
+        if (result.success) {
+          await loadRuntimeStatuses();
+        } else {
+          setError(result.message || "Installation failed");
+        }
+      } catch (err) {
+        console.error("Runtime installation error:", err);
+        setError("Installation failed. Please try again.");
+      } finally {
+        setInstalling((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(packageId);
+          return newSet;
+        });
+      }
+    },
+    [loadRuntimeStatuses, installLocation]
+  );
 
   const handleInstall = useCallback(
     async (repoId: string) => {
@@ -50,13 +112,10 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
       try {
         const result = await window.api.packages.install(repoId);
         if (result.success) {
-          // Notify user first to avoid blocking UI before reload
           alert(
             "Package installed successfully. The server will restart to apply changes."
           );
-          // Reload lists after the message
           await loadPackages();
-          // Trigger restart without awaiting to avoid UI hang
           try {
             window.api.server.restart();
           } catch (e) {
@@ -85,7 +144,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
       try {
         const result = await window.api.packages.uninstall(repoId);
         if (result.success) {
-          await loadPackages(); // Refresh the package lists
+          await loadPackages();
         } else {
           setError(result.message || "Uninstallation failed");
         }
@@ -150,8 +209,8 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   );
 
   const isProcessing = useCallback(
-    (repoId: string) => {
-      return installing.has(repoId);
+    (id: string) => {
+      return installing.has(id);
     },
     [installing]
   );
@@ -168,6 +227,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     <div className="package-manager">
       <div className="package-manager-header">
         <h1>NodeTool Package Manager</h1>
+        <p style={{ color: "#999", margin: "8px 0 0" }}>
+          Install runtimes and packages to extend NodeTool's capabilities.
+        </p>
       </div>
 
       {error && (
@@ -180,33 +242,125 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
       )}
 
       <div className="package-sections">
+        {/* Runtime Packages Section */}
         <div className="package-section">
-          <h2>Installed Packages ({installedPackages.length})</h2>
-          {installedPackages.length === 0 ? (
-            <p className="no-packages">No packages installed</p>
-          ) : (
-            <div className="package-list">
-              {installedPackages.map((pkg) => (
-                <div key={pkg.repo_id} className="package-item installed">
-                    <div className="package-info">
-                      <div className="package-header-row">
-                        <h3>{pkg.name}</h3>
+          <h2>Runtime Packages</h2>
+          <p className="section-description" style={{ color: "#999", margin: "4px 0 12px", fontSize: "13px" }}>
+            Core runtimes for AI capabilities. Install what you need.
+          </p>
+
+          {/* Install location selector */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              margin: "0 0 16px",
+              padding: "10px 14px",
+              background: "rgba(255,255,255,0.04)",
+              borderRadius: "8px",
+              fontSize: "13px",
+            }}
+          >
+            <span style={{ color: "#999", whiteSpace: "nowrap" }}>
+              Install location:
+            </span>
+            <code
+              style={{
+                flex: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                color: "#ccc",
+                fontSize: "12px",
+              }}
+              title={installLocation}
+            >
+              {installLocation}
+            </code>
+            <button
+              onClick={handleSelectLocation}
+              style={{
+                padding: "4px 10px",
+                borderRadius: "4px",
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "transparent",
+                color: "#ccc",
+                cursor: "pointer",
+                fontSize: "12px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Change
+            </button>
+          </div>
+
+          <div className="package-list">
+            {runtimePackages.map((pkg) => {
+              return (
+                <div
+                  key={pkg.id}
+                  className={`package-item ${pkg.installed ? "installed" : "available"}`}
+                >
+                  <div className="package-info">
+                    <div className="package-header-row">
+                      <h3>{pkg.name}</h3>
+                      {pkg.installed && (
                         <span className="status-badge up-to-date">
                           INSTALLED
                         </span>
-                      </div>
-                      <div className="version-info">
-                        <p className="package-version">
-                          v{pkg.version}
-                        </p>
-                        {pkg.hasUpdate && pkg.latestVersion && (
-                          <p className="update-available">
-                            Update available: v{pkg.latestVersion}
-                          </p>
-                        )}
-                      </div>
-                      <p className="package-description">{pkg.description}</p>
+                      )}
                     </div>
+                    <p className="package-description">{pkg.description}</p>
+                  </div>
+                  <div className="package-actions">
+                    {pkg.installed ? (
+                      <button className="installed-indicator" disabled>
+                        Installed
+                      </button>
+                    ) : (
+                      <button
+                        className="install-button"
+                        onClick={() => handleRuntimeInstall(pkg.id)}
+                        disabled={
+                          isProcessing(pkg.id) ||
+                          pkg.installing
+                        }
+                      >
+                        {isProcessing(pkg.id) || pkg.installing
+                          ? "Installing..."
+                          : "Install"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Installed Packages Section */}
+        {installedPackages.length > 0 && (
+          <div className="package-section">
+            <h2>Installed Packages ({installedPackages.length})</h2>
+            <div className="package-list">
+              {installedPackages.map((pkg) => (
+                <div key={pkg.repo_id} className="package-item installed">
+                  <div className="package-info">
+                    <div className="package-header-row">
+                      <h3>{pkg.name}</h3>
+                      <span className="status-badge up-to-date">INSTALLED</span>
+                    </div>
+                    <div className="version-info">
+                      <p className="package-version">v{pkg.version}</p>
+                      {pkg.hasUpdate && pkg.latestVersion && (
+                        <p className="update-available">
+                          Update available: v{pkg.latestVersion}
+                        </p>
+                      )}
+                    </div>
+                    <p className="package-description">{pkg.description}</p>
+                  </div>
                   <div className="package-actions">
                     {pkg.hasUpdate && (
                       <button
@@ -230,13 +384,12 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
+        {/* Available Packages Section */}
         <div className="package-section">
-          <h2>
-            Available Packs ({availablePackages.length})
-          </h2>
+          <h2>Available Packs ({availablePackages.length})</h2>
           {availablePackages.length === 0 ? (
             <p className="no-packages">No packages available</p>
           ) : (
@@ -248,9 +401,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                 const isUpToDate = installed && !hasUpdate;
 
                 return (
-                  <div 
-                    key={pkg.repo_id} 
-                    className={`package-item ${installed ? 'installed' : 'available'}`}
+                  <div
+                    key={pkg.repo_id}
+                    className={`package-item ${installed ? "installed" : "available"}`}
                   >
                     <div className="package-info">
                       <div className="package-header-row">
@@ -271,7 +424,8 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                           v{installedPkg.version}
                           {hasUpdate && installedPkg.latestVersion && (
                             <span className="version-arrow">
-                              → v{installedPkg.latestVersion}
+                              {" "}
+                              -&gt; v{installedPkg.latestVersion}
                             </span>
                           )}
                         </p>
@@ -287,14 +441,13 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                               onClick={() => handleUpdate(pkg.repo_id)}
                               disabled={isProcessing(pkg.repo_id)}
                             >
-                              {isProcessing(pkg.repo_id) ? "Updating..." : "Update"}
+                              {isProcessing(pkg.repo_id)
+                                ? "Updating..."
+                                : "Update"}
                             </button>
                           )}
-                          <button
-                            className="installed-indicator"
-                            disabled
-                          >
-                            Installed ✓
+                          <button className="installed-indicator" disabled>
+                            Installed
                           </button>
                         </>
                       ) : (
@@ -303,7 +456,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                           onClick={() => handleInstall(pkg.repo_id)}
                           disabled={isProcessing(pkg.repo_id)}
                         >
-                          {isProcessing(pkg.repo_id) ? "Installing..." : "Install"}
+                          {isProcessing(pkg.repo_id)
+                            ? "Installing..."
+                            : "Install"}
                         </button>
                       )}
                     </div>
@@ -313,6 +468,31 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
             </div>
           )}
         </div>
+      </div>
+
+      <div
+        style={{
+          padding: "16px 24px",
+          borderTop: "1px solid rgba(255,255,255,0.1)",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        <button
+          className="nav-button next"
+          onClick={onSkip}
+          style={{
+            padding: "10px 24px",
+            borderRadius: "8px",
+            border: "none",
+            background: "var(--c_primary, #4a9eff)",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: "14px",
+          }}
+        >
+          Continue to App
+        </button>
       </div>
     </div>
   );

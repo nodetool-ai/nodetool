@@ -1,0 +1,48 @@
+{
+  "modelId": "tencentarc/gfpgan",
+  "owner": "tencentarc",
+  "name": "gfpgan",
+  "version": "0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+  "description": "Practical face restoration algorithm for *old photos* or *AI-generated faces*",
+  "inputSchema": {
+    "properties": {
+      "img": {
+        "description": "Input",
+        "format": "uri",
+        "title": "Img",
+        "type": "string",
+        "x-order": 0
+      },
+      "scale": {
+        "default": 2,
+        "description": "Rescaling factor",
+        "title": "Scale",
+        "type": "number",
+        "x-order": 2
+      },
+      "version": {
+        "default": "v1.4",
+        "description": "GFPGAN version. v1.3: better quality. v1.4: more details and better identity.",
+        "enum": [
+          "v1.2",
+          "v1.3",
+          "v1.4",
+          "RestoreFormer"
+        ],
+        "title": "version",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "img"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "modelId": "lucataco/codeformer",
+  "owner": "lucataco",
+  "name": "codeformer",
+  "version": "78f2bab438ab0ffc85a68cdfd316a2ecd3994b5dd26aa6b3d203357b45e5eb1b",
+  "description": "Robust face restoration algorithm for old photos/AI-generated faces",
+  "inputSchema": {
+    "properties": {
+      "background_enhance": {
+        "default": true,
+        "description": "Enhance background image with Real-ESRGAN",
+        "title": "Background Enhance",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "codeformer_fidelity": {
+        "default": 0.5,
+        "description": "Balance the quality (lower number) and fidelity (higher number).",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Codeformer Fidelity",
+        "type": "number",
+        "x-order": 1
+      },
+      "face_upsample": {
+        "default": true,
+        "description": "Upsample restored faces for high-resolution AI-created images",
+        "title": "Face Upsample",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "upscale": {
+        "default": 2,
+        "description": "The final upsampling scale of the image",
+        "title": "Upscale",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

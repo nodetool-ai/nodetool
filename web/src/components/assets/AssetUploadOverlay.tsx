@@ -60,9 +60,9 @@ const AssetUploadOverlay = () => {
         </Box>
         <LinearProgressWithLabel value={overallProgress} />
         <ul>
-          {files.map((file, index) => (
+          {files.map((file) => (
             <LinearProgressWithLabel
-              key={index}
+              key={file.id}
               filename={file.file.name}
               value={file.progress || 0}
             />

@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
-import { Box, Typography, CircularProgress, Button } from "@mui/material";
+import React, { useCallback } from "react";
+import { Box, Typography } from "@mui/material";
+import { EditorButton, LoadingSpinner, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
@@ -115,23 +116,28 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
   handleViewAllTemplates
 }) => {
   const theme = useTheme();
+
+  const handleCardClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const exampleId = event.currentTarget.dataset.exampleId;
+    if (exampleId) {
+      const example = startTemplates.find(t => t.id === exampleId);
+      if (example) {
+        handleExampleClick(example);
+      }
+    }
+  }, [startTemplates, handleExampleClick]);
+
   return (
     <Box className="examples-list" css={styles(theme)}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}
-      >
+      <FlexRow justify="space-between" align="center">
         <Typography variant="h3" className="section-title">
           Templates
         </Typography>
-      </Box>
+      </FlexRow>
       <Box className="content-scrollable">
         {isLoadingTemplates ? (
           <Box className="loading-container">
-            <CircularProgress />
+            <LoadingSpinner size="large" />
           </Box>
         ) : (
           <Box className="example-grid">
@@ -139,11 +145,12 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
               <Box
                 key={example.id}
                 className="example-card"
-                onClick={() => handleExampleClick(example)}
+                onClick={handleCardClick}
+                data-example-id={example.id}
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">
-                    <CircularProgress size={30} />
+                    <LoadingSpinner size="medium" />
                   </Box>
                 )}
                 <img
@@ -165,14 +172,15 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
           </Box>
         )}
       </Box>
-      <Button
+      <EditorButton
         onClick={handleViewAllTemplates}
         sx={{ marginTop: 2, alignSelf: "center" }}
+        density="normal"
       >
         View All Templates
-      </Button>
+      </EditorButton>
     </Box>
   );
 };
 
-export default ExamplesList;
+export default React.memo(ExamplesList);

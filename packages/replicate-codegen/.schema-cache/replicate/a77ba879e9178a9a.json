@@ -1,0 +1,57 @@
+{
+  "modelId": "xai/grok-imagine-image",
+  "owner": "xai",
+  "name": "grok-imagine-image",
+  "version": "3032db31147241f86351f0d7ab1ffd5150dcb482bcb873580f15d8cb8970a812",
+  "description": "SOTA image model from xAI",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio of the generated image. Ignored when editing an image.",
+        "enum": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "2:1",
+          "1:2",
+          "19.5:9",
+          "9:19.5",
+          "20:9",
+          "9:20",
+          "auto"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "image": {
+        "description": "Input image for editing. When provided, the model edits this image based on the prompt. Supports jpg, jpeg, png, webp.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation or editing",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "modelId": "x-lance/f5-tts",
+  "owner": "x-lance",
+  "name": "f5-tts",
+  "version": "87faf6dd7a692dd82043f662e76369cab126a2cf1937e25a9d41e0b834fd230e",
+  "description": "F5-TTS, the new state-of-the-art in open source voice cloning",
+  "inputSchema": {
+    "properties": {
+      "custom_split_words": {
+        "default": "",
+        "description": "Custom split words, comma separated",
+        "title": "Custom Split Words",
+        "type": "string",
+        "x-order": 4
+      },
+      "gen_text": {
+        "description": "Text to Generate",
+        "title": "Gen Text",
+        "type": "string",
+        "x-order": 0
+      },
+      "ref_audio": {
+        "description": "Reference audio for voice cloning",
+        "format": "uri",
+        "title": "Ref Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "ref_text": {
+        "description": "Reference Text",
+        "title": "Ref Text",
+        "type": "string",
+        "x-order": 2
+      },
+      "remove_silence": {
+        "default": true,
+        "description": "Automatically remove silences?",
+        "title": "Remove Silence",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "speed": {
+        "default": 1,
+        "description": "Speed of the generated audio",
+        "maximum": 3,
+        "minimum": 0.1,
+        "title": "Speed",
+        "type": "number",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "gen_text",
+      "ref_audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

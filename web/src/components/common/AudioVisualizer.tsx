@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 
 type AudioVisualizerProps = {
   stream: MediaStream | null;
@@ -7,7 +7,7 @@ type AudioVisualizerProps = {
   height?: number;
 };
 
-const AudioVisualizer = ({
+const AudioVisualizerComponent = ({
   stream,
   version = 0,
   height = 64
@@ -20,9 +20,16 @@ const AudioVisualizer = ({
     const canvas = canvasRef.current;
     if (!stream || !canvas) {return;}
 
-    const AudioCtx =
-      (window as any).AudioContext || (window as any).webkitAudioContext;
-    const audioContext: AudioContext = new AudioCtx();
+    // Use standard AudioContext or webkit-prefixed version for Safari support
+    const AudioContextConstructor =
+      (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext ||
+      (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+    if (!AudioContextConstructor) {
+      return;
+    }
+
+    const audioContext: AudioContext = new AudioContextConstructor();
     audioContextRef.current = audioContext;
 
     const analyser = audioContext.createAnalyser();
@@ -112,7 +119,7 @@ const AudioVisualizer = ({
       try {
         audioContext.close();
       } catch {
-        // noop
+        // Audio context cleanup may fail if already closed, ignore
       }
       analyserRef.current = null;
       audioContextRef.current = null;
@@ -121,5 +128,10 @@ const AudioVisualizer = ({
 
   return <canvas ref={canvasRef} style={{ width: "100%", height }} />;
 };
+
+AudioVisualizerComponent.displayName = "AudioVisualizer";
+
+const AudioVisualizer = memo(AudioVisualizerComponent);
+AudioVisualizer.displayName = "AudioVisualizer";
 
 export default AudioVisualizer;

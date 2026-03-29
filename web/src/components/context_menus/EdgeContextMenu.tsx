@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -8,12 +8,13 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RouteIcon from "@mui/icons-material/Route";
+import log from "loglevel";
 
 interface EdgeContextMenuProps {
   edgeId?: string;
 }
 
-const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
+const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -61,7 +62,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
     // Get metadata for the Reroute node
     const rerouteMetadata = getMetadata("nodetool.control.Reroute");
     if (!rerouteMetadata) {
-      console.error("Reroute node metadata not found");
+      log.error("Reroute node metadata not found");
       closeContextMenu();
       return;
     }
@@ -161,4 +162,4 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
   );
 };
 
-export default EdgeContextMenu;
+export default memo(EdgeContextMenuComponent);

@@ -1,9 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { BASE_URL } from "../stores/BASE_URL";
-import type { ImageModel, LanguageModel, TTSModel, ASRModel, UnifiedModel } from "../stores/ApiTypes";
+import type { ImageModel, LanguageModel, TTSModel, ASRModel, UnifiedModel, Provider } from "../stores/ApiTypes";
 
+/**
+ * Task type for model recommendations.
+ */
 type TaskType = "image" | "language" | "tts" | "asr";
 
+/**
+ * Infers the model provider from the unified model type and tags.
+ * 
+ * @param m - The unified model to analyze
+ * @returns The provider identifier string
+ */
 const inferProvider = (m: UnifiedModel): string => {
   const t = (m.type || "").toLowerCase();
   const tags = (m.tags || []).map((x) => (x || "").toLowerCase());
@@ -14,36 +23,77 @@ const inferProvider = (m: UnifiedModel): string => {
   return "huggingface";
 };
 
+/**
+ * Maps a unified model to an ImageModel type.
+ * 
+ * @param u - The unified model to map
+ * @returns ImageModel with inferred provider
+ */
 const mapUnifiedToImageModel = (u: UnifiedModel): ImageModel => ({
   type: "image_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as any,
+  provider: inferProvider(u) as Provider,
 });
 
+/**
+ * Maps a unified model to a LanguageModel type.
+ * 
+ * @param u - The unified model to map
+ * @returns LanguageModel with inferred provider
+ */
 const mapUnifiedToLanguageModel = (u: UnifiedModel): LanguageModel => ({
   type: "language_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as any,
+  provider: inferProvider(u) as Provider,
 });
 
+/**
+ * Maps a unified model to an ASRModel type.
+ * 
+ * @param u - The unified model to map
+ * @returns ASRModel with inferred provider
+ */
 const mapUnifiedToASRModel = (u: UnifiedModel): ASRModel => ({
   type: "asr_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as any,
+  provider: inferProvider(u) as Provider,
 });
 
+/**
+ * Maps a unified model to a TTSModel type.
+ * 
+ * @param u - The unified model to map
+ * @returns TTSModel with inferred provider
+ */
 const mapUnifiedToTTSModel = (u: UnifiedModel): TTSModel => ({
   type: "tts_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
-  provider: inferProvider(u) as any,
+  provider: inferProvider(u) as Provider,
   voices: [],
   selected_voice: "",
 });
 
+/**
+ * Fetches recommended models for a specific task type from the server.
+ * 
+ * This hook retrieves curated model recommendations based on the task type,
+ * mapping them to the appropriate NodeTool model format with inferred providers.
+ * 
+ * @param task - The task type for which to fetch recommended models
+ * @returns Query result containing an array of recommended models for the task
+ * 
+ * @example
+ * ```typescript
+ * const { data: imageModels, isLoading } = useRecommendedTaskModels("image");
+ * 
+ * if (isLoading) return <Loading />;
+ * return <ModelSelector models={imageModels} />;
+ * ```
+ */
 export const useRecommendedTaskModels = <T extends TaskType>(task: T) => {
   return useQuery({
     queryKey: ["recommended", task],

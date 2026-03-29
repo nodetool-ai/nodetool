@@ -1,0 +1,63 @@
+{
+  "modelId": "andreasjansson/blip-2",
+  "owner": "andreasjansson",
+  "name": "blip-2",
+  "version": "f677695e5e89f8b236e52ecd1d3f01beb44c34606419bcc19345e046d8f786f9",
+  "description": "Answers questions about images",
+  "inputSchema": {
+    "properties": {
+      "caption": {
+        "default": false,
+        "description": "Select if you want to generate image captions instead of asking questions",
+        "title": "Caption",
+        "type": "boolean",
+        "x-order": 1
+      },
+      "context": {
+        "description": "Optional - previous questions and answers to be used as context for answering current question",
+        "title": "Context",
+        "type": "string",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Input image to query or caption",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "question": {
+        "default": "What is this a picture of?",
+        "description": "Question to ask about this image. Leave blank for captioning",
+        "title": "Question",
+        "type": "string",
+        "x-order": 2
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Temperature for use with nucleus sampling",
+        "maximum": 1,
+        "minimum": 0.5,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 5
+      },
+      "use_nucleus_sampling": {
+        "default": false,
+        "description": "Toggles the model using nucleus sampling to generate responses",
+        "title": "Use Nucleus Sampling",
+        "type": "boolean",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

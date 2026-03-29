@@ -1,15 +1,15 @@
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
 import { NodeData } from "../stores/NodeData";
-import ELK from "elkjs";
-import zip from "lodash/zip";
+import ELK, { ElkNode } from "elkjs";
 
 /**
  * Graph utilities for workflow layout and traversal.
  *
  * - `topologicalSort` (Kahn) returns layered node ids for parallel-friendly
  *   processing and warns on cycles.
- * - `subgraph` collects nodes/edges reachable from a start node (optional stop).
+ * - `subgraph` collects nodes reachable from a start node (optional stop) and
+ *   returns all edges whose endpoints are in that reachable set.
  * - `autoLayout` runs ELK layered layout, filtering out comment nodes, grouping
  *   by parentId, and resizing group nodes to fit children with padding.
  */
@@ -86,12 +86,12 @@ export function topologicalSort(
 type Result = { edges: Edge[]; nodes: Node<NodeData>[] };
 
 /**
- * Returns a subgraph of the given graph starting from the given start node.
- * @param edges - The edges of the graph.
- * @param nodes - The nodes of the graph.
- * @param startNode - The node to start the subgraph from.
- * @oaram stopNode - The node to stop the subgraph at.
- * @returns The subgraph of the given graph.
+ * Returns a subgraph starting from the given start node.
+ *
+ * Examples:
+ * - Linear: A->B->C from A => {A,B,C}
+ * - Diamond: A->B, A->C, B->D, C->D from A => {A,B,C,D}
+ * - Stop: A->B->C->D from A, stop C => {A,B,C}
  */
 export function subgraph(
   edges: Edge[],
@@ -118,11 +118,10 @@ export function subgraph(
       break;
     }
 
-    // Find and collect connected edges and nodes
+    // Find and collect connected nodes
     for (const edge of edges) {
       if (edge.source === currentNodeId) {
         if (!visited.has(edge.target)) {
-          result.edges.push(edge);
           stack.push(edge.target);
         }
       }
@@ -135,6 +134,11 @@ export function subgraph(
       result.nodes.push(node);
     }
   }
+
+  // Include all edges that stay within the visited node set.
+  result.edges = edges.filter(
+    (edge) => visited.has(edge.source) && visited.has(edge.target)
+  );
 
   return result;
 }
@@ -171,7 +175,7 @@ export const autoLayout = async (
   });
 
   // Helper function to create ELK node structure
-  const createElkNode = (node: Node<NodeData>, children?: any[]): any => ({
+  const createElkNode = (node: Node<NodeData>, children?: ElkNode[]): ElkNode => ({
     id: node.id,
     width: node.measured?.width ?? 100,
     height: node.measured?.height ?? 100,
@@ -198,7 +202,7 @@ export const autoLayout = async (
 
   // Helper function to update node positions
   const updateNodePositions = (
-    layoutNode: any,
+    layoutNode: ElkNode,
     parentX = 0,
     parentY = 0
   ): Node<NodeData> => {
@@ -263,7 +267,7 @@ export const autoLayout = async (
 
       processedGroups[groupId] = groupUpdatedNodes;
     } catch (error) {
-      console.error(`Error in ELK layout for group ${groupId}:`, error);
+      log.error(`Error in ELK layout for group ${groupId}:`, error);
     }
   }
 

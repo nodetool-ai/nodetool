@@ -1,0 +1,288 @@
+/** @jsxImportSource @emotion/react */
+import React, { useState, useCallback, useMemo, memo } from "react";
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import { CloseButton, ExpandCollapseButton } from "../../ui_primitives";
+
+import ThemeToggle from "../../ui/ThemeToggle";
+import MiniWorkflowGraph from "./MiniWorkflowGraph";
+import VibeCodingModal from "../../vibecoding/VibeCodingModal";
+import { Workflow } from "../../../stores/ApiTypes";
+
+interface MiniAppSidePanelProps {
+  workflow: Workflow;
+  isRunning?: boolean;
+}
+
+const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
+  workflow,
+  isRunning = false
+}) => {
+  const theme = useTheme();
+  const [isOpen, setIsOpen] = useState(false);
+  const [showGraph, setShowGraph] = useState(true);
+  const [vibeCodingOpen, setVibeCodingOpen] = useState(false);
+
+  const handleOpenPanel = useCallback(() => {
+    setIsOpen(true);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const handleToggleGraph = useCallback(() => {
+    setShowGraph(!showGraph);
+  }, [showGraph]);
+
+  const handleOpenVibeCoding = useCallback(() => {
+    setVibeCodingOpen(true);
+  }, []);
+
+  const handleCloseVibeCoding = useCallback(() => {
+    setVibeCodingOpen(false);
+  }, []);
+
+  const panelWidth = 360;
+
+  // Memoize inline styles that depend on theme to prevent object creation on each render
+  const panelSectionMarginStyle = useMemo(() => ({
+    marginTop: theme.spacing(1)
+  }), [theme]);
+
+  const vibeCodingSectionMarginStyle = useMemo(() => ({
+    marginTop: theme.spacing(2)
+  }), [theme]);
+
+  const styles = css({
+    ".side-panel-toggle": {
+      position: "fixed",
+      top: 80,
+      right: 12,
+      zIndex: 1100,
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: 8,
+      boxShadow: theme.shadows[2],
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      }
+    },
+
+    // Panel container
+    ".side-panel": {
+      position: "fixed",
+      top: 60,
+      right: 0,
+      bottom: 0,
+      width: panelWidth,
+      padding: theme.spacing(2),
+      backgroundColor: theme.vars.palette.background.paper,
+      borderLeft: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: theme.shadows[8],
+      zIndex: 1050,
+      transform: isOpen ? "translateX(0)" : `translateX(${panelWidth}px)`,
+      transition: "transform 0.25s ease-out",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    },
+
+    // Panel header
+    ".side-panel-header": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      padding: theme.spacing(1.5, 2),
+    },
+
+    ".theme-toggle-wrapper": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1.5),
+      paddingTop: theme.spacing(2),
+      borderTop: `1px solid ${theme.vars.palette.divider}`
+    },
+
+    // Panel content
+    ".side-panel-content": {
+      flex: 1,
+      overflow: "auto",
+      padding: theme.spacing(2),
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(2)
+    },
+
+    // Section styling
+    ".panel-section": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(1)
+    },
+
+    ".panel-section-header": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      cursor: "pointer",
+      padding: theme.spacing(0.5, 0),
+      "&:hover": {
+        opacity: 0.8
+      }
+    },
+
+    ".panel-section-title": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1),
+      fontSize: "0.75rem",
+      fontWeight: 500,
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      color: theme.vars.palette.text.secondary
+    },
+
+    ".graph-wrapper": {
+      borderRadius: 8,
+      overflow: "hidden",
+      border: `1px solid ${theme.vars.palette.divider}`
+    },
+
+    // Backdrop for mobile
+    ".side-panel-backdrop": {
+      position: "fixed",
+      inset: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      zIndex: 1040,
+      opacity: isOpen ? 1 : 0,
+      pointerEvents: isOpen ? "auto" : "none",
+      transition: "opacity 0.25s ease-out",
+
+      [theme.breakpoints.up("lg")]: {
+        display: "none"
+      }
+    }
+  });
+
+  return (
+    <Box css={styles}>
+      {/* Toggle button - hidden when panel is open */}
+      {!isOpen && (
+        <Tooltip title="Open settings" placement="left">
+          <IconButton
+            className="side-panel-toggle"
+            onClick={handleOpenPanel}
+            size="small"
+          >
+            <MenuIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+
+      {/* Backdrop */}
+      <div
+        className="side-panel-backdrop"
+        onClick={handleClosePanel}
+      />
+
+      {/* Panel */}
+      <div className="side-panel">
+        <div className="side-panel-header">
+          <CloseButton onClick={handleClosePanel} />
+        </div>
+
+        <div className="side-panel-content">
+          {/* Description */}
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              fontSize: theme.fontSizeSmall,
+              lineHeight: 1.5,
+              color: theme.vars.palette.text.primary,
+              marginBottom: theme.spacing(4),
+            }}
+          >
+            App Mode turns workflows into applications. 
+            Input nodes become form fields, output nodes display results.
+          </Typography>
+
+          {/* Workflow Graph Section */}
+          <div className="panel-section" style={panelSectionMarginStyle}>
+            <div
+              className="panel-section-header"
+              onClick={handleToggleGraph}
+            >
+              <span className="panel-section-title">
+                <AccountTreeIcon sx={{ fontSize: 16 }} />
+                Workflow Graph
+              </span>
+              <ExpandCollapseButton
+                expanded={showGraph}
+                onClick={handleToggleGraph}
+                iconVariant="chevron"
+              />
+            </div>
+            <Collapse in={showGraph}>
+              <div className="graph-wrapper">
+                <MiniWorkflowGraph workflow={workflow} isRunning={isRunning} />
+              </div>
+            </Collapse>
+          </div>
+
+          {/* VibeCoding Button */}
+          <div className="panel-section" style={vibeCodingSectionMarginStyle}>
+            <Button
+              variant="outlined"
+              startIcon={<AutoFixHighIcon />}
+              onClick={handleOpenVibeCoding}
+              fullWidth
+              sx={{
+                justifyContent: "flex-start",
+                textTransform: "none",
+                py: 1
+              }}
+            >
+              Design App UI
+            </Button>
+            {workflow.html_app && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                This workflow has a custom app UI
+              </Typography>
+            )}
+          </div>
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* Theme toggle at bottom */}
+          <div className="theme-toggle-wrapper">
+            <Typography variant="caption" color="text.secondary">
+              Theme
+            </Typography>
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
+
+      {/* VibeCoding Modal */}
+      <VibeCodingModal
+        open={vibeCodingOpen}
+        workflow={workflow}
+        onClose={handleCloseVibeCoding}
+      />
+    </Box>
+  );
+});
+
+MiniAppSidePanel.displayName = 'MiniAppSidePanel';
+
+export default MiniAppSidePanel;

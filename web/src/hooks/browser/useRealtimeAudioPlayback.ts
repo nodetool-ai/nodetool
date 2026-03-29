@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Chunk } from "../../stores/ApiTypes";
 import {
   base64ToUint8Array,
@@ -45,6 +45,7 @@ export const useRealtimeAudioPlayback = ({
   const instanceIdRef = useRef<string>(
     nodeId || `audio-${Date.now()}-${Math.random()}`
   );
+  const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [internalPlaying, setInternalPlaying] = useState<boolean>(false);
   const [wantsToPlay, setWantsToPlay] = useState<boolean>(true);
   const [visualizerVersion, setVisualizerVersion] = useState<number>(0);
@@ -58,8 +59,9 @@ export const useRealtimeAudioPlayback = ({
 
   // Initialize AudioContext and routing
   useEffect(() => {
-    const Ctx =
-      (window as any).AudioContext || (window as any).webkitAudioContext;
+    type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+    const Ctx: typeof AudioContext =
+      window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
     const ctx: AudioContext = new Ctx();
     audioContextRef.current = ctx;
     const streamDest = ctx.createMediaStreamDestination();
@@ -82,19 +84,24 @@ export const useRealtimeAudioPlayback = ({
         try {
           s.stop();
           s.disconnect();
-        } catch (e) {
-          console.debug("Source cleanup failed", e);
+        } catch {
+          // Silently ignore cleanup errors during unmount
         }
       });
       sourcesRef.current = [];
       try {
         ctx.close();
-      } catch (e) {
-        console.debug("AudioContext close failed", e);
+      } catch {
+        // Silently ignore AudioContext close errors during unmount
       }
       audioContextRef.current = null;
       streamDestRef.current = null;
       gainRef.current = null;
+      // Clear any pending restart timeout
+      if (restartTimeoutRef.current !== null) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -102,7 +109,9 @@ export const useRealtimeAudioPlayback = ({
     (base64: string) => {
       const ctx = audioContextRef.current;
       const gain = gainRef.current;
-      if (!ctx || !gain || !base64) {return;}
+      if (!ctx || !gain || !base64) {
+        return;
+      }
       const u8 = base64ToUint8Array(base64);
       const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
       const frameCount = Math.floor(u8.byteLength / 2 / channels);
@@ -116,7 +125,7 @@ export const useRealtimeAudioPlayback = ({
           srcIndex += channels * 2;
         }
         const floatData = int16ToFloat32(channelData);
-        buffer.copyToChannel(floatData, ch);
+        buffer.copyToChannel(floatData as Float32Array<ArrayBuffer>, ch);
       }
       const source = ctx.createBufferSource();
       source.buffer = buffer;
@@ -125,19 +134,16 @@ export const useRealtimeAudioPlayback = ({
       try {
         source.start(startTime);
         nextStartTimeRef.current = startTime + buffer.duration;
-      } catch (e) {
-        console.debug(
-          "BufferSource start with startTime failed, starting now",
-          e
-        );
+      } catch {
+        // Fallback to starting immediately if startTime scheduling fails
         source.start();
         nextStartTimeRef.current = ctx.currentTime + buffer.duration;
       }
       source.onended = () => {
         try {
           source.disconnect();
-        } catch (e) {
-          console.debug("BufferSource disconnect failed", e);
+        } catch {
+          // Silently ignore disconnect errors in cleanup
         }
       };
       sourcesRef.current.push(source);
@@ -147,59 +153,49 @@ export const useRealtimeAudioPlayback = ({
 
   // Internal play/stop functions (called by queue)
   const internalStart = useCallback(() => {
-    console.debug("[RealtimeAudio] Internal start");
     const ctx = audioContextRef.current;
-    if (!ctx) {return;}
+    if (!ctx) {
+      return;
+    }
     try {
       ctx.resume();
-    } catch (e) {
-      console.debug("AudioContext resume failed", e);
+    } catch {
+      // Silently ignore AudioContext resume errors
     }
     nextStartTimeRef.current = ctx.currentTime;
     setInternalPlaying(true);
   }, []);
 
   const internalStop = useCallback(() => {
-    console.debug("[RealtimeAudio] Internal stop");
     setInternalPlaying(false);
     sourcesRef.current.forEach((s) => {
       try {
         s.stop();
         s.disconnect();
-      } catch (e) {
-        console.debug("Source stop failed", e);
+      } catch {
+        // Silently ignore stop/disconnect errors in cleanup
       }
     });
     sourcesRef.current = [];
     const ctx = audioContextRef.current;
-    if (ctx) {nextStartTimeRef.current = ctx.currentTime;}
+    if (ctx) {
+      nextStartTimeRef.current = ctx.currentTime;
+    }
   }, []);
 
   // Schedule newly arrived chunks when actually playing (queue approved)
   useEffect(() => {
     if (!internalPlaying || !isQueuedPlaying) {
-      console.debug(
-        `[RealtimeAudio] Skipping scheduling - internal=${internalPlaying}, queued=${isQueuedPlaying}`
-      );
       return;
     }
     const audioChunks = chunks.filter(
       (c) => c?.content_type === "audio" && typeof c.content === "string"
     );
-    console.debug(
-      `[RealtimeAudio] Scheduling chunks: lastIndex=${
-        lastIndexRef.current
-      }, total=${audioChunks.length}, new=${
-        audioChunks.length - lastIndexRef.current
-      }`
-    );
     for (let i = lastIndexRef.current; i < audioChunks.length; i++) {
       // Skip if already scheduled (prevents double-scheduling in StrictMode)
       if (scheduledChunkIndices.current.has(i)) {
-        console.debug(`[RealtimeAudio] Chunk ${i} already scheduled, skipping`);
         continue;
       }
-      console.debug(`[RealtimeAudio] Scheduling chunk ${i}`);
       scheduleChunk(audioChunks[i].content as string);
       scheduledChunkIndices.current.add(i);
     }
@@ -208,7 +204,6 @@ export const useRealtimeAudioPlayback = ({
 
   // Public start: requests playback via queue
   const start = useCallback(() => {
-    console.debug("[RealtimeAudio] Requesting playback via queue");
     setWantsToPlay(true);
     audioQueue.enqueue({
       id: instanceIdRef.current,
@@ -219,7 +214,6 @@ export const useRealtimeAudioPlayback = ({
 
   // Public stop: removes from queue
   const stop = useCallback(() => {
-    console.debug("[RealtimeAudio] Stopping and dequeuing");
     setWantsToPlay(false);
     internalStop();
     audioQueue.dequeue(instanceIdRef.current);
@@ -230,7 +224,11 @@ export const useRealtimeAudioPlayback = ({
     lastIndexRef.current = 0; // Reset to replay all chunks
     scheduledChunkIndices.current.clear(); // Clear scheduled indices for replay
     setVisualizerVersion((v) => v + 1);
-    setTimeout(() => start(), 50); // Small delay to ensure clean restart
+    // Clear any existing timeout before setting a new one
+    if (restartTimeoutRef.current !== null) {
+      clearTimeout(restartTimeoutRef.current);
+    }
+    restartTimeoutRef.current = setTimeout(() => start(), 50); // Small delay to ensure clean restart
   }, [start, stop]);
 
   // Auto-enqueue on mount if wantsToPlay is true
@@ -244,10 +242,11 @@ export const useRealtimeAudioPlayback = ({
       });
     }
     return () => {
-      // Cleanup: dequeue on unmount
+      // Cleanup: dequeue on unmount or when dependencies change
       audioQueue.dequeue(instanceId);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [internalStart, internalStop, wantsToPlay]); // audioQueue is stable, don't include it
 
   const stream = streamDestRef.current ? streamDestRef.current.stream : null;
 

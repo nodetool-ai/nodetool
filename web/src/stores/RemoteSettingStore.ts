@@ -1,11 +1,9 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
-import { components } from "../api";
+import type { SettingWithValue } from "./ApiTypes";
 
-export type SettingWithValue = components["schemas"]["SettingWithValue"] & {
-  is_secret: boolean;
-};
+export type { SettingWithValue };
 
 interface RemoteSettingsStore {
   settings: SettingWithValue[];
@@ -57,7 +55,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
     secrets: Record<string, string> = {}
   ) => {
     set({ isLoading: true, error: null });
-    const { error, data } = await client.PUT("/api/settings/", {
+    const { error } = await client.PUT("/api/settings/", {
       body: {
         settings: settings as Record<string, never>,
         secrets: secrets as Record<string, never>
@@ -71,7 +69,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
 
   getSettingValue: (envVar: string) => {
     const setting = get().settings.find((s) => s.env_var === envVar);
-    return setting?.value !== null && setting?.value !== undefined
+    return setting?.value != null
       ? String(setting.value)
       : undefined;
   },

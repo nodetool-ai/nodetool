@@ -5,7 +5,8 @@ import React, {
   useRef,
   useState,
   useMemo,
-  useCallback
+  useCallback,
+  memo
 } from "react";
 import {
   TabulatorFull as Tabulator,
@@ -13,7 +14,8 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType
+  StandardValidatorType,
+  RowComponent
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -24,6 +26,49 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
+import isEqual from "lodash/isEqual";
+
+/**
+ * Union type for all possible cell values in a DataFrame column
+ */
+export type DataframeCellValue = string | number | boolean | null | undefined;
+
+/**
+ * Row data for list-style tables (array-based)
+ */
+export type ListTableRow = DataframeCellValue[];
+
+/**
+ * Row data for dict-style tables (object-based with rownum)
+ */
+export interface DictTableRow {
+  rownum: number;
+  [columnName: string]: DataframeCellValue;
+}
+
+/**
+ * Union type for table row data (either list or dict format)
+ */
+export type TableDataRow = DictTableRow;
+
+/**
+ * New data passed to onChangeRows callback
+ */
+export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
+
+/**
+ * Tabulator filter type for column filtering
+ */
+export interface TabulatorFilter {
+  field: string;
+  type: string;
+  value: string | number | boolean;
+}
+
+/**
+ * Array of tabulator filters for multi-column filtering
+ */
+export type TabulatorFilterArray = TabulatorFilter[][];
 
 /**
  * Formatter for datetime columns
@@ -38,29 +83,29 @@ export const datetimeFormatter: Formatter = (cell) => {
 };
 
 /**
- * Coerce a value to the correct type
+ * Coerce a value to the correct type based on column definition
  */
-const coerceValue = (value: any, column: ColumnDef) => {
+const coerceValue = (value: unknown, column: ColumnDef): DataframeCellValue => {
   if (column.data_type === "int") {
-    return parseInt(value);
+    return parseInt(value as string) || 0;
   } else if (column.data_type === "float") {
-    return parseFloat(value);
+    return parseFloat(value as string) || 0.0;
   } else if (column.data_type === "datetime") {
-    return value;
+    return value as string;
   }
-  return value;
+  return value as DataframeCellValue;
 };
 
 /**
- * Coerce a row to the correct types
+ * Coerce a row to the correct types based on column definitions
  */
-const coerceRow = (rownum: number, row: any[], columns: ColumnDef[]) => {
+const coerceRow = (rownum: number, row: ListTableRow, columns: ColumnDef[]): DictTableRow => {
   return columns.reduce(
     (acc, col, index) => {
-      acc[col.name] = coerceValue(row[index], col);
+      (acc as Record<string, DataframeCellValue>)[col.name] = coerceValue(row[index], col);
       return acc;
     },
-    { rownum } as Record<string, any>
+    { rownum }
   );
 };
 
@@ -68,44 +113,75 @@ interface DataTableProps {
   dataframe: DataframeRef;
   editable?: boolean;
   onChange?: (data: DataframeRef) => void;
+  isModalMode?: boolean;
+  searchFilter?: string;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
   dataframe,
   onChange,
-  editable
+  editable,
+  isModalMode = false,
+  searchFilter = ""
 }) => {
   const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
+  const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
+  const [isTableReady, setIsTableReady] = useState(false);
+  
+  // Track undo/redo availability
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  
+  // Track if we're in the middle of a Tabulator edit to avoid clearing history
+  const isInternalEditRef = useRef(false);
+  // Track timeout for cleanup
+  const editTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Update undo/redo availability
+  const updateHistoryState = useCallback(() => {
+    if (tabulatorRef.current && isModalMode) {
+      const undoSize = tabulatorRef.current.getHistoryUndoSize();
+      const redoSize = tabulatorRef.current.getHistoryRedoSize();
+      setCanUndo(typeof undoSize === "number" && undoSize > 0);
+      setCanRedo(typeof redoSize === "number" && redoSize > 0);
+    }
+  }, [isModalMode]);
+
+  // Store dataframe ref in a ref to avoid stale closures
+  const dataframeRef = useRef(dataframe);
+  dataframeRef.current = dataframe;
 
   const data = useMemo(() => {
     if (!dataframe.data) {return [];}
     return dataframe.data.map((row, index) => {
-      return coerceRow(index, row, dataframe.columns || []);
+      return coerceRow(index, row as ListTableRow, dataframe.columns || []);
     });
   }, [dataframe.columns, dataframe.data]);
 
   const onChangeRows = useCallback(
-    (newData: any[] | Record<string, any>) => {
+    (newData: TableDataChange) => {
       if (onChange && Array.isArray(newData)) {
+        const currentDf = dataframeRef.current;
         onChange({
-          ...dataframe,
+          ...currentDf,
           data: newData.map(
-            (row) => dataframe.columns?.map((col) => row[col.name]) || []
+            (row) => currentDf.columns?.map((col) => row[col.name]) || []
           )
         });
       }
     },
-    [dataframe, onChange]
+    [onChange]
   );
 
-  const columns: ColumnDefinition[] = useMemo(() => {
-    if (!dataframe.columns) {return [];}
-    const cols: ColumnDefinition[] = [
+  const buildColumns = useCallback((): ColumnDefinition[] => {
+    const cols = dataframeRef.current.columns;
+    if (!cols) {return [];}
+    return [
       ...(showSelect
         ? [
             {
@@ -119,7 +195,7 @@ const DataTable: React.FC<DataTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (e: any, cell: CellComponent) {
+              cellClick: function (_e: any, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -143,11 +219,12 @@ const DataTable: React.FC<DataTableProps> = ({
             }
           ]
         : []),
-      ...dataframe.columns.map((col) => ({
+      ...cols.map((col) => ({
         title: col.name,
         field: col.name,
         headerTooltip: col.data_type,
         editable: editable,
+        resizable: true,
         formatter: col.data_type === "datetime" ? datetimeFormatter : undefined,
         editor:
           col.data_type === "int"
@@ -169,36 +246,48 @@ const DataTable: React.FC<DataTableProps> = ({
             : undefined
       }))
     ];
-    return cols;
-  }, [dataframe.columns, editable, showRowNumbers, showSelect]);
+  }, [editable, showRowNumbers, showSelect]);
 
-  const onCellEdited = useCallback(
-    (cell: CellComponent) => {
+  // Initialize Tabulator once on mount
+  useEffect(() => {
+    if (!tableRef.current || tabulatorRef.current) {return;}
+
+    const handleCellEdited = (cell: CellComponent) => {
+      // Mark that we're doing an internal edit - don't clear history
+      isInternalEditRef.current = true;
+      
       const rownum = cell.getData().rownum;
-      onChangeRows(
-        data.map((row, index) => {
-          if (!row) {
-            return {};
-          }
-          const newRow = { ...row };
+      const currentDf = dataframeRef.current;
+      const currentData = currentDf.data?.map((row, index) =>
+        coerceRow(index, row as ListTableRow, currentDf.columns || [])
+      ) || [];
 
+      onChangeRows(
+        currentData.map((row, index) => {
+          if (!row) {return { rownum: index };}
+          const newRow = { ...row };
           if (index === rownum) {
-            newRow[cell.getField()] = cell.getValue();
+            (newRow as Record<string, DataframeCellValue>)[cell.getField() as string] = cell.getValue();
           }
           return newRow;
         })
       );
-    },
-    [data, onChangeRows]
-  );
 
-  useEffect(() => {
-    if (!tableRef.current) {return;}
+      // Reset the flag after a short delay to allow React state to update
+      // Clear any pending timeout before scheduling a new one
+      if (editTimeoutRef.current) {
+        clearTimeout(editTimeoutRef.current);
+      }
+      editTimeoutRef.current = setTimeout(() => {
+        isInternalEditRef.current = false;
+        updateHistoryState();
+      }, 100);
+    };
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
-      height: "100%",
+      height: 200,
       data: data,
-      columns: columns,
+      columns: buildColumns(),
       columnDefaults: {
         headerSort: true,
         hozAlign: "left",
@@ -209,19 +298,65 @@ const DataTable: React.FC<DataTableProps> = ({
           elementAttributes: { spellcheck: "false" }
         }
       },
-      movableRows: true
+      movableRows: true,
+      history: isModalMode // Enable undo/redo in modal mode
     });
 
-    tabulatorInstance.on("cellEdited", onCellEdited);
-    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
+    tabulatorInstance.on("cellEdited", handleCellEdited);
+    tabulatorInstance.on("rowSelectionChanged", (_data, rows) => {
       setSelectedRows(rows);
     });
+    tabulatorInstance.on("tableBuilt", () => {
+      setIsTableReady(true);
+    });
+    
+    tabulatorRef.current = tabulatorInstance;
     setTabulator(tabulatorInstance);
 
     return () => {
+      // Cleanup timeout on unmount
+      if (editTimeoutRef.current) {
+        clearTimeout(editTimeoutRef.current);
+      }
       tabulatorInstance.destroy();
+      tabulatorRef.current = null;
+      setIsTableReady(false);
     };
-  }, [data, columns, onCellEdited, dataframe.columns]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update data when it changes (without recreating tabulator)
+  // Skip replaceData if the change came from Tabulator's own editing (to preserve history)
+  useEffect(() => {
+    if (isTableReady && tabulatorRef.current && !isInternalEditRef.current) {
+      tabulatorRef.current.replaceData(data);
+    }
+  }, [data, isTableReady]);
+
+  // Update columns when they change
+  useEffect(() => {
+    if (isTableReady && tabulatorRef.current) {
+      tabulatorRef.current.setColumns(buildColumns());
+    }
+  }, [buildColumns, dataframe.columns, showSelect, showRowNumbers, isTableReady]);
+
+  // Apply search filter
+  useEffect(() => {
+    if (isTableReady && tabulatorRef.current) {
+      if (searchFilter && searchFilter.trim()) {
+        // Filter across all columns
+        const cols = dataframeRef.current.columns || [];
+        const filters = cols.map((col) => ({
+          field: col.name,
+          type: "like" as const,
+          value: searchFilter
+        }));
+        tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
+      } else {
+        tabulatorRef.current.clearFilter(true);
+      }
+    }
+  }, [searchFilter, isTableReady]);
 
   return (
     <div className="datatable nowheel nodrag" css={tableStyles(theme)}>
@@ -236,6 +371,10 @@ const DataTable: React.FC<DataTableProps> = ({
         editable={editable}
         dataframeColumns={dataframe.columns || []}
         onChangeRows={onChangeRows}
+        isModalMode={isModalMode}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onHistoryChange={updateHistoryState}
       />
 
       <div ref={tableRef} className="datatable" />
@@ -243,4 +382,14 @@ const DataTable: React.FC<DataTableProps> = ({
   );
 };
 
-export default DataTable;
+DataTable.displayName = "DataTable";
+
+export default memo(DataTable, (prevProps, nextProps) => {
+  // Deep comparison for dataframe object
+  return (
+    prevProps.editable === nextProps.editable &&
+    prevProps.isModalMode === nextProps.isModalMode &&
+    prevProps.searchFilter === nextProps.searchFilter &&
+    isEqual(prevProps.dataframe, nextProps.dataframe)
+  );
+});

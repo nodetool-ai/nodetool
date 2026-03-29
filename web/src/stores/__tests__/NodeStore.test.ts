@@ -34,8 +34,8 @@ const makeEdge = (
   id: `${source}-${target}`,
   source,
   target,
-  sourceHandle: sourceHandle || null,
-  targetHandle: targetHandle || null
+  sourceHandle: sourceHandle || "",
+  targetHandle: targetHandle || ""
 });
 
 const mockMetadata: Record<string, NodeMetadata> = {
@@ -77,10 +77,10 @@ const mockMetadata: Record<string, NodeMetadata> = {
     is_dynamic: false,
     supports_dynamic_outputs: false,
     expose_as_tool: false,
-    the_model_info: {},
     recommended_models: [],
     basic_fields: [],
-    is_streaming_output: false
+    is_streaming_output: false,
+            required_settings: []
   },
   dynamic_test: {
     node_type: "dynamic_test",
@@ -105,10 +105,10 @@ const mockMetadata: Record<string, NodeMetadata> = {
     is_dynamic: true,
     supports_dynamic_outputs: true,
     expose_as_tool: false,
-    the_model_info: {},
     recommended_models: [],
     basic_fields: [],
-    is_streaming_output: false
+    is_streaming_output: false,
+            required_settings: []
   }
 };
 describe("NodeStore node management", () => {
@@ -507,7 +507,8 @@ describe("Handle Validation with Centralized Functions", () => {
       source: "a",
       target: "b",
       sourceHandle: "output1",
-      targetHandle: "input1"
+      targetHandle: "input1",
+      edge_type: "data" as const
     };
 
     // First connection should succeed
@@ -576,7 +577,8 @@ describe("Graph Sanitization", () => {
           target: e.target,
           sourceHandle: e.sourceHandle!,
           targetHandle: e.targetHandle!,
-          ui_properties: {}
+          ui_properties: {},
+          edge_type: "data" as const
         }))
       }
     };
@@ -626,7 +628,8 @@ describe("Graph Sanitization", () => {
           target: e.target,
           sourceHandle: e.sourceHandle!,
           targetHandle: e.targetHandle!,
-          ui_properties: {}
+          ui_properties: {},
+          edge_type: "data" as const
         }))
       }
     };
@@ -635,6 +638,84 @@ describe("Graph Sanitization", () => {
 
     expect(store.getState().edges).toHaveLength(0);
     consoleSpy.mockRestore();
+  });
+});
+
+describe("createNodeStore Type Compatibility", () => {
+  const originalMetadata = useMetadataStore.getState();
+
+  beforeEach(() => {
+    useMetadataStore.setState(
+      { ...originalMetadata, metadata: mockMetadata },
+      true
+    );
+  });
+
+  afterEach(() => {
+    useMetadataStore.setState(originalMetadata, true);
+  });
+
+  test("createNodeStore should work with temporal middleware without type errors", () => {
+    // This test verifies that the temporal middleware types are compatible
+    // with the NodeStore types. Previously, an @ts-expect-error directive was
+    // needed due to type incompatibility between zundo v2 and zustand v4.
+    // This test ensures that the types are now properly compatible.
+    const store = createNodeStore();
+
+    // Verify the store was created successfully
+    expect(store).toBeDefined();
+    expect(store.getState).toBeDefined();
+    expect(store.setState).toBeDefined();
+    expect(store.temporal).toBeDefined();
+  });
+
+  test("createNodeStore with workflow parameter should maintain type safety", () => {
+    const nodeA = makeNode("a", "test-workflow", "test");
+    const nodeB = makeNode("b", "test-workflow", "test");
+
+    const workflow = {
+      id: "test-workflow",
+      name: "Test Workflow",
+      access: "private" as const,
+      description: "",
+      thumbnail: "",
+      tags: [],
+      settings: {},
+      updated_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      graph: {
+        nodes: [nodeA, nodeB].map((n) => ({
+          id: n.id,
+          type: n.type!,
+          data: n.data.properties,
+          dynamic_properties: {},
+          sync_mode: "automatic",
+          ui_properties: {
+            position: n.position,
+            selected: false,
+            selectable: true
+          }
+        })),
+        edges: []
+      }
+    };
+
+    const store = createNodeStore(workflow);
+
+    // Verify the store was created with workflow data
+    expect(store.getState().nodes).toHaveLength(2);
+    expect(store.getState().workflow.id).toBe("test-workflow");
+    expect(store.temporal).toBeDefined();
+  });
+
+  test("temporal middleware should provide undo/redo functionality", () => {
+    const store = createNodeStore();
+
+    // Verify temporal API is available and properly typed
+    expect(store.temporal.getState).toBeDefined();
+    expect(store.temporal.getState().undo).toBeDefined();
+    expect(store.temporal.getState().redo).toBeDefined();
+    expect(store.temporal.getState().clear).toBeDefined();
   });
 });
 
@@ -694,10 +775,10 @@ describe("Input Node Name Generation", () => {
     is_dynamic: false,
     supports_dynamic_outputs: false,
     expose_as_tool: false,
-    the_model_info: {},
     recommended_models: [],
     basic_fields: [],
-    is_streaming_output: false
+    is_streaming_output: false,
+            required_settings: []
   };
 
   const integerInputMetadata = {

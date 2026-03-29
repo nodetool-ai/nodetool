@@ -1,20 +1,22 @@
 import JSZip from "jszip";
 import { createAssetFile } from "./createAssetFile";
+import { resolveAssetUri } from "../components/node/output/hooks";
+import log from "loglevel";
 
 interface DownloadOptions {
   nodeId: string;
-  previewValue?: any;
-  rawResult?: any;
+  previewValue?: unknown;
+  rawResult?: unknown;
 }
 
 const getDownloadPayload = ({
   previewValue,
   rawResult
 }: Pick<DownloadOptions, "previewValue" | "rawResult">) => {
-  if (previewValue !== null && previewValue !== undefined) {
+  if (previewValue != null) {
     return previewValue;
   }
-  if (rawResult?.output !== undefined) {
+  if (rawResult && typeof rawResult === "object" && "output" in rawResult && rawResult.output !== undefined) {
     return rawResult.output;
   }
   if (rawResult !== undefined) {
@@ -29,14 +31,6 @@ export const downloadPreviewAssets = async ({
   rawResult
 }: DownloadOptions) => {
   const payload = getDownloadPayload({ previewValue, rawResult });
-  console.log("[downloadPreviewAssets] payload summary", {
-    nodeId,
-    hasPreview: previewValue !== undefined,
-    hasRawResult: rawResult !== undefined,
-    payloadType: typeof payload,
-    payloadKeys:
-      payload && typeof payload === "object" ? Object.keys(payload) : undefined
-  });
   let assetFiles: Awaited<ReturnType<typeof createAssetFile>>;
   try {
     assetFiles = await createAssetFile(payload, nodeId);
@@ -46,13 +40,14 @@ export const downloadPreviewAssets = async ({
         ? (payload as { uri?: string }).uri
         : undefined;
     if (uri) {
-      console.warn(
+      const resolvedUri = resolveAssetUri(uri);
+      log.warn(
         "[downloadPreviewAssets] Falling back to direct URI download due to error",
         error
       );
       const anchor = document.createElement("a");
-      anchor.href = uri;
-      anchor.download = uri.split("/").pop() ?? "preview_download";
+      anchor.href = resolvedUri;
+      anchor.download = resolvedUri.split("/").pop() ?? "preview_download";
       anchor.rel = "noopener";
       document.body.appendChild(anchor);
       anchor.click();
@@ -61,15 +56,21 @@ export const downloadPreviewAssets = async ({
     }
     throw error;
   }
-  console.log("[downloadPreviewAssets] generated files", {
-    count: assetFiles.length,
-    files: assetFiles.map((entry) => ({
-      name: entry.filename,
-      type: entry.type,
-      size: entry.file.size
-    }))
-  });
-  const electronApi = (window as any)?.electron || (window as any)?.api;
+
+  type ElectronSaveFile = (
+    _data: ArrayBuffer,
+    _filename: string,
+    _filters?: { name: string; extensions: string[] }[]
+  ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
+
+  const electronApi =
+    (
+      window as unknown as {
+        electron?: { saveFile?: ElectronSaveFile };
+        api?: { saveFile?: ElectronSaveFile };
+      }
+    ).electron ||
+    (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
   if (!assetFiles.length) {
     throw new Error("No assets generated for download");

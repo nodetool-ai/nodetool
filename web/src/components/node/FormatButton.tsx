@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import type { CustomText } from "./CommentNode";
 import Tooltip from "@mui/material/Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -24,6 +24,16 @@ const FormatButton: React.FC<FormatButtonProps> = ({
   onAction,
   tooltipText
 }) => {
+  const handleMouseDown = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (actionId && onAction) {
+      onAction();
+    } else if (format && onToggle) {
+      onToggle(format, label);
+    }
+  }, [actionId, onAction, format, onToggle, label]);
+
   return (
     <Tooltip
       title={tooltipText}
@@ -34,15 +44,7 @@ const FormatButton: React.FC<FormatButtonProps> = ({
       <button
         tabIndex={-1}
         className={`nodrag ${isActive ? "active" : ""}`}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (actionId && onAction) {
-            onAction();
-          } else if (format && onToggle) {
-            onToggle(format, label);
-          }
-        }}
+        onMouseDown={handleMouseDown}
       >
         {label}
       </button>

@@ -27,6 +27,8 @@ export default [
       "vite.config.ts",
       "dist-electron/**/*",
       "dist-web/**/*",
+      "backend-bundle/**/*",
+      "scripts/**/*.mjs",
       "jest.config.ts",
       "src/main.tsx",
       "coverage/**/*"
@@ -59,6 +61,13 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-console": "off",
+    },
+  },
+  {
+    // Allow require() in test files for jest.isolateModules()
+    files: ["**/__tests__/**/*.ts", "**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
   {

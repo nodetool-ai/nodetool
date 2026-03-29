@@ -1,0 +1,152 @@
+{
+  "modelId": "sakemin/musicgen-chord",
+  "owner": "sakemin",
+  "name": "musicgen-chord",
+  "version": "c940ab4308578237484f90f010b2b3871bf64008e95f26f4d567529ad019a3d6",
+  "description": "Generate music restricted to chord sequences and tempo",
+  "inputSchema": {
+    "properties": {
+      "audio_chords": {
+        "description": "An audio file that will condition the chord progression. You must choose only one among `audio_chords` or `text_chords` above.",
+        "format": "uri",
+        "title": "Audio Chords",
+        "type": "string",
+        "x-order": 4
+      },
+      "audio_end": {
+        "description": "End time of the audio file to use for chord conditioning. If None, will default to the end of the audio clip.",
+        "minimum": 0,
+        "title": "Audio End",
+        "type": "integer",
+        "x-order": 6
+      },
+      "audio_start": {
+        "default": 0,
+        "description": "Start time of the audio file to use for chord conditioning.",
+        "minimum": 0,
+        "title": "Audio Start",
+        "type": "integer",
+        "x-order": 5
+      },
+      "bpm": {
+        "description": "BPM condition for the generated output. `text_chords` will be processed based on this value. This will be appended at the end of `prompt`.",
+        "title": "Bpm",
+        "type": "number",
+        "x-order": 2
+      },
+      "chroma_coefficient": {
+        "default": 1,
+        "description": "Coefficient value multiplied to multi-hot chord chroma.",
+        "maximum": 2.5,
+        "minimum": 0.5,
+        "title": "Chroma Coefficient",
+        "type": "number",
+        "x-order": 11
+      },
+      "classifier_free_guidance": {
+        "default": 3,
+        "description": "Increases the influence of inputs on the output. Higher values produce lower-varience outputs that adhere more closely to inputs.",
+        "title": "Classifier Free Guidance",
+        "type": "integer",
+        "x-order": 15
+      },
+      "continuation": {
+        "default": false,
+        "description": "If `True`, generated music will continue from `audio_chords`. If chord conditioning, this is only possible when the chord condition is given with `text_chords`. If `False`, generated music will mimic `audio_chords`'s chord.",
+        "title": "Continuation",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "duration": {
+        "default": 8,
+        "description": "Duration of the generated audio in seconds.",
+        "title": "Duration",
+        "type": "integer",
+        "x-order": 7
+      },
+      "multi_band_diffusion": {
+        "default": false,
+        "description": "If `True`, the EnCodec tokens will be decoded with MultiBand Diffusion.",
+        "title": "Multi Band Diffusion",
+        "type": "boolean",
+        "x-order": 9
+      },
+      "normalization_strategy": {
+        "default": "loudness",
+        "description": "Strategy for normalizing audio.",
+        "enum": [
+          "loudness",
+          "clip",
+          "peak",
+          "rms"
+        ],
+        "title": "normalization_strategy",
+        "type": "string",
+        "x-order": 10
+      },
+      "output_format": {
+        "default": "wav",
+        "description": "Output format for generated audio.",
+        "enum": [
+          "wav",
+          "mp3"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 16
+      },
+      "prompt": {
+        "description": "A description of the music you want to generate.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Seed for random number generator. If `None` or `-1`, a random seed will be used.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 17
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Controls the 'conservativeness' of the sampling process. Higher temperature means more diversity.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 14
+      },
+      "text_chords": {
+        "description": "A text based chord progression condition. Single uppercase alphabet character(eg. `C`) is considered as a major chord. Chord attributes like(`maj`, `min`, `dim`, `aug`, `min6`, `maj6`, `min7`, `minmaj7`, `maj7`, `7`, `dim7`, `hdim7`, `sus2` and `sus4`) can be added to the root alphabet character after `:`.(eg. `A:min7`) Each chord token splitted by `SPACE` is allocated to a single bar. If more than one chord must be allocated to a single bar, cluster the chords adding with `,` without any `SPACE`.(eg. `C,C:7 G, E:min A:min`) You must choose either only one of `audio_chords` below or `text_chords`.",
+        "title": "Text Chords",
+        "type": "string",
+        "x-order": 1
+      },
+      "time_sig": {
+        "description": "Time signature value for the generate output. `text_chords` will be processed based on this value. This will be appended at the end of `prompt`.",
+        "title": "Time Sig",
+        "type": "string",
+        "x-order": 3
+      },
+      "top_k": {
+        "default": 250,
+        "description": "Reduces sampling to the k most likely tokens.",
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 12
+      },
+      "top_p": {
+        "default": 0,
+        "description": "Reduces sampling to tokens with cumulative probability of p. When set to  `0` (default), top_k sampling is used.",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 13
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

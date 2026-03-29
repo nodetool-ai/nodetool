@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, session } from 'electron';
 import path from 'path';
-import { createWindow, createPackageManagerWindow, handleActivation, forceQuit } from '../window';
+import { createWindow, createPackageManagerWindow, handleActivation, forceQuit, _resetPermissionHandlersForTesting } from '../window';
 import { setMainWindow, getMainWindow } from '../state';
 import { isAppQuitting } from '../main';
 import { logMessage } from '../logger';
@@ -88,6 +88,7 @@ jest.mock('../logger', () => ({
 jest.mock('../state', () => ({
   setMainWindow: jest.fn(),
   getMainWindow: jest.fn(),
+  serverState: { serverPort: 7777 },
 }));
 
 // Create a controllable mock for isAppQuitting
@@ -102,6 +103,11 @@ jest.mock('../main', () => ({
 
 jest.mock('path', () => ({
   join: jest.fn().mockImplementation((...args) => args.join('/')),
+}));
+
+jest.mock('../devMode', () => ({
+  isElectronDevMode: jest.fn().mockReturnValue(false),
+  getWebDevServerUrl: jest.fn().mockReturnValue('http://127.0.0.1:3000'),
 }));
 
 describe('Window Module', () => {
@@ -266,7 +272,7 @@ describe('Window Module', () => {
         width: 1200,
         height: 900,
         webPreferences: {
-          preload: expect.stringMatching(/.*\/src\/preload\.js$/),
+          preload: expect.stringMatching(/.*[\\/]+src[\\/]+preload\.js$/),
           contextIsolation: true,
           nodeIntegration: false,
           devTools: true,
@@ -394,11 +400,12 @@ describe('Window Module', () => {
   describe('permission handlers', () => {
     beforeEach(() => {
       (getMainWindow as jest.Mock).mockReturnValue(null);
+      _resetPermissionHandlersForTesting();
     });
 
     it('should initialize permission handlers when creating window', () => {
       createWindow();
-      
+
       expect(session.defaultSession.setPermissionRequestHandler).toHaveBeenCalled();
       expect(session.defaultSession.setPermissionCheckHandler).toHaveBeenCalled();
       expect(logMessage).toHaveBeenCalledWith('Permission handlers initialized with device enumeration support');
@@ -406,13 +413,14 @@ describe('Window Module', () => {
 
     it('should handle permission requests correctly', () => {
       createWindow();
-      
+
       const setPermissionRequestHandlerCall = (session.defaultSession.setPermissionRequestHandler as jest.Mock).mock.calls[0];
       const permissionHandler = setPermissionRequestHandlerCall[0];
       
       const mockCallback = jest.fn();
       const mockWebContents = {};
       const mockDetails = { requestingUrl: 'https://example.com' };
+      const mockLocalEditorDetails = { requestingUrl: 'http://127.0.0.1:7777/editor/test' };
       
       // Test media permission (allowed)
       permissionHandler(mockWebContents, 'media', mockCallback, mockDetails);
@@ -434,6 +442,13 @@ describe('Window Module', () => {
       expect(mockCallback).toHaveBeenCalledWith(true);
       
       mockCallback.mockClear();
+
+      // Test clipboard-sanitized-write permission (allowed for trusted local editor origin)
+      permissionHandler(mockWebContents, 'clipboard-sanitized-write', mockCallback, mockLocalEditorDetails);
+      expect(mockCallback).toHaveBeenCalledWith(true);
+      expect(logMessage).toHaveBeenCalledWith('Granting permission: clipboard-sanitized-write');
+      
+      mockCallback.mockClear();
       
       // Test denied permission
       permissionHandler(mockWebContents, 'camera', mockCallback, mockDetails);
@@ -443,7 +458,7 @@ describe('Window Module', () => {
 
     it('should handle permission checks correctly', () => {
       createWindow();
-      
+
       const setPermissionCheckHandlerCall = (session.defaultSession.setPermissionCheckHandler as jest.Mock).mock.calls[0];
       const permissionCheckHandler = setPermissionCheckHandlerCall[0];
       
@@ -459,9 +474,13 @@ describe('Window Module', () => {
       const result3 = permissionCheckHandler(null, 'mediaKeySystem', 'https://example.com');
       expect(result3).toBe(true);
       
+      // Test clipboard-sanitized-write permission (allowed for trusted local origin)
+      const result4 = permissionCheckHandler(null, 'clipboard-sanitized-write', 'http://127.0.0.1:7777');
+      expect(result4).toBe(true);
+      
       // Test denied permission
-      const result4 = permissionCheckHandler(null, 'camera', 'https://example.com');
-      expect(result4).toBe(false);
+      const result5 = permissionCheckHandler(null, 'camera', 'https://example.com');
+      expect(result5).toBe(false);
     });
   });
 });

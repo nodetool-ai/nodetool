@@ -1,3 +1,4 @@
+import log from "loglevel";
 import { renderHook } from "@testing-library/react";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionHandlers from "../useConnectionHandlers";
@@ -26,10 +27,14 @@ jest.mock("../../../stores/ContextMenuStore", () => ({
 }));
 
 // Mock the centralized handle functions
-jest.mock("../../../utils/handleUtils", () => ({
-  findOutputHandle: jest.fn(),
-  findInputHandle: jest.fn()
-}));
+jest.mock("../../../utils/handleUtils", () => {
+  const actual = jest.requireActual("../../../utils/handleUtils");
+  return {
+    ...actual,
+    findOutputHandle: jest.fn(),
+    findInputHandle: jest.fn()
+  };
+});
 
 // Mock TypeHandler utilities
 jest.mock("../../../utils/TypeHandler", () => ({
@@ -90,10 +95,10 @@ const mockNodeMetadata: NodeMetadata = {
   is_dynamic: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
-  the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const mockDynamicNodeMetadata: NodeMetadata = {
@@ -129,10 +134,10 @@ const previewNodeMetadata: NodeMetadata = {
   is_dynamic: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
-  the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const rerouteNodeMetadata: NodeMetadata = {
@@ -173,10 +178,10 @@ const rerouteNodeMetadata: NodeMetadata = {
   is_dynamic: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
-  the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const createMockNode = (id: string, type: string = "test.node") => ({
@@ -201,6 +206,7 @@ describe("useConnectionHandlers", () => {
   const mockOnConnect = jest.fn();
   const mockAddNotification = jest.fn();
   const mockSetConnectionAttempted = jest.fn();
+  const mockUpdateNodeData = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -226,7 +232,8 @@ describe("useConnectionHandlers", () => {
       findNode: mockFindNode,
       onConnect: mockOnConnect,
       edges: [],
-      setConnectionAttempted: mockSetConnectionAttempted
+      setConnectionAttempted: mockSetConnectionAttempted,
+      updateNodeData: mockUpdateNodeData
     });
 
     // Mock isConnectable to return true by default (override in specific tests)
@@ -263,7 +270,7 @@ describe("useConnectionHandlers", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
       mockFindNode.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "nonexistent",
@@ -287,7 +294,7 @@ describe("useConnectionHandlers", () => {
       const sourceNode = createMockNode("node1");
       mockFindNode.mockReturnValue(sourceNode);
       mockGetMetadata.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "node1",
@@ -308,7 +315,7 @@ describe("useConnectionHandlers", () => {
     it("should handle missing required parameters", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
 
       // Missing nodeId
       result.current.onConnectStart(
@@ -468,7 +475,7 @@ describe("useConnectionHandlers", () => {
       mockFindOutputHandle.mockReturnValue(undefined);
       mockFindInputHandle.mockReturnValue(undefined);
 
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
 
       const connection: Connection = {
         source: "source",
@@ -770,7 +777,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).toHaveBeenCalledWith({
         source: "sourceNode",
@@ -852,7 +859,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).toHaveBeenCalledWith({
         source: "sourceNode",
@@ -934,7 +941,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).toHaveBeenCalledWith({
         source: "rerouteNode",
@@ -1020,7 +1027,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).not.toHaveBeenCalled();
       expect(mockOpenContextMenu).toHaveBeenCalledTimes(1);
@@ -1104,7 +1111,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).not.toHaveBeenCalled();
       expect(mockOpenContextMenu).toHaveBeenCalledTimes(1);
@@ -1113,6 +1120,99 @@ describe("useConnectionHandlers", () => {
       );
       const payload = mockOpenContextMenu.mock.calls[0][9];
       expect(payload.options).toHaveLength(2);
+    });
+
+    it("generates unique key when connecting second node of same type to dynamic output node", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "target",
+        connectNodeId: "inputNode",
+        connectHandleId: "input",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      // inputNode has type "test.node", so the base key would be "node"
+      const inputNode = createMockNode("inputNode", "test.node");
+      // dynamicNode already has a dynamic output keyed "node"
+      const dynamicNode = {
+        ...createMockNode("dynamicNode", "test.dynamic"),
+        data: {
+          ...createMockNode("dynamicNode", "test.dynamic").data,
+          dynamic_outputs: {
+            node: {
+              type: "str",
+              optional: false,
+              type_args: [],
+              type_name: ""
+            }
+          }
+        }
+      };
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "inputNode") {
+          return inputNode;
+        }
+        if (id === "dynamicNode") {
+          return dynamicNode;
+        }
+        return undefined;
+      });
+
+      mockGetMetadata.mockImplementation((type: string) => {
+        if (type === "test.dynamic") {
+          return mockDynamicNodeMetadata;
+        }
+        return mockNodeMetadata;
+      });
+
+      const mockNodeElement = { dataset: { id: "dynamicNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) =>
+            selector === ".react-flow__node" ? mockNodeElement : null
+          ),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any, {} as any);
+
+      // updateNodeData should be called with key "node_1" (not "node" which already exists)
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("dynamicNode", {
+        dynamic_outputs: {
+          node: expect.any(Object),
+          node_1: {
+            type: "str",
+            optional: false,
+            type_args: [],
+            type_name: ""
+          }
+        }
+      });
+      // The connection should use the unique key "node_1"
+      expect(mockOnConnect).toHaveBeenCalledWith({
+        source: "dynamicNode",
+        sourceHandle: "node_1",
+        target: "inputNode",
+        targetHandle: "input",
+        className: "str"
+      });
     });
   });
 });

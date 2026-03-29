@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
 import isEqual from "lodash/isEqual";
 import {
-  Menu,
-  MenuItem,
   ListItemText,
   ListItemIcon,
   Typography,
@@ -12,11 +10,13 @@ import {
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { isElectron } from "../../stores/ApiClient";
+import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { EditorMenu, EditorMenuItem } from "../editor_ui";
 // no providers here; always Ollama
 
 interface LlamaModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: LlamaModelValue) => void;
   value: string;
 }
 
@@ -64,6 +64,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
     [onChange, handleClose]
   );
 
+  const handleMenuItemClick = useCallback(
+    (repoId: string) => () => {
+      handleModelSelect(repoId);
+    },
+    [handleModelSelect]
+  );
+
   // no providers menu; just one list of models
 
   return (
@@ -75,11 +82,14 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
         subLabel="Select Model"
         onClick={handleClick}
       />
-      <Menu
-        className="model-menu"
+      <EditorMenu
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
+        paperSx={{
+          minWidth: 280,
+          maxHeight: 400
+        }}
         anchorOrigin={{
           vertical: "top",
           horizontal: "left"
@@ -90,7 +100,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
         }}
       >
         {ollamaLoading ? (
-          <Box className="loading-container">
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              padding: 2
+            }}
+          >
             <CircularProgress size={24} />
           </Box>
         ) : ollamaError ? (
@@ -103,8 +119,8 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
               color="text.secondary"
               sx={{ display: "block", mb: 1 }}
             >
-              {typeof (ollamaError as any)?.detail === "string"
-                ? (ollamaError as any).detail
+              {typeof (ollamaError as { detail?: unknown })?.detail === "string"
+                ? (ollamaError as { detail?: string }).detail
                 : "Please check that Ollama is running"}
             </Typography>
             {isElectron ? (
@@ -130,17 +146,15 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             )}
           </Box>
         ) : sortedModels.length === 0 ? (
-          <MenuItem disabled>
+          <EditorMenuItem disabled>
             <ListItemText primary="No models available" />
-          </MenuItem>
+          </EditorMenuItem>
         ) : (
           sortedModels.map((model) => (
-            <MenuItem
+            <EditorMenuItem
               key={model.repo_id}
-              onClick={() => handleModelSelect(model.repo_id)}
-              className={`model-item ${
-                value === model.repo_id ? "selected" : ""
-              }`}
+              onClick={handleMenuItemClick(model.repo_id)}
+              selected={value === model.repo_id}
             >
               {value === model.repo_id && (
                 <ListItemIcon>
@@ -149,12 +163,12 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
               )}
               <ListItemText
                 inset={value !== model.repo_id}
-                primary={<span className="model-name">{model.name}</span>}
+                primary={model.name}
               />
-            </MenuItem>
+            </EditorMenuItem>
           ))
         )}
-      </Menu>
+      </EditorMenu>
     </>
   );
 };

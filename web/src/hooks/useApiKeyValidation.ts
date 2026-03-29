@@ -1,44 +1,9 @@
 import { useMemo } from "react";
 import { useSecrets } from "./useSecrets";
-
-/**
- * Maps namespace root to required API key secret name
- */
-const getRequiredSecretKey = (namespace: string): string | null => {
-  const rootNamespace = namespace.split(".")[0].toLowerCase();
-  
-  const namespaceToSecretKey: Record<string, string> = {
-    openai: "OPENAI_API_KEY",
-    anthropic: "ANTHROPIC_API_KEY",
-    google: "GEMINI_API_KEY",
-    gemini: "GEMINI_API_KEY",
-    aime: "AIME_API_KEY",
-    replicate: "REPLICATE_API_TOKEN",
-    calendly: "CALENDLY_API_TOKEN",
-    huggingface: "HF_TOKEN",
-    fal: "FAL_API_KEY"
-  };
-
-  return namespaceToSecretKey[rootNamespace] || null;
-};
-
-/**
- * Maps API key secret name to display name
- */
-const getSecretDisplayName = (secretKey: string): string => {
-  const secretKeyToDisplayName: Record<string, string> = {
-    OPENAI_API_KEY: "OpenAI API Key",
-    ANTHROPIC_API_KEY: "Anthropic API Key",
-    GEMINI_API_KEY: "Gemini API Key",
-    AIME_API_KEY: "Aime API Key",
-    REPLICATE_API_TOKEN: "Replicate API Token",
-    CALENDLY_API_TOKEN: "Calendly API Token",
-    HF_TOKEN: "HuggingFace Token",
-    FAL_API_KEY: "FAL API Key"
-  };
-
-  return secretKeyToDisplayName[secretKey] || secretKey;
-};
+import {
+  getRequiredSecretKeyForNamespace,
+  getSecretDisplayName
+} from "../utils/nodeProvider";
 
 /**
  * Hook to validate if required API key exists for a node namespace
@@ -53,7 +18,7 @@ export const useApiKeyValidation = (nodeNamespace: string): string | null => {
       return null; // Don't show validation while loading
     }
 
-    const requiredSecretKey = getRequiredSecretKey(nodeNamespace);
+    const requiredSecretKey = getRequiredSecretKeyForNamespace(nodeNamespace);
     
     if (!requiredSecretKey) {
       return null; // No API key required for this namespace
@@ -68,4 +33,3 @@ export const useApiKeyValidation = (nodeNamespace: string): string | null => {
     return null; // API key is set
   }, [nodeNamespace, isApiKeySet, isLoading]);
 };
-

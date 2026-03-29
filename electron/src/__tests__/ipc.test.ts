@@ -10,6 +10,10 @@ jest.mock('../types.d', () => ({
     WINDOW_MAXIMIZE: 'window-maximize',
     CLIPBOARD_WRITE_TEXT: 'clipboard-write-text',
     CLIPBOARD_READ_TEXT: 'clipboard-read-text',
+    CLIPBOARD_READ_FILE_PATHS: 'clipboard-read-file-paths',
+    CLIPBOARD_READ_BUFFER: 'clipboard-read-buffer',
+    CLIPBOARD_GET_CONTENT_INFO: 'clipboard-get-content-info',
+    CLIPBOARD_AVAILABLE_FORMATS: 'clipboard-available-formats',
     ON_CREATE_WORKFLOW: 'on-create-workflow',
     ON_UPDATE_WORKFLOW: 'on-update-workflow',
     ON_DELETE_WORKFLOW: 'on-delete-workflow',
@@ -27,6 +31,8 @@ jest.mock('../types.d', () => ({
     PACKAGE_UPDATE: 'package-update',
     PACKAGE_SEARCH_NODES: 'package-search-nodes',
     PACKAGE_OPEN_EXTERNAL: 'package-open-external',
+    DIALOG_OPEN_FILE: 'dialog-open-file',
+    DIALOG_OPEN_FOLDER: 'dialog-open-folder',
   },
   IpcEvents: {},
   IpcResponse: {},
@@ -90,6 +96,9 @@ jest.mock('electron', () => {
     clipboard: {
       writeText: jest.fn(),
       readText: jest.fn(),
+      read: jest.fn(),
+      readBuffer: jest.fn(),
+      availableFormats: jest.fn().mockReturnValue([]),
     },
     globalShortcut: {
       unregister: jest.fn(),
@@ -97,10 +106,13 @@ jest.mock('electron', () => {
     shell: {
       openExternal: jest.fn(),
     },
+    dialog: {
+      showOpenDialog: jest.fn(),
+    },
   };
 });
 
-import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from 'electron';
+import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell, dialog } from 'electron';
 import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer, restartLlamaServer } from '../server';
 import { logMessage } from '../logger';
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
@@ -125,6 +137,10 @@ import {
 const Channels = {
   CLIPBOARD_WRITE_TEXT: 'clipboard-write-text',
   CLIPBOARD_READ_TEXT: 'clipboard-read-text',
+  CLIPBOARD_READ_FILE_PATHS: 'clipboard-read-file-paths',
+  CLIPBOARD_READ_BUFFER: 'clipboard-read-buffer',
+  CLIPBOARD_GET_CONTENT_INFO: 'clipboard-get-content-info',
+  CLIPBOARD_AVAILABLE_FORMATS: 'clipboard-available-formats',
   GET_SERVER_STATE: 'get-server-state',
   OPEN_LOG_FILE: 'open-log-file',
   RUN_APP: 'run-app',
@@ -149,10 +165,13 @@ const Channels = {
   PACKAGE_SEARCH_NODES: 'package-search-nodes',
   PACKAGE_OPEN_EXTERNAL: 'package-open-external',
   PACKAGE_UPDATES_AVAILABLE: 'package-updates-available',
+  DIALOG_OPEN_FILE: 'dialog-open-file',
+  DIALOG_OPEN_FOLDER: 'dialog-open-folder',
 };
 
 const ipcMainMock = ipcMain as jest.Mocked<typeof ipcMain>;
 const browserWindowMock = BrowserWindow as jest.Mocked<typeof BrowserWindow>;
+const dialogMock = dialog as jest.Mocked<typeof dialog>;
 const clipboardMock = clipboard as jest.Mocked<typeof clipboard>;
 const globalShortcutMock = globalShortcut as jest.Mocked<typeof globalShortcut>;
 
@@ -593,6 +612,172 @@ describe('initializeIpcHandlers', () => {
 
       closeHandler({});
       // Should not throw or call window methods
+    });
+  });
+
+  describe('dialog handlers', () => {
+    beforeEach(() => {
+      initializeIpcHandlers();
+    });
+
+    it('should handle DIALOG_OPEN_FILE', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/file.txt'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Select File', defaultPath: '/home' });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Select File',
+        defaultPath: '/home',
+        filters: undefined,
+        properties: ['openFile'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FILE with multi-selection', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/file1.txt', '/path/to/file2.txt'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Select Files', multiSelections: true });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Select Files',
+        defaultPath: undefined,
+        filters: undefined,
+        properties: ['openFile', 'multiSelections'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FILE canceled', async () => {
+      const mockResult = { canceled: true, filePaths: [] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, {});
+      
+      expect(result.canceled).toBe(true);
+      expect(result.filePaths).toEqual([]);
+    });
+
+    it('should handle DIALOG_OPEN_FOLDER', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/folder'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Select Folder', defaultPath: '/home' });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Select Folder',
+        defaultPath: '/home',
+        buttonLabel: 'Select Folder',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FOLDER with custom button label', async () => {
+      const mockResult = { canceled: false, filePaths: ['/path/to/folder'] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, { title: 'Pick Folder', buttonLabel: 'Choose' });
+      
+      expect(dialogMock.showOpenDialog).toHaveBeenCalledWith({
+        title: 'Pick Folder',
+        defaultPath: undefined,
+        buttonLabel: 'Choose',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should handle DIALOG_OPEN_FOLDER canceled', async () => {
+      const mockResult = { canceled: true, filePaths: [] };
+      dialogMock.showOpenDialog.mockResolvedValue(mockResult);
+
+      const dialogHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
+      )?.[1] as any;
+
+      const result = await dialogHandler({}, {});
+      
+      expect(result.canceled).toBe(true);
+      expect(result.filePaths).toEqual([]);
+    });
+  });
+
+  describe('clipboard file path handlers', () => {
+    beforeEach(() => {
+      initializeIpcHandlers();
+    });
+
+    it('should handle CLIPBOARD_READ_FILE_PATHS with no files', async () => {
+      clipboardMock.availableFormats.mockReturnValue([]);
+      clipboardMock.readText.mockReturnValue('');
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_READ_FILE_PATHS
+      )?.[1] as any;
+
+      const result = await handler({});
+      expect(result).toEqual([]);
+    });
+
+    it('should handle CLIPBOARD_GET_CONTENT_INFO', async () => {
+      clipboardMock.availableFormats.mockReturnValue(['text/plain', 'text/html']);
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_GET_CONTENT_INFO
+      )?.[1] as any;
+
+      const result = await handler({});
+      expect(result.formats).toEqual(['text/plain', 'text/html']);
+      expect(result.hasText).toBe(true);
+      expect(result.hasHtml).toBe(true);
+      expect(result.hasImage).toBe(false);
+      expect(result.hasFiles).toBe(false);
+    });
+
+    it('should handle CLIPBOARD_READ_BUFFER', async () => {
+      const mockBuffer = Buffer.from('test data');
+      clipboardMock.readBuffer.mockReturnValue(mockBuffer);
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_READ_BUFFER
+      )?.[1] as any;
+
+      const result = await handler({}, 'text/plain');
+      expect(result).toBe(mockBuffer.toString('base64'));
+    });
+
+    it('should handle CLIPBOARD_READ_BUFFER with empty buffer', async () => {
+      clipboardMock.readBuffer.mockReturnValue(Buffer.alloc(0));
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_READ_BUFFER
+      )?.[1] as any;
+
+      const result = await handler({}, 'text/plain');
+      expect(result).toBeNull();
     });
   });
 });

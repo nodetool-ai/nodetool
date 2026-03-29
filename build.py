@@ -579,7 +579,7 @@ def configure_logging(level: str | int | None) -> int:
         numeric = level
     else:
         level_name = (level or os.environ.get("BUILD_LOG_LEVEL", "INFO")).upper()
-        numeric = getattr(logging, level_name, logging.INFO)
+        numeric = logging.getLevelNamesMapping().get(level_name, logging.INFO)
 
     logging.basicConfig(level=numeric, format="%(message)s")
     logging.getLogger().setLevel(numeric)
@@ -588,10 +588,10 @@ def configure_logging(level: str | int | None) -> int:
 
 def _build_manager_from_args(args: argparse.Namespace) -> CondaEnvironmentManager:
     return CondaEnvironmentManager(
-        env_name=args.name if getattr(args, "prefix", None) is None else None,
-        env_prefix=getattr(args, "prefix", None),
-        python_version=getattr(args, "python_version", DEFAULT_PYTHON_VERSION),
-        channels=getattr(args, "channels", None),
+        env_name=args.name if args.prefix is None else None,
+        env_prefix=args.prefix,
+        python_version=args.python_version,
+        channels=args.channels,
     )
 
 
@@ -600,7 +600,8 @@ def handle_build_command(args: argparse.Namespace) -> None:
         clean_build=args.clean,
         python_version=args.python_version,
     )
-    step_method = getattr(build, args.step, None)
+    steps = {"setup": build.setup, "pack": build.pack}
+    step_method = steps.get(args.step)
     if step_method is None:
         raise BuildError(f"Invalid build step: {args.step}")
     step_method()
@@ -739,14 +740,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Do not prompt before removing the environment",
     )
-    remove_parser.set_defaults(func=handle_env_remove)
+    remove_parser.set_defaults(func=handle_env_remove, python_version=DEFAULT_PYTHON_VERSION, channels=None)
 
     info_parser = env_subparsers.add_parser(
         "info",
         help="Show environment activation details",
         parents=[target_parent],
     )
-    info_parser.set_defaults(func=handle_env_info)
+    info_parser.set_defaults(func=handle_env_info, python_version=DEFAULT_PYTHON_VERSION, channels=None)
 
     run_parser = env_subparsers.add_parser(
         "run",
@@ -758,7 +759,7 @@ def build_parser() -> argparse.ArgumentParser:
         nargs=argparse.REMAINDER,
         help="Command to execute (prefix with -- to avoid parsing issues)",
     )
-    run_parser.set_defaults(func=handle_env_run)
+    run_parser.set_defaults(func=handle_env_run, python_version=DEFAULT_PYTHON_VERSION, channels=None)
 
     shell_parser = env_subparsers.add_parser(
         "shell",
@@ -769,7 +770,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--shell",
         help="Shell executable to launch (default depends on the platform)",
     )
-    shell_parser.set_defaults(func=handle_env_shell)
+    shell_parser.set_defaults(func=handle_env_shell, python_version=DEFAULT_PYTHON_VERSION, channels=None)
 
     env_list_parser = env_subparsers.add_parser("list", help="List conda environments")
     env_list_parser.set_defaults(func=handle_env_list)

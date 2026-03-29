@@ -1,17 +1,28 @@
-import { spawn, ChildProcess } from "child_process";
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getPythonPath,
   getOllamaPath,
   getLlamaServerPath,
   getOllamaModelsPath,
+  getPythonPath,
   getProcessEnv,
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
   getCondaEnvPath,
 } from "./config";
+
+/**
+ * Resolves the path to the Node.js-based backend server entry point.
+ * In packaged mode: resources/backend/server.mjs
+ * In dev mode: ../../packages/websocket/dist/server.js (relative to electron/dist-electron/)
+ */
+function getNodeBackendPath(): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "backend", "server.mjs");
+  }
+  return path.join(__dirname, "..", "..", "packages", "websocket", "dist", "server.js");
+}
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
 import { getServerUrl, getServerPort } from "./utils";
@@ -22,7 +33,7 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { readSettings } from "./settings";
+import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
@@ -30,21 +41,9 @@ let llamaWatchdog: Watchdog | null = null;
 const OLLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "ollama.pid");
 const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
 
-/**
- * Server Management Module
- *
- * This module handles the lifecycle and management of the NodeTool backend server.
- * It provides functionality for starting, stopping, and monitoring the Python-based
- * backend server process, including health checks, port availability verification,
- * and process management. The module also handles Ollama AI service dependencies
- * and server output logging.
- */
+/** Server Management Module */
 
-/**
- * Checks if a specific port is available for use
- * @param port - The port number to check
- * @returns Promise resolving to true if port is available, false otherwise
- */
+/** Checks if a specific port is available for use */
 async function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net
@@ -265,7 +264,7 @@ async function startOllamaServer(): Promise<void> {
 /**
  * Checks if a llama-server is already running on a specific port
  */
-async function isLlamaServerResponsive(
+export async function isLlamaServerResponsive(
   port: number,
   timeoutMs = 2000
 ): Promise<boolean> {
@@ -427,8 +426,8 @@ async function killExistingServer(): Promise<void> {
 }
 
 /**
- * Starts the NodeTool backend server process
- * Configures and spawns the Python-based server process with necessary arguments
+ * Starts the NodeTool backend server process.
+ * Spawns the Node.js-based TypeScript backend (packages/websocket/dist/server.js).
  */
 async function startServer(): Promise<void> {
   emitBootMessage("Configuring server environment...");
@@ -436,101 +435,133 @@ async function startServer(): Promise<void> {
   serverState.error = undefined;
   serverState.isStarted = false;
 
-  let pythonExecutablePath: string;
+  // Resolve Node.js backend entry point
+  const backendEntryPoint = getNodeBackendPath();
+  logMessage(`Resolved Node.js backend entry point: ${backendEntryPoint}`);
+
   try {
-    pythonExecutablePath = getPythonPath();
-    logMessage(`Resolved Python executable: ${pythonExecutablePath}`);
+    await fs.access(backendEntryPoint);
+  } catch {
+    const message = `Node.js backend not found at ${backendEntryPoint}. Run 'npm run build:packages' first.`;
+    logMessage(message, "error");
+    if (!process.env.CI) {
+      dialog.showErrorBox("Backend Not Found", message);
+    }
+    throw new Error(message);
+  }
+
+  // Determine managed local model services startup policy
+  let startupSettings = {
+    startOllamaOnStartup: true,
+    startLlamaCppOnStartup: false,
+  };
+  try {
+    const settings = await readSettingsAsync();
+    startupSettings = getModelServiceStartupSettings(settings);
   } catch (error) {
     logMessage(
-      `Could not resolve Python executable path. Ensure environment is installed. Error: ${error}`,
-      "error"
+      `Failed to read settings for model service startup, defaulting to ollama=true llama_cpp=false: ${error}`,
+      "warn"
     );
-    dialog.showErrorBox(
-      "Python Environment Missing",
-      "The Python environment could not be found. Please reinstall the Python environment from the installer prompt."
+  }
+
+  logMessage(
+    `Model service startup settings: ollama=${startupSettings.startOllamaOnStartup}, llama_cpp=${startupSettings.startLlamaCppOnStartup}`
+  );
+
+  // Start model services and find backend port in parallel.
+  const modelServicePromises: Promise<void>[] = [];
+
+  if (startupSettings.startOllamaOnStartup) {
+    logMessage("Starting Ollama server...");
+    modelServicePromises.push(
+      startOllamaServer()
+        .then(() => logMessage("Ollama server started successfully"))
+        .catch((error) => {
+          logMessage(
+            `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
+            "warn"
+          );
+          if (!serverState.ollamaPort) {
+            serverState.ollamaPort = 11435;
+          }
+        })
     );
-    throw error;
-  }
-
-  // Determine model backend preference
-  let modelBackend = "ollama";
-  try {
-    const settings = readSettings();
-    const configuredBackend = settings["MODEL_BACKEND"];
-    if (typeof configuredBackend === "string" && (configuredBackend === "ollama" || configuredBackend === "llama_cpp" || configuredBackend === "none")) {
-        modelBackend = configuredBackend;
-    }
-  } catch (error) {
-    logMessage(`Failed to read settings for model backend, defaulting to ${modelBackend}: ${error}`, "warn");
-  }
-  
-  logMessage(`Model Backend Priority: ${modelBackend}`);
-
-  // Attempt to start Ollama if selected (default)
-  if (modelBackend === "ollama") {
-    try {
-        logMessage("Starting Ollama server...");
-        await startOllamaServer();
-        logMessage("Ollama server started successfully");
-    } catch (error) {
-        logMessage(
-        `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
-        "warn"
-        );
-        // Set default port even if Ollama failed to start
-        if (!serverState.ollamaPort) {
-        serverState.ollamaPort = 11435;
-        }
-    }
   } else {
-    logMessage("Skipping Ollama server startup (backend not set to 'ollama')");
+    logMessage("Skipping Ollama server startup (disabled in settings)");
   }
 
-  // Attempt to start llama-server if selected
-  if (modelBackend === "llama_cpp") {
-    try {
-        logMessage("Starting llama-server...");
-        await startLlamaServer();
-        logMessage("llama-server started successfully");
-    } catch (error) {
-        logMessage(
-        `Failed to start llama-server: ${(error as Error).message}. Continuing without llama-server.`,
-        "warn"
-        );
-    }
+  if (startupSettings.startLlamaCppOnStartup) {
+    logMessage("Starting llama-server...");
+    modelServicePromises.push(
+      startLlamaServer()
+        .then(() => logMessage("llama-server started successfully"))
+        .catch((error) => {
+          logMessage(
+            `Failed to start llama-server: ${(error as Error).message}. Continuing without llama-server.`,
+            "warn"
+          );
+        })
+    );
   } else {
-    logMessage("Skipping llama-server startup (backend not set to 'llama_cpp')");
+    logMessage("Skipping llama-server startup (disabled in settings)");
   }
 
   const basePort = 7777;
   logMessage(`Finding available port starting from ${basePort}...`);
-  const selectedPort = await findAvailablePort(basePort);
+  const [selectedPort] = await Promise.all([
+    findAvailablePort(basePort),
+    ...modelServicePromises,
+  ]);
   serverState.serverPort = selectedPort;
   serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
   logMessage(`Selected port: ${selectedPort}`);
 
-  const args = [
-    "-m",
-    "nodetool.cli",
-    "serve",
-    "--port",
-    String(selectedPort),
-    "--static-folder",
-    webPath,
-  ];
-
-  logMessage(`Starting backend server with command: ${pythonExecutablePath} ${args.join(" ")}`);
+  logMessage(`Starting backend server via utilityProcess.fork: ${backendEntryPoint}`);
+  logMessage(`Backend directory: ${path.dirname(backendEntryPoint)}`);
   emitBootMessage("Starting backend server...");
+
+  // afterPack promotes the staged backend/_modules directory to a real
+  // backend/node_modules directory so Node.js can resolve externalized
+  // ESM packages with standard package resolution.
+  const backendNodeModules = path.join(path.dirname(backendEntryPoint), "node_modules");
+  logMessage(`Backend NODE_PATH: ${backendNodeModules}`);
+
+  // Python path may not exist if the Python runtime hasn't been installed yet.
+  // The backend will start without Python support in that case.
+  let pythonPath = "";
+  try {
+    const candidatePath = getPythonPath();
+    const { promises: fsPromises } = await import("fs");
+    try {
+      await fsPromises.access(candidatePath);
+      pythonPath = candidatePath;
+    } catch {
+      logMessage(
+        `Python executable not found at ${candidatePath}. Backend will start without Python support.`,
+        "warn",
+      );
+    }
+  } catch {
+    logMessage("Could not resolve Python path. Backend will start without Python support.", "warn");
+  }
+
+  const backendEnv: Record<string, string> = {
+    ...getProcessEnv(),
+    PORT: String(selectedPort),
+    STATIC_FOLDER: webPath,
+    NODETOOL_PYTHON: pythonPath,
+    OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
+    LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
+    NODE_ENV: "production",
+    NODE_PATH: backendNodeModules,
+  };
 
   backendWatchdog = new Watchdog({
     name: "nodetool",
-    command: pythonExecutablePath,
-    args,
-    env: {
-      ...getProcessEnv(),
-      OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
-      LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
-    },
+    modulePath: backendEntryPoint,
+    env: backendEnv,
+    cwd: path.dirname(backendEntryPoint),
     pidFilePath: PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
     onOutput: (line) => handleServerOutput(Buffer.from(line)),
@@ -548,7 +579,7 @@ async function startServer(): Promise<void> {
       "error"
     );
     logMessage(`Error stack: ${(error as Error).stack}`, "error");
-    
+
     backendWatchdog = null;
     throw error;
   }
@@ -572,7 +603,9 @@ function handleServerOutput(data: Buffer): void {
     serverState.error = message;
     serverState.status = "error";
     serverState.isStarted = false;
-    dialog.showErrorBox("Server Error", message);
+    if (!process.env.CI) {
+      dialog.showErrorBox("Server Error", message);
+    }
     emitServerError(message);
   }
 
@@ -860,6 +893,74 @@ async function stopServer(): Promise<void> {
 }
 
 /**
+ * Starts the Ollama server watchdog if it is not currently running.
+ */
+async function startOllamaService(): Promise<void> {
+  if (ollamaWatchdog) {
+    logMessage("Ollama server is already running", "info");
+    return;
+  }
+  await startOllamaServer();
+  emitServerStateChanged();
+}
+
+/**
+ * Stops the Ollama server watchdog if it is managed by this app.
+ */
+async function stopOllamaService(): Promise<void> {
+  if (!ollamaWatchdog) {
+    if (serverState.ollamaExternalManaged) {
+      logMessage(
+        "Ollama appears externally managed; tray stop is only available for app-managed Ollama",
+        "warn"
+      );
+    } else {
+      logMessage("Ollama server is not running", "info");
+    }
+    return;
+  }
+
+  await ollamaWatchdog.stopGracefully();
+  ollamaWatchdog = null;
+  serverState.ollamaExternalManaged = false;
+  emitServerStateChanged();
+}
+
+/**
+ * Starts the llama-server watchdog if it is not currently running.
+ */
+async function startLlamaCppService(): Promise<void> {
+  if (llamaWatchdog) {
+    logMessage("llama-server is already running", "info");
+    return;
+  }
+  await startLlamaServer();
+  emitServerStateChanged();
+}
+
+/**
+ * Stops the llama-server watchdog if it is managed by this app.
+ */
+async function stopLlamaCppService(): Promise<void> {
+  if (!llamaWatchdog) {
+    if (serverState.llamaExternalManaged) {
+      logMessage(
+        "llama-server appears externally managed; tray stop is only available for app-managed llama-server",
+        "warn"
+      );
+    } else {
+      logMessage("llama-server is not running", "info");
+    }
+    return;
+  }
+
+  await llamaWatchdog.stopGracefully();
+  llamaWatchdog = null;
+  serverState.llamaExternalManaged = false;
+  emitServerStateChanged();
+}
+
+/**
  * Returns the current server state
  * @returns Current server state object
  */
@@ -899,4 +1000,8 @@ export {
   isServerRunning,
   isOllamaRunning,
   isLlamaServerRunning,
+  startOllamaService,
+  stopOllamaService,
+  startLlamaCppService,
+  stopLlamaCppService,
 };

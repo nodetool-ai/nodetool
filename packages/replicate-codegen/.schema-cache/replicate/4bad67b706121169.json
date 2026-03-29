@@ -1,0 +1,39 @@
+{
+  "modelId": "minimax/video-01-live",
+  "owner": "minimax",
+  "name": "video-01-live",
+  "version": "7574e16b8f1ad52c6332ecb264c0f132e555f46c222255a738131ec1bb614092",
+  "description": "An image-to-video (I2V) model specifically trained for Live2D and general animation use cases",
+  "inputSchema": {
+    "properties": {
+      "first_frame_image": {
+        "description": "First frame image for video generation. The output video will have the same aspect ratio as this image.",
+        "format": "uri",
+        "title": "First Frame Image",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Text prompt for generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_optimizer": {
+        "default": true,
+        "description": "Use prompt optimizer",
+        "title": "Prompt Optimizer",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "prompt",
+      "first_frame_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

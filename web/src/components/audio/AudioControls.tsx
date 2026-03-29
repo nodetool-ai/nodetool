@@ -177,6 +177,23 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     },
     [onZoomChange]
   );
+
+  const handleToggleLoop = useCallback(() => {
+    setLoop(!loop);
+  }, [loop, setLoop]);
+
+  const handleToggleMute = useCallback(() => {
+    setMute(!mute);
+  }, [mute, setMute]);
+
+  const handleDownload = useCallback(() => {
+    if (assetUrl) {
+      download(filename || "audio.mp3", assetUrl);
+    } else {
+      log.warn("No assetUrl provided for download");
+    }
+  }, [assetUrl, filename]);
+
   return (
     <div
       css={styles(theme)}
@@ -206,7 +223,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 className={`loop-button${loop ? "" : " disabled"}`}
                 size="small"
                 color="primary"
-                onClick={() => setLoop(!loop)}
+                onClick={handleToggleLoop}
               >
                 <LoopIcon />
               </Button>
@@ -216,7 +233,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 className={`mute-button${mute ? "" : " disabled"}`}
                 size="small"
                 color="primary"
-                onClick={() => setMute(!mute)}
+                onClick={handleToggleMute}
               >
                 {mute ? <OffIcon /> : <UpIcon />}
               </Button>
@@ -228,13 +245,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 }`}
                 size="small"
                 color="primary"
-                onClick={() => {
-                  if (assetUrl) {
-                    download(filename || "audio.mp3", assetUrl);
-                  } else {
-                    log.warn("No assetUrl provided for download");
-                  }
-                }}
+                onClick={handleDownload}
               >
                 <DownloadIcon />
               </Button>

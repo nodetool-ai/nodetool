@@ -10,6 +10,7 @@ jest.mock("../useAssetActions", () => ({
   useAssetActions: () => ({
     isDragHovered: false,
     handleDrag: jest.fn(),
+    handleDragEnd: jest.fn(),
     handleDragOver: jest.fn(),
     handleDragEnter: jest.fn(),
     handleDragLeave: jest.fn(),

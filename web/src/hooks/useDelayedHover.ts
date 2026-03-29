@@ -1,5 +1,14 @@
 import { useCallback, useRef } from "react";
 
+/**
+ * Hook for implementing delayed hover behavior.
+ * 
+ * @example
+ * const { handleMouseEnter, handleMouseLeave } = useDelayedHover(() => {
+ *   setShowTooltip(true);
+ * }, 300);
+ * <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+ */
 export function useDelayedHover(callback: () => void, delay: number) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const callbackRef = useRef(callback);

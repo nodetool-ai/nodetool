@@ -1,0 +1,171 @@
+name: Bug Report
+description: Report a problem with NodeTool (desktop app, backend, or workflow execution)
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out as much detail as possible.
+
+        **Before submitting**, please check:
+        - [Existing issues](https://github.com/nodetool-ai/nodetool/issues) to avoid duplicates
+        - [Discord](https://discord.gg/WmQTWZRcYE) for quick help from the community
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is.
+      placeholder: "What went wrong? What did you expect to happen?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Open NodeTool
+        2. Add a '...' node
+        3. Connect it to '...'
+        4. Run the workflow
+        5. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include any error messages shown in the UI or console.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 📦 Debug Bundle (Required for Desktop App Bugs)
+
+        A **Debug Bundle** contains your logs, system info, and workflow data (secrets are automatically redacted).
+
+        **How to export it:**
+        1. Open NodeTool
+        2. Click the ⚙️ **Settings** icon in the top-right corner
+        3. Scroll down to **"Export Debug Bundle"** and click it
+        4. Attach the downloaded `.zip` file to this issue
+
+        > If you cannot export a bundle (e.g., the app won't start), please attach the log file manually.
+        > Logs are stored at:
+        > - **macOS**: `~/Library/Application Support/nodetool/logs/nodetool.log`
+        > - **Windows**: `%APPDATA%\nodetool\logs\nodetool.log`
+        > - **Linux**: `~/.config/nodetool/logs/nodetool.log`
+
+  - type: textarea
+    id: debug_bundle
+    attributes:
+      label: Debug Bundle / Logs
+      description: |
+        Attach the `.zip` Debug Bundle exported from NodeTool Settings.
+        If the app won't start, paste the relevant log content or error output here.
+      placeholder: "Drag and drop the nodetool-debug-*.zip file here, or paste log/error output."
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: NodeTool Version
+      description: Found in Settings → About, or in the title bar / window title.
+      placeholder: "e.g. 0.6.12"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS (Apple Silicon / M-series)
+        - macOS (Intel)
+        - Windows 11
+        - Windows 10
+        - Linux (Ubuntu / Debian)
+        - Linux (Fedora / RHEL)
+        - Linux (other)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: OS Version
+      placeholder: "e.g. macOS 14.5, Windows 11 23H2, Ubuntu 22.04"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: gpu
+    attributes:
+      label: GPU / Acceleration
+      description: What GPU or compute backend are you using?
+      options:
+        - Apple Silicon (MPS)
+        - NVIDIA (CUDA)
+        - AMD (ROCm)
+        - CPU only (no GPU)
+        - Other / Unknown
+    validations:
+      required: false
+
+  - type: dropdown
+    id: run_mode
+    attributes:
+      label: Run Mode
+      description: How are you running NodeTool?
+      options:
+        - Desktop app (Electron)
+        - Docker / self-hosted server
+        - Cloud (RunPod, Google Cloud Run, etc.)
+        - Development / source build
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Affected Workflow / Nodes
+      description: |
+        If the bug is related to a specific workflow or node type, describe it here.
+        You can also export the workflow (File → Export) and attach the JSON file.
+      placeholder: |
+        - Node type(s): e.g. "nodetool.text.Generate", "huggingface.image.StableDiffusion"
+        - Workflow: drag-and-drop the exported .json file here, or describe the setup
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or Screen Recordings
+      description: Drag and drop screenshots or recordings that show the problem.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that might be relevant (e.g. model names, API providers used, recent changes to your setup).
+    validations:
+      required: false

@@ -24,9 +24,14 @@ const mockTheme = createTheme({
     c_gray5: "#BDBDBD",
     c_gray6: "#D9D9D9"
   } as any, // Use 'as any' to bypass TypeScript checking for custom properties
+  fontSizeGiant: "2rem",
+  fontSizeBigger: "1.25rem",
+  fontSizeBig: "1.125rem",
   fontSizeNormal: "16px",
-  fontSizeSmall: "0.875em",
-  fontSizeSmaller: "0.75em",
+  fontSizeSmall: "0.875rem",
+  fontSizeSmaller: "0.75rem",
+  fontSizeTiny: "0.65rem",
+  fontSizeTinyer: "0.55rem",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif"
 });
@@ -56,14 +61,6 @@ const mockTheme = createTheme({
     warning: { main: "#ff9800" },
     success: { main: "#4caf50" },
     divider: "#2f2f2f",
-    action: {
-      hover: "rgba(255,255,255,0.08)",
-      selected: "rgba(255,255,255,0.16)",
-      disabled: "rgba(255,255,255,0.3)",
-      disabledBackground: "rgba(255,255,255,0.12)",
-      active: "rgba(255,255,255,0.54)"
-    },
-    // Provide text palette when MUI Typography reads from theme.vars
     text: {
       primary: "#ffffff",
       secondary: "#bdbdbd",
@@ -71,6 +68,16 @@ const mockTheme = createTheme({
     },
     background: {
       default: "#202020",
+      paper: "#232323"
+    },
+    action: {
+      hover: "rgba(255,255,255,0.08)",
+      selected: "rgba(255,255,255,0.16)",
+      disabled: "rgba(255,255,255,0.3)",
+      disabledBackground: "rgba(255,255,255,0.12)",
+      active: "rgba(255,255,255,0.54)"
+    },
+    Paper: {
       paper: "#232323"
     },
     c_link: "#77b4e6",
@@ -91,7 +98,62 @@ const mockTheme = createTheme({
     textChannel: "255 255 255",
     dividerChannel: "47 47 47",
     backgroundDefaultChannel: "32 32 32",
-    backgroundPaperChannel: "35 35 35"
+    backgroundPaperChannel: "35 35 35",
+    // Add Alert palette for MUI v7 Alert component
+    Alert: {
+      primaryColor: "#77b4e6",
+      primaryIconColor: "#77b4e6",
+      primaryStandardBg: "rgba(119, 180, 230, 0.1)",
+      primaryStandardBgHover: "rgba(119, 180, 230, 0.2)",
+      primaryOutlinedBg: "transparent",
+      primaryOutlinedBorder: "rgba(119, 180, 230, 0.5)",
+      primaryTextColor: "#77b4e6",
+      secondaryColor: "#9c27b0",
+      secondaryIconColor: "#9c27b0",
+      secondaryStandardBg: "rgba(156, 39, 176, 0.1)",
+      secondaryStandardBgHover: "rgba(156, 39, 176, 0.2)",
+      secondaryOutlinedBg: "transparent",
+      secondaryOutlinedBorder: "rgba(156, 39, 176, 0.5)",
+      secondaryTextColor: "#9c27b0",
+      errorColor: "#f44336",
+      errorIconColor: "#f44336",
+      errorStandardBg: "rgba(244, 67, 54, 0.1)",
+      errorStandardBgHover: "rgba(244, 67, 54, 0.2)",
+      errorOutlinedBg: "transparent",
+      errorOutlinedBorder: "rgba(244, 67, 54, 0.5)",
+      errorTextColor: "#f44336",
+      infoColor: "#2196f3",
+      infoIconColor: "#2196f3",
+      infoStandardBg: "rgba(33, 150, 243, 0.1)",
+      infoStandardBgHover: "rgba(33, 150, 243, 0.2)",
+      infoOutlinedBg: "transparent",
+      infoOutlinedBorder: "rgba(33, 150, 243, 0.5)",
+      infoTextColor: "#2196f3",
+      successColor: "#4caf50",
+      successIconColor: "#4caf50",
+      successStandardBg: "rgba(76, 175, 80, 0.1)",
+      successStandardBgHover: "rgba(76, 175, 80, 0.2)",
+      successOutlinedBg: "transparent",
+      successOutlinedBorder: "rgba(76, 175, 80, 0.5)",
+      successTextColor: "#4caf50",
+      warningColor: "#ff9800",
+      warningIconColor: "#ff9800",
+      warningStandardBg: "rgba(255, 152, 0, 0.1)",
+      warningStandardBgHover: "rgba(255, 152, 0, 0.2)",
+      warningOutlinedBg: "transparent",
+      warningOutlinedBorder: "rgba(255, 152, 0, 0.5)",
+      warningTextColor: "#ff9800"
+    },
+    // Add glass effect for ResultOverlay component
+    // Add glass effect for ResultOverlay component
+    glass: {
+      blur: "blur(12px)"
+    },
+    // Add Button palette for MUI v7 Button component
+    Button: {
+      inheritContainedBg: "rgba(255, 255, 255, 0.08)",
+      inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)"
+    }
   },
   // Provide spacing variables expected by MUI components (e.g., Button)
   // MUI expects spacing to be a function that multiplies by 8px
@@ -149,6 +211,76 @@ const mockTheme = createTheme({
 };
 (mockTheme as any).chip = {
   defaultColor: "#616161"
+};
+
+// Add Switch properties for MUI Switch component
+(mockTheme as any).vars.Switch = {
+  defaultColor: "#9e9e9e"
+};
+(mockTheme as any).Switch = {
+  defaultColor: "#9e9e9e"
+};
+
+// Add theme.alpha() method for MUI v7 CSS variables mode
+(mockTheme as any).alpha = (color: string, opacity: number) => {
+  // If color already has rgba, return as-is with adjusted alpha
+  if (color && color.startsWith("rgba")) {return color;}
+  // For CSS var references or hex colors, return rgba fallback
+  return `rgba(255, 255, 255, ${opacity})`;
+};
+
+// Add theme.getColorSchemeSelector() for MUI v7 CSS variables mode
+(mockTheme as any).getColorSchemeSelector = (scheme: string) => `&[data-color-scheme="${scheme}"]`;
+
+// Add color channels for MUI v7 alpha() function used by ButtonGroup, OutlinedInput, etc.
+(mockTheme as any).vars.palette.ButtonGroup = {
+  inheritContainedBg: "rgba(255, 255, 255, 0.08)",
+  inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)",
+};
+(mockTheme as any).vars.palette.common.onBackground = "#ffffff";
+(mockTheme as any).vars.palette.common.onBackgroundChannel = "255 255 255";
+(mockTheme as any).vars.palette.common.background = "#000000";
+(mockTheme as any).vars.palette.common.backgroundChannel = "0 0 0";
+(mockTheme as any).vars.palette.primary.mainChannel = "119 180 230";
+(mockTheme as any).vars.palette.primary.darkChannel = "90 154 206";
+(mockTheme as any).vars.palette.primary.lightChannel = "156 204 232";
+(mockTheme as any).vars.palette.primary.contrastText = "#000000";
+(mockTheme as any).vars.palette.primary.contrastTextChannel = "0 0 0";
+(mockTheme as any).vars.palette.secondary.mainChannel = "156 39 176";
+(mockTheme as any).vars.palette.error.mainChannel = "244 67 54";
+(mockTheme as any).vars.palette.warning.mainChannel = "255 152 0";
+(mockTheme as any).vars.palette.info.mainChannel = "33 150 243";
+(mockTheme as any).vars.palette.success.mainChannel = "76 175 80";
+(mockTheme as any).vars.palette.text.primaryChannel = "255 255 255";
+(mockTheme as any).vars.palette.text.secondaryChannel = "189 189 189";
+(mockTheme as any).vars.palette.text.disabledChannel = "158 158 158";
+(mockTheme as any).vars.palette.action.hoverOpacity = 0.08;
+(mockTheme as any).vars.palette.action.selectedOpacity = 0.16;
+(mockTheme as any).vars.palette.action.disabledOpacity = 0.38;
+(mockTheme as any).vars.palette.action.focusOpacity = 0.12;
+(mockTheme as any).vars.palette.action.activatedOpacity = 0.12;
+(mockTheme as any).vars.palette.FilledInput = {
+  bg: "rgba(255, 255, 255, 0.09)",
+  hoverBg: "rgba(255, 255, 255, 0.13)",
+  disabledBg: "rgba(255, 255, 255, 0.12)",
+};
+(mockTheme as any).vars.palette.TableCell = {
+  border: "rgba(81, 81, 81, 1)",
+};
+(mockTheme as any).vars.palette.Tooltip = {
+  bg: "rgba(97, 97, 97, 0.92)",
+};
+(mockTheme as any).vars.palette.OutlinedInput = {
+  border: "rgba(255, 255, 255, 0.23)",
+  hoverBorder: "#ffffff",
+};
+
+// Add opacity vars for MUI InputBase component
+(mockTheme as any).vars.opacity = {
+  inputPlaceholder: 0.42,
+  inputUnderline: 0.42,
+  switchTrackDisabled: 0.12,
+  switchTrack: 0.38,
 };
 
 // Ensure components overrides exist for MUI that reference theme.components

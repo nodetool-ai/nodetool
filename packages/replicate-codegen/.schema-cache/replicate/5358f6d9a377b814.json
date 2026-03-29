@@ -1,0 +1,117 @@
+{
+  "modelId": "bytedance/seedream-4",
+  "owner": "bytedance",
+  "name": "seedream-4",
+  "version": "cf7d431991436f19d1c8dad83fe463c729c816d7a21056c5105e75c84a0aa7e9",
+  "description": "Unified text-to-image generation and precise single-sentence editing at up to 4K resolution",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Image aspect ratio. Only used when size is not 'custom'. Use 'match_input_image' to automatically match the input image's aspect ratio.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 3
+      },
+      "enhance_prompt": {
+        "default": true,
+        "description": "Enable prompt enhancement for higher quality results, this will take longer to generate.",
+        "title": "Enhance Prompt",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "height": {
+        "default": 2048,
+        "description": "Custom image height (only used when size='custom'). Range: 1024-4096 pixels.",
+        "maximum": 4096,
+        "minimum": 1024,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 5
+      },
+      "image_input": {
+        "default": [],
+        "description": "Input image(s) for image-to-image generation. List of 1-10 images for single or multi-reference generation.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 1
+      },
+      "max_images": {
+        "default": 1,
+        "description": "Maximum number of images to generate when sequential_image_generation='auto'. Range: 1-15. Total images (input + generated) cannot exceed 15.",
+        "maximum": 15,
+        "minimum": 1,
+        "title": "Max Images",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "sequential_image_generation": {
+        "default": "disabled",
+        "description": "Group image generation mode. 'disabled' generates a single image. 'auto' lets the model decide whether to generate multiple related images (e.g., story scenes, character variations).",
+        "enum": [
+          "disabled",
+          "auto"
+        ],
+        "title": "sequential_image_generation",
+        "type": "string",
+        "x-order": 6
+      },
+      "size": {
+        "default": "2K",
+        "description": "Image resolution: 1K (1024px), 2K (2048px), 4K (4096px), or 'custom' for specific dimensions.",
+        "enum": [
+          "1K",
+          "2K",
+          "4K",
+          "custom"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 2
+      },
+      "width": {
+        "default": 2048,
+        "description": "Custom image width (only used when size='custom'). Range: 1024-4096 pixels.",
+        "maximum": 4096,
+        "minimum": 1024,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

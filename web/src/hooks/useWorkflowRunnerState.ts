@@ -6,10 +6,6 @@ import {
 
 /**
  * Hook to subscribe to a specific workflow's runner state.
- * Returns the current runner state for the given workflow ID.
- *
- * @param workflowId - The ID of the workflow to watch
- * @returns The current runner state ("idle", "connecting", "connected", "running", "error", "cancelled") or null if no store exists
  */
 export const useWorkflowRunnerState = (
   workflowId: string | undefined
@@ -44,12 +40,7 @@ export const useWorkflowRunnerState = (
   return runnerState;
 };
 
-/**
- * Hook to check if a workflow is currently running.
- *
- * @param workflowId - The ID of the workflow to check
- * @returns true if the workflow is in "running" state, false otherwise
- */
+/** Hook to check if a workflow is currently running. */
 export const useIsWorkflowRunning = (
   workflowId: string | undefined
 ): boolean => {

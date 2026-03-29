@@ -1,0 +1,136 @@
+import { EventEmitter } from "events";
+
+import {
+  installRequiredPythonPackages,
+  isCondaEnvironmentInstalled,
+} from "../python";
+
+jest.mock("fs", () => ({
+  promises: {
+    access: jest.fn(),
+  },
+  constants: {
+    W_OK: 2,
+  },
+}));
+
+jest.mock("child_process", () => ({
+  spawn: jest.fn(),
+}));
+
+jest.mock("electron", () => ({
+  app: {
+    getPath: jest.fn().mockReturnValue("/tmp"),
+    getVersion: jest.fn().mockReturnValue("0.6.3-rc.42"),
+  },
+  dialog: {
+    showErrorBox: jest.fn(),
+  },
+}));
+
+jest.mock("../config", () => ({
+  getNodePath: jest.fn().mockReturnValue("/conda/bin/node"),
+  getPythonPath: jest.fn().mockReturnValue("/conda/bin/python"),
+  getUVPath: jest.fn().mockReturnValue("/conda/bin/uv"),
+  getProcessEnv: jest.fn().mockReturnValue({}),
+}));
+
+jest.mock("../logger", () => ({
+  logMessage: jest.fn(),
+  LOG_FILE: "/tmp/nodetool.log",
+}));
+
+jest.mock("../utils", () => ({
+  checkPermissions: jest.fn(),
+  fileExists: jest.fn().mockResolvedValue(true),
+}));
+
+jest.mock("../events", () => ({
+  emitBootMessage: jest.fn(),
+  emitServerLog: jest.fn(),
+}));
+
+jest.mock("../torchPlatformCache", () => ({
+  getTorchIndexUrl: jest.fn().mockReturnValue(null),
+}));
+
+const { promises: fsPromises } = jest.requireMock("fs") as {
+  promises: { access: jest.Mock };
+};
+const { spawn } = jest.requireMock("child_process") as {
+  spawn: jest.Mock;
+};
+
+function createMockProcess(exitCode: number) {
+  const proc = new EventEmitter() as EventEmitter & {
+    stdout: EventEmitter;
+    stderr: EventEmitter;
+    stdin: {
+      write: jest.Mock;
+      end: jest.Mock;
+    };
+  };
+
+  Object.assign(proc, {
+    stdout: new EventEmitter(),
+    stderr: new EventEmitter(),
+    stdin: {
+      write: jest.fn(),
+      end: jest.fn(),
+    },
+  });
+
+  process.nextTick(() => {
+    proc.emit("exit", exitCode);
+  });
+
+  return proc;
+}
+
+describe("python environment helpers", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    delete process.env.NT_ELECTRON_DEV_MODE;
+    fsPromises.access.mockResolvedValue(undefined);
+  });
+
+  it("accepts an environment only when nodetool.worker is importable", async () => {
+    spawn.mockImplementation(() => createMockProcess(0));
+
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
+    expect(spawn).toHaveBeenCalledWith(
+      "/conda/bin/python",
+      ["-c", "import nodetool.worker"],
+      expect.objectContaining({
+        stdio: "ignore",
+      })
+    );
+  });
+
+  it("treats the environment as incomplete when nodetool.worker import fails", async () => {
+    spawn.mockImplementation(() => createMockProcess(1));
+
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
+  });
+
+  it("installs the required Nodetool Python wheels pinned to the app version", async () => {
+    spawn.mockImplementation(() => createMockProcess(0));
+
+    await installRequiredPythonPackages(["nodetool-ai/nodetool-huggingface"]);
+
+    expect(spawn).toHaveBeenCalledWith(
+      "/conda/bin/uv",
+      expect.arrayContaining([
+        "pip",
+        "install",
+        "--prerelease=allow",
+        "--system",
+        "nodetool-core==0.6.3rc42",
+        "nodetool-huggingface==0.6.3rc42",
+      ]),
+      expect.objectContaining({
+        stdio: "pipe",
+      })
+    );
+  });
+});

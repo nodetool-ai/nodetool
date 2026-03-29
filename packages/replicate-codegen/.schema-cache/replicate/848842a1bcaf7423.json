@@ -1,0 +1,118 @@
+{
+  "modelId": "black-forest-labs/flux-2-klein-4b",
+  "owner": "black-forest-labs",
+  "name": "flux-2-klein-4b",
+  "version": "8e9c42d77b10a2a41af823ac4500f7545be6ebc4e745830fc3f3de10de200542",
+  "description": "Very fast image generation and editing model. 4 steps distilled, sub-second inference for production and near real-time applications.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for the generated image. Use 'match_input_image' to match the aspect ratio of the first input image.",
+        "enum": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3",
+          "4:3",
+          "3:4",
+          "5:4",
+          "4:5",
+          "21:9",
+          "9:21",
+          "match_input_image"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 8
+      },
+      "go_fast": {
+        "default": false,
+        "description": "Run faster predictions with additional optimizations.",
+        "title": "Go Fast",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "images": {
+        "default": [],
+        "description": "List of input images for image-to-image generation. Maximum 5 images. Must be jpeg, png, gif, or webp.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Images",
+        "type": "array",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 6
+      },
+      "output_megapixels": {
+        "default": "1",
+        "description": "Resolution of the output image in megapixels",
+        "enum": [
+          "0.25",
+          "0.5",
+          "1",
+          "2",
+          "4"
+        ],
+        "title": "output_megapixels",
+        "type": "string",
+        "x-order": 3
+      },
+      "output_quality": {
+        "default": 95,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "description": "Text prompt for image generation.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "modelId": "philz1337x/crystal-video-upscaler",
+  "owner": "philz1337x",
+  "name": "crystal-video-upscaler",
+  "version": "a1817a6d378e6734bbdf8a184a6eca7870401891550ef9064a902a695241ad67",
+  "description": "High-precision video upscaler optimized for portraits, faces and products. One of the upscale modes powered by Clarity AI. X:https://x.com/philz1337x",
+  "inputSchema": {
+    "properties": {
+      "scale_factor": {
+        "default": 2,
+        "description": "Scale factor for upscaling (will be capped if output will exceed 4K)",
+        "minimum": 1,
+        "title": "Scale Factor",
+        "type": "number",
+        "x-order": 1
+      },
+      "video": {
+        "description": "An input video for upscaling",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

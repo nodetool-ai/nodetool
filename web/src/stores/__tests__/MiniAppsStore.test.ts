@@ -60,7 +60,8 @@ describe("MiniAppsStore", () => {
           workflow1: {
             inputValues: { textInput: "existingValue" },
             results: [],
-            progress: null
+            progress: null,
+            lastRunDuration: null
           }
         }
       });
@@ -130,6 +131,52 @@ describe("MiniAppsStore", () => {
 
       const { apps } = useMiniAppsStore.getState();
       expect(apps["workflow1"].inputValues["textInput"]).toBeUndefined();
+    });
+
+    it("sets first option for select inputs without value", () => {
+      const definitions: MiniAppInputDefinition[] = [
+        {
+          nodeId: "node1",
+          nodeType: "input",
+          kind: "select",
+          data: { 
+            name: "selectInput", 
+            label: "Select", 
+            description: "Choose one",
+            options: ["option1", "option2", "option3"]
+          }
+        }
+      ];
+
+      act(() => {
+        useMiniAppsStore.getState().initializeInputDefaults("workflow1", definitions);
+      });
+
+      const { apps } = useMiniAppsStore.getState();
+      expect(apps["workflow1"].inputValues["selectInput"]).toBe("option1");
+    });
+
+    it("sets undefined for select inputs with no options", () => {
+      const definitions: MiniAppInputDefinition[] = [
+        {
+          nodeId: "node1",
+          nodeType: "input",
+          kind: "select",
+          data: { 
+            name: "selectInput", 
+            label: "Select", 
+            description: "Choose one",
+            options: []
+          }
+        }
+      ];
+
+      act(() => {
+        useMiniAppsStore.getState().initializeInputDefaults("workflow1", definitions);
+      });
+
+      const { apps } = useMiniAppsStore.getState();
+      expect(apps["workflow1"].inputValues["selectInput"]).toBeUndefined();
     });
   });
 
@@ -344,7 +391,8 @@ describe("MiniAppsStore", () => {
           workflow1: {
             inputValues: {},
             results: [],
-            progress: null
+            progress: null,
+            lastRunDuration: null
           }
         }
       });
@@ -396,6 +444,48 @@ describe("MiniAppsStore", () => {
     });
   });
 
+  describe("setLastRunDuration", () => {
+    it("sets last run duration for a workflow", () => {
+      act(() => {
+        useMiniAppsStore.getState().setLastRunDuration("workflow1", 5000);
+      });
+
+      const { apps } = useMiniAppsStore.getState();
+      expect(apps["workflow1"].lastRunDuration).toBe(5000);
+    });
+
+    it("clears last run duration when set to null", () => {
+      act(() => {
+        useMiniAppsStore.getState().setLastRunDuration("workflow1", 5000);
+        useMiniAppsStore.getState().setLastRunDuration("workflow1", null);
+      });
+
+      const { apps } = useMiniAppsStore.getState();
+      expect(apps["workflow1"].lastRunDuration).toBeNull();
+    });
+
+    it("updates last run duration on subsequent runs", () => {
+      act(() => {
+        useMiniAppsStore.getState().setLastRunDuration("workflow1", 5000);
+        useMiniAppsStore.getState().setLastRunDuration("workflow1", 8000);
+      });
+
+      const { apps } = useMiniAppsStore.getState();
+      expect(apps["workflow1"].lastRunDuration).toBe(8000);
+    });
+
+    it("handles different workflows independently", () => {
+      act(() => {
+        useMiniAppsStore.getState().setLastRunDuration("workflow1", 3000);
+        useMiniAppsStore.getState().setLastRunDuration("workflow2", 7000);
+      });
+
+      const { apps } = useMiniAppsStore.getState();
+      expect(apps["workflow1"].lastRunDuration).toBe(3000);
+      expect(apps["workflow2"].lastRunDuration).toBe(7000);
+    });
+  });
+
   describe("resetWorkflowState", () => {
     it("resets results and progress while preserving input values", () => {
       const result: MiniAppResult = {
@@ -419,6 +509,16 @@ describe("MiniAppsStore", () => {
       expect(apps["workflow1"].inputValues["myInput"]).toBe("keepThis");
       expect(apps["workflow1"].results).toHaveLength(0);
       expect(apps["workflow1"].progress).toBeNull();
+    });
+
+    it("also resets lastRunDuration to null", () => {
+      act(() => {
+        useMiniAppsStore.getState().setLastRunDuration("workflow1", 5000);
+        useMiniAppsStore.getState().resetWorkflowState("workflow1");
+      });
+
+      const { apps } = useMiniAppsStore.getState();
+      expect(apps["workflow1"].lastRunDuration).toBeNull();
     });
 
     it("creates default state for non-existent workflow", () => {

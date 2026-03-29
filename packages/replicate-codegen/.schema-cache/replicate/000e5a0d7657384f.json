@@ -1,0 +1,153 @@
+{
+  "modelId": "bytedance/flux-pulid",
+  "owner": "bytedance",
+  "name": "flux-pulid",
+  "version": "8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b",
+  "description": "⚡️FLUX PuLID: FLUX-dev based Pure and Lightning ID Customization via Contrastive Alignment🎭",
+  "inputSchema": {
+    "properties": {
+      "guidance_scale": {
+        "default": 4,
+        "description": "Set the guidance scale for text prompt influence (1.0-10.0)",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 7
+      },
+      "height": {
+        "default": 1152,
+        "description": "Set the height of the generated image (256-1536 pixels)",
+        "maximum": 1536,
+        "minimum": 256,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 4
+      },
+      "id_weight": {
+        "default": 1,
+        "description": "Set the weight of the ID image influence (0.0-3.0)",
+        "maximum": 3,
+        "minimum": 0,
+        "title": "Id Weight",
+        "type": "number",
+        "x-order": 8
+      },
+      "main_face_image": {
+        "description": "Upload an ID image for face generation",
+        "format": "uri",
+        "title": "Main Face Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "max_sequence_length": {
+        "default": 128,
+        "description": "Set the max sequence length for prompt (T5), smaller is faster (128-512)",
+        "maximum": 512,
+        "minimum": 128,
+        "title": "Max Sequence Length",
+        "type": "integer",
+        "x-order": 11
+      },
+      "negative_prompt": {
+        "default": "bad quality, worst quality, text, signature, watermark, extra limbs, low resolution, partially rendered objects, deformed or partially rendered eyes, deformed, deformed eyeballs, cross-eyed, blurry",
+        "description": "Enter a negative prompt to specify what to avoid in the image",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Set the number of images to generate (1-4)",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 14
+      },
+      "num_steps": {
+        "default": 20,
+        "description": "Set the number of denoising steps (1-20)",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Num Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Choose the format of the output image",
+        "enum": [
+          "png",
+          "jpg",
+          "webp"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 12
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Set the quality of the output image for jpg and webp (1-100)",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 13
+      },
+      "prompt": {
+        "default": "portrait, color, cinematic",
+        "description": "Enter a text prompt to guide image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Set a random seed for generation (leave blank or -1 for random)",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 9
+      },
+      "start_step": {
+        "default": 0,
+        "description": "Set the timestep to start inserting ID (0-4 recommended, 0 for highest fidelity, 4 for more editability)",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Start Step",
+        "type": "integer",
+        "x-order": 6
+      },
+      "true_cfg": {
+        "default": 1,
+        "description": "Set the Classifier-Free Guidance (CFG) scale. 1.0 uses standard CFG, while values >1.0 enable True CFG for more precise control over generation. Higher values increase adherence to the prompt at the cost of image quality.",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "True Cfg",
+        "type": "number",
+        "x-order": 10
+      },
+      "width": {
+        "default": 896,
+        "description": "Set the width of the generated image (256-1536 pixels)",
+        "maximum": 1536,
+        "minimum": 256,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "main_face_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

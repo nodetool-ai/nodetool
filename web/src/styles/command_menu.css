@@ -13,8 +13,8 @@
   overflow: hidden;
   padding: 8px;
   color: var(--palette-grey-800);
-  box-shadow: 0 20px 68px rgba(0, 0, 0, 0.55);
-  background: rgba(18, 18, 18, 0.8);
+  box-shadow: 0 20px 68px var(--palette-grey-1000);
+  background: var(--palette-grey-900);
   backdrop-filter: blur(10px);
 }
 
@@ -25,7 +25,7 @@
   font-size: 20px;
   border: none;
   outline: none;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--palette-grey-800);
   color: var(--palette-grey-0);
   border-radius: 8px;
   transition: all 0.2s ease;
@@ -33,7 +33,7 @@
 
 [cmdk-input]:hover,
 [cmdk-input]:focus {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--palette-grey-700);
   box-shadow: 0 0 0 2px var(--palette-primary-main);
 }
 
@@ -60,7 +60,7 @@
 }
 
 [cmdk-item][data-selected="true"] {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--palette-grey-700);
   color: var(--palette-grey-0);
 }
 
@@ -76,7 +76,7 @@
 }
 
 [cmdk-item]:active {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--palette-grey-600);
 }
 
 [cmdk-item] svg {

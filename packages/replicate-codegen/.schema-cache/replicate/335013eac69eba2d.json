@@ -1,0 +1,56 @@
+{
+  "modelId": "851-labs/background-remover",
+  "owner": "851-labs",
+  "name": "background-remover",
+  "version": "a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc",
+  "description": "Remove backgrounds from images.",
+  "inputSchema": {
+    "properties": {
+      "background_type": {
+        "default": "rgba",
+        "description": "Background type: 'rgba', 'map', 'green', 'white', [R,G,B] array, 'blur', 'overlay', or path to an image.",
+        "title": "Background Type",
+        "type": "string",
+        "x-order": 3
+      },
+      "format": {
+        "default": "png",
+        "description": "Output format (e.g., png, jpg). Defaults to png.",
+        "title": "Format",
+        "type": "string",
+        "x-order": 4
+      },
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "reverse": {
+        "default": false,
+        "description": "If True, remove the foreground instead of the background.",
+        "title": "Reverse",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "threshold": {
+        "default": 0,
+        "description": "Threshold for hard segmentation (0.0-1.0). If 0.0, uses soft alpha.",
+        "title": "Threshold",
+        "type": "number",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

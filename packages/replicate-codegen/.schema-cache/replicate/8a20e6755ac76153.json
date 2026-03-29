@@ -1,0 +1,28 @@
+{
+  "modelId": "lucataco/remove-bg",
+  "owner": "lucataco",
+  "name": "remove-bg",
+  "version": "95fcc2a26d3899cd6c2691c900465aaeff466285a65c14638cc5f36f34befaf1",
+  "description": "Remove background from an image",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Remove background from this image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

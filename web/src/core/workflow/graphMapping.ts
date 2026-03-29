@@ -4,6 +4,7 @@ import log from "loglevel";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { hasInputHandle, hasOutputHandle } from "../../utils/handleUtils";
+import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 
 /**
  * Validates if an edge is valid based on node existence and handle validity.
@@ -32,6 +33,11 @@ export const isValidEdge = (
   if (!edge.sourceHandle || !edge.targetHandle) {
     log.debug("isValidEdge failed: missing handles", { edge });
     return false;
+  }
+
+  // Control edges use __control__ targetHandle and don't need regular handle validation
+  if (edge.targetHandle === CONTROL_HANDLE_ID || edge.sourceHandle === CONTROL_HANDLE_ID) {
+    return true;
   }
 
   if (!sourceMetadata || !targetMetadata) {

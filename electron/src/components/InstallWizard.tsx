@@ -1,87 +1,5 @@
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import logo from "../assets/logo.png";
-
-const moduleMapping = {
-  apple: "nodetool-ai/nodetool-apple",
-  audio: "nodetool-ai/nodetool-lib-audio",
-  // comfy: "nodetool-ai/nodetool-comfy",
-  elevenlabs: "nodetool-ai/nodetool-elevenlabs",
-  whispercpp: "nodetool-ai/nodetool-whispercpp",
-  fal: "nodetool-ai/nodetool-fal",
-  huggingface: "nodetool-ai/nodetool-huggingface",
-  ml: "nodetool-ai/nodetool-lib-ml",
-  mlx: "nodetool-ai/nodetool-mlx",
-  replicate: "nodetool-ai/nodetool-replicate",
-} as const;
-
-type ModuleKey = keyof typeof moduleMapping;
-
-const packageMeta: Record<
-  ModuleKey,
-  { title: string; description: string; recommended?: boolean }
-> = {
-  mlx: {
-    title: "🤗 MLX",
-    description: "Apple Silicon Accelerated Models",
-    recommended: true,
-  },
-  huggingface: {
-    title: "🤗 HuggingFace",
-    description: "Text, Image, and Audio models from HuggingFace",
-    recommended: true,
-  },
-  ml: {
-    title: "📊 Machine Learning",
-    description: "Classification, Regression, and statistical models",
-  },
-  whispercpp: {
-    title: "🔊 WhisperCpp",
-    description: "Transcribe audio using CPU",
-  },
-  elevenlabs: {
-    title: "🎤 ElevenLabs",
-    description: "Advanced text-to-speech and voice cloning",
-  },
-  fal: {
-    title: "⚡ FAL AI",
-    description: "Run premium Image and Video models on Fal AI",
-  },
-  replicate: {
-    title: "🔄 Replicate",
-    description: "Access hundreds of AI models hosted on Replicate",
-  },
-  audio: {
-    title: "🔊 Audio Processing",
-    description: "Apply audio effects and analyze audio",
-  },
-  apple: {
-    title: "🍎 Apple Integration",
-    description: "Automation for Apple Notes, Calendar, and more",
-  },
-  // comfy: {
-  //   title: "🧱 ComfyUI",
-  //   description: "ComfyUI integration and nodes",
-  // },
-};
-
-const baseGroups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
-  {
-    key: "aiml",
-    title: "AI & Machine Learning",
-    items: ["huggingface", "mlx", "ml", "whispercpp"],
-  },
-  {
-    key: "services",
-    title: "AI Services",
-    items: ["elevenlabs", "fal", "replicate"],
-  },
-  {
-    key: "utilities",
-    title: "Utilities",
-    items: ["audio"],
-  },
-  { key: "integrations", title: "Integrations", items: ["apple"] },
-];
 
 interface InstallWizardProps {
   defaultPath: string;
@@ -89,46 +7,10 @@ interface InstallWizardProps {
   defaultSelectedModules?: string[];
 }
 
-// Add runtime selection type
-type RuntimeOption = "ollama" | "llamacpp" | "skip";
-
-interface PackageOptionProps {
-  name: string;
-  title: string;
-  description: string;
-  isSelected: boolean;
-  onToggle: () => void;
-  badge?: React.ReactNode;
+interface RuntimeSelection {
+  ollama: boolean;
+  llamacpp: boolean;
 }
-
-const PackageOption: React.FC<PackageOptionProps> = ({
-  name,
-  title,
-  description,
-  isSelected,
-  onToggle,
-  badge,
-}) => (
-  <label className="package-option">
-    <input
-      type="checkbox"
-      name={name}
-      checked={isSelected}
-      onChange={onToggle}
-    />
-    <div className="package-card-content">
-      <div className="package-header">
-        <h4>{title}</h4>
-        {badge && (
-          <span className={`runtime-badge ${badge === 'Recommended' ? 'recommended' : ''}`}>
-            {badge}
-          </span>
-        )}
-      </div>
-      <p className="package-description">{description}</p>
-    </div>
-  </label>
-);
 
 // Inline SVG icon components (use <use> to reference symbols injected in the DOM)
 const SearchIcon: React.FC = () => (
@@ -168,44 +50,15 @@ const CpuIcon: React.FC = () => (
 const InstallWizard: React.FC<InstallWizardProps> = ({
   defaultPath,
   onComplete,
-  defaultSelectedModules = [],
 }) => {
-  const isMac = window.api.platform === "darwin";
-  const allowedModuleKeys = useMemo<ModuleKey[]>(() => {
-    const keys = Object.keys(moduleMapping) as ModuleKey[];
-    return isMac ? keys : keys.filter((key) => key !== "mlx" && key !== "apple");
-  }, [isMac]);
+  const RUNTIME_STORAGE_KEY = "installer.selectedRuntime";
 
-  const allowedModuleRepoIds = useMemo(
-    () => new Set<string>(allowedModuleKeys.map((key) => moduleMapping[key])),
-    [allowedModuleKeys]
-  );
-
-  const sanitizeSelection = useCallback(
-    (modules: string[]) => modules.filter((id) => allowedModuleRepoIds.has(id)),
-    [allowedModuleRepoIds]
-  );
-
-  const groups = useMemo(
-    () =>
-      baseGroups
-        .map((group) => ({
-          ...group,
-          items: group.items.filter((item) => allowedModuleKeys.includes(item)),
-        }))
-        .filter((group) => group.items.length > 0),
-    [allowedModuleKeys]
-  );
-
-  // Update step type to include licensing step
   const [currentStep, setCurrentStep] = useState<
-    "welcome" | "location" | "runtime" | "packages" | "licensing"
+    "welcome" | "location" | "runtime" | "licensing"
   >("welcome");
   const [selectedPath, setSelectedPath] = useState(defaultPath);
   const [selectedRuntime, setSelectedRuntime] =
-    useState<RuntimeOption>("ollama");
-  const LOCAL_STORAGE_KEY = "installer.selectedModules";
-  const RUNTIME_STORAGE_KEY = "installer.selectedRuntime";
+    useState<RuntimeSelection>({ ollama: true, llamacpp: false });
   const [pathError, setPathError] = useState<string | null>(null);
   const [isOllamaRunning, setIsOllamaRunning] = useState(false);
   const [isOllamaInstalled, setIsOllamaInstalled] = useState(false);
@@ -253,13 +106,15 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     };
   }, []);
 
-  // Prefer Ollama when it's detected (avoid leaving the user on "skip" due to prior runs).
+  // Prefer Ollama when it's detected and no runtime has been selected.
   useEffect(() => {
     const detected = isOllamaRunning || isOllamaInstalled;
-    if (currentStep === "runtime" && detected && selectedRuntime === "skip") {
-      setSelectedRuntime("ollama");
+    const hasAnyRuntime = selectedRuntime.ollama || selectedRuntime.llamacpp;
+    if (currentStep === "runtime" && detected && !hasAnyRuntime) {
+      const nextSelection = { ollama: true, llamacpp: selectedRuntime.llamacpp };
+      setSelectedRuntime(nextSelection);
       try {
-        localStorage.setItem(RUNTIME_STORAGE_KEY, "ollama");
+        localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify(nextSelection));
       } catch {
         // ignore
       }
@@ -277,12 +132,36 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     return null;
   }, []);
 
-  // Load runtime preference from localStorage
+  // Load runtime preference from localStorage (supports legacy single-choice values).
   useEffect(() => {
     try {
       const saved = localStorage.getItem(RUNTIME_STORAGE_KEY);
-      if (saved && ["ollama", "llamacpp", "skip"].includes(saved)) {
-        setSelectedRuntime(saved as RuntimeOption);
+      if (!saved) {
+        return;
+      }
+
+      if (saved === "ollama") {
+        setSelectedRuntime({ ollama: true, llamacpp: false });
+        return;
+      }
+      if (saved === "llamacpp") {
+        setSelectedRuntime({ ollama: false, llamacpp: true });
+        return;
+      }
+      if (saved === "skip") {
+        setSelectedRuntime({ ollama: false, llamacpp: false });
+        return;
+      }
+
+      const parsed = JSON.parse(saved) as Partial<RuntimeSelection>;
+      if (
+        typeof parsed.ollama === "boolean" &&
+        typeof parsed.llamacpp === "boolean"
+      ) {
+        setSelectedRuntime({
+          ollama: parsed.ollama,
+          llamacpp: parsed.llamacpp,
+        });
       }
     } catch {
       // ignore
@@ -305,22 +184,21 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     [validatePath]
   );
 
-  // Update handleRuntimeSelection to go to licensing step instead of packages
-  const handleRuntimeSelection = (runtime: RuntimeOption) => {
-    setSelectedRuntime(runtime);
+  const handleRuntimeToggle = (runtime: keyof RuntimeSelection) => {
+    const nextSelection = {
+      ...selectedRuntime,
+      [runtime]: !selectedRuntime[runtime],
+    };
+    setSelectedRuntime(nextSelection);
     try {
-      localStorage.setItem(RUNTIME_STORAGE_KEY, runtime);
+      localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify(nextSelection));
     } catch {
       // ignore
     }
-    setCurrentStep("licensing"); // Changed from "packages"
   };
 
-  // Update handleBack to include licensing step
   const handleBack = () => {
-    if (currentStep === "packages") {
-      setCurrentStep("licensing");
-    } else if (currentStep === "licensing") {
+    if (currentStep === "licensing") {
       setCurrentStep("runtime");
     } else if (currentStep === "runtime") {
       setCurrentStep("location");
@@ -336,15 +214,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
       setCurrentStep("location");
       return;
     }
-    const sanitizedSelection = sanitizeSelection(selectedModules);
-    if (sanitizedSelection.length !== selectedModules.length) {
-      persist(sanitizedSelection);
-      setSelectedModules(sanitizedSelection);
-    }
 
     // Determine what to install based on runtime selection
     let ollamaDetected = isOllamaRunning || isOllamaInstalled;
-    if (selectedRuntime === "ollama" && !ollamaDetected) {
+    if (selectedRuntime.ollama && !ollamaDetected) {
       try {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), 1000);
@@ -365,68 +238,31 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
         }
       }
     }
-    const installOllama = selectedRuntime === "ollama" && !ollamaDetected;
-    const installLlamaCpp = selectedRuntime === "llamacpp";
+    const startOllamaOnStartup = selectedRuntime.ollama;
+    const startLlamaCppOnStartup = selectedRuntime.llamacpp;
+    const installOllama = selectedRuntime.ollama && !ollamaDetected;
+    const installLlamaCpp = selectedRuntime.llamacpp;
 
     // Map UI runtime option to backend type
     let modelBackend: "ollama" | "llama_cpp" | "none" = "ollama";
-    if (selectedRuntime === "llamacpp") {
+    if (selectedRuntime.ollama && selectedRuntime.llamacpp) {
+      modelBackend = "ollama";
+    } else if (selectedRuntime.llamacpp) {
       modelBackend = "llama_cpp";
-    } else if (selectedRuntime === "skip") {
+    } else if (!selectedRuntime.ollama) {
       modelBackend = "none";
     }
 
     await window.api.installer.install(
       selectedPath,
-      sanitizedSelection,
+      [],
       modelBackend,
       installOllama,
-      installLlamaCpp
+      installLlamaCpp,
+      startOllamaOnStartup,
+      startLlamaCppOnStartup
     );
     onComplete();
-  };
-
-  const [selectedModules, setSelectedModules] = useState<string[]>(() => {
-    const normalizedDefaults = sanitizeSelection(defaultSelectedModules);
-    try {
-      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const parsed = raw ? (JSON.parse(raw) as string[]) : normalizedDefaults;
-      const sanitized = sanitizeSelection(
-        parsed.length ? parsed : normalizedDefaults
-      );
-      if (sanitized.length !== parsed.length) {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
-      }
-      return sanitized;
-    } catch {
-      return normalizedDefaults;
-    }
-  });
-  const persist = (next: string[]) => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleModuleToggle = (moduleName: ModuleKey) => {
-    if (!allowedModuleKeys.includes(moduleName)) {
-      return;
-    }
-    const repoId = moduleMapping[moduleName as keyof typeof moduleMapping];
-    setSelectedModules((prev: string[]) => {
-      const next = prev.includes(repoId)
-        ? prev.filter((id: string) => id !== repoId)
-        : Array.from(new Set([...prev, repoId]));
-      persist(next);
-      return next;
-    });
-  };
-
-  const isModuleSelected = (moduleName: string): boolean => {
-    const repoId = moduleMapping[moduleName as keyof typeof moduleMapping];
-    return selectedModules.includes(repoId);
   };
 
   const handleDefaultLocation = () => {
@@ -440,25 +276,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     }
   };
 
-  const selectedCount = selectedModules.length;
-
-  const toggleGroup = (items: ModuleKey[], select: boolean) => {
-    if (select) {
-      const repoIds = items.map((k) => moduleMapping[k]);
-      setSelectedModules((prev) => {
-        const next = Array.from(new Set([...prev, ...repoIds]));
-        persist(next);
-        return next;
-      });
-    } else {
-      const repoIds = new Set<string>(items.map((k) => moduleMapping[k]));
-      setSelectedModules((prev) => {
-        const next = prev.filter((id) => !repoIds.has(id));
-        persist(next);
-        return next;
-      });
-    }
-  };
   return (
     <div id="install-location-prompt">
       {/* Inline icons (accessible, no external assets) */}
@@ -491,7 +308,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
               { key: "location", label: "Step 1: Location" },
               { key: "runtime", label: "Step 2: AI Runtime" },
               { key: "licensing", label: "Step 3: Licensing" },
-              { key: "packages", label: "Step 4: Packages" },
             ].map((step, index) => (
               <div
                 key={step.key}
@@ -522,7 +338,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                     The fastest way to run AI models locally.
                   </p>
                 </div>
-                
+
                 <div className="welcome-content">
                   <p>
                     This installer will set up a dedicated environment for running
@@ -553,10 +369,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                     additional disk space.
                   </p>
                 </div>
-                
+
                 <div className="location-options" style={{ marginTop: 24 }}>
                   {/* Default Location Card */}
-                  <div 
+                  <div
                     className="location-card"
                     onClick={handleDefaultLocation}
                   >
@@ -570,7 +386,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </div>
 
                   {/* Custom Location Card */}
-                  <div 
+                  <div
                     className="location-card"
                     onClick={handleCustomLocation}
                   >
@@ -617,8 +433,11 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
             {currentStep === "runtime" && (
               <div id="step-runtime" className="setup-step active">
                 <div className="step-header">
-                  <h3>Step 2: Choose AI Runtime</h3>
-                  <p>Select the AI runtime you'd like to use:</p>
+                  <h3>Step 2: Choose Local Model Services</h3>
+                  <p>
+                    Choose which Electron-managed services should be configured for startup.
+                    You can enable one, both, or neither.
+                  </p>
                   <p role="note" style={{ marginTop: 8, color: "#7a7a7a" }}>
                     Installing to: <code>{selectedPath}</code>
                   </p>
@@ -630,9 +449,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   {/* Ollama Option */}
                   <div
                     className={`runtime-card ${
-                      selectedRuntime === "ollama" ? "selected" : ""
+                      selectedRuntime.ollama ? "selected" : ""
                     }`}
-                    onClick={() => handleRuntimeSelection("ollama")}
+                    onClick={() => handleRuntimeToggle("ollama")}
                   >
                     <div className="runtime-icon">
                       <TerminalIcon />
@@ -655,7 +474,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       <p className="runtime-description">
                         Easy to use, recommended for most users. Includes model management and a simple API.
                       </p>
-                      
+
                       {(isOllamaRunning || isOllamaInstalled) && (
                         <div className="runtime-note">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -668,10 +487,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       )}
                     </div>
                     <input
-                      type="radio"
-                      name="runtime"
+                      type="checkbox"
+                      name="runtime-ollama"
                       value="ollama"
-                      checked={selectedRuntime === "ollama"}
+                      checked={selectedRuntime.ollama}
                       onChange={() => {}} // Handle click on parent
                       style={{ marginLeft: "auto", marginRight: 0 }}
                     />
@@ -680,9 +499,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   {/* llama.cpp Option */}
                   <div
                     className={`runtime-card ${
-                      selectedRuntime === "llamacpp" ? "selected" : ""
+                      selectedRuntime.llamacpp ? "selected" : ""
                     }`}
-                    onClick={() => handleRuntimeSelection("llamacpp")}
+                    onClick={() => handleRuntimeToggle("llamacpp")}
                   >
                     <div className="runtime-icon">
                       <CpuIcon />
@@ -696,46 +515,30 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       </p>
                     </div>
                     <input
-                      type="radio"
-                      name="runtime"
+                      type="checkbox"
+                      name="runtime-llamacpp"
                       value="llamacpp"
-                      checked={selectedRuntime === "llamacpp"}
+                      checked={selectedRuntime.llamacpp}
                       onChange={() => {}}
                       style={{ marginLeft: "auto", marginRight: 0 }}
                     />
                   </div>
+                </div>
 
-                  {/* Skip Option */}
-                  <div
-                    className={`runtime-card ${
-                      selectedRuntime === "skip" ? "selected" : ""
-                    }`}
-                    onClick={() => handleRuntimeSelection("skip")}
-                    style={{ opacity: 0.8 }}
-                  >
-                    <div className="runtime-icon" style={{ background: 'transparent', border: '1px dashed rgba(255,255,255,0.2)' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                         <line x1="18" y1="6" x2="6" y2="18"></line>
-                         <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </div>
-                    <div className="runtime-content">
-                      <div className="runtime-header">
-                        <h4 className="runtime-title">Skip Runtime Installation</h4>
-                      </div>
-                      <p className="runtime-description">
-                        Don't configure a local LLM engine right now.
-                      </p>
-                    </div>
-                    <input
-                      type="radio"
-                      name="runtime"
-                      value="skip"
-                      checked={selectedRuntime === "skip"}
-                      onChange={() => {}}
-                      style={{ marginLeft: "auto", marginRight: 0 }}
-                    />
-                  </div>
+                <div className="runtime-selection-help" style={{ marginTop: "14px" }}>
+                  {!selectedRuntime.ollama && !selectedRuntime.llamacpp ? (
+                    <p className="runtime-description">
+                      No local model service selected. You can continue and use external providers only.
+                    </p>
+                  ) : selectedRuntime.ollama && selectedRuntime.llamacpp ? (
+                    <p className="runtime-description">
+                      Both services selected. NodeTool will manage startup for both and install required binaries.
+                    </p>
+                  ) : (
+                    <p className="runtime-description">
+                      Selected service will be managed by NodeTool on startup.
+                    </p>
+                  )}
                 </div>
 
                 <div
@@ -747,7 +550,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </button>
                   <button
                     className="nav-button next"
-                    onClick={() => handleRuntimeSelection(selectedRuntime)}
+                    onClick={() => setCurrentStep("licensing")}
                   >
                     Next →
                   </button>
@@ -755,7 +558,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
               </div>
             )}
 
-            {/* Step: Licensing Notice */}
+            {/* Step 3: Licensing Notice */}
             {currentStep === "licensing" && (
               <div id="step-licensing" className="setup-step active">
                 <div className="step-header">
@@ -863,7 +666,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                     </p>
 
                     <div className="license-divider"></div>
-                    
+
                     <p style={{ marginBottom: "8px" }}>
                       <strong>
                         Open Source Licenses:
@@ -905,96 +708,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </button>
                   <button
                     className="nav-button next"
-                    onClick={() => setCurrentStep("packages")}
+                    onClick={handleInstall}
                   >
-                    I Understand, Continue →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Package Selection */}
-            {currentStep === "packages" && (
-              <div id="step-packages" className="setup-step active">
-                <div className="step-header">
-                  <h3>Step 4: Choose Packages</h3>
-                  <p>Select the packages you'd like to install:</p>
-                  <p
-                    role="note"
-                    style={{
-                      marginTop: 8,
-                      color: "#7a7a7a",
-                      wordBreak: "break-all",
-                    }}
-                  >
-                    Installing to: <code>{selectedPath}</code>
-                  </p>
-                </div>
-
-                <div className="package-selection">
-                  <div className="package-grid">
-                    {groups.map((group) => {
-                      const allSelected = group.items.every((k) =>
-                        isModuleSelected(k)
-                      );
-                      const someSelected =
-                        !allSelected &&
-                        group.items.some((k) => isModuleSelected(k));
-                      return (
-                        <div className="package-group" key={group.key}>
-                          <div className="group-header">
-                            <h4>{group.title}</h4>
-                            <div className="group-actions">
-                              {!allSelected && (
-                                <button
-                                  className="chip-button"
-                                  onClick={() => toggleGroup(group.items, true)}
-                                >
-                                  Select all
-                                </button>
-                              )}
-                              {(allSelected || someSelected) && (
-                                <button
-                                  className="chip-button"
-                                  onClick={() =>
-                                    toggleGroup(group.items, false)
-                                  }
-                                >
-                                  Clear
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="package-options">
-                            {group.items.map((key) => (
-                              <PackageOption
-                                key={key}
-                                name={key}
-                                title={packageMeta[key].title}
-                                description={packageMeta[key].description}
-                                isSelected={isModuleSelected(key)}
-                                onToggle={() => handleModuleToggle(key)}
-                                badge={
-                                  packageMeta[key].recommended
-                                    ? "Recommended"
-                                    : undefined
-                                }
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="navigation-buttons">
-                  <button className="nav-button back" onClick={handleBack}>
-                    ← Back
-                  </button>
-                  <button className="nav-button next" onClick={handleInstall}>
-                    Install {selectedCount > 0 ? `(${selectedCount}) ` : ""}→
+                    I Understand, Install →
                   </button>
                 </div>
               </div>

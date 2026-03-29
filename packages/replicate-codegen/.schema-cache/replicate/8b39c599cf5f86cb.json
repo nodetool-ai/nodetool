@@ -1,0 +1,45 @@
+{
+  "modelId": "andreasjansson/clip-features",
+  "owner": "andreasjansson",
+  "name": "clip-features",
+  "version": "75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a",
+  "description": "Return CLIP features for the clip-vit-large-patch14 model",
+  "inputSchema": {
+    "properties": {
+      "inputs": {
+        "default": "a\nb",
+        "description": "Newline-separated inputs. Can either be strings of text or image URIs starting with http[s]://",
+        "title": "Inputs",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "properties": {
+        "embedding": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Embedding",
+          "type": "array"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input",
+        "embedding"
+      ],
+      "title": "NamedEmbedding",
+      "type": "object"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

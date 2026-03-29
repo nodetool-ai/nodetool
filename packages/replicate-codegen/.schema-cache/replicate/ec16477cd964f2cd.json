@@ -1,0 +1,199 @@
+{
+  "modelId": "zsxkib/ic-light-background",
+  "owner": "zsxkib",
+  "name": "ic-light-background",
+  "version": "60015df78a8a795470da6494822982140d57b150b9ef14354e79302ff89f69e3",
+  "description": "🖼️✨Background images + prompts to auto-magically relights your images (+normal maps🗺️)",
+  "inputSchema": {
+    "properties": {
+      "appended_prompt": {
+        "default": "best quality",
+        "description": "Additional text to be appended to the main prompt, enhancing image quality",
+        "title": "Appended Prompt",
+        "type": "string",
+        "x-order": 3
+      },
+      "background_image": {
+        "description": "The background image that will be used to relight the main foreground image",
+        "format": "uri",
+        "title": "Background Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "cfg": {
+        "default": 2,
+        "description": "Classifier-Free Guidance scale - higher values encourage adherence to prompt, lower values encourage more creative interpretation",
+        "maximum": 32,
+        "minimum": 1,
+        "title": "Cfg",
+        "type": "number",
+        "x-order": 9
+      },
+      "compute_normal": {
+        "default": false,
+        "description": "Whether to compute the normal maps (slower but provides additional output images)",
+        "title": "Compute Normal",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "height": {
+        "default": 640,
+        "description": "The height of the generated images in pixels",
+        "enum": [
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "height",
+        "type": "integer",
+        "x-order": 7
+      },
+      "highres_denoise": {
+        "default": 0.5,
+        "description": "Controls the amount of denoising applied when refining the high resolution output (higher = more adherence to the upscaled latent, lower = more creative details added)",
+        "maximum": 1,
+        "minimum": 0.1,
+        "title": "Highres Denoise",
+        "type": "number",
+        "x-order": 11
+      },
+      "highres_scale": {
+        "default": 1.5,
+        "description": "The multiplier for the final output resolution relative to the initial latent resolution",
+        "maximum": 3,
+        "minimum": 1,
+        "title": "Highres Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "light_source": {
+        "default": "Use Background Image",
+        "description": "The type and position of lighting to apply to the initial background latent",
+        "enum": [
+          "Use Background Image",
+          "Use Flipped Background Image",
+          "Left Light",
+          "Right Light",
+          "Top Light",
+          "Bottom Light",
+          "Ambient"
+        ],
+        "title": "light_source",
+        "type": "string",
+        "x-order": 12
+      },
+      "negative_prompt": {
+        "default": "lowres, bad anatomy, bad hands, cropped, worst quality",
+        "description": "A text description of attributes to avoid in the generated images",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "number_of_images": {
+        "default": 1,
+        "description": "The number of unique images to generate from the given input and settings",
+        "maximum": 12,
+        "minimum": 1,
+        "title": "Number Of Images",
+        "type": "integer",
+        "x-order": 14
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "The image file format of the generated output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 15
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "The image compression quality (for lossy formats like JPEG and WebP). 100 = best quality, 0 = lowest quality.",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 16
+      },
+      "prompt": {
+        "description": "A text description guiding the relighting and generation process",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "seed": {
+        "description": "A fixed random seed for reproducible results (omit this parameter for a randomized seed)",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 13
+      },
+      "steps": {
+        "default": 25,
+        "description": "The number of diffusion steps to perform during generation (more steps generally improves image quality but increases processing time)",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 8
+      },
+      "subject_image": {
+        "description": "The main foreground image to be relighted",
+        "format": "uri",
+        "title": "Subject Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "width": {
+        "default": 512,
+        "description": "The width of the generated images in pixels",
+        "enum": [
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "width",
+        "type": "integer",
+        "x-order": 6
+      }
+    },
+    "required": [
+      "subject_image",
+      "background_image",
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

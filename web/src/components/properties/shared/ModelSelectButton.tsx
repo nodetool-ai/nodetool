@@ -1,7 +1,9 @@
-import React, { forwardRef } from "react";
-import { Button, Typography, Tooltip } from "@mui/material";
+import React, { forwardRef, memo } from "react";
+import { Button, Tooltip, SxProps, Theme } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useEditorScope } from "../../editor_ui";
+import { FlexColumn, FlexRow, Text, Caption } from "../../ui_primitives";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -11,138 +13,133 @@ interface ModelSelectButtonProps {
   active?: boolean;
   className?: string;
   tooltipTitle?: React.ReactNode;
+  sx?: SxProps<Theme>;
 }
 
-const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
-  (
-    {
-      label,
-      secondaryLabel,
-      subLabel,
-      onClick,
-      active,
-      className,
-      tooltipTitle
-    },
+const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
+  ({
+    label,
+    secondaryLabel,
+    subLabel,
+    onClick,
+    active,
+    className,
+    tooltipTitle,
+    sx, // Add sx prop
+  },
     ref
   ) => {
+    const scope = useEditorScope();
+
     return (
       <Tooltip
         title={
           tooltipTitle || (
-            <div style={{ textAlign: "center" }}>
-              <Typography variant="inherit">{label}</Typography>
+            <FlexColumn gap={0.5} sx={{ textAlign: "center" }}>
+              <Text>{label}</Text>
               {secondaryLabel && (
-                <Typography variant="caption" display="block">
-                  {secondaryLabel}
-                </Typography>
+                <Caption size="smaller">{secondaryLabel}</Caption>
               )}
               {subLabel && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "var(--palette-grey-400)",
-                    fontSize: "var(--fontSizeSmaller)"
-                  }}
-                  display="block"
-                >
+                <Caption size="tiny" color="secondary">
                   {subLabel}
-                </Typography>
+                </Caption>
               )}
-            </div>
+            </FlexColumn>
           )
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_DELAY * 2}
+        slotProps={{
+          tooltip: {
+            sx: {
+              maxWidth: "350px !important"
+            }
+          }
+        }}
       >
         <Button
           ref={ref}
-          className={`select-model-button ${className || ""} ${
-            active ? "active" : ""
-          }`}
+          className={`select-model-button ${className || ""} ${active ? "active" : ""
+            }`}
           sx={{
-            fontSize: "var(--fontSizeTinyer)",
-            border: active
-              ? "1px solid var(--palette-divider)"
-              : "1px solid var(--palette-warning-main)",
-            borderRadius: "4px",
+            border: "1px solid var(--palette-divider)",
+            backgroundColor: active
+              ? "var(--palette-action-selected)"
+              : "var(--palette-background-paper)",
+            borderRadius: "var(--rounded-buttonSmall, 4px)",
             color: "var(--palette-text-primary)",
             textTransform: "none",
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             lineHeight: 1.2,
             minHeight: "28px",
             height: "auto",
-            padding: "4px 8px !important",
+            padding: "4px 8px",
             width: "100%",
-            backgroundColor: "var(--palette-background-default)",
+            transition: "all 0.2s ease-in-out",
             "&:hover": {
               backgroundColor: "var(--palette-action-hover)",
-              borderColor: "var(--palette-primary-main)"
-            }
+              borderColor: "var(--palette-text-secondary)"
+            },
+            ...sx
           }}
           onClick={onClick}
           size="small"
         >
-          <div
-            style={{
+          <FlexRow
+            className="model-select-button-label"
+            gap={0.75}
+            align="center"
+            sx={{
               textAlign: "left",
               flexGrow: 1,
               overflow: "hidden",
               marginRight: "4px"
             }}
           >
-            <Typography
-              component="div"
-              variant="body2"
+            <Text
+              className="model-select-button-label-text"
+              size={scope === "inspector" ? "normal" : "small"}
+              weight={active ? 500 : 400}
+              truncate
               sx={{
-                color: active
-                  ? "var(--palette-text-primary)"
-                  : "var(--palette-text-secondary)",
-                lineHeight: 1.2,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "normal"
+                flexShrink: 1,
+                minWidth: 0
               }}
             >
               {label}
-            </Typography>
+            </Text>
             {secondaryLabel && (
-              <Typography
-                component="div"
-                variant="body2"
+              <Caption
+                className="model-select-button-label-text-secondary"
+                size={scope === "inspector" ? "small" : "tiny"}
                 sx={{
-                  color: "var(--palette-grey-400)",
-                  lineHeight: 1.2,
-                  display: "block",
-                  fontSize: "0.75em",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
+                  opacity: 0.6,
+                  flexShrink: 0,
+                  whiteSpace: "nowrap"
                 }}
               >
                 {secondaryLabel}
-              </Typography>
+              </Caption>
             )}
-          </div>
+          </FlexRow>
           <ExpandMoreIcon
             sx={{
-              fontSize: 10,
-              color: "var(--palette-grey-500)",
+              fontSize: 14,
+              color: "inherit",
+              opacity: 0.7,
               flexShrink: 0,
               ml: 0,
-              mr: "-5px",
-              opacity: 0.7
+              mr: "-4px"
             }}
           />
         </Button>
       </Tooltip>
     );
   }
-);
+));
 
 ModelSelectButton.displayName = "ModelSelectButton";
 

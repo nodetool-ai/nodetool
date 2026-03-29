@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import { IconButton } from "@mui/material";
+import { ToolbarIconButton } from "../../ui_primitives";
 
 interface SendMessageButtonProps {
   disabled?: boolean;
@@ -14,19 +14,21 @@ export const SendMessageButton = forwardRef<
 >(({ disabled = false, onClick, hasContent = true }, ref) => {
   const isDisabled = disabled || !hasContent;
   return (
-    <IconButton
+    <ToolbarIconButton
       ref={ref}
-      onClick={() => {
-        if (!isDisabled) {onClick();}
-      }}
-      size="small"
-      disableRipple={isDisabled}
+      icon={<SendRoundedIcon fontSize="small" />}
+      tooltip="Send message"
+      onClick={onClick}
       disabled={isDisabled}
+      nodrag={false}
       sx={(theme) => ({
         width: 36,
         height: 36,
         transition: "background-color 0.15s ease, transform 0.1s ease",
         boxShadow: "none",
+        color: isDisabled
+          ? theme.vars.palette.grey[500]
+          : theme.vars.palette.grey[0],
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[600]
         },
@@ -37,16 +39,7 @@ export const SendMessageButton = forwardRef<
           opacity: 0.5
         }
       })}
-    >
-      <SendRoundedIcon
-        fontSize="small"
-        sx={(theme) => ({
-          color: isDisabled
-            ? theme.vars.palette.grey[500]
-            : theme.vars.palette.grey[0]
-        })}
-      />
-    </IconButton>
+    />
   );
 });
 
