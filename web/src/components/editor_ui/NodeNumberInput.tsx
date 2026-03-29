@@ -18,6 +18,12 @@ import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
 import { editorClassNames, cn } from "./editorUtils";
 
+/** Helper type for slotProps with className */
+interface SlotPropsWithClassName {
+  className?: string;
+  [key: string]: unknown;
+}
+
 export interface NodeNumberInputProps
   extends Omit<TextFieldProps, "variant" | "size" | "type"> {
   /**
@@ -115,14 +121,14 @@ export const NodeNumberInput = forwardRef<
               editorClassNames.nodrag,
               editorUiClasses.control,
               scopeClass,
-              (slotProps?.input as any)?.className
+              (slotProps?.input as SlotPropsWithClassName | undefined)?.className
             )
           },
           htmlInput: {
             ...slotProps?.htmlInput,
             className: cn(
               editorClassNames.nodrag,
-              (slotProps?.htmlInput as any)?.className
+              (slotProps?.htmlInput as SlotPropsWithClassName | undefined)?.className
             ),
             min,
             max,

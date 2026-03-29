@@ -120,7 +120,7 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
                   ?.className
               )
             }
-          } as any
+          }
         }
         sx={{
           // Semantic: changed state - shows right border indicator
