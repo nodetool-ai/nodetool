@@ -4,6 +4,7 @@ import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
+import { attachBundleFalUnitPricing } from "../utils/attachBundleFalUnitPricing";
 import log from "loglevel";
 
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
@@ -80,6 +81,8 @@ export const loadMetadata = async () => {
     nodeTypes[md.node_type] = BaseNode;
     metadataByType[md.node_type] = md;
   });
+
+  attachBundleFalUnitPricing(metadataByType);
 
   const recommendedModels = data.reduce<UnifiedModel[]>(
     (result, md) => [...result, ...(md.recommended_models ?? [])],

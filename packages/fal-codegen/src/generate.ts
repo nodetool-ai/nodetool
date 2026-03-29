@@ -59,6 +59,13 @@ import {
   resolveFalUnitPricingMap,
   writeFalUnitPricingSnapshot,
 } from "./fal-pricing-snapshot.js";
+import {
+  collectPricingByNodeType,
+  FAL_NODE_TYPE_PRICING_JSON,
+  mergeFalNodeTypePricingFile,
+  writeFalNodeTypePricingFull,
+  type FalUnitPricingWire,
+} from "./fal-node-type-pricing-write.js";
 
 /** Let quota recover between GET /v1/models (catalog) and GET /v1/models/pricing in the same process. */
 function catalogToPricingGapMs(): number {
@@ -252,6 +259,11 @@ async function generateModule(
     await mkdir(outputDir, { recursive: true });
     await writeFile(outFile, moduleCode);
     console.log(`  Wrote ${specs.length} nodes to ${outFile}`);
+    await mergeFalNodeTypePricingFile(
+      outputDir,
+      collectPricingByNodeType(moduleName, pricedSpecs),
+      dryRun,
+    );
   }
   return { generated: specs.length, failedEndpoints };
 }
@@ -279,6 +291,7 @@ async function runCodegenLoop(
   const generator = new NodeGenerator();
   let totalGenerated = 0;
   const parseFailures: { endpointId: string; error: string }[] = [];
+  const aggregatePricingByNodeType: Record<string, FalUnitPricingWire> = {};
 
   for (const moduleKey of Object.keys(allConfigs) as FalCodegenModuleKey[]) {
     const dashName = moduleKey.replace(/_/g, "-");
@@ -300,6 +313,11 @@ async function runCodegenLoop(
 
       try {
         let spec = parser.parse(openapi);
+        // If the schema has an empty endpointId (e.g. fal-ai/flux-2/klein/realtime),
+        // fall back to deriving className from the catalog endpointId.
+        if (!spec.className) {
+          spec = { ...spec, endpointId: endpointId, className: parser.generateClassName(endpointId) };
+        }
         const nodeConfig = moduleConfig.configs[endpointId];
         if (nodeConfig) spec = generator.applyConfig(spec, nodeConfig);
 
@@ -328,7 +346,10 @@ async function runCodegenLoop(
     }
 
     specs.sort((a, b) => a.endpointId.localeCompare(b.endpointId));
-    const moduleCode = generator.generateModule(dashName, specs, moduleConfig);
+    // Configs were already applied above using catalog endpointIds.
+    // Pass configs:{} so generateModule doesn't re-apply them using spec.endpointId
+    // (which comes from the schema and may differ from the catalog id, causing overwrites).
+    const moduleCode = generator.generateModule(dashName, specs, { ...moduleConfig, configs: {} });
     const outFile = join(outputDir, `${dashName}.ts`);
     if (dryRun) {
       console.log(`  [dry-run] Would write ${specs.length} nodes (${moduleCode.length} chars) → ${outFile}`);
@@ -338,6 +359,17 @@ async function runCodegenLoop(
       console.log(`  Wrote ${specs.length} nodes to ${outFile}`);
     }
     totalGenerated += specs.length;
+    Object.assign(
+      aggregatePricingByNodeType,
+      collectPricingByNodeType(dashName, specs),
+    );
+  }
+
+  await writeFalNodeTypePricingFull(outputDir, aggregatePricingByNodeType, dryRun);
+  if (!dryRun && Object.keys(aggregatePricingByNodeType).length > 0) {
+    console.log(
+      `\nWrote ${FAL_NODE_TYPE_PRICING_JSON} (${Object.keys(aggregatePricingByNodeType).length} FAL node types with unit pricing).`,
+    );
   }
 
   return { totalGenerated, parseFailures };

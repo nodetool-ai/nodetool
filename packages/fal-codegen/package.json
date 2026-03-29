@@ -11,6 +11,7 @@
     "generate": "tsx src/generate.ts",
     "generate:platform": "tsx src/generate.ts --from-platform",
     "generate:platform:dry": "tsx src/generate.ts --from-platform --dry-run",
+    "sync:fal-node-type-pricing": "node scripts/sync-fal-node-type-pricing.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"

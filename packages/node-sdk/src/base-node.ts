@@ -11,6 +11,14 @@ export interface DeclaredOutputTypes {
   [name: string]: string;
 }
 
+/** Static FAL list price on generated FAL node classes (camelCase in TS source). */
+export type FalUnitPricingStatic = {
+  readonly endpointId: string;
+  readonly unitPrice: number;
+  readonly billingUnit: string;
+  readonly currency: string;
+};
+
 export type NodeClass = {
   new (properties?: Record<string, unknown>): BaseNode;
   nodeType: string;
@@ -22,6 +30,7 @@ export type NodeClass = {
   basicFields?: string[];
   requiredSettings?: string[];
   requiredRuntimes?: string[];
+  falUnitPricing?: FalUnitPricingStatic | null;
   isStreamingInput: boolean;
   isStreamingOutput: boolean;
   isDynamic: boolean;

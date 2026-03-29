@@ -1,5 +1,11 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@nodetool/fal-node-type-pricing": [
+        "../packages/fal-nodes/src/generated/fal-node-type-pricing.json"
+      ]
+    },
     "target": "ESNext",
     "allowUmdGlobalAccess": true,
     "useDefineForClassFields": true,

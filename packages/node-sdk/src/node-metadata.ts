@@ -7,7 +7,13 @@
  */
 
 import type { NodeClass } from "./base-node.js";
-import type { NodeMetadata, OutputSlotMetadata, PropertyMetadata, TypeMetadata } from "./metadata.js";
+import type {
+  FalUnitPricing,
+  NodeMetadata,
+  OutputSlotMetadata,
+  PropertyMetadata,
+  TypeMetadata,
+} from "./metadata.js";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
 
 export interface GetNodeMetadataOptions {
@@ -141,6 +147,7 @@ function mergeMetadata(tsMetadata: NodeMetadata, pyMetadata?: NodeMetadata): Nod
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
     model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
+    fal_unit_pricing: tsMetadata.fal_unit_pricing ?? pyMetadata?.fal_unit_pricing,
   };
 }
 
@@ -191,6 +198,19 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
   return outputs;
 }
 
+function falUnitPricingFromClass(nodeClass: NodeClass): FalUnitPricing | undefined {
+  const raw = nodeClass.falUnitPricing;
+  if (raw == null) {
+    return undefined;
+  }
+  return {
+    endpoint_id: raw.endpointId,
+    unit_price: raw.unitPrice,
+    billing_unit: raw.billingUnit,
+    currency: raw.currency,
+  };
+}
+
 export function getNodeMetadata(nodeClass: NodeClass, options: GetNodeMetadataOptions = {}): NodeMetadata {
   const nodeType = nodeClass.nodeType;
   const namespace = deriveNamespace(nodeType);
@@ -217,6 +237,7 @@ export function getNodeMetadata(nodeClass: NodeClass, options: GetNodeMetadataOp
     expose_as_tool: nodeClass.exposeAsTool,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     model_packs: nodeClass.modelPacks,
+    fal_unit_pricing: falUnitPricingFromClass(nodeClass),
   };
 
   if (!options.mergePythonBackfill) {

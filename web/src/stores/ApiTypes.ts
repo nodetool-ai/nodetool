@@ -66,6 +66,15 @@ export interface CreateWorkflowVersionRequest {
 
 export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
+
+/** FAL.ai list price on generated FAL nodes (API / index JSON uses snake_case). */
+export interface FalUnitPricing {
+  endpoint_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: string;
+}
+
 export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];
 export type IndexResponse = components["schemas"]["IndexResponse"];
 
@@ -88,6 +97,8 @@ export interface NodeMetadata extends BaseNodeMetadata {
    * Populated by the backend from node metadata; used to show install prompts.
    */
   required_runtimes?: string[];
+  /** FAL.ai unit pricing from generated TS nodes / metadata index. */
+  fal_unit_pricing?: FalUnitPricing | null;
 }
 export type SettingWithValue = components["schemas"]["SettingWithValue"];
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];

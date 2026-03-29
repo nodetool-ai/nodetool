@@ -12,6 +12,10 @@ import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import isEqual from "lodash/isEqual";
+import {
+  formatFalUnitPricingShort,
+  formatFalUnitPricingTooltip,
+} from "../../utils/formatFalUnitPricing";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -238,6 +242,30 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       </Typography>
 
       <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
+
+      {nodeMetadata.fal_unit_pricing && (
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top-start"
+          title={
+            <Typography component="span" sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+              {formatFalUnitPricingTooltip(nodeMetadata.fal_unit_pricing)}
+            </Typography>
+          }
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: theme.fontSizeSmall,
+              color: theme.vars.palette.success.main,
+              fontWeight: 600,
+              cursor: "default",
+            }}
+          >
+            FAL: {formatFalUnitPricingShort(nodeMetadata.fal_unit_pricing)}
+          </Typography>
+        </Tooltip>
+      )}
 
       {showConnections && (
         <div className="inputs-outputs">

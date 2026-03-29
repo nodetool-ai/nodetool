@@ -18,6 +18,11 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import {
+  formatFalUnitPricingShort,
+  formatFalUnitPricingTooltip,
+} from "../../utils/formatFalUnitPricing";
+import type { FalUnitPricing } from "../../stores/ApiTypes";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -54,6 +59,7 @@ interface NodeInfo {
   type: string;
   namespace: string;
   description: string | undefined;
+  falUnitPricing: FalUnitPricing | null | undefined;
   position: { x: number; y: number };
   hasError: boolean;
   errorMessage: string | undefined;
@@ -185,6 +191,24 @@ const styles = (theme: Theme) =>
         color: "var(--palette-primary-main) !important"
       }
     },
+    "& .fal-pricing-button": {
+      display: "block",
+      marginTop: "6px",
+      marginLeft: "-4px",
+      marginRight: "-4px",
+      padding: "2px 8px",
+      borderRadius: "4px",
+      backgroundColor: "transparent",
+      color: theme.vars.palette.success.main,
+      fontSize: "9px",
+      textAlign: "left",
+      fontWeight: 600,
+      letterSpacing: "0.02em",
+      textTransform: "none",
+      "&:hover": {
+        backgroundColor: `${theme.vars.palette.success.main}18`,
+      },
+    },
     "& .action-button": {
       flex: 1,
       minWidth: "80px",
@@ -223,6 +247,7 @@ const NodeInfoPanel: React.FC = memo(() => {
       type: nodeType,
       namespace: metadata?.namespace || "",
       description: metadata?.description || undefined,
+      falUnitPricing: metadata?.fal_unit_pricing,
       position: node.position,
       hasError: (node.data.hasError as boolean) || false,
       errorMessage: node.data.errorMessage as string | undefined,
@@ -316,6 +341,22 @@ const NodeInfoPanel: React.FC = memo(() => {
             <PrettyNamespace namespace={nodeInfo.namespace} />
           </Button>
         </Tooltip>
+
+        {nodeInfo.falUnitPricing && (
+          <Tooltip
+            title={
+              <span style={{ whiteSpace: "pre-line" }}>
+                {formatFalUnitPricingTooltip(nodeInfo.falUnitPricing)}
+              </span>
+            }
+            placement="bottom-start"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <Button tabIndex={1} className="fal-pricing-button" onClick={(e) => e.preventDefault()}>
+              FAL {formatFalUnitPricingShort(nodeInfo.falUnitPricing)}
+            </Button>
+          </Tooltip>
+        )}
 
         {parsedDescription && (
           <>

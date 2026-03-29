@@ -156,7 +156,9 @@ export class NodeGenerator {
       `  imageToDataUrl,`,
       `  coerceFalOutputForPropType,`,
       `} from "../fal-base.js";`,
-      `import type { FalUnitPricing } from "../fal-base.js";`,
+      ...(specs.some((s) => s.falUnitPricing != null)
+        ? [`import type { FalUnitPricing } from "../fal-base.js";`]
+        : []),
       ``,
       `// Re-export alias`,
       `const FalNode = BaseNode;`,
@@ -271,9 +273,9 @@ export class NodeGenerator {
   private _renderFalUnitPricingStatic(spec: NodeSpec, fullModule: boolean): string[] {
     const standalone = !fullModule;
     const p = spec.falUnitPricing;
-    const typeAnnot = standalone ? "" : ": FalUnitPricing | null";
+    const typeAnnot = standalone ? "" : ": FalUnitPricing";
     if (!p) {
-      return [`  static readonly falUnitPricing${typeAnnot} = null;`, ``];
+      return [];
     }
     return [
       `  static readonly falUnitPricing${typeAnnot} = {`,

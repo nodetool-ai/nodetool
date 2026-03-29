@@ -58,6 +58,10 @@ import {
 } from "../../stores/graphEdgeToReactFlowEdge";
 import useConnectionStore from "../../stores/ConnectionStore";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import {
+  formatFalUnitPricingShort,
+  formatFalUnitPricingTooltip,
+} from "../../utils/formatFalUnitPricing";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -800,14 +804,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               position: "absolute",
               bottom: -25,
               left: "50%",
-              transform: "translateX(-50%)",
+              transform: "translateX(-75%)",
               bgcolor: "background.paper",
               color: "text.secondary",
               px: 1,
-              py: 0.25,
+              py: 0,
+              height: 20,
               borderRadius: 1,
               fontSize: "0.65rem",
               fontWeight: 400,
+              lineHeight: 1.4,
+              minHeight: 0,
+              textTransform: "none",
               zIndex: 1000,
               border: "1px solid",
               borderColor: "divider",
@@ -819,6 +827,54 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             }}
           >
             {metadata.namespace}
+          </Button>
+        </Tooltip>
+      )}
+      {selected && metadata.fal_unit_pricing && (
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          title={
+            <span style={{ whiteSpace: "pre-line" }}>
+              {formatFalUnitPricingTooltip(metadata.fal_unit_pricing)}
+            </span>
+          }
+          placement="bottom-end"
+          arrow
+        >
+          <Button
+            variant="text"
+            className="node-fal-pricing nodrag nopan"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            sx={{
+              position: "absolute",
+              bottom: -25,
+              right: 4,
+              left: "auto",
+              bgcolor: (t) => t.palette.success.dark,
+              color: (t) => t.palette.success.contrastText,
+              px: 1,
+              py: 0,
+              height: 20,
+              borderRadius: 1,
+              fontSize: "0.65rem",
+              fontWeight: 600,
+              lineHeight: 1.4,
+              minHeight: 0,
+              textTransform: "none",
+              zIndex: 1000,
+              border: "1px solid",
+              borderColor: "success.main",
+              whiteSpace: "nowrap",
+              cursor: "default",
+              "&:hover": {
+                bgcolor: (t) => t.palette.success.main,
+              },
+            }}
+          >
+            {formatFalUnitPricingShort(metadata.fal_unit_pricing)}
           </Button>
         </Tooltip>
       )}

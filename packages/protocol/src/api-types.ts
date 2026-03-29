@@ -467,6 +467,13 @@ export interface OutputSlot {
   stream: boolean;
 }
 
+export interface FalUnitPricing {
+  endpoint_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: string;
+}
+
 export interface NodeMetadata {
   title: string;
   description: string;
@@ -484,6 +491,7 @@ export interface NodeMetadata {
   expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
+  fal_unit_pricing?: FalUnitPricing | null;
 }
 
 export interface IndexResponse {

@@ -38,6 +38,14 @@ export interface OutputSlotMetadata {
   stream?: boolean;
 }
 
+/** FAL list price embedded at codegen / scan time (snake_case for API JSON). */
+export interface FalUnitPricing {
+  endpoint_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: string;
+}
+
 export interface NodeMetadata {
   title: string;
   description: string;
@@ -62,6 +70,8 @@ export interface NodeMetadata {
   expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   model_packs?: unknown[];
+  /** FAL.ai unit pricing when the node is a generated FAL model node. */
+  fal_unit_pricing?: FalUnitPricing | null;
 }
 
 export interface PackageMetadata {
