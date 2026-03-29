@@ -9,6 +9,7 @@ import {
   imageToDataUrl,
   coerceFalOutputForPropType,
 } from "../fal-base.js";
+import type { FalUnitPricing } from "../fal-base.js";
 
 // Re-export alias
 const FalNode = BaseNode;
@@ -20,6 +21,12 @@ export class FfmpegApiLoudnorm extends FalNode {
 json, processing, data, utility`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "summary": "str", "audio": "audio" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/ffmpeg-api/loudnorm",
+    unitPrice: 0.00017,
+    billingUnit: "compute seconds",
+    currency: "USD",
+  };
 
   @prop({ type: "str", default: "", description: "Measured loudness range of input file in LU. Required for linear mode." })
   declare measured_lra: any;
@@ -97,93 +104,186 @@ json, processing, data, utility`;
   }
 }
 
-export class FfmpegApiWaveform extends FalNode {
-  static readonly nodeType = "fal.json_processing.FfmpegApiWaveform";
-  static readonly title = "Ffmpeg Api Waveform";
-  static readonly description = `Get waveform data from audio files using FFmpeg API.
-json, processing, data, utility`;
+export class Omnilottie extends FalNode {
+  static readonly nodeType = "fal.json_processing.Omnilottie";
+  static readonly title = "Omnilottie";
+  static readonly description = `Convert your assets into lottie using Omnilottie.
+lottie`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "waveform": "list[float]", "duration": "float", "points": "int", "precision": "int" };
+  static readonly outputTypes = { "lottie_file": "str" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/omnilottie",
+    unitPrice: 0.05,
+    billingUnit: "images",
+    currency: "USD",
+  };
 
-  @prop({ type: "float", default: 4, description: "Controls how many points are sampled per second of audio. Lower values (e.g. 1-2) create a coarser waveform, higher values (e.g. 4-10) create a more detailed one." })
-  declare points_per_second: any;
+  @prop({ type: "str", default: "", description: "Text description of the Lottie animation to generate." })
+  declare prompt: any;
 
-  @prop({ type: "int", default: 3, description: "Size of the smoothing window. Higher values create a smoother waveform. Must be an odd number." })
-  declare smoothing_window: any;
+  @prop({ type: "float", default: 0.25, description: "Nucleus sampling probability threshold." })
+  declare top_p: any;
 
-  @prop({ type: "audio", default: "", description: "URL of the audio file to analyze" })
-  declare media_url: any;
+  @prop({ type: "int", default: 4096, description: "Maximum number of Lottie tokens to generate." })
+  declare max_tokens: any;
 
-  @prop({ type: "int", default: 2, description: "Number of decimal places for the waveform values. Higher values provide more precision but increase payload size." })
-  declare precision: any;
+  @prop({ type: "float", default: 0.9, description: "Sampling temperature for generation." })
+  declare temperature: any;
+
+  @prop({ type: "int", default: 5, description: "Top-k sampling parameter." })
+  declare top_k: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
-    const pointsPerSecond = Number(this.points_per_second ?? 4);
-    const smoothingWindow = Number(this.smoothing_window ?? 3);
-    const precision = Number(this.precision ?? 2);
+    const prompt = String(this.prompt ?? "");
+    const topP = Number(this.top_p ?? 0.25);
+    const maxTokens = Number(this.max_tokens ?? 4096);
+    const temperature = Number(this.temperature ?? 0.9);
+    const topK = Number(this.top_k ?? 5);
 
     const args: Record<string, unknown> = {
-      "points_per_second": pointsPerSecond,
-      "smoothing_window": smoothingWindow,
-      "precision": precision,
+      "prompt": prompt,
+      "top_p": topP,
+      "max_tokens": maxTokens,
+      "temperature": temperature,
+      "top_k": topK,
     };
-
-    const mediaUrlRef = this.media_url as Record<string, unknown> | undefined;
-    if (isRefSet(mediaUrlRef)) {
-      const mediaUrlUrl = await assetToFalUrl(apiKey, mediaUrlRef!);
-      if (mediaUrlUrl) args["media_url"] = mediaUrlUrl;
-    }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "fal-ai/ffmpeg-api/waveform", args);
+    const res = await falSubmit(apiKey, "fal-ai/omnilottie", args);
     return {
-      "waveform": coerceFalOutputForPropType("list[float]", (res as Record<string, unknown>)["waveform"]),
-      "duration": coerceFalOutputForPropType("float", (res as Record<string, unknown>)["duration"]),
-      "points": coerceFalOutputForPropType("int", (res as Record<string, unknown>)["points"]),
-      "precision": coerceFalOutputForPropType("int", (res as Record<string, unknown>)["precision"]),
+      "lottie_file": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["lottie_file"]),
     };
   }
 }
 
-export class FfmpegApiMetadata extends FalNode {
-  static readonly nodeType = "fal.json_processing.FfmpegApiMetadata";
-  static readonly title = "Ffmpeg Api Metadata";
-  static readonly description = `Get encoding metadata from video and audio files using FFmpeg API.
-json, processing, data, utility`;
+export class OmnilottieImageToLottie extends FalNode {
+  static readonly nodeType = "fal.json_processing.OmnilottieImageToLottie";
+  static readonly title = "Omnilottie Image To Lottie";
+  static readonly description = `Convert your assets into lottie using Omnilottie.
+lotties`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "media": "str" };
+  static readonly outputTypes = { "lottie_file": "str" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/omnilottie/image-to-lottie",
+    unitPrice: 0.1,
+    billingUnit: "images",
+    currency: "USD",
+  };
 
-  @prop({ type: "bool", default: false, description: "Whether to extract the start and end frames for videos. Note that when true the request will be slower." })
-  declare extract_frames: any;
+  @prop({ type: "str", default: "", description: "Text description guiding the animation of the image." })
+  declare prompt: any;
 
-  @prop({ type: "video", default: "", description: "URL of the media file (video or audio) to analyze" })
-  declare media_url: any;
+  @prop({ type: "image", default: "", description: "URL of the reference image to animate." })
+  declare image: any;
+
+  @prop({ type: "float", default: 0.25, description: "Nucleus sampling probability threshold." })
+  declare top_p: any;
+
+  @prop({ type: "int", default: 4096, description: "Maximum number of Lottie tokens to generate." })
+  declare max_tokens: any;
+
+  @prop({ type: "float", default: 0.9, description: "Sampling temperature for generation." })
+  declare temperature: any;
+
+  @prop({ type: "int", default: 5, description: "Top-k sampling parameter." })
+  declare top_k: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
-    const extractFrames = Boolean(this.extract_frames ?? false);
+    const prompt = String(this.prompt ?? "");
+    const topP = Number(this.top_p ?? 0.25);
+    const maxTokens = Number(this.max_tokens ?? 4096);
+    const temperature = Number(this.temperature ?? 0.9);
+    const topK = Number(this.top_k ?? 5);
 
     const args: Record<string, unknown> = {
-      "extract_frames": extractFrames,
+      "prompt": prompt,
+      "top_p": topP,
+      "max_tokens": maxTokens,
+      "temperature": temperature,
+      "top_k": topK,
     };
 
-    const mediaUrlRef = this.media_url as Record<string, unknown> | undefined;
-    if (isRefSet(mediaUrlRef)) {
-      const mediaUrlUrl = await assetToFalUrl(apiKey, mediaUrlRef!);
-      if (mediaUrlUrl) args["media_url"] = mediaUrlUrl;
+    const imageRef = this.image as Record<string, unknown> | undefined;
+    if (isRefSet(imageRef)) {
+      const imageUrl = await imageToDataUrl(imageRef!) ?? await assetToFalUrl(apiKey, imageRef!);
+      if (imageUrl) args["image_url"] = imageUrl;
     }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "fal-ai/ffmpeg-api/metadata", args);
+    const res = await falSubmit(apiKey, "fal-ai/omnilottie/image-to-lottie", args);
     return {
-      "media": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["media"]),
+      "lottie_file": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["lottie_file"]),
+    };
+  }
+}
+
+export class OmnilottieVideoToLottie extends FalNode {
+  static readonly nodeType = "fal.json_processing.OmnilottieVideoToLottie";
+  static readonly title = "Omnilottie Video To Lottie";
+  static readonly description = `Convert your assets into lottie using Omnilottie.
+lottie`;
+  static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "lottie_file": "str" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/omnilottie/video-to-lottie",
+    unitPrice: 0.05,
+    billingUnit: "videos",
+    currency: "USD",
+  };
+
+  @prop({ type: "str", default: "", description: "Optional text description guiding the conversion." })
+  declare prompt: any;
+
+  @prop({ type: "video", default: "", description: "URL of the video to convert into a Lottie animation." })
+  declare video: any;
+
+  @prop({ type: "float", default: 0.25, description: "Nucleus sampling probability threshold." })
+  declare top_p: any;
+
+  @prop({ type: "int", default: 4096, description: "Maximum number of Lottie tokens to generate." })
+  declare max_tokens: any;
+
+  @prop({ type: "float", default: 0.9, description: "Sampling temperature for generation." })
+  declare temperature: any;
+
+  @prop({ type: "int", default: 5, description: "Top-k sampling parameter." })
+  declare top_k: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const prompt = String(this.prompt ?? "");
+    const topP = Number(this.top_p ?? 0.25);
+    const maxTokens = Number(this.max_tokens ?? 4096);
+    const temperature = Number(this.temperature ?? 0.9);
+    const topK = Number(this.top_k ?? 5);
+
+    const args: Record<string, unknown> = {
+      "prompt": prompt,
+      "top_p": topP,
+      "max_tokens": maxTokens,
+      "temperature": temperature,
+      "top_k": topK,
+    };
+
+    const videoRef = this.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = await assetToFalUrl(apiKey, videoRef!);
+      if (videoUrl) args["video_url"] = videoUrl;
+    }
+    removeNulls(args);
+
+    const res = await falSubmit(apiKey, "fal-ai/omnilottie/video-to-lottie", args);
+    return {
+      "lottie_file": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["lottie_file"]),
     };
   }
 }
 
 export const FAL_JSON_PROCESSING_NODES: readonly NodeClass[] = [
   FfmpegApiLoudnorm,
-  FfmpegApiWaveform,
-  FfmpegApiMetadata,
+  Omnilottie,
+  OmnilottieImageToLottie,
+  OmnilottieVideoToLottie,
 ] as const;

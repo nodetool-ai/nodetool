@@ -7,10 +7,62 @@ import {
   isRefSet,
   assetToFalUrl,
   imageToDataUrl,
+  coerceFalOutputForPropType,
 } from "../fal-base.js";
+import type { FalUnitPricing } from "../fal-base.js";
 
 // Re-export alias
 const FalNode = BaseNode;
+
+export class KlingVideoVideoToAudio extends FalNode {
+  static readonly nodeType = "fal.video_to_audio.KlingVideoVideoToAudio";
+  static readonly title = "Kling Video Video To Audio";
+  static readonly description = `Generate audio from input videos using Kling
+audio, extraction, video-to-audio, processing`;
+  static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio", "video": "video" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/kling-video/video-to-audio",
+    unitPrice: 0.035,
+    billingUnit: "videos",
+    currency: "USD",
+  };
+
+  @prop({ type: "str", default: "intense car race", description: "Background music prompt. Cannot exceed 200 characters." })
+  declare background_music_prompt: any;
+
+  @prop({ type: "bool", default: false, description: "Enable ASMR mode. This mode enhances detailed sound effects and is suitable for highly immersive content scenarios." })
+  declare asmr_mode: any;
+
+  @prop({ type: "video", default: "", description: "The video URL to extract audio from. Only .mp4/.mov formats are supported. File size does not exceed 100MB. Video duration between 3.0s and 20.0s." })
+  declare video: any;
+
+  @prop({ type: "str", default: "Car tires screech as they accelerate in a drag race", description: "Sound effect prompt. Cannot exceed 200 characters." })
+  declare sound_effect_prompt: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const backgroundMusicPrompt = String(this.background_music_prompt ?? "intense car race");
+    const asmrMode = Boolean(this.asmr_mode ?? false);
+    const soundEffectPrompt = String(this.sound_effect_prompt ?? "Car tires screech as they accelerate in a drag race");
+
+    const args: Record<string, unknown> = {
+      "background_music_prompt": backgroundMusicPrompt,
+      "asmr_mode": asmrMode,
+      "sound_effect_prompt": soundEffectPrompt,
+    };
+
+    const videoRef = this.video as Record<string, unknown> | undefined;
+    if (isRefSet(videoRef)) {
+      const videoUrl = await assetToFalUrl(apiKey, videoRef!);
+      if (videoUrl) args["video_url"] = videoUrl;
+    }
+    removeNulls(args);
+
+    const res = await falSubmit(apiKey, "fal-ai/kling-video/video-to-audio", args);
+    return { output: { type: "video", uri: (res.video as any).url } };
+  }
+}
 
 export class SamAudioVisualSeparate extends FalNode {
   static readonly nodeType = "fal.video_to_audio.SamAudioVisualSeparate";
@@ -19,6 +71,12 @@ export class SamAudioVisualSeparate extends FalNode {
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "target": "str", "duration": "float", "sample_rate": "int", "residual": "str" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/sam-audio/visual-separate",
+    unitPrice: 0.05,
+    billingUnit: "units",
+    currency: "USD",
+  };
 
   @prop({ type: "str", default: "", description: "Text prompt to assist with separation. Use natural language to describe the target sound." })
   declare prompt: any;
@@ -76,7 +134,12 @@ audio, extraction, video-to-audio, processing`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/sam-audio/visual-separate", args);
-    return res as Record<string, unknown>;
+    return {
+      "target": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["target"]),
+      "duration": coerceFalOutputForPropType("float", (res as Record<string, unknown>)["duration"]),
+      "sample_rate": coerceFalOutputForPropType("int", (res as Record<string, unknown>)["sample_rate"]),
+      "residual": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["residual"]),
+    };
   }
 }
 
@@ -86,7 +149,13 @@ export class MireloAiSfxV15VideoToAudio extends FalNode {
   static readonly description = `Generate synced sounds for any video, and return the new sound track (like MMAudio)
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "audio": "list[Audio]" };
+  static readonly outputTypes = { "audio": "audio" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "mirelo-ai/sfx-v1.5/video-to-audio",
+    unitPrice: 0.00125,
+    billingUnit: "compute seconds",
+    currency: "USD",
+  };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;
@@ -129,52 +198,8 @@ audio, extraction, video-to-audio, processing`;
     }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "mirelo-ai/sfx-v1.5/video-to-audio", args);
+    const res = await falSubmit(apiKey, "Mirelo-AI/sfx-v1.5/video-to-audio", args);
     return { output: { type: "audio", uri: (res.audio as any).url } };
-  }
-}
-
-export class KlingVideoVideoToAudio extends FalNode {
-  static readonly nodeType = "fal.video_to_audio.KlingVideoVideoToAudio";
-  static readonly title = "Kling Video Video To Audio";
-  static readonly description = `Generate audio from input videos using Kling
-audio, extraction, video-to-audio, processing`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "video": "video", "audio": "audio" };
-
-  @prop({ type: "video", default: "", description: "The video URL to extract audio from. Only .mp4/.mov formats are supported. File size does not exceed 100MB. Video duration between 3.0s and 20.0s." })
-  declare video: any;
-
-  @prop({ type: "bool", default: false, description: "Enable ASMR mode. This mode enhances detailed sound effects and is suitable for highly immersive content scenarios." })
-  declare asmr_mode: any;
-
-  @prop({ type: "str", default: "intense car race", description: "Background music prompt. Cannot exceed 200 characters." })
-  declare background_music_prompt: any;
-
-  @prop({ type: "str", default: "Car tires screech as they accelerate in a drag race", description: "Sound effect prompt. Cannot exceed 200 characters." })
-  declare sound_effect_prompt: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
-    const asmrMode = Boolean(this.asmr_mode ?? false);
-    const backgroundMusicPrompt = String(this.background_music_prompt ?? "intense car race");
-    const soundEffectPrompt = String(this.sound_effect_prompt ?? "Car tires screech as they accelerate in a drag race");
-
-    const args: Record<string, unknown> = {
-      "asmr_mode": asmrMode,
-      "background_music_prompt": backgroundMusicPrompt,
-      "sound_effect_prompt": soundEffectPrompt,
-    };
-
-    const videoRef = this.video as Record<string, unknown> | undefined;
-    if (isRefSet(videoRef)) {
-      const videoUrl = await assetToFalUrl(apiKey, videoRef!);
-      if (videoUrl) args["video_url"] = videoUrl;
-    }
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "fal-ai/kling-video/video-to-audio", args);
-    return { output: { type: "video", uri: (res.video as any).url } };
   }
 }
 
@@ -184,7 +209,13 @@ export class MireloAiSfxV1VideoToAudio extends FalNode {
   static readonly description = `Generate synced sounds for any video, and return the new sound track (like MMAudio)
 audio, extraction, video-to-audio, processing`;
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "audio": "list[Audio]" };
+  static readonly outputTypes = { "audio": "audio" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "mirelo-ai/sfx-v1/video-to-audio",
+    unitPrice: 0.00125,
+    billingUnit: "compute seconds",
+    currency: "USD",
+  };
 
   @prop({ type: "str", default: 2, description: "The number of samples to generate from the model" })
   declare num_samples: any;
@@ -222,14 +253,14 @@ audio, extraction, video-to-audio, processing`;
     }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "mirelo-ai/sfx-v1/video-to-audio", args);
+    const res = await falSubmit(apiKey, "Mirelo-AI/sfx-v1/video-to-audio", args);
     return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
 export const FAL_VIDEO_TO_AUDIO_NODES: readonly NodeClass[] = [
+  KlingVideoVideoToAudio,
   SamAudioVisualSeparate,
   MireloAiSfxV15VideoToAudio,
-  KlingVideoVideoToAudio,
   MireloAiSfxV1VideoToAudio,
 ] as const;

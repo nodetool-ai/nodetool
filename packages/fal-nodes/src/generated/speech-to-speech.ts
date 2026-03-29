@@ -7,10 +7,55 @@ import {
   isRefSet,
   assetToFalUrl,
   imageToDataUrl,
+  coerceFalOutputForPropType,
 } from "../fal-base.js";
+import type { FalUnitPricing } from "../fal-base.js";
 
 // Re-export alias
 const FalNode = BaseNode;
+
+export class ChatterboxSpeechToSpeech extends FalNode {
+  static readonly nodeType = "fal.speech_to_speech.ChatterboxSpeechToSpeech";
+  static readonly title = "Chatterbox Speech To Speech";
+  static readonly description = `Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.
+speech, voice, transformation, cloning`;
+  static readonly requiredSettings = ["FAL_API_KEY"];
+  static readonly outputTypes = { "audio": "audio" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/chatterbox/speech-to-speech",
+    unitPrice: 0.015,
+    billingUnit: "minutes",
+    currency: "USD",
+  };
+
+  @prop({ type: "audio", default: "" })
+  declare source_audio: any;
+
+  @prop({ type: "audio", default: "", description: "Optional URL to an audio file to use as a reference for the generated speech. If provided, the model will try to match the style and tone of the reference audio." })
+  declare target_voice_audio: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getFalApiKey(this._secrets);
+    const args: Record<string, unknown> = {
+    };
+
+    const sourceAudioRef = this.source_audio as Record<string, unknown> | undefined;
+    if (isRefSet(sourceAudioRef)) {
+      const sourceAudioUrl = await assetToFalUrl(apiKey, sourceAudioRef!);
+      if (sourceAudioUrl) args["source_audio_url"] = sourceAudioUrl;
+    }
+
+    const targetVoiceAudioRef = this.target_voice_audio as Record<string, unknown> | undefined;
+    if (isRefSet(targetVoiceAudioRef)) {
+      const targetVoiceAudioUrl = await assetToFalUrl(apiKey, targetVoiceAudioRef!);
+      if (targetVoiceAudioUrl) args["target_voice_audio_url"] = targetVoiceAudioUrl;
+    }
+    removeNulls(args);
+
+    const res = await falSubmit(apiKey, "fal-ai/chatterbox/speech-to-speech", args);
+    return { output: { type: "audio", uri: (res.audio as any).url } };
+  }
+}
 
 export class ResembleAiChatterboxhdSpeechToSpeech extends FalNode {
   static readonly nodeType = "fal.speech_to_speech.ResembleAiChatterboxhdSpeechToSpeech";
@@ -19,6 +64,12 @@ export class ResembleAiChatterboxhdSpeechToSpeech extends FalNode {
 speech, voice, transformation, cloning`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "audio": "audio" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "resemble-ai/chatterboxhd/speech-to-speech",
+    unitPrice: 0.00125,
+    billingUnit: "compute seconds",
+    currency: "USD",
+  };
 
   @prop({ type: "bool", default: false, description: "If True, the generated audio will be upscaled to 48kHz. The generation of the audio will take longer, but the quality will be higher. If False, the generated audio will be 24kHz. " })
   declare high_quality_audio: any;
@@ -55,49 +106,12 @@ speech, voice, transformation, cloning`;
     }
     removeNulls(args);
 
-    const res = await falSubmit(apiKey, "resemble-ai/chatterboxhd/speech-to-speech", args);
-    return { output: { type: "audio", uri: (res.audio as any).url } };
-  }
-}
-
-export class ChatterboxSpeechToSpeech extends FalNode {
-  static readonly nodeType = "fal.speech_to_speech.ChatterboxSpeechToSpeech";
-  static readonly title = "Chatterbox Speech To Speech";
-  static readonly description = `Whether you're working on memes, videos, games, or AI agents, Chatterbox brings your content to life. Use the first tts from resemble ai.
-speech, voice, transformation, cloning`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "audio": "audio" };
-
-  @prop({ type: "audio", default: "" })
-  declare source_audio: any;
-
-  @prop({ type: "audio", default: "", description: "Optional URL to an audio file to use as a reference for the generated speech. If provided, the model will try to match the style and tone of the reference audio." })
-  declare target_voice_audio: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
-    const args: Record<string, unknown> = {
-    };
-
-    const sourceAudioRef = this.source_audio as Record<string, unknown> | undefined;
-    if (isRefSet(sourceAudioRef)) {
-      const sourceAudioUrl = await assetToFalUrl(apiKey, sourceAudioRef!);
-      if (sourceAudioUrl) args["source_audio_url"] = sourceAudioUrl;
-    }
-
-    const targetVoiceAudioRef = this.target_voice_audio as Record<string, unknown> | undefined;
-    if (isRefSet(targetVoiceAudioRef)) {
-      const targetVoiceAudioUrl = await assetToFalUrl(apiKey, targetVoiceAudioRef!);
-      if (targetVoiceAudioUrl) args["target_voice_audio_url"] = targetVoiceAudioUrl;
-    }
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "fal-ai/chatterbox/speech-to-speech", args);
+    const res = await falSubmit(apiKey, "Resemble-AI/ChatterboxHD/speech-to-speech", args);
     return { output: { type: "audio", uri: (res.audio as any).url } };
   }
 }
 
 export const FAL_SPEECH_TO_SPEECH_NODES: readonly NodeClass[] = [
-  ResembleAiChatterboxhdSpeechToSpeech,
   ChatterboxSpeechToSpeech,
+  ResembleAiChatterboxhdSpeechToSpeech,
 ] as const;

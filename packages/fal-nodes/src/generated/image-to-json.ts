@@ -7,7 +7,9 @@ import {
   isRefSet,
   assetToFalUrl,
   imageToDataUrl,
+  coerceFalOutputForPropType,
 } from "../fal-base.js";
+import type { FalUnitPricing } from "../fal-base.js";
 
 // Re-export alias
 const FalNode = BaseNode;
@@ -19,6 +21,12 @@ export class BagelUnderstand extends FalNode {
 vision, analysis, json, image-understanding`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "prompt": "str", "text": "str", "timings": "dict[str, any]", "seed": "int" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/bagel/understand",
+    unitPrice: 0.05,
+    billingUnit: "requests",
+    currency: "USD",
+  };
 
   @prop({ type: "str", default: "", description: "The prompt to query the image with." })
   declare prompt: any;
@@ -47,7 +55,12 @@ vision, analysis, json, image-understanding`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "fal-ai/bagel/understand", args);
-    return res as Record<string, unknown>;
+    return {
+      "prompt": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["prompt"]),
+      "text": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["text"]),
+      "timings": coerceFalOutputForPropType("dict[str, any]", (res as Record<string, unknown>)["timings"]),
+      "seed": coerceFalOutputForPropType("int", (res as Record<string, unknown>)["seed"]),
+    };
   }
 }
 

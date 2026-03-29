@@ -7,7 +7,9 @@ import {
   isRefSet,
   assetToFalUrl,
   imageToDataUrl,
+  coerceFalOutputForPropType,
 } from "../fal-base.js";
+import type { FalUnitPricing } from "../fal-base.js";
 
 // Re-export alias
 const FalNode = BaseNode;
@@ -19,6 +21,12 @@ export class WorkflowUtilitiesInterleaveVideo extends FalNode {
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "video": "video" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "fal-ai/workflow-utilities/interleave-video",
+    unitPrice: 0.00017,
+    billingUnit: "compute seconds",
+    currency: "USD",
+  };
 
   @prop({ type: "list[video]", default: [], description: "List of video URLs to interleave in order" })
   declare video_urls: any;
@@ -43,74 +51,6 @@ utility, processing, general`;
   }
 }
 
-export class Qwen3TtsCloneVoice17b extends FalNode {
-  static readonly nodeType = "fal.unknown.Qwen3TtsCloneVoice17b";
-  static readonly title = "Qwen3 Tts Clone Voice17b";
-  static readonly description = `Clone your voices using Qwen3-TTS Clone-Voice model with zero shot cloning capabilities and use it on text-to-speech models to create speeches of yours!
-utility, processing, general`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "speaker_embedding": "str" };
-
-  @prop({ type: "audio", default: "", description: "URL to the reference audio file used for voice cloning." })
-  declare audio: any;
-
-  @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
-  declare reference_text: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
-    const referenceText = String(this.reference_text ?? "");
-
-    const args: Record<string, unknown> = {
-      "reference_text": referenceText,
-    };
-
-    const audioRef = this.audio as Record<string, unknown> | undefined;
-    if (isRefSet(audioRef)) {
-      const audioUrl = await assetToFalUrl(apiKey, audioRef!);
-      if (audioUrl) args["audio_url"] = audioUrl;
-    }
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "fal-ai/qwen-3-tts/clone-voice/1.7b", args);
-    return res as Record<string, unknown>;
-  }
-}
-
-export class Qwen3TtsCloneVoice06b extends FalNode {
-  static readonly nodeType = "fal.unknown.Qwen3TtsCloneVoice06b";
-  static readonly title = "Qwen3 Tts Clone Voice06b";
-  static readonly description = `Clone your voices using Qwen3-TTS Clone-Voice model with zero shot cloning capabilities and use it on text-to-speech models to create speeches of yours!
-utility, processing, general`;
-  static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly outputTypes = { "speaker_embedding": "str" };
-
-  @prop({ type: "audio", default: "", description: "URL to the reference audio file used for voice cloning." })
-  declare audio: any;
-
-  @prop({ type: "str", default: "", description: "Optional reference text that was used when creating the speaker embedding. Providing this can improve synthesis quality when using a cloned voice." })
-  declare reference_text: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
-    const referenceText = String(this.reference_text ?? "");
-
-    const args: Record<string, unknown> = {
-      "reference_text": referenceText,
-    };
-
-    const audioRef = this.audio as Record<string, unknown> | undefined;
-    if (isRefSet(audioRef)) {
-      const audioUrl = await assetToFalUrl(apiKey, audioRef!);
-      if (audioUrl) args["audio_url"] = audioUrl;
-    }
-    removeNulls(args);
-
-    const res = await falSubmit(apiKey, "fal-ai/qwen-3-tts/clone-voice/0.6b", args);
-    return res as Record<string, unknown>;
-  }
-}
-
 export class OpenrouterRouterAudio extends FalNode {
   static readonly nodeType = "fal.unknown.OpenrouterRouterAudio";
   static readonly title = "Openrouter Router Audio";
@@ -118,15 +58,21 @@ export class OpenrouterRouterAudio extends FalNode {
 utility, processing, general`;
   static readonly requiredSettings = ["FAL_API_KEY"];
   static readonly outputTypes = { "usage": "str", "output": "str" };
+  static readonly falUnitPricing: FalUnitPricing | null = {
+    endpointId: "openrouter/router/audio",
+    unitPrice: 0.01,
+    billingUnit: "units",
+    currency: "USD",
+  };
 
   @prop({ type: "str", default: "", description: "Prompt to be used for the audio processing" })
   declare prompt: any;
 
-  @prop({ type: "bool", default: false, description: "Should reasoning be the part of the final answer." })
-  declare reasoning: any;
-
   @prop({ type: "str", default: "", description: "System prompt to provide context or instructions to the model" })
   declare system_prompt: any;
+
+  @prop({ type: "bool", default: false, description: "Should reasoning be the part of the final answer." })
+  declare reasoning: any;
 
   @prop({ type: "str", default: "", description: "Name of the model to use. Charged based on actual token usage." })
   declare model: any;
@@ -143,16 +89,16 @@ utility, processing, general`;
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getFalApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
-    const reasoning = Boolean(this.reasoning ?? false);
     const systemPrompt = String(this.system_prompt ?? "");
+    const reasoning = Boolean(this.reasoning ?? false);
     const model = String(this.model ?? "");
     const temperature = Number(this.temperature ?? 1);
     const maxTokens = String(this.max_tokens ?? "");
 
     const args: Record<string, unknown> = {
       "prompt": prompt,
-      "reasoning": reasoning,
       "system_prompt": systemPrompt,
+      "reasoning": reasoning,
       "model": model,
       "temperature": temperature,
       "max_tokens": maxTokens,
@@ -166,13 +112,14 @@ utility, processing, general`;
     removeNulls(args);
 
     const res = await falSubmit(apiKey, "openrouter/router/audio", args);
-    return res as Record<string, unknown>;
+    return {
+      "usage": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["usage"]),
+      "output": coerceFalOutputForPropType("str", (res as Record<string, unknown>)["output"]),
+    };
   }
 }
 
 export const FAL_UNKNOWN_NODES: readonly NodeClass[] = [
   WorkflowUtilitiesInterleaveVideo,
-  Qwen3TtsCloneVoice17b,
-  Qwen3TtsCloneVoice06b,
   OpenrouterRouterAudio,
 ] as const;
