@@ -226,7 +226,7 @@ export abstract class BaseProvider {
     const tracer = getTracer();
 
     let fullResponse = "";
-    let collectedToolCalls: Array<{ id: string; name: string; args: unknown }> = [];
+    const collectedToolCalls: Array<{ id: string; name: string; args: unknown }> = [];
     let error: string | undefined;
 
     try {

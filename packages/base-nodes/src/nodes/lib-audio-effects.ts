@@ -817,7 +817,7 @@ export class PhaserNode extends BaseNode {
         const a = (tanVal - 1) / (tanVal + 1);
 
         // Input with feedback
-        let signal = ch[i] + feedbackSample * feedback;
+        const signal = ch[i] + feedbackSample * feedback;
 
         // Apply all-pass filter stages
         let apOut = signal;
