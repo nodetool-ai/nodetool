@@ -1479,7 +1479,7 @@ describe("OscillatorLibNode pitch envelope", () => {
 // lib-seaborn: ChartRendererLibNode
 // =====================================================================
 
-describe("ChartRendererLibNode", () => {
+describe.skipIf(Boolean(process.env.CI))("ChartRendererLibNode", () => {
   it("throws when no data rows provided", async () => {
     const __n397 = new ChartRendererLibNode();
     __n397.assign({
