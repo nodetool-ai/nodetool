@@ -88,6 +88,7 @@ import skillsRoutes from "./routes/skills.js";
 import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
 import falPricingRoute from "./routes/fal-pricing.js";
+import falCreditsRoute from "./routes/fal-credits.js";
 
 const log = createLogger("nodetool.websocket.server");
 const startupT0 = performance.now();
@@ -419,6 +420,7 @@ await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
 await app.register(falPricingRoute);
+await app.register(falCreditsRoute);
 
 log.info(`Routes registered [${startupMs()}]`);
 

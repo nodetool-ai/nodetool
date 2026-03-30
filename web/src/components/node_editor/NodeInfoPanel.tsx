@@ -2,16 +2,21 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback, useState } from "react";
 import {
   Box,
   Typography,
   Tooltip,
   Button,
-  IconButton
+  IconButton,
+  Menu,
+  MenuItem,
+  Divider,
+  CircularProgress
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import LaunchIcon from "@mui/icons-material/Launch";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -22,6 +27,7 @@ import {
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,
 } from "../../utils/formatFalUnitPricing";
+import { BASE_URL } from "../../stores/BASE_URL";
 import type { FalUnitPricing } from "../../stores/ApiTypes";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
@@ -222,12 +228,68 @@ const styles = (theme: Theme) =>
     }
   });
 
+interface FalCredits {
+  credit_balance?: { amount?: number; currency?: string } | number;
+}
+
+async function fetchFalCredits(): Promise<FalCredits | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/fal/credits`);
+    if (res.status === 204) { return null; }
+    if (!res.ok) { return null; }
+    return await res.json() as FalCredits;
+  } catch {
+    return null;
+  }
+}
+
+function formatCredits(data: FalCredits): string {
+  const bal = data.credit_balance;
+  if (bal == null) { return "N/A"; }
+  if (typeof bal === "number") { return `$${bal.toFixed(2)}`; }
+  if (typeof bal === "object") {
+    const amount = bal.amount;
+    const currency = (bal.currency ?? "USD").toUpperCase();
+    if (typeof amount === "number") {
+      try {
+        return new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 4,
+        }).format(amount);
+      } catch {
+        return `${amount} ${currency}`;
+      }
+    }
+  }
+  return "N/A";
+}
+
 const NodeInfoPanel: React.FC = memo(() => {
   const theme = useTheme();
   const { getNode, setCenter } = useReactFlow();
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  const [falMenuAnchor, setFalMenuAnchor] = useState<HTMLElement | null>(null);
+  const [falCreditsLoading, setFalCreditsLoading] = useState(false);
+  const [falCreditsData, setFalCreditsData] = useState<FalCredits | null | "error">(null);
+  const falMenuOpen = Boolean(falMenuAnchor);
+
+  const handleFalPricingClick = useCallback(async (event: React.MouseEvent<HTMLElement>) => {
+    setFalMenuAnchor(event.currentTarget);
+    setFalCreditsLoading(true);
+    setFalCreditsData(null);
+    const result = await fetchFalCredits();
+    setFalCreditsLoading(false);
+    setFalCreditsData(result ?? "error");
+  }, []);
+
+  const handleFalMenuClose = useCallback(() => {
+    setFalMenuAnchor(null);
+  }, []);
 
   const nodeInfo = useMemo((): NodeInfo | null => {
     if (!inspectedNodeId) {
@@ -343,19 +405,74 @@ const NodeInfoPanel: React.FC = memo(() => {
         </Tooltip>
 
         {nodeInfo.falUnitPricing && (
-          <Tooltip
-            title={
-              <span style={{ whiteSpace: "pre-line" }}>
-                {formatFalUnitPricingTooltip(nodeInfo.falUnitPricing)}
-              </span>
-            }
-            placement="bottom-start"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <Button tabIndex={1} className="fal-pricing-button" onClick={(e) => e.preventDefault()}>
+          <>
+            <Button
+              tabIndex={1}
+              className="fal-pricing-button"
+              onClick={handleFalPricingClick}
+              aria-haspopup="true"
+              aria-expanded={falMenuOpen}
+            >
               FAL {formatFalUnitPricingShort(nodeInfo.falUnitPricing)}
             </Button>
-          </Tooltip>
+            <Menu
+              anchorEl={falMenuAnchor}
+              open={falMenuOpen}
+              onClose={handleFalMenuClose}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+              transformOrigin={{ vertical: "top", horizontal: "left" }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    minWidth: 220,
+                    fontSize: "12px",
+                    "& .MuiMenuItem-root": { fontSize: "12px" }
+                  }
+                }
+              }}
+            >
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "success.main", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  FAL Pricing
+                </Typography>
+                <Typography sx={{ fontSize: "12px", mt: 0.5, whiteSpace: "pre-line", color: "text.secondary" }}>
+                  {formatFalUnitPricingTooltip(nodeInfo.falUnitPricing)}
+                </Typography>
+              </Box>
+              <Divider />
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Account Credits
+                </Typography>
+                {falCreditsLoading ? (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+                    <CircularProgress size={12} />
+                    <Typography sx={{ fontSize: "12px", color: "text.secondary" }}>Loading…</Typography>
+                  </Box>
+                ) : falCreditsData === "error" || falCreditsData === null ? (
+                  <Typography sx={{ fontSize: "12px", color: "text.disabled", mt: 0.5 }}>
+                    {falCreditsData === "error" ? "Could not load credits" : "—"}
+                  </Typography>
+                ) : (
+                  <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "success.main", mt: 0.5 }}>
+                    {formatCredits(falCreditsData)} remaining
+                  </Typography>
+                )}
+              </Box>
+              <Divider />
+              <MenuItem
+                component="a"
+                href={`https://fal.ai/models/${nodeInfo.falUnitPricing.endpoint_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleFalMenuClose}
+                sx={{ gap: 1, fontSize: "12px" }}
+              >
+                <LaunchIcon sx={{ fontSize: 14 }} />
+                View on fal.ai
+              </MenuItem>
+            </Menu>
+          </>
         )}
 
         {parsedDescription && (
