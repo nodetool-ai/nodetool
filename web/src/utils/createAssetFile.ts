@@ -100,9 +100,9 @@ const decodeBase64 = (value: string): Uint8Array => {
   }
 
   try {
-    const BufferCtor = (globalThis as Record<string, any>).Buffer;
-    if (BufferCtor) {
-      const buffer = BufferCtor.from(cleaned, "base64");
+    const BufferCtor = (globalThis as Record<string, unknown>).Buffer;
+    if (BufferCtor && typeof BufferCtor === "function") {
+      const buffer = (BufferCtor as unknown as { from: (data: string, encoding: string) => Uint8Array }).from(cleaned, "base64");
       return new Uint8Array(
         buffer.buffer,
         buffer.byteOffset,
@@ -177,8 +177,11 @@ const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   return cloned;
 };
 
-const isChunk = (value: any): value is Chunk =>
-  value && typeof value === "object" && value.type === "chunk";
+const isChunk = (value: unknown): value is Chunk =>
+  value !== null &&
+  typeof value === "object" &&
+  "type" in value &&
+  value.type === "chunk";
 
 const resolveDownloadUri = (uri: string): string => {
   if (typeof window === "undefined") {
