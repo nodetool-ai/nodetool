@@ -214,7 +214,7 @@ describe("AnthropicProvider", () => {
   it("streams text/tool calls and structured json chunks", async () => {
     const stream = vi
       .fn()
-      .mockResolvedValueOnce(
+      .mockReturnValueOnce(
         makeAsyncIterable([
           { type: "content_block_delta", delta: { text: "Hel" } },
           { type: "content_block_delta", delta: { text: "lo" } },
@@ -232,7 +232,7 @@ describe("AnthropicProvider", () => {
           { type: "message_stop" },
         ])
       )
-      .mockResolvedValueOnce(
+      .mockReturnValueOnce(
         makeAsyncIterable([
           { type: "content_block_delta", delta: { partial_json: "{\"a\":" } },
           { type: "content_block_delta", delta: { partial_json: "1}" } },

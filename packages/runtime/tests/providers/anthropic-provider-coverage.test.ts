@@ -400,7 +400,7 @@ describe("AnthropicProvider – extractSystemMessage", () => {
 
 describe("AnthropicProvider – streaming thinking chunks", () => {
   it("emits thinking chunks", async () => {
-    const stream = vi.fn().mockResolvedValue(
+    const stream = vi.fn().mockReturnValue(
       makeAsyncIterable([
         { type: "content_block_delta", delta: { thinking: "hmm..." } },
         { type: "content_block_delta", delta: { text: "answer" } },
@@ -624,7 +624,7 @@ describe("AnthropicProvider – extractSystemMessage non-string non-array conten
 
 describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
   it("includes thinking config in streaming request when thinkingBudget is set", async () => {
-    const stream = vi.fn().mockResolvedValue(
+    const stream = vi.fn().mockReturnValue(
       makeAsyncIterable([
         { type: "content_block_delta", delta: { thinking: "let me think..." } },
         { type: "content_block_delta", delta: { text: "answer" } },
@@ -663,7 +663,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
   });
 
   it("does not include thinking config when thinkingBudget is not set", async () => {
-    const stream = vi.fn().mockResolvedValue(
+    const stream = vi.fn().mockReturnValue(
       makeAsyncIterable([
         { type: "content_block_delta", delta: { text: "answer" } },
         { type: "message_stop" },
@@ -731,7 +731,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
 describe("AnthropicProvider – streaming content_block_stop suppresses structured tool calls", () => {
   it("does not emit structured tool call in stream", async () => {
-    const stream = vi.fn().mockResolvedValue(
+    const stream = vi.fn().mockReturnValue(
       makeAsyncIterable([
         { type: "content_block_delta", delta: { partial_json: "{\"a\":1}" } },
         {

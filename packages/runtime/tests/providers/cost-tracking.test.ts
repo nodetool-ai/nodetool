@@ -223,7 +223,7 @@ describe("Cost tracking – Anthropic generateMessages (streaming)", () => {
       },
     ];
 
-    const mockStream = vi.fn().mockResolvedValue(makeAsyncIterable(events));
+    const mockStream = vi.fn().mockReturnValue(makeAsyncIterable(events));
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
