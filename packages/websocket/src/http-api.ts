@@ -2117,7 +2117,9 @@ export async function handleNodeHttpRequest(
   const request = new Request(url.toString(), {
     method,
     headers,
-    body: rawBody && rawBody.byteLength > 0 ? (rawBody as unknown as BodyInit) : undefined,
+    body: rawBody && rawBody.byteLength > 0
+      ? new Uint8Array(rawBody)
+      : undefined,
   });
 
   const response = await handleApiRequest(request, options);

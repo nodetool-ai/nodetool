@@ -178,7 +178,7 @@ export interface NodeStoreState {
   createNode: (
     metadata: NodeMetadata,
     position: XYPosition,
-    properties?: Record<string, any>
+    properties?: Record<string, unknown>
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
   clearMissingModels: () => void;
@@ -279,7 +279,6 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
-    // @ts-expect-error zundo temporal middleware type augmentation not recognized by zustand 4.x
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
@@ -932,7 +931,7 @@ export const createNodeStore = (
             };
 
             const unconnectedProperties = (node: Node<NodeData>) => {
-              const properties: Record<string, any> = {};
+              const properties: Record<string, unknown> = {};
               for (const name in node.data.properties) {
                 if (!isHandleConnected(node.id, name)) {
                   properties[name] = node.data.properties[name];
@@ -1204,9 +1203,9 @@ export const createNodeStore = (
           createNode: (
             metadata: NodeMetadata,
             position: XYPosition,
-            properties?: Record<string, any>
+            properties?: Record<string, unknown>
           ): Node<NodeData> => {
-            const defaults: Record<string, any> = {};
+            const defaults: Record<string, unknown> = {};
             if (metadata.properties) {
               for (const property of metadata.properties) {
                 if (property.name) {

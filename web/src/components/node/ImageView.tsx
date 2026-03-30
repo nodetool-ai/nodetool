@@ -10,6 +10,7 @@ import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+import log from "loglevel";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -139,7 +140,8 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         }
       }
     } catch (_e) {
-      // fallback
+      // Failed to parse image filename from URL; use default timestamp-based name
+      log.warn("ImageView: could not determine filename from URL, using default");
     }
 
     link.download = filename;
