@@ -1,0 +1,278 @@
+{
+  "login-page.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.013Z"
+  },
+  "collections-explorer.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.111Z"
+  },
+  "models-list.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.214Z"
+  },
+  "chat-empty-state.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.312Z"
+  },
+  "standalone-chat.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.412Z"
+  },
+  "chat-workflow-attached.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.515Z"
+  },
+  "chat-rich-content.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.615Z"
+  },
+  "agent-planning.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.714Z"
+  },
+  "chat-mobile.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.776Z"
+  },
+  "mini-apps-page.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.880Z"
+  },
+  "mini-app-interface.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:11.977Z"
+  },
+  "mini-app-builder.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.078Z"
+  },
+  "editor-empty-state.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.183Z"
+  },
+  "properties-panel.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.278Z"
+  },
+  "inspector-panel.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.380Z"
+  },
+  "left-panel-assets.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.478Z"
+  },
+  "context-menu-node.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.578Z"
+  },
+  "context-menu-canvas.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.681Z"
+  },
+  "workflow-tabs.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.779Z"
+  },
+  "app-header.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.836Z"
+  },
+  "notification-panel.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:12.934Z"
+  },
+  "settings-folders.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.029Z"
+  },
+  "settings-auth.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.128Z"
+  },
+  "about-menu.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.228Z"
+  },
+  "command-menu-search.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.329Z"
+  },
+  "open-create-dialog.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.428Z"
+  },
+  "confirm-dialog.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.530Z"
+  },
+  "file-browser-dialog.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.632Z"
+  },
+  "asset-preview.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.728Z"
+  },
+  "asset-context-menu.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.828Z"
+  },
+  "asset-upload.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:13.929Z"
+  },
+  "models-manager-full.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.030Z"
+  },
+  "models-filters.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.129Z"
+  },
+  "model-card-actions.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.232Z"
+  },
+  "model-manager-starter.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.329Z"
+  },
+  "smart-connect.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.427Z"
+  },
+  "node-anatomy-annotated.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.528Z"
+  },
+  "connection-colors.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.628Z"
+  },
+  "workflow-progress.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.729Z"
+  },
+  "workflow-streaming-output.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.828Z"
+  },
+  "missing-model.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:14.930Z"
+  },
+  "auto-layout-comparison.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.027Z"
+  },
+  "node-groups.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.127Z"
+  },
+  "node-types-overview.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.229Z"
+  },
+  "data-flow-direction.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.330Z"
+  },
+  "cookbook-rag-workflow.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.429Z"
+  },
+  "cookbook-image-enhance.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.528Z"
+  },
+  "cookbook-image-to-story.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.629Z"
+  },
+  "cookbook-realtime-agent.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.727Z"
+  },
+  "cookbook-data-viz.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.830Z"
+  },
+  "dashboard-mobile.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.892Z"
+  },
+  "dashboard-tablet.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:15.970Z"
+  },
+  "panel-left-collapsed.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.066Z"
+  },
+  "panel-right-expanded.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.162Z"
+  },
+  "log-panel.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.261Z"
+  },
+  "system-stats.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.360Z"
+  },
+  "workflow-assistant-chat.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.461Z"
+  },
+  "huggingface-browser.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.561Z"
+  },
+  "error-404.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.661Z"
+  },
+  "connection-error.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.762Z"
+  },
+  "dashboard-loading.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.862Z"
+  },
+  "editor-loading.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:16.963Z"
+  },
+  "dashboard-dark-theme.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:17.062Z"
+  },
+  "editor-dark-theme.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:17.161Z"
+  },
+  "component-app-header.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:17.220Z"
+  },
+  "component-dashboard.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:17.319Z"
+  },
+  "component-models.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:17.428Z"
+  },
+  "component-assets.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:17.529Z"
+  },
+  "component-preview-index.png": {
+    "placeholder": true,
+    "generatedAt": "2026-03-30T17:09:17.631Z"
+  }
+}

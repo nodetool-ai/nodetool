@@ -1,4 +1,4 @@
-.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev dev dev-server
+.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev dev dev-server screenshots screenshots-force generate-placeholders generate-placeholders-force
 
 # Default target
 help:
@@ -39,6 +39,15 @@ help:
 	@echo "  make typecheck-mobile - Type check mobile package"
 	@echo "  make check            - Run all checks (typecheck, lint, test)"
 	@echo "  make format           - Format code (alias for lint-fix)"
+	@echo ""
+	@echo "Documentation Screenshots:"
+	@echo "  make generate-placeholders       - Generate labeled placeholder images for docs"
+	@echo "  make generate-placeholders-force - Regenerate ALL placeholder images (overwrite)"
+	@echo "  make screenshots                 - Capture real screenshots (requires running app)"
+	@echo "  make screenshots-force           - Re-capture ALL screenshots (overwrite existing)"
+	@echo "    NOTE: 'make screenshots' requires:"
+	@echo "      - Web dev server:  cd web && npm start"
+	@echo "      - Backend server:  nodetool serve --port 7777"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean            - Remove build artifacts and dependencies"
@@ -214,6 +223,23 @@ clean-build:
 # Combined target
 all: install typecheck lint test build
 	@echo "All tasks completed successfully!"
+
+# Documentation screenshot targets
+screenshots:
+	@echo "Capturing documentation screenshots (requires running app at localhost:3000 and backend at localhost:7777)..."
+	cd web && npm run screenshots
+
+screenshots-force:
+	@echo "Re-capturing ALL documentation screenshots (overwriting existing)..."
+	cd web && npm run screenshots:force
+
+generate-placeholders:
+	@echo "Generating placeholder images for missing screenshots..."
+	cd web && npm run generate-placeholders
+
+generate-placeholders-force:
+	@echo "Regenerating ALL placeholder images..."
+	cd web && npm run generate-placeholders:force
 
 # Quick start target for new developers
 quickstart: install

@@ -21,16 +21,41 @@ import {
 
 const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const SCREENSHOT_DIR = path.join(CURRENT_DIR, '../../../docs/assets/screenshots');
+const MANIFEST_PATH = path.join(SCREENSHOT_DIR, '.placeholder-manifest.json');
 
 // Ensure screenshot directory exists
 if (!fs.existsSync(SCREENSHOT_DIR)) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 }
 
+/** Read the placeholder manifest (written by generate-placeholders.ts) */
+function readManifest(): Record<string, { placeholder: boolean }> {
+  if (!fs.existsSync(MANIFEST_PATH)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+
+/** Mark a file as a real screenshot in the manifest */
+function markAsReal(filename: string): void {
+  try {
+    const manifest = readManifest();
+    if (manifest[filename]) {
+      manifest[filename].placeholder = false;
+      fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
+    }
+  } catch {
+    // Non-fatal: manifest update failure doesn't break screenshot capture
+  }
+}
+
 // Helper to save screenshot
 async function saveScreenshot(page: Page, filename: string, fullPage = false) {
   const filepath = path.join(SCREENSHOT_DIR, filename);
   await page.screenshot({ path: filepath, fullPage });
+  markAsReal(filename);
   console.log(`Saved: ${filepath}`);
 }
 
@@ -40,6 +65,7 @@ async function saveElementScreenshot(page: Page, selector: string, filename: str
   const element = page.locator(selector).first();
   if (await element.count() > 0) {
     await element.screenshot({ path: filepath });
+    markAsReal(filename);
     console.log(`Saved: ${filepath}`);
     return true;
   }
@@ -52,7 +78,12 @@ function shouldSkip(filename: string): boolean {
     return false;
   }
   const filepath = path.join(SCREENSHOT_DIR, filename);
-  return fs.existsSync(filepath);
+  if (!fs.existsSync(filepath)) return false;
+  // Don't skip if the file is a generated placeholder (allow re-capture)
+  const manifest = readManifest();
+  const entry = manifest[filename];
+  if (entry?.placeholder === true) return false;
+  return true;
 }
 
 // Skip when executed by Jest or in CI (this is a documentation tool, not a functional test)
@@ -1088,6 +1119,64 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(2000);
       await saveScreenshot(page, 'editor-dark-theme.png');
+    });
+  });
+
+  // ============================================================================
+  // ISOLATED COMPONENT PREVIEWS - Zoomed-in screenshots via /preview routes
+  //
+  // These use the /preview/:component routes (localhost-only) to capture
+  // individual components in isolation. Useful for documentation sections that
+  // need a tight, focused screenshot rather than the full-page layout.
+  // ============================================================================
+  test.describe('Isolated Component Previews', () => {
+    test('App Header – zoomed', async ({ page }) => {
+      test.skip(shouldSkip('component-app-header.png'), 'Screenshot already exists');
+      // The header is narrow, so use a matching viewport
+      await page.setViewportSize({ width: 1920, height: 80 });
+      await page.goto('/preview/app-header');
+      await page.waitForLoadState('networkidle');
+      await waitForAnimation(page);
+      const saved = await saveElementScreenshot(page, '[data-preview="app-header"]', 'component-app-header.png');
+      if (!saved) {
+        await saveScreenshot(page, 'component-app-header.png');
+      }
+    });
+
+    test('Dashboard – isolated', async ({ page }) => {
+      test.skip(shouldSkip('component-dashboard.png'), 'Screenshot already exists');
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await page.goto('/preview/dashboard');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(2000);
+      await saveScreenshot(page, 'component-dashboard.png');
+    });
+
+    test('Models Manager – isolated', async ({ page }) => {
+      test.skip(shouldSkip('component-models.png'), 'Screenshot already exists');
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await page.goto('/preview/models');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(2000);
+      await saveScreenshot(page, 'component-models.png');
+    });
+
+    test('Asset Explorer – isolated', async ({ page }) => {
+      test.skip(shouldSkip('component-assets.png'), 'Screenshot already exists');
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await page.goto('/preview/assets');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(2000);
+      await saveScreenshot(page, 'component-assets.png');
+    });
+
+    test('Preview Index', async ({ page }) => {
+      test.skip(shouldSkip('component-preview-index.png'), 'Screenshot already exists');
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await page.goto('/preview');
+      await page.waitForLoadState('networkidle');
+      await waitForAnimation(page);
+      await saveScreenshot(page, 'component-preview-index.png');
     });
   });
 }

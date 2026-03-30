@@ -126,6 +126,9 @@ const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
 const CodeEditorDebug = React.lazy(() => import("./components/CodeEditorDebug"));
+const ComponentPreview = React.lazy(
+  () => import("./components/preview/ComponentPreview")
+);
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -410,6 +413,11 @@ function getRoutes() {
       path: "/code-editor-debug",
       element: <CodeEditorDebug />
     });
+    // Component preview routes for isolated documentation screenshots
+    routes.push({
+      path: "/preview/:component?",
+      element: <ComponentPreview />
+    });
   }
 
   routes.forEach((route) => {
@@ -490,7 +498,7 @@ const AppWrapper = () => {
   // Allow dev-only test pages to render without backend metadata
   const isDevTestRoute =
     isLocalhost &&
-    ["/layouttest", "/chatmarkdowntest", "/graph"].some((p) =>
+    ["/layouttest", "/chatmarkdowntest", "/graph", "/preview"].some((p) =>
       window.location.pathname.startsWith(p)
     );
 
