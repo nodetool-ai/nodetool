@@ -1,0 +1,214 @@
+{
+  "id": "summarize-audio",
+  "access": "private",
+  "created_at": "2026-02-16T17:04:35.627864",
+  "updated_at": "2026-02-16T17:07:21.585292",
+  "name": "Summarize Audio",
+  "tool_name": null,
+  "description": "Transcribe an audio file and summarize the text.",
+  "tags": [
+    "audio",
+    "start",
+    "huggingface",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "739b2504-9295-4fab-a069-2af063614fef",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "9818cefa-f89e-4742-8450-03051e95b704",
+        "source": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
+        "sourceHandle": "text",
+        "target": "99c95069-03f6-4f45-bb66-ab3482f79496",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6aba7eed-dfbb-4d51-b830-4d42c8b8e761",
+        "source": "99c95069-03f6-4f45-bb66-ab3482f79496",
+        "sourceHandle": "text",
+        "target": "13",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "12",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "audio",
+          "description": "",
+          "value": {
+            "asset_id": "5268436c0b5111f18def00000333a557",
+            "uri": "/api/storage/5268436c0b5111f18def00000333a557.webm",
+            "type": "audio"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 151
+          },
+          "zIndex": 0,
+          "width": 226,
+          "height": 338,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "13",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "summary",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 926,
+            "y": 189
+          },
+          "zIndex": 0,
+          "width": 449,
+          "height": 390,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 306,
+            "y": 205
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "99c95069-03f6-4f45-bb66-ab3482f79496",
+        "type": "nodetool.agents.Summarizer",
+        "data": {
+          "system_prompt": "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring.\n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Aim for approximately {self.max_tokens} tokens.\n        ",
+          "model": {
+            "type": "language_model"
+          },
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 616,
+            "y": 111
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "audio": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "audio"
+            ]
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "audio"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "summary"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "dc1b625962a99f61450b907c984944ba"
+}

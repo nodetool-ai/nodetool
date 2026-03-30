@@ -1,0 +1,921 @@
+{
+  "name": "nodetool-base",
+  "description": "Nodetool Base nodes",
+  "version": "0.6.3-rc.41",
+  "authors": [
+    "Matthias Georgi <matti.georgi@gmail.com>"
+  ],
+  "repo_id": "",
+  "nodes": [],
+  "assets": [
+    {
+      "package_name": "nodetool-base",
+      "name": "Image to Video Animation.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Summarize Newsletters.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Product Description Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Transcribe Audio.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Concept Art Iteration Board.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Research Paper Summarizer.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "AI Product Launch Video Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Realtime Agent.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Brand Asset Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Competitive Analysis.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Movie Posters.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Album Cover Creator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Learning Path Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "ChromaDB Research Agent.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Wikipedia Agent.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Reddit Scraper.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Game Encounter Planner Agent.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Conditional Logic Engine.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Music Video Visualizer.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "thumbnail_prompts.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Fetch Papers.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Instagram Scraper.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Color Boost Video.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Image Enhance.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Autonomous Research Agent.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Hacker News Agent.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Flashcard Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Summarize RSS.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Meeting Transcript Summarizer.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Pokemon Maker.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Audio To Image.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Story to Video Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Image To Audio Story.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Agent Google Search.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Categorize Mails.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Product Mockup Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Summarize Paper.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "AI Workflows on Reddit.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Creative Story Ideas.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Data Generator.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "YouTube Thumbnail Pipeline.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Data Visualization Pipeline.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Data Validation Pipeline.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Social Media Calendar Filler.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Photo Enhancement Suite.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Chat with Docs.jpg",
+      "path": ""
+    }
+  ],
+  "examples": [
+    {
+      "id": "search-google-shopping",
+      "name": "Search - Google Shopping",
+      "description": "Claude Agent uses Google Shopping as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "shopping",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "data_generator",
+      "name": "Data Generator",
+      "description": "Generate structured data using AI agents",
+      "tags": [
+        "agents"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Data Validation Pipeline",
+      "description": "Validate and clean data for quality assurance before processing.",
+      "tags": [
+        "data",
+        "example"
+      ]
+    },
+    {
+      "id": "004a7fd2-4492-485d-8bdb-ea1ba61f7bdf",
+      "name": "Photo Enhancement Suite",
+      "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+      "tags": [
+        "image",
+        "photo",
+        "batch processing"
+      ]
+    },
+    {
+      "id": "search-google-finance",
+      "name": "Search - Google Finance",
+      "description": "Claude Agent uses Google Finance as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "finance",
+        "stocks",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "56e546a6-3fb8-40d3-85e4-d283af718bde",
+      "name": "AI Workflows on Reddit",
+      "description": "Find examples of AI workflows on Reddit and compile a markdown report.",
+      "tags": [
+        "reddit",
+        "research",
+        "ai"
+      ]
+    },
+    {
+      "id": "music_video_visualizer_001",
+      "name": "Music Video Visualizer",
+      "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+      "tags": [
+        "video",
+        "audio",
+        "music",
+        "visualization"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Conditional Logic Engine",
+      "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
+      "tags": [
+        "boolean"
+      ]
+    },
+    {
+      "id": "competitive_analysis",
+      "name": "Competitive Analysis",
+      "description": "Analyze competitor offerings and market positioning for strategic planning. Fetches competitor information from Google search results.",
+      "tags": [
+        "business",
+        "data"
+      ]
+    },
+    {
+      "id": "story_to_video_generator",
+      "name": "Story to Video Generator",
+      "description": "Transform story ideas into cinematic AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.",
+      "tags": [
+        "video",
+        "generation",
+        "ai",
+        "storytelling",
+        "creative"
+      ]
+    },
+    {
+      "id": "310d885a341811f0942e0000191c0ba5",
+      "name": "Color Boost Video",
+      "description": "",
+      "tags": [
+        "video",
+        "start"
+      ]
+    },
+    {
+      "id": "search-amazon-products",
+      "name": "Search - Amazon Products",
+      "description": "Claude Agent uses Amazon Search as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "amazon",
+        "products",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "search-google-images",
+      "name": "Search - Google Images",
+      "description": "Claude Agent uses Google Images as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "images",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "d22725a09fc211f0b7bb00007bf02e69",
+      "name": "Summarize Paper",
+      "description": "",
+      "tags": [
+        "audio",
+        "start"
+      ]
+    },
+    {
+      "id": "data_visualization_pipeline",
+      "name": "Data Visualization Pipeline",
+      "description": "Transform natural language descriptions into data visualizations with AI-powered data and chart generation. This workflow demonstrates how to create customized charts from text prompts without manual data preparation.",
+      "tags": [
+        "agents"
+      ]
+    },
+    {
+      "id": "agent-google-search-example",
+      "name": "Agent Google Search",
+      "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
+      "tags": [
+        "agent",
+        "google",
+        "search",
+        "dynamic-outputs"
+      ]
+    },
+    {
+      "id": "a519d747-d864-411d-a2f9-f35c0261bf25",
+      "name": "Instagram Scraper",
+      "description": "Analyze Instagram trends for a specific topic.",
+      "tags": [
+        "instagram",
+        "social-media",
+        "trends"
+      ]
+    },
+    {
+      "id": "summarize-newsletters",
+      "name": "Summarize Newsletters",
+      "description": "",
+      "tags": [
+        "email",
+        "start",
+        "example"
+      ]
+    },
+    {
+      "id": "summarize-audio",
+      "name": "Summarize Audio",
+      "description": "Transcribe an audio file and summarize the text.",
+      "tags": [
+        "audio",
+        "start",
+        "huggingface",
+        "example"
+      ]
+    },
+    {
+      "id": "autonomous_research_agent",
+      "name": "Autonomous Research Agent",
+      "description": "Use the ResearchAgent node to perform a lightweight market analysis with structured outputs defined through dynamic slots.",
+      "tags": [
+        "agent",
+        "business",
+        "research"
+      ]
+    },
+    {
+      "id": "fac89302-e7ea-4415-b0a5-da2205da59d7",
+      "name": "Concept Art Iteration Board",
+      "description": "Create a comprehensive learning path for a topic.",
+      "tags": [
+        "concept-art",
+        "planning"
+      ]
+    },
+    {
+      "id": "1302ffe8a2f911f0b74c000014916b9c",
+      "name": "Categorize Mails",
+      "description": "Automatically categorize and organize emails using AI, showing the reasoning.",
+      "tags": [
+        "email",
+        "start",
+        "agent"
+      ]
+    },
+    {
+      "id": "0b43765f-3ad4-47f4-bfdc-818100b458fd",
+      "name": "Wikipedia Agent",
+      "description": "Wikipedia style research and documentation agent.",
+      "tags": [
+        "wikipedia",
+        "research",
+        "writing"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Social Media Calendar Filler",
+      "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+      "tags": [
+        "content",
+        "social media",
+        "marketing",
+        "planning",
+        "example"
+      ]
+    },
+    {
+      "id": "a0173b98-2bf1-481a-a94e-090cba8da1c6",
+      "name": "ChromaDB Research Agent",
+      "description": "Query a Chroma collection of papers.",
+      "tags": [
+        "chromadb",
+        "rag",
+        "research"
+      ]
+    },
+    {
+      "id": "search-google-scholar",
+      "name": "Search - Google Scholar",
+      "description": "Claude Agent uses Scholar Search as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "scholar",
+        "academic",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "3527dcf2a7a811f09339000078c92dc5",
+      "name": "Meeting Transcript Summarizer",
+      "description": "Automatically transcribe a meeting recording and generate concise notes.",
+      "tags": [
+        "audio",
+        "llm"
+      ]
+    },
+    {
+      "id": "search-google-trends",
+      "name": "Search - Google Trends",
+      "description": "Claude Agent uses Google Trends as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "trends",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "pokemon-maker",
+      "name": "Pokemon Maker",
+      "description": "",
+      "tags": [
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Product Mockup Generator",
+      "description": "Generate product mockups for a given product.",
+      "tags": [
+        "product-mockup",
+        "mockup",
+        "design",
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Brand Asset Generator",
+      "description": "Generate brand assets for a given brand.",
+      "tags": [
+        "brand-asset",
+        "branding",
+        "design",
+        "example"
+      ]
+    },
+    {
+      "id": "9ad58a63-abec-4196-bd53-9262bc1e7eb7",
+      "name": "Hacker News Agent",
+      "description": "Scrape and analyze the front page of Hacker News.",
+      "tags": [
+        "hackernews",
+        "news",
+        "analysis"
+      ]
+    },
+    {
+      "id": "4fd373a0a7a711f08ffb0000744cb0d1",
+      "name": "Transcribe Audio",
+      "description": "Convert speech to text using Whisper model with word-level timestamps",
+      "tags": [
+        "start",
+        "audio",
+        "huggingface"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Learning Path Generator",
+      "description": "Create a comprehensive learning path for a topic.",
+      "tags": [
+        "education",
+        "planning",
+        "example"
+      ]
+    },
+    {
+      "id": "creative-story-ideas",
+      "name": "Creative Story Ideas",
+      "description": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.",
+      "tags": [
+        "start",
+        "beginner",
+        "tutorial",
+        "template",
+        "example"
+      ]
+    },
+    {
+      "id": "audio-to-image",
+      "name": "Audio To Image",
+      "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
+      "tags": [
+        "huggingface",
+        "multimodal",
+        "start",
+        "example"
+      ]
+    },
+    {
+      "id": "8c588b4cf3c711efb8fd000014c2afa2",
+      "name": "Fetch Papers",
+      "description": "This workflow automatically fetches and downloads research papers from the Awesome Transformers GitHub repository. It extracts paper links from the README.md file, filters for actual papers, and downloads them to a specified folder. Ideal for researchers and AI enthusiasts who want to stay updated with the latest transformer model papers.",
+      "tags": [
+        "automation"
+      ]
+    },
+    {
+      "id": "flashcard_generator",
+      "name": "Flashcard Generator",
+      "description": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+      "tags": [
+        "education",
+        "database",
+        "ai",
+        "flashcards",
+        "learning"
+      ]
+    },
+    {
+      "id": "add_subtitles_to_video",
+      "name": "Add Subtitles To Video",
+      "description": "This workflow automatically transcribes speech in videos and adds subtitles. It extracts audio from the input video, uses OpenAI's Whisper model to generate word-level timestamps and transcriptions, and then renders the subtitles back onto the original video. Perfect for creating accessible content, adding captions to social media videos, or transcribing presentations.",
+      "tags": [
+        "start",
+        "video",
+        "huggingface"
+      ]
+    },
+    {
+      "id": "search-google-jobs",
+      "name": "Search - Google Jobs",
+      "description": "Claude Agent uses Google Jobs as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "jobs",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "search-duckduckgo",
+      "name": "Search - DuckDuckGo",
+      "description": "Claude Agent uses DuckDuckGo Search as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "duckduckgo",
+        "web",
+        "privacy",
+        "agent"
+      ]
+    },
+    {
+      "id": "06d8221c907e11f0a4240000006ab9b5",
+      "name": "Realtime Agent",
+      "description": "",
+      "tags": [
+        "openai",
+        "agent"
+      ]
+    },
+    {
+      "id": "image_enhance",
+      "name": "Image Enhance",
+      "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+      "tags": [
+        "image",
+        "start",
+        "example"
+      ]
+    },
+    {
+      "id": "search-google-lens",
+      "name": "Search - Google Lens",
+      "description": "Claude Agent uses Google Lens as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "lens",
+        "visual",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "search-google-news",
+      "name": "Search - Google News",
+      "description": "Claude Agent uses Google News as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "news",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "search-youtube",
+      "name": "Search - YouTube",
+      "description": "Claude Agent uses YouTube Search as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "youtube",
+        "video",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Reddit Scraper",
+      "description": "Analyze a subreddit for specific issues.",
+      "tags": [
+        "reddit",
+        "research",
+        "analysis",
+        "example"
+      ]
+    },
+    {
+      "id": "bcbefdbea78311f09c5e000014a97b82",
+      "name": "Summarize RSS",
+      "description": "",
+      "tags": []
+    },
+    {
+      "id": "movie-posters",
+      "name": "Movie Posters",
+      "description": "Create cinematic movie posters using AI image generation",
+      "tags": [
+        "start",
+        "image",
+        "example"
+      ]
+    },
+    {
+      "id": "830163fea2fc11f0b02700001a475e0e",
+      "name": "Image To Audio Story",
+      "description": "Generate and narrate creative stories from images using AI",
+      "tags": [
+        "start",
+        "multimodal"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Game Encounter Planner Agent",
+      "description": "Coordinate a squad of AI agents to design, critique, and brief a Frostfang Tundra combat encounter using StructuredOutputGenerator for robust schema enforcement.",
+      "tags": [
+        "agent",
+        "data",
+        "rag",
+        "example"
+      ]
+    },
+    {
+      "id": "search-amazon-product-detail",
+      "name": "Search - Amazon Product Detail",
+      "description": "Claude Agent uses Amazon Product Detail as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "amazon",
+        "product",
+        "detail",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "search-google-maps",
+      "name": "Search - Google Maps",
+      "description": "Claude Agent uses Google Maps as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "maps",
+        "local",
+        "serp",
+        "agent"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Album Cover Creator",
+      "description": "Create an album cover for a given song.",
+      "tags": [
+        "album-cover",
+        "art",
+        "design",
+        "example"
+      ]
+    },
+    {
+      "id": "research_paper_summarizer",
+      "name": "Research Paper Summarizer",
+      "description": "Extract and summarize key findings from research papers and technical documents.",
+      "tags": [
+        "research"
+      ]
+    },
+    {
+      "id": "youtube_thumbnail_pipeline_001",
+      "name": "YouTube Thumbnail Pipeline",
+      "description": "Generate multiple eye-catching YouTube thumbnail variations from video scripts. Creates bold text overlays, dramatic styling, and batch processes variations for A/B testing.",
+      "tags": [
+        "image",
+        "youtube",
+        "content creation",
+        "thumbnails"
+      ]
+    },
+    {
+      "id": "youtube-research-claude-agent",
+      "name": "YouTube Research with Claude Agent",
+      "description": "Search YouTube using SerpAPI and analyze results with Claude Agent for deep research insights.",
+      "tags": [
+        "youtube",
+        "research",
+        "serpapi",
+        "claude",
+        "agent",
+        "search",
+        "analysis"
+      ]
+    },
+    {
+      "id": "af5a2636a78211f09af400006952c72c",
+      "name": "Chat with Docs",
+      "description": "An intelligent document retrieval and question-answering system that leverages vector search and local LLMs to provide accurate, context-aware responses based on your document collection.",
+      "tags": [
+        "chat",
+        "rag"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Image to Video Animation",
+      "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+      "tags": [
+        "image",
+        "video",
+        "example"
+      ]
+    },
+    {
+      "id": "claude-agent-node-tools",
+      "name": "Claude Agent with Node Tools",
+      "description": "Claude Agent using control edges to call search nodes as tools. The agent decides when and how to search.",
+      "tags": [
+        "claude",
+        "agent",
+        "tools",
+        "control",
+        "search",
+        "research"
+      ]
+    },
+    {
+      "id": "",
+      "name": "AI Product Launch Video Generator",
+      "description": "Create a realistic 16:9 marketing video for a new product launch using the TextToVideo node.",
+      "tags": [
+        "business",
+        "data",
+        "video",
+        "example"
+      ]
+    },
+    {
+      "id": "search-yelp",
+      "name": "Search - Yelp",
+      "description": "Claude Agent uses Yelp Search as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "yelp",
+        "local",
+        "business",
+        "agent"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Product Description Generator",
+      "description": "Automatically generate marketing copy and product descriptions from product data.",
+      "tags": [
+        "business",
+        "data",
+        "research",
+        "example"
+      ]
+    },
+    {
+      "id": "search-google-web",
+      "name": "Search - Google Web",
+      "description": "Claude Agent uses Google Search as a tool via control edges. The agent decides what to search and analyzes results.",
+      "tags": [
+        "search",
+        "google",
+        "web",
+        "serp",
+        "agent"
+      ]
+    }
+  ]
+}

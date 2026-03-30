@@ -1,0 +1,447 @@
+{
+  "id": "youtube_thumbnail_pipeline_001",
+  "access": "public",
+  "created_at": "2026-01-09T00:00:00Z",
+  "updated_at": "2026-01-09T00:00:00Z",
+  "name": "YouTube Thumbnail Pipeline",
+  "tool_name": null,
+  "description": "Generate multiple eye-catching YouTube thumbnail variations from video scripts. Creates bold text overlays, dramatic styling, and batch processes variations for A/B testing.",
+  "tags": [
+    "image",
+    "youtube",
+    "content creation",
+    "thumbnails"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "video_title",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "10 AI Tools That Will Change How You Work in 2024",
+          "name": "video_title"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 100,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "video_topic",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "A tech review video covering productivity AI tools including ChatGPT, Claude, and automation tools.",
+          "name": "video_topic"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 180,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "thumbnail_text",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "AI TOOLS 2024",
+          "name": "thumbnail_text"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 260,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "num_variations",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "value": 6,
+          "name": "num_variations",
+          "min": 1,
+          "max": 20
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 340,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "concept_generator",
+        "type": "nodetool.text.FormatText",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 720,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "count": "",
+          "title": "",
+          "topic": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "thumbnail_prompts",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 2048
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1100,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "prompt_iterator",
+        "type": "nodetool.control.ForEach",
+        "data": {
+          "input_list": []
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1480,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "base_thumbnail",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "width": 1280,
+          "height": 720,
+          "guidance_scale": 8.0,
+          "num_inference_steps": 35,
+          "seed": -1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1860,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "enhanced",
+        "type": "nodetool.lib.pillow.enhance.Contrast",
+        "data": {
+          "factor": 1.2
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2240,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "brightened",
+        "type": "nodetool.lib.pillow.enhance.Brightness",
+        "data": {
+          "factor": 1.1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2620,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "with_main_text",
+        "type": "nodetool.lib.pillow.draw.RenderText",
+        "data": {
+          "x": 50,
+          "y": 100,
+          "size": 96,
+          "color": {
+            "type": "color",
+            "value": "#FFFF00"
+          },
+          "font": {
+            "type": "font",
+            "name": "DejaVuSans-Bold"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3000,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "final_thumbnail",
+        "type": "nodetool.lib.pillow.draw.RenderText",
+        "data": {
+          "x": 50,
+          "y": 620,
+          "size": 48,
+          "color": {
+            "type": "color",
+            "value": "#FFFFFF"
+          },
+          "font": {
+            "type": "font",
+            "name": "DejaVuSans"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3380,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "collected_thumbnails",
+        "type": "nodetool.control.Collect",
+        "data": {
+          "input_item": []
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3760,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "thumbnail_variations",
+          "description": "Collection of YouTube thumbnail variations for A/B testing"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 4140,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "num_variations",
+        "sourceHandle": "output",
+        "target": "concept_generator",
+        "targetHandle": "count"
+      },
+      {
+        "id": "e2",
+        "source": "video_title",
+        "sourceHandle": "output",
+        "target": "concept_generator",
+        "targetHandle": "title"
+      },
+      {
+        "id": "e3",
+        "source": "video_topic",
+        "sourceHandle": "output",
+        "target": "concept_generator",
+        "targetHandle": "topic"
+      },
+      {
+        "id": "e4",
+        "source": "concept_generator",
+        "sourceHandle": "output",
+        "target": "thumbnail_prompts",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e5",
+        "source": "thumbnail_prompts",
+        "sourceHandle": "item",
+        "target": "prompt_iterator",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "e6",
+        "source": "prompt_iterator",
+        "sourceHandle": "output",
+        "target": "base_thumbnail",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e7",
+        "source": "base_thumbnail",
+        "sourceHandle": "output",
+        "target": "enhanced",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e8",
+        "source": "enhanced",
+        "sourceHandle": "output",
+        "target": "brightened",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e9",
+        "source": "brightened",
+        "sourceHandle": "output",
+        "target": "with_main_text",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e10",
+        "source": "thumbnail_text",
+        "sourceHandle": "output",
+        "target": "with_main_text",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e11",
+        "source": "with_main_text",
+        "sourceHandle": "output",
+        "target": "final_thumbnail",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e12",
+        "source": "final_thumbnail",
+        "sourceHandle": "output",
+        "target": "collected_thumbnails",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e13",
+        "source": "collected_thumbnails",
+        "sourceHandle": "output",
+        "target": "output",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": [
+    "openai",
+    "huggingface-falai"
+  ],
+  "required_models": [
+    "gpt-4o-mini",
+    "fal-ai/flux/schnell"
+  ]
+}

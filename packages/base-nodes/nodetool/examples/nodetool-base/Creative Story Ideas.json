@@ -1,0 +1,918 @@
+{
+  "id": "creative-story-ideas",
+  "access": "private",
+  "created_at": "2026-02-16T11:36:59.473935",
+  "updated_at": "2026-02-16T11:37:13.925608",
+  "name": "Creative Story Ideas",
+  "tool_name": null,
+  "description": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.",
+  "tags": [
+    "start",
+    "beginner",
+    "tutorial",
+    "template",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "edge_genre_to_format",
+        "source": "input_genre",
+        "sourceHandle": "output",
+        "target": "format_prompt",
+        "targetHandle": "GENRE",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge_character_to_format",
+        "source": "input_character",
+        "sourceHandle": "output",
+        "target": "format_prompt",
+        "targetHandle": "CHARACTER",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge_setting_to_format",
+        "source": "input_setting",
+        "sourceHandle": "output",
+        "target": "format_prompt",
+        "targetHandle": "SETTING",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge_template_to_format",
+        "source": "template_constant",
+        "sourceHandle": "output",
+        "target": "format_prompt",
+        "targetHandle": "template",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge_format_to_preview",
+        "source": "format_prompt",
+        "sourceHandle": "output",
+        "target": "preview_prompt",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge_format_to_generator",
+        "source": "format_prompt",
+        "sourceHandle": "output",
+        "target": "list_generator",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge_generator_to_preview",
+        "source": "list_generator",
+        "sourceHandle": "item",
+        "target": "preview_stories",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment_tutorial",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "🎓Creative Story Ideas Generator",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h1"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "This workflow demonstrates the core concepts of NodeTool:",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "📥 INPUTS (Green nodes on left)",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Three StringInput nodes let you customize the story",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Try changing Genre, Character, or Setting values",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "📝 TEMPLATE FORMATTING",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• The constant template defines the prompt structure",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• FormatText node combines inputs with {{PLACEHOLDERS}}",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Dynamic properties map inputs to template variables",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "🤖 AI GENERATION",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• ListGenerator streams multiple story ideas",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Each idea appears one at a time (iteration/streaming)",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Downstream nodes process each item automatically",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "👁️ OUTPUT & PREVIEW",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Preview nodes display intermediate and final results",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Top preview shows the formatted prompt",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Bottom preview shows all generated story ideas",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "🎯 KEY LEARNING POINTS:",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Data flows left-to-right through connected nodes",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Edges connect outputs (right) to inputs (left)",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 2
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Templates use {{VARIABLES}} for dynamic content",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 3
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Streaming nodes emit multiple values over time",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 4
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Preview nodes help debug and visualize data",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 5
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "list",
+                  "version": 1,
+                  "listType": "number",
+                  "start": 1,
+                  "tag": "ol"
+                },
+                {
+                  "children": [],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "💡 TRY THIS:",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Click the input nodes and change their values",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Run the workflow and watch results appear",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Modify the template to add more instructions",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "type": "linebreak",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "• Try connecting nodes in different ways",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1
+            }
+          },
+          "comment_lexical": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "🎓 Beginner Template: Creative Story Ideas Generator\n\nThis workflow demonstrates the core concepts of NodeTool:\n\n📥 INPUTS (Green nodes on left)\n• Three StringInput nodes let you customize the story\n• Try changing Genre, Character, or Setting values\n\n📝 TEMPLATE FORMATTING\n• The constant template defines the prompt structure\n• FormatText node combines inputs with {{PLACEHOLDERS}}\n• Dynamic properties map inputs to template variables\n\n🤖 AI GENERATION\n• ListGenerator streams multiple story ideas\n• Each idea appears one at a time (iteration/streaming)\n• Downstream nodes process each item automatically\n\n👁️ OUTPUT & PREVIEW\n• Preview nodes display intermediate and final results\n• Top preview shows the formatted prompt\n• Bottom preview shows all generated story ideas\n\n🎯 KEY LEARNING POINTS:\n1. Data flows left-to-right through connected nodes\n2. Edges connect outputs (right) to inputs (left)\n3. Templates use {{VARIABLES}} for dynamic content\n4. Streaming nodes emit multiple values over time\n5. Preview nodes help debug and visualize data\n\n💡 TRY THIS:\n• Click the input nodes and change their values\n• Run the workflow and watch results appear\n• Modify the template to add more instructions\n• Try connecting nodes in different ways",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1
+            }
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": -550,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 507,
+          "height": 964,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "input_genre",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Genre",
+          "description": "The genre of your story (e.g., Fantasy, Sci-Fi, Mystery, Romance)",
+          "value": "Fantasy"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 200,
+            "y": 385
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "input_character",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Character Type",
+          "description": "The type of main character (e.g., Wizard, Detective, Astronaut, Chef)",
+          "value": "Reluctant Hero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 630
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "input_setting",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Setting",
+          "description": "Where the story takes place (e.g., Ancient Castle, Space Station, Small Town)",
+          "value": "Floating Sky Islands"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 875
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "template_constant",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "Generate 5 creative story ideas with the following criteria:\n\nGenre: {{GENRE}}\nMain Character: {{CHARACTER}}\nSetting: {{SETTING}}\n\nFor each story idea, provide:\n1. A catchy title\n2. A two-sentence premise\n3. One unique twist or hook\n\nMake each idea distinct and engaging!"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "format_prompt",
+        "type": "nodetool.text.FormatText",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 710,
+            "y": 397
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "GENRE": "",
+          "CHARACTER": "",
+          "SETTING": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "preview_prompt",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "Formatted Prompt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1050,
+            "y": 343
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 250,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "list_generator",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 2048
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1125,
+            "y": 643
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "preview_stories",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "Generated Story Ideas"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1510,
+            "y": 531
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 580,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "Genre": {
+        "type": "string",
+        "default": "Fantasy",
+        "label": ""
+      },
+      "Character Type": {
+        "type": "string",
+        "default": "Reluctant Hero",
+        "label": ""
+      },
+      "Setting": {
+        "type": "string",
+        "default": "Floating Sky Islands",
+        "label": ""
+      }
+    },
+    "required": [
+      "Genre",
+      "Character Type",
+      "Setting"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "9d76b3ef58ae9c372741721958d3f5f2"
+}

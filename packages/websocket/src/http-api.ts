@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import nodePath from "node:path";
 import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
@@ -425,6 +426,32 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   return workflows;
 }
 
+function loadExampleGraph(
+  packageName: string,
+  exampleName: string,
+  options: HttpApiOptions,
+): Record<string, unknown> | null {
+  const loaded = loadPythonPackageMetadata({
+    roots: options.metadataRoots,
+    maxDepth: options.metadataMaxDepth,
+  });
+  const pkg = loaded.packages.find((p) => p.name === packageName);
+  if (!pkg?.sourceFolder) return null;
+  const examplePath = nodePath.join(
+    pkg.sourceFolder,
+    "nodetool",
+    "examples",
+    packageName,
+    `${exampleName}.json`,
+  );
+  try {
+    const raw = readFileSync(examplePath, "utf8");
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 export async function handleWorkflowExamples(request: Request, options: HttpApiOptions): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
@@ -707,6 +734,14 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
     const body = await parseJsonBody<WorkflowRequestBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
+      const fromPkg = url.searchParams.get("from_example_package") ?? undefined;
+      const fromName = url.searchParams.get("from_example_name") ?? undefined;
+      if (fromPkg && fromName && (!body.graph || body.graph.nodes?.length === 0)) {
+        const example = loadExampleGraph(fromPkg, fromName, options);
+        if (example?.graph) {
+          body.graph = example.graph as WorkflowRequestBody["graph"];
+        }
+      }
       const workflow = await createWorkflow(body, userId);
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {

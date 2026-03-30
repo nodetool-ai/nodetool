@@ -1,0 +1,199 @@
+{
+  "id": "pokemon-maker",
+  "access": "private",
+  "created_at": "2026-01-18T08:52:36.769859",
+  "updated_at": "2026-01-18T08:57:04.462867",
+  "name": "Pokemon Maker",
+  "tool_name": null,
+  "description": "",
+  "tags": [
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "577c1b9c-4a32-4a45-a69d-f9cf07e789aa",
+        "source": "464a17c1-c916-4b24-8e23-856160732293",
+        "sourceHandle": "output",
+        "target": "7613de08-0407-42aa-8dc8-3b7777e9529d",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "5faf6242-3f30-4842-a6a3-a4f579c1a30f",
+        "source": "2f773f4f-c863-4215-bb89-e8cc09e95472",
+        "sourceHandle": "output",
+        "target": "464a17c1-c916-4b24-8e23-856160732293",
+        "targetHandle": "animals",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "6f81b658-fda6-432f-881b-1c54ab8b0b20",
+        "source": "7613de08-0407-42aa-8dc8-3b7777e9529d",
+        "sourceHandle": "item",
+        "target": "b55c474e-e397-44a3-adc7-94bcf61eee35",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "6e0938c9-bdd3-49e6-9aa4-a59a8681281b",
+        "source": "b55c474e-e397-44a3-adc7-94bcf61eee35",
+        "sourceHandle": "output",
+        "target": "78679cbb-a824-442c-8833-7c19255199bc",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "464a17c1-c916-4b24-8e23-856160732293",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Create a 3 compelling Pokémons. \n\nDefine its primary types, signature ability, and a few key moves. How do these elements make it unique and balanced within the Pokémon world?\n\nDescribe its physical appearance, patterns, colors, and any special features. How does its design reflect its typing, abilities, and the animals it’s inspired by?\n\nTake inspiration from these animals: {{animals}}"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 521,
+            "y": 119
+          },
+          "zIndex": 0,
+          "width": 351,
+          "title": "Pokemon Generation Prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "animals": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "animals",
+          "description": "What real animals should it look like? ",
+          "value": "lion, eagle, dragon, bear"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 291,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 200,
+          "title": "Animal Inspiration Input",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7613de08-0407-42aa-8dc8-3b7777e9529d",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "input_text": "",
+          "max_tokens": 4096
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 902,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 291,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "78679cbb-a824-442c-8833-7c19255199bc",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1533,
+            "y": 64
+          },
+          "zIndex": 0,
+          "width": 466,
+          "height": 395,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "b55c474e-e397-44a3-adc7-94bcf61eee35",
+        "type": "kie.image.NanoBanana",
+        "data": {
+          "image_size": "1:1"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1223,
+            "y": 149
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "animals": {
+        "type": "string",
+        "default": "lion, eagle, dragon, bear",
+        "label": ""
+      }
+    },
+    "required": [
+      "animals"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-huggingface",
+  "path": null,
+  "run_mode": null,
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null
+}

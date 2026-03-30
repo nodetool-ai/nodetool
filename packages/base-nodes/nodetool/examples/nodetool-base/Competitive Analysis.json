@@ -1,0 +1,324 @@
+{
+  "id": "competitive_analysis",
+  "access": "public",
+  "created_at": "2025-11-22T16:54:18.095690",
+  "updated_at": "2025-11-22T16:54:18.095690",
+  "name": "Competitive Analysis",
+  "tool_name": null,
+  "description": "Analyze competitor offerings and market positioning for strategic planning. Fetches competitor information from Google search results.",
+  "tags": [
+    "business",
+    "data"
+  ],
+  "thumbnail": "Competitive Analysis.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "competitive_analysis",
+          "value": "",
+          "description": ""
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "# Competitive Analysis Report\n\n## Company Being Analyzed:\n{{ company }}\n\n## Market Overview:\n- Target Market: Remote teams and AI-forward companies\n- Market Size: Growing (project management market ~$4B)\n- Entry Stage: Early-stage with unique AI positioning\n\n## Competitive SWOT Analysis:\n{{ swot }}\n\n## Strategic Positioning:\n{{ positioning }}\n\n## Market Positioning Matrix:\n**Feature Richness vs. Ease of Use**\n\n```\n           Easy\n            |\n            | Asana\n            |---Monday.com\nComprehensive|  TaskFlow\n            | Jira\n            |_____ Hard\n          Simple      Complex\n```\n\n## Recommendations:\n1. **Differentiation:** Focus on AI-powered features competitors lack\n2. **Pricing:** Maintain competitive pricing with value-add AI features\n3. **Go-to-Market:** Target startups and remote teams (underserved by Asana)\n4. **Features:** Develop automation and AI capabilities as core differentiator\n5. **Positioning:** \"AI-first project management, designed for modern teams\"\n\n## Action Items:\n- Develop 2-3 killer AI features\n- Create customer success stories\n- Build content marketing around AI productivity\n- Consider strategic partnerships\n- Plan product roadmap to address market gaps\n\n## Timeline:\n- Q1: Strengthen AI features\n- Q2: Launch marketing campaign\n- Q3: Enterprise sales push\n- Q4: Year-end performance review\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "company": null,
+          "swot": null,
+          "positioning": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "company",
+          "value": "\nCompany: TaskFlow AI\nProduct: AI-powered project management tool\nTarget Market: Remote teams and startups\nPrice Point: $29/month per user\nKey Features:\n- AI task prioritization\n- Automated report generation\n- Integration with 20+ tools\n- Real-time collaboration\n- Advanced analytics\nFounding: 2023\nTeam Size: 15 people\n",
+          "description": "Your company/product information"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a business strategist specializing in competitive analysis.",
+          "prompt": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 1200
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Perform a SWOT analysis comparing this company to its competitors:\n\nYour Company:\n{{ company }}\n\nCompetitors (from Google Search):\n{{ competitors }}\n\nAnalyze:\n1. Strengths (vs competitors)\n2. Weaknesses (vs competitors)\n3. Opportunities in the market\n4. Threats from competition"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "company": null,
+          "competitors": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Competitor Information from Search Results:\n\n## Asana\n{{ asana_info }}\n\n## Monday.com\n{{ monday_info }}\n\n## Jira\n{{ jira_info }}"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "asana_info": null,
+          "monday_info": null,
+          "jira_info": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "search.google.GoogleSearch",
+        "data": {
+          "keyword": "Asana project management pricing features",
+          "num_results": 5
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "search.google.GoogleSearch",
+        "data": {
+          "keyword": "Monday.com project management pricing features",
+          "num_results": 5
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "search.google.GoogleSearch",
+        "data": {
+          "keyword": "Jira project management pricing features",
+          "num_results": 5
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a go-to-market strategist.",
+          "prompt": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 1000
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Based on this company profile and competitive landscape, provide:\n1. Current market positioning\n2. Recommended differentiation strategy\n3. Target niche or segment\n4. Pricing strategy recommendation\n5. Go-to-market recommendations\n\nCompany:\n{{ company }}\n\nCompetitors (from Google Search):\n{{ competitors }}"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "company": null,
+          "competitors": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "company",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "company",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "asana_info",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "monday_info",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "jira_info",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "competitors",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "4",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "swot",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "company",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "competitors",
+        "ui_properties": null
+      },
+      {
+        "id": "11",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "12",
+        "source": "10",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "positioning",
+        "ui_properties": null
+      },
+      {
+        "id": "13",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

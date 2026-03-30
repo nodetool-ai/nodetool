@@ -1,0 +1,773 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-01-10T00:31:57.548196",
+  "updated_at": "2026-01-10T00:32:04.924396",
+  "name": "Album Cover Creator",
+  "tool_name": null,
+  "description": "Create an album cover for a given song.",
+  "tags": [
+    "album-cover",
+    "art",
+    "design",
+    "example"
+  ],
+  "thumbnail": "Album Cover Creator.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "text"
+      },
+      {
+        "id": "2",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "text"
+      },
+      {
+        "id": "3",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "count"
+      },
+      {
+        "id": "4",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "genre"
+      },
+      {
+        "id": "5",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "15",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "6",
+        "source": "15",
+        "sourceHandle": "text",
+        "target": "13",
+        "targetHandle": "lyrics"
+      },
+      {
+        "id": "7",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "artist"
+      },
+      {
+        "id": "8",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "title"
+      },
+      {
+        "id": "9",
+        "source": "17",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "style"
+      },
+      {
+        "id": "10",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "11",
+        "source": "12",
+        "sourceHandle": "text",
+        "target": "10",
+        "targetHandle": "analysis"
+      },
+      {
+        "id": "12",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "artist"
+      },
+      {
+        "id": "13",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "title"
+      },
+      {
+        "id": "14",
+        "source": "17",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "style"
+      },
+      {
+        "id": "15",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "16",
+        "source": "9",
+        "sourceHandle": "item",
+        "target": "8",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "17",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "image"
+      },
+      {
+        "id": "18",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "image"
+      },
+      {
+        "id": "19",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "image"
+      },
+      {
+        "id": "20",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "21",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      },
+      {
+        "id": "22",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "19",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "23",
+        "source": "19",
+        "sourceHandle": "output",
+        "target": "18",
+        "targetHandle": "value"
+      },
+      {
+        "id": "24",
+        "source": "12",
+        "sourceHandle": "text",
+        "target": "20",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "album_covers",
+          "description": "Album covers with artist/title text"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3600,
+            "y": 1055
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3290,
+            "y": 1064
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "lib.pillow.draw.RenderText",
+        "data": {
+          "font": {
+            "type": "font",
+            "name": "DejaVuSans",
+            "source": "system",
+            "url": "",
+            "weight": "regular"
+          },
+          "x": 70,
+          "y": 100,
+          "size": 48,
+          "color": {
+            "type": "color",
+            "value": "#FFFFFF"
+          },
+          "align": "left"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2980,
+            "y": 1025
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "album_title",
+          "value": "Electric Horizons",
+          "description": "Album or single title"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 310,
+            "y": 1061
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "lib.pillow.draw.RenderText",
+        "data": {
+          "font": {
+            "type": "font",
+            "name": "DejaVuSans-Bold",
+            "source": "system",
+            "url": "",
+            "weight": "regular"
+          },
+          "x": 70,
+          "y": 70,
+          "size": 56,
+          "color": {
+            "type": "color",
+            "value": "#FFFFFF"
+          },
+          "align": "left"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2640,
+            "y": 916
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "artist_name",
+          "value": "Neon Dreams",
+          "description": "Artist or band name"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 310,
+            "y": 818
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "type": "lib.pillow.enhance.Contrast",
+        "data": {
+          "factor": 1.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2300,
+            "y": 724
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "negative_prompt": "",
+          "width": 1400,
+          "height": 1400,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 35,
+          "seed": -1,
+          "safety_check": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1990,
+            "y": 709
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "input_text": "",
+          "max_tokens": 2048
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1680,
+            "y": 709
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "10",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nBased on this music analysis, generate {{ count }} unique album cover prompts.\n\nMusic Analysis: {{ analysis }}\nArtist: {{ artist }}\nAlbum: {{ title }}\nStyle: {{ style }}\n\nEach prompt should:\n- Create a complete album cover composition (no text)\n- Be visually striking and memorable\n- Reflect the music's mood and energy\n- Work as a square 1:1 ratio image\n- Use suggested colors and visual themes\n- Leave appropriate space for artist/album text overlay\n\nOutput format: One detailed prompt per line, no numbering.\nMake each variation distinct but thematically cohesive.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1370,
+            "y": 572
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "count": null,
+          "analysis": null,
+          "artist": null,
+          "title": null,
+          "style": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "11",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "num_variations",
+          "value": 4,
+          "description": "Number of cover variations",
+          "min": 2,
+          "max": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 712
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "12",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a creative director specializing in album artwork. Analyze music and suggest compelling visual concepts.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "13",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nAnalyze this music for album cover design purposes.\n\nGenre: {{ genre }}\nLyrics/Vocals (if any): {{ lyrics }}\nArtist: {{ artist }}\nTitle: {{ title }}\nPreferred Style: {{ style }}\n\nProvide a detailed analysis including:\n1. Overall mood and emotion (energetic, melancholic, euphoric, dark, uplifting)\n2. Energy level (calm, moderate, intense, explosive)\n3. Visual themes that match the sound\n4. Color palette that represents the music\n5. Imagery suggestions (abstract, figurative, symbolic)\n6. Texture and pattern ideas\n7. Key visual metaphors for the music's feeling\n\nBe creative and specific for album cover design.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 369
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "genre": null,
+          "lyrics": null,
+          "artist": null,
+          "title": null,
+          "style": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "14",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "genre_hint",
+          "value": "Electronic / Synthwave",
+          "description": "Music genre for context"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 310,
+            "y": 243
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "15",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 310,
+            "y": 486
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "16",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "audio_track",
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The music track to create a cover for"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 471
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "17",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "cover_style",
+          "value": "abstract, geometric, neon colors, retrofuturistic",
+          "description": "Preferred visual style"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 310,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "18",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "base_artwork",
+          "description": "Base artwork without text (for custom typography)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2980,
+            "y": 664
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "19",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2640,
+            "y": 673
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "20",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "music_analysis",
+          "description": "Music analysis and visual concept brief"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1370,
+            "y": 310
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "album_title": {
+        "type": "string",
+        "default": "Electric Horizons",
+        "label": ""
+      },
+      "artist_name": {
+        "type": "string",
+        "default": "Neon Dreams",
+        "label": ""
+      },
+      "num_variations": {
+        "type": "integer",
+        "minimum": 2,
+        "maximum": 8,
+        "default": 4,
+        "label": ""
+      },
+      "genre_hint": {
+        "type": "string",
+        "default": "Electronic / Synthwave",
+        "label": ""
+      },
+      "audio_track": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "audio"
+            ]
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      },
+      "cover_style": {
+        "type": "string",
+        "default": "abstract, geometric, neon colors, retrofuturistic",
+        "label": ""
+      }
+    },
+    "required": [
+      "album_title",
+      "artist_name",
+      "num_variations",
+      "genre_hint",
+      "audio_track",
+      "cover_style"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "album_covers": {
+        "type": "any",
+        "label": ""
+      },
+      "base_artwork": {
+        "type": "any",
+        "label": ""
+      },
+      "music_analysis": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "album_covers",
+      "base_artwork",
+      "music_analysis"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

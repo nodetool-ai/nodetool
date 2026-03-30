@@ -1,0 +1,473 @@
+{
+  "id": "fac89302-e7ea-4415-b0a5-da2205da59d7",
+  "access": "public",
+  "created_at": "2026-01-09T22:48:14.854202",
+  "updated_at": "2026-01-09T22:48:14.854202",
+  "name": "Concept Art Iteration Board",
+  "tool_name": null,
+  "description": "Create a comprehensive learning path for a topic.",
+  "tags": [
+    "concept-art",
+    "planning"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mood_board",
+          "value": null,
+          "description": "Combined mood board grid of all concept variations"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "lib.grid.CombineImageGrid",
+        "data": {
+          "tiles": [],
+          "columns": 3
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.control.Collect",
+        "data": {
+          "input_item": []
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "prompt": "A cat holding a sign that says hello world",
+          "negative_prompt": "",
+          "width": 1024,
+          "height": 1024,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 30,
+          "seed": -1,
+          "safety_check": true
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "prompt": "",
+          "input_text": "",
+          "max_tokens": 2048
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nBased on this art direction, generate {{ count }} unique concept art prompts.\n\nArt Direction: {{ direction }}\nBase Style: {{ style }}\n\nEach prompt should:\n- Explore a different interpretation or angle\n- Maintain the core concept but vary composition/pose/mood\n- Be detailed enough for high-quality image generation\n- Include specific lighting and atmosphere descriptions\n\nOutput format: One prompt per line, no numbering or bullets.\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "count": null,
+          "direction": null,
+          "style": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "num_variations",
+          "value": 6,
+          "description": "Number of concept variations (4, 6, 9 for good grids)",
+          "min": 2,
+          "max": 12
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are an experienced concept art director. Provide detailed, inspiring art direction.",
+          "prompt": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 1024
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nYou are a creative director for concept art.\n\nCreative Brief: {{ brief }}\nArt Style: {{ style }}\nMood: {{ mood }}\n\nExpand this brief into detailed art direction including:\n1. Visual composition suggestions\n2. Color palette recommendations\n3. Key design elements to explore\n4. Silhouette and shape language ideas\n5. Reference inspirations (describe, don't link)\n\nBe specific and actionable for a concept artist.\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "brief": null,
+          "style": null,
+          "mood": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "creative_brief",
+          "value": "A mystical forest guardian - ancient tree spirit protecting enchanted woods. Fantasy RPG character design.",
+          "description": "The creative brief describing the concept"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "art_style",
+          "value": "Digital painting, concept art style, painterly, dramatic lighting, rich colors",
+          "description": "Desired art style and medium"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "mood_keywords",
+          "value": "mysterious, ancient, powerful, serene, magical",
+          "description": "Key mood/atmosphere words"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "concept_variations",
+          "value": null,
+          "description": "Individual concept images for further editing"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "14",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "art_direction",
+          "value": null,
+          "description": "Expanded art direction document"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "15",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "iteration_feedback",
+          "value": null,
+          "description": "Creative feedback and suggestions for next iteration"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a senior concept art director providing feedback for iteration.",
+          "prompt": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 1024
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nReview these concept art explorations as a creative director.\n\nOriginal Brief: {{ brief }}\nArt Direction Used: {{ direction }}\nNumber of Variations: {{ count }}\n\nProvide constructive feedback including:\n1. Which directions show the most promise and why\n2. Elements that work well across variations\n3. Areas that could be pushed further\n4. Specific suggestions for the next iteration round\n5. Color and composition notes\n\nBe specific and actionable for guiding the next iteration.\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "brief": null,
+          "direction": null,
+          "count": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "count",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "brief",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "style",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "mood",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "6",
+        "targetHandle": "direction",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "style",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "5",
+        "sourceHandle": "item",
+        "target": "4",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "input_item",
+        "ui_properties": null
+      },
+      {
+        "id": "11",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "tiles",
+        "ui_properties": null
+      },
+      {
+        "id": "12",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "13",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "14",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "14",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "15",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "17",
+        "targetHandle": "brief",
+        "ui_properties": null
+      },
+      {
+        "id": "16",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "17",
+        "targetHandle": "direction",
+        "ui_properties": null
+      },
+      {
+        "id": "17",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "17",
+        "targetHandle": "count",
+        "ui_properties": null
+      },
+      {
+        "id": "18",
+        "source": "17",
+        "sourceHandle": "output",
+        "target": "16",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "19",
+        "source": "16",
+        "sourceHandle": "text",
+        "target": "15",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

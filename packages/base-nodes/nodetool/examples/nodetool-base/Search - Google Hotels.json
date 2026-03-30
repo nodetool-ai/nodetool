@@ -1,0 +1,138 @@
+{
+  "id": "search-google-hotels",
+  "access": "public",
+  "created_at": "2026-03-08T12:00:00.000000",
+  "updated_at": "2026-03-08T12:00:00.000000",
+  "name": "Search - Google Hotels",
+  "tool_name": null,
+  "description": "Claude Agent uses Google Hotels to search for accommodations, compare prices and ratings, and recommend the best options for a trip.",
+  "tags": [
+    "search",
+    "hotels",
+    "travel",
+    "accommodation",
+    "booking",
+    "agent"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e-control-hotels",
+        "source": "claude-agent",
+        "sourceHandle": "__control__",
+        "target": "hotels",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": {}
+      },
+      {
+        "id": "e-agent-to-save",
+        "source": "claude-agent",
+        "sourceHandle": "text",
+        "target": "save-analysis",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "claude-agent",
+        "type": "anthropic.agents.ClaudeAgent",
+        "data": {
+          "prompt": "Find hotels in Paris for a stay from 2026-06-15 to 2026-06-20 for 2 adults. I'd like 4-star or above, under $250/night. Compare the top options by location, amenities, and value. Write a recommendation.",
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          },
+          "system_prompt": "You are a travel planning assistant specializing in accommodations. Use Google Hotels to search and compare options. Consider rating, price, location, and reviews. Provide structured recommendations with pros and cons.",
+          "max_turns": 10,
+          "allowed_tools": [],
+          "permission_mode": "acceptEdits",
+          "use_claude_credentials": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 100,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 380,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "hotels",
+        "type": "search.google_extra.GoogleHotels",
+        "data": {
+          "query": "",
+          "check_in_date": "",
+          "check_out_date": "",
+          "adults": 2,
+          "children": 0,
+          "currency": "USD",
+          "sort_by": 0,
+          "min_price": 0,
+          "max_price": 0,
+          "hotel_class": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Google Hotels"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "save-analysis",
+        "type": "nodetool.dictionary.SaveJSON",
+        "data": {
+          "name": "hotel-recommendation-%Y%m%d-%H%M%S.json"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

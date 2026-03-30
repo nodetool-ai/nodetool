@@ -1,0 +1,204 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2025-12-21T13:33:59.006334",
+  "updated_at": "2025-12-21T13:35:35.096121",
+  "name": "Data Validation Pipeline",
+  "tool_name": null,
+  "description": "Validate and clean data for quality assurance before processing.",
+  "tags": [
+    "data",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "data"
+      },
+      {
+        "id": "2",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "3",
+        "source": "3",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "analysis"
+      },
+      {
+        "id": "4",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "validation_report",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1240,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "# Data Validation Report\n\n## Input Summary:\n- **Format:** CSV\n- **Source:** User provided\n\n## Quality Analysis:\n{{ analysis }}\n\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 930,
+            "y": 1076
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "analysis": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a data quality analyst. Identify validation issues in datasets.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 800
+        },
+        "ui_properties": {
+          "position": {
+            "x": 620,
+            "y": 942
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Analyze this CSV data and identify:\n1. Data quality issues\n2. Invalid records\n3. Missing values\n4. Type mismatches\n5. Recommendations for cleaning\n\nData:\n{{ data }}"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 310,
+            "y": 1076
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "data": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "data",
+          "value": "\nuser_id,email,age,country\n1,john@example.com,28,USA\n2,jane@invalid,35,UK\n3,bob@test.com,-5,Canada\n4,alice@gmail.com,42,USA\n5,,29,Germany\n6,charlie@yahoo.com,abc,USA\n",
+          "description": "Raw data for validation"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 0,
+            "y": 1104
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "string",
+        "default": "\nuser_id,email,age,country\n1,john@example.com,28,USA\n2,jane@invalid,35,UK\n3,bob@test.com,-5,Canada\n4,alice@gmail.com,42,USA\n5,,29,Germany\n6,charlie@yahoo.com,abc,USA\n",
+        "label": ""
+      }
+    },
+    "required": [
+      "data"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "validation_report": {
+        "type": "string",
+        "label": ""
+      }
+    },
+    "required": [
+      "validation_report"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

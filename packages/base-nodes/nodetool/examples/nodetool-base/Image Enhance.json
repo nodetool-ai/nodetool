@@ -1,0 +1,205 @@
+{
+  "id": "image_enhance",
+  "access": "private",
+  "created_at": "2026-02-16T11:38:28.263651",
+  "updated_at": "2026-02-16T11:43:18.126752",
+  "name": "Image Enhance",
+  "tool_name": null,
+  "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+  "tags": [
+    "image",
+    "start",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "b2247412-d88e-4c79-95aa-95ff9120575f",
+        "source": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
+        "sourceHandle": "output",
+        "target": "4c9c6b63-646a-4da9-8794-abd180c59041",
+        "targetHandle": "image"
+      },
+      {
+        "id": "82f3bfe6-17b1-4685-b4ef-bb84e4d6f1d1",
+        "source": "4c9c6b63-646a-4da9-8794-abd180c59041",
+        "sourceHandle": "output",
+        "target": "97877",
+        "targetHandle": "value"
+      },
+      {
+        "id": "94d6bbc3-1127-441c-8dfb-94a1b7e12e4b",
+        "source": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
+        "sourceHandle": "output",
+        "target": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "97876",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Image Enhance\n\nThe **Nodetool.Image.Enhance** namespace contains nodes for basic image enhancement.\n\n## Workflow:\n\n1. **Image Input** - Load the source image\n2. **Sharpen** - Apply sharpening filter to enhance edges and details\n3. **Auto Contrast** - Automatically adjust contrast for optimal visibility\n4. **Image Output** - Save the enhanced result\n\n## Advanced Options:\nCheck the **Replicate.Image.Process** and **Replicate.Image.Upscale** namespaces for more advanced image enhancement nodes."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 11,
+            "y": -310
+          },
+          "zIndex": 0,
+          "width": 734,
+          "height": 274,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "97877",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "enhanced",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 980,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
+        "type": "lib.pillow.enhance.Sharpen",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 360,
+            "y": 131
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4c9c6b63-646a-4da9-8794-abd180c59041",
+        "type": "lib.pillow.enhance.AutoContrast",
+        "data": {
+          "cutoff": 108
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 670,
+            "y": 113
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "value": {
+            "type": "image",
+            "asset_id": "31cadd9e065711f1818000006beef284",
+            "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+          },
+          "name": "image"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1,
+            "y": 71
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "image"
+            ]
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "image"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "enhanced": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "enhanced"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "beed9be1513b27ac2a666e8faa1e254d"
+}
