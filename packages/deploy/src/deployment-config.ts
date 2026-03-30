@@ -69,7 +69,7 @@ function expandUser(p: string): string {
  * because every field in the object schema already carries its own default.
  */
 function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   return schema.default({} as any);
 }
 
@@ -452,7 +452,7 @@ export const DefaultsConfigSchema = z.object({
   default_model: z.string().default(""),
   log_level: z.string().default("INFO"),
   auth_provider: z.string().default("local"),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   extra: z.record(z.string(), z.unknown()).default({} as any),
 });
 export type DefaultsConfig = z.infer<typeof DefaultsConfigSchema>;
@@ -473,7 +473,7 @@ export type AnyDeployment = z.infer<typeof AnyDeploymentSchema>;
 export const DeploymentConfigSchema = z.object({
   version: z.string().default("2.0"),
   defaults: withEmptyDefault(DefaultsConfigSchema),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   deployments: z.record(z.string(), AnyDeploymentSchema).default({} as any),
 });
 export type DeploymentConfig = z.infer<typeof DeploymentConfigSchema>;

@@ -235,7 +235,10 @@ describe("lib.markitdown.ConvertToMarkdown", () => {
 
 // ── lib.seaborn (ChartRenderer) ────────────────────────────────────
 
-describe("lib.seaborn.ChartRenderer", () => {
+let hasCanvas = false;
+try { require("canvas"); hasCanvas = true; } catch { /* not installed */ }
+
+describe.skipIf(!hasCanvas)("lib.seaborn.ChartRenderer", () => {
   it("renders a bar chart and returns base64 image data", async () => {
     const result = await new ChartRendererLibNode({
       chart_config: {

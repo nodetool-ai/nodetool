@@ -19,7 +19,7 @@ const mockClient = {
 // Mock imapflow
 vi.mock("imapflow", () => {
   return {
-    ImapFlow: vi.fn(() => mockClient),
+    ImapFlow: vi.fn(function () { return mockClient; }),
   };
 });
 

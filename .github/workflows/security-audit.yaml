@@ -84,6 +84,7 @@ jobs:
           claude_args: |
             --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
           prompt: |
+            ## MANDATORY: Read .github/bot-guardrails.md before making any changes
             # Security Audit
 
             Find and fix security vulnerabilities in NodeTool (React/TypeScript visual AI workflow builder).

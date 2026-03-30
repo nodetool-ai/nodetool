@@ -4,6 +4,15 @@
  *         isIgnored, various route handlers, method validation, etc.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("@nodetool/huggingface", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@nodetool/huggingface")>();
+  return {
+    ...orig,
+    getHuggingfaceFileInfos: vi.fn(async () => []),
+  };
+});
+
 import { handleModelsApiRequest } from "../src/models-api.js";
 
 async function jsonBody(response: Response): Promise<unknown> {

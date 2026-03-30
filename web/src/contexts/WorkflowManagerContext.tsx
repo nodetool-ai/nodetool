@@ -10,11 +10,18 @@
 // - Provide a shared QueryClient and system stats for child components
 // -----------------------------------------------
 
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type Context,
+  type ReactNode,
+  type FC
+} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
-import React from "react";
 import { QueryClient } from "@tanstack/react-query";
 import {
   createWorkflowManagerStore,
@@ -30,14 +37,14 @@ import {
 // Extend Window interface for HMR context preservation
 declare global {
   interface Window {
-    __WORKFLOW_MANAGER_CONTEXT__?: React.Context<WorkflowManagerStore | null>;
+    __WORKFLOW_MANAGER_CONTEXT__?: Context<WorkflowManagerStore | null>;
   }
 }
 
 // Create a React context to hold the workflow manager store.
 // In development, preserve the context reference on window to survive HMR.
 // This prevents "must be used within Provider" errors during hot reloads.
-const WorkflowManagerContext: React.Context<WorkflowManagerStore | null> = (() => {
+const WorkflowManagerContext: Context<WorkflowManagerStore | null> = (() => {
   // In development, reuse existing context from window if available
   if (import.meta.hot && window.__WORKFLOW_MANAGER_CONTEXT__) {
     return window.__WORKFLOW_MANAGER_CONTEXT__;
@@ -84,11 +91,11 @@ export const useWorkflowManager = <T,>(
 /**
  * Component that ensures the current workflow is fetched based on URL params.
  * @param {Object} props Component props
- * @param {React.ReactNode} props.children Child components
- * @returns {React.ReactNode}
+ * @param {ReactNode} props.children Child components
+ * @returns {ReactNode}
  */
-export const FetchCurrentWorkflow: React.FC<{
-  children: React.ReactNode;
+export const FetchCurrentWorkflow: FC<{
+  children: ReactNode;
 }> = ({ children }) => {
   const setCurrentWorkflowId = useWorkflowManager((state) => state.setCurrentWorkflowId);
   const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
@@ -153,8 +160,8 @@ export const FetchCurrentWorkflow: React.FC<{
  * @param {QueryClient} props.queryClient React Query client instance
  * @returns {React.ReactNode}
  */
-export const WorkflowManagerProvider: React.FC<{
-  children: React.ReactNode;
+export const WorkflowManagerProvider: FC<{
+  children: ReactNode;
   queryClient: QueryClient;
 }> = ({ children, queryClient }) => {
   const [store] = useState(() => {

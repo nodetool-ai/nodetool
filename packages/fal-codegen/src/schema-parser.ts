@@ -9,7 +9,7 @@
 
 import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type AnyRecord = Record<string, any>;
 
 type MediaPropKind = "image" | "video" | "audio";
@@ -166,7 +166,7 @@ export class SchemaParser {
       const refPath = schemaObj["$ref"] as string;
       if (refPath.startsWith("#/")) {
         const parts = refPath.replace(/^#\//, "").split("/");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         let current: any = schema;
         for (const part of parts) {
           current = (current as AnyRecord)?.[part] ?? {};
@@ -460,7 +460,7 @@ export class SchemaParser {
   private _resolveRefTypeName(refPath: string): string | null {
     if (!refPath.startsWith("#/")) return null;
     const parts = refPath.replace(/^#\//, "").split("/");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let current: any = this._rootSchema;
     for (const part of parts) {
       current = (current as AnyRecord)?.[part];

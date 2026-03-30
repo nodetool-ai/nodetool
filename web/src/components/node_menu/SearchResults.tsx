@@ -41,7 +41,7 @@ const SearchResults = memo(({
         data-node-type={node.node_type}
       >
         {words.map((word, idx) => (
-          <Box key={idx} sx={{ display: "flex" }}>
+          <Box key={`${node.node_type}-${word}-${idx}`} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
               <Typography fontSize="small">
                 {word}
