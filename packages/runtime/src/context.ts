@@ -230,6 +230,7 @@ export class FileStorageAdapter implements StorageAdapter {
       try {
         absolute = resolve(fileURLToPath(uri));
       } catch {
+        // Invalid file:// URI — treat as unresolvable.
         return null;
       }
     } else if (uri.startsWith("/api/storage/") || uri.startsWith("api/storage/")) {
@@ -243,6 +244,7 @@ export class FileStorageAdapter implements StorageAdapter {
           absolute = this.resolvePathFromKey(key);
         }
       } catch {
+        // Malformed URL — treat as unresolvable.
         return null;
       }
     } else {
@@ -268,6 +270,7 @@ export class FileStorageAdapter implements StorageAdapter {
     try {
       return await readFile(absolutePath);
     } catch {
+      // File not found or unreadable — caller handles null.
       return null;
     }
   }
@@ -279,6 +282,7 @@ export class FileStorageAdapter implements StorageAdapter {
       await access(absolutePath);
       return true;
     } catch {
+      // File does not exist or is inaccessible.
       return false;
     }
   }
@@ -689,6 +693,7 @@ export class ProcessingContext {
         const raw = await readFile(path, "utf8");
         return JSON.parse(raw) as T;
       } catch {
+        // File missing or corrupt — fall back to default.
         return defaultValue as T;
       }
     }
@@ -696,14 +701,6 @@ export class ProcessingContext {
       return this._variables[key] as T;
     }
     return defaultValue as T;
-  }
-
-  async store_step_result(key: string, value: unknown): Promise<string> {
-    return this.storeStepResult(key, value);
-  }
-
-  async load_step_result<T = unknown>(key: string, defaultValue?: T): Promise<T> {
-    return this.loadStepResult(key, defaultValue);
   }
 
   private workspacePathFor(fileName: string): string {
@@ -751,23 +748,6 @@ export class ProcessingContext {
   ): Promise<void> {
     const key = this.generateNodeCacheKey(nodeType, nodeProps);
     await this.cache.set(key, result, ttlSeconds);
-  }
-
-  generate_node_cache_key(nodeType: string, nodeProps: unknown): string {
-    return this.generateNodeCacheKey(nodeType, nodeProps);
-  }
-
-  async get_cached_result(nodeType: string, nodeProps: unknown): Promise<unknown> {
-    return this.getCachedResult(nodeType, nodeProps);
-  }
-
-  async cache_result(
-    nodeType: string,
-    nodeProps: unknown,
-    result: unknown,
-    ttlSeconds = 3600
-  ): Promise<void> {
-    return this.cacheResult(nodeType, nodeProps, result, ttlSeconds);
   }
 
   // -----------------------------------------------------------------------
