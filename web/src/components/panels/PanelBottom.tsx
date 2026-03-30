@@ -215,21 +215,21 @@ const PanelBottom: React.FC = () => {
           <div
             className="terminal-wrapper"
             style={{
-              display: activeView === "terminal" && isVisible ? "flex" : "none"
+              display: activeView === "terminal" ? "flex" : "none"
             }}
           >
-            <Terminal />
+            {isVisible && <Terminal />}
           </div>
           <div
             className="trace-wrapper"
             style={{
-              display: activeView === "trace" && isVisible ? "flex" : "none",
+              display: activeView === "trace" ? "flex" : "none",
               flex: 1,
               minHeight: 0,
               overflow: "hidden",
             }}
           >
-            <TracePanel />
+            {isVisible && <TracePanel />}
           </div>
         </div>
       </Drawer>
