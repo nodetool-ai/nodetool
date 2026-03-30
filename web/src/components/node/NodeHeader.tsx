@@ -11,7 +11,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
-import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -190,15 +189,21 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(true);
   }, []);
 
-  const handleShowResultsClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onShowResults?.();
-  }, [onShowResults]);
+  const handleShowResultsClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onShowResults?.();
+    },
+    [onShowResults]
+  );
 
-  const handleShowInputsClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onShowInputs?.();
-  }, [onShowInputs]);
+  const handleShowInputsClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onShowInputs?.();
+    },
+    [onShowInputs]
+  );
 
   const handleCloseLogsDialog = useCallback(() => {
     setLogsDialogOpen(false);
@@ -217,28 +222,35 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           ? backgroundColor
           : hexToRgba(tint, 0.5)
         : `linear-gradient(135deg, ${hexToRgba(tint, 0.35)}, ${hexToRgba(
-          tint,
-          0.12
-        )})`
+            tint,
+            0.12
+          )})`
     } as React.CSSProperties;
   }, [backgroundColor, selected]);
 
   // Memoize icon background style to prevent recreation on every render
-  const iconBackgroundStyle = useMemo(() => ({
-    background: iconBaseColor
-      ? hexToRgba(iconBaseColor, 0.22)
-      : "rgba(255,255,255,0.08)"
-  }), [iconBaseColor]);
+  const iconBackgroundStyle = useMemo(
+    () => ({
+      background: iconBaseColor
+        ? hexToRgba(iconBaseColor, 0.22)
+        : "rgba(255,255,255,0.08)"
+    }),
+    [iconBaseColor]
+  );
 
   // Memoize title padding style to prevent recreation on every render
-  const titlePaddingStyle = useMemo(() => ({
-    paddingLeft: hasIcon ? 0 : undefined
-  }), [hasIcon]);
+  const titlePaddingStyle = useMemo(
+    () => ({
+      paddingLeft: hasIcon ? 0 : undefined
+    }),
+    [hasIcon]
+  );
 
   return (
     <FlexRow
-      className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""
-        }`}
+      className={`node-drag-handle node-header ${
+        hasParent ? "has-parent" : ""
+      }`}
       css={headerCss}
       gap={1}
       justify="space-between"
@@ -249,10 +261,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     >
       <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
-          <div
-            className="node-icon"
-            style={iconBackgroundStyle}
-          >
+          <div className="node-icon" style={iconBackgroundStyle}>
             <IconForType
               iconName={iconType!}
               showTooltip={false}
@@ -260,21 +269,22 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             />
           </div>
         )}
-        <span
-          className="node-title"
-          style={titlePaddingStyle}
-        >
+        <span className="node-title" style={titlePaddingStyle}>
           {metadataTitle}
         </span>
         {externalLink && (
-          <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip
+            title={externalLinkTitle || "Open link"}
+            arrow
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
             <IconButton
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(externalLink, "_blank", "noopener,noreferrer");
               }}
-              sx={{ 
+              sx={{
                 padding: "2px",
                 marginLeft: "2px",
                 color: "rgba(255, 255, 255, 0.4)",
@@ -288,19 +298,15 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
-        {data.bypassed && (
-          <span className="bypass-badge">Bypassed</span>
-        )}
+        {data.bypassed && <span className="bypass-badge">Bypassed</span>}
         {logCount > 0 && !hideLogs && (
           <Tooltip title={`${logCount} logs`} arrow>
             <IconButton
               size="small"
               onClick={handleOpenLogsDialog}
-              sx={{ padding: "4px" }}
+              sx={{ position: "absolute", right: "-1.5em" }}
             >
-              <Badge badgeContent={logCount} color="warning" max={99}>
-                <ListAltIcon sx={{ fontSize: "1rem" }} />
-              </Badge>
+              <Badge badgeContent={logCount} color="warning" max={99}></Badge>
             </IconButton>
           </Tooltip>
         )}
