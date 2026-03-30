@@ -1235,30 +1235,23 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
     if (!dx && !dy) {
       return;
     }
-    set((state) =>
-      withUpdatedDocumentTimestamp({
-        ...state,
-        document: {
-          ...state.document,
-          layers: state.document.layers.map((layer) =>
-            layer.type === "raster" || layer.type === "mask"
-              ? {
-                  ...layer,
-                  transform: {
-                    ...layer.transform,
-                    x: layer.transform.x + dx,
-                    y: layer.transform.y + dy
-                  }
+    set((state) => ({
+      document: withUpdatedDocumentTimestamp({
+        ...state.document,
+        layers: state.document.layers.map((layer) =>
+          layer.type === "raster" || layer.type === "mask"
+            ? {
+                ...layer,
+                transform: {
+                  ...layer.transform,
+                  x: layer.transform.x + dx,
+                  y: layer.transform.y + dy
                 }
-              : layer
-          ),
-          metadata: {
-            ...state.document.metadata,
-            updatedAt: new Date().toISOString()
-          }
-        }
+              }
+            : layer
+        )
       })
-    );
+    }));
   },
 
   // ─── History Actions ──────────────────────────────────────────────────

@@ -91,6 +91,9 @@ export function useSketchStoreSelectors() {
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
+  const offsetAllPaintLayersTransform = useSketchStore(
+    (s) => s.offsetAllPaintLayersTransform
+  );
   const selection = useSketchStore((s) => s.selection);
   const setSelection = useSketchStore((s) => s.setSelection);
   const invertSelection = useSketchStore((s) => s.invertSelection);
@@ -188,6 +191,7 @@ export function useSketchStoreSelectors() {
     panelsHidden,
     togglePanelsHidden,
     resizeCanvas,
+    offsetAllPaintLayersTransform,
     selection,
     setSelection,
     invertSelection,

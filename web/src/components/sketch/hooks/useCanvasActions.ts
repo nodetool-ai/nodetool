@@ -52,6 +52,7 @@ export interface UseCanvasActionsParams {
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   resizeCanvas: (width: number, height: number) => void;
+  offsetAllPaintLayersTransform: (dx: number, dy: number) => void;
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;
 }
@@ -72,6 +73,7 @@ export function useCanvasActions({
   setZoom,
   setPan,
   resizeCanvas,
+  offsetAllPaintLayersTransform,
   onExportImage,
   onExportMask
 }: UseCanvasActionsParams) {
@@ -556,10 +558,18 @@ export function useCanvasActions({
 
   /** Apply new canvas dimensions during a drag-resize (no history push). */
   const handleCanvasResizeDrag = useCallback(
-    (width: number, height: number) => {
+    (
+      width: number,
+      height: number,
+      options?: { translateLayers?: Point }
+    ) => {
       resizeCanvas(width, height);
+      const t = options?.translateLayers;
+      if (t && (t.x !== 0 || t.y !== 0)) {
+        offsetAllPaintLayersTransform(t.x, t.y);
+      }
     },
-    [resizeCanvas]
+    [resizeCanvas, offsetAllPaintLayersTransform]
   );
 
   // ─── Zoom handlers ─────────────────────────────────────────────────

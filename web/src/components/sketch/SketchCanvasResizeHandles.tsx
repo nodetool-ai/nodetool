@@ -1,18 +1,14 @@
 /**
  * SketchCanvasResizeHandles
  *
- * Renders interactive resize handles on the edges and corners of the sketch canvas.
- * Allows the user to drag to resize the canvas dimensions directly in the viewport.
- *
- * The handles are positioned using the same transform as the canvas itself so they
- * track position, zoom, and pan automatically.
+ * Eight square handles (corners + edge midpoints) just outside the canvas for
+ * drag-resize. Hold Alt to resize symmetrically from the canvas center (layers
+ * shift so content stays visually centered).
  */
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useRef, useState } from "react";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 type ResizeEdge =
   | "n"
@@ -30,7 +26,11 @@ interface SketchCanvasResizeHandlesProps {
   zoom: number;
   pan: { x: number; y: number };
   onResizeStart?: () => void;
-  onResize: (width: number, height: number) => void;
+  onResize: (
+    width: number,
+    height: number,
+    options?: { translateLayers?: { x: number; y: number } }
+  ) => void;
   onResizeEnd?: () => void;
   minWidth?: number;
   minHeight?: number;
@@ -38,14 +38,12 @@ interface SketchCanvasResizeHandlesProps {
   maxHeight?: number;
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+/** Target size on screen (px) before zoom; handles sit outside the artboard by this much. */
+const SCREEN_HANDLE_PX = 10;
+const SCREEN_OUTSIDE_GAP_PX = 6;
 
-const HANDLE_SIZE = 10; // px – hit area for corner handles
-const EDGE_THICKNESS = 6; // px – hit area for edge handles
-const MIN_CANVAS_SIZE = 16; // absolute minimum canvas dimension
-const MAX_CANVAS_SIZE = 8192; // absolute maximum canvas dimension
-
-// ─── Cursor mapping ──────────────────────────────────────────────────────────
+const MIN_CANVAS_SIZE = 16;
+const MAX_CANVAS_SIZE = 8192;
 
 const CURSOR_MAP: Record<ResizeEdge, string> = {
   n: "ns-resize",
@@ -57,8 +55,6 @@ const CURSOR_MAP: Record<ResizeEdge, string> = {
   se: "nwse-resize",
   sw: "nesw-resize"
 };
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const containerStyles = css({
   position: "absolute",
@@ -72,12 +68,11 @@ const handleStyles = css({
   touchAction: "none",
   backgroundColor: "transparent",
   transition: "background-color 0.15s ease",
+  boxSizing: "border-box",
   "&:hover, &.active": {
     backgroundColor: "rgba(66, 165, 245, 0.25)"
   }
 });
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
   canvasWidth,
@@ -99,8 +94,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     width: number;
     height: number;
     edge: ResizeEdge;
+    resizeFromCenter: boolean;
   } | null>(null);
-  // Track the last committed size to apply live during drag
   const lastSizeRef = useRef<{ width: number; height: number } | null>(null);
 
   const clampSize = useCallback(
@@ -112,15 +107,21 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
   );
 
   const computeNewSize = useCallback(
-    (edge: ResizeEdge, dx: number, dy: number, origW: number, origH: number) => {
-      // Convert screen-space delta to canvas-pixel delta
-      const cDx = dx / zoom;
-      const cDy = dy / zoom;
+    (
+      edge: ResizeEdge,
+      dx: number,
+      dy: number,
+      origW: number,
+      origH: number,
+      fromCenter: boolean
+    ) => {
+      const m = fromCenter ? 2 : 1;
+      const cDx = (dx / zoom) * m;
+      const cDy = (dy / zoom) * m;
 
       let newW = origW;
       let newH = origH;
 
-      // East / West
       if (edge === "e" || edge === "ne" || edge === "se") {
         newW = origW + cDx;
       }
@@ -128,7 +129,6 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
         newW = origW - cDx;
       }
 
-      // South / North
       if (edge === "s" || edge === "se" || edge === "sw") {
         newH = origH + cDy;
       }
@@ -140,8 +140,6 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     },
     [zoom, clampSize]
   );
-
-  // ─── Pointer handlers (use document-level events for reliable drag) ──────
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, edge: ResizeEdge) => {
@@ -157,7 +155,8 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
         y: e.clientY,
         width: canvasWidth,
         height: canvasHeight,
-        edge
+        edge,
+        resizeFromCenter: e.altKey
       };
       lastSizeRef.current = { width: canvasWidth, height: canvasHeight };
       setActiveEdge(edge);
@@ -177,14 +176,39 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
 
       const dx = e.clientX - drag.x;
       const dy = e.clientY - drag.y;
-      const newSize = computeNewSize(drag.edge, dx, dy, drag.width, drag.height);
+      const newSize = computeNewSize(
+        drag.edge,
+        dx,
+        dy,
+        drag.width,
+        drag.height,
+        drag.resizeFromCenter
+      );
 
       const last = lastSizeRef.current;
-      if (last && last.width === newSize.width && last.height === newSize.height) {
+      if (
+        last &&
+        last.width === newSize.width &&
+        last.height === newSize.height
+      ) {
         return;
       }
+
+      let translateLayers: { x: number; y: number } | undefined;
+      if (drag.resizeFromCenter && last) {
+        const dW = newSize.width - last.width;
+        const dH = newSize.height - last.height;
+        if (dW !== 0 || dH !== 0) {
+          translateLayers = { x: dW / 2, y: dH / 2 };
+        }
+      }
+
       lastSizeRef.current = newSize;
-      onResize(newSize.width, newSize.height);
+      if (translateLayers) {
+        onResize(newSize.width, newSize.height, { translateLayers });
+      } else {
+        onResize(newSize.width, newSize.height);
+      }
     },
     [computeNewSize, onResize]
   );
@@ -209,105 +233,103 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     [onResizeEnd]
   );
 
-  // ─── Handle positioning ────────────────────────────────────────────────────
-  // Wrapper shares the canvas transform; coordinates are canvas pixels before
-  // scale. Hit targets sit fully *outside* 0..W / 0..H so edge pixels stay
-  // drawable (previously half-overlapped the border).
-
-  const OUTSET = EDGE_THICKNESS / zoom;
-  const cornerSize = HANDLE_SIZE / zoom;
+  const gap = SCREEN_OUTSIDE_GAP_PX / zoom;
+  const hs = SCREEN_HANDLE_PX / zoom;
 
   interface HandleDef {
     edge: ResizeEdge;
     style: React.CSSProperties;
   }
 
+  const o = gap + hs;
+
   const handles: HandleDef[] = [
-    // ── Edges ──
-    {
-      edge: "n",
-      style: {
-        top: -OUTSET,
-        left: cornerSize,
-        right: cornerSize,
-        height: OUTSET,
-        cursor: CURSOR_MAP.n
-      }
-    },
-    {
-      edge: "s",
-      style: {
-        top: "100%",
-        left: cornerSize,
-        right: cornerSize,
-        height: OUTSET,
-        cursor: CURSOR_MAP.s
-      }
-    },
-    {
-      edge: "w",
-      style: {
-        left: -OUTSET,
-        top: cornerSize,
-        bottom: cornerSize,
-        width: OUTSET,
-        cursor: CURSOR_MAP.w
-      }
-    },
-    {
-      edge: "e",
-      style: {
-        left: "100%",
-        top: cornerSize,
-        bottom: cornerSize,
-        width: OUTSET,
-        cursor: CURSOR_MAP.e
-      }
-    },
-    // ── Corners ──
     {
       edge: "nw",
       style: {
-        top: -cornerSize,
-        left: -cornerSize,
-        width: cornerSize,
-        height: cornerSize,
+        top: -o,
+        left: -o,
+        width: hs,
+        height: hs,
         cursor: CURSOR_MAP.nw
       }
     },
     {
       edge: "ne",
       style: {
-        top: -cornerSize,
-        right: -cornerSize,
-        width: cornerSize,
-        height: cornerSize,
+        top: -o,
+        right: -o,
+        width: hs,
+        height: hs,
         cursor: CURSOR_MAP.ne
       }
     },
     {
       edge: "sw",
       style: {
-        bottom: -cornerSize,
-        left: -cornerSize,
-        width: cornerSize,
-        height: cornerSize,
+        bottom: -o,
+        left: -o,
+        width: hs,
+        height: hs,
         cursor: CURSOR_MAP.sw
       }
     },
     {
       edge: "se",
       style: {
-        bottom: -cornerSize,
-        right: -cornerSize,
-        width: cornerSize,
-        height: cornerSize,
+        bottom: -o,
+        right: -o,
+        width: hs,
+        height: hs,
         cursor: CURSOR_MAP.se
+      }
+    },
+    {
+      edge: "n",
+      style: {
+        top: -o,
+        left: "50%",
+        width: hs,
+        height: hs,
+        marginLeft: -hs / 2,
+        cursor: CURSOR_MAP.n
+      }
+    },
+    {
+      edge: "s",
+      style: {
+        bottom: -o,
+        left: "50%",
+        width: hs,
+        height: hs,
+        marginLeft: -hs / 2,
+        cursor: CURSOR_MAP.s
+      }
+    },
+    {
+      edge: "w",
+      style: {
+        left: -o,
+        top: "50%",
+        width: hs,
+        height: hs,
+        marginTop: -hs / 2,
+        cursor: CURSOR_MAP.w
+      }
+    },
+    {
+      edge: "e",
+      style: {
+        right: -o,
+        top: "50%",
+        width: hs,
+        height: hs,
+        marginTop: -hs / 2,
+        cursor: CURSOR_MAP.e
       }
     }
   ];
 
-  // The wrapper uses the same transform as the canvas so handles track it.
   const wrapperStyle: React.CSSProperties = {
     position: "absolute",
     top: "50%",

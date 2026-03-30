@@ -198,4 +198,31 @@ describe("SketchCanvasResizeHandles", () => {
     fireEvent.pointerMove(seHandle, { clientX: 200, clientY: 200, pointerId: 1 });
     expect(onResize).not.toHaveBeenCalled();
   });
+
+  it("with Alt held, grows size symmetrically and passes layer translate hint", () => {
+    const onResize = jest.fn();
+    const { container } = render(
+      <SketchCanvasResizeHandles
+        {...defaultProps}
+        canvasWidth={512}
+        canvasHeight={512}
+        zoom={1}
+        onResize={onResize}
+      />
+    );
+
+    const seHandle = container.querySelector(".resize-handle--se")!;
+    fireEvent.pointerDown(seHandle, {
+      clientX: 100,
+      clientY: 100,
+      pointerId: 1,
+      altKey: true
+    });
+    fireEvent.pointerMove(seHandle, { clientX: 150, clientY: 130, pointerId: 1 });
+    expect(onResize).toHaveBeenCalledWith(
+      612,
+      572,
+      { translateLayers: { x: 50, y: 30 } }
+    );
+  });
 });

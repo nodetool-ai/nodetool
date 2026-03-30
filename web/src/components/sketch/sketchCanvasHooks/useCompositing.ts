@@ -86,7 +86,10 @@ export function useCompositing({
     webgpuBootstrapPending && isWebGPUAvailable();
   const transformPreviewSignature = Object.entries(transformPreviewByLayerId)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([layerId, transform]) => `${layerId}:${transform.x},${transform.y}`)
+    .map(
+      ([layerId, transform]) =>
+        `${layerId}:${transform.x},${transform.y},${transform.scaleX ?? 1},${transform.scaleY ?? 1},${transform.rotation ?? 0}`
+    )
     .join("|");
 
   // ─── Shared layer canvas map (injected into the runtime) ──────────
@@ -442,6 +445,8 @@ export function useCompositing({
   }, [
     requestRedraw,
     doc.layers,
+    doc.canvas.width,
+    doc.canvas.height,
     layerDisplayStackSignature,
     isolatedLayerId,
     bootstrapPhaseActive,

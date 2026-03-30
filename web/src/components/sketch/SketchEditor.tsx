@@ -170,6 +170,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     setZoom: store.setZoom,
     setPan: store.setPan,
     resizeCanvas: store.resizeCanvas,
+    offsetAllPaintLayersTransform: store.offsetAllPaintLayersTransform,
     onExportImage,
     onExportMask
   });

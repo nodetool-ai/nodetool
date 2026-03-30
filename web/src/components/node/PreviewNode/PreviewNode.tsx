@@ -19,6 +19,7 @@ import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { countPreviewGridImages } from "../output/AssetGrid";
 import { NodeHeader } from "../NodeHeader";
+import EditableTitle from "../EditableTitle";
 import NodeToolButtons from "../NodeToolButtons";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeOutputs } from "../NodeOutputs";
@@ -569,8 +570,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   return (
     <Container
+      maxWidth={false}
+      disableGutters
       css={styles(theme)}
       sx={{
+        position: "relative",
         display: "flex",
         boxShadow: props.selected
           ? `0 0 0 2px var(--palette-grey-100)`
@@ -646,8 +650,20 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           {memoizedOutputRenderer}
         </div>
       </div>
+      {props.data.title ? (
+        <EditableTitle nodeId={props.id} title={props.data.title} />
+      ) : null}
     </Container>
   );
 };
 
-export default memo(PreviewNode, isEqual);
+export default memo(PreviewNode, (prevProps, nextProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.type === nextProps.type &&
+    prevProps.selected === nextProps.selected &&
+    prevProps.dragging === nextProps.dragging &&
+    prevProps.parentId === nextProps.parentId &&
+    isEqual(prevProps.data, nextProps.data)
+  );
+});

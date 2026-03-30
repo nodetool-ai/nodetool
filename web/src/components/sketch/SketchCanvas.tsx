@@ -196,7 +196,11 @@ export interface SketchCanvasProps {
   /** Called once when the user begins dragging a canvas resize handle (use for history snapshot). */
   onCanvasResizeStart?: () => void;
   /** Called on every pointer-move while dragging a canvas resize handle. */
-  onCanvasResize?: (width: number, height: number) => void;
+  onCanvasResize?: (
+    width: number,
+    height: number,
+    options?: { translateLayers?: Point }
+  ) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -586,7 +590,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           ref={cursorCanvasRef}
           className="sketch-canvas__cursor cursor-overlay"
         />
-        {/* Canvas resize handles (edges + corners) */}
+        {/* Canvas resize: eight square handles (corners + edge midpoints) */}
         {onCanvasResize && (
           <SketchCanvasResizeHandles
             canvasWidth={doc.canvas.width}

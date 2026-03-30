@@ -21,7 +21,6 @@ import {
   Box,
   Button,
   IconButton,
-  ListItemIcon,
   Menu,
   Slider,
   TextField,
@@ -75,7 +74,9 @@ function layerRowShiftHeld(e: React.MouseEvent | React.PointerEvent): boolean {
   return false;
 }
 
-function layerRowCtrlOrMetaHeld(e: React.MouseEvent | React.PointerEvent): boolean {
+function layerRowCtrlOrMetaHeld(
+  e: React.MouseEvent | React.PointerEvent
+): boolean {
   const n = e.nativeEvent;
   if (n.metaKey || n.ctrlKey) {
     return true;
@@ -86,7 +87,9 @@ function layerRowCtrlOrMetaHeld(e: React.MouseEvent | React.PointerEvent): boole
   return false;
 }
 
-function layerRowHasMultiSelectModifier(e: React.MouseEvent | React.PointerEvent): boolean {
+function layerRowHasMultiSelectModifier(
+  e: React.MouseEvent | React.PointerEvent
+): boolean {
   return layerRowShiftHeld(e) || layerRowCtrlOrMetaHeld(e);
 }
 
@@ -549,7 +552,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         return;
       }
 
-      if (from === targetIdx || (position === "into" && draggedLayer.id === targetLayer.id)) {
+      if (
+        from === targetIdx ||
+        (position === "into" && draggedLayer.id === targetLayer.id)
+      ) {
         dragSourceIndex.current = null;
         dropTargetRef.current = null;
         setDropTarget(null);
@@ -618,7 +624,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const handleLayerContextMenu = useCallback(
     (e: React.MouseEvent, layerId: string) => {
       e.preventDefault();
-      setLayerCtxMenu({ position: { top: e.clientY, left: e.clientX }, layerId });
+      setLayerCtxMenu({
+        position: { top: e.clientY, left: e.clientX },
+        layerId
+      });
     },
     []
   );
@@ -795,9 +804,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip
             title={
-              hasMultiLayerSelection
-                ? "Delete selected layers"
-                : "Delete Layer"
+              hasMultiLayerSelection ? "Delete selected layers" : "Delete Layer"
             }
           >
             <span>
@@ -1216,7 +1223,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       {/* ── Layer context menu ──────────────────────────────────── */}
       {(() => {
         const ctxLayer = layerCtxMenu
-          ? layers.find((l) => l.id === layerCtxMenu.layerId) ?? null
+          ? (layers.find((l) => l.id === layerCtxMenu.layerId) ?? null)
           : null;
         // Determine which layer IDs are targeted: if the right-clicked layer is part of
         // a multi-selection, apply to all selected layers; otherwise single layer only.
@@ -1227,14 +1234,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         const targetIds: string[] = isMulti
           ? selectedLayerIds
           : layerCtxMenu
-          ? [layerCtxMenu.layerId]
-          : [];
+            ? [layerCtxMenu.layerId]
+            : [];
 
         const ctxIsGroup = ctxLayer?.type === "group";
         const ctxCanMergeDown =
-          ctxLayer &&
-          !isMulti &&
-          layers.indexOf(ctxLayer) > 0;
+          ctxLayer && !isMulti && layers.indexOf(ctxLayer) > 0;
         const ctxPixelActionsDisabled =
           !ctxLayer || ctxLayer.locked || ctxLayer.type === "group";
 
@@ -1254,7 +1259,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
         const handleCtxDuplicate = () => {
-          if (ctxLayer) { onDuplicateLayer(ctxLayer.id); }
+          if (ctxLayer) {
+            onDuplicateLayer(ctxLayer.id);
+          }
           handleLayerCtxClose();
         };
         const handleCtxDelete = () => {
@@ -1266,7 +1273,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
         const handleCtxRename = () => {
-          if (ctxLayer) { handleStartRename(ctxLayer.id, ctxLayer.name); }
+          if (ctxLayer) {
+            handleStartRename(ctxLayer.id, ctxLayer.name);
+          }
           handleLayerCtxClose();
         };
         const handleCtxClear = () => {
@@ -1296,7 +1305,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
         const handleCtxAlphaLock = () => {
-          if (ctxLayer) { onToggleAlphaLock(ctxLayer.id); }
+          if (ctxLayer) {
+            onToggleAlphaLock(ctxLayer.id);
+          }
           handleLayerCtxClose();
         };
         const handleCtxTrim = () => {
@@ -1304,7 +1315,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
         const handleCtxUngroup = () => {
-          if (ctxLayer) { onUngroupLayer(ctxLayer.id); }
+          if (ctxLayer) {
+            onUngroupLayer(ctxLayer.id);
+          }
           handleLayerCtxClose();
         };
         const handleCtxGroup = () => {
@@ -1312,7 +1325,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
         const handleCtxVisibility = () => {
-          if (ctxLayer) { onToggleVisibility(ctxLayer.id); }
+          if (ctxLayer) {
+            onToggleVisibility(ctxLayer.id);
+          }
           handleLayerCtxClose();
         };
 
@@ -1338,10 +1353,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <MenuItem sx={menuItemSx} onClick={handleCtxVisibility}>
               {ctxLayer?.visible === false ? "Show Layer" : "Hide Layer"}
             </MenuItem>
-            <MenuItem sx={menuItemSx} onClick={handleCtxRename} disabled={isMulti || !ctxLayer}>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxRename}
+              disabled={isMulti || !ctxLayer}
+            >
               Rename
             </MenuItem>
-            <MenuItem sx={menuItemSx} onClick={handleCtxDuplicate} disabled={!ctxLayer || isMulti}>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxDuplicate}
+              disabled={!ctxLayer || isMulti}
+            >
               Duplicate
             </MenuItem>
             <MenuItem sx={menuItemSx} onClick={handleCtxDelete}>
@@ -1350,16 +1373,32 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
             <Divider sx={{ my: "4px" }} />
 
-            <MenuItem sx={menuItemSx} onClick={handleCtxClear} disabled={ctxPixelActionsDisabled || isMulti}>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxClear}
+              disabled={ctxPixelActionsDisabled || isMulti}
+            >
               Clear Layer
             </MenuItem>
-            <MenuItem sx={menuItemSx} onClick={handleCtxFlipH} disabled={ctxPixelActionsDisabled || isMulti}>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxFlipH}
+              disabled={ctxPixelActionsDisabled || isMulti}
+            >
               Flip Horizontal
             </MenuItem>
-            <MenuItem sx={menuItemSx} onClick={handleCtxFlipV} disabled={ctxPixelActionsDisabled || isMulti}>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxFlipV}
+              disabled={ctxPixelActionsDisabled || isMulti}
+            >
               Flip Vertical
             </MenuItem>
-            <MenuItem sx={menuItemSx} onClick={handleCtxMergeDown} disabled={!ctxCanMergeDown}>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxMergeDown}
+              disabled={!ctxCanMergeDown}
+            >
               Merge Down
             </MenuItem>
             <MenuItem sx={menuItemSx} onClick={handleCtxFlatten}>
@@ -1368,13 +1407,29 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
             <Divider sx={{ my: "4px" }} />
 
-            <MenuItem sx={menuItemSx} onClick={handleCtxAlphaLock} disabled={ctxIsGroup || isMulti}>
-              {ctxLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"}
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxAlphaLock}
+              disabled={ctxIsGroup || isMulti}
+            >
+              {ctxLayer?.alphaLock
+                ? "Unlock Transparency"
+                : "Lock Transparency"}
             </MenuItem>
-            <MenuItem sx={menuItemSx} onClick={handleCtxMask} disabled={ctxIsGroup || isMulti}>
-              {ctxLayer && maskLayerId === ctxLayer.id ? "Remove Mask" : "Set as Mask"}
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxMask}
+              disabled={ctxIsGroup || isMulti}
+            >
+              {ctxLayer && maskLayerId === ctxLayer.id
+                ? "Remove Mask"
+                : "Set as Mask"}
             </MenuItem>
-            <MenuItem sx={menuItemSx} onClick={handleCtxTrim} disabled={ctxPixelActionsDisabled || isMulti}>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxTrim}
+              disabled={ctxPixelActionsDisabled || isMulti}
+            >
               Trim to Bounds
             </MenuItem>
 

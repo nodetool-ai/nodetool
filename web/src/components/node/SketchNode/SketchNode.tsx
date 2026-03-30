@@ -29,6 +29,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
+import EditableTitle from "../EditableTitle";
 import NodeToolButtons from "../NodeToolButtons";
 import NodeOutput from "../NodeOutput";
 import NodeResizeHandle from "../NodeResizeHandle";
@@ -233,7 +234,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       position: "relative",
       flexShrink: 0,
       width: 18,
-      minHeight: 22,
+      minHeight: "var(--handle_height)",
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start"
@@ -1433,6 +1434,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         <NodeResizer minWidth={250} minHeight={200} />
       </div>
 
+      {props.data.title ? (
+        <EditableTitle nodeId={props.id} title={props.data.title} />
+      ) : null}
+
       <SketchModal
         open={isModalOpen}
         title="Image Editor"
@@ -1446,4 +1451,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   );
 };
 
-export default memo(SketchNode, isEqual);
+export default memo(SketchNode, (prevProps, nextProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.type === nextProps.type &&
+    prevProps.selected === nextProps.selected &&
+    prevProps.dragging === nextProps.dragging &&
+    prevProps.parentId === nextProps.parentId &&
+    isEqual(prevProps.data, nextProps.data)
+  );
+});
