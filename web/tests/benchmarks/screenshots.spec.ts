@@ -183,7 +183,7 @@ if (process.env.JEST_WORKER_ID) {
     test("Mini-apps gallery", async ({ page }) => {
       test.skip(shouldSkip("mini-apps-page.png"), "Already captured");
       await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/miniapps");
+      await gotoPage(page, "/apps");
       await saveScreenshot(page, "mini-apps-page.png");
     });
   });

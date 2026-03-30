@@ -262,6 +262,11 @@ add(null, /^\/api\/.*/, (_req, res) => {
   sendJson(res, {});
 });
 
+// Terminal/WebSocket endpoints — return empty 200 to suppress noise
+add(null, /^\/terminal/, (_req, res) => {
+  sendEmpty(res, 200);
+});
+
 // ── Server ────────────────────────────────────────────────────────────────────
 
 export interface MockServer {
