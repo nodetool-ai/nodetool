@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { Alert, AlertTitle, Box, Button, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useSettingsStore } from "../../../stores/SettingsStore";
@@ -18,40 +18,49 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
   const missingKeys = useProviderApiKeyValidation(providers);
 
+  // Stable callback for opening settings to prevent unnecessary re-renders
+  const handleOpenSettings = useCallback(() => {
+    setMenuOpen(true, 1);
+  }, [setMenuOpen]);
+
+  // Memoize the grouping computation to avoid re-calculating on every render
+  // Must be before early return to follow Rules of Hooks
+  const groups = useMemo(() => {
+    // Group providers by secret key to show which providers need each key
+    const groupedBySecret = missingKeys.reduce(
+      (
+        acc: Record<
+          string,
+          { secretKey: string; secretDisplayName: string; providers: string[] }
+        >,
+        item: ProviderApiKeyStatus
+      ) => {
+        if (!acc[item.secretKey]) {
+          acc[item.secretKey] = {
+            secretKey: item.secretKey,
+            secretDisplayName: item.secretDisplayName,
+            providers: []
+          };
+        }
+        acc[item.secretKey].providers.push(item.providerDisplayName);
+        return acc;
+      },
+      {} as Record<
+        string,
+        { secretKey: string; secretDisplayName: string; providers: string[] }
+      >
+    );
+
+    return Object.values(groupedBySecret) as Array<{
+      secretKey: string;
+      secretDisplayName: string;
+      providers: string[];
+    }>;
+  }, [missingKeys]);
+
   if (missingKeys.length === 0) {
     return null;
   }
-
-  // Group providers by secret key to show which providers need each key
-  const groupedBySecret = missingKeys.reduce(
-    (
-      acc: Record<
-        string,
-        { secretKey: string; secretDisplayName: string; providers: string[] }
-      >,
-      item: ProviderApiKeyStatus
-    ) => {
-      if (!acc[item.secretKey]) {
-        acc[item.secretKey] = {
-          secretKey: item.secretKey,
-          secretDisplayName: item.secretDisplayName,
-          providers: []
-        };
-      }
-      acc[item.secretKey].providers.push(item.providerDisplayName);
-      return acc;
-    },
-    {} as Record<
-      string,
-      { secretKey: string; secretDisplayName: string; providers: string[] }
-    >
-  );
-
-  const groups = Object.values(groupedBySecret) as Array<{
-    secretKey: string;
-    secretDisplayName: string;
-    providers: string[];
-  }>;
 
   return (
     <Alert
@@ -67,7 +76,7 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
           size="small"
           variant="contained"
           color="warning"
-          onClick={() => setMenuOpen(true, 1)}
+          onClick={handleOpenSettings}
           sx={{
             fontSize: theme.vars.fontSizeSmaller,
             fontWeight: 500
@@ -132,5 +141,5 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
   );
 };
 
-export default ProviderApiKeyWarningBanner;
+export default React.memo(ProviderApiKeyWarningBanner);
 
