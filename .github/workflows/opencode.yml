@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
       actions: read
     steps:
       - name: Checkout repository
@@ -37,22 +37,6 @@ jobs:
         run: |
           cd web && npm ci
           cd ../electron && npm ci
-          cd ../mobile && npm ci
-
-      - name: Pre-flight quality check
-        id: pre-check
-        continue-on-error: true
-        run: |
-          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-
-          make typecheck 2>&1 | tee typecheck-pre.log || TYPECHECK_EXIT=1
-          make lint 2>&1 | tee lint-pre.log || LINT_EXIT=1
-          make test 2>&1 | tee test-pre.log || TEST_EXIT=1
-
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
@@ -63,74 +47,27 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --allowedTools "Bash,WebFetch,Edit,Read,Replace"
+            --allowedTools "Bash,WebFetch,Edit,Read,Replace,CreatePullRequest"
           prompt: |
             # NodeTool Assistant
 
-            Help with NodeTool, a React/TypeScript visual AI workflow builder.
+            You are an assistant for NodeTool, a React/TypeScript visual AI workflow builder.
 
-            ## Context
-            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7, TanStack Query
-            - Packages: `/web`, `/electron`, `/mobile` — backend is a separate Python repo
-            - Memory: `.memory/` has project context, features list, known issues, and insights
+            ## Project
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Layout: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - Backend is a separate Python repo — this repo is frontend only
+            - Read `AGENTS.md` and `.github/copilot-instructions.md` for coding conventions
 
-            ## Before Starting
-            1. Run `git branch -a` — avoid duplicating existing branches
-            2. Read `.memory/features.md` and `.memory/project-context.md`
-            3. Check `.memory/issues/` and `.memory/insights/` for relevant solutions
+            ## Respond to the comment
+            Read the issue/PR comment and do what was asked. This could be:
+            - Answering a question about the codebase
+            - Investigating a bug
+            - Implementing a fix or small feature
+            - Reviewing code
 
-            ## Quality Rules
-            Before submitting any changes, you MUST run and pass all quality checks:
-            ```bash
-            make lint       # All lint checks must pass
-            make typecheck  # All type checks must pass
-            make test       # All tests must pass
-            ```
-            Additional rules:
-            - Use `make lint-fix` to auto-fix many issues
-            - Never make quality worse than before
-            - TypeScript strict: no `any`, use `===`, use `Array.isArray()`
-            - React: selective Zustand subscriptions, useCallback for child props, MUI theme values
-
-            ## Code Review for Regressions
-            After making any code changes, review for potential regressions:
-            - Run the affected features manually to ensure they work
-            - Check that existing tests still pass
-            - Look for unintended side effects in related code
-            - Verify no new TypeScript errors or lint warnings were introduced
-            - Test edge cases and error handling
-
-            ## Your Task
-            Review the issue comment and provide helpful assistance. 
-            
-            **If you make code changes to fix an issue or implement a feature:**
-            1. Make the changes and test them thoroughly
-            2. Run all quality checks (make lint, make typecheck, make test)
-            3. Review for regressions
-            4. Commit your changes with a clear message
-            5. Push your branch
-            6. **Create a Pull Request** with:
-               - Clear description of what you did and why
-               - Quality check results (all passing)
-               - Any potential regressions you identified and how you addressed them
-
-      - name: Post-change verification
-        if: always()
-        run: |
-          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-
-          make typecheck 2>&1 || TYPECHECK_EXIT=1
-          make lint 2>&1 || LINT_EXIT=1
-          make test 2>&1 || TEST_EXIT=1
-
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "🔴 NEW TypeScript errors!" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "🔴 NEW lint errors!" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "🔴 NEW test failures!" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          echo "✅ Quality maintained" >> $GITHUB_STEP_SUMMARY
+            ## If you make code changes
+            1. Keep changes minimal and focused on what was asked
+            2. Run `make typecheck && make lint && make test` — all must pass
+            3. Create a PR linking back to the issue/PR where `/oc` was invoked
+            4. Do not refactor or "improve" code beyond what was requested
