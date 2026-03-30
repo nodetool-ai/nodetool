@@ -19,7 +19,9 @@ import type {
   ProviderStreamItem,
   StreamingAudioChunk,
   TextToImageParams,
+  TextToVideoParams,
   ImageToImageParams,
+  ImageToVideoParams,
   ToolCall,
 } from "./types.js";
 import type { Chunk } from "@nodetool/protocol";
@@ -167,6 +169,23 @@ export class PythonProvider extends BaseProvider {
 
   async imageToImage(image: Uint8Array, params: ImageToImageParams): Promise<Uint8Array> {
     return this._bridge.providerImageToImage(
+      this._pythonProviderId,
+      image,
+      params as unknown as Record<string, unknown>,
+      this._secrets,
+    );
+  }
+
+  async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    return this._bridge.providerTextToVideo(
+      this._pythonProviderId,
+      params as unknown as Record<string, unknown>,
+      this._secrets,
+    );
+  }
+
+  async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+    return this._bridge.providerImageToVideo(
       this._pythonProviderId,
       image,
       params as unknown as Record<string, unknown>,

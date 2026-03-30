@@ -3,6 +3,7 @@ import { BaseProvider } from "./base-provider.js";
 import type { Chunk } from "@nodetool/protocol";
 import type {
   ImageModel,
+  ImageToVideoParams,
   LanguageModel,
   Message,
   MessageContent,
@@ -11,7 +12,9 @@ import type {
   ProviderTool,
   StreamingAudioChunk,
   TextToImageParams,
+  TextToVideoParams,
   TTSModel,
+  VideoModel,
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.huggingface");
@@ -69,6 +72,28 @@ const HF_IMAGE_MODELS: ImageModel[] = [
     name: "FLUX.1 Schnell",
     provider: "huggingface",
     supportedTasks: ["text_to_image"],
+  },
+];
+
+/** Curated list of popular HuggingFace video models. */
+const HF_VIDEO_MODELS: VideoModel[] = [
+  {
+    id: "BestWishYsh/Helios-Base",
+    name: "Helios 14B Base",
+    provider: "huggingface",
+    supportedTasks: ["text_to_video", "image_to_video"],
+  },
+  {
+    id: "BestWishYsh/Helios-Mid",
+    name: "Helios 14B Mid",
+    provider: "huggingface",
+    supportedTasks: ["text_to_video", "image_to_video"],
+  },
+  {
+    id: "BestWishYsh/Helios-Distilled",
+    name: "Helios 14B Distilled",
+    provider: "huggingface",
+    supportedTasks: ["text_to_video", "image_to_video"],
   },
 ];
 
@@ -345,5 +370,131 @@ export class HuggingFaceProvider extends BaseProvider {
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return HF_TTS_MODELS;
+  }
+
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return HF_VIDEO_MODELS;
+  }
+
+  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    if (!params.prompt) {
+      throw new Error("The input prompt cannot be empty.");
+    }
+
+    const client = await this.getClient();
+
+    log.debug("HuggingFace textToVideo", { model: params.model.id });
+
+    const request: Record<string, unknown> = {
+      model: params.model.id,
+      inputs: params.prompt,
+    };
+
+    if (params.negativePrompt) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        negative_prompt: params.negativePrompt,
+      };
+    }
+    if (params.guidanceScale != null) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        guidance_scale: params.guidanceScale,
+      };
+    }
+    if (params.numInferenceSteps != null) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        num_inference_steps: params.numInferenceSteps,
+      };
+    }
+    if (params.numFrames != null) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        num_frames: params.numFrames,
+      };
+    }
+    if (params.seed != null && params.seed >= 0) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        seed: params.seed,
+      };
+    }
+
+    const result = await client.textToVideo(request);
+
+    if (result instanceof Uint8Array) {
+      return result;
+    }
+    if (result instanceof ArrayBuffer) {
+      return new Uint8Array(result);
+    }
+    if (typeof result?.arrayBuffer === "function") {
+      return new Uint8Array(await result.arrayBuffer());
+    }
+
+    throw new Error("HuggingFace textToVideo returned unexpected result type");
+  }
+
+  override async imageToVideo(_image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+    const client = await this.getClient();
+
+    log.debug("HuggingFace imageToVideo", { model: params.model.id });
+
+    const request: Record<string, unknown> = {
+      model: params.model.id,
+      inputs: _image,
+    };
+
+    if (params.prompt) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        prompt: params.prompt,
+      };
+    }
+    if (params.negativePrompt) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        negative_prompt: params.negativePrompt,
+      };
+    }
+    if (params.guidanceScale != null) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        guidance_scale: params.guidanceScale,
+      };
+    }
+    if (params.numInferenceSteps != null) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        num_inference_steps: params.numInferenceSteps,
+      };
+    }
+    if (params.numFrames != null) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        num_frames: params.numFrames,
+      };
+    }
+    if (params.seed != null && params.seed >= 0) {
+      request.parameters = {
+        ...(request.parameters as Record<string, unknown> ?? {}),
+        seed: params.seed,
+      };
+    }
+
+    const result = await client.imageToVideo(request);
+
+    if (result instanceof Uint8Array) {
+      return result;
+    }
+    if (result instanceof ArrayBuffer) {
+      return new Uint8Array(result);
+    }
+    if (typeof result?.arrayBuffer === "function") {
+      return new Uint8Array(await result.arrayBuffer());
+    }
+
+    throw new Error("HuggingFace imageToVideo returned unexpected result type");
   }
 }

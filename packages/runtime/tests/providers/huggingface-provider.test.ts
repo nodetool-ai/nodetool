@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { HuggingFaceProvider } from "../../src/providers/huggingface-provider.js";
-import type { Message, TextToImageParams } from "../../src/providers/types.js";
+import type { Message, TextToImageParams, TextToVideoParams, ImageToVideoParams } from "../../src/providers/types.js";
 
 function makeMockHfClient(overrides: Record<string, any> = {}) {
   return {
@@ -37,6 +37,12 @@ function makeMockHfClient(overrides: Record<string, any> = {}) {
     }),
     textToSpeech: vi.fn().mockResolvedValue({
       arrayBuffer: async () => new ArrayBuffer(16),
+    }),
+    textToVideo: vi.fn().mockResolvedValue({
+      arrayBuffer: async () => new ArrayBuffer(32),
+    }),
+    imageToVideo: vi.fn().mockResolvedValue({
+      arrayBuffer: async () => new ArrayBuffer(32),
     }),
     ...overrides,
   };
@@ -387,6 +393,234 @@ describe("HuggingFaceProvider", () => {
       const models = await provider.getAvailableTTSModels();
       expect(models.length).toBeGreaterThan(0);
       expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+    });
+
+    it("returns video models including Helios variants", async () => {
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: makeMockHfClient() }
+      );
+
+      const models = await provider.getAvailableVideoModels();
+      expect(models.length).toBeGreaterThan(0);
+      expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+
+      const heliosBase = models.find((m) => m.id === "BestWishYsh/Helios-Base");
+      const heliosMid = models.find((m) => m.id === "BestWishYsh/Helios-Mid");
+      const heliosDistilled = models.find((m) => m.id === "BestWishYsh/Helios-Distilled");
+
+      expect(heliosBase).toBeDefined();
+      expect(heliosMid).toBeDefined();
+      expect(heliosDistilled).toBeDefined();
+
+      expect(heliosBase!.supportedTasks).toContain("text_to_video");
+      expect(heliosBase!.supportedTasks).toContain("image_to_video");
+      expect(heliosDistilled!.supportedTasks).toContain("text_to_video");
+      expect(heliosDistilled!.supportedTasks).toContain("image_to_video");
+    });
+  });
+
+  describe("textToVideo", () => {
+    it("generates a video from a prompt", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const params: TextToVideoParams = {
+        model: {
+          id: "BestWishYsh/Helios-Distilled",
+          name: "Helios Distilled",
+          provider: "huggingface",
+        },
+        prompt: "A cat playing with a ball of yarn",
+      };
+
+      const result = await provider.textToVideo(params);
+      expect(result).toBeInstanceOf(Uint8Array);
+      expect(mockClient.textToVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: "BestWishYsh/Helios-Distilled",
+          inputs: "A cat playing with a ball of yarn",
+        })
+      );
+    });
+
+    it("passes video parameters", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      await provider.textToVideo({
+        model: {
+          id: "BestWishYsh/Helios-Base",
+          name: "Helios Base",
+          provider: "huggingface",
+        },
+        prompt: "A dog running",
+        negativePrompt: "blurry, low quality",
+        guidanceScale: 5.0,
+        numInferenceSteps: 50,
+        numFrames: 240,
+        seed: 42,
+      });
+
+      const call = mockClient.textToVideo.mock.calls[0][0];
+      expect(call.parameters.negative_prompt).toBe("blurry, low quality");
+      expect(call.parameters.guidance_scale).toBe(5.0);
+      expect(call.parameters.num_inference_steps).toBe(50);
+      expect(call.parameters.num_frames).toBe(240);
+      expect(call.parameters.seed).toBe(42);
+    });
+
+    it("throws on empty prompt", async () => {
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: makeMockHfClient() }
+      );
+
+      await expect(
+        provider.textToVideo({
+          model: {
+            id: "BestWishYsh/Helios-Distilled",
+            name: "Helios Distilled",
+            provider: "huggingface",
+          },
+          prompt: "",
+        })
+      ).rejects.toThrow("The input prompt cannot be empty.");
+    });
+
+    it("handles Uint8Array result directly", async () => {
+      const mockClient = makeMockHfClient({
+        textToVideo: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4])),
+      });
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.textToVideo({
+        model: { id: "test", name: "Test", provider: "huggingface" },
+        prompt: "test video",
+      });
+
+      expect(result).toEqual(new Uint8Array([1, 2, 3, 4]));
+    });
+
+    it("handles ArrayBuffer result", async () => {
+      const buf = new ArrayBuffer(4);
+      new Uint8Array(buf).set([10, 20, 30, 40]);
+      const mockClient = makeMockHfClient({
+        textToVideo: vi.fn().mockResolvedValue(buf),
+      });
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.textToVideo({
+        model: { id: "test", name: "Test", provider: "huggingface" },
+        prompt: "test video",
+      });
+
+      expect(result).toEqual(new Uint8Array([10, 20, 30, 40]));
+    });
+
+    it("does not pass seed when negative", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      await provider.textToVideo({
+        model: { id: "test", name: "Test", provider: "huggingface" },
+        prompt: "test",
+        seed: -1,
+      });
+
+      const call = mockClient.textToVideo.mock.calls[0][0];
+      expect(call.parameters).toBeUndefined();
+    });
+  });
+
+  describe("imageToVideo", () => {
+    it("generates a video from an image", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const image = new Uint8Array([1, 2, 3]);
+      const params: ImageToVideoParams = {
+        model: {
+          id: "BestWishYsh/Helios-Distilled",
+          name: "Helios Distilled",
+          provider: "huggingface",
+        },
+        prompt: "Animate this scene",
+      };
+
+      const result = await provider.imageToVideo(image, params);
+      expect(result).toBeInstanceOf(Uint8Array);
+      expect(mockClient.imageToVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: "BestWishYsh/Helios-Distilled",
+          inputs: image,
+        })
+      );
+    });
+
+    it("passes video parameters for image-to-video", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const image = new Uint8Array([1, 2, 3]);
+      await provider.imageToVideo(image, {
+        model: {
+          id: "BestWishYsh/Helios-Base",
+          name: "Helios Base",
+          provider: "huggingface",
+        },
+        prompt: "Animate the scene",
+        negativePrompt: "blurry",
+        guidanceScale: 5.0,
+        numInferenceSteps: 50,
+        numFrames: 132,
+        seed: 42,
+      });
+
+      const call = mockClient.imageToVideo.mock.calls[0][0];
+      expect(call.parameters.prompt).toBe("Animate the scene");
+      expect(call.parameters.negative_prompt).toBe("blurry");
+      expect(call.parameters.guidance_scale).toBe(5.0);
+      expect(call.parameters.num_inference_steps).toBe(50);
+      expect(call.parameters.num_frames).toBe(132);
+      expect(call.parameters.seed).toBe(42);
+    });
+
+    it("handles Uint8Array result directly", async () => {
+      const mockClient = makeMockHfClient({
+        imageToVideo: vi.fn().mockResolvedValue(new Uint8Array([5, 6, 7])),
+      });
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.imageToVideo(new Uint8Array([1, 2]), {
+        model: { id: "test", name: "Test", provider: "huggingface" },
+      });
+
+      expect(result).toEqual(new Uint8Array([5, 6, 7]));
     });
   });
 });

@@ -600,6 +600,38 @@ export class PythonBridge extends EventEmitter {
     return blobs.image;
   }
 
+  /** Text-to-video via Python provider. */
+  async providerTextToVideo(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+  ): Promise<Uint8Array> {
+    const result = await this._providerCall("provider.text_to_video", {
+      provider: providerId,
+      params,
+      secrets: secrets ?? {},
+    });
+    const blobs = (result as { blobs: Record<string, Uint8Array> }).blobs;
+    return blobs.video;
+  }
+
+  /** Image-to-video via Python provider. */
+  async providerImageToVideo(
+    providerId: string,
+    image: Uint8Array,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>,
+  ): Promise<Uint8Array> {
+    const result = await this._providerCall("provider.image_to_video", {
+      provider: providerId,
+      image,
+      params,
+      secrets: secrets ?? {},
+    });
+    const blobs = (result as { blobs: Record<string, Uint8Array> }).blobs;
+    return blobs.video;
+  }
+
   /**
    * Streaming text-to-speech via Python provider.
    * Yields raw audio chunk bytes (Int16 PCM).
