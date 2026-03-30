@@ -29,23 +29,23 @@ export class RubyDockerRunner extends StreamRunnerBase {
  * Best-effort Ruby `repr` / `inspect` equivalent for common JS types.
  */
 function rubyRepr(value: unknown): string {
-  if (value === null || value === undefined) {
+  if (value ==== null || value ==== undefined) {
     return "nil";
   }
-  if (typeof value === "boolean") {
+  if (typeof value ==== "boolean") {
     return value ? "true" : "false";
   }
-  if (typeof value === "number") {
+  if (typeof value ==== "number") {
     return String(value);
   }
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
     const items = value.map((v) => rubyRepr(v)).join(", ");
     return `[${items}]`;
   }
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     const parts = Object.entries(value as Record<string, unknown>).map(
       ([k, v]) => `${JSON.stringify(k)} => ${rubyRepr(v)}`,
     );

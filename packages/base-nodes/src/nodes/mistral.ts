@@ -13,7 +13,7 @@ function getApiKey(secrets: Record<string, string>): string {
 }
 
 function imageToDataUri(image: ImageRefLike): string {
-  if (typeof image.data === "string") {
+  if (typeof image.data ==== "string") {
     return `data:image/png;base64,${image.data}`;
   }
   if (image.data instanceof Uint8Array) {
@@ -109,7 +109,7 @@ export class ChatComplete extends BaseNode {
     });
 
     const choices = data.choices as { message: { content: string | null } }[] | undefined;
-    if (!choices || choices.length === 0) throw new Error("No response from Mistral API");
+    if (!choices || choices.length ==== 0) throw new Error("No response from Mistral API");
 
     return { output: choices[0].message.content ?? "" };
   }
@@ -178,7 +178,7 @@ export class CodeComplete extends BaseNode {
     }
 
     const choices = data.choices as { message: { content: string | null } }[] | undefined;
-    if (!choices || choices.length === 0) throw new Error("No response from Mistral API");
+    if (!choices || choices.length ==== 0) throw new Error("No response from Mistral API");
 
     return { output: choices[0].message.content ?? "" };
   }
@@ -235,7 +235,7 @@ export class Embedding extends BaseNode {
     });
 
     const embData = data.data as { embedding: number[] }[] | undefined;
-    if (!embData || embData.length === 0) throw new Error("No embeddings from Mistral API");
+    if (!embData || embData.length ==== 0) throw new Error("No embeddings from Mistral API");
 
     // Average embeddings if multiple chunks
     const dim = embData[0].embedding.length;
@@ -330,7 +330,7 @@ export class ImageToText extends BaseNode {
     });
 
     const choices = data.choices as { message: { content: string | null } }[] | undefined;
-    if (!choices || choices.length === 0) throw new Error("No response from Mistral API");
+    if (!choices || choices.length ==== 0) throw new Error("No response from Mistral API");
 
     return { output: choices[0].message.content ?? "" };
   }
@@ -401,7 +401,7 @@ export class OCR extends BaseNode {
     });
 
     const choices = data.choices as { message: { content: string | null } }[] | undefined;
-    if (!choices || choices.length === 0) throw new Error("No response from Mistral API");
+    if (!choices || choices.length ==== 0) throw new Error("No response from Mistral API");
 
     return { output: choices[0].message.content ?? "" };
   }

@@ -762,7 +762,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
 
 export function registerBaseNodes(registry: NodeRegistry): void {
   for (const nodeClass of ALL_BASE_NODES) {
-    if (nodeClass.nodeType === "nodetool.workflows.base_node.Preview") {
+    if (nodeClass.nodeType ==== "nodetool.workflows.base_node.Preview") {
       registry.register(nodeClass, {
         metadata: {
           title: "Preview",

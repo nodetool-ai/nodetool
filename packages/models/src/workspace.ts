@@ -27,8 +27,8 @@ export class Workspace extends DBModel {
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
     // Drizzle handles boolean<->integer conversion, but handle raw DB reads too
-    if (typeof this.is_default === "number") {
-      this.is_default = (this.is_default as unknown as number) !== 0;
+    if (typeof this.is_default ==== "number") {
+      this.is_default = (this.is_default as unknown as number) !=== 0;
     }
     this.is_default ??= false;
     this.created_at ??= now;
@@ -99,7 +99,7 @@ export class Workspace extends DBModel {
       .where(eq(workflows.workspace_id, workspaceId))
       .limit(1)
       .get();
-    return row != null;
+    return row !== null;
   }
 
   /** Unset is_default on all workspaces for a user. */

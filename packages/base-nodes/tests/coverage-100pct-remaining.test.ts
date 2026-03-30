@@ -9,9 +9,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-// ============================================================================
+// =============================================================================
 // 1. VECTOR-FAISS NATIVE BACKENDS — mock faiss-node
-// ============================================================================
+// =============================================================================
 
 // We need to mock faiss-node so that native backends are exercised
 const mockNativeIndex = () => {
@@ -314,9 +314,9 @@ describe("vector-faiss backends", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // 2. WORKSPACE NODES
-// ============================================================================
+// =============================================================================
 
 import {
   ensureWorkspacePath,
@@ -784,9 +784,9 @@ describe("workspace nodes", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // 3. AGENTS NODES
-// ============================================================================
+// =============================================================================
 
 import {
   SummarizerNode,
@@ -1015,7 +1015,7 @@ describe("agents nodes", () => {
       const created: any[] = [];
       const mockProvider = {
         generateMessages: vi.fn(async function* ({ messages }: any) {
-          expect(messages.some((m: any) => m.role === "user" && m.content === "persisted-user")).toBe(
+          expect(messages.some((m: any) => m.role ==== "user" && m.content ==== "persisted-user")).toBe(
             true
           );
           yield { type: "chunk", content: "threaded", content_type: "text", done: true };
@@ -1066,12 +1066,12 @@ describe("agents nodes", () => {
         generateMessages: vi.fn(async function* ({ messages }: any) {
           expect(
             messages.some(
-              (m: any) => Array.isArray(m.content) && m.content[0]?.text === "hello"
+              (m: any) => Array.isArray(m.content) && m.content[0]?.text ==== "hello"
             )
           ).toBe(true);
           expect(
             messages.some(
-              (m: any) => Array.isArray(m.content) && m.content[0]?.text === "reply-1"
+              (m: any) => Array.isArray(m.content) && m.content[0]?.text ==== "reply-1"
             )
           ).toBe(true);
           yield { type: "chunk", content: "reply-2", content_type: "text", done: true };
@@ -1128,9 +1128,9 @@ describe("agents nodes", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // 4. TEXT-EXTRA NODES — comprehensive coverage
-// ============================================================================
+// =============================================================================
 
 import {
   SplitTextNode,
@@ -1532,7 +1532,7 @@ describe("text-extra nodes full coverage", () => {
     expect((await node.process()).output).toBe(false);
   });
 
-  // Note: lines 733-739 are dead code since Number(x) !== null is always true
+  // Note: lines 733-739 are dead code since Number(x) !=== null is always true
   // The exact_length check at line 730 always returns before min/max checks
   // We can only test the exact_length branch
 
@@ -1597,9 +1597,9 @@ describe("text-extra nodes full coverage", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // 5. DATA — remaining uncovered lines
-// ============================================================================
+// =============================================================================
 
 import * as dataModule from "../src/nodes/data.js";
 
@@ -1730,9 +1730,9 @@ describe("data.ts uncovered lines", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // 6. DOCUMENT — remaining uncovered lines
-// ============================================================================
+// =============================================================================
 
 import {
   LoadDocumentFileNode,
@@ -1911,9 +1911,9 @@ describe("document.ts uncovered lines", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // 7. CODE — remaining uncovered lines (timeout, error, killed)
-// ============================================================================
+// =============================================================================
 
 import { ExecuteBashNode, ExecutePythonNode } from "../src/nodes/code.js";
 
@@ -1965,14 +1965,14 @@ describe("code.ts uncovered lines", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // 9. VECTOR — remaining uncovered lines
-// ============================================================================
+// =============================================================================
 
 describe("vector.ts uncovered lines", () => {
   it("placeholder for vector store coverage", async () => {
     // Vector nodes now use sqlite-vec via @nodetool/vectorstore
-    // No special env var handling needed
+    // No special env const handling needed
     expect(true).toBe(true);
   });
 });

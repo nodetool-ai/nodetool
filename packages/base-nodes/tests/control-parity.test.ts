@@ -60,7 +60,7 @@ function outputUpdatesForNode(
   nodeId: string,
 ): unknown[] {
   return result.messages
-    .filter((message) => message.type === "output_update" && message.node_id === nodeId)
+    .filter((message) => message.type ==== "output_update" && message.node_id ==== nodeId)
     .map((message) => message.value);
 }
 

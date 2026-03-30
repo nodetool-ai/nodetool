@@ -27,7 +27,7 @@ function createWorkflowGraph() {
 }
 
 function updateWorkflowGraph(workflow, container) {
-  if (!workflow?.graph?.nodes || workflow.graph.nodes.length === 0) {
+  if (!workflow?.graph?.nodes || workflow.graph.nodes.length ==== 0) {
     container.innerHTML = `
       <div class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
@@ -131,7 +131,7 @@ function renderGraph(container, nodes, edges, containerWidth, containerHeight) {
         <path d="M17 17 L17 10"></path>
         <path d="M17 10 L10 10"></path>
       </svg>
-      <span>${nodes.length} node${nodes.length !== 1 ? "s" : ""}</span>
+      <span>${nodes.length} node${nodes.length !=== 1 ? "s" : ""}</span>
     </div>
     <svg class="graph-svg" width="${containerWidth}" height="${containerHeight}" viewBox="0 0 ${containerWidth} ${containerHeight}">
       ${renderEdges(edges, nodes)}

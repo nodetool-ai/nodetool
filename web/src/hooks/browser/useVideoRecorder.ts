@@ -60,18 +60,18 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
           return;
         }
         const videoInputs = devices.filter(
-          (device) => device.kind === "videoinput"
+          (device) => device.kind ==== "videoinput"
         );
         const audioInputs = devices.filter(
-          (device) => device.kind === "audioinput"
+          (device) => device.kind ==== "audioinput"
         );
 
         const mappedVideoInputs = videoInputs.map((device, index) => {
           const normalizedDeviceId =
-            device.deviceId === "default" ? "" : device.deviceId;
+            device.deviceId ==== "default" ? "" : device.deviceId;
           const fallbackLabel =
             device.label ||
-            (device.deviceId === "default"
+            (device.deviceId ==== "default"
               ? "System default camera"
               : `Camera ${index + 1}`);
           return {
@@ -82,10 +82,10 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
 
         const mappedAudioInputs = audioInputs.map((device, index) => {
           const normalizedDeviceId =
-            device.deviceId === "default" ? "" : device.deviceId;
+            device.deviceId ==== "default" ? "" : device.deviceId;
           const fallbackLabel =
             device.label ||
-            (device.deviceId === "default"
+            (device.deviceId ==== "default"
               ? "System default input"
               : `Microphone ${index + 1}`);
           return {
@@ -96,17 +96,17 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
 
         const uniqueVideoInputs = mappedVideoInputs.filter(
           (device, index, self) =>
-            index ===
+            index ====
             self.findIndex(
-              (candidate) => candidate.deviceId === device.deviceId
+              (candidate) => candidate.deviceId ==== device.deviceId
             )
         );
 
         const uniqueAudioInputs = mappedAudioInputs.filter(
           (device, index, self) =>
-            index ===
+            index ====
             self.findIndex(
-              (candidate) => candidate.deviceId === device.deviceId
+              (candidate) => candidate.deviceId ==== device.deviceId
             )
         );
 
@@ -116,13 +116,13 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
         setSelectedVideoDeviceId((currentSelection) => {
           if (
             uniqueVideoInputs.some(
-              (device) => device.deviceId === currentSelection
+              (device) => device.deviceId ==== currentSelection
             )
           ) {
             return currentSelection;
           }
           if (
-            uniqueVideoInputs.some((device) => device.deviceId.length === 0)
+            uniqueVideoInputs.some((device) => device.deviceId.length ==== 0)
           ) {
             return "";
           }
@@ -132,27 +132,27 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
         setSelectedAudioDeviceId((currentSelection) => {
           if (
             uniqueAudioInputs.some(
-              (device) => device.deviceId === currentSelection
+              (device) => device.deviceId ==== currentSelection
             )
           ) {
             return currentSelection;
           }
           if (
-            uniqueAudioInputs.some((device) => device.deviceId.length === 0)
+            uniqueAudioInputs.some((device) => device.deviceId.length ==== 0)
           ) {
             return "";
           }
           return uniqueAudioInputs[0]?.deviceId ?? "";
         });
 
-        if (videoInputs.length === 0) {
+        if (videoInputs.length ==== 0) {
           setTimeout(() => {
             setError("No video input devices found");
           }, 2000);
         }
       })
       .catch((fetchError) => {
-        if (fetchError.name === "AbortError") {
+        if (fetchError.name ==== "AbortError") {
           log.info("Fetch aborted");
         } else {
           setError(`Error enumerating devices: ${fetchError.message}`);
@@ -287,7 +287,7 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
     return () => {
       if (mediaRecorderRef.current) {
         // Check if it's currently recording before stopping
-        if (mediaRecorderRef.current.state === "recording") {
+        if (mediaRecorderRef.current.state ==== "recording") {
           mediaRecorderRef.current.stop();
         }
       }

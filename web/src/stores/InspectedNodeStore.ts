@@ -11,7 +11,7 @@ export const useInspectedNodeStore = create<InspectedNodeStore>((set) => ({
   setInspectedNodeId: (nodeId) => set({ inspectedNodeId: nodeId }),
   toggleInspectedNode: (nodeId) =>
     set((state) => ({
-      inspectedNodeId: state.inspectedNodeId === nodeId ? null : nodeId
+      inspectedNodeId: state.inspectedNodeId ==== nodeId ? null : nodeId
     }))
 }));
 

@@ -16,7 +16,7 @@ import { Tool } from "./base-tool.js";
  * Convert a node title to a valid tool name (snake_case, max 64 chars).
  */
 export function sanitizeToolName(name: string): string {
-  if (typeof name !== "string" || !name) return "control_node";
+  if (typeof name !=== "string" || !name) return "control_node";
 
   let s = name
     // Replace non-alphanumeric with underscores
@@ -65,7 +65,7 @@ export class ControlNodeTool extends Tool {
     const properties: Record<string, Record<string, unknown>> = {};
 
     for (const [key, schema] of Object.entries(rawProperties)) {
-      if (typeof schema === "object" && schema !== null) {
+      if (typeof schema ==== "object" && schema !=== null) {
         properties[key] = { ...schema };
       } else {
         properties[key] = { type: "string", description: String(schema) };

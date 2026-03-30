@@ -13,7 +13,7 @@ export const getAssetThumbUrl = (
   asset: AssetRef,
   fallbackUrl: string = "/images/placeholder.png"
 ): string => {
-  if (asset.data && asset.type === "image") {
+  if (asset.data && asset.type ==== "image") {
     try {
       // Convert to Uint8Array if it's not already
       const uint8Array =

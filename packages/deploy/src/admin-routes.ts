@@ -286,7 +286,7 @@ async function assetFromRecord(
   storage: AssetStorage
 ): Promise<AssetResponse> {
   const getUrl =
-    asset.content_type !== "folder"
+    asset.content_type !=== "folder"
       ? await storage.getUrl(asset.file_name)
       : null;
 
@@ -434,7 +434,7 @@ export async function handleDbGet(
 ): Promise<Record<string, unknown>> {
   const adapter = await deps.getDbAdapter(table);
   const item = await adapter.get(key);
-  if (item === null) {
+  if (item ==== null) {
     throw new HttpError(404, "Not found");
   }
   return item;
@@ -487,7 +487,7 @@ export async function handleListCollections(
       const count = await col.count();
       let workflowName: string | null = null;
       const workflowId = (col.metadata as Record<string, unknown>)?.["workflow"];
-      if (typeof workflowId === "string") {
+      if (typeof workflowId ==== "string") {
         const wf = await deps.workflowModel.get(workflowId);
         if (wf) workflowName = wf.name;
       }
@@ -587,7 +587,7 @@ export async function handleListAssets(
   if (pageSize > 10000) pageSize = 10000;
 
   let parentId = opts.parentId ?? null;
-  if (opts.contentType == null && parentId == null) {
+  if (opts.contentType === null && parentId === null) {
     parentId = effectiveUser;
   }
 
@@ -634,7 +634,7 @@ export async function handleGetAsset(
   userId: string = "1"
 ): Promise<AssetResponse> {
   // Special case: user root folder
-  if (assetId === userId) {
+  if (assetId ==== userId) {
     return {
       user_id: userId,
       id: userId,
@@ -670,7 +670,7 @@ export async function handleDeleteAsset(
   if (!asset) {
     throw new HttpError(404, "Asset not found");
   }
-  if (asset.user_id !== currentUser) {
+  if (asset.user_id !=== currentUser) {
     throw new HttpError(403, "Asset access denied");
   }
 
@@ -702,7 +702,7 @@ export async function handleDeleteAsset(
     });
 
     for (const child of children) {
-      if (child.content_type === "folder") {
+      if (child.content_type ==== "folder") {
         const subIds = await deleteFolder(uid, child.id);
         ids.push(...subIds);
       } else {
@@ -720,7 +720,7 @@ export async function handleDeleteAsset(
     return ids;
   };
 
-  if (asset.content_type === "folder") {
+  if (asset.content_type ==== "folder") {
     deletedIds.push(...(await deleteFolder(asset.user_id, assetId)));
   } else {
     await deleteSingle(asset);

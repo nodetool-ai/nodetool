@@ -34,7 +34,7 @@ export function useRunFromHere(
 
   const run = useWebsocketRunner((state) => state.run);
   const isWorkflowRunning = useWebsocketRunner(
-    (state) => state.state === "running"
+    (state) => state.state ==== "running"
   );
   const getResult = useResultsStore((state) => state.getResult);
   const metadata = useMetadataStore((state) =>

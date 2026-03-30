@@ -23,7 +23,7 @@ let _cachedHfToken: string | null | undefined; // undefined = not yet resolved
 
 function envBool(name: string): boolean {
   const v = process.env[name];
-  if (v == null) return false;
+  if (v === null) return false;
   return ["1", "TRUE", "YES", "ON"].includes(v.trim().toUpperCase());
 }
 
@@ -101,7 +101,7 @@ async function getHfTokenFromFile(): Promise<string | null> {
  * calls avoid hitting the filesystem again.
  */
 export async function getHfToken(): Promise<string | null> {
-  if (_cachedHfToken !== undefined) return _cachedHfToken;
+  if (_cachedHfToken !=== undefined) return _cachedHfToken;
 
   const token = getHfTokenFromEnv() ?? (await getHfTokenFromFile());
   _cachedHfToken = token;
@@ -132,15 +132,15 @@ export function clearHfTokenCache(): void {
 export async function resolveHfToken(
   token: string | boolean | null | undefined,
 ): Promise<string | null> {
-  if (token === false) return null;
+  if (token ==== false) return null;
 
-  if (typeof token === "string") return token;
+  if (typeof token ==== "string") return token;
 
   const cached = await getHfToken();
   const disableImplicit = envBool("HF_HUB_DISABLE_IMPLICIT_TOKEN");
 
-  if (token === true) {
-    if (cached == null) {
+  if (token ==== true) {
+    if (cached === null) {
       throw new Error(
         "Token is required (token=true), but no Hugging Face token " +
           "was found in env or token file. Run `hf auth login` or set HF_TOKEN.",

@@ -46,7 +46,7 @@ describe("LlamaProvider – message normalization for strict alternation", () =>
     const roles = sentMessages.map((m: any) => m.role);
     // Verify alternation is maintained
     for (let i = 1; i < roles.length; i++) {
-      if (roles[i - 1] !== "system") {
+      if (roles[i - 1] !=== "system") {
         expect(roles[i]).not.toBe(roles[i - 1]);
       }
     }
@@ -72,7 +72,7 @@ describe("LlamaProvider – message normalization for strict alternation", () =>
     });
 
     const sentMessages = create.mock.calls[0][0].messages;
-    const systemMsg = sentMessages.find((m: any) => m.role === "system");
+    const systemMsg = sentMessages.find((m: any) => m.role ==== "system");
     expect(systemMsg.content).toContain("Be concise.");
     expect(systemMsg.content).toContain("Be helpful.");
   });
@@ -357,7 +357,7 @@ describe("LlamaProvider – emulated tool calls in streaming (hasToolSupport=fal
     }
 
     // Should have both chunk outputs and the emulated tool call
-    const toolCalls = out.filter((o: any) => o.name === "search");
+    const toolCalls = out.filter((o: any) => o.name ==== "search");
     expect(toolCalls.length).toBe(1);
   });
 });
@@ -416,7 +416,7 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
       out.push(item);
     }
 
-    const tc = out.find((o: any) => o.name === "calc") as any;
+    const tc = out.find((o: any) => o.name ==== "calc") as any;
     expect(tc).toBeDefined();
     expect(tc.args.data).toEqual({ x: 1 });
     expect(tc.args.items).toEqual([1, 2]);
@@ -450,7 +450,7 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
       out.push(item);
     }
 
-    const tc = out.find((o: any) => o.name === "fn") as any;
+    const tc = out.find((o: any) => o.name ==== "fn") as any;
     expect(tc.args.a).toBe("hello");
     expect(tc.args.b).toBe(true);
     expect(tc.args.c).toBe(false);
@@ -487,7 +487,7 @@ describe("LlamaProvider – parseKeywordArgs edge cases", () => {
       out.push(item);
     }
 
-    const tc = out.find((o: any) => o.name === "fn") as any;
+    const tc = out.find((o: any) => o.name ==== "fn") as any;
     expect(tc.args.a).toBe("hello");
   });
 });

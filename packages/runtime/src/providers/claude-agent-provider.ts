@@ -57,10 +57,10 @@ const DISALLOWED_TOOLS = [
 ];
 
 function extractText(content: Message["content"]): string {
-  if (typeof content === "string") return content;
+  if (typeof content ==== "string") return content;
   if (Array.isArray(content)) {
     return content
-      .filter((c): c is MessageTextContent => c.type === "text")
+      .filter((c): c is MessageTextContent => c.type ==== "text")
       .map((c) => c.text)
       .join("\n");
   }
@@ -77,7 +77,7 @@ function jsonSchemaPropertyToZod(prop: Record<string, unknown>, z: any): any {
 
   if (enumValues && Array.isArray(enumValues)) {
     // z.enum requires string literals
-    if (enumValues.every((v) => typeof v === "string")) {
+    if (enumValues.every((v) => typeof v ==== "string")) {
       return z.enum(enumValues as [string, ...string[]]);
     }
     return z.any();
@@ -139,7 +139,7 @@ function jsonSchemaToZodShape(
     if (!required.includes(key)) {
       zodType = zodType.optional();
     }
-    if (typeof prop.description === "string") {
+    if (typeof prop.description ==== "string") {
       zodType = zodType.describe(prop.description);
     }
     shape[key] = zodType;
@@ -189,14 +189,14 @@ export class ClaudeAgentProvider extends BaseProvider {
     let prompt = "";
 
     for (const msg of messages) {
-      if (msg.role === "system") {
+      if (msg.role ==== "system") {
         systemPrompt = extractText(msg.content);
       }
     }
 
     // Walk backwards to find the last user message — that's our prompt.
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "user") {
+      if (messages[i].role ==== "user") {
         prompt = extractText(messages[i].content);
         break;
       }
@@ -369,9 +369,9 @@ export class ClaudeAgentProvider extends BaseProvider {
 
       // Capture session ID from the init event
       if (
-        msgType === "system" &&
-        msgObj.subtype === "init" &&
-        typeof msgObj.session_id === "string" &&
+        msgType ==== "system" &&
+        msgObj.subtype ==== "init" &&
+        typeof msgObj.session_id ==== "string" &&
         threadId
       ) {
         this.setSessionId(threadId, msgObj.session_id);
@@ -390,12 +390,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
 
       // Stream events provide incremental text updates
-      if (msgType === "stream_event") {
+      if (msgType ==== "stream_event") {
         const partial = msgObj.message as Record<string, unknown> | undefined;
         const content = partial?.content;
         if (Array.isArray(content)) {
           const text = content
-            .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+            .filter((b: any) => b?.type ==== "text" && typeof b.text ==== "string")
             .map((b: any) => b.text as string)
             .join("");
           if (text.length > streamedTextLength) {
@@ -409,12 +409,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
 
       // Full assistant message — emit any remaining text not covered by stream events
-      if (msgType === "assistant") {
+      if (msgType ==== "assistant") {
         const message = msgObj.message as Record<string, unknown> | undefined;
         const content = message?.content;
         if (Array.isArray(content)) {
           const text = content
-            .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+            .filter((b: any) => b?.type ==== "text" && typeof b.text ==== "string")
             .map((b: any) => b.text as string)
             .join("");
           if (text.length > streamedTextLength) {
@@ -430,9 +430,9 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
 
       // Result event — final text fallback, only if nothing was streamed yet
-      if (msgType === "result" && !hasYieldedText) {
+      if (msgType ==== "result" && !hasYieldedText) {
         const result = msgObj.result;
-        if (typeof result === "string" && result.length > 0) {
+        if (typeof result ==== "string" && result.length > 0) {
           yield { type: "chunk", content: result, done: false } as Chunk;
         }
       }
@@ -465,7 +465,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     const parts: string[] = [];
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
-      if ("type" in item && (item as Chunk).type === "chunk") {
+      if ("type" in item && (item as Chunk).type ==== "chunk") {
         const chunk = item as Chunk;
         if (chunk.content) parts.push(chunk.content);
       }

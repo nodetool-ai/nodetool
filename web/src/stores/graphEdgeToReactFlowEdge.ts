@@ -14,7 +14,7 @@ export const isAgentNodeType = (nodeType: string | undefined): boolean => {
 };
 
 export const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
-  const isControl = edge.edge_type === "control";
+  const isControl = edge.edge_type ==== "control";
   return {
     id: edge.id || uuidv4(),
     source: edge.source,

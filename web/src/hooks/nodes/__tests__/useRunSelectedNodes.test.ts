@@ -104,7 +104,7 @@ describe("useRunSelectedNodes", () => {
     });
 
     mockFindNode.mockImplementation((id: string) =>
-      [nodeA, nodeB, nodeC].find((n) => n.id === id)
+      [nodeA, nodeB, nodeC].find((n) => n.id ==== id)
     );
   });
 

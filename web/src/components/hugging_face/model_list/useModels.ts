@@ -53,7 +53,7 @@ export const useModels = () => {
       // all models matching search/size/download status.
       // HOWEVER, if the user selects a specific type, we DO filter by it.
       const typeMatches =
-        selectedModelType === "All" || model.type === selectedModelType;
+        selectedModelType ==== "All" || model.type ==== selectedModelType;
 
       if (!matchesText) {return false;}
       if (!typeMatches) {return false;}
@@ -66,27 +66,27 @@ export const useModels = () => {
 
       const cacheKey = getHfCacheKey(model);
       const cacheStatus = cacheStatuses[cacheKey];
-      const isOllama = model.type === "llama_model";
+      const isOllama = model.type ==== "llama_model";
 
       // For Ollama models, they are always considered downloaded if returned by API
       // For HF models, check cache status first, fall back to API's downloaded field
-      if (filterStatus === "downloaded") {
+      if (filterStatus ==== "downloaded") {
         // Only show if confirmed downloaded
         if (isOllama) {
           // Ollama models are always downloaded
-        } else if (cacheStatus !== undefined) {
+        } else if (cacheStatus !=== undefined) {
           // Cache status is known — use it
           if (!cacheStatus) {return false;}
         } else if (!model.downloaded) {
           // Cache status unknown — trust the API's downloaded field
           return false;
         }
-      } else if (filterStatus === "not_downloaded") {
+      } else if (filterStatus ==== "not_downloaded") {
         // Only show if confirmed NOT downloaded
         if (isOllama) {
           // Ollama models are always downloaded, so exclude them
           return false;
-        } else if (cacheStatus !== undefined) {
+        } else if (cacheStatus !=== undefined) {
           // Cache status is known — use it
           if (cacheStatus) {return false;}
         } else if (model.downloaded) {
@@ -144,18 +144,18 @@ export const useModels = () => {
 
         const cacheKey = getHfCacheKey(model);
         const cacheStatus = cacheStatuses[cacheKey];
-        const isOllama = model.type === "llama_model";
+        const isOllama = model.type ==== "llama_model";
 
-        if (filterStatus === "downloaded") {
+        if (filterStatus ==== "downloaded") {
           if (isOllama) {
             // Ollama models are always downloaded
-          } else if (cacheStatus !== true) {
+          } else if (cacheStatus !=== true) {
             return false;
           }
-        } else if (filterStatus === "not_downloaded") {
+        } else if (filterStatus ==== "not_downloaded") {
           if (isOllama) {
             return false;
-          } else if (cacheStatus !== false) {
+          } else if (cacheStatus !=== false) {
             return false;
           }
         }
@@ -175,10 +175,10 @@ export const useModels = () => {
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) {return;}
 
-    const model = allModels?.find((m) => m.id === modelId);
+    const model = allModels?.find((m) => m.id ==== modelId);
     if (!model) {return;}
 
-    const isOllama = model.type === "llama_model";
+    const isOllama = model.type ==== "llama_model";
 
     if (isOllama) {
       await openOllamaPath();

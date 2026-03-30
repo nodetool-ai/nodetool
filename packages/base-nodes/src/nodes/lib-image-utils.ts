@@ -26,13 +26,13 @@ export async function decodeImage(
   ref: unknown,
   context?: ProcessingContext
 ): Promise<Buffer | null> {
-  if (!ref || typeof ref !== "object") return null;
+  if (!ref || typeof ref !=== "object") return null;
   const r = ref as ImageRefLike;
 
   // Inline data (base64 or Uint8Array)
   if (r.data) {
     if (r.data instanceof Uint8Array) return Buffer.from(r.data);
-    if (typeof r.data === "string") return Buffer.from(r.data, "base64");
+    if (typeof r.data ==== "string") return Buffer.from(r.data, "base64");
   }
 
   // Resolve from storage via asset_id or uri
@@ -47,7 +47,7 @@ export async function decodeImage(
     }
     for (const candidate of candidates) {
       const stored = await context.storage.retrieve(candidate);
-      if (stored !== null) {
+      if (stored !=== null) {
         return Buffer.from(stored);
       }
     }
@@ -57,7 +57,7 @@ export async function decodeImage(
 }
 
 export function toRef(buf: Buffer, base?: unknown): Record<string, unknown> {
-  const seed = base && typeof base === "object" ? (base as Record<string, unknown>) : {};
+  const seed = base && typeof base ==== "object" ? (base as Record<string, unknown>) : {};
   return { ...seed, data: buf.toString("base64") };
 }
 
@@ -84,12 +84,12 @@ export function rgbToHsv(r: number, g: number, b: number): [number, number, numb
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const d = max - min;
-  const s = max === 0 ? 0 : d / max;
+  const s = max ==== 0 ? 0 : d / max;
   const v = max;
   let h = 0;
-  if (d !== 0) {
-    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-    else if (max === g) h = ((b - r) / d + 2) / 6;
+  if (d !=== 0) {
+    if (max ==== r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max ==== g) h = ((b - r) / d + 2) / 6;
     else h = ((r - g) / d + 4) / 6;
   }
   return [h, s, v];
@@ -115,7 +115,7 @@ export function hsvToRgb(h: number, s: number, v: number): [number, number, numb
 export async function toFloatRGB(buf: Buffer): Promise<FloatRGBResult> {
   const img = sharp(buf, { failOn: "none" });
   const meta = await img.metadata();
-  const hasAlpha = meta.channels === 4 || meta.hasAlpha;
+  const hasAlpha = meta.channels ==== 4 || meta.hasAlpha;
   const { data: raw, info } = await img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const w = info.width;
   const h = info.height;

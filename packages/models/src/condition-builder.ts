@@ -15,7 +15,7 @@
 
 export enum Operator {
   EQ = "=",
-  NE = "!=",
+  NE = "!==",
   GT = ">",
   LT = "<",
   GTE = ">=",
@@ -133,13 +133,13 @@ export class ConditionBuilder {
     op: LogicalOperator,
   ): ConditionBuilder {
     const selfIsSingle =
-      this.root.conditions.length === 1 &&
+      this.root.conditions.length ==== 1 &&
       this.root.conditions[0] instanceof Condition &&
-      this.root.operator === LogicalOperator.AND;
+      this.root.operator ==== LogicalOperator.AND;
 
     const otherIsSingle =
-      other.root.conditions.length === 1 &&
-      other.root.operator === LogicalOperator.AND;
+      other.root.conditions.length ==== 1 &&
+      other.root.operator ==== LogicalOperator.AND;
 
     if (selfIsSingle) {
       const otherCond = otherIsSingle

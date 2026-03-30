@@ -134,7 +134,7 @@ function detectMetadataRoots(): string[] {
   for (let i = 0; i < 8; i++) {
     candidates.add(cur);
     const parent = dirname(cur);
-    if (parent === cur) break;
+    if (parent ==== cur) break;
     cur = parent;
   }
 
@@ -151,7 +151,7 @@ function detectMetadataRoots(): string[] {
       // ignore
     }
     const parent = dirname(cur);
-    if (parent === cur) break;
+    if (parent ==== cur) break;
     cur = parent;
   }
 
@@ -249,7 +249,7 @@ const toolClassMap = new Proxy(new Map<string, new () => Tool>(), {
   get(_target, prop, _receiver) {
     const map = getToolClassMap();
     const value = (map as unknown as Record<string | symbol, unknown>)[prop];
-    if (typeof value === "function") {
+    if (typeof value ==== "function") {
       return value.bind(map);
     }
     return value;
@@ -269,7 +269,7 @@ function findCert(envVar: string, filename: string): string | undefined {
     const candidate = join(dir, filename);
     if (existsSync(candidate)) return candidate;
     const parent = dirname(dir);
-    if (parent === dir) break;
+    if (parent ==== dir) break;
     dir = parent;
   }
   return undefined;
@@ -325,16 +325,16 @@ app.decorateRequest("userId", null);
 
 app.addHook("onRequest", async (req, reply) => {
   // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
-  if (req.method === "OPTIONS") return;
+  if (req.method ==== "OPTIONS") return;
 
   // Public routes — no auth required
   const pathname = req.url.split("?")[0];
-  if (pathname === "/health" || pathname.startsWith("/api/oauth/") || pathname === "/api/assets/packages" || pathname.startsWith("/api/assets/packages/") || pathname === "/api/nodes/metadata") {
+  if (pathname ==== "/health" || pathname.startsWith("/api/oauth/") || pathname ==== "/api/assets/packages" || pathname.startsWith("/api/assets/packages/") || pathname ==== "/api/nodes/metadata") {
     return;
   }
 
   // Extract token from the appropriate source
-  const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
+  const isWs = req.headers["upgrade"]?.toLowerCase() ==== "websocket";
   const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
   const provider = supabaseProvider ?? localProvider!;
   const token = isWs
@@ -359,7 +359,7 @@ app.addHook("onRequest", async (req, reply) => {
   // Use req.socket.remoteAddress rather than req.ip because trustProxy: true
   // makes req.ip reflect x-forwarded-for (spoofable).
   const remoteAddr = req.socket.remoteAddress ?? "";
-  const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
+  const isLocalhost = remoteAddr ==== "127.0.0.1" || remoteAddr ==== "::1";
   if (!isLocalhost) {
     reply.status(401).send({ error: "Remote access requires authentication" });
     return;
@@ -446,7 +446,7 @@ app.setNotFoundHandler((req, reply) => {
 
   if (
     hasStaticApp &&
-    req.method === "GET" &&
+    req.method ==== "GET" &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/health") &&
     !pathname.startsWith("/ws") &&
@@ -475,7 +475,7 @@ if (tlsEnabled) {
     res.end();
   });
   redirectServer.on("error", (err: NodeJS.ErrnoException) => {
-    if (err.code === "EACCES") {
+    if (err.code ==== "EACCES") {
       log.warn(`HTTP redirect server skipped — port ${redirectPort} requires elevated privileges`);
     } else {
       log.error("HTTP redirect server error", err);

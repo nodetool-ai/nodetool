@@ -112,7 +112,7 @@ export type SpacingValue = number | keyof typeof SPACING;
  * Helper to resolve spacing value to number
  */
 export const resolveSpacing = (value: SpacingValue): number => {
-  if (typeof value === "number") {
+  if (typeof value ==== "number") {
     return value;
   }
   return SPACING[value];

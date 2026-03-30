@@ -14,7 +14,7 @@ jest.mock("../../contexts/NodeContext", () => ({
       addNode: mockAddNode,
       createNode: mockCreateNode,
     };
-    if (typeof selector === "function") {
+    if (typeof selector ==== "function") {
       return selector(mockState);
     }
     return mockState;
@@ -31,7 +31,7 @@ jest.mock("../../stores/NodeMenuStore", () => ({
       clickPosition: mockClickPosition,
       closeNodeMenu: mockCloseNodeMenu,
     };
-    if (typeof selector === "function") {
+    if (typeof selector ==== "function") {
       return selector(mockState);
     }
     return mockState;
@@ -42,7 +42,7 @@ const mockAddRecentNode = jest.fn();
 jest.mock("../../stores/RecentNodesStore", () => ({
   useRecentNodesStore: (selector: (state: { addRecentNode: typeof mockAddRecentNode }) => unknown) => {
     const mockState = { addRecentNode: mockAddRecentNode };
-    if (typeof selector === "function") {
+    if (typeof selector ==== "function") {
       return selector(mockState);
     }
     return mockState;

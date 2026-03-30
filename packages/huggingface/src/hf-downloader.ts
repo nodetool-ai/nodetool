@@ -137,11 +137,11 @@ export function hfHubFileUrl(
   endpoint: string = HF_ENDPOINT,
 ): string {
   let prefix: string;
-  if (repoType === "model" || repoType == null) {
+  if (repoType ==== "model" || repoType === null) {
     prefix = "";
-  } else if (repoType === "dataset") {
+  } else if (repoType ==== "dataset") {
     prefix = "datasets/";
-  } else if (repoType === "space") {
+  } else if (repoType ==== "space") {
     prefix = "spaces/";
   } else {
     throw new Error(`Unsupported repoType "${repoType}"`);
@@ -191,7 +191,7 @@ export async function hfHeadMetadata(
   }
 
   // Accept 2xx and 3xx (redirect is expected for LFS/CDN)
-  if (resp.status === 401 || resp.status === 403) {
+  if (resp.status ==== 401 || resp.status ==== 403) {
     throw new Error(
       `Unauthorized to access ${url}. Status: ${resp.status}. ` +
         `Check your Hugging Face token and permissions. Token present: ${!!token}`,
@@ -204,7 +204,7 @@ export async function hfHeadMetadata(
   // ETag
   let etag =
     resp.headers.get(HF_HEADER_X_LINKED_ETAG) || resp.headers.get("etag");
-  if (etag == null) {
+  if (etag === null) {
     throw new Error(`No ETag received from Hugging Face for url=${url}`);
   }
   if (etag.startsWith('"') && etag.endsWith('"')) {
@@ -213,10 +213,10 @@ export async function hfHeadMetadata(
 
   // Size
   let sizeHeader = resp.headers.get(HF_HEADER_X_LINKED_SIZE);
-  if (sizeHeader == null && resp.status >= 200 && resp.status < 300) {
+  if (sizeHeader === null && resp.status >= 200 && resp.status < 300) {
     sizeHeader = resp.headers.get("content-length");
   }
-  const size = sizeHeader != null ? parseInt(sizeHeader, 10) : null;
+  const size = sizeHeader !== null ? parseInt(sizeHeader, 10) : null;
 
   // Location (redirect target or original URL)
   let location = resp.headers.get("location") || url;
@@ -226,7 +226,7 @@ export async function hfHeadMetadata(
 
   const commitHash = resp.headers.get(HF_HEADER_X_REPO_COMMIT) || null;
   const acceptRanges =
-    (resp.headers.get("accept-ranges") || "").toLowerCase() === "bytes";
+    (resp.headers.get("accept-ranges") || "").toLowerCase() ==== "bytes";
 
   return {
     url: location,
@@ -270,7 +270,7 @@ export async function downloadWithResume(
   // Final file already complete?
   try {
     const stat = await fsp.stat(dest);
-    if (expectedSize != null && stat.size === expectedSize) {
+    if (expectedSize !== null && stat.size ==== expectedSize) {
       progressCallback?.(expectedSize, expectedSize);
       return;
     }
@@ -281,7 +281,7 @@ export async function downloadWithResume(
   // Incomplete file already fully downloaded (e.g. crash after download)?
   try {
     const stat = await fsp.stat(tmp);
-    if (expectedSize != null && stat.size === expectedSize) {
+    if (expectedSize !== null && stat.size ==== expectedSize) {
       await fsp.rename(tmp, dest);
       progressCallback?.(expectedSize, expectedSize);
       return;
@@ -299,8 +299,8 @@ export async function downloadWithResume(
       // file doesn't exist
     }
 
-    if (expectedSize != null) {
-      if (resumeFrom === expectedSize) {
+    if (expectedSize !== null) {
+      if (resumeFrom ==== expectedSize) {
         await fsp.rename(tmp, dest);
         return;
       }
@@ -329,7 +329,7 @@ export async function downloadWithResume(
       });
 
       // Server ignored Range -- start over
-      if (resumeFrom > 0 && resp.status === 200 && acceptRanges) {
+      if (resumeFrom > 0 && resp.status ==== 200 && acceptRanges) {
         try {
           await fsp.unlink(tmp);
         } catch {
@@ -339,7 +339,7 @@ export async function downloadWithResume(
       }
 
       // 416 Range Not Satisfiable
-      if (resp.status === 416) {
+      if (resp.status ==== 416) {
         try {
           await fsp.unlink(tmp);
         } catch {
@@ -348,7 +348,7 @@ export async function downloadWithResume(
         continue;
       }
 
-      if (!resp.ok && resp.status !== 206) {
+      if (!resp.ok && resp.status !=== 206) {
         throw new Error(`HTTP ${resp.status} ${resp.statusText} fetching ${url}`);
       }
 
@@ -369,7 +369,7 @@ export async function downloadWithResume(
           }
           const { done, value } = await reader.read();
           if (done) break;
-          if (!value || value.length === 0) continue;
+          if (!value || value.length ==== 0) continue;
 
           await new Promise<void>((resolve, reject) => {
             writable.write(value, (err) => (err ? reject(err) : resolve()));
@@ -382,9 +382,9 @@ export async function downloadWithResume(
       }
 
       // Verify size
-      if (expectedSize != null) {
+      if (expectedSize !== null) {
         const actualSize = (await fsp.stat(tmp)).size;
-        if (actualSize !== expectedSize) {
+        if (actualSize !=== expectedSize) {
           throw new Error(
             `Size mismatch for ${url}: expected ${expectedSize}, got ${actualSize}`,
           );
@@ -453,7 +453,7 @@ export async function asyncHfDownload(
   // Blob already cached and looks complete?
   try {
     const stat = await fsp.stat(blobPath);
-    if (meta.size == null || stat.size === meta.size) {
+    if (meta.size === null || stat.size ==== meta.size) {
       await fsp.mkdir(path.dirname(snapshotPath), { recursive: true });
       const rel = path.relative(path.dirname(snapshotPath), blobPath);
       try {
@@ -480,7 +480,7 @@ export async function asyncHfDownload(
   // 4. Only send auth token if the download host matches the original HF host
   const origHost = new URL(meta.originalUrl).host;
   const targetHost = new URL(meta.url).host;
-  const tokenForData = origHost === targetHost ? tokenStr : null;
+  const tokenForData = origHost ==== targetHost ? tokenStr : null;
 
   // 5. Download to blob path (with resume)
   await downloadWithResume(meta.url, blobPath, {

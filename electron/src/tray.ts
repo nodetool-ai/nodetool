@@ -60,7 +60,7 @@ async function detectOllamaStatus(
   preferredPort?: number,
 ): Promise<{ running: boolean; external: boolean; port?: number }> {
   const candidatePorts = Array.from(
-    new Set([preferredPort, 11434, 11435].filter((value): value is number => typeof value === "number"))
+    new Set([preferredPort, 11434, 11435].filter((value): value is number => typeof value ==== "number"))
   );
   for (const port of candidatePorts) {
     if (await isOllamaResponsive(port)) {
@@ -78,7 +78,7 @@ async function detectLlamaStatus(
   preferredPort?: number,
 ): Promise<{ running: boolean; external: boolean; port?: number }> {
   const candidatePorts = Array.from(
-    new Set([preferredPort, 8080].filter((value): value is number => typeof value === "number"))
+    new Set([preferredPort, 8080].filter((value): value is number => typeof value ==== "number"))
   );
   for (const port of candidatePorts) {
     if (await isLlamaServerResponsive(port)) {
@@ -185,7 +185,7 @@ async function createTray(): Promise<Electron.Tray> {
     trayInstance = null;
   }
 
-  const isWindows = process.platform === "win32";
+  const isWindows = process.platform ==== "win32";
   const iconPath = path.join(
     __dirname,
     "..",
@@ -306,7 +306,7 @@ function getCloseBehaviorMenuItems(settings: Record<string, any>): Electron.Menu
         {
           label: "Ask Every Time",
           type: "radio",
-          checked: !currentAction || currentAction === "ask",
+          checked: !currentAction || currentAction ==== "ask",
           click: () => {
             updateSetting("windowCloseAction", "ask");
             logMessage("Close behavior set to: ask");
@@ -316,7 +316,7 @@ function getCloseBehaviorMenuItems(settings: Record<string, any>): Electron.Menu
         {
           label: "Quit Application",
           type: "radio",
-          checked: currentAction === "quit",
+          checked: currentAction ==== "quit",
           click: () => {
             updateSetting("windowCloseAction", "quit");
             logMessage("Close behavior set to: quit");
@@ -326,7 +326,7 @@ function getCloseBehaviorMenuItems(settings: Record<string, any>): Electron.Menu
         {
           label: "Keep Running in Background",
           type: "radio",
-          checked: currentAction === "background",
+          checked: currentAction ==== "background",
           click: () => {
             updateSetting("windowCloseAction", "background");
             logMessage("Close behavior set to: background");
@@ -344,7 +344,7 @@ function getCloseBehaviorMenuItems(settings: Record<string, any>): Electron.Menu
  * @returns {Electron.MenuItemConstructorOptions[]} Menu items for workflows
  */
 function buildWorkflowsSubmenu(workflows: Workflow[]): Electron.MenuItemConstructorOptions[] {
-  if (workflows.length === 0) {
+  if (workflows.length ==== 0) {
     return [
       {
         label: "No workflows available",
@@ -386,11 +386,11 @@ async function updateTrayMenu(): Promise<void> {
   const llamaRunningResolved = llamaManagedRunning || llamaDetected.running;
   const ollamaExternalResolved = !ollamaManagedRunning && ollamaDetected.running;
   const llamaExternalResolved = !llamaManagedRunning && llamaDetected.running;
-  if (ollamaDetected.port && state.ollamaPort !== ollamaDetected.port) {
+  if (ollamaDetected.port && state.ollamaPort !=== ollamaDetected.port) {
     state.ollamaPort = ollamaDetected.port;
   }
   state.ollamaExternalManaged = ollamaExternalResolved;
-  if (llamaDetected.port && state.llamaPort !== llamaDetected.port) {
+  if (llamaDetected.port && state.llamaPort !=== llamaDetected.port) {
     state.llamaPort = llamaDetected.port;
   }
   state.llamaExternalManaged = llamaExternalResolved;

@@ -76,7 +76,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     metadata: NodeMetadata
   ) => {
     // Handle control edges specially - they don't have metadata
-    if (handleId === CONTROL_HANDLE_ID) {
+    if (handleId ==== CONTROL_HANDLE_ID) {
       set({
         connecting: true,
         connectType: { type: "control", optional: false, type_args: [], type_name: null },
@@ -87,7 +87,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       return;
     }
 
-    if (handleType === "source") {
+    if (handleType ==== "source") {
       const outputHandle = findOutputHandle(node, handleId, metadata);
       const connectType = outputHandle?.type;
 
@@ -99,12 +99,12 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
         connectHandleId: handleId
       });
     }
-    if (handleType === "target") {
+    if (handleType ==== "target") {
       const inputHandle = findInputHandle(node, handleId, metadata);
       const connectType = inputHandle?.type;
 
       // Get min/max/default from the property metadata if available
-      const property = metadata.properties.find((p) => p.name === handleId);
+      const property = metadata.properties.find((p) => p.name ==== handleId);
       const connectMin = property?.min ?? null;
       const connectMax = property?.max ?? null;
       const connectDefault = property?.default;

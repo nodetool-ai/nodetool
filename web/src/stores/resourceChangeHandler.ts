@@ -44,7 +44,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   // Get the query keys associated with this resource type
   const queryKeys = RESOURCE_TYPE_TO_QUERY_KEYS[resource_type];
 
-  if (!queryKeys || queryKeys.length === 0) {
+  if (!queryKeys || queryKeys.length ==== 0) {
     log.debug(
       `[ResourceChange] No query keys configured for resource_type: ${resource_type}, skipping cache invalidation`
     );
@@ -69,7 +69,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     );
 
     // For workflows, invalidate the specific workflow query
-    if (resource_type === "workflow") {
+    if (resource_type ==== "workflow") {
       log.debug(`[ResourceChange] Invalidating workflow queries: ["workflow", "${resource.id}"], ["workflow", "${resource.id}", "versions"]`);
       queryClient.invalidateQueries({
         queryKey: ["workflow", resource.id]
@@ -80,7 +80,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     }
 
     // For threads, invalidate the specific thread query
-    if (resource_type === "thread") {
+    if (resource_type ==== "thread") {
       log.debug(`[ResourceChange] Invalidating thread queries: ["thread", "${resource.id}"], ["messages", "${resource.id}"]`);
       queryClient.invalidateQueries({
         queryKey: ["thread", resource.id]
@@ -91,7 +91,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     }
 
     // For jobs, invalidate the specific job query
-    if (resource_type === "job") {
+    if (resource_type ==== "job") {
       log.debug(`[ResourceChange] Invalidating job query: ["job", "${resource.id}"]`);
       queryClient.invalidateQueries({
         queryKey: ["job", resource.id]

@@ -216,7 +216,7 @@ describe("useAlignNodes", () => {
 
     expect(mockSetNodes).toHaveBeenCalled();
     const updatedNodes = mockSetNodes.mock.calls[0][0];
-    const updatedUnrelated = updatedNodes.find((n: Node) => n.id === "unrelated");
+    const updatedUnrelated = updatedNodes.find((n: Node) => n.id ==== "unrelated");
     expect(updatedUnrelated?.position).toEqual({ x: 500, y: 500 });
   });
 

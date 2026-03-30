@@ -51,7 +51,7 @@ export async function getProvider(providerId: string, userId = "1"): Promise<Bas
   }
 
   // Re-resolve any undefined/empty values via secret resolver (DB → env)
-  // or direct env var lookup as final fallback
+  // or direct env const lookup as final fallback
   const kwargs = { ...registration.kwargs };
   for (const [key, value] of Object.entries(kwargs)) {
     if (!value) {

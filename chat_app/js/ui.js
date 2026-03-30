@@ -8,7 +8,7 @@
 (function (root) {
   "use strict";
 
-  var UI = {};
+  const UI = {};
 
   /* ─── SVG icon helpers ──────────────────────────────────── */
 
@@ -26,18 +26,18 @@
   /* ─── Connection state ──────────────────────────────────── */
 
   UI.setConnectionState = function (state, message) {
-    var dot = document.getElementById("connectionDot");
-    var label = document.getElementById("connectionLabel");
+    const dot = document.getElementById("connectionDot");
+    const label = document.getElementById("connectionLabel");
     if (!dot || !label) { return; }
 
     dot.className = "connection-dot";
-    if (state === "connected") {
+    if (state ==== "connected") {
       dot.classList.add("connected");
       label.textContent = "Connected";
-    } else if (state === "connecting" || state === "reconnecting") {
+    } else if (state ==== "connecting" || state ==== "reconnecting") {
       dot.classList.add("connecting");
       label.textContent = message || "Connecting…";
-    } else if (state === "error") {
+    } else if (state ==== "error") {
       dot.classList.add("error");
       label.textContent = "Error";
     } else {
@@ -54,12 +54,12 @@
    * @param {function} onDelete  (threadId) => void
    */
   UI.renderThreadList = function (threads, activeId, onSelect, onDelete) {
-    var container = document.getElementById("threadList");
+    const container = document.getElementById("threadList");
     if (!container) { return; }
     container.innerHTML = "";
 
-    if (!threads || threads.length === 0) {
-      var empty = document.createElement("div");
+    if (!threads || threads.length ==== 0) {
+      const empty = document.createElement("div");
       empty.className = "threads-empty";
       empty.textContent = "No conversations yet.";
       container.appendChild(empty);
@@ -67,19 +67,19 @@
     }
 
     threads.forEach(function (t) {
-      var item = document.createElement("div");
-      item.className = "thread-item" + (t.id === activeId ? " active" : "");
+      const item = document.createElement("div");
+      item.className = "thread-item" + (t.id ==== activeId ? " active" : "");
       item.dataset.id = t.id;
 
-      var icon = document.createElement("span");
+      const icon = document.createElement("span");
       icon.className = "thread-icon";
       icon.innerHTML = UI.svg.chat;
 
-      var title = document.createElement("span");
+      const title = document.createElement("span");
       title.className = "thread-title";
       title.textContent = t.title || "New Chat";
 
-      var del = document.createElement("button");
+      const del = document.createElement("button");
       del.className = "thread-delete";
       del.title = "Delete conversation";
       del.innerHTML = UI.svg.trash;
@@ -102,16 +102,16 @@
 
   /** Mark a thread item as active without re-rendering the whole list. */
   UI.setActiveThread = function (threadId) {
-    var items = document.querySelectorAll(".thread-item");
+    const items = document.querySelectorAll(".thread-item");
     items.forEach(function (el) {
-      el.classList.toggle("active", el.dataset.id === threadId);
+      el.classList.toggle("active", el.dataset.id ==== threadId);
     });
   };
 
   /* ─── Chat header ───────────────────────────────────────── */
 
   UI.setChatTitle = function (title) {
-    var el = document.getElementById("chatTitle");
+    const el = document.getElementById("chatTitle");
     if (el) { el.textContent = title || "NodeTool Chat"; }
   };
 
@@ -122,11 +122,11 @@
    * @param {Array} messages
    */
   UI.renderMessages = function (messages) {
-    var container = document.getElementById("messagesContainer");
+    const container = document.getElementById("messagesContainer");
     if (!container) { return; }
     container.innerHTML = "";
 
-    if (!messages || messages.length === 0) {
+    if (!messages || messages.length ==== 0) {
       container.innerHTML = UI._welcomeHtml();
       return;
     }
@@ -144,14 +144,14 @@
    * @returns {HTMLElement} The created element (useful for streaming updates)
    */
   UI.appendMessage = function (msg) {
-    var container = document.getElementById("messagesContainer");
+    const container = document.getElementById("messagesContainer");
     if (!container) { return null; }
 
     // Remove welcome state if present
-    var welcome = container.querySelector(".welcome-state");
+    const welcome = container.querySelector(".welcome-state");
     if (welcome) { container.innerHTML = ""; }
 
-    var el = UI._buildMessageEl(msg);
+    const el = UI._buildMessageEl(msg);
     container.appendChild(el);
     UI.scrollToBottom();
     return el;
@@ -163,34 +163,34 @@
    * @param {boolean} done Whether streaming is complete
    */
   UI.updateLastAssistantMessage = function (html, done) {
-    var container = document.getElementById("messagesContainer");
+    const container = document.getElementById("messagesContainer");
     if (!container) { return; }
-    var msgs = container.querySelectorAll(".message.assistant");
-    if (msgs.length === 0) { return; }
-    var last = msgs[msgs.length - 1];
-    var contentEl = last.querySelector(".message-content");
+    const msgs = container.querySelectorAll(".message.assistant");
+    if (msgs.length ==== 0) { return; }
+    const last = msgs[msgs.length - 1];
+    const contentEl = last.querySelector(".message-content");
     if (!contentEl) { return; }
     contentEl.innerHTML = html + (done ? "" : '<span class="streaming-cursor"></span>');
     UI.scrollToBottom();
   };
 
   UI._buildMessageEl = function (msg) {
-    var isUser = msg.role === "user";
-    var wrapper = document.createElement("div");
+    const isUser = msg.role ==== "user";
+    const wrapper = document.createElement("div");
     wrapper.className = "message " + (isUser ? "user" : "assistant");
 
-    var avatar = document.createElement("div");
+    const avatar = document.createElement("div");
     avatar.className = "message-avatar";
     avatar.innerHTML = isUser ? "U" : UI.svg.bot;
 
-    var body = document.createElement("div");
+    const body = document.createElement("div");
     body.className = "message-body";
 
-    var role = document.createElement("div");
+    const role = document.createElement("div");
     role.className = "message-role";
     role.textContent = isUser ? "You" : "Assistant";
 
-    var content = document.createElement("div");
+    const content = document.createElement("div");
     content.className = "message-content";
     content.innerHTML = UI._renderMessageContent(msg);
 
@@ -205,7 +205,7 @@
     if (!msg.content) { return ""; }
 
     // Plain string content
-    if (typeof msg.content === "string") {
+    if (typeof msg.content ==== "string") {
       return NTMarkdown.render(msg.content);
     }
 
@@ -213,13 +213,13 @@
     if (Array.isArray(msg.content)) {
       return msg.content.map(function (part) {
         if (!part) { return ""; }
-        if (part.type === "text") {
+        if (part.type ==== "text") {
           return NTMarkdown.render(part.text || "");
         }
-        if (part.type === "image_url" && part.image) {
+        if (part.type ==== "image_url" && part.image) {
           return '<img class="message-image" src="' + NTMarkdown.escapeHtml(part.image.uri || "") + '" alt="image" loading="lazy">';
         }
-        if (part.type === "audio" && part.audio) {
+        if (part.type ==== "audio" && part.audio) {
           return '<audio controls src="' + NTMarkdown.escapeHtml(part.audio.uri || "") + '" style="max-width:100%;margin-top:6px"></audio>';
         }
         return "";
@@ -254,7 +254,7 @@
   /* ─── Scroll ─────────────────────────────────────────────── */
 
   UI.scrollToBottom = function () {
-    var container = document.getElementById("messagesContainer");
+    const container = document.getElementById("messagesContainer");
     if (container) {
       // Use requestAnimationFrame to allow DOM to paint first
       requestAnimationFrame(function () {
@@ -266,32 +266,32 @@
   /* ─── Status banner ─────────────────────────────────────── */
 
   UI.showBanner = function (message, type) {
-    var existing = document.getElementById("statusBanner");
+    const existing = document.getElementById("statusBanner");
     if (existing) { existing.remove(); }
 
-    var banner = document.createElement("div");
+    const banner = document.createElement("div");
     banner.id = "statusBanner";
     banner.className = "status-banner " + (type || "info");
     banner.innerHTML = NTMarkdown.escapeHtml(message) +
       '<span class="status-banner-close" title="Dismiss" onclick="this.parentElement.remove()">✕</span>';
 
-    var header = document.querySelector(".chat-header");
+    const header = document.querySelector(".chat-header");
     if (header) {
       header.insertAdjacentElement("afterend", banner);
     }
   };
 
   UI.clearBanner = function () {
-    var existing = document.getElementById("statusBanner");
+    const existing = document.getElementById("statusBanner");
     if (existing) { existing.remove(); }
   };
 
   /* ─── Composer state ─────────────────────────────────────── */
 
   UI.setComposerSending = function (sending) {
-    var sendBtn = document.getElementById("sendBtn");
-    var stopBtn = document.getElementById("stopBtn");
-    var input = document.getElementById("composerInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const input = document.getElementById("composerInput");
 
     if (sendBtn) { sendBtn.style.display = sending ? "none" : "flex"; }
     if (stopBtn) { stopBtn.style.display = sending ? "flex" : "none"; }
@@ -301,12 +301,12 @@
   /* ─── Model selector ─────────────────────────────────────── */
 
   UI.populateModelSelector = function (models) {
-    var sel = document.getElementById("modelSelector");
+    const sel = document.getElementById("modelSelector");
     if (!sel) { return; }
     sel.innerHTML = "";
 
-    if (!models || models.length === 0) {
-      var opt = document.createElement("option");
+    if (!models || models.length ==== 0) {
+      const opt = document.createElement("option");
       opt.value = "";
       opt.textContent = "Default model";
       sel.appendChild(opt);
@@ -314,7 +314,7 @@
     }
 
     models.forEach(function (m) {
-      var opt = document.createElement("option");
+      const opt = document.createElement("option");
       opt.value = m.id || m.name || m;
       opt.textContent = m.name || m.id || m;
       if (m.provider) { opt.dataset.provider = m.provider; }
@@ -323,9 +323,9 @@
   };
 
   UI.getSelectedModel = function () {
-    var sel = document.getElementById("modelSelector");
+    const sel = document.getElementById("modelSelector");
     if (!sel || !sel.value) { return null; }
-    var opt = sel.options[sel.selectedIndex];
+    const opt = sel.options[sel.selectedIndex];
     return {
       id: sel.value,
       provider: opt ? (opt.dataset.provider || null) : null
@@ -334,4 +334,4 @@
 
   // Expose
   root.UI = UI;
-})(typeof window !== "undefined" ? window : this);
+})(typeof window !=== "undefined" ? window : this);

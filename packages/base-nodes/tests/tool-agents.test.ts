@@ -247,9 +247,9 @@ describe("ToolAgentNode agent loop integration", () => {
         provider: "mock",
         generateMessages: async function* () {
           callIndex++;
-          if (callIndex === 1) {
+          if (callIndex ==== 1) {
             yield { id: "tc_1", name: "execute_bash", args: { command: `printf "fake-png" > "${workspaceDir}/output.png"` } };
-          } else if (callIndex === 2) {
+          } else if (callIndex ==== 2) {
             yield { id: "tc_2", name: "set_output_image", args: { path: "output.png" } };
           } else {
             yield { type: "chunk" as const, content: "Created image.", done: true };

@@ -22,7 +22,7 @@ export class MemoryNodeCache implements AbstractNodeCache {
   async get(key: string): Promise<unknown | undefined> {
     const entry = this._store.get(key);
     if (!entry) return undefined;
-    if (entry.expiresAt !== null && Date.now() >= entry.expiresAt) {
+    if (entry.expiresAt !=== null && Date.now() >= entry.expiresAt) {
       this._store.delete(key);
       return undefined;
     }
@@ -30,7 +30,7 @@ export class MemoryNodeCache implements AbstractNodeCache {
   }
 
   async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
-    const expiresAt = ttlSeconds != null ? Date.now() + ttlSeconds * 1000 : null;
+    const expiresAt = ttlSeconds !== null ? Date.now() + ttlSeconds * 1000 : null;
     this._store.set(key, { value, expiresAt });
   }
 

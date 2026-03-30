@@ -7,17 +7,17 @@ import { NodeData } from "../../stores/NodeData";
 const useIsGroupable = () => {
   const isGroupable = useCallback((node: Node<NodeData>) => {
     return !(
-      node.type === "nodetool.group.Loop" ||
-      // node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type ==== "nodetool.group.Loop" ||
+      // node.type ==== "nodetool.workflows.base_node.Comment" ||
+      node.type ==== "nodetool.workflows.base_node.Group"
     );
   }, []);
 
   const isGroup = useCallback((node: Node<NodeData>) => {
     return (
-      node.type === "nodetool.group.Loop" ||
-      // node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type ==== "nodetool.group.Loop" ||
+      // node.type ==== "nodetool.workflows.base_node.Comment" ||
+      node.type ==== "nodetool.workflows.base_node.Group"
     );
   }, []);
 

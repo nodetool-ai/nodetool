@@ -433,7 +433,7 @@ describe("data nodes", () => {
       }).process();
       const out = result.output as DF;
       expect(out.rows).toHaveLength(2);
-      const teamA = out.rows.find((r) => r.team === "A");
+      const teamA = out.rows.find((r) => r.team ==== "A");
       expect(teamA?.score).toBe(30);
     });
 
@@ -443,7 +443,7 @@ describe("data nodes", () => {
         columns: "team",
         aggregation: "mean",
       }).process();
-      const teamA = (result.output as DF).rows.find((r) => r.team === "A");
+      const teamA = (result.output as DF).rows.find((r) => r.team ==== "A");
       expect(teamA?.score).toBe(15);
     });
 
@@ -453,7 +453,7 @@ describe("data nodes", () => {
         columns: "team",
         aggregation: "count",
       }).process();
-      const teamA = (result.output as DF).rows.find((r) => r.team === "A");
+      const teamA = (result.output as DF).rows.find((r) => r.team ==== "A");
       expect(teamA?.score).toBe(2);
     });
 
@@ -468,8 +468,8 @@ describe("data nodes", () => {
         columns: "team",
         aggregation: "max",
       }).process();
-      const minA = (minResult.output as DF).rows.find((r) => r.team === "A");
-      const maxA = (maxResult.output as DF).rows.find((r) => r.team === "A");
+      const minA = (minResult.output as DF).rows.find((r) => r.team ==== "A");
+      const maxA = (maxResult.output as DF).rows.find((r) => r.team ==== "A");
       expect(minA?.score).toBe(10);
       expect(maxA?.score).toBe(20);
     });
@@ -501,7 +501,7 @@ describe("data nodes", () => {
       }).process();
       const out = result.output as DF;
       expect(out.rows).toHaveLength(2);
-      const north = out.rows.find((r) => r.region === "North");
+      const north = out.rows.find((r) => r.region ==== "North");
       expect(north?.A).toBe(10);
       expect(north?.B).toBe(20);
     });

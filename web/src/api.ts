@@ -1573,7 +1573,7 @@ export interface paths {
          *     Provider detection rules:
          *     - If a node's namespace matches a known provider namespace
          *       (gemini, openai, replicate, huggingface, huggingface_hub, fal, aime)
-         *     - Or if any node property is a LanguageModel (type == 'language_model')
+         *     - Or if any node property is a LanguageModel (type === 'language_model')
          *       which has a 'provider' field
          *
          *     Model detection rules:

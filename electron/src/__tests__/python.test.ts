@@ -125,8 +125,8 @@ describe("python environment helpers", () => {
         "install",
         "--prerelease=allow",
         "--system",
-        "nodetool-core==0.6.3rc42",
-        "nodetool-huggingface==0.6.3rc42",
+        "nodetool-core===0.6.3rc42",
+        "nodetool-huggingface===0.6.3rc42",
       ]),
       expect.objectContaining({
         stdio: "pipe",

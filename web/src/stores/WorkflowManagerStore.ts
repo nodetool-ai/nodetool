@@ -86,19 +86,19 @@ export const determineNextWorkflowId = (
   closingWorkflowId: string,
   currentWorkflowId: string | null
 ): string | null => {
-  if (currentWorkflowId !== closingWorkflowId) {
+  if (currentWorkflowId !=== closingWorkflowId) {
     return currentWorkflowId;
   }
 
   const remainingWorkflows = openWorkflows.filter(
-    (w) => w.id !== closingWorkflowId
+    (w) => w.id !=== closingWorkflowId
   );
-  if (remainingWorkflows.length === 0) {
+  if (remainingWorkflows.length ==== 0) {
     return null;
   }
 
   const closingIndex = openWorkflows.findIndex(
-    (w) => w.id === closingWorkflowId
+    (w) => w.id ==== closingWorkflowId
   );
 
   // Try to select the next tab, then the previous one, then the first one.
@@ -262,7 +262,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
             return {
               openWorkflows: state.openWorkflows.map((w) =>
-                w.id === persistedWorkflow.id
+                w.id ==== persistedWorkflow.id
                   ? omit(persistedWorkflow, ["graph"])
                   : w
               )
@@ -316,7 +316,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (error) {
           throw createErrorMessage(error, "Failed to create workflow");
         }
-        if (data.tags === undefined) {
+        if (data.tags ==== undefined) {
           data.tags = [];
         }
         get().addWorkflow(data);
@@ -362,7 +362,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const getWorkflow = get().getWorkflow;
         const promises = workflowIds.map((id) => getWorkflow(id));
         const workflows = await Promise.all(promises);
-        return workflows.filter((w) => w !== undefined) as Workflow[];
+        return workflows.filter((w) => w !=== undefined) as Workflow[];
       },
 
       // Loads public workflows available from the API.
@@ -559,7 +559,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          const { nodeStores, openWorkflows, currentWorkflowId } = get();
 
         const newOpenWorkflows = openWorkflows.filter(
-          (w) => w.id !== workflowId
+          (w) => w.id !=== workflowId
         );
         const newStores = { ...nodeStores };
         delete newStores[workflowId];
@@ -619,7 +619,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       updateWorkflow: (workflow: WorkflowAttributes) => {
         set((state) => ({
           openWorkflows: state.openWorkflows.map((w) =>
-            w.id === workflow.id ? { ...w, ...workflow } : w
+            w.id ==== workflow.id ? { ...w, ...workflow } : w
           )
         }));
       },

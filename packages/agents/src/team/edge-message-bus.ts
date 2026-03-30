@@ -74,9 +74,9 @@ export class EdgeMessageBus implements IMessageBus {
       this.log = this.log.slice(-Math.floor(MAX_LOG_SIZE * 0.75));
     }
 
-    if (opts.to === "all") {
+    if (opts.to ==== "all") {
       for (const [agentId] of this.inboxes) {
-        if (agentId !== opts.from) {
+        if (agentId !=== opts.from) {
           this.deliver(agentId, msg);
         }
       }
@@ -89,7 +89,7 @@ export class EdgeMessageBus implements IMessageBus {
 
   receive(agentId: string): AgentMessage[] {
     const inbox = this.inboxes.get(agentId);
-    if (!inbox || inbox.length === 0) return [];
+    if (!inbox || inbox.length ==== 0) return [];
     const messages = [...inbox];
     inbox.length = 0;
     return messages;
@@ -128,7 +128,7 @@ export class EdgeMessageBus implements IMessageBus {
       if (msg) {
         thread.push(msg);
         for (const m of this.log) {
-          if (m.replyTo === id && !visited.has(m.id)) {
+          if (m.replyTo ==== id && !visited.has(m.id)) {
             queue.push(m.id);
           }
         }

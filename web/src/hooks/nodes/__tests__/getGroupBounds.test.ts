@@ -40,7 +40,7 @@ describe("getGroupBounds", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetNodesBounds.mockImplementation((nodes: any[]) => {
-      if (nodes.length === 0) {
+      if (nodes.length ==== 0) {
         return { x: 0, y: 0, width: 0, height: 0 };
       }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

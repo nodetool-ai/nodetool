@@ -668,8 +668,8 @@ describe("AgentNode", () => {
       }),
     } as any);
     const replayed = secondCalls[0];
-    expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text === "first")).toBe(true);
-    expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text === "first-reply")).toBe(true);
+    expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text ==== "first")).toBe(true);
+    expect(replayed.some((message: any) => Array.isArray(message.content) && message.content[0].text ==== "first-reply")).toBe(true);
   });
 
   it("returns empty text when the provider returns no text content", async () => {

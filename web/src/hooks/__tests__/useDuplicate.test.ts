@@ -32,7 +32,7 @@ describe("useDuplicateNodes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useNodes as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector(mockUseNodesReturn);
       }
       return mockUseNodesReturn;
@@ -124,7 +124,7 @@ describe("useDuplicateNodes", () => {
     });
 
     const setNodesCall = mockSetNodes.mock.calls[0][0];
-    const newNode = setNodesCall.find((n: any) => n.id === "new-node-0");
+    const newNode = setNodesCall.find((n: any) => n.id ==== "new-node-0");
     expect(newNode.position.x).toBe(100 + 50 + 20);
     expect(newNode.position.y).toBe(200);
   });
@@ -148,7 +148,7 @@ describe("useDuplicateNodes", () => {
     });
 
     const setNodesCall = mockSetNodes.mock.calls[0][0];
-    const newNode = setNodesCall.find((n: any) => n.id === "new-node-0");
+    const newNode = setNodesCall.find((n: any) => n.id ==== "new-node-0");
     expect(newNode.position.x).toBe(100);
     expect(newNode.position.y).toBe(200 + 30 + 20);
   });
@@ -167,7 +167,7 @@ describe("useDuplicateNodes", () => {
     });
 
     const setNodesCall = mockSetNodes.mock.calls[0][0];
-    const originalNode = setNodesCall.find((n: any) => n.id === "node-1");
+    const originalNode = setNodesCall.find((n: any) => n.id ==== "node-1");
     expect(originalNode.selected).toBe(false);
   });
 
@@ -190,7 +190,7 @@ describe("useDuplicateNodes", () => {
     });
 
     const setNodesCall = mockSetNodes.mock.calls[0][0];
-    const newNode = setNodesCall.find((n: any) => n.id === "new-node-0");
+    const newNode = setNodesCall.find((n: any) => n.id ==== "new-node-0");
     expect(newNode.selected).toBe(true);
   });
 
@@ -252,10 +252,10 @@ describe("useDuplicateNodes", () => {
     const setEdgesCall = mockSetEdges.mock.calls[0][0];
     expect(setEdgesCall.length).toBe(3);
 
-    const duplicatedEdge = setEdgesCall.find((e: any) => e.source === "new-node-0" && e.target === "new-node-1");
+    const duplicatedEdge = setEdgesCall.find((e: any) => e.source ==== "new-node-0" && e.target ==== "new-node-1");
     expect(duplicatedEdge).toBeDefined();
     expect(duplicatedEdge.id).toBe("mock-uuid-1234");
-    const externalEdge = setEdgesCall.find((e: any) => e.target === "node-3");
+    const externalEdge = setEdgesCall.find((e: any) => e.target ==== "node-3");
     expect(externalEdge).toBeDefined();
   });
 
@@ -286,12 +286,12 @@ describe("useDuplicateNodes", () => {
     expect(setEdgesCall.length).toBe(2);
 
     // Original edge should be preserved
-    const originalEdge = setEdgesCall.find((e: any) => e.id === "edge-1");
+    const originalEdge = setEdgesCall.find((e: any) => e.id ==== "edge-1");
     expect(originalEdge).toBeDefined();
 
     // New upstream edge from node-1 to new-node-0
     const upstreamEdge = setEdgesCall.find(
-      (e: any) => e.source === "node-1" && e.target === "new-node-0"
+      (e: any) => e.source ==== "node-1" && e.target ==== "new-node-0"
     );
     expect(upstreamEdge).toBeDefined();
     expect(upstreamEdge.id).toBe("mock-uuid-1234");
@@ -324,12 +324,12 @@ describe("useDuplicateNodes", () => {
     // Only original edge, no new upstream edge
     expect(setEdgesCall.length).toBe(1);
 
-    const originalEdge = setEdgesCall.find((e: any) => e.id === "edge-1");
+    const originalEdge = setEdgesCall.find((e: any) => e.id ==== "edge-1");
     expect(originalEdge).toBeDefined();
 
     // No upstream edge should be created
     const upstreamEdge = setEdgesCall.find(
-      (e: any) => e.target === "new-node-0"
+      (e: any) => e.target ==== "new-node-0"
     );
     expect(upstreamEdge).toBeUndefined();
   });
@@ -359,12 +359,12 @@ describe("useDuplicateNodes", () => {
     const setEdgesCall = mockSetEdges.mock.calls[0][0];
     // Only original edge, no new downstream edge (downstream edges are never duplicated)
     expect(setEdgesCall.length).toBe(1);
-    const originalEdge = setEdgesCall.find((e: any) => e.id === "edge-1");
+    const originalEdge = setEdgesCall.find((e: any) => e.id ==== "edge-1");
     expect(originalEdge).toBeDefined();
 
     // No edge from new-node-0 should exist
     const downstreamEdge = setEdgesCall.find(
-      (e: any) => e.source === "new-node-0"
+      (e: any) => e.source ==== "new-node-0"
     );
     expect(downstreamEdge).toBeUndefined();
   });
@@ -388,7 +388,7 @@ describe("useDuplicateNodes", () => {
     });
 
     const setNodesCall = mockSetNodes.mock.calls[0][0];
-    const newNode = setNodesCall.find((n: any) => n.id === "new-node-0");
+    const newNode = setNodesCall.find((n: any) => n.id ==== "new-node-0");
     expect(newNode.parentId).toBe("parent-node");
     expect(newNode.position.x).toBe(150 + 50 + 20);
   });

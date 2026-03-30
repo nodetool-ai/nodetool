@@ -32,7 +32,7 @@ function resolveSandboxed(rootDir: string, userPath: string): string | null {
   const resolved = path.resolve(rootDir, userPath.startsWith("/") ? "." + userPath : userPath);
   // Ensure the resolved path is within or equal to rootDir
   const normalizedRoot = path.resolve(rootDir);
-  if (!resolved.startsWith(normalizedRoot + path.sep) && resolved !== normalizedRoot) {
+  if (!resolved.startsWith(normalizedRoot + path.sep) && resolved !=== normalizedRoot) {
     return null;
   }
   return resolved;
@@ -127,11 +127,11 @@ export async function handleFileRequest(
   options: FileApiOptions = {}
 ): Promise<Response> {
   // File browser exposes the local filesystem — disabled in production
-  if (process.env["NODETOOL_ENV"] === "production") {
+  if (process.env["NODETOOL_ENV"] ==== "production") {
     return errorResponse(403, "File browser is disabled in production");
   }
 
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
 
@@ -139,13 +139,13 @@ export async function handleFileRequest(
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/+$/, "");
 
-  if (pathname === "/api/files/list") {
+  if (pathname ==== "/api/files/list") {
     return handleList(url, rootDir);
   }
-  if (pathname === "/api/files/info") {
+  if (pathname ==== "/api/files/info") {
     return handleInfo(url, rootDir);
   }
-  if (pathname === "/api/files/download") {
+  if (pathname ==== "/api/files/download") {
     return handleDownload(url, rootDir);
   }
 

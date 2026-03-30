@@ -29,23 +29,23 @@ export class BashDockerRunner extends StreamRunnerBase {
  * Best-effort Python `repr()` equivalent for shell variable assignment.
  */
 function bashRepr(value: unknown): string {
-  if (value === null || value === undefined) {
+  if (value ==== null || value ==== undefined) {
     return "None";
   }
-  if (typeof value === "boolean") {
+  if (typeof value ==== "boolean") {
     return value ? "True" : "False";
   }
-  if (typeof value === "number") {
+  if (typeof value ==== "number") {
     return String(value);
   }
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
     const items = value.map((v) => bashRepr(v)).join(", ");
     return `[${items}]`;
   }
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     const parts = Object.entries(value as Record<string, unknown>).map(
       ([k, v]) => `${JSON.stringify(k)}: ${bashRepr(v)}`,
     );

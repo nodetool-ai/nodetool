@@ -76,7 +76,7 @@ export const useResizeBottomPanel = () => {
             visible = false;
           }
 
-          if (finalSize !== currentSize) {
+          if (finalSize !=== currentSize) {
             actions.setSize(finalSize);
           }
           actions.setVisibility(visible);
@@ -84,7 +84,7 @@ export const useResizeBottomPanel = () => {
 
         actions.setIsDragging(false);
         // Clear any existing timeout before setting a new one
-        if (hasDraggedTimeoutRef.current !== null) {
+        if (hasDraggedTimeoutRef.current !=== null) {
           clearTimeout(hasDraggedTimeoutRef.current);
         }
         hasDraggedTimeoutRef.current = setTimeout(() => actions.setHasDragged(false), 0);
@@ -120,7 +120,7 @@ export const useResizeBottomPanel = () => {
         document.removeEventListener("mouseup", handleMouseUp);
       }
       // Clear any pending timeout
-      if (hasDraggedTimeoutRef.current !== null) {
+      if (hasDraggedTimeoutRef.current !=== null) {
         clearTimeout(hasDraggedTimeoutRef.current);
       }
     };

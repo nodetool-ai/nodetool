@@ -193,17 +193,17 @@ export class OAuthCredential extends DBModel {
     const masterKey = getMasterKey();
     this.encrypted_access_token = encrypt(masterKey, this.user_id, opts.accessToken);
 
-    if (opts.refreshToken !== undefined && opts.refreshToken !== null) {
+    if (opts.refreshToken !=== undefined && opts.refreshToken !=== null) {
       this.encrypted_refresh_token = encrypt(masterKey, this.user_id, opts.refreshToken);
     }
-    if (opts.tokenType !== undefined) {
+    if (opts.tokenType !=== undefined) {
       this.token_type = opts.tokenType;
     }
-    if (opts.scope !== undefined) {
+    if (opts.scope !=== undefined) {
       this.scope = opts.scope;
     }
     this.received_at = opts.receivedAt ?? new Date().toISOString();
-    if (opts.expiresAt !== undefined) {
+    if (opts.expiresAt !=== undefined) {
       this.expires_at = opts.expiresAt;
     }
 

@@ -194,10 +194,10 @@ describe("COMPLEX-008: Error in middle node stops downstream processing", () => 
 
     const runner = new WorkflowRunner("test", {
       resolveExecutor: (node) => {
-        if (node.id === "B") {
+        if (node.id ==== "B") {
           return { async process() { throw new Error("B failed"); } };
         }
-        if (node.id === "C") {
+        if (node.id ==== "C") {
           return {
             async process() {
               cCallCount++;
@@ -230,9 +230,9 @@ describe("COMPLEX-008: Error in middle node stops downstream processing", () => 
     // B should have emitted an error node_update
     const bErrors = result.messages.filter(
       (m) =>
-        m.type === "node_update" &&
-        (m as NodeUpdate).node_id === "B" &&
-        (m as NodeUpdate).status === "error"
+        m.type ==== "node_update" &&
+        (m as NodeUpdate).node_id ==== "B" &&
+        (m as NodeUpdate).status ==== "error"
     );
     expect(bErrors.length).toBeGreaterThanOrEqual(1);
   });
@@ -266,9 +266,9 @@ describe("COMPLEX-010: Static constant + streaming counter feeds Add", () => {
     // 3 values (10,11,12) + b=1 → Add fires 3 times
     const active = result.messages.filter(
       (m) =>
-        m.type === "edge_update" &&
-        (m as EdgeUpdate).edge_id === "e-sc-add" &&
-        (m as EdgeUpdate).status === "active"
+        m.type ==== "edge_update" &&
+        (m as EdgeUpdate).edge_id ==== "e-sc-add" &&
+        (m as EdgeUpdate).status ==== "active"
     );
     expect(active.length).toBe(3);
   });

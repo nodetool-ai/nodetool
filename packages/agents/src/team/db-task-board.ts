@@ -112,7 +112,7 @@ export class DbTaskBoard implements ITaskBoard {
 
   claim(taskId: string, agentId: string): boolean {
     const row = this.getRow(taskId);
-    if (!row || row.status !== "open") return false;
+    if (!row || row.status !=== "open") return false;
     if (!this.dependenciesMet(taskId)) return false;
 
     const result = this.db()
@@ -121,7 +121,7 @@ export class DbTaskBoard implements ITaskBoard {
       .where(and(eq(teamTasks.id, taskId), eq(teamTasks.status, "open")))
       .run();
 
-    if (result.changes === 0) return false;
+    if (result.changes ==== 0) return false;
 
     this.emit({
       type: "task_claimed",
@@ -134,7 +134,7 @@ export class DbTaskBoard implements ITaskBoard {
 
   startWork(taskId: string, agentId: string): boolean {
     const row = this.getRow(taskId);
-    if (!row || row.claimed_by !== agentId || row.status !== "claimed") {
+    if (!row || row.claimed_by !=== agentId || row.status !=== "claimed") {
       return false;
     }
 
@@ -158,7 +158,7 @@ export class DbTaskBoard implements ITaskBoard {
     opts?: { result?: unknown; artifacts?: unknown[] }
   ): boolean {
     const row = this.getRow(taskId);
-    if (!row || (row.status !== "working" && row.status !== "claimed")) {
+    if (!row || (row.status !=== "working" && row.status !=== "claimed")) {
       return false;
     }
 
@@ -189,7 +189,7 @@ export class DbTaskBoard implements ITaskBoard {
 
   fail(taskId: string, reason: string): boolean {
     const row = this.getRow(taskId);
-    if (!row || row.status === "done" || row.status === "failed") {
+    if (!row || row.status ==== "done" || row.status ==== "failed") {
       return false;
     }
 
@@ -210,7 +210,7 @@ export class DbTaskBoard implements ITaskBoard {
 
   block(taskId: string): boolean {
     const row = this.getRow(taskId);
-    if (!row || row.status === "done" || row.status === "failed") {
+    if (!row || row.status ==== "done" || row.status ==== "failed") {
       return false;
     }
 
@@ -224,7 +224,7 @@ export class DbTaskBoard implements ITaskBoard {
 
   unblock(taskId: string): boolean {
     const row = this.getRow(taskId);
-    if (!row || row.status !== "blocked") return false;
+    if (!row || row.status !=== "blocked") return false;
 
     this.db()
       .update(teamTasks)
@@ -329,8 +329,8 @@ export class DbTaskBoard implements ITaskBoard {
       .where(eq(teamTasks.team_id, this.teamId))
       .all();
 
-    if (rows.length === 0) return false;
-    return rows.every((r) => r.status === "done" || r.status === "failed");
+    if (rows.length ==== 0) return false;
+    return rows.every((r) => r.status ==== "done" || r.status ==== "failed");
   }
 
   detectDeadlock(): string[] | null {
@@ -344,21 +344,21 @@ export class DbTaskBoard implements ITaskBoard {
     const stuck: string[] = [];
 
     for (const row of rows) {
-      if (row.status === "done" || row.status === "failed") continue;
-      if (row.status === "claimed" || row.status === "working") {
+      if (row.status ==== "done" || row.status ==== "failed") continue;
+      if (row.status ==== "claimed" || row.status ==== "working") {
         active.push(row.id);
-      } else if (row.status === "open" && !this.dependenciesMet(row.id)) {
+      } else if (row.status ==== "open" && !this.dependenciesMet(row.id)) {
         stuck.push(row.id);
-      } else if (row.status === "blocked") {
+      } else if (row.status ==== "blocked") {
         stuck.push(row.id);
       }
     }
 
-    if (stuck.length > 0 && active.length === 0) {
+    if (stuck.length > 0 && active.length ==== 0) {
       const claimable = rows.filter(
-        (r) => r.status === "open" && this.dependenciesMet(r.id)
+        (r) => r.status ==== "open" && this.dependenciesMet(r.id)
       );
-      if (claimable.length === 0) return stuck;
+      if (claimable.length ==== 0) return stuck;
     }
 
     return null;
@@ -373,8 +373,8 @@ export class DbTaskBoard implements ITaskBoard {
 
     for (const row of rows) {
       const subtasks = this.getSubtasks(row.id);
-      if (subtasks.length === 0) continue;
-      if (subtasks.every((s) => s.status === "done")) {
+      if (subtasks.length ==== 0) continue;
+      if (subtasks.every((s) => s.status ==== "done")) {
         const allArtifacts = subtasks.flatMap((s) => s.artifacts);
         const result = subtasks.map((s) => s.result);
 
@@ -413,11 +413,11 @@ export class DbTaskBoard implements ITaskBoard {
     const row = this.getRow(taskId);
     if (!row) return false;
     const deps = row.depends_on ?? [];
-    if (deps.length === 0) return true;
+    if (deps.length ==== 0) return true;
 
     for (const depId of deps) {
       const dep = this.getRow(depId);
-      if (dep?.status !== "done") return false;
+      if (dep?.status !=== "done") return false;
     }
     return true;
   }

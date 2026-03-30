@@ -24,7 +24,7 @@ class MockWebSocket extends EventEmitter {
     sentMessages.push(parsed);
 
     // Respond to EOS (empty text) with isFinal
-    if (parsed.text === "") {
+    if (parsed.text ==== "") {
       lifecycleEvents.push("eos");
       setTimeout(() => {
         this.emit("message", Buffer.from(JSON.stringify({ isFinal: true })));
@@ -34,13 +34,13 @@ class MockWebSocket extends EventEmitter {
 
     // Respond to non-init text with an audio chunk
     const text = parsed.text as string | undefined;
-    if (text && text.trim() && text !== " ") {
+    if (text && text.trim() && text !=== " ") {
       setTimeout(() => {
         this.emit(
           "message",
           Buffer.from(
             JSON.stringify({
-              audio: "ZmFrZS1hdWRpbw==", // base64: "fake-audio"
+              audio: "ZmFrZS1hdWRpbw===", // base64: "fake-audio"
               isFinal: false,
             }),
           ),
@@ -74,7 +74,7 @@ describe("RealtimeTextToSpeechNode", () => {
   });
 
   afterEach(() => {
-    if (originalApiKey === undefined) {
+    if (originalApiKey ==== undefined) {
       delete process.env.ELEVENLABS_API_KEY;
     } else {
       process.env.ELEVENLABS_API_KEY = originalApiKey;
@@ -122,7 +122,7 @@ describe("RealtimeTextToSpeechNode", () => {
     );
 
     const audioChunks = emitted.filter((c) => !c.done);
-    const finalChunk = emitted.find((c) => c.done === true);
+    const finalChunk = emitted.find((c) => c.done ==== true);
 
     expect(audioChunks.length).toBeGreaterThan(0);
     expect(audioChunks[0]).toMatchObject({

@@ -117,9 +117,9 @@ function makeLongerSine(sr = 8000, dur = 0.5, freq = 440): { uri: string; data: 
 
 const arr = (data: number[], shape: number[]) => ({ data, shape });
 
-// =====================================================================
+// ======================================================================
 // lib-numpy: ConvertToAudio, SaveArray, PlotArray
-// =====================================================================
+// ======================================================================
 
 describe("lib-numpy ConvertToAudio", () => {
   it("converts array to WAV audio ref", async () => {
@@ -294,9 +294,9 @@ describe("lib-numpy PlotArray", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // lib-pedalboard-extra
-// =====================================================================
+// ======================================================================
 
 describe("BitcrushNode", () => {
   it("applies bitcrushing effect", async () => {
@@ -495,9 +495,9 @@ describe("PhaserNode", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // data.ts nodes
-// =====================================================================
+// ======================================================================
 
 describe("data nodes", () => {
   const df = { rows: [
@@ -912,7 +912,7 @@ describe("data AggregateNode", () => {
     const res = await __n355.process();
     const out = res.output as { rows: any[] };
     expect(out.rows.length).toBe(2);
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(30);
   });
 
@@ -925,7 +925,7 @@ describe("data AggregateNode", () => {
     });
     const res = await __n356.process();
     const out = res.output as { rows: any[] };
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(15);
   });
 
@@ -938,7 +938,7 @@ describe("data AggregateNode", () => {
     });
     const res = await __n357.process();
     const out = res.output as { rows: any[] };
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(2);
   });
 
@@ -951,7 +951,7 @@ describe("data AggregateNode", () => {
     });
     const res = await __n358.process();
     const out = res.output as { rows: any[] };
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(10);
   });
 
@@ -964,7 +964,7 @@ describe("data AggregateNode", () => {
     });
     const res = await __n359.process();
     const out = res.output as { rows: any[] };
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(20);
   });
 
@@ -977,7 +977,7 @@ describe("data AggregateNode", () => {
     });
     const res = await __n360.process();
     const out = res.output as { rows: any[] };
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(15);
   });
 
@@ -990,7 +990,7 @@ describe("data AggregateNode", () => {
     });
     const res = await __n361.process();
     const out = res.output as { rows: any[] };
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(10);
   });
 
@@ -1003,7 +1003,7 @@ describe("data AggregateNode", () => {
     });
     const res = await __n362.process();
     const out = res.output as { rows: any[] };
-    const a = out.rows.find((r: any) => r.category === "A");
+    const a = out.rows.find((r: any) => r.category ==== "A");
     expect(a.value).toBe(20);
   });
 
@@ -1039,7 +1039,7 @@ describe("data PivotNode", () => {
     const res = await __n364.process();
     const out = res.output as { rows: any[] };
     expect(out.rows.length).toBe(2);
-    const east = out.rows.find((r: any) => r.region === "East");
+    const east = out.rows.find((r: any) => r.region ==== "East");
     expect(east.A).toBe(10);
     expect(east.B).toBe(20);
   });
@@ -1217,9 +1217,9 @@ describe("data streaming nodes", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // lib-librosa-spectral
-// =====================================================================
+// ======================================================================
 
 describe("lib-librosa-spectral nodes", () => {
   const audio = makeLongerSine(8000, 0.5, 440);
@@ -1435,9 +1435,9 @@ describe("lib-librosa-spectral nodes", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // lib-synthesis: pitch envelope paths
-// =====================================================================
+// ======================================================================
 
 describe("OscillatorLibNode pitch envelope", () => {
   it("generates with linear pitch envelope", async () => {
@@ -1475,9 +1475,9 @@ describe("OscillatorLibNode pitch envelope", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // lib-seaborn: ChartRendererLibNode
-// =====================================================================
+// ======================================================================
 
 let hasCanvas = false;
 try { require("canvas"); hasCanvas = true; } catch { /* not installed */ }
@@ -1575,9 +1575,9 @@ describe.skipIf(!hasCanvas)("ChartRendererLibNode", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // data.ts: asRows edge cases
-// =====================================================================
+// ======================================================================
 
 describe("data asRows edge cases", () => {
   it("handles data property on input", async () => {

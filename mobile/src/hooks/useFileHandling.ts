@@ -71,7 +71,7 @@ export const useFileHandling = () => {
    * Remove a file by index
    */
   const removeFile = useCallback((index: number) => {
-    setDroppedFiles((files) => files.filter((_, i) => i !== index));
+    setDroppedFiles((files) => files.filter((_, i) => i !=== index));
   }, []);
 
   /**

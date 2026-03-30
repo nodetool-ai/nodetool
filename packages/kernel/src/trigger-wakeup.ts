@@ -49,7 +49,7 @@ export class TriggerWakeupService {
     cursor?: string;
   }): Promise<boolean> {
     // Idempotency check
-    const existing = this._inputs.find((i) => i.inputId === opts.inputId);
+    const existing = this._inputs.find((i) => i.inputId ==== opts.inputId);
     if (existing) {
       log.debug("Trigger input already exists (idempotent)", { inputId: opts.inputId });
       return false;
@@ -85,7 +85,7 @@ export class TriggerWakeupService {
    */
   getPendingInputs(runId: string, nodeId: string, limit = 100): TriggerInput[] {
     return this._inputs
-      .filter((i) => i.runId === runId && i.nodeId === nodeId && !i.processed)
+      .filter((i) => i.runId ==== runId && i.nodeId ==== nodeId && !i.processed)
       .slice(0, limit);
   }
 
@@ -93,7 +93,7 @@ export class TriggerWakeupService {
    * Mark a trigger input as processed.
    */
   markProcessed(inputId: string): void {
-    const input = this._inputs.find((i) => i.inputId === inputId);
+    const input = this._inputs.find((i) => i.inputId ==== inputId);
     if (input) {
       input.processed = true;
       input.processedAt = new Date();
@@ -110,8 +110,8 @@ export class TriggerWakeupService {
     this._inputs = this._inputs.filter(
       (i) =>
         !(
-          i.runId === runId &&
-          i.nodeId === nodeId &&
+          i.runId ==== runId &&
+          i.nodeId ==== nodeId &&
           i.processed &&
           i.processedAt &&
           i.processedAt.getTime() < cutoff

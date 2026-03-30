@@ -21,7 +21,7 @@ async function resolveProvider(providerId: string, userId: string) {
   return getProvider(providerId.toLowerCase(), userId);
 }
 
-const isProduction = process.env["NODETOOL_ENV"] === "production";
+const isProduction = process.env["NODETOOL_ENV"] ==== "production";
 
 const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, opts) => {
   const { registry, pythonBridge, getPythonBridgeReady, toolClassMap } = opts;
@@ -48,7 +48,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
           return registry.resolve(node);
         }
         if (getPythonBridgeReady() && pythonBridge.hasNodeType(node.type)) {
-          const meta = pythonBridge.getNodeMetadata().find((n) => n.node_type === node.type);
+          const meta = pythonBridge.getNodeMetadata().find((n) => n.node_type ==== node.type);
           const nodeRec = node as Record<string, unknown>;
           const props = (nodeRec.properties ?? nodeRec.data ?? {}) as Record<string, unknown>;
           return new PythonNodeExecutor(
@@ -88,7 +88,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
       (socket as any).on("message", (raw: any) => {
         try {
           const msg = JSON.parse(raw.toString());
-          if (msg.type === "input") {
+          if (msg.type ==== "input") {
             (socket as any).send(JSON.stringify({ type: "output", data: msg.data }));
           }
         } catch {
@@ -108,7 +108,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
         (socket as any).on("message", async (raw: any) => {
           try {
             const msg = JSON.parse(raw.toString());
-            if (msg.command === "start_download") {
+            if (msg.command ==== "start_download") {
               const manager = await getDownloadManager();
               await manager.startDownload(msg.repo_id ?? "", {
                 path: msg.path ?? null,
@@ -120,7 +120,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
                   try { (socket as any).send(JSON.stringify(update)); } catch { /* gone */ }
                 },
               });
-            } else if (msg.command === "cancel_download") {
+            } else if (msg.command ==== "cancel_download") {
               const manager = await getDownloadManager();
               manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
             }

@@ -62,7 +62,7 @@ async function collectMessages(gen: AsyncGenerator<ProcessingMessage>): Promise<
 }
 
 function findStepResults(msgs: ProcessingMessage[]): StepResult[] {
-  return msgs.filter((m) => m.type === "step_result") as StepResult[];
+  return msgs.filter((m) => m.type ==== "step_result") as StepResult[];
 }
 
 function makeContext() {
@@ -112,10 +112,10 @@ describe.skipIf(!sdkAvailable)("Agent E2E with ClaudeAgentProvider + MCP", () =>
     const messages = await collectMessages(executor.execute());
 
     for (const m of messages) {
-      if (m.type === "tool_call_update") console.log("[tool_call]", (m as any).name, JSON.stringify((m as any).args));
-      if (m.type === "step_result") console.log("[step_result]", JSON.stringify((m as any).result));
-      if (m.type === "log_update") console.log("[log]", (m as any).content);
-      if (m.type === "task_update") console.log("[task_update]", (m as any).event);
+      if (m.type ==== "tool_call_update") console.log("[tool_call]", (m as any).name, JSON.stringify((m as any).args));
+      if (m.type ==== "step_result") console.log("[step_result]", JSON.stringify((m as any).result));
+      if (m.type ==== "log_update") console.log("[log]", (m as any).content);
+      if (m.type ==== "task_update") console.log("[task_update]", (m as any).event);
     }
 
     const results = findStepResults(messages);
@@ -151,11 +151,11 @@ describe.skipIf(!sdkAvailable)("Agent E2E with ClaudeAgentProvider + MCP", () =>
     const messages = await collectMessages(agent.execute(context));
 
     for (const m of messages) {
-      if (m.type === "task_update") console.log("[task_update]", (m as any).event);
-      if (m.type === "tool_call_update") console.log("[tool_call]", (m as any).name, JSON.stringify((m as any).args));
-      if (m.type === "step_result") console.log("[step_result]", JSON.stringify((m as any).result));
-      if (m.type === "log_update") console.log("[log]", (m as any).content);
-      if (m.type === "chunk" && (m as any).content) console.log("[chunk]", (m as any).content.slice(0, 100));
+      if (m.type ==== "task_update") console.log("[task_update]", (m as any).event);
+      if (m.type ==== "tool_call_update") console.log("[tool_call]", (m as any).name, JSON.stringify((m as any).args));
+      if (m.type ==== "step_result") console.log("[step_result]", JSON.stringify((m as any).result));
+      if (m.type ==== "log_update") console.log("[log]", (m as any).content);
+      if (m.type ==== "chunk" && (m as any).content) console.log("[chunk]", (m as any).content.slice(0, 100));
     }
 
     const results = findStepResults(messages);

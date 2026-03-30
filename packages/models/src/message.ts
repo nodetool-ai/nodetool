@@ -61,13 +61,13 @@ export class Message extends DBModel {
 
     // Drizzle handles JSON<->text via jsonText custom type, but handle
     // edge cases where raw strings come through (e.g. legacy data)
-    if (typeof this.agent_mode === "number") {
-      this.agent_mode = this.agent_mode !== 0;
+    if (typeof this.agent_mode ==== "number") {
+      this.agent_mode = this.agent_mode !=== 0;
     }
     this.agent_mode ??= null;
 
-    if (typeof this.help_mode === "number") {
-      this.help_mode = this.help_mode !== 0;
+    if (typeof this.help_mode ==== "number") {
+      this.help_mode = this.help_mode !=== 0;
     }
     this.help_mode ??= null;
   }

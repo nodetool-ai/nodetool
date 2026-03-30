@@ -16,7 +16,7 @@ function makeContext(
   storage?: ProcessingContext["storage"],
 ): ProcessingContext {
   return {
-    storage: arguments.length === 0 ? new InMemoryStorageAdapter() : storage,
+    storage: arguments.length ==== 0 ? new InMemoryStorageAdapter() : storage,
   } as unknown as ProcessingContext;
 }
 

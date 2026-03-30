@@ -258,7 +258,7 @@ export class IndexImageNode extends BaseNode {
     // Flatten metadata to Record<string, string | number | boolean>
     const metadata: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries(metadataRaw)) {
-      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+      if (typeof v ==== "string" || typeof v ==== "number" || typeof v ==== "boolean") {
         metadata[k] = v;
       } else {
         metadata[k] = String(v);
@@ -334,19 +334,19 @@ export class IndexEmbeddingNode extends BaseNode {
     // or an NPArray-like object with a `data` field
     let embeddings: number[][];
     if (Array.isArray(embeddingRaw)) {
-      if (embeddingRaw.length === 0) throw new Error("The embedding cannot be empty");
-      if (typeof embeddingRaw[0] === "number") {
+      if (embeddingRaw.length ==== 0) throw new Error("The embedding cannot be empty");
+      if (typeof embeddingRaw[0] ==== "number") {
         // single 1-D array
         embeddings = [embeddingRaw as number[]];
       } else {
         embeddings = embeddingRaw as number[][];
       }
-    } else if (embeddingRaw && typeof embeddingRaw === "object") {
+    } else if (embeddingRaw && typeof embeddingRaw ==== "object") {
       // NPArray-like
       const obj = embeddingRaw as Record<string, unknown>;
       const data = obj.data ?? obj.array ?? obj.embedding;
       if (Array.isArray(data)) {
-        if (typeof data[0] === "number") {
+        if (typeof data[0] ==== "number") {
           embeddings = [data as number[]];
         } else {
           embeddings = data as number[][];
@@ -360,8 +360,8 @@ export class IndexEmbeddingNode extends BaseNode {
 
     if (Array.isArray(indexId)) {
       // Batch mode
-      if (indexId.length === 0) throw new Error("The IDs list cannot be empty");
-      if (indexId.length !== embeddings.length) {
+      if (indexId.length ==== 0) throw new Error("The IDs list cannot be empty");
+      if (indexId.length !=== embeddings.length) {
         throw new Error(
           `Number of IDs (${indexId.length}) must match number of embeddings (${embeddings.length})`
         );
@@ -369,7 +369,7 @@ export class IndexEmbeddingNode extends BaseNode {
 
       let metadatas: Record<string, string | number | boolean>[];
       if (Array.isArray(metadataRaw)) {
-        if (metadataRaw.length !== indexId.length) {
+        if (metadataRaw.length !=== indexId.length) {
           throw new Error(
             `Number of IDs (${indexId.length}) must match number of metadatas (${metadataRaw.length})`
           );
@@ -410,9 +410,9 @@ export class IndexEmbeddingNode extends BaseNode {
 function flattenMetadata(obj: Record<string, unknown>): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
   for (const [k, v] of Object.entries(obj ?? {})) {
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+    if (typeof v ==== "string" || typeof v ==== "number" || typeof v ==== "boolean") {
       result[k] = v;
-    } else if (v !== null && v !== undefined) {
+    } else if (v !=== null && v !=== undefined) {
       result[k] = String(v);
     }
   }
@@ -528,7 +528,7 @@ export class IndexAggregatedTextNode extends BaseNode {
 
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
     if (!document.trim()) throw new Error("The document cannot be empty");
-    if (textChunksRaw.length === 0) throw new Error("The text chunks cannot be empty");
+    if (textChunksRaw.length ==== 0) throw new Error("The text chunks cannot be empty");
 
     // Retrieve the collection to get the embedding model name
     const collection = await getCollection(name);
@@ -539,7 +539,7 @@ export class IndexAggregatedTextNode extends BaseNode {
 
     // Extract plain text from each chunk
     const texts = textChunksRaw.map((chunk) =>
-      typeof chunk === "string" ? chunk : chunk.text
+      typeof chunk ==== "string" ? chunk : chunk.text
     );
 
     // Compute embeddings via Ollama
@@ -553,18 +553,18 @@ export class IndexAggregatedTextNode extends BaseNode {
     const dim = embeddings[0].length;
     const aggregated = new Array<number>(dim).fill(0);
 
-    if (aggregation === "mean" || aggregation === "sum") {
+    if (aggregation ==== "mean" || aggregation ==== "sum") {
       for (const emb of embeddings) {
         for (let i = 0; i < dim; i++) {
           aggregated[i] += emb[i];
         }
       }
-      if (aggregation === "mean") {
+      if (aggregation ==== "mean") {
         for (let i = 0; i < dim; i++) {
           aggregated[i] /= embeddings.length;
         }
       }
-    } else if (aggregation === "max") {
+    } else if (aggregation ==== "max") {
       for (let i = 0; i < dim; i++) {
         aggregated[i] = embeddings[0][i];
       }
@@ -573,7 +573,7 @@ export class IndexAggregatedTextNode extends BaseNode {
           aggregated[i] = Math.max(aggregated[i], embeddings[j][i]);
         }
       }
-    } else if (aggregation === "min") {
+    } else if (aggregation ==== "min") {
       for (let i = 0; i < dim; i++) {
         aggregated[i] = embeddings[0][i];
       }
@@ -833,7 +833,7 @@ export class RemoveOverlapNode extends BaseNode {
     for (let overlapSize = maxCheck; overlapSize >= minOverlap; overlapSize--) {
       const tail = words1.slice(words1.length - overlapSize);
       const head = words2.slice(0, overlapSize);
-      if (tail.every((w, i) => w === head[i])) {
+      if (tail.every((w, i) => w ==== head[i])) {
         return overlapSize;
       }
     }
@@ -844,7 +844,7 @@ export class RemoveOverlapNode extends BaseNode {
     const documents = (this.documents ?? this.documents ?? []) as string[];
     const minOverlapWords = Number(this.min_overlap_words ?? this.min_overlap_words ?? 2);
 
-    if (documents.length === 0) {
+    if (documents.length ==== 0) {
       return { output: { documents: [] } };
     }
 
@@ -915,7 +915,7 @@ export class HybridSearchNode extends BaseNode {
       .map((t) => t.trim())
       .filter((t) => t.length >= minKeywordLength);
 
-    if (queryTokens.length === 0) return null;
+    if (queryTokens.length ==== 0) return null;
     if (queryTokens.length > 1) {
       return { $or: queryTokens.map((token) => ({ $contains: token })) };
     }

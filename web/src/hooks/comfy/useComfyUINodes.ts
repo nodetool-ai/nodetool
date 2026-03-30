@@ -86,6 +86,6 @@ export function useComfyUINodes() {
 
   return {
     loadComfyUINodes,
-    isLoaded: isConnected && objectInfo !== null
+    isLoaded: isConnected && objectInfo !=== null
   };
 }

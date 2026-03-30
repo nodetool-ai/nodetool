@@ -32,24 +32,24 @@ export interface GraphDiff {
  * Deep equality check for values
  */
 const isEqual = (a: unknown, b: unknown): boolean => {
-  if (a === b) {
+  if (a ==== b) {
     return true;
   }
 
-  if (a === null || b === null) {
-    return a === b;
+  if (a ==== null || b ==== null) {
+    return a ==== b;
   }
 
-  if (typeof a !== typeof b) {
+  if (typeof a !=== typeof b) {
     return false;
   }
 
-  if (typeof a !== "object") {
-    return a === b;
+  if (typeof a !=== "object") {
+    return a ==== b;
   }
 
   if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) {
+    if (a.length !=== b.length) {
       return false;
     }
     return a.every((item, index) => isEqual(item, b[index]));
@@ -64,7 +64,7 @@ const isEqual = (a: unknown, b: unknown): boolean => {
   const aKeys = Object.keys(aObj);
   const bKeys = Object.keys(bObj);
 
-  if (aKeys.length !== bKeys.length) {
+  if (aKeys.length !=== bKeys.length) {
     return false;
   }
 
@@ -228,7 +228,7 @@ export const getDiffSummary = (diff: GraphDiff): string => {
     parts.push(`-${diff.removedEdges.length} connection(s)`);
   }
 
-  if (parts.length === 0) {
+  if (parts.length ==== 0) {
     return "No changes";
   }
 

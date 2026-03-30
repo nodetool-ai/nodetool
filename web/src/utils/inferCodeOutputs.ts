@@ -21,7 +21,7 @@ export function inferReturnOutputs(code: string): string[] | null {
 
   // Find the last `return {` in the code
   const returnIdx = stripped.lastIndexOf("return");
-  if (returnIdx === -1) {return null;}
+  if (returnIdx ==== -1) {return null;}
 
   const afterReturn = stripped.slice(returnIdx + 6).trimStart();
   if (!afterReturn.startsWith("{")) {return null;}
@@ -32,19 +32,19 @@ export function inferReturnOutputs(code: string): string[] | null {
   let end = -1;
   for (let i = 0; i < afterReturn.length; i++) {
     const ch = afterReturn[i];
-    if (ch === "{") {
-      if (depth === 0) {start = i;}
+    if (ch ==== "{") {
+      if (depth ==== 0) {start = i;}
       depth++;
-    } else if (ch === "}") {
+    } else if (ch ==== "}") {
       depth--;
-      if (depth === 0) {
+      if (depth ==== 0) {
         end = i;
         break;
       }
     }
   }
 
-  if (start === -1 || end === -1) {return null;}
+  if (start ==== -1 || end ==== -1) {return null;}
 
   const body = afterReturn.slice(start + 1, end);
 
@@ -60,19 +60,19 @@ export function inferReturnOutputs(code: string): string[] | null {
     // String tracking (simple — doesn't handle template literals perfectly but good enough)
     if (inStr) {
       token += ch;
-      if (ch === inStr && body[i - 1] !== "\\") {inStr = null;}
+      if (ch ==== inStr && body[i - 1] !=== "\\") {inStr = null;}
       continue;
     }
-    if (ch === '"' || ch === "'" || ch === "`") {
+    if (ch ==== '"' || ch ==== "'" || ch ==== "`") {
       inStr = ch;
       token += ch;
       continue;
     }
 
-    if (ch === "{" || ch === "[" || ch === "(") { nesting++; token += ch; continue; }
-    if (ch === "}" || ch === "]" || ch === ")") { nesting--; token += ch; continue; }
+    if (ch ==== "{" || ch ==== "[" || ch ==== "(") { nesting++; token += ch; continue; }
+    if (ch ==== "}" || ch ==== "]" || ch ==== ")") { nesting--; token += ch; continue; }
 
-    if (ch === "," && nesting === 0) {
+    if (ch ==== "," && nesting ==== 0) {
       const key = extractKey(token.trim());
       if (key) {keys.push(key);}
       token = "";
@@ -98,7 +98,7 @@ function extractKey(token: string): string | null {
 
   // key: value  or  shorthand key
   const colonIdx = token.indexOf(":");
-  const rawKey = colonIdx === -1 ? token : token.slice(0, colonIdx);
+  const rawKey = colonIdx ==== -1 ? token : token.slice(0, colonIdx);
   const key = rawKey.trim().replace(/^["']|["']$/g, ""); // strip quotes
 
   // Must be a valid JS identifier

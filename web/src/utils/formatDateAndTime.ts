@@ -29,7 +29,7 @@ export function prettyDate(
 
   // Handle numeric timestamp input
   let dateTime: DateTime;
-  if (typeof dateStr === "number") {
+  if (typeof dateStr ==== "number") {
     dateTime = DateTime.fromMillis(dateStr, { zone: 'utc' });
   } else {
     const compliantDateStr = dateStr.replace(" ", "T");
@@ -44,17 +44,17 @@ export function prettyDate(
   const now = DateTime.now();
   const timeFormat = settings?.timeFormat || "12h";
 
-  if (formatStyle === "verbose") {
-    if (timeFormat === "24h") {
+  if (formatStyle ==== "verbose") {
+    if (timeFormat ==== "24h") {
       const dateFormat =
-        dateTime.year === now.year ? "d. MMMM " : "d MMMM yyyy";
+        dateTime.year ==== now.year ? "d. MMMM " : "d MMMM yyyy";
       return dateTime.toFormat(`${dateFormat} | HH:mm`);
     } else {
-      const dateFormat = dateTime.year === now.year ? "MMMM d" : "yyyy MMMM d";
+      const dateFormat = dateTime.year ==== now.year ? "MMMM d" : "yyyy MMMM d";
       return dateTime.toFormat(`${dateFormat} | hh:mm a`);
     }
   } else {
-    if (timeFormat === "24h") {
+    if (timeFormat ==== "24h") {
       const dateFormat = "dd.MM.yyyy";
       return dateTime.toFormat(`${dateFormat} | HH:mm:ss`);
     } else {
@@ -83,7 +83,7 @@ export function relativeTime(date: Date | string): string {
     const difference = Math.floor(diffInSeconds / secondsInUnit);
 
     if (difference >= 1) {
-      return difference === 1 ? `1 ${singular} ago` : `${difference} ${plural} ago`;
+      return difference ==== 1 ? `1 ${singular} ago` : `${difference} ${plural} ago`;
     }
   }
 

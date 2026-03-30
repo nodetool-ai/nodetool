@@ -49,9 +49,9 @@ import { FAL_VIDEO_TO_VIDEO_NODES } from "../src/generated/video-to-video.js";
 import { FAL_VISION_NODES } from "../src/generated/vision.js";
 import { FAL_NODES, FalRawNode, FalDynamicNode } from "../src/index.js";
 
-/* ================================================================== */
+/* =================================================================== */
 /*  Helpers                                                             */
-/* ================================================================== */
+/* =================================================================== */
 
 function assertNodeArrayValid(name: string, nodes: readonly NodeClass[]): void {
   describe(name, () => {
@@ -104,9 +104,9 @@ function assertNodeArrayValid(name: string, nodes: readonly NodeClass[]): void {
   });
 }
 
-/* ================================================================== */
+/* =================================================================== */
 /*  Per-category smoke tests                                            */
-/* ================================================================== */
+/* =================================================================== */
 
 assertNodeArrayValid("FAL_3D_TO_3D_NODES", FAL_3D_TO_3D_NODES);
 assertNodeArrayValid("FAL_AUDIO_TO_AUDIO_NODES", FAL_AUDIO_TO_AUDIO_NODES);
@@ -133,9 +133,9 @@ assertNodeArrayValid("FAL_VIDEO_TO_TEXT_NODES", FAL_VIDEO_TO_TEXT_NODES);
 assertNodeArrayValid("FAL_VIDEO_TO_VIDEO_NODES", FAL_VIDEO_TO_VIDEO_NODES);
 assertNodeArrayValid("FAL_VISION_NODES", FAL_VISION_NODES);
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FAL_NODES combined export                                           */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FAL_NODES combined export", () => {
   it("is a non-empty readonly array", () => {
@@ -186,9 +186,9 @@ describe("FAL_NODES combined export", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  Index exports — dynamic nodes                                       */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("Index exports — dynamic nodes", () => {
   it("exports FalRawNode", () => {
@@ -202,9 +202,9 @@ describe("Index exports — dynamic nodes", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  registerFalNodes                                                    */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("registerFalNodes", () => {
   it("registers every node from FAL_NODES into the provided registry", async () => {

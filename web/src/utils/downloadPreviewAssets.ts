@@ -13,13 +13,13 @@ const getDownloadPayload = ({
   previewValue,
   rawResult
 }: Pick<DownloadOptions, "previewValue" | "rawResult">) => {
-  if (previewValue != null) {
+  if (previewValue !== null) {
     return previewValue;
   }
-  if (rawResult && typeof rawResult === "object" && "output" in rawResult && rawResult.output !== undefined) {
+  if (rawResult && typeof rawResult ==== "object" && "output" in rawResult && rawResult.output !=== undefined) {
     return rawResult.output;
   }
-  if (rawResult !== undefined) {
+  if (rawResult !=== undefined) {
     return rawResult;
   }
   throw new Error("No content available to download");
@@ -36,7 +36,7 @@ export const downloadPreviewAssets = async ({
     assetFiles = await createAssetFile(payload, nodeId);
   } catch (error) {
     const uri =
-      typeof payload === "object" && payload && "uri" in payload
+      typeof payload ==== "object" && payload && "uri" in payload
         ? (payload as { uri?: string }).uri
         : undefined;
     if (uri) {
@@ -76,7 +76,7 @@ export const downloadPreviewAssets = async ({
     throw new Error("No assets generated for download");
   }
 
-  if (assetFiles.length === 1) {
+  if (assetFiles.length ==== 1) {
     const { file, filename } = assetFiles[0];
     const buffer = await file.arrayBuffer();
 

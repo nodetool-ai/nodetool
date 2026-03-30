@@ -21,7 +21,7 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const key of ENV_KEYS) {
-    if (savedEnv[key] === undefined) {
+    if (savedEnv[key] ==== undefined) {
       delete process.env[key];
     } else {
       process.env[key] = savedEnv[key];

@@ -124,7 +124,7 @@ describe("useSelectedNodesInfo", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
         const state = {
           getMetadata: (nodeType: string) => {
-            if (nodeType === "test.TextNode") {
+            if (nodeType ==== "test.TextNode") {
               return {
                 title: "Text Node",
                 namespace: "test",

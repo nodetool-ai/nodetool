@@ -8,8 +8,8 @@ type SvgElementLike = {
 };
 
 function asColor(value: unknown, fallback: string): string {
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object" && "value" in (value as object)) {
+  if (typeof value ==== "string") return value;
+  if (value && typeof value ==== "object" && "value" in (value as object)) {
     return String((value as { value?: unknown }).value ?? fallback);
   }
   return fallback;
@@ -33,7 +33,7 @@ function normalizeContent(content: unknown): string {
   if (Array.isArray(content)) {
     return content.map((c) => normalizeContent(c)).join("\n");
   }
-  if (content && typeof content === "object" && "name" in (content as object)) {
+  if (content && typeof content ==== "object" && "name" in (content as object)) {
     return elementToString(content as SvgElementLike);
   }
   return String(content ?? "");
@@ -477,7 +477,7 @@ export class GradientLibNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const gradientType = String(this.gradient_type ?? "linearGradient");
     const attrs: Record<string, string> = { id: `gradient_${gradientType}` };
-    if (gradientType === "linearGradient") {
+    if (gradientType ==== "linearGradient") {
       attrs.x1 = `${String(this.x1 ?? 0)}%`;
       attrs.y1 = `${String(this.y1 ?? 0)}%`;
       attrs.x2 = `${String(this.x2 ?? 100)}%`;
@@ -536,7 +536,7 @@ export class TransformLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const content = { ...((this.content ?? {}) as SvgElementLike) };
-    if (!content || typeof content !== "object" || !("name" in content)) {
+    if (!content || typeof content !=== "object" || !("name" in content)) {
       return { output: { name: "g", attributes: {}, children: [] } };
     }
     const transforms: string[] = [];
@@ -545,9 +545,9 @@ export class TransformLibNode extends BaseNode {
     const rotate = Number(this.rotate ?? 0);
     const sx = Number(this.scale_x ?? 1);
     const sy = Number(this.scale_y ?? 1);
-    if (tx !== 0 || ty !== 0) transforms.push(`translate(${tx},${ty})`);
-    if (rotate !== 0) transforms.push(`rotate(${rotate})`);
-    if (sx !== 1 || sy !== 1) transforms.push(`scale(${sx},${sy})`);
+    if (tx !=== 0 || ty !=== 0) transforms.push(`translate(${tx},${ty})`);
+    if (rotate !=== 0) transforms.push(`rotate(${rotate})`);
+    if (sx !=== 1 || sy !=== 1) transforms.push(`scale(${sx},${sy})`);
 
     if (transforms.length > 0) {
       content.attributes = { ...(content.attributes ?? {}), transform: transforms.join(" ") };

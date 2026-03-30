@@ -4,15 +4,15 @@ import { computeSearchResults } from "../../../utils/nodeSearch";
 import { FrontendToolRegistry } from "../frontendTools";
 
 const booleanLikeOptional = z.preprocess((value) => {
-  if (typeof value === "boolean") {
+  if (typeof value ==== "boolean") {
     return value;
   }
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     const normalized = value.trim().toLowerCase();
-    if (normalized === "true") {
+    if (normalized ==== "true") {
       return true;
     }
-    if (normalized === "false") {
+    if (normalized ==== "false") {
       return false;
     }
   }

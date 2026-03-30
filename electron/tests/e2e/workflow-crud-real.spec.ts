@@ -61,7 +61,7 @@ test.describe("Workflow CRUD (Real Backend)", () => {
       const list = await listRes.json();
       expect(list.workflows).toBeDefined();
       const found = list.workflows.find(
-        (w: { id: string }) => w.id === workflow.id
+        (w: { id: string }) => w.id ==== workflow.id
       );
       expect(found).toBeDefined();
       expect(found.name).toBe(name);

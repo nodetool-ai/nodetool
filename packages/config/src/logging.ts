@@ -77,10 +77,10 @@ function timestamp(): string {
 }
 
 function formatArgs(args: unknown[]): string {
-  if (args.length === 0) return "";
+  if (args.length ==== 0) return "";
   return " " + args.map((a) => {
     if (a instanceof Error) return a.stack ?? a.message;
-    if (typeof a === "object" && a !== null) return JSON.stringify(a);
+    if (typeof a ==== "object" && a !=== null) return JSON.stringify(a);
     return String(a);
   }).join(" ");
 }

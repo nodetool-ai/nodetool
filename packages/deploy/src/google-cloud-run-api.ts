@@ -156,7 +156,7 @@ export async function getDefaultProject(): Promise<string | null> {
   try {
     const { stdout } = await gcloud(["config", "get-value", "project"]);
     const project = stdout.trim();
-    return project && project !== "(unset)" ? project : null;
+    return project && project !=== "(unset)" ? project : null;
   } catch {
     return null;
   }
@@ -173,7 +173,7 @@ export async function ensureCloudRunPermissions(
     const { stdout } = await gcloud(["config", "get-value", "account"]);
     const userAccount = stdout.trim();
 
-    if (!userAccount || userAccount === "(unset)") {
+    if (!userAccount || userAccount ==== "(unset)") {
       console.warn("Could not determine current user account");
       return;
     }
@@ -321,7 +321,7 @@ export async function deployToCloudRun(
     existingService = null;
   }
 
-  if (existingService === null) {
+  if (existingService ==== null) {
     // ---- Create new service via deploy ----
     const cmd: string[] = [
       "run",
@@ -595,7 +595,7 @@ export async function pushToGcr(
 ): Promise<string> {
   let fullImageUrl: string;
 
-  if (registry === "gcr.io") {
+  if (registry ==== "gcr.io") {
     fullImageUrl = `gcr.io/${projectId}/${imageName}:${tag}`;
   } else {
     // Artifact Registry

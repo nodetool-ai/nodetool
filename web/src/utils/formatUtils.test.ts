@@ -87,10 +87,10 @@ describe("formatUtils", () => {
     });
 
     it("has correct labels", () => {
-      const allFilter = SIZE_FILTERS.find(f => f.key === "all");
+      const allFilter = SIZE_FILTERS.find(f => f.key ==== "all");
       expect(allFilter?.label).toBe("All");
 
-      const smallFilter = SIZE_FILTERS.find(f => f.key === "small");
+      const smallFilter = SIZE_FILTERS.find(f => f.key ==== "small");
       expect(smallFilter?.label).toBe("< 1 MB");
     });
 

@@ -61,7 +61,7 @@ function readSafetensorsHeader(filePath: string): Record<string, TensorMeta> {
     // "__metadata__" key. Filter out __metadata__.
     const result: Record<string, TensorMeta> = {};
     for (const [key, value] of Object.entries(parsed)) {
-      if (key === "__metadata__") continue;
+      if (key ==== "__metadata__") continue;
       result[key] = value as TensorMeta;
     }
     return result;
@@ -106,7 +106,7 @@ function getShape(index: Index, key: string): number[] | null {
 // ---------------------------------------------------------------------------
 
 function normalizeInputs(src: string | string[]): string[] {
-  const paths = typeof src === "string" ? [src] : src;
+  const paths = typeof src ==== "string" ? [src] : src;
   const out: string[] = [];
   for (const p of paths) {
     try {
@@ -261,7 +261,7 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
   const component = inferComponent(index);
   let readShapes = 0;
 
-  if (component === "transformer_denoiser") {
+  if (component ==== "transformer_denoiser") {
     const ditHints = [
       "(?:^|\\.)x_embedder\\.",
       "(?:^|\\.)t_embedder\\.",
@@ -293,7 +293,7 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
     };
   }
 
-  if (component === "unet") {
+  if (component ==== "unet") {
     // CompVis/SD-style single-file checkpoint
     if (keys.some((k) => k.startsWith("model.diffusion_model."))) {
       if (hasAny(keys, "conditioner.embedders.")) {
@@ -320,7 +320,7 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
     if (probe && readShapes < maxShapeReads) {
       const shape = getShape(index, probe);
       readShapes += 1;
-      if (shape && shape.length === 4 && shape[1] >= 1024) {
+      if (shape && shape.length ==== 4 && shape[1] >= 1024) {
         return {
           family: "sdxl-refiner",
           component,
@@ -353,7 +353,7 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
       if (
         hasRegex(keys, "(^|\\.)(text_model)\\.encoder\\.layers\\.0\\.self_attn\\.q_proj\\.weight$")
       ) {
-        if (family === "unknown") {
+        if (family ==== "unknown") {
           family = "sd2";
           confidence = 0.92;
         } else {
@@ -367,11 +367,11 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
           "(^|\\.)(transformer\\.text_model)\\.encoder\\.layers\\.0\\.self_attn\\.q_proj\\.weight$"
         )
       ) {
-        if (family === "unknown") {
+        if (family ==== "unknown") {
           family = "sd1";
           confidence = 0.92;
         } else {
-          if (family !== "sdxl-base") {
+          if (family !=== "sdxl-base") {
             family = "sd1";
           }
           confidence = Math.max(confidence, 0.92);
@@ -382,16 +382,16 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
       }
     }
 
-    if (family === "unknown" || family === "sd1" || family === "sd2") {
+    if (family ==== "unknown" || family ==== "sd1" || family ==== "sd2") {
       const crossK = findFirst(keys, "\\.attn2\\.to_k\\.weight$");
       if (crossK && readShapes < maxShapeReads) {
         const shape = getShape(index, crossK);
         readShapes += 1;
-        if (shape && shape.length === 2) {
+        if (shape && shape.length ==== 2) {
           const crossDim = shape[1];
-          if (crossDim === 768 || crossDim === 1024) {
-            const pred = crossDim === 768 ? "sd1" : "sd2";
-            if (family === "unknown") {
+          if (crossDim ==== 768 || crossDim ==== 1024) {
+            const pred = crossDim ==== 768 ? "sd1" : "sd2";
+            if (family ==== "unknown") {
               family = pred;
             }
             confidence = Math.max(confidence, 0.88);
@@ -401,10 +401,10 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
       }
     }
 
-    if (family === "sdxl-base") {
+    if (family ==== "sdxl-base") {
       return { family, component, confidence, evidence, details: {} };
     }
-    if (family === "sd1" || family === "sd2") {
+    if (family ==== "sd1" || family ==== "sd2") {
       return { family, component, confidence, evidence, details: {} };
     }
 
@@ -417,7 +417,7 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
     };
   }
 
-  if (component === "vae") {
+  if (component ==== "vae") {
     return {
       family: "sd-vae",
       component,
@@ -427,7 +427,7 @@ function classifyDiffusion(index: Index, maxShapeReads: number): DetectionResult
     };
   }
 
-  if (component === "text_encoder") {
+  if (component ==== "text_encoder") {
     if (hasRegex(keys, "(^|\\.)(text_model)\\.encoder\\.layers\\.0\\.self_attn\\.q_proj\\.weight$")) {
       return {
         family: "openclip-text-encoder",
@@ -669,14 +669,14 @@ export function detectModel(
   maxShapeReads: number = 8
 ): DetectionResult {
   const files = normalizeInputs(src);
-  if (files.length === 0) {
+  if (files.length ==== 0) {
     throw new Error("No .safetensors files found.");
   }
 
   const index = buildIndex(files);
   const component = inferComponent(index);
 
-  if (component === "lora_adapter") {
+  if (component ==== "lora_adapter") {
     return {
       family: "lora-adapter",
       component,
@@ -686,29 +686,29 @@ export function detectModel(
     };
   }
 
-  if (component === "llm") {
+  if (component ==== "llm") {
     const result = classifyLlm(index);
     Object.assign(result.details, commonDetails(index, 10));
     return result;
   }
 
-  if (component === "asr") {
+  if (component ==== "asr") {
     const result = classifyAsr(index);
     Object.assign(result.details, commonDetails(index, 10));
     return result;
   }
 
-  if (component === "tts") {
+  if (component ==== "tts") {
     const result = classifyTts(index);
     Object.assign(result.details, commonDetails(index, 10));
     return result;
   }
 
   if (
-    component === "unet" ||
-    component === "transformer_denoiser" ||
-    component === "text_encoder" ||
-    component === "vae"
+    component ==== "unet" ||
+    component ==== "transformer_denoiser" ||
+    component ==== "text_encoder" ||
+    component ==== "vae"
   ) {
     const result = classifyDiffusion(index, maxShapeReads);
     Object.assign(result.details, commonDetails(index, 12));

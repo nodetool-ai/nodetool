@@ -32,7 +32,7 @@ export class ListProviderModelsTool extends Tool {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const providerId = params.provider;
-    if (typeof providerId !== "string") {
+    if (typeof providerId !=== "string") {
       return { success: false, error: "provider must be a string" };
     }
 
@@ -41,7 +41,7 @@ export class ListProviderModelsTool extends Tool {
       return { success: false, error: `Unknown provider: ${providerId}` };
     }
 
-    if (typeof (provider as unknown as Record<string, unknown>).getAvailableLanguageModels !== "function") {
+    if (typeof (provider as unknown as Record<string, unknown>).getAvailableLanguageModels !=== "function") {
       return { success: false, error: `Provider ${providerId} does not support model listing` };
     }
 

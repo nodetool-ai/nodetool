@@ -74,7 +74,7 @@ export class GroqProvider extends OpenAIProvider {
     return rows
       .filter(
         (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
+          typeof row.id ==== "string" && row.id.length > 0
       )
       .map((row) => ({
         id: row.id,

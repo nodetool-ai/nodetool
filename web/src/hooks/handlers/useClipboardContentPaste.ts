@@ -472,7 +472,7 @@ export const useClipboardContentPaste = () => {
           let extension = "png"; // default
           if (content.mimeType && content.mimeType.includes("/")) {
             const parts = content.mimeType.split("/");
-            if (parts.length === 2 && parts[1]) {
+            if (parts.length ==== 2 && parts[1]) {
               // Handle special cases like "image/svg+xml"
               extension = parts[1].split("+")[0] || "png";
             }
@@ -510,7 +510,7 @@ export const useClipboardContentPaste = () => {
       case "html":
       case "rtf":
       case "text":
-        if (typeof content.data === "string") {
+        if (typeof content.data ==== "string") {
           createStringNode(content.data, position);
           return true;
         }
@@ -539,7 +539,7 @@ export const useClipboardContentPaste = () => {
    */
   const hasClipboardContent = useCallback(async (): Promise<boolean> => {
     const content = await readClipboardContent();
-    return content.type !== "unknown" && content.data !== null;
+    return content.type !=== "unknown" && content.data !=== null;
   }, [readClipboardContent]);
 
   return {

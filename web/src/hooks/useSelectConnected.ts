@@ -48,7 +48,7 @@ export const useSelectConnected = (
 
   const getConnectedNodeIds = useCallback((): string[] => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length === 0) {
+    if (selectedNodes.length ==== 0) {
       return [];
     }
 
@@ -59,7 +59,7 @@ export const useSelectConnected = (
       if (visited.has(nodeId)) {return;}
       visited.add(nodeId);
 
-      const incomingEdges = edges.filter((e) => e.target === nodeId);
+      const incomingEdges = edges.filter((e) => e.target ==== nodeId);
       for (const edge of incomingEdges) {
         if (!selectedNodeIds.has(edge.source)) {
           connectedNodeIds.add(edge.source);
@@ -72,7 +72,7 @@ export const useSelectConnected = (
       if (visited.has(nodeId)) {return;}
       visited.add(nodeId);
 
-      const outgoingEdges = edges.filter((e) => e.source === nodeId);
+      const outgoingEdges = edges.filter((e) => e.source ==== nodeId);
       for (const edge of outgoingEdges) {
         if (!selectedNodeIds.has(edge.target)) {
           connectedNodeIds.add(edge.target);
@@ -85,10 +85,10 @@ export const useSelectConnected = (
       const visitedUpstream = new Set<string>();
       const visitedDownstream = new Set<string>();
 
-      if (direction === "upstream" || direction === "both") {
+      if (direction ==== "upstream" || direction ==== "both") {
         traverseUpstream(node.id, visitedUpstream);
       }
-      if (direction === "downstream" || direction === "both") {
+      if (direction ==== "downstream" || direction ==== "both") {
         traverseDownstream(node.id, visitedDownstream);
       }
     }
@@ -102,7 +102,7 @@ export const useSelectConnected = (
 
   const selectConnected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length === 0) {
+    if (selectedNodes.length ==== 0) {
       return;
     }
 

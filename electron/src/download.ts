@@ -11,7 +11,7 @@ import { IncomingMessage } from "http";
 async function getFileSizeFromUrl(url: string): Promise<number> {
   return new Promise((resolve, reject) => {
     const request = https.request(url, { method: "HEAD" }, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
+      if (response.statusCode ==== 302 || response.statusCode ==== 301) {
         getFileSizeFromUrl(response.headers.location!)
           .then(resolve)
           .catch(reject);
@@ -73,12 +73,12 @@ async function downloadFile(url: string, dest: string): Promise<void> {
   let existingFileStats;
   try {
     existingFileStats = await fs.stat(dest);
-    if (existingFileStats.size === expectedSize) {
+    if (existingFileStats.size ==== expectedSize) {
       logMessage("Existing file matches expected size, skipping download");
       return;
     }
   } catch (err: any) {
-    if (err.code !== "ENOENT") {
+    if (err.code !=== "ENOENT") {
       logMessage(`Error checking existing file: ${err.message}`, "warn");
     }
   }
@@ -108,7 +108,7 @@ async function downloadFile(url: string, dest: string): Promise<void> {
     request.on("error", handleError);
 
     function handleResponse(response: IncomingMessage) {
-      if (response.statusCode === 404) {
+      if (response.statusCode ==== 404) {
         logMessage(`File not found at ${url}`, "error");
         reject(new Error(`File not found at ${url}`));
         return;
@@ -122,7 +122,7 @@ async function downloadFile(url: string, dest: string): Promise<void> {
         return;
       }
 
-      if (response.statusCode === 302 || response.statusCode === 301) {
+      if (response.statusCode ==== 302 || response.statusCode ==== 301) {
         logMessage(`Redirected to ${response.headers.location}`);
         https
           .get(response.headers.location!, handleResponse)
@@ -134,7 +134,7 @@ async function downloadFile(url: string, dest: string): Promise<void> {
         response.headers["content-length"] || "0",
         10
       );
-      if (contentLength !== expectedSize) {
+      if (contentLength !=== expectedSize) {
         logMessage(
           `Server file size mismatch. Expected: ${expectedSize}, Got: ${contentLength}`,
           "error"
@@ -165,7 +165,7 @@ async function downloadFile(url: string, dest: string): Promise<void> {
       file.on("finish", async () => {
         try {
           const stats = await fs.stat(dest);
-          if (stats.size !== expectedSize) {
+          if (stats.size !=== expectedSize) {
             await fs.unlink(dest);
             reject(
               new Error(

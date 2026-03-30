@@ -57,7 +57,7 @@ async function generateModule(
     }
   }
 
-  if (specs.length === 0) return 0;
+  if (specs.length ==== 0) return 0;
 
   const moduleCode = generator.generateModule(
     moduleName.replace(/-/g, "_"),
@@ -80,7 +80,7 @@ async function main(): Promise<void> {
     let total = 0;
     for (const [name, config] of Object.entries(allConfigs)) {
       const dashName = name.replace(/_/g, "-");
-      console.log(`\n=== ${dashName} ===`);
+      console.log(`\n==== ${dashName} ====`);
       total += await generateModule(dashName, config, outputDir, useCache);
     }
     console.log(`\nTotal: ${total} nodes generated`);

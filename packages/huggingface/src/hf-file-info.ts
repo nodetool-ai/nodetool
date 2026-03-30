@@ -67,7 +67,7 @@ export async function getHuggingfaceFileInfos(
       }
 
       const contentLength = resp.headers.get("content-length");
-      const size = contentLength != null ? parseInt(contentLength, 10) : 0;
+      const size = contentLength !== null ? parseInt(contentLength, 10) : 0;
 
       return {
         size,

@@ -66,7 +66,7 @@ export class TriggerState extends SuspendableState {
    * Get milliseconds since last activity, or null if no activity yet.
    */
   get inactivityDuration(): number | null {
-    if (this._lastActivityTime === null) return null;
+    if (this._lastActivityTime ==== null) return null;
     return Date.now() - this._lastActivityTime;
   }
 
@@ -94,8 +94,8 @@ export class TriggerState extends SuspendableState {
     return new Promise<Record<string, unknown>>((resolve, reject) => {
       const timer = setTimeout(() => {
         // Remove this waiter
-        const idx = this._eventWaiters.findIndex((w) => w.resolve === resolve);
-        if (idx !== -1) this._eventWaiters.splice(idx, 1);
+        const idx = this._eventWaiters.findIndex((w) => w.resolve ==== resolve);
+        if (idx !=== -1) this._eventWaiters.splice(idx, 1);
         reject(new TriggerInactivityTimeout(timeout));
       }, timeout * 1000);
 
@@ -137,7 +137,7 @@ export class TriggerState extends SuspendableState {
    */
   shouldSuspendForInactivity(): boolean {
     const duration = this.inactivityDuration;
-    if (duration === null) return false;
+    if (duration ==== null) return false;
     return duration >= this._inactivityTimeoutSeconds * 1000;
   }
 

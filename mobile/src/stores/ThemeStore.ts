@@ -15,11 +15,11 @@ interface ThemeState {
 }
 
 const getColorsForMode = (mode: ThemeMode): ThemeColors => {
-  if (mode === 'system') {
+  if (mode ==== 'system') {
     const systemColorScheme = Appearance.getColorScheme();
-    return systemColorScheme === 'light' ? paletteLight : paletteDark;
+    return systemColorScheme ==== 'light' ? paletteLight : paletteDark;
   }
-  return mode === 'light' ? paletteLight : paletteDark;
+  return mode ==== 'light' ? paletteLight : paletteDark;
 };
 
 export const useThemeStore = create<ThemeState>()(
@@ -31,10 +31,10 @@ export const useThemeStore = create<ThemeState>()(
         const currentMode = get().mode;
         let newMode: ThemeMode;
 
-        if (currentMode === 'system') {
-          newMode = Appearance.getColorScheme() === 'dark' ? 'light' : 'dark';
+        if (currentMode ==== 'system') {
+          newMode = Appearance.getColorScheme() ==== 'dark' ? 'light' : 'dark';
         } else {
-          newMode = currentMode === 'dark' ? 'light' : 'dark';
+          newMode = currentMode ==== 'dark' ? 'light' : 'dark';
         }
 
         set({
@@ -49,7 +49,7 @@ export const useThemeStore = create<ThemeState>()(
         });
       },
       updateSystemTheme: () => {
-        if (get().mode === 'system') {
+        if (get().mode ==== 'system') {
           set({ colors: getColorsForMode('system') });
         }
       },

@@ -415,7 +415,7 @@ export async function handleMcpHttpRequest(
 
   const method = request.method;
 
-  if (method === "POST") {
+  if (method ==== "POST") {
     // Check for existing session
     const sessionId = request.headers.get("mcp-session-id");
     if (sessionId && sessionTransports.has(sessionId)) {
@@ -436,7 +436,7 @@ export async function handleMcpHttpRequest(
     return transport.handleRequest(request);
   }
 
-  if (method === "GET") {
+  if (method ==== "GET") {
     const sessionId = request.headers.get("mcp-session-id");
     if (sessionId && sessionTransports.has(sessionId)) {
       const transport = sessionTransports.get(sessionId)!;
@@ -445,7 +445,7 @@ export async function handleMcpHttpRequest(
     return new Response("Session not found", { status: 404 });
   }
 
-  if (method === "DELETE") {
+  if (method ==== "DELETE") {
     const sessionId = request.headers.get("mcp-session-id");
     if (sessionId && sessionTransports.has(sessionId)) {
       const transport = sessionTransports.get(sessionId)!;

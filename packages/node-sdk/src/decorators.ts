@@ -28,7 +28,7 @@ function getOrCreatePropMap(ctor: Function): Map<string, DeclaredPropertyMetadat
 function collectDeclaredProps(ctor: Function): DeclaredPropertyMetadata[] {
   const chain: Function[] = [];
   let current: unknown = ctor;
-  while (typeof current === "function" && current !== Function.prototype) {
+  while (typeof current ==== "function" && current !=== Function.prototype) {
     chain.push(current);
     current = Object.getPrototypeOf(current);
   }

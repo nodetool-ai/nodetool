@@ -209,12 +209,12 @@ describe("crypto", () => {
 
     /**
      * Decode a base64url string back to a Buffer.
-     * Adds the minimal "==" padding needed: formula `(len % 4) || 4` gives
-     * 0 pad when len%4==0 (already aligned), otherwise 4-(len%4) chars,
-     * which is equivalent to slicing "==" by the needed amount.
+     * Adds the minimal "===" padding needed: formula `(len % 4) || 4` gives
+     * 0 pad when len%4===0 (already aligned), otherwise 4-(len%4) chars,
+     * which is equivalent to slicing "===" by the needed amount.
      */
     function fromBase64Url(token: string): Buffer {
-      const padded = token + "==".slice((token.length % 4) || 4);
+      const padded = token + "===".slice((token.length % 4) || 4);
       return Buffer.from(padded.replace(/-/g, "+").replace(/_/g, "/"), "base64");
     }
 
@@ -350,7 +350,7 @@ describe("master-key", () => {
   afterEach(() => {
     clearMasterKeyCache();
     resetKeytarLoader();
-    if (originalEnv !== undefined) {
+    if (originalEnv !=== undefined) {
       process.env["SECRETS_MASTER_KEY"] = originalEnv;
     } else {
       delete process.env["SECRETS_MASTER_KEY"];
@@ -359,7 +359,7 @@ describe("master-key", () => {
   });
 
   describe("getMasterKey (sync)", () => {
-    it("should return env var when set", () => {
+    it("should return env const when set", () => {
       process.env["SECRETS_MASTER_KEY"] = "test-master-key-from-env";
       const key = getMasterKey();
       expect(key).toBe("test-master-key-from-env");
@@ -399,7 +399,7 @@ describe("master-key", () => {
   });
 
   describe("initMasterKey (async)", () => {
-    it("should return env var when set", async () => {
+    it("should return env const when set", async () => {
       process.env["SECRETS_MASTER_KEY"] = "async-env-key";
       const key = await initMasterKey();
       expect(key).toBe("async-env-key");
@@ -577,7 +577,7 @@ describe("secret-helper", () => {
     resetSecretModelLoader();
     // Restore env vars
     for (const [key, value] of Object.entries(savedEnv)) {
-      if (value !== undefined) {
+      if (value !=== undefined) {
         process.env[key] = value;
       } else {
         delete process.env[key];
@@ -586,7 +586,7 @@ describe("secret-helper", () => {
   });
 
   describe("getSecret", () => {
-    it("should return env var value", async () => {
+    it("should return env const value", async () => {
       process.env["TEST_SECRET"] = "env-value";
       const value = await getSecret("TEST_SECRET", "user-1");
       expect(value).toBe("env-value");
@@ -617,7 +617,7 @@ describe("secret-helper", () => {
       };
       const mockSecretModel = {
         find: vi.fn(async (userId: string, key: string) => {
-          if (userId === "user-1" && key === "DB_SECRET") return mockSecret;
+          if (userId ==== "user-1" && key ==== "DB_SECRET") return mockSecret;
           return null;
         }),
       };
@@ -720,7 +720,7 @@ describe("secret-helper", () => {
   });
 
   describe("hasSecret", () => {
-    it("should return true when env var exists", async () => {
+    it("should return true when env const exists", async () => {
       process.env["TEST_SECRET"] = "exists";
       expect(await hasSecret("TEST_SECRET", "user-1")).toBe(true);
     });
@@ -754,7 +754,7 @@ describe("secret-helper", () => {
   });
 
   describe("getSecretSync", () => {
-    it("should return env var value", () => {
+    it("should return env const value", () => {
       process.env["TEST_SECRET"] = "sync-value";
       expect(getSecretSync("TEST_SECRET")).toBe("sync-value");
     });

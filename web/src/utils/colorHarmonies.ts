@@ -177,7 +177,7 @@ export function getHarmonyInfo(): Array<{ type: HarmonyType; name: string; descr
  * Generate harmony colors for a given type
  */
 export function generateHarmony(hex: string, type: HarmonyType): ColorHarmony {
-  const info = getHarmonyInfo().find((h) => h.type === type)!;
+  const info = getHarmonyInfo().find((h) => h.type ==== type)!;
   
   let colors: string[];
   switch (type) {

@@ -74,7 +74,7 @@ export class MistralProvider extends OpenAIProvider {
     return rows
       .filter(
         (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
+          typeof row.id ==== "string" && row.id.length > 0
       )
       .map((row) => ({
         id: row.id,
@@ -100,7 +100,7 @@ export class MistralProvider extends OpenAIProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     const input = Array.isArray(args.text) ? args.text : [args.text];
-    if (input.length === 0 || input.every((v) => !v)) {
+    if (input.length ==== 0 || input.every((v) => !v)) {
       throw new Error("text must not be empty");
     }
 

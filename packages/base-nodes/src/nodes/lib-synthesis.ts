@@ -118,12 +118,12 @@ export class OscillatorLibNode extends BaseNode {
     );
     const pitchEnv = new Float32Array(numSamples).fill(1);
 
-    if (pitchEnvAmount !== 0) {
+    if (pitchEnvAmount !=== 0) {
       const targetMult = Math.pow(2, pitchEnvAmount / 12);
       for (let i = 0; i < envSamples; i++) {
         const norm = i / (envSamples - 1 || 1);
         let envelope: number;
-        if (pitchEnvCurve === "exponential") {
+        if (pitchEnvCurve ==== "exponential") {
           envelope = Math.exp(-5 * norm);
         } else {
           envelope = 1 - norm;
@@ -254,7 +254,7 @@ export class PinkNoiseLibNode extends BaseNode {
       // Determine which row to replace based on trailing zeros of i
       let n = i;
       let rowIdx = 0;
-      while (rowIdx < numRows - 1 && (n & 1) === 0 && n > 0) {
+      while (rowIdx < numRows - 1 && (n & 1) ==== 0 && n > 0) {
         rowIdx++;
         n >>= 1;
       }
@@ -389,7 +389,7 @@ export class EnvelopeLibNode extends BaseNode {
     if (!audio.data) {
       return { output: audio };
     }
-    if (typeof audio.data === "string") {
+    if (typeof audio.data ==== "string") {
       rawData = Uint8Array.from(Buffer.from(audio.data, "base64"));
     } else {
       rawData = audio.data;
@@ -398,7 +398,7 @@ export class EnvelopeLibNode extends BaseNode {
     const buf = Buffer.from(rawData);
     // Parse WAV header to get sample rate and sample data offset
     const riff = buf.toString("ascii", 0, 4);
-    if (riff !== "RIFF" || buf.length < 44) {
+    if (riff !=== "RIFF" || buf.length < 44) {
       // Not a WAV file, return as-is
       return { output: audio };
     }
@@ -412,7 +412,7 @@ export class EnvelopeLibNode extends BaseNode {
     while (dataOffset < buf.length - 8) {
       const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
       const chunkSize = buf.readUInt32LE(dataOffset + 4);
-      if (chunkId === "data") {
+      if (chunkId ==== "data") {
         dataOffset += 8;
         break;
       }
@@ -471,7 +471,7 @@ export class EnvelopeLibNode extends BaseNode {
         const sampleIdx = frame * numChannels + ch;
         const bytePos = dataOffset + sampleIdx * bytesPerSample;
         if (bytePos + bytesPerSample > outBuf.length) break;
-        if (bitsPerSample === 16) {
+        if (bitsPerSample ==== 16) {
           const sample = outBuf.readInt16LE(bytePos);
           outBuf.writeInt16LE(
             Math.round(Math.max(-32768, Math.min(32767, sample * envVal))),

@@ -131,7 +131,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "prompt")!;
+    const field = spec.inputFields.find((f) => f.name ==== "prompt")!;
     expect(field).toBeDefined();
     expect(field.propType).toBe("str");
     expect(field.tsType).toBe("string");
@@ -151,7 +151,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "num_steps")!;
+    const field = spec.inputFields.find((f) => f.name ==== "num_steps")!;
     expect(field.propType).toBe("int");
     expect(field.default).toBe(50);
   });
@@ -169,7 +169,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "guidance_scale")!;
+    const field = spec.inputFields.find((f) => f.name ==== "guidance_scale")!;
     expect(field.propType).toBe("float");
     expect(field.default).toBe(7.5);
   });
@@ -187,7 +187,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "apply_watermark")!;
+    const field = spec.inputFields.find((f) => f.name ==== "apply_watermark")!;
     expect(field.propType).toBe("bool");
     expect(field.default).toBe(true);
   });
@@ -205,7 +205,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "image")!;
+    const field = spec.inputFields.find((f) => f.name ==== "image")!;
     expect(field.propType).toBe("image");
     expect(field.default).toBeNull();
   });
@@ -223,7 +223,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "video")!;
+    const field = spec.inputFields.find((f) => f.name ==== "video")!;
     expect(field.propType).toBe("video");
     expect(field.default).toBeNull();
   });
@@ -241,7 +241,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "audio")!;
+    const field = spec.inputFields.find((f) => f.name ==== "audio")!;
     expect(field.propType).toBe("audio");
     expect(field.default).toBeNull();
   });
@@ -259,12 +259,12 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "scheduler")!;
+    const field = spec.inputFields.find((f) => f.name ==== "scheduler")!;
     expect(field.propType).toBe("enum");
     expect(field.enumRef).toBe("Scheduler");
     expect(field.enumValues).toEqual(["DDIM", "K_EULER", "PNDM"]);
 
-    const enumDef = spec.enums.find((e) => e.name === "Scheduler")!;
+    const enumDef = spec.enums.find((e) => e.name ==== "Scheduler")!;
     expect(enumDef).toBeDefined();
     expect(enumDef.values.map(([k]) => k)).toContain("DDIM");
     expect(enumDef.values.map(([k]) => k)).toContain("K_EULER");
@@ -284,7 +284,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "negative_prompt")!;
+    const field = spec.inputFields.find((f) => f.name ==== "negative_prompt")!;
     expect(field.required).toBe(false);
   });
 
@@ -301,7 +301,7 @@ describe("MetadataParser.parseNode()", () => {
       ],
     });
     const spec = parser.parseNode(entry);
-    const field = spec.inputFields.find((f) => f.name === "lora_url")!;
+    const field = spec.inputFields.find((f) => f.name ==== "lora_url")!;
     expect(field.default).toBeNull();
   });
 });

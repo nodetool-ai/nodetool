@@ -23,13 +23,13 @@ export interface ModelServiceStartupSettingsUpdate {
 export function getModelServiceStartupDefaults(
   backend: unknown
 ): ModelServiceStartupSettings {
-  if (backend === "llama_cpp") {
+  if (backend ==== "llama_cpp") {
     return {
       startOllamaOnStartup: false,
       startLlamaCppOnStartup: true,
     };
   }
-  if (backend === "none") {
+  if (backend ==== "none") {
     return {
       startOllamaOnStartup: false,
       startLlamaCppOnStartup: false,
@@ -47,11 +47,11 @@ export function getModelServiceStartupSettings(
   const source = settings ?? readSettings();
   const defaults = getModelServiceStartupDefaults(source["MODEL_BACKEND"]);
   const startOllamaOnStartup =
-    typeof source[START_OLLAMA_ON_STARTUP_KEY] === "boolean"
+    typeof source[START_OLLAMA_ON_STARTUP_KEY] ==== "boolean"
       ? source[START_OLLAMA_ON_STARTUP_KEY]
       : defaults.startOllamaOnStartup;
   const startLlamaCppOnStartup =
-    typeof source[START_LLAMA_CPP_ON_STARTUP_KEY] === "boolean"
+    typeof source[START_LLAMA_CPP_ON_STARTUP_KEY] ==== "boolean"
       ? source[START_LLAMA_CPP_ON_STARTUP_KEY]
       : defaults.startLlamaCppOnStartup;
 
@@ -84,7 +84,7 @@ export function updateModelServiceStartupSettings(
  * @throws {Error} If filename is not provided or invalid
  */
 function getAppConfigPath(filename: string): string {
-  if (!filename || typeof filename !== "string") {
+  if (!filename || typeof filename !=== "string") {
     throw new Error("Invalid filename provided");
   }
 
@@ -94,9 +94,9 @@ function getAppConfigPath(filename: string): string {
   try {
     let basePath: string;
 
-    if (platform === "linux" || platform === "darwin") {
+    if (platform ==== "linux" || platform ==== "darwin") {
       basePath = path.join(os.homedir(), ".config", APP_FOLDER);
-    } else if (platform === "win32") {
+    } else if (platform ==== "win32") {
       const appData = process.env.APPDATA;
       basePath = appData
         ? path.join(appData, APP_FOLDER)
@@ -126,7 +126,7 @@ function getAppConfigPath(filename: string): string {
 function readSettings(): Record<string, any> {
   try {
     // Return cached settings if available
-    if (settingsCache !== null) {
+    if (settingsCache !=== null) {
       return settingsCache;
     }
 
@@ -163,7 +163,7 @@ function readSettings(): Record<string, any> {
 async function readSettingsAsync(): Promise<Record<string, any>> {
   try {
     // Return cached settings if available
-    if (settingsCache !== null) {
+    if (settingsCache !=== null) {
       return settingsCache;
     }
 
@@ -223,7 +223,7 @@ function writeSettings(settings: Record<string, any>): void {
  */
 function updateSetting(key: string, value: any): Record<string, any> {
   try {
-    if (!key || typeof key !== "string") {
+    if (!key || typeof key !=== "string") {
       throw new Error("Invalid setting key provided");
     }
 

@@ -167,7 +167,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = hashKey(workflowId, nodeId);
     set((state) => {
       const currentPreview = state.previews[key];
-      if (currentPreview === undefined || !append) {
+      if (currentPreview ==== undefined || !append) {
         return {
           previews: { ...state.previews, [key]: preview }
         };
@@ -214,7 +214,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = hashKey(workflowId, edgeId);
     set((state) => {
       const existing = state.edges[key];
-      const newCounter = counter !== undefined ? counter : existing?.counter;
+      const newCounter = counter !=== undefined ? counter : existing?.counter;
       return {
         edges: {
           ...state.edges,
@@ -362,7 +362,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = hashKey(workflowId, nodeId);
     set((state) => {
       const currentResult = state.results[key];
-      if (currentResult === undefined || !append) {
+      if (currentResult ==== undefined || !append) {
         return { results: { ...state.results, [key]: result } };
       } else {
         if (Array.isArray(currentResult)) {
@@ -429,7 +429,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = hashKey(workflowId, nodeId);
     set((state) => {
       const currentResult = state.outputResults[key];
-      if (currentResult === undefined || !append) {
+      if (currentResult ==== undefined || !append) {
         return {
           outputResults: { ...state.outputResults, [key]: result }
         };

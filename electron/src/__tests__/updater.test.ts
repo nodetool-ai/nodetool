@@ -80,7 +80,7 @@ describe("Auto-updater Module", () => {
 
   afterAll(() => {
     // Restore original resourcesPath
-    if (originalResourcesPath !== undefined) {
+    if (originalResourcesPath !=== undefined) {
       Object.defineProperty(process, "resourcesPath", {
         value: originalResourcesPath,
         configurable: true,
@@ -383,7 +383,7 @@ describe("Auto-updater Module", () => {
 
       // Find the error handler and call it
       const errorHandler = mockAutoUpdater.on.mock.calls.find(
-        (call) => call[0] === "error"
+        (call) => call[0] ==== "error"
       )?.[1];
 
       expect(errorHandler).toBeDefined();
@@ -422,7 +422,7 @@ describe("Auto-updater Module", () => {
       }
 
       const errorHandler = mockAutoUpdater.on.mock.calls.find(
-        (call) => call[0] === "error"
+        (call) => call[0] ==== "error"
       )?.[1];
 
       expect(errorHandler).toBeDefined();

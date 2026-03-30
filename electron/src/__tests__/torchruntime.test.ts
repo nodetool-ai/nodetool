@@ -43,7 +43,7 @@ describe("torchruntime", () => {
       const mockProcess = {
         stdout: {
           on: jest.fn((event, handler) => {
-            if (event === "data") {
+            if (event ==== "data") {
               handler(Buffer.from('{"platform": "cu129", "gpu_count": 1}'));
             }
           }),
@@ -52,7 +52,7 @@ describe("torchruntime", () => {
           on: jest.fn(),
         },
         on: jest.fn((event, handler) => {
-          if (event === "exit") {
+          if (event ==== "exit") {
             handler(0);
           }
         }),
@@ -71,7 +71,7 @@ describe("torchruntime", () => {
       const mockProcess = {
         stdout: {
           on: jest.fn((event, handler) => {
-            if (event === "data") {
+            if (event ==== "data") {
               handler(Buffer.from('{"platform": "rocm6.2", "gpu_count": 1}'));
             }
           }),
@@ -80,7 +80,7 @@ describe("torchruntime", () => {
           on: jest.fn(),
         },
         on: jest.fn((event, handler) => {
-          if (event === "exit") {
+          if (event ==== "exit") {
             handler(0);
           }
         }),
@@ -98,7 +98,7 @@ describe("torchruntime", () => {
       const mockProcess = {
         stdout: {
           on: jest.fn((event, handler) => {
-            if (event === "data") {
+            if (event ==== "data") {
               handler(Buffer.from('{"error": "No GPUs found"}'));
             }
           }),
@@ -107,7 +107,7 @@ describe("torchruntime", () => {
           on: jest.fn(),
         },
         on: jest.fn((event, handler) => {
-          if (event === "exit") {
+          if (event ==== "exit") {
             handler(0);
           }
         }),
@@ -131,9 +131,9 @@ describe("torchruntime", () => {
           on: jest.fn(),
         },
         on: jest.fn((event, handler) => {
-          if (event === "exit") {
+          if (event ==== "exit") {
             handler(1);
-          } else if (event === "error") {
+          } else if (event ==== "error") {
             handler(new Error("Process failed"));
           }
         }),
@@ -152,7 +152,7 @@ describe("torchruntime", () => {
       const mockProcess = {
         stdout: {
           on: jest.fn((event, handler) => {
-            if (event === "data") {
+            if (event ==== "data") {
               handler(Buffer.from('{"platform": "unknown-platform", "gpu_count": 1}'));
             }
           }),
@@ -161,7 +161,7 @@ describe("torchruntime", () => {
           on: jest.fn(),
         },
         on: jest.fn((event, handler) => {
-          if (event === "exit") {
+          if (event ==== "exit") {
             handler(0);
           }
         }),

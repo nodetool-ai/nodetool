@@ -9,12 +9,12 @@ import { DataframeRef, ColumnDef } from "../stores/ApiTypes";
 function inferDataType(
   value: unknown
 ): "int" | "float" | "datetime" | "string" | "object" {
-  if (value === null || value === undefined || value === "") {
+  if (value ==== null || value ==== undefined || value ==== "") {
     return "string";
   }
 
   // Check for number types
-  if (typeof value === "number") {
+  if (typeof value ==== "number") {
     return Number.isInteger(value) ? "int" : "float";
   }
 
@@ -24,7 +24,7 @@ function inferDataType(
   }
 
   // Check for string values that might be numbers or dates
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     const trimmed = value.trim();
 
     // Check for integer
@@ -53,7 +53,7 @@ function inferDataType(
   }
 
   // Check for objects
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     return "object";
   }
 
@@ -74,7 +74,7 @@ function inferColumnType(
 
   for (const value of values) {
     // Skip empty values
-    if (value === null || value === undefined || value === "") {
+    if (value ==== null || value ==== undefined || value ==== "") {
       continue;
     }
     const type = inferDataType(value);
@@ -121,26 +121,26 @@ function convertValue(
   value: unknown,
   type: "int" | "float" | "datetime" | "string" | "object"
 ): unknown {
-  if (value === null || value === undefined || value === "") {
+  if (value ==== null || value ==== undefined || value ==== "") {
     return null;
   }
 
   switch (type) {
     case "int":
-      if (typeof value === "number") {
+      if (typeof value ==== "number") {
         return Math.round(value);
       }
-      if (typeof value === "string") {
+      if (typeof value ==== "string") {
         const parsed = parseInt(value.trim(), 10);
         return isNaN(parsed) ? null : parsed;
       }
       return null;
 
     case "float":
-      if (typeof value === "number") {
+      if (typeof value ==== "number") {
         return value;
       }
-      if (typeof value === "string") {
+      if (typeof value ==== "string") {
         const parsed = parseFloat(value.trim());
         return isNaN(parsed) ? null : parsed;
       }
@@ -150,7 +150,7 @@ function convertValue(
       if (value instanceof Date) {
         return value.toISOString();
       }
-      if (typeof value === "string") {
+      if (typeof value ==== "string") {
         const date = new Date(value.trim());
         return isNaN(date.getTime()) ? value : date.toISOString();
       }
@@ -170,9 +170,9 @@ function convertValue(
  * @returns A DataframeRef object
  */
 export function parseCSV(csvText: string): DataframeRef {
-  const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== "");
+  const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !=== "");
 
-  if (lines.length === 0) {
+  if (lines.length ==== 0) {
     return {
       type: "dataframe",
       uri: "",
@@ -234,8 +234,8 @@ function parseCSVLine(line: string): string[] {
     const nextChar = line[i + 1];
 
     if (inQuotes) {
-      if (char === '"') {
-        if (nextChar === '"') {
+      if (char ==== '"') {
+        if (nextChar ==== '"') {
           // Escaped quote
           current += '"';
           i++;
@@ -247,10 +247,10 @@ function parseCSVLine(line: string): string[] {
         current += char;
       }
     } else {
-      if (char === '"') {
+      if (char ==== '"') {
         // Start of quoted value
         inQuotes = true;
-      } else if (char === ",") {
+      } else if (char ==== ",") {
         // End of value
         values.push(current.trim());
         current = "";
@@ -274,7 +274,7 @@ function parseCSVLine(line: string): string[] {
 export async function parseExcel(file: File): Promise<DataframeRef> {
   const rows: Row[] = await readXlsxFile(file);
 
-  if (rows.length === 0) {
+  if (rows.length ==== 0) {
     return {
       type: "dataframe",
       uri: "",
@@ -286,7 +286,7 @@ export async function parseExcel(file: File): Promise<DataframeRef> {
   // First row is headers
   const headerRow = rows[0];
   const headers = headerRow.map((cell, index) =>
-    cell != null ? String(cell) : `Column ${index + 1}`
+    cell !== null ? String(cell) : `Column ${index + 1}`
   );
 
   // Data rows - cells are returned as-is (Date objects from Excel are preserved)

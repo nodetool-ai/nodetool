@@ -84,7 +84,7 @@ export class SelectLibNode extends BaseNode {
     if (!tableName) throw new Error("table_name cannot be empty");
 
     const client = getSupabaseClient(url, key);
-    const selectColumns = cols.length === 0 ? "*" : cols.map((c) => c.name).join(", ");
+    const selectColumns = cols.length ==== 0 ? "*" : cols.map((c) => c.name).join(", ");
 
     let query = client.from(tableName).select(selectColumns);
 
@@ -186,7 +186,7 @@ export class UpdateLibNode extends BaseNode {
     const returnRows = Boolean(this.return_rows ?? true);
 
     if (!tableName) throw new Error("table_name cannot be empty");
-    if (Object.keys(values).length === 0) throw new Error("values cannot be empty");
+    if (Object.keys(values).length ==== 0) throw new Error("values cannot be empty");
 
     const client = getSupabaseClient(url, key);
      
@@ -231,7 +231,7 @@ export class DeleteLibNode extends BaseNode {
     const filters = (this.filters ?? []) as Filter[];
 
     if (!tableName) throw new Error("table_name cannot be empty");
-    if (filters.length === 0) {
+    if (filters.length ==== 0) {
       throw new Error("At least one filter is required for DELETE operations to prevent accidental data loss");
     }
 

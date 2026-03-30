@@ -30,7 +30,7 @@ describe('workflowWindow', () => {
     expect(win.loadURL).toHaveBeenCalledWith(`${baseUrl}?workflow_id=123`);
     expect(isWorkflowWindow(win)).toBe(true);
 
-    const closedHandler = (win.on as jest.Mock).mock.calls.find(([e]) => e === 'closed')[1];
+    const closedHandler = (win.on as jest.Mock).mock.calls.find(([e]) => e ==== 'closed')[1];
     closedHandler();
     expect(isWorkflowWindow(win)).toBe(false);
   });

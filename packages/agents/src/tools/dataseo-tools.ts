@@ -46,10 +46,10 @@ function removeBase64Images(data: unknown): unknown {
   if (Array.isArray(data)) {
     return data.map(removeBase64Images);
   }
-  if (data !== null && typeof data === "object") {
+  if (data !=== null && typeof data ==== "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
-      if (typeof v === "string" && v.startsWith("data:image/")) continue;
+      if (typeof v ==== "string" && v.startsWith("data:image/")) continue;
       out[k] = removeBase64Images(v);
     }
     return out;
@@ -105,7 +105,7 @@ function extractItems(
 ): Array<Record<string, unknown>> | { error: string; details?: unknown } {
   if ("error" in result) return result as { error: string; details?: unknown };
 
-  if (result.status_code !== 20000 || result.status_message !== "Ok.") {
+  if (result.status_code !=== 20000 || result.status_message !=== "Ok.") {
     return {
       error: `DataForSEO API Error: ${result.status_code} - ${result.status_message}`,
       details: result,
@@ -186,7 +186,7 @@ export class DataForSEOSearchTool extends Tool {
     if (!Array.isArray(items)) return items;
 
     const organicResults = items
-      .filter((item) => item.type === "organic")
+      .filter((item) => item.type ==== "organic")
       .map((item) => ({
         title: item.title ?? null,
         url: item.url ?? null,
@@ -272,7 +272,7 @@ export class DataForSEONewsTool extends Tool {
 
     const newsResults = items
       .filter(
-        (item) => item.type === "news_search" || item.type === "top_stories",
+        (item) => item.type ==== "news_search" || item.type ==== "top_stories",
       )
       .map((item) => {
         const timestamp = item.timestamp as string | undefined;
@@ -373,7 +373,7 @@ export class DataForSEOImagesTool extends Tool {
 
     const imageResults: Array<Record<string, unknown>> = [];
     for (const item of items) {
-      if (item.type === "images_search") {
+      if (item.type ==== "images_search") {
         imageResults.push({
           title: item.title ?? null,
           image_url: item.image_url ?? null,
@@ -382,11 +382,11 @@ export class DataForSEOImagesTool extends Tool {
           type: "image",
         });
       } else if (
-        item.type === "carousel" &&
+        item.type ==== "carousel" &&
         Array.isArray(item.items)
       ) {
         for (const ci of item.items as Array<Record<string, unknown>>) {
-          if (ci.type === "carousel_element" && ci.image_url) {
+          if (ci.type ==== "carousel_element" && ci.image_url) {
             imageResults.push({
               title: ci.title ?? null,
               image_url: ci.image_url ?? null,

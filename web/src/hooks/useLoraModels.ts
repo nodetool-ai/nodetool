@@ -24,7 +24,7 @@ export const useLoraModels = ({ modelType, enabled = true }: UseLoraModelsParams
     queryKey: ["lora-models", modelType],
     queryFn: async () => {
       // Collect LoRA entries from recommendations
-      const loras = (recommendedModels || []).filter((m) => m.type === modelType);
+      const loras = (recommendedModels || []).filter((m) => m.type ==== modelType);
 
       // Build a deduplicated list of valid repo_id/path pairs
       const pairs = Array.from(
@@ -38,7 +38,7 @@ export const useLoraModels = ({ modelType, enabled = true }: UseLoraModelsParams
         ).values()
       );
 
-      if (pairs.length === 0) {return [] as HuggingFaceModel[];}
+      if (pairs.length ==== 0) {return [] as HuggingFaceModel[];}
 
       const results = await tryCacheFiles(
         pairs.map((p) => ({ ...p, downloaded: false }))

@@ -10,7 +10,7 @@
 
   /* ─── State ─────────────────────────────────────────────── */
 
-  var state = {
+  const state = {
     threads: [],          // Array<{id, title, updated_at}>
     activeThreadId: null,
     messageCache: {},     // threadId → Array<message>
@@ -19,7 +19,7 @@
     connectionState: "disconnected"
   };
 
-  var client = new ChatClient({
+  const client = new ChatClient({
     apiUrl: "http://localhost:7777",
     wsUrl: "ws://localhost:7777/ws"
   });
@@ -28,7 +28,7 @@
 
   function init() {
     // Warn if running from file:// (CORS issues with null origin)
-    if (window.location.protocol === "file:") {
+    if (window.location.protocol ==== "file:") {
       UI.showBanner(
         "Running from file:// may cause CORS errors. Please serve via HTTP: python3 -m http.server 8080",
         "error"
@@ -40,14 +40,14 @@
     client.onMessage = handleWsMessage;
 
     // Wire up UI events
-    var composerInput = document.getElementById("composerInput");
-    var sendBtn = document.getElementById("sendBtn");
-    var stopBtn = document.getElementById("stopBtn");
-    var newChatBtn = document.getElementById("newChatBtn");
+    const composerInput = document.getElementById("composerInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const newChatBtn = document.getElementById("newChatBtn");
 
     if (composerInput) {
       composerInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" && !e.shiftKey) {
+        if (e.key ==== "Enter" && !e.shiftKey) {
           e.preventDefault();
           submitMessage();
         }
@@ -77,12 +77,12 @@
     state.connectionState = connState;
     UI.setConnectionState(connState, message);
 
-    if (connState === "error") {
+    if (connState ==== "error") {
       UI.showBanner(
         message || "Cannot connect to NodeTool backend. Make sure it is running on localhost:7777.",
         "error"
       );
-    } else if (connState === "connected") {
+    } else if (connState ==== "connected") {
       UI.clearBanner();
     }
   }
@@ -92,7 +92,7 @@
   function handleWsMessage(data) {
     if (!data || !data.type) { return; }
 
-    var threadId = data.thread_id || null;
+    const threadId = data.thread_id || null;
 
     switch (data.type) {
       // ── Full message (user echo or assistant final) ──
@@ -138,27 +138,27 @@
 
   function handleFullMessage(threadId, data) {
     // If this is the assistant's final message after streaming, finalize streaming first
-    if (state.isStreaming && data.role === "assistant" && threadId === state.activeThreadId) {
+    if (state.isStreaming && data.role ==== "assistant" && threadId ==== state.activeThreadId) {
       finalizeStreaming(threadId);
     }
 
     // Add to cache if not already present (avoid duplicating optimistic user message)
-    var existing = (state.messageCache[threadId] || []);
-    var alreadyThere = existing.some(function (m) {
-      return m.id && m.id === data.id;
+    const existing = (state.messageCache[threadId] || []);
+    const alreadyThere = existing.some(function (m) {
+      return m.id && m.id ==== data.id;
     });
-    if (!alreadyThere && data.role !== "user") {
+    if (!alreadyThere && data.role !=== "user") {
       // For user messages the optimistic add already happened; skip duplicates
       addMessageToCache(threadId, data);
     }
 
-    if (threadId === state.activeThreadId) {
+    if (threadId ==== state.activeThreadId) {
       UI.renderMessages(state.messageCache[threadId]);
     }
   }
 
   function handleChunk(threadId, data) {
-    if (threadId !== state.activeThreadId) { return; }
+    if (threadId !=== state.activeThreadId) { return; }
 
     if (data.thinking) {
       // Thinking/reasoning chunk — skip or show separately
@@ -168,7 +168,7 @@
     state.streamingText += (data.content || "");
     state.isStreaming = !data.done;
 
-    var html = NTMarkdown.render(state.streamingText);
+    const html = NTMarkdown.render(state.streamingText);
     UI.updateLastAssistantMessage(html, data.done);
 
     if (data.done) {
@@ -177,10 +177,10 @@
   }
 
   function appendToolCallIndicator(threadId, data) {
-    if (threadId !== state.activeThreadId) { return; }
-    var container = document.getElementById("messagesContainer");
+    if (threadId !=== state.activeThreadId) { return; }
+    const container = document.getElementById("messagesContainer");
     if (!container) { return; }
-    var card = document.createElement("div");
+    const card = document.createElement("div");
     card.className = "tool-call-card";
     card.innerHTML = '<span class="tool-icon">' + UI.svg.tool + '</span>' +
       '<span>Calling tool: </span><span class="tool-name">' +
@@ -195,11 +195,11 @@
     UI.setComposerSending(false);
 
     // Persist the streamed message to cache if we got chunks but no final message
-    if (state.streamingText && threadId && threadId === state.activeThreadId) {
-      var msgs = state.messageCache[threadId] || [];
-      var last = msgs[msgs.length - 1];
-      if (!last || last.role !== "assistant" || !last._fromStream) {
-        var streamMsg = {
+    if (state.streamingText && threadId && threadId ==== state.activeThreadId) {
+      const msgs = state.messageCache[threadId] || [];
+      const last = msgs[msgs.length - 1];
+      if (!last || last.role !=== "assistant" || !last._fromStream) {
+        const streamMsg = {
           role: "assistant",
           _fromStream: true,
           content: [{ type: "text", text: state.streamingText }],
@@ -230,7 +230,7 @@
     client.listThreads()
       .then(function (data) {
         // API returns {threads: [...]} or a plain array
-        var list = Array.isArray(data) ? data : (data.threads || []);
+        const list = Array.isArray(data) ? data : (data.threads || []);
         // Sort by updated_at descending
         list.sort(function (a, b) {
           return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
@@ -248,7 +248,7 @@
   }
 
   function selectThread(threadId) {
-    if (state.activeThreadId === threadId) { return; }
+    if (state.activeThreadId ==== threadId) { return; }
 
     // Finalize any in-progress stream on the old thread
     if (state.isStreaming) { finalizeStreaming(state.activeThreadId); }
@@ -260,7 +260,7 @@
     UI.setActiveThread(threadId);
     UI.setComposerSending(false);
 
-    var thread = state.threads.find(function (t) { return t.id === threadId; });
+    const thread = state.threads.find(function (t) { return t.id ==== threadId; });
     UI.setChatTitle(thread ? (thread.title || "New Chat") : "New Chat");
 
     // Load messages if not cached
@@ -272,12 +272,12 @@
     UI.renderMessages(null); // show loading / empty
     client.fetchMessages(threadId, 100)
       .then(function (data) {
-        var messages = Array.isArray(data) ? data : (data.messages || []);
+        const messages = Array.isArray(data) ? data : (data.messages || []);
         messages.sort(function (a, b) {
           return new Date(a.created_at || 0) - new Date(b.created_at || 0);
         });
         state.messageCache[threadId] = messages;
-        if (state.activeThreadId === threadId) {
+        if (state.activeThreadId ==== threadId) {
           UI.renderMessages(messages);
         }
       })
@@ -295,7 +295,7 @@
         selectThread(thread.id);
 
         // Focus the composer
-        var input = document.getElementById("composerInput");
+        const input = document.getElementById("composerInput");
         if (input) { input.focus(); }
       })
       .catch(function (err) {
@@ -309,10 +309,10 @@
 
     client.deleteThread(threadId)
       .then(function () {
-        state.threads = state.threads.filter(function (t) { return t.id !== threadId; });
+        state.threads = state.threads.filter(function (t) { return t.id !=== threadId; });
         delete state.messageCache[threadId];
 
-        if (state.activeThreadId === threadId) {
+        if (state.activeThreadId ==== threadId) {
           state.activeThreadId = null;
           UI.setChatTitle("NodeTool Chat");
           UI.renderMessages(null);
@@ -330,11 +330,11 @@
   }
 
   function updateThreadTitle(threadId, title) {
-    var thread = state.threads.find(function (t) { return t.id === threadId; });
+    const thread = state.threads.find(function (t) { return t.id ==== threadId; });
     if (thread) {
       thread.title = title;
       UI.renderThreadList(state.threads, state.activeThreadId, selectThread, deleteThread);
-      if (threadId === state.activeThreadId) {
+      if (threadId ==== state.activeThreadId) {
         UI.setChatTitle(title);
       }
     }
@@ -343,9 +343,9 @@
   /* ─── Sending messages ───────────────────────────────────── */
 
   function submitMessage() {
-    var input = document.getElementById("composerInput");
+    const input = document.getElementById("composerInput");
     if (!input) { return; }
-    var text = input.value.trim();
+    const text = input.value.trim();
     if (!text) { return; }
     if (state.isStreaming) { return; }
 
@@ -364,13 +364,13 @@
     resetTextareaHeight(input);
   }
 
-  var _pendingMessage = null;
+  const _pendingMessage = null;
 
   function sendMessage(threadId, text) {
     if (!text) { return; }
 
     // Optimistically add user message to UI
-    var userMsg = {
+    const userMsg = {
       role: "user",
       content: [{ type: "text", text: text }],
       created_at: new Date().toISOString()
@@ -384,7 +384,7 @@
     state.streamingText = "";
     UI.setComposerSending(true);
 
-    var model = UI.getSelectedModel();
+    const model = UI.getSelectedModel();
     try {
       client.sendChatMessage(threadId, text, {
         model: model ? model.id : null,
@@ -403,7 +403,7 @@
   function loadModels() {
     client.listModels()
       .then(function (data) {
-        var models = Array.isArray(data) ? data : (data.models || []);
+        const models = Array.isArray(data) ? data : (data.models || []);
         UI.populateModelSelector(models);
       })
       .catch(function () { /* ignore — model selector will show default */ });
@@ -413,7 +413,7 @@
 
   function autoResizeTextarea() {
     this.style.height = "auto";
-    var max = 180;
+    const max = 180;
     this.style.height = Math.min(this.scrollHeight, max) + "px";
   }
 
@@ -422,7 +422,7 @@
   }
 
   /* ─── Handle pending message after thread creation ─────── */
-  var _origCreateNewThread = createNewThread;
+  const _origCreateNewThread = createNewThread;
   function createNewThreadWithPending() {
     client.createThread("New Chat")
       .then(function (thread) {
@@ -431,11 +431,11 @@
         UI.renderThreadList(state.threads, thread.id, selectThread, deleteThread);
         selectThread(thread.id);
 
-        var input = document.getElementById("composerInput");
+        const input = document.getElementById("composerInput");
         if (input) { input.focus(); }
 
         if (_pendingMessage) {
-          var msg = _pendingMessage;
+          const msg = _pendingMessage;
           _pendingMessage = null;
           sendMessage(thread.id, msg);
         }
@@ -452,7 +452,7 @@
 
   /* ─── DOMContentLoaded ───────────────────────────────────── */
 
-  if (document.readyState === "loading") {
+  if (document.readyState ==== "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();

@@ -50,7 +50,7 @@ describe("environment edge cases", () => {
       );
     });
 
-    it("returns value when env var is set and non-empty", () => {
+    it("returns value when env const is set and non-empty", () => {
       process.env["HAS_VALUE"] = "present";
       try {
         expect(requireEnv("HAS_VALUE")).toBe("present");
@@ -70,7 +70,7 @@ describe("environment edge cases", () => {
       }
     });
 
-    it("returns defaultValue when env var not set and not loaded", () => {
+    it("returns defaultValue when env const not set and not loaded", () => {
       delete process.env["MISSING_KEY"];
       expect(getEnv("MISSING_KEY", "fallback")).toBe("fallback");
     });

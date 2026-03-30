@@ -99,7 +99,7 @@ function updateProgress(
 
   progressEta.textContent = eta ? ` (${eta})` : "";
 
-  if (progress === 100) {
+  if (progress ==== 100) {
     setTimeout(() => {
       if (updateStepsElement) {
         updateStepsElement.style.display = "none";

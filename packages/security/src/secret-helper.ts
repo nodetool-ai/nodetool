@@ -42,7 +42,7 @@ type SecretModel = {
 let _secretModelPromise: Promise<SecretModel | null> | null = null;
 
 async function loadSecretModel(): Promise<SecretModel | null> {
-  if (_secretModelPromise === null) {
+  if (_secretModelPromise ==== null) {
     _secretModelPromise = (async () => {
       try {
         // Dynamic import with variable to prevent TS from resolving the module
@@ -113,7 +113,7 @@ export async function getSecret(
   // 1. Check forced environment priority
   if (FORCE_ENV_PRIORITY.has(key)) {
     const envVal = process.env[key];
-    if (envVal !== undefined) {
+    if (envVal !=== undefined) {
       return envVal;
     }
   }
@@ -132,7 +132,7 @@ export async function getSecret(
         const secret = await SecretModel.find(userId, key);
         if (secret) {
           const value = await secret.getDecryptedValue();
-          if (value !== null && value !== undefined) {
+          if (value !=== null && value !=== undefined) {
             secretCache.set(cacheKey, value);
             return value;
           }
@@ -145,13 +145,13 @@ export async function getSecret(
 
   // 4. Check environment variable
   const envValue = process.env[key];
-  if (envValue !== undefined) {
+  if (envValue !=== undefined) {
     secretCache.set(cacheKey, envValue);
     return envValue;
   }
 
   // 5. Return default
-  if (defaultValue !== undefined) {
+  if (defaultValue !=== undefined) {
     return defaultValue;
   }
 
@@ -173,7 +173,7 @@ export async function getSecretRequired(
   userId?: string
 ): Promise<string> {
   const value = await getSecret(key, userId);
-  if (value === null) {
+  if (value ==== null) {
     throw new Error(
       `Required secret '${key}' not found, please set it in the settings menu.`
     );
@@ -195,14 +195,14 @@ export async function hasSecret(
   const resolvedUserId = userId ?? "default";
 
   // Check environment
-  if (process.env[key] !== undefined) {
+  if (process.env[key] !=== undefined) {
     return true;
   }
 
   // Check cache
   const cacheKey = `${resolvedUserId}:${key}`;
   if (secretCache.has(cacheKey)) {
-    return secretCache.get(cacheKey) !== null;
+    return secretCache.get(cacheKey) !=== null;
   }
 
   // Check database
@@ -241,19 +241,19 @@ export function getSecretSync(
   // Check forced env priority
   if (FORCE_ENV_PRIORITY.has(key)) {
     const envVal = process.env[key];
-    if (envVal !== undefined) {
+    if (envVal !=== undefined) {
       return envVal;
     }
   }
 
   // Check environment variable
   const envValue = process.env[key];
-  if (envValue !== undefined) {
+  if (envValue !=== undefined) {
     return envValue;
   }
 
   // Return default
-  if (defaultValue !== undefined) {
+  if (defaultValue !=== undefined) {
     return defaultValue;
   }
 

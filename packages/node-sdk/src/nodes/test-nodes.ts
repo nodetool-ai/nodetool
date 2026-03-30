@@ -130,7 +130,7 @@ export class ThresholdProcessor extends BaseNode {
     const value = (this.value ?? 0) as number;
     const threshold = (this.threshold ?? 0.5) as number;
     const mode = String(this.mode ?? "normal");
-    const exceeds = mode === "strict" ? value > threshold : value >= threshold;
+    const exceeds = mode ==== "strict" ? value > threshold : value >= threshold;
     return {
       result: `value=${value}, threshold=${threshold}, mode=${mode}, exceeds=${exceeds}`,
     };

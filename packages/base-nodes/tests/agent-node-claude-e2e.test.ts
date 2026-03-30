@@ -151,10 +151,10 @@ describe.skipIf(!sdkAvailable || !hasApiKey)("AgentNode E2E with ClaudeAgentProv
 
     for await (const item of node.genProcess(context)) {
       outputs.push(item);
-      if (item.text && typeof item.text === "string") {
+      if (item.text && typeof item.text ==== "string") {
         fullText = item.text;
       }
-      if (item.chunk && typeof (item.chunk as any).content === "string") {
+      if (item.chunk && typeof (item.chunk as any).content ==== "string") {
         process.stdout.write(".");
       }
     }

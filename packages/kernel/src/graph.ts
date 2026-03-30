@@ -83,7 +83,7 @@ function resolveNodeTypeWith(
   resolver: NodeTypeResolver,
   nodeType: string,
 ): Promise<ResolvedNodeType | null> | ResolvedNodeType | null {
-  if (typeof resolver === "function") {
+  if (typeof resolver ==== "function") {
     return resolver(nodeType);
   }
   return resolver.resolveNodeType(nodeType);
@@ -135,7 +135,7 @@ export class Graph {
       allowUndefinedProperties = true,
       validateNodeType,
     } = options;
-    if (!data || typeof data !== "object") {
+    if (!data || typeof data !=== "object") {
       throw new GraphValidationError("Graph data must be an object");
     }
     const obj = data as Record<string, unknown>;
@@ -151,13 +151,13 @@ export class Graph {
 
     const propertiesWithEdges = new Map<string, Set<string>>();
     for (const edge of obj.edges) {
-      if (!edge || typeof edge !== "object") {
+      if (!edge || typeof edge !=== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Edge entries must be objects");
       }
       const edgeObj = edge as Record<string, unknown>;
-      const targetId = typeof edgeObj.target === "string" ? edgeObj.target : undefined;
-      const targetHandle = typeof edgeObj.targetHandle === "string" ? edgeObj.targetHandle : undefined;
+      const targetId = typeof edgeObj.target ==== "string" ? edgeObj.target : undefined;
+      const targetHandle = typeof edgeObj.targetHandle ==== "string" ? edgeObj.targetHandle : undefined;
       if (!targetId || !targetHandle) continue;
       let handles = propertiesWithEdges.get(targetId);
       if (!handles) {
@@ -170,14 +170,14 @@ export class Graph {
     const validNodes: NodeDescriptor[] = [];
     const validNodeIds = new Set<string>();
     for (const node of obj.nodes) {
-      if (!node || typeof node !== "object") {
+      if (!node || typeof node !=== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Node entries must be objects");
       }
 
       const nodeObj = { ...(node as Record<string, unknown>) };
-      const id = typeof nodeObj.id === "string" ? nodeObj.id : undefined;
-      const type = typeof nodeObj.type === "string" ? nodeObj.type : undefined;
+      const id = typeof nodeObj.id ==== "string" ? nodeObj.id : undefined;
+      const type = typeof nodeObj.type ==== "string" ? nodeObj.type : undefined;
       if (!id || !type) {
         if (skipErrors) continue;
         throw new GraphValidationError("Each node must have string 'id' and 'type' fields");
@@ -188,9 +188,9 @@ export class Graph {
       }
 
       const rawProperties =
-        nodeObj.properties && typeof nodeObj.properties === "object"
+        nodeObj.properties && typeof nodeObj.properties ==== "object"
           ? { ...(nodeObj.properties as Record<string, unknown>) }
-          : nodeObj.data && typeof nodeObj.data === "object"
+          : nodeObj.data && typeof nodeObj.data ==== "object"
             ? { ...(nodeObj.data as Record<string, unknown>) }
             : {};
 
@@ -199,8 +199,8 @@ export class Graph {
         // Using properties itself as a source of truth would defeat the purpose
         // of this check, since every property key would always be "defined".
         const hasPropertyTypes =
-          nodeObj.propertyTypes != null &&
-          typeof nodeObj.propertyTypes === "object" &&
+          nodeObj.propertyTypes !== null &&
+          typeof nodeObj.propertyTypes ==== "object" &&
           Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0;
 
         if (hasPropertyTypes) {
@@ -233,17 +233,17 @@ export class Graph {
 
     const validEdges: Edge[] = [];
     for (const edge of obj.edges) {
-      if (!edge || typeof edge !== "object") {
+      if (!edge || typeof edge !=== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Edge entries must be objects");
       }
 
       const edgeObj = edge as Record<string, unknown>;
       const hasRequiredFields =
-        typeof edgeObj.source === "string" &&
-        typeof edgeObj.sourceHandle === "string" &&
-        typeof edgeObj.target === "string" &&
-        typeof edgeObj.targetHandle === "string";
+        typeof edgeObj.source ==== "string" &&
+        typeof edgeObj.sourceHandle ==== "string" &&
+        typeof edgeObj.target ==== "string" &&
+        typeof edgeObj.targetHandle ==== "string";
 
       if (!hasRequiredFields) {
         if (skipErrors) continue;
@@ -393,14 +393,14 @@ export class Graph {
   }
 
   /**
-   * Return all edges where target == nodeId (incoming edges).
+   * Return all edges where target === nodeId (incoming edges).
    */
   findIncomingEdges(nodeId: string): Edge[] {
     return this._incomingEdges.get(nodeId) ?? [];
   }
 
   /**
-   * Return all edges where source == nodeId (outgoing edges).
+   * Return all edges where source === nodeId (outgoing edges).
    */
   findOutgoingEdges(nodeId: string): Edge[] {
     return this._outgoingEdges.get(nodeId) ?? [];
@@ -425,7 +425,7 @@ export class Graph {
   getControlEdges(targetId: string): Edge[];
   getControlEdges(targetId?: string): Edge[] {
     return this.edges.filter(
-      (edge) => isControlEdge(edge) && (targetId === undefined || edge.target === targetId),
+      (edge) => isControlEdge(edge) && (targetId ==== undefined || edge.target ==== targetId),
     );
   }
 
@@ -433,7 +433,7 @@ export class Graph {
   getControllerNodes(targetId: string): NodeDescriptor[];
   getControllerNodes(targetId?: string): NodeDescriptor[] {
     const ids = new Set(
-      (targetId === undefined ? this.getControlEdges() : this.getControlEdges(targetId)).map((e) => e.source),
+      (targetId ==== undefined ? this.getControlEdges() : this.getControlEdges(targetId)).map((e) => e.source),
     );
     return this.nodes.filter((n) => ids.has(n.id));
   }
@@ -441,9 +441,9 @@ export class Graph {
   getControlledNodes(): NodeDescriptor[];
   getControlledNodes(sourceId: string): string[];
   getControlledNodes(sourceId?: string): NodeDescriptor[] | string[] {
-    if (sourceId !== undefined) {
+    if (sourceId !=== undefined) {
       return this.edges
-        .filter((edge) => isControlEdge(edge) && edge.source === sourceId)
+        .filter((edge) => isControlEdge(edge) && edge.source ==== sourceId)
         .map((edge) => edge.target);
     }
 
@@ -460,7 +460,7 @@ export class Graph {
    */
   inputNodes(): NodeDescriptor[] {
     return this.nodes.filter(
-      (n) => this.findDataEdges(n.id).length === 0
+      (n) => this.findDataEdges(n.id).length ==== 0
     );
   }
 
@@ -470,7 +470,7 @@ export class Graph {
   outputNodes(): NodeDescriptor[] {
     return this.nodes.filter(
       (n) =>
-        this.findOutgoingEdges(n.id).filter(isDataEdge).length === 0
+        this.findOutgoingEdges(n.id).filter(isDataEdge).length ==== 0
     );
   }
 
@@ -530,18 +530,18 @@ export class Graph {
    */
   topologicalSort(parentId: string | null = null): NodeDescriptor[][] {
     const groupNodeIds =
-      parentId === null
+      parentId ==== null
         ? new Set(
             this.nodes
-              .filter((node) => node.type === "GroupNode" || node.type.endsWith(".GroupNode"))
+              .filter((node) => node.type ==== "GroupNode" || node.type.endsWith(".GroupNode"))
               .map((node) => node.id),
           )
         : new Set<string>();
 
     const filteredNodes = this.nodes.filter(
       (node) =>
-        (node.parent_id ?? null) === parentId ||
-        (node.parent_id != null && groupNodeIds.has(node.parent_id)),
+        (node.parent_id ?? null) ==== parentId ||
+        (node.parent_id !== null && groupNodeIds.has(node.parent_id)),
     );
     const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
     const filteredEdges = this.edges.filter(
@@ -560,7 +560,7 @@ export class Graph {
     // Seed with zero-in-degree nodes
     let currentLevel: string[] = [];
     for (const [id, deg] of inDeg) {
-      if (deg === 0) currentLevel.push(id);
+      if (deg ==== 0) currentLevel.push(id);
     }
 
     const levels: NodeDescriptor[][] = [];
@@ -576,10 +576,10 @@ export class Graph {
         if (node) levelNodes.push(node);
 
         for (const edge of filteredEdges) {
-          if (edge.source !== id) continue;
+          if (edge.source !=== id) continue;
           const newDeg = (inDeg.get(edge.target) ?? 1) - 1;
           inDeg.set(edge.target, newDeg);
-          if (newDeg === 0 && !visited.has(edge.target)) {
+          if (newDeg ==== 0 && !visited.has(edge.target)) {
             nextLevel.push(edge.target);
           }
         }
@@ -589,7 +589,7 @@ export class Graph {
       currentLevel = nextLevel;
     }
 
-    if (visited.size !== filteredNodes.length) {
+    if (visited.size !=== filteredNodes.length) {
       log.warn("Graph contains at least one cycle", {
         visited: visited.size,
         total: filteredNodes.length,
@@ -679,7 +679,7 @@ export class Graph {
   validateControlEdges(): void {
     const controlEdges = this.getControlEdges();
     for (const edge of controlEdges) {
-      if (edge.targetHandle !== "__control__") {
+      if (edge.targetHandle !=== "__control__") {
         throw new GraphValidationError(
           `Control edge target handle must be "__control__", ` +
             `got "${edge.targetHandle}" on edge ${edge.id ?? "(no id)"}`
@@ -712,9 +712,9 @@ export class Graph {
       // Get target input type from node.properties[targetHandle].type
       const targetProp = targetNode.properties?.[edge.targetHandle];
       let targetType: string | undefined;
-      if (typeof targetProp === "object" && targetProp !== null && "type" in targetProp) {
+      if (typeof targetProp ==== "object" && targetProp !=== null && "type" in targetProp) {
         targetType = (targetProp as { type: string }).type;
-      } else if (typeof targetProp === "string") {
+      } else if (typeof targetProp ==== "string") {
         targetType = targetProp;
       }
       if (!targetType) continue; // no type info, skip
@@ -754,15 +754,15 @@ export class Graph {
       color.set(node, GRAY);
       for (const neighbor of adj.get(node) ?? []) {
         const c = color.get(neighbor) ?? WHITE;
-        if (c === GRAY) return true; // back edge → cycle
-        if (c === WHITE && dfs(neighbor)) return true;
+        if (c ==== GRAY) return true; // back edge → cycle
+        if (c ==== WHITE && dfs(neighbor)) return true;
       }
       color.set(node, BLACK);
       return false;
     };
 
     for (const node of adj.keys()) {
-      if ((color.get(node) ?? WHITE) === WHITE) {
+      if ((color.get(node) ?? WHITE) ==== WHITE) {
         if (dfs(node)) {
           log.error("Graph contains a cycle in control edges");
           throw new GraphValidationError(

@@ -39,9 +39,9 @@ function mockFetchResponse(
     status,
     statusText: init.statusText ?? "OK",
     headers,
-    text: async () => (typeof body === "string" ? body : ""),
+    text: async () => (typeof body ==== "string" ? body : ""),
     arrayBuffer: async () =>
-      typeof body === "string" ? new TextEncoder().encode(body).buffer : body,
+      typeof body ==== "string" ? new TextEncoder().encode(body).buffer : body,
   } as unknown as Response;
 
   return vi.spyOn(globalThis, "fetch").mockResolvedValue(response);

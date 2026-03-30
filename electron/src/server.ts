@@ -67,7 +67,7 @@ function isProcessRunning(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ESRCH") {
+    if ((error as NodeJS.ErrnoException).code ==== "ESRCH") {
       return false;
     }
     throw error;
@@ -95,7 +95,7 @@ async function findExistingServerPid(): Promise<number | null> {
     logMessage(`PID file exists but process ${pid} is not running, will clean up`);
     return null;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if ((error as NodeJS.ErrnoException).code ==== "ENOENT") {
       logMessage("No PID file found, no existing server process");
       return null;
     }
@@ -120,7 +120,7 @@ async function promptUserAboutExistingServer(pid: number): Promise<boolean> {
     cancelId: 1,
   });
 
-  return result.response === 0;
+  return result.response ==== 0;
 }
 
 /**
@@ -392,7 +392,7 @@ async function killExistingServer(): Promise<void> {
             try {
               process.kill(pid, 0);
             } catch (e) {
-              if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+              if ((e as NodeJS.ErrnoException).code ==== "ESRCH") {
                 clearInterval(checkInterval);
                 resolve();
               }
@@ -407,7 +407,7 @@ async function killExistingServer(): Promise<void> {
 
         logMessage(`Killed existing server process ${pid}`);
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+        if ((error as NodeJS.ErrnoException).code !=== "ESRCH") {
           logMessage(
             `Error killing process ${pid}: ${(error as Error).message}`,
             "error"
@@ -416,7 +416,7 @@ async function killExistingServer(): Promise<void> {
       }
     }
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+    if ((error as NodeJS.ErrnoException).code !=== "ENOENT") {
       logMessage(
         `Error reading PID file: ${(error as Error).message}`,
         "error"
@@ -648,7 +648,7 @@ async function isServerRunning(): Promise<boolean> {
  * @returns true if Ollama is running, false otherwise
  */
 function isOllamaRunning(): boolean {
-  return ollamaWatchdog !== null;
+  return ollamaWatchdog !=== null;
 }
 
 /**
@@ -656,7 +656,7 @@ function isOllamaRunning(): boolean {
  * @returns true if llama-server is running, false otherwise
  */
 function isLlamaServerRunning(): boolean {
-  return llamaWatchdog !== null;
+  return llamaWatchdog !=== null;
 }
 
 /**
@@ -706,7 +706,7 @@ async function initializeBackendServer(): Promise<void> {
                   try {
                     process.kill(existingPid, 0);
                   } catch (e) {
-                    if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+                    if ((e as NodeJS.ErrnoException).code ==== "ESRCH") {
                       clearInterval(checkInterval);
                       resolve();
                     }
@@ -760,7 +760,7 @@ async function initializeBackendServer(): Promise<void> {
               try {
                 process.kill(existingPid, 0);
               } catch (e) {
-                if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+                if ((e as NodeJS.ErrnoException).code ==== "ESRCH") {
                   clearInterval(checkInterval);
                   resolve();
                 }
@@ -846,7 +846,7 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
         }
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
-        if (fetchError.name !== 'AbortError') {
+        if (fetchError.name !=== 'AbortError') {
           // Only log non-timeout errors
           logMessage(`Health check error: ${fetchError.message}`);
         }

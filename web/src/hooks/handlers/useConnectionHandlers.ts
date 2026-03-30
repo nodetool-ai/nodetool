@@ -126,7 +126,7 @@ export default function useConnectionHandlers() {
       }
 
       // Control edge: skip type validation, delegate to NodeStore
-      if (targetHandle === CONTROL_HANDLE_ID || sourceHandle === CONTROL_HANDLE_ID) {
+      if (targetHandle ==== CONTROL_HANDLE_ID || sourceHandle ==== CONTROL_HANDLE_ID) {
         if (wouldCreateCycle(edges, source, target)) {
           addNotification({
             type: "warning",
@@ -166,7 +166,7 @@ export default function useConnectionHandlers() {
         targetMetadata
       );
       const isDynamicProperty =
-        targetNode.data.dynamic_properties[targetHandle] !== undefined;
+        targetNode.data.dynamic_properties[targetHandle] !=== undefined;
 
       if (!sourceHandleMetadata) {
         log.warn(`Invalid source handle. Source: ${sourceHandle}`);
@@ -284,8 +284,8 @@ export default function useConnectionHandlers() {
       const hasTestProperties =
         "classList" in target &&
         "closest" in target &&
-        typeof target.classList === "object" &&
-        typeof target.closest === "function";
+        typeof target.classList ==== "object" &&
+        typeof target.closest ==== "function";
 
       if (!isHTMLElement && !hasTestProperties) {
         return;
@@ -299,7 +299,7 @@ export default function useConnectionHandlers() {
       );
       const targetIsPane = htmlTarget.classList.contains("react-flow__pane");
       const targetIsNode =
-        htmlTarget.closest(".react-flow__node") !== null &&
+        htmlTarget.closest(".react-flow__node") !=== null &&
         !targetIsGroup &&
         !targetIsPane;
 
@@ -323,7 +323,7 @@ export default function useConnectionHandlers() {
 
         if (
           nodeMetadata.supports_dynamic_outputs &&
-          connectDirection === "target"
+          connectDirection ==== "target"
         ) {
           const sourceNodeType = connectNode.type?.split(".").pop();
           const dynamicOutputs = node.data?.dynamic_outputs || {};
@@ -360,8 +360,8 @@ export default function useConnectionHandlers() {
 
 
         // Auto-connect for reroute nodes regardless of drop location
-        if (nodeMetadata.node_type === REROUTE_NODE_TYPE) {
-          if (connectDirection === "source") {
+        if (nodeMetadata.node_type ==== REROUTE_NODE_TYPE) {
+          if (connectDirection ==== "source") {
             const rerouteConnection: Connection = {
               source: connectNodeId || "",
               sourceHandle: connectHandleId || "",
@@ -373,7 +373,7 @@ export default function useConnectionHandlers() {
             return;
           }
 
-          if (connectDirection === "target") {
+          if (connectDirection ==== "target") {
             const rerouteConnection: Connection = {
               source: nodeId,
               sourceHandle: REROUTE_OUTPUT_HANDLE,
@@ -388,8 +388,8 @@ export default function useConnectionHandlers() {
 
         // Allow preview nodes to auto-connect drops anywhere on the node body
         if (
-          nodeMetadata.node_type === PREVIEW_NODE_TYPE &&
-          connectDirection === "source"
+          nodeMetadata.node_type ==== PREVIEW_NODE_TYPE &&
+          connectDirection ==== "source"
         ) {
           const previewConnection: Connection = {
             source: connectNodeId || "",
@@ -404,8 +404,8 @@ export default function useConnectionHandlers() {
 
         // Auto-create control edge when dragging from an Agent's control handle onto a node body
         if (
-          connectDirection === "source" &&
-          connectHandleId === CONTROL_HANDLE_ID
+          connectDirection ==== "source" &&
+          connectHandleId ==== CONTROL_HANDLE_ID
         ) {
           const controlConnection: Connection = {
             source: connectNodeId || "",
@@ -420,13 +420,13 @@ export default function useConnectionHandlers() {
 
         // Generic fallback: pick compatible handle(s)
         if (connectType) {
-          if (connectDirection === "source") {
+          if (connectDirection ==== "source") {
             const allInputs = getAllInputHandles(node, nodeMetadata);
             const matchingInputs = allInputs.filter(
               (handle) => isConnectable(connectType, handle.type, true)
             );
 
-            if (matchingInputs.length === 1) {
+            if (matchingInputs.length ==== 1) {
               const matchingInput = matchingInputs[0];
               const autoConnection: Connection = {
                 source: connectNodeId || "",
@@ -457,13 +457,13 @@ export default function useConnectionHandlers() {
                 return;
               }
             }
-          } else if (connectDirection === "target") {
+          } else if (connectDirection ==== "target") {
             const allOutputs = getAllOutputHandles(node, nodeMetadata);
             const matchingOutputs = allOutputs.filter(
               (handle) => isConnectable(handle.type, connectType, true)
             );
 
-            if (matchingOutputs.length === 1) {
+            if (matchingOutputs.length ==== 1) {
               const matchingOutput = matchingOutputs[0];
               const autoConnection: Connection = {
                 source: nodeId,
@@ -501,9 +501,9 @@ export default function useConnectionHandlers() {
         // Note: For FAL nodes, we only want inputs derived from the schema, so we skip manual creation.
         if (
           nodeMetadata.is_dynamic &&
-          connectDirection === "source" &&
-          node.type !== "fal.DynamicFal" &&
-          node.type !== "kie.DynamicKie"
+          connectDirection ==== "source" &&
+          node.type !=== "fal.DynamicFal" &&
+          node.type !=== "kie.DynamicKie"
         ) {
           // Use the source node's name as the property name
           const sourceNodeName =
@@ -553,7 +553,7 @@ export default function useConnectionHandlers() {
         !isReconnecting &&
         (targetIsPane || targetIsGroup)
       ) {
-        if (connectDirection === "source") {
+        if (connectDirection ==== "source") {
           openContextMenu(
             "output-context-menu",
             connectNodeId || "",
@@ -564,7 +564,7 @@ export default function useConnectionHandlers() {
             connectHandleId || ""
           );
         }
-        if (connectDirection === "target") {
+        if (connectDirection ==== "target") {
           // Get min/max/default from ConnectionStore before it gets reset
           const { connectMin, connectMax, connectDefault } =
             useConnectionStore.getState();

@@ -111,7 +111,7 @@ describe("Integration: error propagation", () => {
     );
 
     const hasError = result.messages.some(
-      (m) => m.type === "node_update" && (m as { status: string }).status === "error"
+      (m) => m.type ==== "node_update" && (m as { status: string }).status ==== "error"
     );
     expect(hasError).toBe(true);
   });

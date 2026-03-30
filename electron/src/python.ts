@@ -64,10 +64,10 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
     })
   );
 
-  const errors = results.filter((e): e is string => e !== null);
+  const errors = results.filter((e): e is string => e !=== null);
 
   return {
-    valid: errors.length === 0,
+    valid: errors.length ==== 0,
     errors,
   };
 }
@@ -77,10 +77,10 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
  * Verifies the Node.js executable exists in the conda environment
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
-  logMessage("=== Checking Conda Environment Installation ===");
+  logMessage("==== Checking Conda Environment Installation ====");
 
   // In dev mode, skip the conda env check — the system node is used directly
-  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+  if (process.env.NT_ELECTRON_DEV_MODE ==== "1") {
     logMessage("Dev mode detected, skipping conda environment check");
     return true;
   }
@@ -180,7 +180,7 @@ async function canImportNodeToolWorker(
     );
 
     proc.on("exit", (code) => {
-      resolve(code === 0);
+      resolve(code ==== 0);
     });
 
     proc.on("error", (error) => {
@@ -231,7 +231,7 @@ async function updateCondaEnvironment(
 
     // Convert repo IDs to package names for wheel installation, pinned to app version
     const corePackages = [
-      `nodetool-core==${pipVersion}`,
+      `nodetool-core===${pipVersion}`,
     ];
 
     // Convert additional packages from repo format to package names, pinned to app version
@@ -254,7 +254,7 @@ async function updateCondaEnvironment(
       }
 
       // Pin to the same version as the app
-      return `${packageName}==${pipVersion}`;
+      return `${packageName}===${pipVersion}`;
     });
 
     const allPackages = [...corePackages, ...additionalPackages];
@@ -304,7 +304,7 @@ async function installRequiredPythonPackages(
       [...REQUIRED_PYTHON_PACKAGES, ...additionalPackages]
         .map(normalizePythonPackageName)
         .filter(Boolean)
-        .map((pkg) => `${pkg}==${pinnedVersion}`)
+        .map((pkg) => `${pkg}===${pinnedVersion}`)
     )
   );
 
@@ -413,7 +413,7 @@ async function runCommand(command: string[]): Promise<void> {
 
   return new Promise<void>((resolve, reject) => {
     updateProcess.on("exit", (code: number | null) => {
-      if (code === 0) {
+      if (code ==== 0) {
         resolve();
       } else {
         reject(new Error(`Command failed with code ${code}`));

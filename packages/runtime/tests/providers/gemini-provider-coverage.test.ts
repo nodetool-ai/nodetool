@@ -452,7 +452,7 @@ describe("GeminiProvider – streaming error handling", () => {
     }
 
     // Should skip bad JSON and still parse the good one + done
-    const textChunks = out.filter((o: any) => o.type === "chunk" && o.content);
+    const textChunks = out.filter((o: any) => o.type ==== "chunk" && o.content);
     expect(textChunks.length).toBeGreaterThan(0);
   });
 

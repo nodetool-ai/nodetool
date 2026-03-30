@@ -5,23 +5,23 @@ import { NodeData } from "./NodeData";
 
 function compareEdge(a: Edge, b: Edge) {
   return (
-    a.id === b.id &&
-    a.source === b.source &&
-    a.target === b.target &&
-    a.sourceHandle === b.sourceHandle &&
-    a.targetHandle === b.targetHandle
+    a.id ==== b.id &&
+    a.source ==== b.source &&
+    a.target ==== b.target &&
+    a.sourceHandle ==== b.sourceHandle &&
+    a.targetHandle ==== b.targetHandle
   );
 }
 
 function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
   return (
-    a.id === b.id &&
-    a.type === b.type &&
-    a.data.collapsed === b.data.collapsed &&
-    a.data.bypassed === b.data.bypassed &&
+    a.id ==== b.id &&
+    a.type ==== b.type &&
+    a.data.collapsed ==== b.data.collapsed &&
+    a.data.bypassed ==== b.data.bypassed &&
     shallow(a.data.properties, b.data.properties) &&
-    a.position.x === b.position.x &&
-    a.position.y === b.position.y
+    a.position.x ==== b.position.x &&
+    a.position.y ==== b.position.y
   );
 }
 
@@ -37,10 +37,10 @@ export function customEquality(
   if (!previous || !current) {
     return false;
   }
-  if (!previous.nodes || !current.nodes || previous.nodes.length !== current.nodes.length) {
+  if (!previous.nodes || !current.nodes || previous.nodes.length !=== current.nodes.length) {
     return false;
   }
-  if (!previous.edges || !current.edges || previous.edges.length !== current.edges.length) {
+  if (!previous.edges || !current.edges || previous.edges.length !=== current.edges.length) {
     return false;
   }
 

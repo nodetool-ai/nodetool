@@ -76,7 +76,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (originalLogLevel === undefined) {
+  if (originalLogLevel ==== undefined) {
     delete process.env["NODETOOL_LOG_LEVEL"];
   } else {
     process.env["NODETOOL_LOG_LEVEL"] = originalLogLevel;
@@ -167,11 +167,11 @@ describe("NodeActor – buffered mode", () => {
 
     // Should have emitted running + completed statuses
     const statusMsgs = messages.filter(
-      (m) => (m as NodeUpdate).type === "node_update"
+      (m) => (m as NodeUpdate).type ==== "node_update"
     ) as NodeUpdate[];
-    expect(statusMsgs.some((m) => m.status === "running")).toBe(true);
-    expect(statusMsgs.some((m) => m.status === "completed")).toBe(true);
-    expect(statusMsgs.every((m) => m.properties?.label === "demo")).toBe(true);
+    expect(statusMsgs.some((m) => m.status ==== "running")).toBe(true);
+    expect(statusMsgs.some((m) => m.status ==== "completed")).toBe(true);
+    expect(statusMsgs.every((m) => m.properties?.label ==== "demo")).toBe(true);
   });
 });
 
@@ -241,7 +241,7 @@ describe("NodeActor – streaming output", () => {
     });
 
     const completed = messages.find(
-      (m) => (m as NodeUpdate).type === "node_update" && (m as NodeUpdate).status === "completed"
+      (m) => (m as NodeUpdate).type ==== "node_update" && (m as NodeUpdate).status ==== "completed"
     ) as NodeUpdate | undefined;
     expect(completed?.result).toEqual({
       chunk: { type: "chunk", content: "hi" },
@@ -386,8 +386,8 @@ describe("NodeActor – error handling", () => {
     expect(result.error).toBe("test failure");
 
     const statusMsgs = messages.filter(
-      (m) => (m as NodeUpdate).type === "node_update"
+      (m) => (m as NodeUpdate).type ==== "node_update"
     ) as NodeUpdate[];
-    expect(statusMsgs.some((m) => m.status === "error")).toBe(true);
+    expect(statusMsgs.some((m) => m.status ==== "error")).toBe(true);
   });
 });

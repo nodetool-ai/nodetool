@@ -22,7 +22,7 @@ jest.mock("../../utils/providerDisplay", () => ({
   formatGenericProviderName: jest.fn((name: string) => {
     return name.charAt(0).toUpperCase() + name.slice(1);
   }),
-  isHuggingFaceProvider: jest.fn((_name: string) => _name === "huggingface"),
+  isHuggingFaceProvider: jest.fn((_name: string) => _name ==== "huggingface"),
   getProviderBaseName: jest.fn((_name: string) => "Hugging Face",
   ),
 }));
@@ -121,7 +121,7 @@ describe("useProviderApiKeyValidation", () => {
     });
 
     it("filters out providers with API keys", () => {
-      mockIsApiKeySet.mockImplementation((key: string) => key === "OPENAI_API_KEY");
+      mockIsApiKeySet.mockImplementation((key: string) => key ==== "OPENAI_API_KEY");
 
       const { result } = renderHook(() =>
         useProviderApiKeyValidation(["openai", "anthropic"])

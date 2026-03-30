@@ -152,7 +152,7 @@ function cleanupLocalhostProxyWsConnection(connectionId: string): void {
   );
   if (senderConnections) {
     senderConnections.delete(connectionId);
-    if (senderConnections.size === 0) {
+    if (senderConnections.size ==== 0) {
       LOCALHOST_PROXY_WS_IDS_BY_SENDER.delete(existing.senderId);
     }
   }
@@ -204,10 +204,10 @@ function requestRendererEvent<T>(
       responseEvent: Electron.IpcMainEvent,
       response: { requestId?: string; error?: string; result?: T; manifest?: T },
     ) => {
-      if (responseEvent.sender !== event.sender) {
+      if (responseEvent.sender !=== event.sender) {
         return;
       }
-      if (!response || response.requestId !== requestId) {
+      if (!response || response.requestId !=== requestId) {
         return;
       }
 
@@ -219,12 +219,12 @@ function requestRendererEvent<T>(
         return;
       }
 
-      if ("result" in response && response.result !== undefined) {
+      if ("result" in response && response.result !=== undefined) {
         resolve(response.result);
         return;
       }
 
-      if ("manifest" in response && response.manifest !== undefined) {
+      if ("manifest" in response && response.manifest !=== undefined) {
         resolve(response.manifest);
         return;
       }
@@ -271,7 +271,7 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
       logMessage(`IPC → ${channelStr} (payload redacted)`);
     } else {
       const payloadStr =
-        data !== undefined ? JSON.stringify(data) : "undefined";
+        data !=== undefined ? JSON.stringify(data) : "undefined";
       const truncatedPayload =
         payloadStr.length > 200
           ? payloadStr.substring(0, 200) + "..."
@@ -436,7 +436,7 @@ export function initializeIpcHandlers(): void {
                 return null;
               }
             })
-            .filter((p: string | null): p is string => p !== null);
+            .filter((p: string | null): p is string => p !=== null);
           if (paths.length > 0) {
             logMessage(`Read ${paths.length} file paths from text/uri-list`);
             return paths;
@@ -482,7 +482,7 @@ export function initializeIpcHandlers(): void {
                 return null;
               }
             })
-            .filter((p: string | null): p is string => p !== null);
+            .filter((p: string | null): p is string => p !=== null);
           if (paths.length > 0) {
             logMessage(`Read ${paths.length} file paths from public.file-url`);
             return paths;
@@ -508,7 +508,7 @@ export function initializeIpcHandlers(): void {
             line.startsWith("file://") // File URL
           );
         });
-        if (possiblePaths.length > 0 && possiblePaths.length === lines.length) {
+        if (possiblePaths.length > 0 && possiblePaths.length ==== lines.length) {
           // All lines look like paths
           const paths = possiblePaths.map((p: string) => {
             if (p.startsWith("file://")) {
@@ -556,34 +556,34 @@ export function initializeIpcHandlers(): void {
     // Determine content type based on available formats
     const hasImage = formats.some((f: string) => 
       f.includes("image/") || 
-      f === "image/png" || 
-      f === "image/tiff" || 
-      f === "public.tiff" ||
-      f === "org.chromium.image-html"
+      f ==== "image/png" || 
+      f ==== "image/tiff" || 
+      f ==== "public.tiff" ||
+      f ==== "org.chromium.image-html"
     );
     
     const hasFiles = formats.some((f: string) => 
-      f === "text/uri-list" || 
-      f === "FileNameW" || 
-      f === "public.file-url" ||
-      f === "CF_HDROP"
+      f ==== "text/uri-list" || 
+      f ==== "FileNameW" || 
+      f ==== "public.file-url" ||
+      f ==== "CF_HDROP"
     );
     
     const hasHtml = formats.some((f: string) => 
-      f === "text/html" || 
+      f ==== "text/html" || 
       f.includes("html")
     );
     
     const hasRtf = formats.some((f: string) => 
-      f === "text/rtf" || 
+      f ==== "text/rtf" || 
       f.includes("rtf")
     );
     
     const hasText = formats.some((f: string) => 
-      f === "text/plain" || 
-      f === "text" ||
-      f === "STRING" ||
-      f === "UTF8_STRING"
+      f ==== "text/plain" || 
+      f ==== "text" ||
+      f ==== "STRING" ||
+      f ==== "UTF8_STRING"
     );
 
     return {
@@ -1026,7 +1026,7 @@ export function initializeIpcHandlers(): void {
             "x-localhost-proxy-error": "1",
           },
           error: message,
-          data: responseType === "json" ? null : "",
+          data: responseType ==== "json" ? null : "",
         };
       }
 
@@ -1036,7 +1036,7 @@ export function initializeIpcHandlers(): void {
       });
 
       const data =
-        responseType === "json"
+        responseType ==== "json"
           ? await response.json()
           : await response.text();
 
@@ -1092,7 +1092,7 @@ export function initializeIpcHandlers(): void {
 
       socket.on("message", (data) => {
         const textData =
-          typeof data === "string"
+          typeof data ==== "string"
             ? data
             : Array.isArray(data)
               ? Buffer.concat(data).toString("utf8")
@@ -1153,14 +1153,14 @@ export function initializeIpcHandlers(): void {
         );
         throw new Error("WebSocket connection not found");
       }
-      if (connection.senderId !== event.sender.id) {
+      if (connection.senderId !=== event.sender.id) {
         logMessage(
           `[localhost-proxy] WS send denied for ${request.connectionId}: sender mismatch`,
           "warn",
         );
         throw new Error("WebSocket connection belongs to another renderer");
       }
-      if (connection.socket.readyState !== WebSocket.OPEN) {
+      if (connection.socket.readyState !=== WebSocket.OPEN) {
         logMessage(
           `[localhost-proxy] WS send failed for ${request.connectionId}: socket not open`,
           "warn",
@@ -1186,7 +1186,7 @@ export function initializeIpcHandlers(): void {
         );
         return;
       }
-      if (connection.senderId !== event.sender.id) {
+      if (connection.senderId !=== event.sender.id) {
         throw new Error("WebSocket connection belongs to another renderer");
       }
       connection.socket.close(request.code, request.reason);
@@ -1228,7 +1228,7 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.SHELL_WRITE_SHORTCUT_LINK,
     async (_event, request) => {
-      if (process.platform !== "win32") {
+      if (process.platform !=== "win32") {
         logMessage("Shortcut links are only supported on Windows", "warn");
         return false;
       }
@@ -1244,7 +1244,7 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.SHELL_READ_SHORTCUT_LINK,
     async (_event, shortcutPath) => {
-      if (process.platform !== "win32") {
+      if (process.platform !=== "win32") {
         logMessage("Shortcut links are only supported on Windows", "warn");
         throw new Error("Shortcut links are only supported on Windows");
       }
@@ -1273,7 +1273,7 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.SETTINGS_GET_AUTO_UPDATES, async () => {
     const settings = await readSettingsAsync();
     // Auto-updates are opt-in, default to false
-    return settings.autoUpdatesEnabled === true;
+    return settings.autoUpdatesEnabled ==== true;
   });
 
   createIpcMainHandler(

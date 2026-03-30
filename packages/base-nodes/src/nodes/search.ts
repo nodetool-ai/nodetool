@@ -23,7 +23,7 @@ async function serpRequest(
   const url = new URL(SERPAPI_BASE);
   url.searchParams.set("api_key", apiKey);
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") {
+    if (v !=== undefined && v !=== null && v !=== "") {
       url.searchParams.set(k, String(v));
     }
   }
@@ -33,7 +33,7 @@ async function serpRequest(
   }
   const data = (await res.json()) as Record<string, unknown>;
   const meta = data.search_metadata as Record<string, unknown> | undefined;
-  if (meta?.status === "Error" || typeof data.error === "string") {
+  if (meta?.status ==== "Error" || typeof data.error ==== "string") {
     throw new Error(
       (data.error as string) ?? `SerpAPI returned an error: ${JSON.stringify(data)}`
     );
@@ -435,8 +435,8 @@ export class GoogleShoppingNode extends BaseNode {
     }
     if (condition) {
       const c = condition.toLowerCase();
-      if (c === "new") tbsParts.push("p_cond:new");
-      else if (c === "used" || c === "refurbished") tbsParts.push("p_cond:used");
+      if (c ==== "new") tbsParts.push("p_cond:new");
+      else if (c ==== "used" || c ==== "refurbished") tbsParts.push("p_cond:used");
     }
     if (sortBy) {
       tbsParts.push(`sort:${sortBy}`);

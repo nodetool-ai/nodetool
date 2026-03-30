@@ -127,7 +127,7 @@ export function useColorConversion(
     (component: "h" | "s" | "l", value: string) => {
       let numValue = parseInt(value) || 0;
 
-      if (component === "h") {
+      if (component ==== "h") {
         numValue = Math.max(0, Math.min(360, numValue));
       } else {
         numValue = Math.max(0, Math.min(100, numValue));
@@ -148,7 +148,7 @@ export function useColorConversion(
     (component: "h" | "s" | "b", value: string) => {
       let numValue = parseInt(value) || 0;
 
-      if (component === "h") {
+      if (component ==== "h") {
         numValue = Math.max(0, Math.min(360, numValue));
       } else {
         numValue = Math.max(0, Math.min(100, numValue));
@@ -183,7 +183,7 @@ export function useColorConversion(
     (component: "l" | "a" | "b", value: string) => {
       let numValue = parseInt(value) || 0;
 
-      if (component === "l") {
+      if (component ==== "l") {
         numValue = Math.max(0, Math.min(100, numValue));
       } else {
         numValue = Math.max(-128, Math.min(127, numValue));

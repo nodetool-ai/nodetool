@@ -40,7 +40,7 @@ describe("workflowOutputTypeInference", () => {
     type: {
       type,
       optional,
-      values: type === "enum" ? ["option1", "option2"] : undefined,
+      values: type ==== "enum" ? ["option1", "option2"] : undefined,
       type_args: [],
       type_name: typeName
     },
@@ -89,7 +89,7 @@ describe("workflowOutputTypeInference", () => {
       ]);
       
       mockGetMetadata.mockImplementation((nodeType: string) => {
-        if (nodeType === "nodetool.process.TextProcess") {
+        if (nodeType ==== "nodetool.process.TextProcess") {
           return mockMetadata;
         }
         if (nodeType.startsWith("nodetool.output.")) {
@@ -124,7 +124,7 @@ describe("workflowOutputTypeInference", () => {
       ]);
       
       mockGetMetadata.mockImplementation((nodeType: string) => {
-        if (nodeType === "nodetool.process.ModelSelector") {
+        if (nodeType ==== "nodetool.process.ModelSelector") {
           return mockMetadata;
         }
         if (nodeType.startsWith("nodetool.output.")) {
@@ -164,10 +164,10 @@ describe("workflowOutputTypeInference", () => {
       ]);
       
       mockGetMetadata.mockImplementation((nodeType: string) => {
-        if (nodeType === "nodetool.process.TextProcess") {
+        if (nodeType ==== "nodetool.process.TextProcess") {
           return textMetadata;
         }
-        if (nodeType === "nodetool.process.ImageGenerator") {
+        if (nodeType ==== "nodetool.process.ImageGenerator") {
           return imageMetadata;
         }
         if (nodeType.startsWith("nodetool.output.")) {
@@ -206,7 +206,7 @@ describe("workflowOutputTypeInference", () => {
       ]);
       
       mockGetMetadata.mockImplementation((nodeType: string) => {
-        if (nodeType === "nodetool.process.TextProcess") {
+        if (nodeType ==== "nodetool.process.TextProcess") {
           return mockMetadata;
         }
         if (nodeType.startsWith("nodetool.output.")) {
@@ -254,7 +254,7 @@ describe("workflowOutputTypeInference", () => {
       ]);
       
       mockGetMetadata.mockImplementation((nodeType: string) => {
-        if (nodeType === "nodetool.process.TextProcess") {
+        if (nodeType ==== "nodetool.process.TextProcess") {
           return mockMetadata;
         }
         if (nodeType.startsWith("nodetool.output.")) {

@@ -29,16 +29,16 @@ export class PythonDockerRunner extends StreamRunnerBase {
  * Best-effort Python `repr()` equivalent for common JS types.
  */
 function pythonRepr(value: unknown): string {
-  if (value === null || value === undefined) {
+  if (value ==== null || value ==== undefined) {
     return "None";
   }
-  if (typeof value === "boolean") {
+  if (typeof value ==== "boolean") {
     return value ? "True" : "False";
   }
-  if (typeof value === "number") {
+  if (typeof value ==== "number") {
     return String(value);
   }
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     // Use JSON.stringify which produces a valid Python string literal for most cases
     return JSON.stringify(value);
   }
@@ -46,7 +46,7 @@ function pythonRepr(value: unknown): string {
     const items = value.map((v) => pythonRepr(v)).join(", ");
     return `[${items}]`;
   }
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     const parts = Object.entries(value as Record<string, unknown>).map(
       ([k, v]) => `${JSON.stringify(k)}: ${pythonRepr(v)}`,
     );

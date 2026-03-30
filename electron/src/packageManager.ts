@@ -7,7 +7,7 @@ import * as path from "path";
 // TODO: Package manager needs to be rewritten for npm packages.
 // This is a temporary stub — uv/pip is no longer installed in the conda env.
 function getUVPath(): string {
-  return process.platform === "win32"
+  return process.platform ==== "win32"
     ? path.join(getCondaEnvPath(), "Library", "bin", "uv.exe")
     : path.join(getCondaEnvPath(), "bin", "uv");
 }
@@ -164,7 +164,7 @@ function extractVersionFromFilename(
   }
   const canonicalPackage = canonicalizePackageName(packageName);
   const canonicalFileName = canonicalizePackageName(parts[0]);
-  if (canonicalPackage !== canonicalFileName) {
+  if (canonicalPackage !=== canonicalFileName) {
     return null;
   }
   return parts[1] || null;
@@ -178,7 +178,7 @@ function tokenizeVersion(version: string): string[] {
 }
 
 function compareVersions(a: string, b: string): number {
-  if (a === b) return 0;
+  if (a ==== b) return 0;
   const tokensA = tokenizeVersion(a);
   const tokensB = tokenizeVersion(b);
   const length = Math.max(tokensA.length, tokensB.length);
@@ -187,9 +187,9 @@ function compareVersions(a: string, b: string): number {
     const segA = tokensA[i];
     const segB = tokensB[i];
 
-    if (segA === undefined) return -1;
-    if (segB === undefined) return 1;
-    if (segA === segB) continue;
+    if (segA ==== undefined) return -1;
+    if (segB ==== undefined) return 1;
+    if (segA ==== segB) continue;
 
     const numA = Number(segA);
     const numB = Number(segB);
@@ -206,7 +206,7 @@ function compareVersions(a: string, b: string): number {
     if (isNumB) return -1;
 
     const cmp = segA.localeCompare(segB);
-    if (cmp !== 0) return cmp;
+    if (cmp !=== 0) return cmp;
   }
 
   return 0;
@@ -229,7 +229,7 @@ async function fetchLatestVersionFromSimpleIndex(
       }
     }
 
-    if (candidates.length === 0) {
+    if (candidates.length ==== 0) {
       const hrefMatches = html.matchAll(/href="([^"]+)"/gi);
       for (const match of hrefMatches) {
         const version = extractVersionFromFilename(match[1], packageName);
@@ -239,7 +239,7 @@ async function fetchLatestVersionFromSimpleIndex(
       }
     }
 
-    if (candidates.length === 0) {
+    if (candidates.length ==== 0) {
       return null;
     }
 
@@ -283,7 +283,7 @@ export async function fetchAllNodes(
     const results = await Promise.allSettled(tasks);
     const allNodes: PackageNode[] = [];
     for (const result of results) {
-      if (result.status === "fulfilled") {
+      if (result.status ==== "fulfilled") {
         allNodes.push(...result.value);
       }
     }
@@ -313,9 +313,9 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
     const sorted = [...nodes].sort((a, b) => {
       const ai = installedRepoIds.has(a.package || "") ? 1 : 0;
       const bi = installedRepoIds.has(b.package || "") ? 1 : 0;
-      if (ai !== bi) return ai - bi;
+      if (ai !=== bi) return ai - bi;
       const nsCmp = (a.namespace || "").localeCompare(b.namespace || "");
-      if (nsCmp !== 0) return nsCmp;
+      if (nsCmp !=== 0) return nsCmp;
       return (a.title || "").localeCompare(b.title || "");
     });
     // Attach installed flag for consumers
@@ -341,14 +341,14 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
     let lastIndex = -1;
     let gaps = 0;
     for (let i = 0; i < normalizedHaystack.length && queryIndex < normalizedNeedle.length; i++) {
-      if (normalizedHaystack[i] === normalizedNeedle[queryIndex]) {
+      if (normalizedHaystack[i] ==== normalizedNeedle[queryIndex]) {
         if (lastIndex >= 0) gaps += i - lastIndex - 1;
         lastIndex = i;
         queryIndex += 1;
       }
     }
     const ratio = queryIndex / normalizedNeedle.length;
-    if (ratio === 0) return 0;
+    if (ratio ==== 0) return 0;
     const gapPenalty = Math.min(gaps / Math.max(normalizedNeedle.length, 1), 1);
     return 0.6 * ratio * (1 - 0.5 * gapPenalty);
   };
@@ -360,7 +360,7 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
     if (!normalizedNeedle || !normalizedHaystack) return 0;
     const indexFound = normalizedHaystack.indexOf(normalizedNeedle);
     if (indexFound < 0) return 0;
-    const isPrefix = indexFound === 0;
+    const isPrefix = indexFound ==== 0;
     const isWordBoundary = indexFound > 0 ? /[^a-z0-9]/.test(normalizedHaystack[indexFound - 1]) : true;
     const lengthBoost = Math.min(normalizedNeedle.length / Math.max(normalizedHaystack.length, normalizedNeedle.length), 1);
     let score = 0.7 + 0.3 * lengthBoost;
@@ -401,7 +401,7 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
           bestForToken = Math.max(bestForToken, base * weight);
         }
         // Also try token without spaces against title and namespace for friendlier matching
-        if (noSpace && noSpace !== token) {
+        if (noSpace && noSpace !=== token) {
           bestForToken = Math.max(
             bestForToken,
             0.9 * scoreField(noSpace, node.title || ""),
@@ -421,12 +421,12 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
     .sort((a, b) => {
       const ai = installedRepoIds.has(a.node.package || "") ? 1 : 0;
       const bi = installedRepoIds.has(b.node.package || "") ? 1 : 0;
-      if (ai !== bi) return ai - bi;
-      if (b.score !== a.score) return b.score - a.score;
+      if (ai !=== bi) return ai - bi;
+      if (b.score !=== a.score) return b.score - a.score;
       const nsCmp = (a.node.namespace || "").localeCompare(
         b.node.namespace || ""
       );
-      if (nsCmp !== 0) return nsCmp;
+      if (nsCmp !=== 0) return nsCmp;
       return (a.node.title || "").localeCompare(b.node.title || "");
     });
 
@@ -504,7 +504,7 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
     });
 
     const results = await Promise.all(updateChecks);
-    return results.filter((entry): entry is PackageUpdateInfo => entry !== null);
+    return results.filter((entry): entry is PackageUpdateInfo => entry !=== null);
   } catch (error: any) {
     logMessage(`Failed to check for package updates: ${error.message}`, "warn");
     return [];
@@ -515,7 +515,7 @@ export async function getPackageForNodeType(
   nodeType: string
 ): Promise<string | null> {
   const nodes = await fetchAllNodes();
-  const match = nodes.find((n) => n.node_type === nodeType);
+  const match = nodes.find((n) => n.node_type ==== nodeType);
   return match?.package ?? null;
 }
 
@@ -589,7 +589,7 @@ async function runUvCommand(
     });
 
     process.on("exit", (code: number | null) => {
-      if (code === 0) {
+      if (code ==== 0) {
         resolve(stdout);
       } else {
         reject(new Error(`Command failed with code ${code}: ${stderr}`));
@@ -662,7 +662,7 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
       return {
         ...pkg,
         latestVersion: latestVersion || pkg.version,
-        hasUpdate: latestVersion ? latestVersion !== pkg.version : false,
+        hasUpdate: latestVersion ? latestVersion !=== pkg.version : false,
       };
     });
 
@@ -693,7 +693,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       };
     }
 
-    const packageSpec = `${packageName}==${latestVersion}`;
+    const packageSpec = `${packageName}===${latestVersion}`;
     const message = `Installing ${packageName} v${latestVersion}...`;
     logMessage(message);
     emitServerLog(message);
@@ -784,7 +784,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       };
     }
 
-    const packageSpec = `${packageName}==${latestVersion}`;
+    const packageSpec = `${packageName}===${latestVersion}`;
     const message = `Updating ${packageName} to v${latestVersion}...`;
     logMessage(message);
     emitServerLog(message);
@@ -884,7 +884,7 @@ export async function checkPackageVersion(
     }
 
     const versionsMatch = compareVersions(currentVersion, expectedVersion);
-    if (versionsMatch !== 0) {
+    if (versionsMatch !=== 0) {
       logMessage(
         `Package ${packageName} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
       );
@@ -939,7 +939,7 @@ export async function checkExpectedPackageVersions(): Promise<
       }
 
       const versionsMatch = compareVersions(currentVersion, expectedVersion);
-      if (versionsMatch !== 0) {
+      if (versionsMatch !=== 0) {
         logMessage(
           `Package ${pkg.name} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
         );
@@ -980,7 +980,7 @@ export async function installExpectedPackages(): Promise<{
 
     const expectedVersion = getAppVersion();
     const packageSpecs = packagesNeedingUpdate.map(
-      (p) => `${p.packageName}==${expectedVersion}`
+      (p) => `${p.packageName}===${expectedVersion}`
     );
 
     try {
@@ -1027,7 +1027,7 @@ export async function installExpectedPackages(): Promise<{
   }
 
   return {
-    success: failures.length === 0,
+    success: failures.length ==== 0,
     packagesChecked: packagesNeedingUpdate.length,
     packagesUpdated,
     failures,
@@ -1056,13 +1056,13 @@ export function validateRepoId(repoId: string): {
   return { valid: true };
 }
 
-// =============================================================================
+// ==============================================================================
 // Runtime Package Management
-// =============================================================================
+// ==============================================================================
 // These functions manage "system-level" runtime packages that were previously
 // handled by the install wizard. They are now exposed through the package
 // manager UI so users can install them on-demand without blocking the app.
-// =============================================================================
+// ==============================================================================
 
 import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
 
@@ -1166,8 +1166,8 @@ async function checkRuntimeBinary(
   windowsBinSubdir?: string,
 ): Promise<boolean> {
   try {
-    const exeName = process.platform === "win32" ? `${binaryName}.exe` : binaryName;
-    const binDir = process.platform === "win32"
+    const exeName = process.platform ==== "win32" ? `${binaryName}.exe` : binaryName;
+    const binDir = process.platform ==== "win32"
       ? path.join(condaEnvPath, windowsBinSubdir || ".")
       : path.join(condaEnvPath, "bin");
     return await fileExists(path.join(binDir, exeName));
@@ -1198,7 +1198,7 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
       installed = await checkRuntimeBinary(condaEnvPath, def.verifyBinary, def.windowsBinSubdir);
     }
     // Special case: check if Ollama is running as a system service
-    if (id === "ollama" && !installed) {
+    if (id ==== "ollama" && !installed) {
       installed = await checkSystemOllama();
     }
     return {
@@ -1274,8 +1274,8 @@ export async function installRuntimePackage(
     let packageSpecs = [...def.condaPackages];
 
     // Special handling for llama-cpp (CUDA vs CPU)
-    if (packageId === "llama-cpp") {
-      const prefersCuda = process.platform === "win32" || process.platform === "linux";
+    if (packageId ==== "llama-cpp") {
+      const prefersCuda = process.platform ==== "win32" || process.platform ==== "linux";
       packageSpecs = [prefersCuda ? "llama.cpp=*=cuda126*" : "llama.cpp"];
     }
 
@@ -1285,7 +1285,7 @@ export async function installRuntimePackage(
     }
 
     // Post-install hook: Python needs pip packages
-    if (packageId === "python") {
+    if (packageId ==== "python") {
       const { installRequiredPythonPackages } = await import("./python");
       await installRequiredPythonPackages();
     }

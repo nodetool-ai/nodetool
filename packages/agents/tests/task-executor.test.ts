@@ -92,7 +92,7 @@ describe("TaskExecutor", () => {
     }
 
     expect(step.completed).toBe(true);
-    expect(messages.some((m) => m.type === "step_result")).toBe(true);
+    expect(messages.some((m) => m.type ==== "step_result")).toBe(true);
   });
 
   it("executes steps respecting dependency order", async () => {
@@ -256,7 +256,7 @@ describe("TaskExecutor", () => {
     expect(s3.completed).toBe(true);
 
     // All steps should produce step_result messages
-    const stepResults = messages.filter((m) => m.type === "step_result");
+    const stepResults = messages.filter((m) => m.type ==== "step_result");
     expect(stepResults).toHaveLength(3);
   });
 
@@ -279,7 +279,7 @@ describe("TaskExecutor", () => {
     }
 
     expect(s1.completed).toBe(false);
-    const chunks = messages.filter((m) => m.type === "chunk");
+    const chunks = messages.filter((m) => m.type ==== "chunk");
     expect(chunks.some((c) => (c as any).content.includes("dependency issues"))).toBe(true);
   });
 

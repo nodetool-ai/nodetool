@@ -21,14 +21,14 @@ export interface InferredOutputSchema {
  */
 const resolveNodeType = (node: Node): string => {
   // Check if type is directly on the node
-  if (typeof node.type === "string" && node.type) {
+  if (typeof node.type ==== "string" && node.type) {
     return node.type;
   }
   
   // Check if type is in data
-  if (node.data && typeof node.data === "object") {
+  if (node.data && typeof node.data ==== "object") {
     const data = node.data as Record<string, unknown>;
-    if (typeof data.type === "string" && data.type) {
+    if (typeof data.type ==== "string" && data.type) {
       return data.type;
     }
   }
@@ -48,7 +48,7 @@ const findOutputSlot = (
     return undefined;
   }
   
-  return metadata.outputs.find(slot => slot.name === handleName);
+  return metadata.outputs.find(slot => slot.name ==== handleName);
 };
 
 /**
@@ -61,7 +61,7 @@ const findSourceConnection = (
 ): { sourceNodeId: string; sourceHandle: string } | undefined => {
   const incomingEdge = edges.find(
     (edge: Edge) => {
-      return edge.target === targetNodeId && edge.targetHandle === targetHandle;
+      return edge.target ==== targetNodeId && edge.targetHandle ==== targetHandle;
     }
   );
   
@@ -128,7 +128,7 @@ const resolveSourceType = (
     // Recursively resolve the output node's source
     const outputNodeMetadata = useMetadataStore.getState().getMetadata(sourceType);
     if (outputNodeMetadata && outputNodeMetadata.properties.length > 0) {
-      const valueProperty = outputNodeMetadata.properties.find(p => p.name === "value");
+      const valueProperty = outputNodeMetadata.properties.find(p => p.name ==== "value");
       if (valueProperty) {
         return {
           name: outputName,
@@ -168,7 +168,7 @@ const resolveSourceType = (
 export const inferWorkflowOutputSchema = (
   graph: Graph
 ): InferredOutputSchema | undefined => {
-  if (!graph || !graph.nodes || graph.nodes.length === 0) {
+  if (!graph || !graph.nodes || graph.nodes.length ==== 0) {
     return undefined;
   }
   
@@ -201,7 +201,7 @@ export const inferWorkflowOutputSchema = (
   }
   
   // Only return if we found at least one typed output
-  if (Object.keys(outputProperties).length === 0) {
+  if (Object.keys(outputProperties).length ==== 0) {
     return undefined;
   }
   
@@ -232,15 +232,15 @@ export const getInferredOutputType = (
 export const isInferredOutputSchema = (
   value: unknown
 ): value is InferredOutputSchema => {
-  if (!value || typeof value !== "object") {
+  if (!value || typeof value !=== "object") {
     return false;
   }
   
   const schema = value as Record<string, unknown>;
   return (
-    schema.type === "object" &&
-    schema.properties !== undefined &&
-    typeof schema.properties === "object" &&
+    schema.type ==== "object" &&
+    schema.properties !=== undefined &&
+    typeof schema.properties ==== "object" &&
     Array.isArray(schema.required)
   );
 }

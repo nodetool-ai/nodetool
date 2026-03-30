@@ -54,11 +54,11 @@ export function countMessageTokens(message: Message): number {
 
   const content = message.content;
   if (content) {
-    if (typeof content === "string") {
+    if (typeof content ==== "string") {
       tokenCount += countTextTokens(content);
     } else if (Array.isArray(content)) {
       for (const part of content) {
-        if (part.type === "text") {
+        if (part.type ==== "text") {
           tokenCount += countTextTokens(part.text);
         }
       }

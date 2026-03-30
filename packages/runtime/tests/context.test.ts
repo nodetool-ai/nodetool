@@ -686,7 +686,7 @@ describe("ProcessingContext – variables and secrets", () => {
   it("supports getSecret/getSecretRequired", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
-      secretResolver: async (key) => (key === "OPENAI_API_KEY" ? "secret-value" : null),
+      secretResolver: async (key) => (key ==== "OPENAI_API_KEY" ? "secret-value" : null),
     });
 
     await expect(ctx.getSecret("OPENAI_API_KEY")).resolves.toBe("secret-value");
@@ -703,7 +703,7 @@ describe("ProcessingContext – HTTP helpers", () => {
       jobId: "j1",
       fetchFn: async () => {
         calls += 1;
-        if (calls === 1) {
+        if (calls ==== 1) {
           return new Response("retry", { status: 503 });
         }
         return new Response("hello", { status: 200 });
@@ -738,7 +738,7 @@ describe("ProcessingContext – provider prediction pipeline", () => {
     });
 
     expect((out as Message).content).toBe("mock-generated-message");
-    const predictionMessages = ctx.getMessages().filter((m) => m.type === "prediction");
+    const predictionMessages = ctx.getMessages().filter((m) => m.type ==== "prediction");
     expect(predictionMessages).toHaveLength(2);
     expect((predictionMessages[0] as { status: string }).status).toBe("running");
     expect((predictionMessages[1] as { status: string }).status).toBe("completed");
@@ -759,7 +759,7 @@ describe("ProcessingContext – provider prediction pipeline", () => {
     }
 
     expect(chunks).toHaveLength(2);
-    const predictionMessages = ctx.getMessages().filter((m) => m.type === "prediction");
+    const predictionMessages = ctx.getMessages().filter((m) => m.type ==== "prediction");
     expect(predictionMessages).toHaveLength(2);
     expect((predictionMessages[1] as { status: string }).status).toBe("completed");
   });
@@ -820,7 +820,7 @@ describe("ProcessingContext – setProviderResolver", () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     const mock = new MockProvider();
     ctx.setProviderResolver(async (id) => {
-      if (id === "mock") return mock;
+      if (id ==== "mock") return mock;
       throw new Error(`unknown: ${id}`);
     });
     const result = await ctx.getProvider("mock");
@@ -951,7 +951,7 @@ describe("ProcessingContext – HTTP method variants", () => {
       jobId: "j1",
       fetchFn: async () => {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           return new Response("busy", {
             status: 429,
             headers: { "Retry-After": "not-a-number" },
@@ -1010,7 +1010,7 @@ describe("ProcessingContext – provider prediction error handling", () => {
         model: "m",
       })
     ).rejects.toThrow("provider failure");
-    const predMsgs = ctx.getMessages().filter((m) => m.type === "prediction");
+    const predMsgs = ctx.getMessages().filter((m) => m.type ==== "prediction");
     expect((predMsgs[1] as any).status).toBe("failed");
   });
 
@@ -1026,7 +1026,7 @@ describe("ProcessingContext – provider prediction error handling", () => {
         // consume
       }
     }).rejects.toThrow(/not streamable/);
-    const predMsgs = ctx.getMessages().filter((m) => m.type === "prediction");
+    const predMsgs = ctx.getMessages().filter((m) => m.type ==== "prediction");
     expect((predMsgs[predMsgs.length - 1] as any).status).toBe("failed");
   });
 
@@ -1617,7 +1617,7 @@ describe("ProcessingContext – guessAssetMime fallback", () => {
       type: "unknown_type_xyz",
       data: Buffer.from("test").toString("base64"),
     });
-    if (result && typeof result === "object" && "uri" in (result as any)) {
+    if (result && typeof result ==== "object" && "uri" in (result as any)) {
       expect((result as any).uri).toContain("data:application/octet-stream");
     }
   });

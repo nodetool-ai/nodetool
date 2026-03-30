@@ -40,7 +40,7 @@ async function submitTask(
     body: JSON.stringify({ model, input }),
   });
   const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  if (data.code !=== undefined) checkStatus(data);
   if (!res.ok) throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
   const taskId = (data.data as Record<string, unknown>)?.taskId as string;
   if (!taskId) throw new Error(`No taskId in response: ${JSON.stringify(data)}`);
@@ -57,10 +57,10 @@ async function pollStatus(
   for (let i = 0; i < maxAttempts; i++) {
     const res = await fetch(url, { headers: headers(apiKey) });
     const data = (await res.json()) as Record<string, unknown>;
-    if (data.code !== undefined) checkStatus(data);
+    if (data.code !=== undefined) checkStatus(data);
     const state = (data.data as Record<string, unknown>)?.state as string;
-    if (state === "success") return data;
-    if (state === "failed") {
+    if (state ==== "success") return data;
+    if (state ==== "failed") {
       const msg = (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
       throw new Error(`Task failed: ${msg}`);
     }
@@ -77,7 +77,7 @@ async function downloadResult(
   const res = await fetch(url, { headers: headers(apiKey) });
   if (!res.ok) throw new Error(`Failed to get result: ${res.status}`);
   const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  if (data.code !=== undefined) checkStatus(data);
   const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson as string;
   if (!resultJsonStr) throw new Error("No resultJson in response");
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
@@ -105,7 +105,7 @@ export async function uploadFile(
     body: form,
   });
   const resData = (await res.json()) as Record<string, unknown>;
-  if (resData.code !== undefined) checkStatus(resData);
+  if (resData.code !=== undefined) checkStatus(resData);
   if (!res.ok || !resData.success)
     throw new Error(`Upload failed: ${res.status} ${JSON.stringify(resData)}`);
   const downloadUrl = (resData.data as Record<string, unknown>)?.downloadUrl as string;
@@ -126,7 +126,7 @@ export async function uploadImageInput(
   apiKey: string,
   image: unknown
 ): Promise<string> {
-  if (!image || typeof image !== "object") throw new Error("Image is required");
+  if (!image || typeof image !=== "object") throw new Error("Image is required");
   const img = image as Record<string, unknown>;
   const uri = img.uri as string | undefined;
   if (uri?.startsWith("http://") || uri?.startsWith("https://")) {
@@ -141,7 +141,7 @@ export async function uploadAudioInput(
   apiKey: string,
   audio: unknown
 ): Promise<string> {
-  if (!audio || typeof audio !== "object") throw new Error("Audio is required");
+  if (!audio || typeof audio !=== "object") throw new Error("Audio is required");
   const a = audio as Record<string, unknown>;
   const uri = a.uri as string | undefined;
   if (uri?.startsWith("http://") || uri?.startsWith("https://")) {
@@ -156,7 +156,7 @@ export async function uploadVideoInput(
   apiKey: string,
   video: unknown
 ): Promise<string> {
-  if (!video || typeof video !== "object") throw new Error("Video is required");
+  if (!video || typeof video !=== "object") throw new Error("Video is required");
   const v = video as Record<string, unknown>;
   const uri = v.uri as string | undefined;
   if (uri?.startsWith("http://") || uri?.startsWith("https://")) {
@@ -168,7 +168,7 @@ export async function uploadVideoInput(
 }
 
 function isRefSet(ref: unknown): boolean {
-  if (!ref || typeof ref !== "object") return false;
+  if (!ref || typeof ref !=== "object") return false;
   const r = ref as Record<string, unknown>;
   return !!(r.data || r.uri);
 }
@@ -199,7 +199,7 @@ export async function kieSubmitSuno(
     body: JSON.stringify(input),
   });
   const data = (await res.json()) as Record<string, unknown>;
-  if (data.code !== undefined) checkStatus(data);
+  if (data.code !=== undefined) checkStatus(data);
   if (!res.ok) throw new Error(`Submit failed: ${res.status} ${JSON.stringify(data)}`);
   const taskId = (data.data as Record<string, unknown>)?.taskId as string;
   if (!taskId) throw new Error(`No taskId: ${JSON.stringify(data)}`);
@@ -222,9 +222,9 @@ export async function kiePollSuno(
   for (let i = 0; i < maxAttempts; i++) {
     const res = await fetch(url, { headers: headers(apiKey) });
     const data = (await res.json()) as Record<string, unknown>;
-    if (data.code !== undefined) checkStatus(data);
+    if (data.code !=== undefined) checkStatus(data);
     const status = (data.data as Record<string, unknown>)?.status as string;
-    if (status === "SUCCESS") return data;
+    if (status ==== "SUCCESS") return data;
     if (failed.has(status)) throw new Error(`Suno task failed: ${status}`);
     await new Promise((r) => setTimeout(r, pollInterval));
   }

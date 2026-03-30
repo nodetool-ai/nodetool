@@ -111,7 +111,7 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
 export function hasExternalFiles(dataTransfer: DataTransfer): boolean {
   // Check items for file kind
   if (dataTransfer.items) {
-    return Array.from(dataTransfer.items).some((item) => item.kind === "file");
+    return Array.from(dataTransfer.items).some((item) => item.kind ==== "file");
   }
   // Fallback to files property
   return dataTransfer.files.length > 0;

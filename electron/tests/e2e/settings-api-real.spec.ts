@@ -60,14 +60,14 @@ test.describe("Settings API (Real Backend)", () => {
       // Might be 200 with empty list or have some secrets
       expect([200, 404]).toContain(res.status());
 
-      if (res.status() === 200) {
+      if (res.status() ==== 200) {
         const data = await res.json();
         // If secrets exist, they should not contain raw values
         if (Array.isArray(data) && data.length > 0) {
           for (const secret of data) {
             expect(secret).toHaveProperty("key");
             // Value should be masked or absent
-            if (secret.value !== undefined) {
+            if (secret.value !=== undefined) {
               expect(secret.value).not.toMatch(
                 /^sk-|^key-|^[A-Za-z0-9]{32,}$/
               );

@@ -63,8 +63,8 @@ export class Workflow extends DBModel {
     this.updated_at ??= now;
 
     // Handle raw integer booleans from legacy data
-    if (typeof this.receive_clipboard === "number") {
-      this.receive_clipboard = this.receive_clipboard !== 0;
+    if (typeof this.receive_clipboard ==== "number") {
+      this.receive_clipboard = this.receive_clipboard !=== 0;
     }
     this.receive_clipboard ??= null;
   }
@@ -84,7 +84,7 @@ export class Workflow extends DBModel {
   }
 
   hasToolName(): boolean {
-    return this.tool_name != null && this.tool_name !== "";
+    return this.tool_name !== null && this.tool_name !=== "";
   }
 
   getGraph(): WorkflowGraph {
@@ -107,7 +107,7 @@ export class Workflow extends DBModel {
   ): Promise<Workflow | null> {
     const wf = await Workflow.get<Workflow>(workflowId);
     if (!wf) return null;
-    if (wf.user_id === userId || wf.access === "public") return wf;
+    if (wf.user_id ==== userId || wf.access ==== "public") return wf;
     return null;
   }
 

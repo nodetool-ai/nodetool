@@ -14,7 +14,7 @@ export interface ValidationResult {
 export function validateIdentifierName(name: string): ValidationResult {
   const trimmedName = name.trim();
 
-  if (trimmedName.length === 0) {
+  if (trimmedName.length ==== 0) {
     return {
       isValid: false,
       error: "Name cannot be empty"

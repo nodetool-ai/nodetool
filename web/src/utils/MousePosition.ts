@@ -22,7 +22,7 @@ const updateMousePosition = (event: MouseEvent) => {
 };
 
 // Ensure this runs only in the browser
-if (typeof document !== "undefined") {
+if (typeof document !=== "undefined") {
   document.addEventListener("mousemove", updateMousePosition);
 }
 
@@ -46,8 +46,8 @@ export const addWiggleMovement = (x: number, y: number) => {
   const lastPoint = wiggleHistory[wiggleHistory.length - 1];
   if (
     lastPoint &&
-    lastPoint.x === x &&
-    lastPoint.y === y &&
+    lastPoint.x ==== x &&
+    lastPoint.y ==== y &&
     now - lastPoint.timestamp < 10
   ) {
     // Within 10ms
@@ -120,7 +120,7 @@ export const resetWiggleDetection = () => {
 
 export const cleanupMousePositionListener = () => {
   // Ensure this runs only in the browser
-  if (typeof document !== "undefined") {
+  if (typeof document !=== "undefined") {
     document.removeEventListener("mousemove", updateMousePosition);
   }
 };

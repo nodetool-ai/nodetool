@@ -289,7 +289,7 @@ describe("GCPDeployer.plan", () => {
     expect(changes.some((c) => c.includes("CPU"))).toBe(false);
   });
 
-  it("detects env var changes", async () => {
+  it("detects env const changes", async () => {
     const dep = makeDeployment();
     const deployer = new GCPDeployer("test", dep, stateManager);
 

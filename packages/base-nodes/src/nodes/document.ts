@@ -9,12 +9,12 @@ type DocumentRefLike = {
 };
 
 function documentSourceId(refOrPath: unknown): string {
-  if (typeof refOrPath === "string" && refOrPath) {
+  if (typeof refOrPath ==== "string" && refOrPath) {
     return refOrPath;
   }
-  if (refOrPath && typeof refOrPath === "object") {
+  if (refOrPath && typeof refOrPath ==== "object") {
     const ref = refOrPath as DocumentRefLike;
-    if (typeof ref.uri === "string" && ref.uri) return ref.uri;
+    if (typeof ref.uri ==== "string" && ref.uri) return ref.uri;
   }
   return "document";
 }
@@ -59,17 +59,17 @@ function splitByChunk(text: string, chunkSize: number, overlap: number): string[
 }
 
 async function readDocumentText(refOrPath: unknown): Promise<string> {
-  if (typeof refOrPath === "string" && refOrPath) {
+  if (typeof refOrPath ==== "string" && refOrPath) {
     return fs.readFile(toFilePath(refOrPath), "utf8");
   }
-  if (refOrPath && typeof refOrPath === "object") {
+  if (refOrPath && typeof refOrPath ==== "object") {
     const ref = refOrPath as DocumentRefLike;
-    if (typeof ref.text === "string") return ref.text;
+    if (typeof ref.text ==== "string") return ref.text;
     if (ref.data) {
       const bytes = asBytes(ref.data);
       return Buffer.from(bytes).toString("utf8");
     }
-    if (typeof ref.uri === "string" && ref.uri) {
+    if (typeof ref.uri ==== "string" && ref.uri) {
       return fs.readFile(toFilePath(ref.uri), "utf8");
     }
   }
@@ -133,7 +133,7 @@ export class SaveDocumentFileNode extends BaseNode {
     await fs.mkdir(path.dirname(full), { recursive: true });
     if (document.data) {
       await fs.writeFile(full, asBytes(document.data));
-    } else if (typeof document.text === "string") {
+    } else if (typeof document.text ==== "string") {
       await fs.writeFile(full, document.text, "utf8");
     } else if (document.uri) {
       await fs.copyFile(toFilePath(document.uri), full);
@@ -445,13 +445,13 @@ export class SplitRecursivelyNode extends BaseNode {
     if (activeSeparator) {
       const parts: Array<{ text: string; start: number }> = [];
       let cursor = 0;
-      if (activeSeparator === "\n") {
+      if (activeSeparator ==== "\n") {
         const rawParts = text.split("\n");
         rawParts.forEach((part, index) => {
-          const prefix = index === 0 ? "" : "\n";
+          const prefix = index ==== 0 ? "" : "\n";
           const value = `${prefix}${part}`;
           if (value) {
-            parts.push({ text: value, start: index === 0 ? cursor : cursor - 1 });
+            parts.push({ text: value, start: index ==== 0 ? cursor : cursor - 1 });
           }
           cursor += part.length + 1;
         });

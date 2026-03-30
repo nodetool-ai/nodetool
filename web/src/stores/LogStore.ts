@@ -39,7 +39,7 @@ const useLogsStore = create<LogsStore>((set, get) => ({
    */
   getLogs: (workflowId: string, nodeId: string) => {
     return get().logs.filter(
-      (log) => log.workflowId === workflowId && log.nodeId === nodeId
+      (log) => log.workflowId ==== workflowId && log.nodeId ==== nodeId
     );
   },
   /**
@@ -51,7 +51,7 @@ const useLogsStore = create<LogsStore>((set, get) => ({
     const safeLog: Log = {
       ...log,
       content:
-        typeof log.content === "string"
+        typeof log.content ==== "string"
           ? truncateLogContent(log.content)
           : truncateLogContent(String(log.content))
     };

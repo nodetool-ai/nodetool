@@ -37,8 +37,8 @@ describe("getNodeMetadata", () => {
     const meta = getNodeMetadata(Add);
     expect(meta.properties).toHaveLength(2);
 
-    const propA = meta.properties.find((p) => p.name === "a");
-    const propB = meta.properties.find((p) => p.name === "b");
+    const propA = meta.properties.find((p) => p.name ==== "a");
+    const propB = meta.properties.find((p) => p.name ==== "b");
     expect(propA).toBeDefined();
     expect(propB).toBeDefined();
     expect(propA!.default).toBe(0);
@@ -61,7 +61,7 @@ describe("getNodeMetadata", () => {
 
   it("infers string types from defaults", () => {
     const meta = getNodeMetadata(StringConcat);
-    const propA = meta.properties.find((p) => p.name === "a");
+    const propA = meta.properties.find((p) => p.name ==== "a");
     expect(propA).toBeDefined();
     expect(propA!.type.type).toBe("str");
     expect(propA!.default).toBe("");
@@ -69,7 +69,7 @@ describe("getNodeMetadata", () => {
 
   it("infers null type as any", () => {
     const meta = getNodeMetadata(Constant);
-    const propValue = meta.properties.find((p) => p.name === "value");
+    const propValue = meta.properties.find((p) => p.name ==== "value");
     expect(propValue).toBeDefined();
     expect(propValue!.type.type).toBe("any");
     expect(propValue!.default).toBeNull();
@@ -77,7 +77,7 @@ describe("getNodeMetadata", () => {
 
   it("infers float type from float defaults", () => {
     const meta = getNodeMetadata(ThresholdProcessor);
-    const propThreshold = meta.properties.find((p) => p.name === "threshold");
+    const propThreshold = meta.properties.find((p) => p.name ==== "threshold");
     expect(propThreshold).toBeDefined();
     // 0.5 is a float
     expect(propThreshold!.type.type).toBe("float");
@@ -85,7 +85,7 @@ describe("getNodeMetadata", () => {
 
   it("infers string type from string defaults", () => {
     const meta = getNodeMetadata(ThresholdProcessor);
-    const propMode = meta.properties.find((p) => p.name === "mode");
+    const propMode = meta.properties.find((p) => p.name ==== "mode");
     expect(propMode).toBeDefined();
     expect(propMode!.type.type).toBe("str");
     expect(propMode!.default).toBe("normal");
@@ -148,7 +148,7 @@ describe("getNodeMetadata — additional coverage", () => {
       async process() { return {}; }
     }
     const meta = getNodeMetadata(BoolNode as unknown as import("../src/base-node.js").NodeClass);
-    const flagProp = meta.properties.find((p) => p.name === "flag");
+    const flagProp = meta.properties.find((p) => p.name ==== "flag");
     expect(flagProp).toBeDefined();
     expect(flagProp!.type.type).toBe("bool");
     expect(flagProp!.default).toBe(true);
@@ -168,7 +168,7 @@ describe("getNodeMetadata — additional coverage", () => {
       async process() { return {}; }
     }
     const meta = getNodeMetadata(ListNode as unknown as import("../src/base-node.js").NodeClass);
-    const itemsProp = meta.properties.find((p) => p.name === "items");
+    const itemsProp = meta.properties.find((p) => p.name ==== "items");
     expect(itemsProp).toBeDefined();
     expect(itemsProp!.type.type).toBe("list");
     expect(itemsProp!.default).toEqual([1, 2, 3]);
@@ -188,7 +188,7 @@ describe("getNodeMetadata — additional coverage", () => {
       async process() { return {}; }
     }
     const meta = getNodeMetadata(DictNode as unknown as import("../src/base-node.js").NodeClass);
-    const configProp = meta.properties.find((p) => p.name === "config");
+    const configProp = meta.properties.find((p) => p.name ==== "config");
     expect(configProp).toBeDefined();
     expect(configProp!.type.type).toBe("dict");
     expect(configProp!.default).toEqual({ key: "value" });
@@ -249,8 +249,8 @@ describe("getNodeMetadata — additional coverage", () => {
     }
     const meta = getNodeMetadata(OutputNode as unknown as import("../src/base-node.js").NodeClass);
     expect(meta.outputs).toHaveLength(2);
-    const resultOut = meta.outputs.find((o) => o.name === "result");
-    const labelOut = meta.outputs.find((o) => o.name === "label");
+    const resultOut = meta.outputs.find((o) => o.name ==== "result");
+    const labelOut = meta.outputs.find((o) => o.name ==== "label");
     expect(resultOut).toBeDefined();
     expect(resultOut!.type.type).toBe("float");
     expect(labelOut).toBeDefined();
@@ -311,14 +311,14 @@ describe("getNodeMetadata – decorator-based properties", () => {
     const meta = getNodeMetadata(DecoratedNode as unknown as import("../src/base-node.js").NodeClass);
     expect(meta.properties).toHaveLength(2);
 
-    const answerProp = meta.properties.find((p) => p.name === "answer");
+    const answerProp = meta.properties.find((p) => p.name ==== "answer");
     expect(answerProp).toBeDefined();
     expect(answerProp!.type.type).toBe("int");
     expect(answerProp!.default).toBe(42);
     expect(answerProp!.description).toBe("The answer");
     expect(answerProp!.required).toBe(false);
 
-    const msgProp = meta.properties.find((p) => p.name === "message");
+    const msgProp = meta.properties.find((p) => p.name ==== "message");
     expect(msgProp).toBeDefined();
     expect(msgProp!.type.type).toBe("str");
     expect(msgProp!.default).toBe("hello");
@@ -340,7 +340,7 @@ describe("getNodeMetadata – decorator-based properties", () => {
     }
 
     const meta = getNodeMetadata(ConstrainedNode as unknown as import("../src/base-node.js").NodeClass);
-    const ratioProp = meta.properties.find((p) => p.name === "ratio");
+    const ratioProp = meta.properties.find((p) => p.name ==== "ratio");
     expect(ratioProp).toBeDefined();
     expect(ratioProp!.min).toBe(0);
     expect(ratioProp!.max).toBe(1);
@@ -365,11 +365,11 @@ describe("getNodeMetadata – decorator-based properties", () => {
 
     const meta = getNodeMetadata(EnumNode as unknown as import("../src/base-node.js").NodeClass);
 
-    const colorProp = meta.properties.find((p) => p.name === "color");
+    const colorProp = meta.properties.find((p) => p.name ==== "color");
     expect(colorProp).toBeDefined();
     expect(colorProp!.values).toEqual(["red", "green", "blue"]);
 
-    const sizeProp = meta.properties.find((p) => p.name === "size");
+    const sizeProp = meta.properties.find((p) => p.name ==== "size");
     expect(sizeProp).toBeDefined();
     expect(sizeProp!.values).toEqual([1, 2, 3, 4]);
   });
@@ -393,11 +393,11 @@ describe("getNodeMetadata – decorator-based properties", () => {
 
     const meta = getNodeMetadata(RequiredNode as unknown as import("../src/base-node.js").NodeClass);
 
-    const nameProp = meta.properties.find((p) => p.name === "name");
+    const nameProp = meta.properties.find((p) => p.name ==== "name");
     expect(nameProp).toBeDefined();
     expect(nameProp!.required).toBe(true);
 
-    const optionalProp = meta.properties.find((p) => p.name === "optional");
+    const optionalProp = meta.properties.find((p) => p.name ==== "optional");
     expect(optionalProp).toBeDefined();
     expect(optionalProp!.required).toBe(false);
   });
@@ -421,13 +421,13 @@ describe("getNodeMetadata – decorator-based properties", () => {
 
     const meta = getNodeMetadata(ComplexTypesNode as unknown as import("../src/base-node.js").NodeClass);
 
-    const tagsProp = meta.properties.find((p) => p.name === "tags");
+    const tagsProp = meta.properties.find((p) => p.name ==== "tags");
     expect(tagsProp).toBeDefined();
     expect(tagsProp!.type.type).toBe("list");
     expect(tagsProp!.type.type_args).toHaveLength(1);
     expect(tagsProp!.type.type_args![0].type).toBe("str");
 
-    const configProp = meta.properties.find((p) => p.name === "config");
+    const configProp = meta.properties.find((p) => p.name ==== "config");
     expect(configProp).toBeDefined();
     expect(configProp!.type.type).toBe("dict");
   });
@@ -452,7 +452,7 @@ describe("getNodeMetadata – decorator-based properties", () => {
 
     const meta = getNodeMetadata(ExtraSchemaNode as unknown as import("../src/base-node.js").NodeClass);
 
-    const emailProp = meta.properties.find((p) => p.name === "email");
+    const emailProp = meta.properties.find((p) => p.name ==== "email");
     expect(emailProp).toBeDefined();
     expect(emailProp!.json_schema_extra).toEqual({
       format: "email",
@@ -489,11 +489,11 @@ describe("getNodeMetadata – decorator-based properties", () => {
     const childMeta = getNodeMetadata(ChildWithProps as unknown as import("../src/base-node.js").NodeClass);
     expect(childMeta.properties).toHaveLength(2);
 
-    const baseProp = childMeta.properties.find((p) => p.name === "baseProp");
+    const baseProp = childMeta.properties.find((p) => p.name ==== "baseProp");
     expect(baseProp).toBeDefined();
     expect(baseProp!.type.type).toBe("int");
 
-    const childProp = childMeta.properties.find((p) => p.name === "childProp");
+    const childProp = childMeta.properties.find((p) => p.name ==== "childProp");
     expect(childProp).toBeDefined();
     expect(childProp!.type.type).toBe("str");
   });
@@ -514,7 +514,7 @@ describe("getNodeMetadata – decorator-based properties", () => {
 
     const meta = getNodeMetadata(MixedNode as unknown as import("../src/base-node.js").NodeClass);
 
-    const valueProp = meta.properties.find((p) => p.name === "value");
+    const valueProp = meta.properties.find((p) => p.name ==== "value");
     expect(valueProp).toBeDefined();
     expect(valueProp!.default).toBe(100);
     expect(valueProp!.description).toBe("Decorated value");
@@ -589,11 +589,11 @@ describe("getNodeMetadata – outputTypes support", () => {
     const meta = getNodeMetadata(OutputNode as unknown as import("../src/base-node.js").NodeClass);
     expect(meta.outputs).toHaveLength(2);
 
-    const resultOut = meta.outputs.find((o) => o.name === "result");
+    const resultOut = meta.outputs.find((o) => o.name ==== "result");
     expect(resultOut).toBeDefined();
     expect(resultOut!.type.type).toBe("int");
 
-    const messageOut = meta.outputs.find((o) => o.name === "message");
+    const messageOut = meta.outputs.find((o) => o.name ==== "message");
     expect(messageOut).toBeDefined();
     expect(messageOut!.type.type).toBe("str");
   });

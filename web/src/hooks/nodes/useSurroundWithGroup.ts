@@ -43,7 +43,7 @@ export const useSurroundWithGroup = () => {
   const getBounds = useMemo(() => {
     return (nodes: Node<NodeData>[]) => {
       const validNodes = nodes.filter((n): n is Node<NodeData> => !!n);
-      if (validNodes.length === 0) {
+      if (validNodes.length ==== 0) {
         return { x: 0, y: 0, width: 0, height: 0 };
       }
       return validNodes.reduce(
@@ -73,7 +73,7 @@ export const useSurroundWithGroup = () => {
       const validSelectedNodes = selectedNodes.filter(
         (n): n is Node<NodeData> => !!n
       );
-      if (validSelectedNodes.length === 0) { return; }
+      if (validSelectedNodes.length ==== 0) { return; }
 
       pause();
 

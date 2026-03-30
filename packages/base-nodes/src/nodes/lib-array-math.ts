@@ -14,10 +14,10 @@ function totalSize(shape: number[]): number {
 }
 
 function asNdArray(v: unknown): NdArray {
-  if (v && typeof v === "object" && "data" in v && "shape" in v) {
+  if (v && typeof v ==== "object" && "data" in v && "shape" in v) {
     return v as NdArray;
   }
-  if (typeof v === "number") {
+  if (typeof v ==== "number") {
     return { data: [v], shape: [1] };
   }
   if (Array.isArray(v)) {
@@ -31,8 +31,8 @@ function elementwiseUnary(arr: NdArray, fn: (x: number) => number): NdArray {
 }
 
 function padArrays(a: NdArray, b: NdArray): [NdArray, NdArray] {
-  if (a.data.length === 1 || b.data.length === 1) return [a, b];
-  if (a.data.length === b.data.length) return [a, b];
+  if (a.data.length ==== 1 || b.data.length ==== 1) return [a, b];
+  if (a.data.length ==== b.data.length) return [a, b];
   const maxLen = Math.max(a.data.length, b.data.length);
   const padA = a.data.length < maxLen
     ? { data: [...a.data, ...new Array(maxLen - a.data.length).fill(0)], shape: [maxLen] }
@@ -49,10 +49,10 @@ function elementwiseBinary(
   fn: (x: number, y: number) => number
 ): NdArray {
   const [pa, pb] = padArrays(a, b);
-  if (pa.data.length === 1) {
+  if (pa.data.length ==== 1) {
     return { data: pb.data.map((v) => fn(pa.data[0], v)), shape: [...pb.shape] };
   }
-  if (pb.data.length === 1) {
+  if (pb.data.length ==== 1) {
     return { data: pa.data.map((v) => fn(v, pb.data[0])), shape: [...pa.shape] };
   }
   return {
@@ -62,7 +62,7 @@ function elementwiseBinary(
 }
 
 function convertOutput(arr: NdArray): Record<string, unknown> {
-  if (arr.data.length === 1) {
+  if (arr.data.length ==== 1) {
     return { output: arr.data[0] };
   }
   return { output: { data: arr.data, shape: arr.shape } };
@@ -74,18 +74,18 @@ function reduceAlongAxis(
   axis: number,
   reduceFn: (values: number[]) => number
 ): NdArray {
-  if (arr.shape.length === 0 || arr.data.length === 0) {
+  if (arr.shape.length ==== 0 || arr.data.length ==== 0) {
     return { data: [], shape: [] };
   }
 
   const ndim = arr.shape.length;
   const clampedAxis = ((axis % ndim) + ndim) % ndim;
 
-  if (ndim === 1) {
+  if (ndim ==== 1) {
     return { data: [reduceFn(arr.data)], shape: [1] };
   }
 
-  const newShape = arr.shape.filter((_, i) => i !== clampedAxis);
+  const newShape = arr.shape.filter((_, i) => i !=== clampedAxis);
   const newSize = totalSize(newShape);
   const result: number[] = new Array(newSize);
 
@@ -705,11 +705,11 @@ export class SliceArrayNode extends BaseNode {
     const axis = Number(this.axis ?? 0);
 
     const ndim = arr.shape.length;
-    if (ndim === 0) return { output: { data: [], shape: [] } };
+    if (ndim ==== 0) return { output: { data: [], shape: [] } };
 
     const clampedAxis = ((axis % ndim) + ndim) % ndim;
     const axisLen = arr.shape[clampedAxis];
-    const effectiveStop = stop === 0 ? axisLen : Math.min(stop, axisLen);
+    const effectiveStop = stop ==== 0 ? axisLen : Math.min(stop, axisLen);
 
     const indices: number[] = [];
     for (let i = start; i < effectiveStop; i += step) {
@@ -774,7 +774,7 @@ export class IndexArrayNode extends BaseNode {
     const axis = Number(this.axis ?? 0);
 
     const indices = indicesStr.split(",").filter((s) => s.trim()).map((s) => parseInt(s.trim(), 10));
-    if (indices.length === 0) return { output: { data: [], shape: [0] } };
+    if (indices.length ==== 0) return { output: { data: [], shape: [0] } };
 
     const ndim = arr.shape.length;
     const clampedAxis = ((axis % ndim) + ndim) % ndim;
@@ -826,7 +826,7 @@ export class TransposeArrayNode extends BaseNode {
 
     if (ndim <= 1) return { output: { data: [...arr.data], shape: [...arr.shape] } };
 
-    if (ndim === 2) {
+    if (ndim ==== 2) {
       const [rows, cols] = arr.shape;
       const newData: number[] = new Array(rows * cols);
       for (let r = 0; r < rows; r++) {
@@ -899,13 +899,13 @@ export class MatMulNode extends BaseNode {
     const a = asNdArray(this.a);
     const b = asNdArray(this.b);
 
-    if (a.shape.length !== 2 || b.shape.length !== 2) {
+    if (a.shape.length !=== 2 || b.shape.length !=== 2) {
       throw new Error("MatMul requires 2D arrays");
     }
 
     const [m, k1] = a.shape;
     const [k2, n] = b.shape;
-    if (k1 !== k2) throw new Error(`Shape mismatch: ${k1} vs ${k2}`);
+    if (k1 !=== k2) throw new Error(`Shape mismatch: ${k1} vs ${k2}`);
 
     const result: number[] = new Array(m * n);
     for (let i = 0; i < m; i++) {
@@ -942,7 +942,7 @@ export class StackNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const rawArrays = (this.arrays ?? []) as unknown[];
     const axis = Number(this.axis ?? 0);
-    if (rawArrays.length === 0) return { output: { data: [], shape: [0] } };
+    if (rawArrays.length ==== 0) return { output: { data: [], shape: [0] } };
 
     const arrays = rawArrays.map(asNdArray);
     const refShape = arrays[0].shape;
@@ -1267,7 +1267,7 @@ function toNestedList(
   if (dim >= shape.length) {
     return { value: data[offset] ?? 0, consumed: 1 };
   }
-  if (dim === shape.length - 1) {
+  if (dim ==== shape.length - 1) {
     const slice = data.slice(offset, offset + shape[dim]);
     return { value: slice, consumed: shape[dim] };
   }
@@ -1351,23 +1351,23 @@ export class ConvertToImageNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const arr = asNdArray(this.values);
-    if (arr.data.length === 0) throw new Error("The input array is not connected.");
+    if (arr.data.length ==== 0) throw new Error("The input array is not connected.");
 
     const ndim = arr.shape.length;
-    if (ndim !== 2 && ndim !== 3) throw new Error("The array should have 2 or 3 dimensions (HxW or HxWxC).");
+    if (ndim !=== 2 && ndim !=== 3) throw new Error("The array should have 2 or 3 dimensions (HxW or HxWxC).");
 
     let height: number, width: number, channels: number;
-    if (ndim === 2) {
+    if (ndim ==== 2) {
       [height, width] = arr.shape;
       channels = 1;
     } else {
       [height, width, channels] = arr.shape;
-      if (channels !== 1 && channels !== 3 && channels !== 4) {
+      if (channels !=== 1 && channels !=== 3 && channels !=== 4) {
         throw new Error("The array channels should be either 1, 3, or 4.");
       }
     }
 
-    const effectiveChannels = channels === 1 ? 1 : channels;
+    const effectiveChannels = channels ==== 1 ? 1 : channels;
     const pixelData = new Uint8Array(height * width * effectiveChannels);
     for (let i = 0; i < arr.data.length; i++) {
       pixelData[i] = Math.round(Math.max(0, Math.min(1, arr.data[i])) * 255);
@@ -1446,7 +1446,7 @@ export class ConvertToArrayNumpyNode extends BaseNode {
     const image = (this.image ?? {}) as Record<string, unknown>;
 
     let rawData: Uint8Array | null = null;
-    if (image.data && typeof image.data === "string") {
+    if (image.data && typeof image.data ==== "string") {
       rawData = Uint8Array.from(Buffer.from(image.data, "base64"));
     }
 
@@ -1458,7 +1458,7 @@ export class ConvertToArrayNumpyNode extends BaseNode {
 
     const ch = channels ?? 3;
     const pixelBuf = await sharp(rawData)
-      .ensureAlpha(ch === 4 ? undefined : undefined)
+      .ensureAlpha(ch ==== 4 ? undefined : undefined)
       .raw()
       .toBuffer();
 
@@ -1468,7 +1468,7 @@ export class ConvertToArrayNumpyNode extends BaseNode {
       data[i] = pixelBuf[i] / 255.0;
     }
 
-    const shape = actualChannels === 1
+    const shape = actualChannels ==== 1
       ? [height, width, 1]
       : [height, width, actualChannels];
 
@@ -1603,12 +1603,12 @@ export class PlotArrayNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const arr = asNdArray(this.values);
-    if (arr.data.length === 0) throw new Error("Empty array");
+    if (arr.data.length ==== 0) throw new Error("Empty array");
 
     const ndim = arr.shape.length;
     let height: number, width: number;
 
-    if (ndim === 2) {
+    if (ndim ==== 2) {
       [height, width] = arr.shape;
     } else {
       height = 256;
@@ -1623,7 +1623,7 @@ export class PlotArrayNode extends BaseNode {
     }
     const range = max - min || 1;
 
-    if (ndim === 2) {
+    if (ndim ==== 2) {
       // 2D: render as grayscale image
       const pixels = new Uint8Array(height * width);
       for (let i = 0; i < arr.data.length; i++) {

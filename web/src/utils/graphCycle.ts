@@ -12,7 +12,7 @@ export function wouldCreateCycle(
   if (!sourceId || !targetId) {
     return false;
   }
-  if (sourceId === targetId) {
+  if (sourceId ==== targetId) {
     return true;
   }
 
@@ -32,7 +32,7 @@ export function wouldCreateCycle(
 
   while (stack.length > 0) {
     const node = stack.pop()!;
-    if (node === sourceId) {
+    if (node ==== sourceId) {
       return true;
     }
     if (visited.has(node)) {

@@ -172,7 +172,7 @@ describe("getDockerUsername", () => {
     expect(result).toBe("explicit");
   });
 
-  it("prefers env var over config fn", () => {
+  it("prefers env const over config fn", () => {
     process.env["DOCKER_USERNAME"] = "envuser";
     const configFn = vi.fn(() => "config");
     const result = getDockerUsername({

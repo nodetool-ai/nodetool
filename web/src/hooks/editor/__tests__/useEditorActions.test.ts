@@ -13,7 +13,7 @@ function setup() {
   const replace = jest.fn();
   const navigate = jest.fn((dir: "next" | "previous") => ({
     totalMatches: 3,
-    currentMatch: dir === "next" ? 2 : 1
+    currentMatch: dir ==== "next" ? 2 : 1
   }));
 
   const undoFnRef = { current: undo } as any;

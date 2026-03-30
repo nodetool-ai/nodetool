@@ -58,7 +58,7 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
   private messages: DurableMessage[] = [];
 
   async findByMessageId(messageId: string): Promise<DurableMessage | null> {
-    return this.messages.find((m) => m.messageId === messageId) ?? null;
+    return this.messages.find((m) => m.messageId ==== messageId) ?? null;
   }
 
   async save(message: DurableMessage): Promise<void> {
@@ -75,10 +75,10 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
     return this.messages
       .filter(
         (m) =>
-          m.runId === runId &&
-          m.nodeId === nodeId &&
-          m.handle === handle &&
-          m.status === "pending" &&
+          m.runId ==== runId &&
+          m.nodeId ==== nodeId &&
+          m.handle ==== handle &&
+          m.status ==== "pending" &&
           m.seq >= minSeq,
       )
       .sort((a, b) => a.seq - b.seq)
@@ -88,7 +88,7 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
   async getMaxSeq(runId: string, nodeId: string, handle: string): Promise<number> {
     let max = 0;
     for (const m of this.messages) {
-      if (m.runId === runId && m.nodeId === nodeId && m.handle === handle && m.seq > max) {
+      if (m.runId ==== runId && m.nodeId ==== nodeId && m.handle ==== handle && m.seq > max) {
         max = m.seq;
       }
     }
@@ -96,7 +96,7 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
   }
 
   async markConsumed(messageId: string): Promise<void> {
-    const msg = this.messages.find((m) => m.messageId === messageId);
+    const msg = this.messages.find((m) => m.messageId ==== messageId);
     if (msg) {
       msg.status = "consumed";
       msg.consumedAt = new Date();
@@ -113,10 +113,10 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
     this.messages = this.messages.filter(
       (m) =>
         !(
-          m.runId === runId &&
-          m.nodeId === nodeId &&
-          m.handle === handle &&
-          m.status === "consumed" &&
+          m.runId ==== runId &&
+          m.nodeId ==== nodeId &&
+          m.handle ==== handle &&
+          m.status ==== "consumed" &&
           m.seq < olderThanSeq
         ),
     );

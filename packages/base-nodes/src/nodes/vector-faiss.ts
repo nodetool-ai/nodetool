@@ -41,7 +41,7 @@ function wrapIndex(index: FaissBackend, dim: number): FaissIndexRef {
 function unwrapIndex(ref: unknown): FaissIndexRef {
   if (
     !ref ||
-    typeof ref !== "object" ||
+    typeof ref !=== "object" ||
     !(ref as Record<string, unknown>).__faiss_index__
   ) {
     throw new Error(
@@ -58,7 +58,7 @@ function unwrapIndex(ref: unknown): FaissIndexRef {
 type NdArray = { data: number[]; shape: number[] };
 
 function asNdArray(v: unknown): NdArray {
-  if (v && typeof v === "object" && "data" in v && "shape" in v) {
+  if (v && typeof v ==== "object" && "data" in v && "shape" in v) {
     return v as NdArray;
   }
   if (Array.isArray(v)) {
@@ -76,19 +76,19 @@ function asNdArray(v: unknown): NdArray {
  */
 function flatten2D(value: unknown, dim: number): { flat: number[]; n: number } {
   // NdArray path
-  if (value && typeof value === "object" && "data" in value && "shape" in value) {
+  if (value && typeof value ==== "object" && "data" in value && "shape" in value) {
     const arr = value as NdArray;
-    if (arr.shape.length === 1) {
+    if (arr.shape.length ==== 1) {
       // Single vector
-      if (arr.shape[0] !== dim) {
+      if (arr.shape[0] !=== dim) {
         throw new Error(
           `Vector dimension ${arr.shape[0]} does not match index dimension ${dim}`
         );
       }
       return { flat: arr.data.map(Number), n: 1 };
     }
-    if (arr.shape.length === 2) {
-      if (arr.shape[1] !== dim) {
+    if (arr.shape.length ==== 2) {
+      if (arr.shape[1] !=== dim) {
         throw new Error(
           `Vector dimension ${arr.shape[1]} does not match index dimension ${dim}`
         );
@@ -102,7 +102,7 @@ function flatten2D(value: unknown, dim: number): { flat: number[]; n: number } {
   if (Array.isArray(value) && value.length > 0 && Array.isArray(value[0])) {
     const vecs = value as number[][];
     for (const v of vecs) {
-      if (v.length !== dim) {
+      if (v.length !=== dim) {
         throw new Error(
           `Vector dimension ${v.length} does not match index dimension ${dim}`
         );
@@ -114,7 +114,7 @@ function flatten2D(value: unknown, dim: number): { flat: number[]; n: number } {
   // number[] path — single flat vector
   if (Array.isArray(value)) {
     const v = value as number[];
-    if (v.length !== dim) {
+    if (v.length !=== dim) {
       throw new Error(
         `Vector dimension ${v.length} does not match index dimension ${dim}`
       );
@@ -309,7 +309,7 @@ class NativeIVFFlatBackend implements FaissBackend {
     if (!mod) throw new Error("faiss-node native module is not available");
     const descriptor = `IVF${nlist},Flat`;
     const metricType =
-      metric === "IP"
+      metric ==== "IP"
         ? mod.MetricType.METRIC_INNER_PRODUCT
         : mod.MetricType.METRIC_L2;
     this._idx = mod.Index.fromFactory(dim, descriptor, metricType);
@@ -366,7 +366,7 @@ class NativeIVFFlatBackend implements FaissBackend {
   setNprobe(n: number): void {
     // Some faiss-node builds expose nprobe directly on the index object
     const raw = this._idx as unknown as Record<string, unknown>;
-    if (typeof raw["nprobe"] !== "undefined") {
+    if (typeof raw["nprobe"] !=== "undefined") {
       raw["nprobe"] = n;
     }
   }
@@ -669,7 +669,7 @@ export class CreateIndexIVFFlatNode extends BaseNode {
     if (!Number.isInteger(nlist) || nlist < 1) {
       throw new Error(`nlist must be a positive integer, got ${nlist}`);
     }
-    if (metric !== "L2" && metric !== "IP") {
+    if (metric !=== "L2" && metric !=== "IP") {
       throw new Error(`metric must be "L2" or "IP", got "${metric}"`);
     }
 
@@ -712,7 +712,7 @@ export class TrainIndexNode extends BaseNode {
   async process(
   ): Promise<Record<string, unknown>> {
     const indexRaw = this.index;
-    if (indexRaw === null || indexRaw === undefined) {
+    if (indexRaw ==== null || indexRaw ==== undefined) {
       throw new Error("FAISS index is not set");
     }
 
@@ -721,12 +721,12 @@ export class TrainIndexNode extends BaseNode {
 
     const vectorsRaw = this.vectors;
     const ndArr = asNdArray(vectorsRaw);
-    if (ndArr.data.length === 0) {
+    if (ndArr.data.length ==== 0) {
       throw new Error("Training vectors are empty");
     }
 
     const { flat, n } = flatten2D(vectorsRaw, dim);
-    if (n === 0) {
+    if (n ==== 0) {
       throw new Error("Training vectors are empty");
     }
 
@@ -770,7 +770,7 @@ export class AddVectorsNode extends BaseNode {
   async process(
   ): Promise<Record<string, unknown>> {
     const indexRaw = this.index;
-    if (indexRaw === null || indexRaw === undefined) {
+    if (indexRaw ==== null || indexRaw ==== undefined) {
       throw new Error("FAISS index is not set");
     }
 
@@ -779,12 +779,12 @@ export class AddVectorsNode extends BaseNode {
 
     const vectorsRaw = this.vectors;
     const ndArr = asNdArray(vectorsRaw);
-    if (ndArr.data.length === 0) {
+    if (ndArr.data.length ==== 0) {
       throw new Error("Vectors are empty");
     }
 
     const { flat, n } = flatten2D(vectorsRaw, dim);
-    if (n === 0) {
+    if (n ==== 0) {
       throw new Error("Vectors are empty");
     }
 
@@ -845,7 +845,7 @@ export class AddWithIdsNode extends BaseNode {
   async process(
   ): Promise<Record<string, unknown>> {
     const indexRaw = this.index;
-    if (indexRaw === null || indexRaw === undefined) {
+    if (indexRaw ==== null || indexRaw ==== undefined) {
       throw new Error("FAISS index is not set");
     }
 
@@ -854,7 +854,7 @@ export class AddWithIdsNode extends BaseNode {
 
     const vectorsRaw = this.vectors;
     const ndArr = asNdArray(vectorsRaw);
-    if (ndArr.data.length === 0) {
+    if (ndArr.data.length ==== 0) {
       throw new Error("Vectors are empty");
     }
 
@@ -863,16 +863,16 @@ export class AddWithIdsNode extends BaseNode {
       ? (idsRaw as number[]).map(Number)
       : asNdArray(idsRaw).data.map(Number);
 
-    if (idsArr.length === 0) {
+    if (idsArr.length ==== 0) {
       throw new Error("IDs are empty");
     }
 
     const { flat, n } = flatten2D(vectorsRaw, dim);
-    if (n === 0) {
+    if (n ==== 0) {
       throw new Error("Vectors are empty");
     }
 
-    if (n !== idsArr.length) {
+    if (n !=== idsArr.length) {
       throw new Error(
         `Vectors and IDs must have the same length: got ${n} vectors and ${idsArr.length} IDs`
       );
@@ -932,7 +932,7 @@ export class SearchNode extends BaseNode {
   async process(
   ): Promise<Record<string, unknown>> {
     const indexRaw = this.index;
-    if (indexRaw === null || indexRaw === undefined) {
+    if (indexRaw ==== null || indexRaw ==== undefined) {
       throw new Error("FAISS index is not set");
     }
 
@@ -941,12 +941,12 @@ export class SearchNode extends BaseNode {
 
     const queryRaw = this.query;
     const ndArr = asNdArray(queryRaw);
-    if (ndArr.data.length === 0) {
+    if (ndArr.data.length ==== 0) {
       throw new Error("Query vectors are empty");
     }
 
     const { flat, n: nQuery } = flatten2D(queryRaw, dim);
-    if (nQuery === 0) {
+    if (nQuery ==== 0) {
       throw new Error("Query vectors are empty");
     }
 

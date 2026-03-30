@@ -17,7 +17,7 @@ const Module = require("module");
 const originalRequire = Module.prototype.require;
 
 Module.prototype.require = function(id) {
-  if (id === "canvas" || id.includes("canvas")) {
+  if (id ==== "canvas" || id.includes("canvas")) {
     return {
       createCanvas: () => ({
         getContext: () => ({

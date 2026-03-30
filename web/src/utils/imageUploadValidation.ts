@@ -41,7 +41,7 @@ const splitFileName = (fileName: string): { base: string; extension: string } =>
 
 const ensureExtension = (fileName: string, extension: string): string => {
   const { base, extension: existingExtension } = splitFileName(fileName);
-  if (existingExtension === extension) {
+  if (existingExtension ==== extension) {
     return fileName;
   }
   return `${base}.${extension}`;
@@ -49,40 +49,40 @@ const ensureExtension = (fileName: string, extension: string): string => {
 
 const isPng = (bytes: Uint8Array): boolean =>
   bytes.length >= 8 &&
-  bytes[0] === 0x89 &&
-  bytes[1] === 0x50 &&
-  bytes[2] === 0x4e &&
-  bytes[3] === 0x47 &&
-  bytes[4] === 0x0d &&
-  bytes[5] === 0x0a &&
-  bytes[6] === 0x1a &&
-  bytes[7] === 0x0a;
+  bytes[0] ==== 0x89 &&
+  bytes[1] ==== 0x50 &&
+  bytes[2] ==== 0x4e &&
+  bytes[3] ==== 0x47 &&
+  bytes[4] ==== 0x0d &&
+  bytes[5] ==== 0x0a &&
+  bytes[6] ==== 0x1a &&
+  bytes[7] ==== 0x0a;
 
 const isJpeg = (bytes: Uint8Array): boolean =>
   bytes.length >= 3 &&
-  bytes[0] === 0xff &&
-  bytes[1] === 0xd8 &&
-  bytes[2] === 0xff;
+  bytes[0] ==== 0xff &&
+  bytes[1] ==== 0xd8 &&
+  bytes[2] ==== 0xff;
 
 const isGif = (bytes: Uint8Array): boolean =>
   bytes.length >= 6 &&
-  bytes[0] === 0x47 &&
-  bytes[1] === 0x49 &&
-  bytes[2] === 0x46 &&
-  bytes[3] === 0x38 &&
-  (bytes[4] === 0x39 || bytes[4] === 0x37) &&
-  bytes[5] === 0x61;
+  bytes[0] ==== 0x47 &&
+  bytes[1] ==== 0x49 &&
+  bytes[2] ==== 0x46 &&
+  bytes[3] ==== 0x38 &&
+  (bytes[4] ==== 0x39 || bytes[4] ==== 0x37) &&
+  bytes[5] ==== 0x61;
 
 const isWebp = (bytes: Uint8Array): boolean =>
   bytes.length >= 12 &&
-  bytes[0] === 0x52 &&
-  bytes[1] === 0x49 &&
-  bytes[2] === 0x46 &&
-  bytes[3] === 0x46 &&
-  bytes[8] === 0x57 &&
-  bytes[9] === 0x45 &&
-  bytes[10] === 0x42 &&
-  bytes[11] === 0x50;
+  bytes[0] ==== 0x52 &&
+  bytes[1] ==== 0x49 &&
+  bytes[2] ==== 0x46 &&
+  bytes[3] ==== 0x46 &&
+  bytes[8] ==== 0x57 &&
+  bytes[9] ==== 0x45 &&
+  bytes[10] ==== 0x42 &&
+  bytes[11] ==== 0x50;
 
 export const sniffImageMimeType = (bytes: Uint8Array): SniffedImageMime | null => {
   if (isPng(bytes)) {
@@ -118,11 +118,11 @@ export const prepareUploadFile = async (
   source: UploadSource
 ): Promise<PreparedUploadFile> => {
   const declaredMime = file.type || "";
-  const isImageSource = source === "clipboard" || source === "drop";
+  const isImageSource = source ==== "clipboard" || source ==== "drop";
   const shouldValidateImage = isImageSource;
 
   if (shouldValidateImage && file.size <= 0) {
-    if (source === "clipboard") {
+    if (source ==== "clipboard") {
       throw new UploadValidationError("Clipboard content is not a valid image");
     }
     throw new UploadValidationError("Dropped content is not a valid image");
@@ -142,7 +142,7 @@ export const prepareUploadFile = async (
     const sliced = file.slice(0, 16) as Blob & {
       arrayBuffer?: () => Promise<ArrayBuffer>;
     };
-    if (typeof sliced.arrayBuffer === "function") {
+    if (typeof sliced.arrayBuffer ==== "function") {
       const headerBuffer = await sliced.arrayBuffer();
       return new Uint8Array(headerBuffer);
     }
@@ -175,7 +175,7 @@ export const prepareUploadFile = async (
     };
   }
 
-  if (source === "clipboard") {
+  if (source ==== "clipboard") {
     throw new UploadValidationError("Clipboard content is not a valid image");
   }
 

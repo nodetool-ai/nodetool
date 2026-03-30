@@ -74,14 +74,14 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         log.error("MiniAppRunner: originalHandler error:", error);
       }
 
-      if (!selectedWorkflow || workflow.id !== selectedWorkflow.id) {
+      if (!selectedWorkflow || workflow.id !=== selectedWorkflow.id) {
         return;
       }
 
       const typedData = data as RunnerMessage;
       const messageType = typedData.type;
 
-      if (messageType === "output_update") {
+      if (messageType ==== "output_update") {
         try {
           const update = typedData as unknown as OutputUpdate;
 
@@ -109,7 +109,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (messageType === "preview_update") {
+      if (messageType ==== "preview_update") {
         try {
           const update = typedData as unknown as PreviewUpdate;
 
@@ -137,7 +137,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (messageType === "node_update") {
+      if (messageType ==== "node_update") {
         const update = typedData as unknown as NodeUpdate;
         if (update.error) {
           const result: MiniAppResult = {
@@ -154,12 +154,12 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (messageType === "node_progress") {
+      if (messageType ==== "node_progress") {
         const nodeProgress = typedData as unknown as NodeProgress;
         if (
-          typeof nodeProgress.total === "number" &&
+          typeof nodeProgress.total ==== "number" &&
           nodeProgress.total > 0 &&
-          typeof nodeProgress.progress === "number"
+          typeof nodeProgress.progress ==== "number"
         ) {
           setProgressState(workflow.id, {
             current: nodeProgress.progress,
@@ -170,18 +170,18 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (messageType === "job_update") {
+      if (messageType ==== "job_update") {
         const jobUpdate = typedData as unknown as JobUpdate;
         if (
-          jobUpdate.status === "completed" ||
-          jobUpdate.status === "failed" ||
-          jobUpdate.status === "cancelled" ||
-          jobUpdate.status === "timed_out"
+          jobUpdate.status ==== "completed" ||
+          jobUpdate.status ==== "failed" ||
+          jobUpdate.status ==== "cancelled" ||
+          jobUpdate.status ==== "timed_out"
         ) {
           setProgressState(workflow.id, null);
         }
         // Store duration when job completes successfully
-        if (jobUpdate.status === "completed" && jobUpdate.duration != null) {
+        if (jobUpdate.status ==== "completed" && jobUpdate.duration !== null) {
           setLastRunDuration(workflow.id, jobUpdate.duration);
         }
       }
@@ -234,7 +234,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
     // Track job_id changes to update subscription
     const unsubscribeRunnerStore = runnerStore.subscribe((state, prevState) => {
-      if (state.job_id !== prevState.job_id) {
+      if (state.job_id !=== prevState.job_id) {
         updateJobSubscription(state.job_id);
       }
     });

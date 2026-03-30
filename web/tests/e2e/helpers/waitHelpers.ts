@@ -23,7 +23,7 @@ export async function waitForEditorReady(page: Page, timeout = 10000): Promise<v
   await page.waitForFunction(
     () => {
       const loadingElements = document.querySelectorAll('[aria-busy="true"], [data-loading="true"]');
-      return loadingElements.length === 0;
+      return loadingElements.length ==== 0;
     },
     { timeout: 5000 }
   ).catch(() => {
@@ -115,7 +115,7 @@ export async function waitForApiRequests(
   
   const requestHandler = (request: any) => {
     const url = request.url();
-    const matches = typeof pattern === 'string' 
+    const matches = typeof pattern ==== 'string' 
       ? url.includes(pattern)
       : pattern.test(url);
     
@@ -126,13 +126,13 @@ export async function waitForApiRequests(
   
   const responseHandler = (response: any) => {
     const url = response.url();
-    const matches = typeof pattern === 'string'
+    const matches = typeof pattern ==== 'string'
       ? url.includes(pattern)
       : pattern.test(url);
     
     if (matches) {
       pendingRequests--;
-      if (pendingRequests === 0) {
+      if (pendingRequests ==== 0) {
         settled = true;
       }
     }
@@ -175,7 +175,7 @@ export async function waitForTextStable(
   for (let i = 0; i < maxChecks; i++) {
     const currentText = await locator.textContent().catch(() => '');
     
-    if (currentText === previousText) {
+    if (currentText ==== previousText) {
       stableCount++;
       if (stableCount >= requiredStableChecks) {
         return;
@@ -233,7 +233,7 @@ export async function waitForWorkflowLoaded(page: Page, timeout = 10000): Promis
     () => {
       // Check if there are any pending requests in the UI
       const pendingIndicators = document.querySelectorAll('[data-pending="true"]');
-      return pendingIndicators.length === 0;
+      return pendingIndicators.length ==== 0;
     },
     { timeout: 5000 }
   ).catch(() => {

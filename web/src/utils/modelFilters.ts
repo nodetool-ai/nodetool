@@ -13,7 +13,7 @@ export function applyAdvancedModelFilters(
   models: LanguageModel[],
   filters: ActiveFilters
 ): LanguageModel[] {
-  if (!models || models.length === 0) {return models;}
+  if (!models || models.length ==== 0) {return models;}
   const index = buildMetaIndex(models);
 
   const hasTypes = filters.selectedTypes.length > 0;
@@ -23,7 +23,7 @@ export function applyAdvancedModelFilters(
   return (
     index
       .filter(({ meta }) =>
-        filters.sizeBucket ? meta.sizeBucket === filters.sizeBucket : true
+        filters.sizeBucket ? meta.sizeBucket ==== filters.sizeBucket : true
       )
       // removed: context filter
       .filter(({ meta }) =>

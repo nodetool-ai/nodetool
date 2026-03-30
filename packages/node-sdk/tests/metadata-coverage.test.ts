@@ -221,7 +221,7 @@ describe("loadPythonPackageMetadata – edge cases", () => {
     // Mock readdirSync to throw for the metadata dir (chmod doesn't work as root)
     const origReaddirSync = fs.readdirSync;
     const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
-      if (String(args[0]) === metadataDir) {
+      if (String(args[0]) ==== metadataDir) {
         throw new Error("EACCES: permission denied");
       }
       return origReaddirSync.apply(fs, args as any);
@@ -249,7 +249,7 @@ describe("loadPythonPackageMetadata – edge cases", () => {
     // Mock readdirSync to throw for the metadata dir (chmod doesn't work as root)
     const origReaddirSync = fs.readdirSync;
     const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
-      if (String(args[0]) === metadataDir) {
+      if (String(args[0]) ==== metadataDir) {
         throw new Error("EACCES: permission denied");
       }
       return origReaddirSync.apply(fs, args as any);
@@ -270,7 +270,7 @@ describe("loadPythonPackageMetadata – edge cases", () => {
     // Mock readdirSync to throw for the subdirectory (chmod doesn't work as root)
     const origReaddirSync = fs.readdirSync;
     const spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args: any[]) => {
-      if (String(args[0]) === subDir) {
+      if (String(args[0]) ==== subDir) {
         throw new Error("EACCES: permission denied");
       }
       return origReaddirSync.apply(fs, args as any);

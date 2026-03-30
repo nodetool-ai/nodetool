@@ -41,7 +41,7 @@ export interface UseCopyFeedbackResult {
  * 
  * return (
  *   <div>
- *     {copiedFormat === "hex" && <span>Copied!</span>}
+ *     {copiedFormat ==== "hex" && <span>Copied!</span>}
  *     <button onClick={handleCopyHex}>Copy Hex</button>
  *   </div>
  * );

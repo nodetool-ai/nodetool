@@ -12,7 +12,7 @@ function getEnvVar(name: string): string | undefined {
 }
 
 export function initSentry() {
-  if (getEnvMode() === "production") {
+  if (getEnvMode() ==== "production") {
     Sentry.init({
       dsn: getEnvVar("VITE_SENTRY_DSN"),
       integrations: [

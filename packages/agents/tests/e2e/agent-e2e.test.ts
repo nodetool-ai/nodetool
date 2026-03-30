@@ -56,7 +56,7 @@ async function collectMessages(gen: AsyncGenerator<ProcessingMessage>): Promise<
 }
 
 function findStepResults(messages: ProcessingMessage[]): StepResult[] {
-  return messages.filter((m) => m.type === "step_result") as StepResult[];
+  return messages.filter((m) => m.type ==== "step_result") as StepResult[];
 }
 
 // A minimal task for tests that skip planning
@@ -172,8 +172,8 @@ describe("StepExecutor E2E", () => {
 
     // The user message sent to the provider should include the dep result
     const firstCall = provider.callLog[0];
-    const userMsg = firstCall.messages.find((m) => m.role === "user");
-    expect(typeof userMsg?.content === "string" ? userMsg.content : "").toContain("step_prev");
+    const userMsg = firstCall.messages.find((m) => m.role ==== "user");
+    expect(typeof userMsg?.content ==== "string" ? userMsg.content : "").toContain("step_prev");
     expect(findStepResults(messages)[0].result).toEqual({ doubled: 84 });
   });
 
@@ -220,8 +220,8 @@ describe("StepExecutor E2E", () => {
     });
 
     const messages = await collectMessages(executor.execute());
-    const taskUpdates = messages.filter((m) => m.type === "task_update");
-    const failed = taskUpdates.find((m) => (m as any).event === "step_failed");
+    const taskUpdates = messages.filter((m) => m.type ==== "task_update");
+    const failed = taskUpdates.find((m) => (m as any).event ==== "step_failed");
     expect(failed).toBeDefined();
     expect(task.steps[0].completed).toBe(true);
   });
@@ -565,7 +565,7 @@ describe("ScriptedProvider", () => {
     const chunks: string[] = [];
     for (let i = 0; i < 3; i++) {
       for await (const item of provider.generateMessages({ messages: [], model: "m" })) {
-        if ("type" in item && (item as any).type === "chunk") {
+        if ("type" in item && (item as any).type ==== "chunk") {
           chunks.push((item as any).content);
         }
       }
@@ -580,7 +580,7 @@ describe("ScriptedProvider", () => {
     const chunks: string[] = [];
     for (let i = 0; i < 4; i++) {
       for await (const item of provider.generateMessages({ messages: [], model: "m" })) {
-        if ("type" in item && (item as any).type === "chunk") {
+        if ("type" in item && (item as any).type ==== "chunk") {
           chunks.push((item as any).content);
         }
       }
@@ -665,7 +665,7 @@ describe("ScriptedProvider", () => {
     // After reset, starts from script 0 again
     const chunks: string[] = [];
     for await (const item of provider.generateMessages({ messages: [], model: "m" })) {
-      if ("type" in item && (item as any).type === "chunk") {
+      if ("type" in item && (item as any).type ==== "chunk") {
         chunks.push((item as any).content);
       }
     }

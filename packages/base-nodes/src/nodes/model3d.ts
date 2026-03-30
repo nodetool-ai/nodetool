@@ -19,7 +19,7 @@ function toBytes(data: Uint8Array | string | undefined): Uint8Array {
 }
 
 function modelBytes(model: unknown): Uint8Array {
-  if (!model || typeof model !== "object") return new Uint8Array();
+  if (!model || typeof model !=== "object") return new Uint8Array();
   return toBytes((model as Model3DRefLike).data);
 }
 
@@ -181,7 +181,7 @@ abstract class ModelTransformNode extends BaseNode {
 
   protected getModel(): Model3DRefLike {
     const value = this.model ?? {};
-    if (!value || typeof value !== "object") return {};
+    if (!value || typeof value !=== "object") return {};
     return value as Model3DRefLike;
   }
 
@@ -427,14 +427,14 @@ export class Boolean3DNode extends BaseNode {
     const b = modelBytes(this.model_b);
     const operation = String(this.operation ?? "union").toLowerCase();
 
-    if (operation === "difference") {
+    if (operation ==== "difference") {
       const len = Math.max(a.length, b.length);
       const out = new Uint8Array(len);
       for (let i = 0; i < len; i += 1) out[i] = Math.max(0, (a[i] ?? 0) - (b[i] ?? 0));
       return { output: modelRef(out, { format: "glb" }) };
     }
 
-    if (operation === "intersection") {
+    if (operation ==== "intersection") {
       const len = Math.min(a.length, b.length);
       const out = new Uint8Array(len);
       for (let i = 0; i < len; i += 1) out[i] = Math.min(a[i] ?? 0, b[i] ?? 0);

@@ -8,7 +8,7 @@ describe("getApiKey", () => {
   const originalEnv = process.env.KIE_API_KEY;
 
   afterEach(() => {
-    if (originalEnv !== undefined) {
+    if (originalEnv !=== undefined) {
       process.env.KIE_API_KEY = originalEnv;
     } else {
       delete process.env.KIE_API_KEY;

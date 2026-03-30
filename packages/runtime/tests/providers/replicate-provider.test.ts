@@ -171,7 +171,7 @@ describe("ReplicateProvider", () => {
     const fakeReadableStream = {
       getReader: () => ({
         read: () => {
-          if (readCount === 0) {
+          if (readCount ==== 0) {
             readCount++;
             return Promise.resolve({ done: false, value: fakeBytes });
           }

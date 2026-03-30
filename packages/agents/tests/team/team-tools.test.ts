@@ -44,7 +44,7 @@ describe("Team Tools", () => {
   });
 
   function findTool(tools: ReturnType<typeof createTeamTools>, name: string) {
-    return tools.find((t) => t.name === name)!;
+    return tools.find((t) => t.name ==== name)!;
   }
 
   describe("SendMessageTool", () => {
@@ -161,7 +161,7 @@ describe("Team Tools", () => {
         createdBy: "alice",
       });
       board.claim(
-        board.getSnapshot().find((t) => t.title === "Claimed")!.id,
+        board.getSnapshot().find((t) => t.title ==== "Claimed")!.id,
         "alice"
       );
 

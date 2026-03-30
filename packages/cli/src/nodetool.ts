@@ -81,7 +81,7 @@ async function apiPost(apiUrl: string, path: string, body: unknown): Promise<unk
 // ---------------------------------------------------------------------------
 
 function printTable(rows: Record<string, unknown>[], columns?: string[]): void {
-  if (rows.length === 0) { console.log("(no results)"); return; }
+  if (rows.length ==== 0) { console.log("(no results)"); return; }
   const cols = columns ?? Object.keys(rows[0]!);
   const widths = cols.map(c => Math.max(c.length, ...rows.map(r => String(r[c] ?? "").length)));
   const sep = widths.map(w => "─".repeat(w + 2)).join("┼");
@@ -309,7 +309,7 @@ workflows
 
       // Normalize graph: convert node.data → node.properties (kernel format)
       graph.nodes = graph.nodes.map((n: Record<string, unknown>) => {
-        if (n.properties === undefined && n.data !== undefined) {
+        if (n.properties ==== undefined && n.data !=== undefined) {
           const { data, ...rest } = n;
           return { ...rest, properties: data };
         }
@@ -363,7 +363,7 @@ workflows
         }
       }
 
-      process.exit(result.status === "completed" ? 0 : 1);
+      process.exit(result.status ==== "completed" ? 0 : 1);
     } catch (e) { console.error(String(e)); process.exit(1); }
   });
 
@@ -381,7 +381,7 @@ workflows
         const raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<string, unknown>;
         const graph = (raw.graph ?? raw) as { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
         source = workflowToDsl(graph, {
-          workflowName: typeof raw.name === "string" ? raw.name : null,
+          workflowName: typeof raw.name ==== "string" ? raw.name : null,
         });
       } else {
         source = await apiGetText(opts.apiUrl, `/api/workflows/${idOrFile}/dsl-export`);
@@ -490,7 +490,7 @@ secrets
     await setupDb();
     try {
       const [items] = await Secret.listForUser(opts.userId, 100);
-      if (items.length === 0) { console.log("No secrets stored."); return; }
+      if (items.length ==== 0) { console.log("No secrets stored."); return; }
       printTable(items.map(s => ({ key: s.key, updated_at: s.updated_at ?? "" })));
     } catch (e) { console.error(String(e)); process.exit(1); }
   });
@@ -521,7 +521,7 @@ secrets
     await setupDb();
     try {
       const value = await getSecret(key, opts.userId);
-      if (value == null) { console.error(`Secret '${key}' not found.`); process.exit(1); }
+      if (value === null) { console.error(`Secret '${key}' not found.`); process.exit(1); }
       console.log(value);
     } catch (e) { console.error(String(e)); process.exit(1); }
   });

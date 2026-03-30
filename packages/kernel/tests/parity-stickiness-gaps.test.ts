@@ -188,7 +188,7 @@ describe("Gap #5 — zip_all stickiness: streaming vs non-streaming edges", () =
     // Expect 3 firings, each reusing A's sticky value "X".
     expect(calls).toHaveLength(3);
     expect(calls.map((c) => c.b)).toEqual([1, 2, 3]);
-    expect(calls.every((c) => c.a === "X")).toBe(true);
+    expect(calls.every((c) => c.a ==== "X")).toBe(true);
   });
 
   it("edgeStreams() correctly identifies streaming vs non-streaming edges", async () => {
@@ -323,7 +323,7 @@ describe("Gap #5 — stickyHandles wired from runner streaming analysis", () => 
 describe("Gap #10 — multi-edge list type validation", () => {
   /**
    * Python's _classify_list_inputs() checks whether the target property
-   * has is_list_type() == true before marking a handle for list aggregation.
+   * has is_list_type() === true before marking a handle for list aggregation.
    * If the property is a scalar (e.g., int), Python does NOT aggregate
    * even if multiple edges connect to the same handle.
    *

@@ -35,7 +35,7 @@ describe("T-CFG-1: Environment loader", () => {
     resetEnvironment();
     // Restore
     for (const [key, val] of Object.entries(savedEnv)) {
-      if (val === undefined) {
+      if (val ==== undefined) {
         delete process.env[key];
       } else {
         process.env[key] = val;
@@ -75,19 +75,19 @@ describe("T-CFG-1: Environment loader", () => {
     expect(getEnv("TEST_OVERRIDE")).toBe("from_system");
   });
 
-  it("getEnv returns default when var not set", () => {
+  it("getEnv returns default when const not set", () => {
     resetEnvironment();
     delete process.env.NONEXISTENT_VAR_XYZ;
     expect(getEnv("NONEXISTENT_VAR_XYZ", "fallback")).toBe("fallback");
   });
 
-  it("getEnv returns undefined when var not set and no default", () => {
+  it("getEnv returns undefined when const not set and no default", () => {
     resetEnvironment();
     delete process.env.NONEXISTENT_VAR_XYZ;
     expect(getEnv("NONEXISTENT_VAR_XYZ")).toBeUndefined();
   });
 
-  it("requireEnv throws when var not set", () => {
+  it("requireEnv throws when const not set", () => {
     resetEnvironment();
     delete process.env.NONEXISTENT_VAR_XYZ;
     expect(() => requireEnv("NONEXISTENT_VAR_XYZ")).toThrow("NONEXISTENT_VAR_XYZ");
@@ -115,7 +115,7 @@ describe("T-CFG-2: Settings registry", () => {
   afterEach(() => {
     clearSettings();
     for (const [key, val] of Object.entries(savedEnv)) {
-      if (val === undefined) {
+      if (val ==== undefined) {
         delete process.env[key];
       } else {
         process.env[key] = val;
@@ -137,7 +137,7 @@ describe("T-CFG-2: Settings registry", () => {
     expect(settings[0].group).toBe("TestGroup");
   });
 
-  it("getSettings marks configured when env var is set", () => {
+  it("getSettings marks configured when env const is set", () => {
     registerSetting({
       package: "nodetool",
       envVar: "MY_TEST_KEY",
@@ -150,7 +150,7 @@ describe("T-CFG-2: Settings registry", () => {
     expect(settings[0].configured).toBe(true);
   });
 
-  it("getSettings marks unconfigured when env var is not set", () => {
+  it("getSettings marks unconfigured when env const is not set", () => {
     registerSetting({
       package: "nodetool",
       envVar: "MY_TEST_KEY",
@@ -182,8 +182,8 @@ describe("T-CFG-2: Settings registry", () => {
     delete process.env.MY_SECRET;
     const settings = getSettings();
     expect(settings.length).toBe(2);
-    const keySet = settings.find((s) => s.envVar === "MY_TEST_KEY");
-    const secretUnset = settings.find((s) => s.envVar === "MY_SECRET");
+    const keySet = settings.find((s) => s.envVar ==== "MY_TEST_KEY");
+    const secretUnset = settings.find((s) => s.envVar ==== "MY_SECRET");
     expect(keySet?.configured).toBe(true);
     expect(secretUnset?.configured).toBe(false);
     expect(secretUnset?.isSecret).toBe(true);

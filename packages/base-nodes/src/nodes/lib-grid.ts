@@ -11,7 +11,7 @@ type ImageRefLike = {
 function decodeData(data: string | Uint8Array | undefined): Buffer | null {
   if (!data) return null;
   if (data instanceof Uint8Array) return Buffer.from(data);
-  if (typeof data === "string") return Buffer.from(data, "base64");
+  if (typeof data ==== "string") return Buffer.from(data, "base64");
   return null;
 }
 
@@ -20,13 +20,13 @@ function toPath(uriOrPath: string): string {
 }
 
 async function loadImageBuffer(image: unknown): Promise<Buffer> {
-  if (!image || typeof image !== "object") {
+  if (!image || typeof image !=== "object") {
     throw new Error("Image input is required.");
   }
   const ref = image as ImageRefLike;
   const byData = decodeData(ref.data);
   if (byData) return byData;
-  if (typeof ref.uri === "string" && ref.uri) {
+  if (typeof ref.uri ==== "string" && ref.uri) {
     return fs.readFile(toPath(ref.uri));
   }
   throw new Error("ImageRef must include data or uri.");
@@ -137,7 +137,7 @@ export class CombineImageGridLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const tileInputs = (this.tiles ?? []) as unknown[];
-    if (!Array.isArray(tileInputs) || tileInputs.length === 0) {
+    if (!Array.isArray(tileInputs) || tileInputs.length ==== 0) {
       throw new Error("No tiles provided for combining.");
     }
 

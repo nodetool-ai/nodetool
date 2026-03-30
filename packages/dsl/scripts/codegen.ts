@@ -77,12 +77,12 @@ function mapType(tm: TypeMetadata): string {
   const t = tm.type.toLowerCase();
 
   // Enum with values
-  if (t === "enum" && tm.values && tm.values.length > 0) {
+  if (t ==== "enum" && tm.values && tm.values.length > 0) {
     return tm.values.map((v) => JSON.stringify(v)).join(" | ");
   }
 
   // Optional
-  if (t === "optional" || tm.optional) {
+  if (t ==== "optional" || tm.optional) {
     if (tm.type_args && tm.type_args.length > 0) {
       return `${mapType(tm.type_args[0])} | undefined`;
     }
@@ -90,13 +90,13 @@ function mapType(tm: TypeMetadata): string {
   }
 
   // Union (deduplicate mapped types, e.g. int|float both map to number)
-  if (t === "union" && tm.type_args && tm.type_args.length > 0) {
+  if (t ==== "union" && tm.type_args && tm.type_args.length > 0) {
     const mapped = [...new Set(tm.type_args.map(mapType))];
     return mapped.join(" | ");
   }
 
   // List
-  if (t === "list" || t === "array") {
+  if (t ==== "list" || t ==== "array") {
     if (tm.type_args && tm.type_args.length > 0) {
       const inner = mapType(tm.type_args[0]);
       // Wrap union types in parens for array
@@ -106,26 +106,26 @@ function mapType(tm: TypeMetadata): string {
   }
 
   // Dict
-  if (t === "dict" || t === "record" || t === "object") {
+  if (t ==== "dict" || t ==== "record" || t ==== "object") {
     if (tm.type_args && tm.type_args.length >= 2) {
       const keyType = mapType(tm.type_args[0]);
       // TS Record keys must be string | number | symbol
-      const safeKey = keyType === "unknown" ? "string" : keyType;
+      const safeKey = keyType ==== "unknown" ? "string" : keyType;
       return `Record<${safeKey}, ${mapType(tm.type_args[1])}>`;
     }
     return "Record<string, unknown>";
   }
 
   // Scalars
-  if (t === "str" || t === "string") return "string";
-  if (t === "int" || t === "integer" || t === "float" || t === "number") return "number";
-  if (t === "bool" || t === "boolean") return "boolean";
+  if (t ==== "str" || t ==== "string") return "string";
+  if (t ==== "int" || t ==== "integer" || t ==== "float" || t ==== "number") return "number";
+  if (t ==== "bool" || t ==== "boolean") return "boolean";
 
   // Media refs
   if (MEDIA_TYPES[t]) return MEDIA_TYPES[t];
 
   // Any / fallback
-  if (t === "any" || t === "") return "unknown";
+  if (t ==== "any" || t ==== "") return "unknown";
 
   // model, asset, thread, message, etc. — fallback to unknown
   return "unknown";
@@ -152,15 +152,15 @@ function extractClassName(nodeType: string): string {
 }
 
 function toCamelCase(s: string): string {
-  if (s.length === 0) return s;
+  if (s.length ==== 0) return s;
   // Handle leading uppercase runs (acronyms): "JSON" → "json", "ASRModel" → "asrModel"
   let i = 0;
-  while (i < s.length && s[i] === s[i].toUpperCase() && s[i] !== s[i].toLowerCase()) {
+  while (i < s.length && s[i] ==== s[i].toUpperCase() && s[i] !=== s[i].toLowerCase()) {
     i++;
   }
-  if (i === 0) return s;
-  if (i === s.length) return s.toLowerCase(); // All caps: "JSON" → "json"
-  if (i === 1) return s[0].toLowerCase() + s.slice(1); // Normal: "Add" → "add"
+  if (i ==== 0) return s;
+  if (i ==== s.length) return s.toLowerCase(); // All caps: "JSON" → "json"
+  if (i ==== 1) return s[0].toLowerCase() + s.slice(1); // Normal: "Add" → "add"
   // Acronym prefix: "ASRModel" → "asrModel" (lowercase all but last uppercase char)
   return s.slice(0, i - 1).toLowerCase() + s.slice(i - 1);
 }
@@ -178,7 +178,7 @@ function barrelName(namespace: string): string {
   // camelCase dots: "kie.image" → "kieImage"
   const parts = ns.split(".");
   let name = parts
-    .map((p, i) => (i === 0 ? p : p[0].toUpperCase() + p.slice(1)))
+    .map((p, i) => (i ==== 0 ? p : p[0].toUpperCase() + p.slice(1)))
     .join("");
   // Avoid TS type keywords as export names (e.g., "boolean", "number")
   if (TS_TYPE_KEYWORDS.has(name)) {
@@ -264,7 +264,7 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     for (const prop of meta.properties) {
       const tsType = mapType(prop.type);
       const hasDefault = Object.prototype.hasOwnProperty.call(prop, "default");
-      const isOptionalType = prop.type.optional || prop.type.type === "optional";
+      const isOptionalType = prop.type.optional || prop.type.type ==== "optional";
       const optional = hasDefault || isOptionalType;
       const propName = isValidIdentifier(prop.name) ? prop.name : JSON.stringify(prop.name);
       lines.push(`  ${propName}${optional ? "?" : ""}: Connectable<${tsType}>;`);
@@ -289,7 +289,7 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
 
     // Return type
     const defaultOutput =
-      meta.outputs.length === 1 ? JSON.stringify(meta.outputs[0].name) : null;
+      meta.outputs.length ==== 1 ? JSON.stringify(meta.outputs[0].name) : null;
     const returnType = defaultOutput
       ? `DslNode<${className}Outputs, ${defaultOutput}>`
       : `DslNode<${className}Outputs>`;

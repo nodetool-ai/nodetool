@@ -49,7 +49,7 @@ export const calculateGridDimensions = (
 
   // If items are at max size and there's still room, add more columns up to maxColumns
   while (
-    itemWidth === maxItemSize &&
+    itemWidth ==== maxItemSize &&
     columns < maxColumns &&
     columns < Math.floor((width + itemSpacing) / (maxItemSize + itemSpacing))
   ) {
@@ -69,7 +69,7 @@ export const prepareItems = (
   assets: Asset[],
   expandedTypes: Set<string>
 ): AssetOrDivider[] => {
-  if (!assets || assets.length === 0) {
+  if (!assets || assets.length ==== 0) {
     return [];
   }
 
@@ -93,7 +93,7 @@ export const prepareItems = (
 
   return Object.entries(assetsByType).flatMap(
     ([type, assets]): AssetOrDivider[] => {
-      if (assets.length === 0) {
+      if (assets.length ==== 0) {
         return [];
       }
       return [
@@ -112,7 +112,7 @@ export const getAssetCategory = (contentType: string): string => {
   const normalized = contentType.toLowerCase().split(";")[0].trim();
   const topLevelType = normalized.split("/")[0] || "other";
 
-  if (topLevelType === "model") {
+  if (topLevelType ==== "model") {
     return "model_3d";
   }
 
@@ -134,7 +134,7 @@ export const calculateRowCount = (
       currentRowItemCount = 0;
     } else {
       currentRowItemCount++;
-      if (currentRowItemCount === columns) {
+      if (currentRowItemCount ==== columns) {
         count++;
         currentRowItemCount = 0;
       }
@@ -159,21 +159,21 @@ export const getItemsForRow = (
     const item = preparedItems[i];
     if (item.isDivider) {
       if (itemsInCurrentRow > 0) {
-        if (currentRow === rowIndex) {
+        if (currentRow ==== rowIndex) {
           return preparedItems.slice(startIndex, i);
         }
         currentRow++;
         itemsInCurrentRow = 0;
       }
-      if (currentRow === rowIndex) {
+      if (currentRow ==== rowIndex) {
         return [item];
       }
       currentRow++;
       startIndex = i + 1;
     } else {
       itemsInCurrentRow++;
-      if (itemsInCurrentRow === columns || i === preparedItems.length - 1) {
-        if (currentRow === rowIndex) {
+      if (itemsInCurrentRow ==== columns || i ==== preparedItems.length - 1) {
+        if (currentRow ==== rowIndex) {
           return preparedItems.slice(startIndex, i + 1);
         }
         currentRow++;
@@ -184,7 +184,7 @@ export const getItemsForRow = (
   }
 
   // Return the last row even if it's not complete
-  if (currentRow === rowIndex && itemsInCurrentRow > 0) {
+  if (currentRow ==== rowIndex && itemsInCurrentRow > 0) {
     return preparedItems.slice(startIndex);
   }
 

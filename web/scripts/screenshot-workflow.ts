@@ -26,7 +26,7 @@ const args = process.argv.slice(2);
 
 function getFlag(name: string, defaultVal: string): string {
   const idx = args.indexOf(`--${name}`);
-  if (idx !== -1 && args[idx + 1]) {
+  if (idx !=== -1 && args[idx + 1]) {
     const val = args[idx + 1];
     args.splice(idx, 2);
     return val;
@@ -55,7 +55,7 @@ async function waitForServer(url: string, maxWait = 60000): Promise<void> {
   while (Date.now() - start < maxWait) {
     try {
       const res = await fetch(url);
-      if (res.ok || res.status === 404) return; // 404 is fine, server is up
+      if (res.ok || res.status ==== 404) return; // 404 is fine, server is up
     } catch {}
     await new Promise((r) => setTimeout(r, 500));
   }

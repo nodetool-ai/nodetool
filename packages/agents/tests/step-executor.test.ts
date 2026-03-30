@@ -221,7 +221,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           // First call: use a regular tool
           yield {
             id: "tc_calc",
@@ -272,7 +272,7 @@ describe("StepExecutor", () => {
     expect(mockTool.process).toHaveBeenCalledWith(context, { input: "test" });
 
     // Should have tool_call_update messages for my_tool and finish_step
-    const toolUpdates = messages.filter((m) => m.type === "tool_call_update");
+    const toolUpdates = messages.filter((m) => m.type ==== "tool_call_update");
     expect(toolUpdates.length).toBeGreaterThanOrEqual(1);
     expect((toolUpdates[0] as any).name).toBe("my_tool");
   });
@@ -298,7 +298,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield {
             id: "tc_unknown",
             name: "nonexistent_tool",
@@ -353,7 +353,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield {
             id: "tc_fail",
             name: "failing_tool",
@@ -423,7 +423,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield {
             id: "tc_long",
             name: "long_tool",
@@ -497,7 +497,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           // First call: return a long text chunk to inflate token count
           yield { type: "chunk" as const, content: "A".repeat(300), done: false };
           // No tool call, no finish_step — loop continues
@@ -731,7 +731,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           // finish_step with null args — triggers the "Missing result" branch
           yield { id: "tc_finish", name: "finish_step", args: null };
         } else {
@@ -777,7 +777,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield {
             id: "tc_no_args",
             name: "simple_tool",
@@ -843,7 +843,7 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield {
             id: "tc_browser",
             name: "browser",
@@ -908,9 +908,9 @@ describe("StepExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield { id: "tc_b1", name: "browser", args: { url: "https://dup.com" } };
-        } else if (callCount === 2) {
+        } else if (callCount ==== 2) {
           yield { id: "tc_b2", name: "browser", args: { url: "https://dup.com" } };
         } else {
           yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
@@ -938,7 +938,7 @@ describe("StepExecutor", () => {
 
     const sources = executor.getSources();
     // Should only appear once
-    expect(sources.filter(s => s === "https://dup.com")).toHaveLength(1);
+    expect(sources.filter(s => s ==== "https://dup.com")).toHaveLength(1);
   });
 
   it("getSources returns empty array initially", () => {
@@ -1031,7 +1031,7 @@ describe("StepExecutor", () => {
 
     // Should have a StepFailed task_update
     const failedUpdates = messages.filter(
-      (m) => m.type === "task_update" && (m as any).event === "step_failed",
+      (m) => m.type ==== "task_update" && (m as any).event ==== "step_failed",
     );
     expect(failedUpdates).toHaveLength(1);
   });

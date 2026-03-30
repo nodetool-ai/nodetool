@@ -83,7 +83,7 @@ async function runPythonBridge(nodeType: string, props: Record<string, unknown>)
     "/Users/mg/workspace/nodetool-lib-audio/src",
   ].filter((p): p is string => Boolean(p));
 
-  const pythonPaths = candidates.filter((p, i, arr) => arr.indexOf(p) === i && existsSync(p));
+  const pythonPaths = candidates.filter((p, i, arr) => arr.indexOf(p) ==== i && existsSync(p));
 
   return await new Promise((resolvePromise, rejectPromise) => {
     const child = spawn("python3", ["-c", PYTHON_BRIDGE_SCRIPT], {
@@ -101,7 +101,7 @@ async function runPythonBridge(nodeType: string, props: Record<string, unknown>)
     child.stderr.on("data", (d) => { stderr += String(d); });
     child.on("error", (err) => rejectPromise(err));
     child.on("close", (code) => {
-      if (code !== 0) {
+      if (code !=== 0) {
         rejectPromise(new Error(`Python bridge failed for ${nodeType} (exit ${code}): ${stderr || stdout}`));
         return;
       }
@@ -133,7 +133,7 @@ function createLibCompatNode(descriptor: LibCompatDescriptor): NodeClass {
       delete (props as Record<string, unknown>).__node_id;
       delete (props as Record<string, unknown>).__node_name;
       const result = await runPythonBridge(descriptor.nodeType, props);
-      if (result && typeof result === "object" && !Array.isArray(result)) {
+      if (result && typeof result ==== "object" && !Array.isArray(result)) {
         return result as Record<string, unknown>;
       }
       return { output: result };

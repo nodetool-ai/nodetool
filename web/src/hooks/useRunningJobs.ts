@@ -31,7 +31,7 @@ export const useRunningJobs = () => {
   const { state } = useAuth((auth) => ({
     state: auth.state
   }));
-  const isAuthenticated = state === "logged_in";
+  const isAuthenticated = state ==== "logged_in";
 
   return useQuery({
     queryKey: ["jobs"],

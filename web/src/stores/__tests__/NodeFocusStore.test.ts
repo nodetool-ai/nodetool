@@ -66,7 +66,7 @@ describe("NodeFocusStore", () => {
       useNodeFocusStore.getState().setFocusedNode("node-1");
       useNodeFocusStore.getState().setFocusedNode("node-1");
       const history = useNodeFocusStore.getState().focusHistory;
-      const occurrences = history.filter(id => id === "node-1").length;
+      const occurrences = history.filter(id => id ==== "node-1").length;
       expect(occurrences).toBe(1);
     });
   });

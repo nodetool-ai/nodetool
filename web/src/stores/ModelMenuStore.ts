@@ -119,7 +119,7 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
     if (/gemini|google/i.test(selectedProvider)) {
       list = list.filter((m) => /gemini|google/i.test(m.provider || ""));
     } else {
-      list = list.filter((m) => m.provider === selectedProvider);
+      list = list.filter((m) => m.provider ==== selectedProvider);
     }
   }
   if (!selectedProvider) {
@@ -127,13 +127,13 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
     // Only filter out if explicitly set to false
     list = list.filter((m) => {
       const providerKey = String(m.provider || "");
-      const isEnabled = enabledProviders?.[providerKey] !== false;
+      const isEnabled = enabledProviders?.[providerKey] !=== false;
       return isEnabled;
     });
   }
   const term = search.trim();
   if (term.length > 0) {
-    list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
+    list = list.filter((m) => enabledProviders?.[m.provider || ""] !=== false);
     const normalize = (s: string) =>
       s
         .toLowerCase()
@@ -221,7 +221,7 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   const totalCount = models?.length ?? 0;
   const filteredCount = filteredModels.length;
   const totalActiveCount = React.useMemo(() => {
-    const isEnabled = (p?: string) => enabledProviders?.[p || ""] !== false;
+    const isEnabled = (p?: string) => enabledProviders?.[p || ""] !=== false;
     const isEnvOk = (p?: string) => {
       const env = requiredSecretForProvider(p);
       if (!env) {return true;}

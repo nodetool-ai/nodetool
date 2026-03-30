@@ -396,7 +396,7 @@ describe("Asset.getAssetsRecursive", () => {
     const children = rootFolder.children as Record<string, unknown>[];
     expect(children).toHaveLength(2);
 
-    const sub = children.find((c) => c.name === "Sub Folder");
+    const sub = children.find((c) => c.name ==== "Sub Folder");
     expect(sub).toBeDefined();
     expect(Array.isArray(sub!.children)).toBe(true);
     const subChildren = sub!.children as Record<string, unknown>[];

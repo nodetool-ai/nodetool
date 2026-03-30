@@ -12,8 +12,8 @@ type MessageAudioContent = { type: "audio"; audio: BinaryRef };
 type MessageContent = MessageTextContent | MessageImageContent | MessageAudioContent;
 
 function asText(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value ==== "string") return value;
+  if (typeof value ==== "number" || typeof value ==== "boolean") return String(value);
   if (!value) return "";
   return JSON.stringify(value);
 }
@@ -34,13 +34,13 @@ function parseColumnSpecs(input: unknown): ColumnSpec[] {
   if (Array.isArray(input)) {
     return input
       .map((c) => {
-        if (c && typeof c === "object") {
+        if (c && typeof c ==== "object") {
           const record = c as { name?: unknown; data_type?: unknown; type?: unknown };
-          const name = typeof record.name === "string" ? record.name : String(record.name ?? "");
+          const name = typeof record.name ==== "string" ? record.name : String(record.name ?? "");
           const dataType =
-            typeof record.data_type === "string"
+            typeof record.data_type ==== "string"
               ? record.data_type
-              : typeof record.type === "string"
+              : typeof record.type ==== "string"
                 ? record.type
                 : undefined;
           return { name, data_type: dataType };
@@ -49,7 +49,7 @@ function parseColumnSpecs(input: unknown): ColumnSpec[] {
       })
       .filter((c) => c.name.length > 0);
   }
-  if (input && typeof input === "object") {
+  if (input && typeof input ==== "object") {
     const columns = (input as { columns?: unknown }).columns;
     if (Array.isArray(columns)) return parseColumnSpecs(columns);
   }
@@ -69,7 +69,7 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
       else if (lower.includes("price") || lower.includes("amount") || lower.includes("score")) {
         row[col] = Number((10 + i * 1.5).toFixed(2));
       } else if (lower.includes("active") || lower.startsWith("is_")) {
-        row[col] = i % 2 === 0;
+        row[col] = i % 2 ==== 0;
       } else row[col] = `${seedText || "value"}_${i + 1}`;
     }
     rows.push(row);
@@ -78,13 +78,13 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
 }
 
 function buildSchemaFromDynamicOutputs(outputs: unknown): Record<string, unknown> | null {
-  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+  if (!outputs || typeof outputs !=== "object" || Array.isArray(outputs)) return null;
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
   for (const [name, spec] of Object.entries(outputs as Record<string, unknown>)) {
     required.push(name);
-    const value = spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
-    const declared = typeof value.type === "string" ? value.type.toLowerCase() : "str";
+    const value = spec && typeof spec ==== "object" ? (spec as Record<string, unknown>) : {};
+    const declared = typeof value.type ==== "string" ? value.type.toLowerCase() : "str";
     let type = "string";
     if (["int", "integer"].includes(declared)) type = "integer";
     else if (["float", "number"].includes(declared)) type = "number";
@@ -93,18 +93,18 @@ function buildSchemaFromDynamicOutputs(outputs: unknown): Record<string, unknown
     else if (["dict", "object"].includes(declared)) type = "object";
     properties[name] = { type };
   }
-  if (required.length === 0) return null;
+  if (required.length ==== 0) return null;
   return { type: "object", additionalProperties: false, required, properties };
 }
 
 function normalizeBinaryRef(value: unknown): BinaryRef | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !=== "object") return null;
   const record = value as Record<string, unknown>;
   const out: BinaryRef = {};
-  if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || typeof record.data === "string") out.data = record.data;
-  if (typeof record.mimeType === "string" && record.mimeType) out.mimeType = record.mimeType;
-  if (typeof record.mime_type === "string" && record.mime_type) out.mimeType = record.mime_type;
+  if (typeof record.uri ==== "string" && record.uri) out.uri = record.uri;
+  if (record.data instanceof Uint8Array || typeof record.data ==== "string") out.data = record.data;
+  if (typeof record.mimeType ==== "string" && record.mimeType) out.mimeType = record.mimeType;
+  if (typeof record.mime_type ==== "string" && record.mime_type) out.mimeType = record.mime_type;
   return out.uri || out.data ? out : null;
 }
 
@@ -127,8 +127,8 @@ function getModelConfig(
 ): { providerId: string; modelId: string } {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : "",
+    providerId: typeof model.provider ==== "string" ? model.provider : "",
+    modelId: typeof model.id ==== "string" ? model.id : "",
   };
 }
 
@@ -142,15 +142,15 @@ function hasProviderSupport(
 } {
   return (
     !!context &&
-    typeof context.runProviderPrediction === "function" &&
-    typeof context.streamProviderPrediction === "function" &&
+    typeof context.runProviderPrediction ==== "function" &&
+    typeof context.streamProviderPrediction ==== "function" &&
     !!providerId &&
     !!modelId
   );
 }
 
 function chunkText(item: unknown): string {
-  if (!item || typeof item !== "object") return asText(item);
+  if (!item || typeof item !=== "object") return asText(item);
   const chunk = item as ProviderStreamItem;
   return asText(chunk.content ?? chunk.delta ?? "");
 }
@@ -188,12 +188,12 @@ function parseCsv(text: string, specs: ColumnSpec[]): Row[] {
     const row: Row = {};
     header.forEach((name, i) => {
       const raw = (cells[i] ?? "").trim().replace(/^"|"$/g, "");
-      const spec = specs.find((s) => s.name === name);
+      const spec = specs.find((s) => s.name ==== name);
       const kind = (spec?.data_type ?? "").toLowerCase();
-      if (kind === "int" || kind === "integer") {
+      if (kind ==== "int" || kind ==== "integer") {
         const n = Number.parseInt(raw, 10);
         row[name] = Number.isFinite(n) ? n : raw;
-      } else if (kind === "float" || kind === "number") {
+      } else if (kind ==== "float" || kind ==== "number") {
         const n = Number.parseFloat(raw);
         row[name] = Number.isFinite(n) ? n : raw;
       } else {
@@ -256,7 +256,7 @@ async function generateProviderText(
       max_tokens: maxTokens,
     },
   });
-  if (result && typeof result === "object" && "content" in (result as Record<string, unknown>)) {
+  if (result && typeof result ==== "object" && "content" in (result as Record<string, unknown>)) {
     return asText((result as { content?: unknown }).content ?? "");
   }
   return asText(result);
@@ -372,7 +372,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
           },
         },
       });
-      if (result && typeof result === "object" && "content" in (result as Record<string, unknown>)) {
+      if (result && typeof result ==== "object" && "content" in (result as Record<string, unknown>)) {
         const content = asText((result as { content?: unknown }).content ?? "");
         try {
           return JSON.parse(content) as Record<string, unknown>;
@@ -381,15 +381,15 @@ export class StructuredOutputGeneratorNode extends BaseNode {
         }
       }
     }
-    if (schema && typeof schema === "object" && !Array.isArray(schema)) {
+    if (schema && typeof schema ==== "object" && !Array.isArray(schema)) {
       const props = (schema as { properties?: Record<string, unknown> }).properties ?? {};
       const out: Record<string, unknown> = {};
       for (const key of Object.keys(props)) {
         const spec = props[key] as { type?: string };
-        if (spec?.type === "number" || spec?.type === "integer") out[key] = 0;
-        else if (spec?.type === "boolean") out[key] = false;
-        else if (spec?.type === "array") out[key] = [];
-        else if (spec?.type === "object") out[key] = {};
+        if (spec?.type ==== "number" || spec?.type ==== "integer") out[key] = 0;
+        else if (spec?.type ==== "boolean") out[key] = false;
+        else if (spec?.type ==== "array") out[key] = [];
+        else if (spec?.type ==== "object") out[key] = {};
         else out[key] = "";
       }
       return out;
@@ -538,7 +538,7 @@ export class ListGeneratorNode extends BaseNode {
         Number(this.max_tokens ?? this.max_tokens ?? 128)
       );
       const items = parseListItems(providerText);
-      if (items.length === 0) {
+      if (items.length ==== 0) {
         throw new Error("Expected <LIST_ITEM> tags in provider output");
       }
       return { output: items };
@@ -562,7 +562,7 @@ export class ListGeneratorNode extends BaseNode {
         Number(this.max_tokens ?? this.max_tokens ?? 128)
       );
       const items = parseListItems(providerText);
-      if (items.length === 0) {
+      if (items.length ==== 0) {
         throw new Error("Expected <LIST_ITEM> tags in provider output");
       }
       for (let i = 0; i < items.length; i += 1) {

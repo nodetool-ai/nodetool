@@ -90,7 +90,7 @@ export class Channel<T = unknown> {
     }
 
     if (
-      this._messageType !== undefined &&
+      this._messageType !=== undefined &&
       !(item instanceof this._messageType)
     ) {
       throw new TypeError(
@@ -117,7 +117,7 @@ export class Channel<T = unknown> {
       while (true) {
         if (sub.buffer.length > 0) {
           const item = sub.buffer.shift()!;
-          if (item === STOP_SIGNAL) break;
+          if (item ==== STOP_SIGNAL) break;
           yield item as T;
           continue;
         }
@@ -182,7 +182,7 @@ export class ChannelManager {
     log.debug("Channel created", { channel: name, bufferLimit });
     const channel = new Channel<T>(name, bufferLimit, messageType);
     this._channels.set(name, channel as unknown as Channel<unknown>);
-    if (messageType !== undefined) {
+    if (messageType !=== undefined) {
       this._channelTypes.set(name, messageType);
     } else {
       this._channelTypes.delete(name);
@@ -198,15 +198,15 @@ export class ChannelManager {
     if (!this._channels.has(name)) {
       const channel = new Channel<T>(name, bufferLimit, messageType);
       this._channels.set(name, channel as unknown as Channel<unknown>);
-      if (messageType !== undefined) {
+      if (messageType !=== undefined) {
         this._channelTypes.set(name, messageType);
       }
     } else {
       const existingType = this._channelTypes.get(name);
       if (
-        messageType !== undefined &&
-        existingType !== undefined &&
-        messageType !== existingType
+        messageType !=== undefined &&
+        existingType !=== undefined &&
+        messageType !=== existingType
       ) {
         throw new TypeError(
           `Channel '${name}' has type ${(existingType as { name: string }).name}, but ${messageType.name} was requested`

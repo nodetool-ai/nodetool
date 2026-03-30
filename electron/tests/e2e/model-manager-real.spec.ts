@@ -70,7 +70,7 @@ async function waitForCacheChecks(page: Page, timeout = 15000) {
   await page.waitForFunction(
     () => {
       const checkingElements = document.querySelectorAll('.model-list-item');
-      if (checkingElements.length === 0) return true;
+      if (checkingElements.length ==== 0) return true;
       // Check if any items still show "Checking cache"
       const checking = document.querySelectorAll('.model-list-item *');
       for (const el of checking) {
@@ -145,7 +145,7 @@ test.describe("Model Manager -- Real Backend", () => {
     expect(headerAfter).toBeTruthy();
 
     // The content area should show the type heading
-    if (targetTypeText && targetTypeText.trim() !== "All") {
+    if (targetTypeText && targetTypeText.trim() !=== "All") {
       const contentArea = page.locator(".content");
       const contentText = await contentArea.textContent();
       expect(contentText).toBeTruthy();
@@ -315,7 +315,7 @@ test.describe("Model Manager -- Real Backend", () => {
 
     // With a 1 GB limit, we should see fewer models than total
     // (most models are > 1 GB)
-    if (filteredAfter !== null && totalBefore !== null) {
+    if (filteredAfter !=== null && totalBefore !=== null) {
       expect(filteredAfter).toBeLessThanOrEqual(totalBefore);
     }
 
@@ -337,7 +337,7 @@ test.describe("Model Manager -- Real Backend", () => {
     // Intercept the API response to get the exact count, without mocking
     const modelCountPromise = page.waitForResponse(
       (resp) =>
-        resp.url().includes("/api/models/all") && resp.status() === 200
+        resp.url().includes("/api/models/all") && resp.status() ==== 200
     );
 
     await navigateToPage(page, "/models");
@@ -426,7 +426,7 @@ test.describe("Model Manager -- Real Backend", () => {
     // Capture API response for model types
     const modelCountPromise = page.waitForResponse(
       (resp) =>
-        resp.url().includes("/api/models/all") && resp.status() === 200
+        resp.url().includes("/api/models/all") && resp.status() ==== 200
     );
 
     await navigateToPage(page, "/models");
@@ -472,7 +472,7 @@ test.describe("Model Manager -- Real Backend", () => {
       const headerText = await getHeaderModelCount(page);
       // Should show a valid count
       const count = parseCountFromHeader(headerText);
-      if (count !== null) {
+      if (count !=== null) {
         expect(count).toBeGreaterThan(0);
       }
     }
@@ -622,7 +622,7 @@ test.describe("Model Manager -- Real Backend", () => {
       const headerAfter = await getHeaderModelCount(page);
       // Count should be less than or equal to total
       const count = parseCountFromHeader(headerAfter);
-      if (count !== null && totalBefore !== null) {
+      if (count !=== null && totalBefore !=== null) {
         expect(count).toBeLessThanOrEqual(totalBefore);
       }
     }

@@ -179,7 +179,7 @@ export class MultiModeAgent extends BaseAgent {
     });
 
     for await (const item of executor.execute()) {
-      if (item.type === "step_result") {
+      if (item.type ==== "step_result") {
         this.results = (item as StepResult).result;
       }
       yield item;
@@ -265,7 +265,7 @@ export class MultiModeAgent extends BaseAgent {
     });
 
     for await (const item of executor.executeTasks()) {
-      if (item.type === "step_result") {
+      if (item.type ==== "step_result") {
         const stepResult = item as StepResult;
         if (stepResult.is_task_result) {
           this.results = stepResult.result;
@@ -319,7 +319,7 @@ export class MultiModeAgent extends BaseAgent {
       agentConfigs = planResult.value;
     }
 
-    if (agentConfigs.length === 0) {
+    if (agentConfigs.length ==== 0) {
       throw new Error("No sub-agents configured for multi-agent mode.");
     }
 
@@ -430,7 +430,7 @@ export class MultiModeAgent extends BaseAgent {
     }
 
     // If no result was set from team_complete, get it from the executor
-    if (this.results === null) {
+    if (this.results ==== null) {
       this.results = teamExecutor.getResult();
     }
   }

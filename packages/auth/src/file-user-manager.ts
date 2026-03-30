@@ -35,7 +35,7 @@ function defaultUsersFilePath(): string {
   const envPath = process.env.USERS_FILE;
   if (envPath) return envPath;
   const platform = process.platform;
-  if (platform === "win32") {
+  if (platform ==== "win32") {
     const appdata = process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
     return join(appdata, "nodetool", "users.json");
   }

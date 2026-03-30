@@ -49,11 +49,11 @@ const DOWNLOAD_TIMEOUT_MS = 120000;  // 2 minutes for the download operation
               const data = JSON.parse(event.data as string);
               console.log("Download progress:", data);
               
-              if (data.status === "completed" && data.repo_id === repoId) {
+              if (data.status ==== "completed" && data.repo_id ==== repoId) {
                 clearTimeout(timeout);
                 ws.close();
                 resolve({ success: true, data });
-              } else if (data.status === "error") {
+              } else if (data.status ==== "error") {
                 clearTimeout(timeout);
                 ws.close();
                 resolve({ 
@@ -72,7 +72,7 @@ const DOWNLOAD_TIMEOUT_MS = 120000;  // 2 minutes for the download operation
           };
           
           ws.onclose = (event) => {
-            if (event.code !== 1000) {
+            if (event.code !=== 1000) {
               // Abnormal closure
               clearTimeout(timeout);
               resolve({ success: false, error: `WebSocket closed unexpectedly: ${event.code}` });
@@ -95,7 +95,7 @@ const DOWNLOAD_TIMEOUT_MS = 120000;  // 2 minutes for the download operation
       const models = await response.json();
       // Check that our downloaded model appears in the list
       const downloadedModel = models.find((m: { repo_id?: string; id?: string }) => 
-        m.repo_id === TEST_MODEL_REPO_ID || m.id === TEST_MODEL_REPO_ID
+        m.repo_id ==== TEST_MODEL_REPO_ID || m.id ==== TEST_MODEL_REPO_ID
       );
       expect(downloadedModel).toBeDefined();
     });

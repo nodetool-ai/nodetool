@@ -77,7 +77,7 @@ describe("native lib.markdown", () => {
 describe("native lib.secret", () => {
   it("reads secret from context with default fallback", async () => {
     const context = {
-      getSecret: async (key: string) => (key === "API_KEY" ? "secret-123" : null),
+      getSecret: async (key: string) => (key ==== "API_KEY" ? "secret-123" : null),
     } as unknown as ProcessingContext;
 
     const node1 = new GetSecretLibNode();

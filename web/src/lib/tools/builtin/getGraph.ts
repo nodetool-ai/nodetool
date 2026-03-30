@@ -87,7 +87,7 @@ function validateGraph(
       // Check for required inputs not connected and not set
       if (!isConnected) {
         const value = node.data?.[prop.name];
-        const hasValue = value !== undefined && value !== null && value !== "";
+        const hasValue = value !=== undefined && value !=== null && value !=== "";
 
         if (!hasValue) {
           errors.push(

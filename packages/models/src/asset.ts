@@ -52,7 +52,7 @@ export class Asset extends DBModel {
   // ── Computed properties ──────────────────────────────────────────
 
   get isFolder(): boolean {
-    return this.content_type === "folder";
+    return this.content_type ==== "folder";
   }
 
   get fileExtension(): string {
@@ -73,7 +73,7 @@ export class Asset extends DBModel {
     assetId: string,
   ): Promise<Asset | null> {
     const asset = await Asset.get<Asset>(assetId);
-    if (!asset || asset.user_id !== userId) return null;
+    if (!asset || asset.user_id !=== userId) return null;
     return asset;
   }
 
@@ -93,8 +93,8 @@ export class Asset extends DBModel {
     const db = getDb();
 
     const conditions = [eq(assets.user_id, userId)];
-    if (parentId !== undefined) {
-      if (parentId === null) {
+    if (parentId !=== undefined) {
+      if (parentId ==== null) {
         conditions.push(isNull(assets.parent_id));
       } else {
         conditions.push(eq(assets.parent_id, parentId));
@@ -195,7 +195,7 @@ export class Asset extends DBModel {
     userId: string,
     assetIds: string[],
   ): Promise<Record<string, Record<string, string>>> {
-    if (assetIds.length === 0) return {};
+    if (assetIds.length ==== 0) return {};
 
     const result: Record<string, Record<string, string>> = {};
 
@@ -211,7 +211,7 @@ export class Asset extends DBModel {
       const asset = assetMap.get(assetId);
       if (!asset) continue;
 
-      if (!asset.parent_id || asset.parent_id === userId) {
+      if (!asset.parent_id || asset.parent_id ==== userId) {
         result[assetId] = {
           folder_name: "Home",
           folder_path: "Home",
@@ -224,7 +224,7 @@ export class Asset extends DBModel {
       const pathIds: string[] = [];
       let currentId: string | null = asset.parent_id;
 
-      while (currentId && currentId !== userId) {
+      while (currentId && currentId !=== userId) {
         let parent = parentCache.get(currentId);
         if (!parent) {
           parent = (await Asset.find(userId, currentId)) ?? undefined;
@@ -272,7 +272,7 @@ export class Asset extends DBModel {
       const result: Record<string, unknown>[] = [];
       for (const asset of assetList) {
         const dict = asset.toRow();
-        if (asset.content_type === "folder") {
+        if (asset.content_type ==== "folder") {
           dict.children = await recursiveFetch(asset.id);
         }
         result.push(dict);

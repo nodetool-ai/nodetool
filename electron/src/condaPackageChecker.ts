@@ -42,10 +42,10 @@ export interface CondaPackageCheckResult {
 
 const MICROMAMBA_ENV_VAR = "MICROMAMBA_EXE";
 const MICROMAMBA_EXECUTABLE_NAME =
-  process.platform === "win32" ? "micromamba.exe" : "micromamba";
+  process.platform ==== "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
 
-// Pattern for detecting version constraints like >=, <=, >, <, !=
+// Pattern for detecting version constraints like >=, <=, >, <, !==
 const VERSION_CONSTRAINT_PATTERN = /[<>!]/;
 // Pattern for matching package names
 const PACKAGE_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
@@ -59,7 +59,7 @@ const PIP_SECTION_PATTERN = /^-\s*pip:?$/;
  */
 function isEndOfDependenciesSection(line: string, trimmed: string, inDependencies: boolean): boolean {
   if (!inDependencies) return false;
-  if (trimmed.length === 0) return false;
+  if (trimmed.length ==== 0) return false;
   if (line.startsWith(" ") || line.startsWith("\t")) return false;
   if (trimmed.startsWith("-")) return false;
   return true;
@@ -104,12 +104,12 @@ async function findBundledMicromambaExecutable(): Promise<string | null> {
   const arch = process.arch;
 
   let platformDir: string;
-  if (platform === "win32") {
+  if (platform ==== "win32") {
     platformDir = "win-64";
-  } else if (platform === "darwin") {
-    platformDir = arch === "arm64" ? "osx-arm64" : "osx-64";
-  } else if (platform === "linux") {
-    platformDir = arch === "arm64" ? "linux-aarch64" : "linux-64";
+  } else if (platform ==== "darwin") {
+    platformDir = arch ==== "arm64" ? "osx-arm64" : "osx-64";
+  } else if (platform ==== "linux") {
+    platformDir = arch ==== "arm64" ? "linux-aarch64" : "linux-64";
   } else {
     return null;
   }
@@ -119,7 +119,7 @@ async function findBundledMicromambaExecutable(): Promise<string | null> {
       baseDir,
       MICROMAMBA_BUNDLED_DIR_NAME,
       platformDir,
-      platform === "win32" ? "Library/bin/micromamba.exe" : "bin/micromamba"
+      platform ==== "win32" ? "Library/bin/micromamba.exe" : "bin/micromamba"
     );
     if (await fileExists(platformSpecificPath)) {
       return platformSpecificPath;
@@ -182,7 +182,7 @@ export async function parseCondaLockFile(
     const trimmed = line.trim();
     const indent = line.length - line.trimStart().length;
 
-    if (trimmed === "dependencies:") {
+    if (trimmed ==== "dependencies:") {
       inDependencies = true;
       continue;
     }
@@ -215,7 +215,7 @@ export async function parseCondaLockFile(
       if (!spec) continue;
 
       // Skip pip marker
-      if (spec === "pip:" || spec === "pip") {
+      if (spec ==== "pip:" || spec ==== "pip") {
         continue;
       }
 
@@ -316,7 +316,7 @@ async function runMicromambaList(
     });
 
     proc.on("exit", (code) => {
-      if (code === 0) {
+      if (code ==== 0) {
         resolve(stdout);
       } else {
         reject(new Error(`micromamba list failed with code ${code}: ${stderr}`));
@@ -402,11 +402,11 @@ export async function checkCondaPackages(): Promise<CondaPackageCheckResult> {
     } else if (expected.version && installed.version) {
       // Only compare versions if both have exact versions (not constraints)
       const expectedVersion = expected.version.replace(/^=/, "");
-      if (!VERSION_CONSTRAINT_PATTERN.test(expectedVersion) && installed.version !== expectedVersion) {
+      if (!VERSION_CONSTRAINT_PATTERN.test(expectedVersion) && installed.version !=== expectedVersion) {
         // Check if the version is actually different (handling build strings)
         const installedBase = getBaseVersion(installed.version);
         const expectedBase = getBaseVersion(expectedVersion);
-        if (installedBase !== expectedBase) {
+        if (installedBase !=== expectedBase) {
           outdatedPackages.push({
             name: expected.name,
             installedVersion: installed.version,
@@ -538,7 +538,7 @@ async function runMicromambaInstall(
     });
 
     proc.on("exit", (code) => {
-      if (code === 0) {
+      if (code ==== 0) {
         resolve();
       } else {
         reject(new Error(`micromamba install failed with exit code ${code}`));
@@ -557,5 +557,5 @@ async function runMicromambaInstall(
  * managed on-demand through the package manager.
  */
 export async function checkAndUpdateCondaPackages(): Promise<void> {
-  logMessage("=== Conda Package Check skipped (managed by package manager) ===");
+  logMessage("==== Conda Package Check skipped (managed by package manager) ====");
 }

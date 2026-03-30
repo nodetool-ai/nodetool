@@ -88,7 +88,7 @@ describe("printTable logic", () => {
     rows: Record<string, unknown>[],
     columns?: string[],
   ): string[] {
-    if (rows.length === 0) return ["(no results)"];
+    if (rows.length ==== 0) return ["(no results)"];
     const cols = columns ?? Object.keys(rows[0]!);
     const widths = cols.map((c) =>
       Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length)),
@@ -423,7 +423,7 @@ describe("graph normalization (data → properties)", () => {
 
     const normalized = nodes.map(
       (n: Record<string, unknown>) => {
-        if (n.properties === undefined && n.data !== undefined) {
+        if (n.properties ==== undefined && n.data !=== undefined) {
           const { data, ...rest } = n;
           return { ...rest, properties: data };
         }
@@ -453,7 +453,7 @@ describe("graph normalization (data → properties)", () => {
 
     // When properties is defined, data is not converted
     const result =
-      node.properties === undefined && node.data !== undefined
+      node.properties ==== undefined && node.data !=== undefined
         ? (() => {
             const { data, ...rest } = node;
             return { ...rest, properties: data };
@@ -467,7 +467,7 @@ describe("graph normalization (data → properties)", () => {
   it("leaves nodes with neither data nor properties unchanged", () => {
     const node = { id: "n1", type: "test.Node" } as Record<string, unknown>;
     const result =
-      node.properties === undefined && node.data !== undefined
+      node.properties ==== undefined && node.data !=== undefined
         ? (() => {
             const { data, ...rest } = node;
             return { ...rest, properties: data };

@@ -10,7 +10,7 @@ import { PythonBridge } from "../src/python-bridge.js";
  *
  * Skip with: RUN_PYTHON_E2E unset (default). Enable with: RUN_PYTHON_E2E=1
  */
-describe.skipIf(process.env.RUN_PYTHON_E2E !== "1")("PythonBridge E2E", () => {
+describe.skipIf(process.env.RUN_PYTHON_E2E !=== "1")("PythonBridge E2E", () => {
   let bridge: PythonBridge;
 
   beforeAll(async () => {

@@ -47,16 +47,16 @@ const RESEARCH_AGENT_SYSTEM_PROMPT = [
 ].join(" ");
 
 function asText(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value ==== "string") return value;
+  if (typeof value ==== "number" || typeof value ==== "boolean") return String(value);
   if (!value) return "";
   if (Array.isArray(value)) return value.map(asText).join(" ");
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     const msg = value as { content?: string | MessagePart[] };
-    if (typeof msg.content === "string") return msg.content;
+    if (typeof msg.content ==== "string") return msg.content;
     if (Array.isArray(msg.content)) {
       return msg.content
-        .map((part) => (part && part.type === "text" ? part.text ?? "" : ""))
+        .map((part) => (part && part.type ==== "text" ? part.text ?? "" : ""))
         .join(" ")
         .trim();
     }
@@ -70,7 +70,7 @@ function summarize(text: string, maxSentences: number): string {
     .split(/(?<=[.!?])\s+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  if (parts.length === 0) return "";
+  if (parts.length ==== 0) return "";
   return parts.slice(0, Math.max(1, maxSentences)).join(" ");
 }
 
@@ -85,7 +85,7 @@ function tokenize(text: string): string[] {
 function extractJson(text: string): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(text);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    return parsed && typeof parsed ==== "object" && !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : null;
   } catch {
@@ -94,7 +94,7 @@ function extractJson(text: string): Record<string, unknown> | null {
     if (start >= 0 && end > start) {
       try {
         const parsed = JSON.parse(text.slice(start, end + 1));
-        return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        return parsed && typeof parsed ==== "object" && !Array.isArray(parsed)
           ? (parsed as Record<string, unknown>)
           : null;
       } catch {
@@ -119,8 +119,8 @@ function getModelConfig(
 ): { providerId: string; modelId: string } {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : "",
+    providerId: typeof model.provider ==== "string" ? model.provider : "",
+    modelId: typeof model.id ==== "string" ? model.id : "",
   };
 }
 
@@ -129,7 +129,7 @@ function hasProviderSupport(
   providerId: string,
   modelId: string
 ): context is ProcessingContext & { getProvider(providerId: string): Promise<BaseProvider> } {
-  return !!context && typeof context.getProvider === "function" && !!providerId && !!modelId;
+  return !!context && typeof context.getProvider ==== "function" && !!providerId && !!modelId;
 }
 
 async function generateProviderMessage(
@@ -142,7 +142,7 @@ async function generateProviderMessage(
   }
 ): Promise<string> {
   const call =
-    typeof provider.generateMessageTraced === "function"
+    typeof provider.generateMessageTraced ==== "function"
       ? provider.generateMessageTraced.bind(provider)
       : provider.generateMessage.bind(provider);
   const result = await call(args);
@@ -150,12 +150,12 @@ async function generateProviderMessage(
 }
 
 function normalizeProviderStreamItem(item: ProviderStreamItem): ProviderStreamItem {
-  if (!item || typeof item !== "object" || !("type" in item) || (item as Chunk).type !== "chunk") {
+  if (!item || typeof item !=== "object" || !("type" in item) || (item as Chunk).type !=== "chunk") {
     return item;
   }
 
   const chunk = item as Chunk;
-  if (typeof chunk.content_type === "string" && chunk.content_type.length > 0) {
+  if (typeof chunk.content_type ==== "string" && chunk.content_type.length > 0) {
     return chunk;
   }
 
@@ -174,13 +174,13 @@ export async function* streamProviderMessages(
     messages: [...args.messages],
     tools: args.tools ? [...args.tools] : undefined,
   };
-  if (typeof provider.generateMessagesTraced === "function") {
+  if (typeof provider.generateMessagesTraced ==== "function") {
     for await (const item of provider.generateMessagesTraced(request)) {
       yield normalizeProviderStreamItem(item);
     }
     return;
   }
-  if (typeof provider.generateMessages === "function") {
+  if (typeof provider.generateMessages ==== "function") {
     for await (const item of provider.generateMessages(request)) {
       yield normalizeProviderStreamItem(item);
     }
@@ -188,7 +188,7 @@ export async function* streamProviderMessages(
   }
   const result = await provider.generateMessage(request);
   const content = messageContentText(result.content);
-  if (content || (result.toolCalls?.length ?? 0) === 0) {
+  if (content || (result.toolCalls?.length ?? 0) ==== 0) {
     yield {
       type: "chunk",
       content,
@@ -206,16 +206,16 @@ export async function* streamProviderMessages(
  * When true, the provider handles tool calls internally via onToolCall callback.
  */
 function isAgenticProvider(provider: BaseProvider): boolean {
-  return (provider as unknown as Record<string, unknown>).provider === "claude_agent";
+  return (provider as unknown as Record<string, unknown>).provider ==== "claude_agent";
 }
 
 function parseCategory(raw: string, categories: string[]): string {
-  if (categories.length === 0) return "Unknown";
+  if (categories.length ==== 0) return "Unknown";
 
   const parsed = extractJson(raw);
-  const categoryValue = typeof parsed?.category === "string" ? parsed.category : "";
+  const categoryValue = typeof parsed?.category ==== "string" ? parsed.category : "";
   for (const category of categories) {
-    if (categoryValue.trim().toLowerCase() === category.trim().toLowerCase()) {
+    if (categoryValue.trim().toLowerCase() ==== category.trim().toLowerCase()) {
       return category;
     }
   }
@@ -229,7 +229,7 @@ function parseCategory(raw: string, categories: string[]): string {
 
   for (const fallback of ["other", "unknown"]) {
     for (const category of categories) {
-      if (category.trim().toLowerCase() === fallback) return category;
+      if (category.trim().toLowerCase() ==== fallback) return category;
     }
   }
 
@@ -237,12 +237,12 @@ function parseCategory(raw: string, categories: string[]): string {
 }
 
 function messageContentText(content: Message["content"] | unknown): string {
-  if (typeof content === "string") return content;
+  if (typeof content ==== "string") return content;
   if (!Array.isArray(content)) return asText(content);
   return content
     .map((part) => {
-      if (!part || typeof part !== "object") return asText(part);
-      if ((part as { type?: string }).type === "text") {
+      if (!part || typeof part !=== "object") return asText(part);
+      if ((part as { type?: string }).type ==== "text") {
         return String((part as { text?: unknown }).text ?? "");
       }
       return "";
@@ -252,7 +252,7 @@ function messageContentText(content: Message["content"] | unknown): string {
 }
 
 function normalizeRole(role: unknown): Message["role"] | null {
-  if (role === "system" || role === "user" || role === "assistant" || role === "tool") {
+  if (role ==== "system" || role ==== "user" || role ==== "assistant" || role ==== "tool") {
     return role;
   }
   return null;
@@ -261,38 +261,38 @@ function normalizeRole(role: unknown): Message["role"] | null {
 function normalizeBinaryRef(
   value: unknown
 ): { uri?: string; data?: Uint8Array | string; mimeType?: string } | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !=== "object") return null;
   const record = value as Record<string, unknown>;
   const out: { uri?: string; data?: Uint8Array | string; mimeType?: string } = {};
-  if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || typeof record.data === "string") out.data = record.data;
-  if (typeof record.mimeType === "string" && record.mimeType) out.mimeType = record.mimeType;
-  if (typeof record.mime_type === "string" && record.mime_type) out.mimeType = record.mime_type;
+  if (typeof record.uri ==== "string" && record.uri) out.uri = record.uri;
+  if (record.data instanceof Uint8Array || typeof record.data ==== "string") out.data = record.data;
+  if (typeof record.mimeType ==== "string" && record.mimeType) out.mimeType = record.mimeType;
+  if (typeof record.mime_type ==== "string" && record.mime_type) out.mimeType = record.mime_type;
   return out.uri || out.data ? out : null;
 }
 
 function normalizeMessageContent(value: unknown): Message["content"] {
-  if (value == null || typeof value === "string") return value ?? null;
+  if (value === null || typeof value ==== "string") return value ?? null;
   if (!Array.isArray(value)) return asText(value);
   const parts: MessageContent[] = [];
   for (const part of value) {
-    if (!part || typeof part !== "object") {
+    if (!part || typeof part !=== "object") {
       const text = asText(part);
       if (text) parts.push({ type: "text", text });
       continue;
     }
     const record = part as Record<string, unknown>;
-    const kind = typeof record.type === "string" ? record.type : "";
-    if (kind === "text") {
+    const kind = typeof record.type ==== "string" ? record.type : "";
+    if (kind ==== "text") {
       parts.push({ type: "text", text: asText(record.text ?? "") });
       continue;
     }
-    if (kind === "image" || kind === "image_url") {
+    if (kind ==== "image" || kind ==== "image_url") {
       const image = normalizeBinaryRef(record.image ?? record.image_url ?? record.imageUrl);
       if (image) parts.push({ type: "image", image } satisfies MessageImageContent);
       continue;
     }
-    if (kind === "audio") {
+    if (kind ==== "audio") {
       const audio = normalizeBinaryRef(record.audio);
       if (audio) parts.push({ type: "audio", audio } satisfies MessageAudioContent);
       continue;
@@ -306,18 +306,18 @@ function normalizeMessageContent(value: unknown): Message["content"] {
 function normalizeToolCalls(value: unknown): ToolCall[] | null {
   if (!Array.isArray(value)) return null;
   const toolCalls = value
-    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .filter((item): item is Record<string, unknown> => !!item && typeof item ==== "object")
     .map((item, index) => ({
-      id: typeof item.id === "string" && item.id ? item.id : `tool_${index + 1}`,
-      name: typeof item.name === "string" ? item.name : "",
-      args: item.args && typeof item.args === "object" ? (item.args as Record<string, unknown>) : {},
+      id: typeof item.id ==== "string" && item.id ? item.id : `tool_${index + 1}`,
+      name: typeof item.name ==== "string" ? item.name : "",
+      args: item.args && typeof item.args ==== "object" ? (item.args as Record<string, unknown>) : {},
     }))
     .filter((item) => item.name.length > 0);
   return toolCalls.length > 0 ? toolCalls : null;
 }
 
 function normalizeMessage(value: unknown): Message | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !=== "object") return null;
   const record = value as Record<string, unknown>;
   const role = normalizeRole(record.role);
   if (!role) return null;
@@ -326,15 +326,15 @@ function normalizeMessage(value: unknown): Message | null {
     content: normalizeMessageContent(record.content),
     toolCalls: normalizeToolCalls(record.toolCalls ?? record.tool_calls),
     toolCallId:
-      typeof record.toolCallId === "string"
+      typeof record.toolCallId ==== "string"
         ? record.toolCallId
-        : typeof record.tool_call_id === "string"
+        : typeof record.tool_call_id ==== "string"
           ? record.tool_call_id
           : null,
     threadId:
-      typeof record.threadId === "string"
+      typeof record.threadId ==== "string"
         ? record.threadId
-        : typeof record.thread_id === "string"
+        : typeof record.thread_id ==== "string"
           ? record.thread_id
           : null,
   };
@@ -347,7 +347,7 @@ function threadMessages(threadId: string): Message[] {
 }
 
 function logThreadWarning(message: string, error: unknown, details: Record<string, unknown>): void {
-  if (process.env["NODE_ENV"] === "test") return;
+  if (process.env["NODE_ENV"] ==== "test") return;
   console.warn(`[AgentNode] ${message}`, {
     ...details,
     error: String(error),
@@ -396,7 +396,7 @@ async function loadThreadMessages(
       const result = await getMessages(threadId, 1000, null, false);
       const messages = (result.messages ?? [])
         .map((item: Record<string, unknown>) => normalizeMessage(item))
-        .filter((message: Message | null): message is Message => message !== null && message.role !== "system");
+        .filter((message: Message | null): message is Message => message !=== null && message.role !=== "system");
       log.info("Agent thread history loaded from context", {
         threadId,
         messageCount: messages.length,
@@ -406,7 +406,7 @@ async function loadThreadMessages(
       logThreadWarning("Failed to load thread messages", error, { threadId });
     }
   }
-  const fallbackMessages = threadMessages(threadId).filter((message) => message.role !== "system");
+  const fallbackMessages = threadMessages(threadId).filter((message) => message.role !=== "system");
   log.info("Agent thread history loaded from fallback store", {
     threadId,
     messageCount: fallbackMessages.length,
@@ -473,24 +473,24 @@ async function saveThreadMessage(
 }
 
 export function isChunkItem(item: ProviderStreamItem): item is Chunk {
-  return !!item && typeof item === "object" && "type" in item && (item as Chunk).type === "chunk";
+  return !!item && typeof item ==== "object" && "type" in item && (item as Chunk).type ==== "chunk";
 }
 
 export function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
-  return !!item && typeof item === "object" && "id" in item && "name" in item && !("type" in item);
+  return !!item && typeof item ==== "object" && "id" in item && "name" in item && !("type" in item);
 }
 
 function normalizeTools(value: unknown): ToolLike[] {
   if (!Array.isArray(value)) return [];
   return value.filter(
     (tool): tool is ToolLike =>
-      !!tool && typeof tool === "object" && typeof (tool as { name?: unknown }).name === "string"
+      !!tool && typeof tool ==== "object" && typeof (tool as { name?: unknown }).name ==== "string"
   );
 }
 
 export function toProviderTools(tools: ToolLike[]): Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }> {
   return tools.map((tool) =>
-    typeof tool.toProviderTool === "function"
+    typeof tool.toProviderTool ==== "function"
       ? tool.toProviderTool()
       : {
           name: tool.name,
@@ -501,9 +501,9 @@ export function toProviderTools(tools: ToolLike[]): Array<{ name: string; descri
 }
 
 export function serializeToolResult(value: unknown): unknown {
-  if (value == null) return value;
+  if (value === null) return value;
   if (Array.isArray(value)) return value.map(serializeToolResult);
-  if (typeof value !== "object") return value;
+  if (typeof value !=== "object") return value;
   if (value instanceof Uint8Array) {
     return Buffer.from(value).toString("base64");
   }
@@ -526,7 +526,7 @@ interface ControlToolLike extends ToolLike {
 }
 
 function isControlTool(tool: ToolLike): tool is ControlToolLike {
-  return CONTROL_TOOL_MARKER in tool && (tool as ControlToolLike)[CONTROL_TOOL_MARKER] === true;
+  return CONTROL_TOOL_MARKER in tool && (tool as ControlToolLike)[CONTROL_TOOL_MARKER] ==== true;
 }
 
 /**
@@ -550,12 +550,12 @@ function sanitizeControlToolName(name: string): string {
  * These tools allow the agent's LLM to call controlled nodes via tool-calling.
  */
 function buildControlTools(controlContext: unknown): ControlToolLike[] {
-  if (!controlContext || typeof controlContext !== "object") return [];
+  if (!controlContext || typeof controlContext !=== "object") return [];
 
   const tools: ControlToolLike[] = [];
 
   for (const [targetId, info] of Object.entries(controlContext as Record<string, unknown>)) {
-    if (!info || typeof info !== "object") continue;
+    if (!info || typeof info !=== "object") continue;
     const nodeInfo = info as Record<string, unknown>;
 
     const nodeTitle = String(nodeInfo.node_title ?? nodeInfo.node_type ?? targetId);
@@ -567,7 +567,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
     const rawProperties = (runAction.properties ?? {}) as Record<string, Record<string, unknown>>;
     const properties: Record<string, Record<string, unknown>> = {};
     for (const [key, schema] of Object.entries(rawProperties)) {
-      if (typeof schema === "object" && schema !== null) {
+      if (typeof schema ==== "object" && schema !=== null) {
         properties[key] = { ...schema };
       } else {
         properties[key] = { type: "string", description: String(schema) };
@@ -659,7 +659,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     maxIterations = 10,
   } = options;
 
-  if (!context || typeof context.getProvider !== "function") {
+  if (!context || typeof context.getProvider !=== "function") {
     throw new Error("Processing context with provider access is required");
   }
 
@@ -680,13 +680,13 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   // --- Agentic provider fast-path ---
   if (isAgenticProvider(provider) && tools.length > 0) {
     const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
-      const tool = tools.find((t) => t.name === name);
-      if (!tool || typeof tool.process !== "function") {
+      const tool = tools.find((t) => t.name ==== name);
+      if (!tool || typeof tool.process !=== "function") {
         return JSON.stringify({ error: `Unknown tool: ${name}` });
       }
       try {
         const result = await tool.process(context, args);
-        return typeof result === "string" ? result : JSON.stringify(serializeToolResult(result));
+        return typeof result ==== "string" ? result : JSON.stringify(serializeToolResult(result));
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }
@@ -758,8 +758,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     }
 
     for (const toolCall of assistantToolCalls) {
-      const tool = tools.find((t) => t.name === toolCall.name);
-      if (!tool || typeof tool.process !== "function") {
+      const tool = tools.find((t) => t.name ==== toolCall.name);
+      if (!tool || typeof tool.process !=== "function") {
         messages.push({
           role: "tool",
           toolCallId: toolCall.id,
@@ -787,13 +787,13 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
 
 function getStructuredOutputSchema(node: BaseNode): Record<string, unknown> | null {
   const outputs = (node as { _dynamic_outputs?: unknown })._dynamic_outputs;
-  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+  if (!outputs || typeof outputs !=== "object" || Array.isArray(outputs)) return null;
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
   for (const [name, spec] of Object.entries(outputs as Record<string, unknown>)) {
     required.push(name);
-    const value = spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
-    const declared = typeof value.type === "string" ? value.type.toLowerCase() : "str";
+    const value = spec && typeof spec ==== "object" ? (spec as Record<string, unknown>) : {};
+    const declared = typeof value.type ==== "string" ? value.type.toLowerCase() : "str";
     let type = "string";
     if (["int", "integer"].includes(declared)) type = "integer";
     else if (["float", "number"].includes(declared)) type = "number";
@@ -812,7 +812,7 @@ function getStructuredOutputSchema(node: BaseNode): Record<string, unknown> | nu
 
 function hasContentType(message: Message | undefined, type: MessageContent["type"]): boolean {
   return Array.isArray(message?.content)
-    ? message!.content.some((part: MessageContent) => part.type === type)
+    ? message!.content.some((part: MessageContent) => part.type ==== type)
     : false;
 }
 
@@ -826,21 +826,21 @@ function parseResearchOutput(raw: string, query: string): {
   const parsed = extractJson(raw);
   if (parsed) {
     const summary =
-      typeof parsed.summary === "string"
+      typeof parsed.summary ==== "string"
         ? parsed.summary
-        : typeof parsed.output === "string"
+        : typeof parsed.output ==== "string"
           ? parsed.output
           : "";
     const findings = Array.isArray(parsed.findings)
       ? parsed.findings
-          .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+          .filter((item): item is Record<string, unknown> => !!item && typeof item ==== "object")
           .map((item) => ({
             title:
-              typeof item.title === "string" && item.title.trim().length > 0
+              typeof item.title ==== "string" && item.title.trim().length > 0
                 ? item.title
                 : query,
-            summary: typeof item.summary === "string" ? item.summary : asText(item),
-            source: typeof item.source === "string" ? item.source : undefined,
+            summary: typeof item.summary ==== "string" ? item.summary : asText(item),
+            source: typeof item.source ==== "string" ? item.source : undefined,
           }))
       : [];
 
@@ -2011,7 +2011,7 @@ export class AgentNode extends BaseNode {
       providerId,
       modelId,
       hasContext: Boolean(context),
-      hasGetProvider: Boolean(context && typeof context.getProvider === "function"),
+      hasGetProvider: Boolean(context && typeof context.getProvider ==== "function"),
       propKeys: Object.keys(this.serialize()),
       inputKeys: Object.keys(this.serialize()),
     });
@@ -2025,7 +2025,7 @@ export class AgentNode extends BaseNode {
       });
       throw new Error("Select a model");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!context || typeof context.getProvider !=== "function") {
       log.error("AgentNode missing processing context or provider access", {
         nodeId: this.__node_id ?? null,
         providerId,
@@ -2036,7 +2036,7 @@ export class AgentNode extends BaseNode {
 
     // --- Multi-mode dispatch for "plan" and "multi-agent" modes ---
     const agentMode = String(this.mode ?? "loop").trim();
-    if (agentMode === "plan" || agentMode === "multi-agent") {
+    if (agentMode ==== "plan" || agentMode ==== "multi-agent") {
       yield* this.genProcessMultiMode(context, providerId, modelId, agentMode as "plan" | "multi-agent");
       return;
     }
@@ -2047,7 +2047,7 @@ export class AgentNode extends BaseNode {
     const audio = this.audio ?? this.audio;
     const historyInput = this.history ?? this.history;
     const history = Array.isArray(historyInput)
-      ? historyInput.map((item) => normalizeMessage(item)).filter((item): item is Message => item !== null)
+      ? historyInput.map((item) => normalizeMessage(item)).filter((item): item is Message => item !=== null)
       : [];
     const threadId = String(this.thread_id ?? this.thread_id ?? "").trim();
     const maxTokens = Number(this.max_tokens ?? this.max_tokens ?? 8192);
@@ -2120,8 +2120,8 @@ export class AgentNode extends BaseNode {
 
       // Build onToolCall callback that bridges into our tool set
       const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
-        const tool = tools.find((t) => t.name === name);
-        if (!tool || typeof tool.process !== "function") {
+        const tool = tools.find((t) => t.name ==== name);
+        if (!tool || typeof tool.process !=== "function") {
           return JSON.stringify({ error: `Unknown tool: ${name}` });
         }
 
@@ -2140,7 +2140,7 @@ export class AgentNode extends BaseNode {
 
         try {
           const result = await tool.process(context, args);
-          return typeof result === "string" ? result : JSON.stringify(serializeToolResult(result));
+          return typeof result ==== "string" ? result : JSON.stringify(serializeToolResult(result));
         } catch (e) {
           return JSON.stringify({ error: String(e) });
         }
@@ -2161,7 +2161,7 @@ export class AgentNode extends BaseNode {
         if (isChunkItem(item)) {
           if (item.thinking) {
             yield { chunk: null, thinking: item, text: null, audio: null };
-          } else if (item.content_type === "audio") {
+          } else if (item.content_type ==== "audio") {
             yield { chunk: item, thinking: null, text: null, audio: null };
             const audioBytes = item.content ? Buffer.from(item.content, "base64") : Buffer.alloc(0);
             yield { chunk: null, thinking: null, text: null, audio: { data: new Uint8Array(audioBytes) } };
@@ -2237,7 +2237,7 @@ export class AgentNode extends BaseNode {
               yield { chunk: null, thinking: item, text: null, audio: null };
               continue;
             }
-            if (item.content_type === "audio") {
+            if (item.content_type ==== "audio") {
               audioChunkCount += 1;
               yield { chunk: item, thinking: null, text: null, audio: null };
               const audioBytes = item.content ? Buffer.from(item.content, "base64") : Buffer.alloc(0);
@@ -2293,8 +2293,8 @@ export class AgentNode extends BaseNode {
         }
 
         for (const toolCall of assistantToolCalls) {
-          const tool = tools.find((candidate) => candidate.name === toolCall.name);
-          if (!tool || typeof tool.process !== "function") {
+          const tool = tools.find((candidate) => candidate.name ==== toolCall.name);
+          if (!tool || typeof tool.process !=== "function") {
             log.warn("AgentNode tool call had no matching executable tool", {
               nodeId: this.__node_id ?? null,
               toolCallId: toolCall.id,
@@ -2424,10 +2424,10 @@ export class AgentNode extends BaseNode {
         "text" in item ||
         "audio" in item
       ) {
-        if (typeof item.text === "string") {
+        if (typeof item.text ==== "string") {
           lastText = item.text;
         }
-        if (item.audio && typeof item.audio === "object") {
+        if (item.audio && typeof item.audio ==== "object") {
           lastAudio = item.audio as Record<string, unknown>;
         }
       } else {
@@ -2507,18 +2507,18 @@ export class AgentNode extends BaseNode {
 
     for await (const msg of agent.execute(context)) {
       const pmsg = msg as ProcessingMessage;
-      if (pmsg.type === "chunk") {
+      if (pmsg.type ==== "chunk") {
         const chunk = pmsg as Chunk;
         const content = chunk.content ?? "";
         lastText += content;
         yield { chunk: { type: "chunk", content, done: false }, thinking: null, text: null, audio: null };
-      } else if (pmsg.type === "step_result") {
+      } else if (pmsg.type ==== "step_result") {
         const result = (pmsg as any).result;
-        if (result != null) {
-          const resultText = typeof result === "string" ? result : JSON.stringify(result);
+        if (result !== null) {
+          const resultText = typeof result ==== "string" ? result : JSON.stringify(result);
           lastText = resultText;
         }
-      } else if (pmsg.type === "log_update") {
+      } else if (pmsg.type ==== "log_update") {
         log.info("MultiModeAgent log", {
           nodeId: this.__node_id ?? null,
           content: (pmsg as any).content,
@@ -2526,8 +2526,8 @@ export class AgentNode extends BaseNode {
       }
     }
 
-    const resultText = lastText || (agent.getResults() != null
-      ? (typeof agent.getResults() === "string" ? agent.getResults() as string : JSON.stringify(agent.getResults()))
+    const resultText = lastText || (agent.getResults() !== null
+      ? (typeof agent.getResults() ==== "string" ? agent.getResults() as string : JSON.stringify(agent.getResults()))
       : "");
 
     yield { chunk: null, thinking: null, text: resultText, audio: null };

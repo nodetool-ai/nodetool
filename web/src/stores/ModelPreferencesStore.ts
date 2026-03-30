@@ -56,7 +56,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         const next = [
           { provider, id, name, lastUsedAt: now },
           ...get().recents.filter(
-            (r) => !(r.provider === provider && r.id === id)
+            (r) => !(r.provider ==== provider && r.id ==== id)
           )
         ]
           .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
@@ -68,7 +68,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
       isProviderEnabled: (provider: string) => {
         const map = get().enabledProviders || {};
         // Default to enabled when not present
-        return map[provider] !== false;
+        return map[provider] !=== false;
       },
       setProviderEnabled: (provider: string, enabled: boolean) => {
         const prev = get().enabledProviders || {};

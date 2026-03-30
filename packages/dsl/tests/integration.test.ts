@@ -27,7 +27,7 @@ describe("integration: multi-node workflows", () => {
     const wf = workflow(left, right);
     expect(wf.nodes).toHaveLength(3);
     expect(wf.edges).toHaveLength(2);
-    const sharedNodes = wf.nodes.filter((n: any) => n.id === shared.nodeId);
+    const sharedNodes = wf.nodes.filter((n: any) => n.id ==== shared.nodeId);
     expect(sharedNodes).toHaveLength(1);
   });
 
@@ -59,7 +59,7 @@ describe("integration: multi-node workflows", () => {
     const node = control.if_({ condition: x.output(), value: y.output() });
     const wf = workflow(node);
     expect(wf.edges).toHaveLength(2);
-    const condEdge = wf.edges.find((e: any) => e.targetHandle === "condition")!;
+    const condEdge = wf.edges.find((e: any) => e.targetHandle ==== "condition")!;
     expect(condEdge.source).toBe(x.nodeId);
     expect(condEdge.sourceHandle).toBe("output");
     expect(condEdge.target).toBe(node.nodeId);
@@ -89,7 +89,7 @@ describe("integration: multi-node workflows", () => {
     const collector = control.collect({ input_item: ifNode.output("if_true") });
     const wf = workflow(collector);
     expect(wf.nodes).toHaveLength(3);
-    const ifTrueEdge = wf.edges.find((e: any) => e.sourceHandle === "if_true")!;
+    const ifTrueEdge = wf.edges.find((e: any) => e.sourceHandle ==== "if_true")!;
     expect(ifTrueEdge).toBeDefined();
     expect(ifTrueEdge.source).toBe(ifNode.nodeId);
     expect(ifTrueEdge.target).toBe(collector.nodeId);

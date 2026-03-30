@@ -17,7 +17,7 @@ describe("useRequiredSettings", () => {
   describe("when node has no metadata", () => {
     it("returns empty array", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
-        if (selector.name === "getMetadata") {
+        if (selector.name ==== "getMetadata") {
           return () => undefined;
         }
         return selector({
@@ -56,7 +56,7 @@ describe("useRequiredSettings", () => {
   describe("when node has no required settings", () => {
     it("returns empty array", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
-        if (selector.name === "getMetadata") {
+        if (selector.name ==== "getMetadata") {
           return () => ({
             title: "Test Node",
             node_type: "test.node",
@@ -123,7 +123,7 @@ describe("useRequiredSettings", () => {
   describe("when node has required settings", () => {
     it("returns missing settings when none are configured", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
-        if (selector.name === "getMetadata") {
+        if (selector.name ==== "getMetadata") {
           return () => ({
             title: "Test Node",
             node_type: "test.node",
@@ -190,7 +190,7 @@ describe("useRequiredSettings", () => {
 
     it("returns empty array when all required settings are configured", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
-        if (selector.name === "getMetadata") {
+        if (selector.name ==== "getMetadata") {
           return () => ({
             title: "Test Node",
             node_type: "test.node",
@@ -274,7 +274,7 @@ describe("useRequiredSettings", () => {
 
     it("returns only missing settings when some are configured", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
-        if (selector.name === "getMetadata") {
+        if (selector.name ==== "getMetadata") {
           return () => ({
             title: "Test Node",
             node_type: "test.node",
@@ -350,7 +350,7 @@ describe("useRequiredSettings", () => {
 
     it("treats empty string values as missing", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
-        if (selector.name === "getMetadata") {
+        if (selector.name ==== "getMetadata") {
           return () => ({
             title: "Test Node",
             node_type: "test.node",
@@ -428,7 +428,7 @@ describe("useRequiredSettings", () => {
   describe("loading state", () => {
     it("returns empty array while loading", () => {
       mockUseMetadataStore.mockImplementation((selector: any) => {
-        if (selector.name === "getMetadata") {
+        if (selector.name ==== "getMetadata") {
           return () => ({
             title: "Test Node",
             node_type: "test.node",

@@ -79,7 +79,7 @@ describe("MemoryAdapter", () => {
       const cond = field("status").equals("active");
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(2);
-      expect(rows.every((r) => r.status === "active")).toBe(true);
+      expect(rows.every((r) => r.status ==== "active")).toBe(true);
     });
 
     it("query with greater-than condition", async () => {
@@ -193,7 +193,7 @@ describe("MemoryAdapter", () => {
       const cond = field("name").notEquals("Alice");
       const [rows] = await adapter.query({ condition: cond });
       expect(rows).toHaveLength(2);
-      expect(rows.every((r) => r.name !== "Alice")).toBe(true);
+      expect(rows.every((r) => r.name !=== "Alice")).toBe(true);
     });
 
     it("query with LT operator", async () => {
@@ -220,7 +220,7 @@ describe("MemoryAdapter", () => {
         new Condition("name", Operator.EQ, new Variable("some_var")),
       );
       const [rows] = await adapter.query({ condition: cond });
-      // Variable resolves to null, so only rows where name === null match
+      // Variable resolves to null, so only rows where name ==== null match
       expect(rows).toHaveLength(0);
     });
 

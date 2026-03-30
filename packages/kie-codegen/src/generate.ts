@@ -39,9 +39,9 @@ async function main() {
   const allConfigs = await loadConfigs();
   const configs = isAll
     ? allConfigs
-    : allConfigs.filter((c) => c.moduleName === moduleName);
+    : allConfigs.filter((c) => c.moduleName ==== moduleName);
 
-  if (configs.length === 0) {
+  if (configs.length ==== 0) {
     console.error(`No config found for module: ${moduleName}`);
     process.exit(1);
   }

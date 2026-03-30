@@ -21,7 +21,7 @@ function createWorkflowSelectionWidget(data) {
   function renderWorkflows(workflowsToRender) {
     workflowList.innerHTML = "";
     
-    if (workflowsToRender.length === 0) {
+    if (workflowsToRender.length ==== 0) {
       workflowList.innerHTML = `
         <div class="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
@@ -102,7 +102,7 @@ function generateInputFields(schema, container) {
   if (
     !schema ||
     !schema.properties ||
-    Object.keys(schema.properties).length === 0
+    Object.keys(schema.properties).length ==== 0
   ) {
     container.innerHTML = `
       <div class="empty-state" style="padding: 2rem 1rem;">
@@ -139,12 +139,12 @@ function generateInputFields(schema, container) {
     fieldWrapper.appendChild(fieldHeader);
 
     let input;
-    if (value.type === "string") {
+    if (value.type ==== "string") {
       input = document.createElement("textarea");
       input.rows = 3;
       input.placeholder = value.description || `Enter ${key}...`;
-    } else if (value.type === "integer" || value.type === "number") {
-      if (value.minimum !== undefined && value.maximum !== undefined) {
+    } else if (value.type ==== "integer" || value.type ==== "number") {
+      if (value.minimum !=== undefined && value.maximum !=== undefined) {
         const wrapper = document.createElement("div");
         wrapper.className = "range-wrapper";
 
@@ -199,12 +199,12 @@ function generateInputFields(schema, container) {
       } else {
         input = document.createElement("input");
         input.type = "number";
-        if (value.type === "integer") {
+        if (value.type ==== "integer") {
           input.step = "1";
         }
         input.placeholder = value.description || `Enter ${key}...`;
       }
-    } else if (value.type === "boolean") {
+    } else if (value.type ==== "boolean") {
       const checkboxWrapper = document.createElement("div");
       checkboxWrapper.style.cssText = "display: flex; align-items: center; gap: 0.75rem;";
       
@@ -228,7 +228,7 @@ function generateInputFields(schema, container) {
       input.placeholder = value.description || `Enter ${key}...`;
     }
 
-    if (input.tagName !== "DIV" || input.tagName === "TEXTAREA") {
+    if (input.tagName !=== "DIV" || input.tagName ==== "TEXTAREA") {
       input.id = key;
       input.name = key;
     } else {
@@ -239,11 +239,11 @@ function generateInputFields(schema, container) {
       }
     }
 
-    if (schema.required && schema.required.includes(key) && input.tagName !== "DIV") {
+    if (schema.required && schema.required.includes(key) && input.tagName !=== "DIV") {
       input.required = true;
     }
 
-    if (input.tagName !== "DIV") {
+    if (input.tagName !=== "DIV") {
       fieldWrapper.appendChild(input);
     }
     
@@ -253,7 +253,7 @@ function generateInputFields(schema, container) {
 
 function determineStepSize(min, max, type) {
   const range = max - min;
-  if (type === "integer") {
+  if (type ==== "integer") {
     return "1";
   } else {
     if (range <= 1) {
@@ -274,7 +274,7 @@ function generateOutputFields(outputSchema, resultsContainer) {
   if (
     !outputSchema ||
     !outputSchema.properties ||
-    Object.keys(outputSchema.properties).length === 0
+    Object.keys(outputSchema.properties).length ==== 0
   ) {
     resultsContainer.innerHTML = `
       <div class="empty-state">
@@ -299,36 +299,36 @@ function generateOutputFields(outputSchema, resultsContainer) {
     outputDiv.appendChild(label);
 
     let placeholder;
-    if (value.type === "object" && value.properties?.type?.const === "image") {
+    if (value.type ==== "object" && value.properties?.type?.const ==== "image") {
       placeholder = document.createElement("div");
       placeholder.className = "image-placeholder";
     } else if (
-      value.type === "object" &&
-      value.properties?.type?.const === "audio"
+      value.type ==== "object" &&
+      value.properties?.type?.const ==== "audio"
     ) {
       placeholder = document.createElement("audio");
       placeholder.className = "audio-placeholder";
       placeholder.controls = true;
     } else if (
-      value.type === "object" &&
-      value.properties?.type?.const === "video"
+      value.type ==== "object" &&
+      value.properties?.type?.const ==== "video"
     ) {
       placeholder = document.createElement("video");
       placeholder.className = "video-placeholder";
       placeholder.controls = true;
-    } else if (value.type === "string") {
+    } else if (value.type ==== "string") {
       placeholder = document.createElement("pre");
       placeholder.className = "string-placeholder";
       placeholder.textContent = "";
-    } else if (value.type === "number" || value.type === "integer") {
+    } else if (value.type ==== "number" || value.type ==== "integer") {
       placeholder = document.createElement("pre");
       placeholder.className = "number-placeholder";
       placeholder.textContent = "";
-    } else if (value.type === "boolean") {
+    } else if (value.type ==== "boolean") {
       placeholder = document.createElement("pre");
       placeholder.className = "boolean-placeholder";
       placeholder.textContent = "";
-    } else if (value.type === "array") {
+    } else if (value.type ==== "array") {
       placeholder = document.createElement("pre");
       placeholder.className = "array-placeholder";
       placeholder.textContent = "[]";
@@ -349,15 +349,15 @@ function generateOutputFields(outputSchema, resultsContainer) {
  * @param {any} value - The value to display
  */
 function displayValue(placeholder, value) {
-  if (value === undefined || value === null) {
+  if (value ==== undefined || value ==== null) {
     placeholder.textContent = "No data available";
     placeholder.classList.add("text-muted");
     return;
   }
 
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     // Handle image data
-    if (value.type === "image" && value.data) {
+    if (value.type ==== "image" && value.data) {
       const img = document.createElement("img");
       const data = new Uint8Array(value.data);
       const blob = new Blob([data], { type: "image/png" });
@@ -367,27 +367,27 @@ function displayValue(placeholder, value) {
       placeholder.appendChild(img);
     } 
     // Handle audio data
-    else if (value.type === "audio" && value.data) {
-      const audio = placeholder.tagName === "AUDIO" ? placeholder : document.createElement("audio");
+    else if (value.type ==== "audio" && value.data) {
+      const audio = placeholder.tagName ==== "AUDIO" ? placeholder : document.createElement("audio");
       audio.className = "audio-placeholder";
       audio.controls = true;
       const data = new Uint8Array(value.data);
       const blob = new Blob([data], { type: "audio/mpeg" });
       audio.src = URL.createObjectURL(blob);
-      if (placeholder !== audio) {
+      if (placeholder !=== audio) {
         placeholder.innerHTML = "";
         placeholder.appendChild(audio);
       }
     } 
     // Handle video data
-    else if (value.type === "video" && value.data) {
-      const video = placeholder.tagName === "VIDEO" ? placeholder : document.createElement("video");
+    else if (value.type ==== "video" && value.data) {
+      const video = placeholder.tagName ==== "VIDEO" ? placeholder : document.createElement("video");
       video.className = "video-placeholder";
       video.controls = true;
       const data = new Uint8Array(value.data);
       const blob = new Blob([data], { type: "video/mp4" });
       video.src = URL.createObjectURL(blob);
-      if (placeholder !== video) {
+      if (placeholder !=== video) {
         placeholder.innerHTML = "";
         placeholder.appendChild(video);
       }
@@ -419,7 +419,7 @@ document
     }
 
     const workflowId = selectedWorkflow.dataset.id;
-    const workflow = workflows.find((w) => w.id === workflowId);
+    const workflow = workflows.find((w) => w.id ==== workflowId);
     if (!workflow) {
       updateOutput("Selected workflow not found.", "error");
       return;
@@ -458,7 +458,7 @@ function handleResult(result) {
   const resultsContainer = document.getElementById("results");
   const outputFields = resultsContainer.querySelectorAll(".output-field");
 
-  if (!result || typeof result !== "object") {
+  if (!result || typeof result !=== "object") {
     console.error("Invalid result:", result);
     updateOutput("Error: Received invalid result from the workflow", "error");
     outputFields.forEach((field) => {
@@ -479,13 +479,13 @@ function handleResult(result) {
     let outputValue = result[labelText];
 
     // Also check by nodeId if set
-    if (outputValue === undefined && field.dataset.nodeId) {
+    if (outputValue ==== undefined && field.dataset.nodeId) {
       outputValue = result[field.dataset.nodeId];
     }
 
     const placeholder = field.querySelector('[class*="-placeholder"]') || field.querySelector("audio") || field.querySelector("video");
 
-    if (outputValue === undefined || outputValue === null) {
+    if (outputValue ==== undefined || outputValue ==== null) {
       if (placeholder) {
         placeholder.textContent = "No data available";
         placeholder.classList.add("text-muted");

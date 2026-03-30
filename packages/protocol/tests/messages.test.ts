@@ -224,7 +224,7 @@ describe("ProcessingMessage discriminator", () => {
 describe("runtime narrowing via type field", () => {
   it("narrows JobUpdate correctly", () => {
     const msg: ProcessingMessage = jobUpdate();
-    if (msg.type === "job_update") {
+    if (msg.type ==== "job_update") {
       // TypeScript narrows to JobUpdate here
       expect(msg.status).toBe("running");
     } else {
@@ -234,7 +234,7 @@ describe("runtime narrowing via type field", () => {
 
   it("narrows NodeUpdate correctly", () => {
     const msg: ProcessingMessage = nodeUpdate();
-    if (msg.type === "node_update") {
+    if (msg.type ==== "node_update") {
       expect(msg.node_id).toBe("n1");
       expect(msg.node_name).toBe("Add");
     } else {
@@ -244,7 +244,7 @@ describe("runtime narrowing via type field", () => {
 
   it("narrows OutputUpdate correctly", () => {
     const msg: ProcessingMessage = outputUpdate();
-    if (msg.type === "output_update") {
+    if (msg.type ==== "output_update") {
       expect(msg.value).toBe(42);
       expect(msg.output_type).toBe("int");
     } else {
@@ -439,7 +439,7 @@ describe("encodeBinaryUpdate", () => {
 describe("LLMCallUpdate", () => {
   it("narrows LLMCallUpdate correctly", () => {
     const msg: ProcessingMessage = llmCallUpdate();
-    if (msg.type === "llm_call") {
+    if (msg.type ==== "llm_call") {
       expect(msg.provider).toBe("openai");
       expect(msg.model).toBe("gpt-4");
       expect(msg.duration_ms).toBe(100);

@@ -678,9 +678,9 @@ const _DIFFUSION_REPO_CACHE = new Map<string, boolean>();
 function _fnmatchToRegex(pattern: string): RegExp {
   let regex = "^";
   for (const ch of pattern) {
-    if (ch === "*") {
+    if (ch ==== "*") {
       regex += ".*";
-    } else if (ch === "?") {
+    } else if (ch ==== "?") {
       regex += ".";
     } else if (".+^${}()|[]\\".includes(ch)) {
       regex += "\\" + ch;
@@ -694,7 +694,7 @@ function _fnmatchToRegex(pattern: string): RegExp {
 
 /** Case-sensitive glob check; empty pattern list means match everything. */
 export function _matchesAnyPattern(value: string, patterns: string[]): boolean {
-  if (patterns.length === 0) return true;
+  if (patterns.length ==== 0) return true;
   return patterns.some((p) => _fnmatchToRegex(p).test(value));
 }
 
@@ -779,7 +779,7 @@ export function _hasAdapterCandidates(
  * instead of forcing per-file selection.
  */
 export function _allSameFamily(weightFiles: readonly string[]): boolean {
-  if (weightFiles.length === 0 || weightFiles.length > 3) return false;
+  if (weightFiles.length ==== 0 || weightFiles.length > 3) return false;
   const normalizedStems = new Set<string>();
   for (const name of weightFiles) {
     const basename = path.basename(name);
@@ -790,7 +790,7 @@ export function _allSameFamily(weightFiles: readonly string[]): boolean {
     }
     normalizedStems.add(stem);
   }
-  return normalizedStems.size === 1;
+  return normalizedStems.size ==== 1;
 }
 
 /**
@@ -812,7 +812,7 @@ export function detectRepoPackaging(
   if (_hasShardedWeights(lowerWeightFiles)) return RepoPackagingHint.REPO_BUNDLE;
   if (_hasQuantizedVariants(lowerWeightFiles)) return RepoPackagingHint.PER_FILE;
   if (_hasAdapterCandidates(weightEntries)) return RepoPackagingHint.PER_FILE;
-  if (weightFiles.length === 1) return RepoPackagingHint.REPO_BUNDLE;
+  if (weightFiles.length ==== 1) return RepoPackagingHint.REPO_BUNDLE;
   if (_allSameFamily(weightFiles)) return RepoPackagingHint.REPO_BUNDLE;
   if (weightFiles.length >= 4) return RepoPackagingHint.PER_FILE;
   return RepoPackagingHint.UNKNOWN;
@@ -864,9 +864,9 @@ export async function _repoHasDiffusionArtifacts(
   fileList: readonly string[],
 ): Promise<boolean> {
   const cached = _DIFFUSION_REPO_CACHE.get(repoId);
-  if (cached !== undefined) return cached;
+  if (cached !=== undefined) return cached;
 
-  if (!snapshotDir || fileList.length === 0) {
+  if (!snapshotDir || fileList.length ==== 0) {
     _DIFFUSION_REPO_CACHE.set(repoId, false);
     return false;
   }
@@ -878,7 +878,7 @@ export async function _repoHasDiffusionArtifacts(
     candidatePaths.push(path.join(snapshotDir, fname));
   }
 
-  if (candidatePaths.length === 0) {
+  if (candidatePaths.length ==== 0) {
     _DIFFUSION_REPO_CACHE.set(repoId, false);
     return false;
   }
@@ -975,28 +975,28 @@ export function _inferModelTypeFromLocalConfigs(
       return lower.endsWith("model_index.json") || lower.endsWith("config.json");
     });
 
-  if (configCandidates.length === 0) return null;
+  if (configCandidates.length ==== 0) return null;
 
   // Sort by depth (fewer slashes first) then by length.
   const sorted = [...configCandidates].sort((a, b) => {
     const depthA = (a.match(/\//g) || []).length;
     const depthB = (b.match(/\//g) || []).length;
-    if (depthA !== depthB) return depthA - depthB;
+    if (depthA !=== depthB) return depthA - depthB;
     return a.length - b.length;
   });
 
   for (const relPath of sorted) {
     const configPath = path.join(snapshotDir, relPath);
     const data = _safeLoadJson(configPath);
-    if (Object.keys(data).length === 0) continue;
+    if (Object.keys(data).length ==== 0) continue;
 
     const className = data._class_name;
-    if (typeof className === "string") {
+    if (typeof className ==== "string") {
       const mapped = CLASSNAME_TO_MODEL_TYPE[className];
       if (mapped) return mapped;
     }
 
-    const modelType = typeof data.model_type === "string"
+    const modelType = typeof data.model_type ==== "string"
       ? data.model_type.toLowerCase()
       : "";
     if (modelType) {
@@ -1007,7 +1007,7 @@ export function _inferModelTypeFromLocalConfigs(
     const architectures = data.architectures;
     if (Array.isArray(architectures)) {
       for (const arch of architectures) {
-        if (typeof arch !== "string") continue;
+        if (typeof arch !=== "string") continue;
         const mapped = _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING[arch];
         if (mapped) return mapped;
       }
@@ -1041,7 +1041,7 @@ export async function _buildCachedRepoEntry(
   }
 
   if (snapshotPath) {
-    if (fileList == null) {
+    if (fileList === null) {
       fileList = await HF_FAST_CACHE.listFiles(repoId, "model");
     }
     [sizeOnDisk, fileEntries] = _calculateRepoStats(snapshotPath, fileList);
@@ -1069,7 +1069,7 @@ export async function _buildCachedRepoEntry(
     ignore_patterns: null,
     description: null,
     readme: null,
-    downloaded: repoRoot != null || fs.existsSync(repoDir),
+    downloaded: repoRoot !== null || fs.existsSync(repoDir),
     repo_id: repoId,
     path: null,
     size_on_disk: sizeOnDisk,
@@ -1116,7 +1116,7 @@ export function _buildSearchConfigForType(
 ): Record<string, string[] | string> | null {
   const normalized = modelType.toLowerCase();
   const config = HF_SEARCH_TYPE_CONFIG[normalized];
-  if (config !== undefined) return config;
+  if (config !=== undefined) return config;
   if (normalized.startsWith("hf.")) {
     return {
       filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
@@ -1163,8 +1163,8 @@ export function _derivePipelineTag(
     "outpainting",
   ]);
   if (imageToImageSlugs.has(effectiveSlug)) return "image-to-image";
-  if (effectiveSlug === "text_to_video") return "text-to-video";
-  if (effectiveSlug === "image_to_video") return "image-to-video";
+  if (effectiveSlug ==== "text_to_video") return "text-to-video";
+  if (effectiveSlug ==== "image_to_video") return "image-to-video";
   if (effectiveSlug.includes("text_to_image")) return "text-to-image";
   if (effectiveSlug.includes("image_to_image")) return "image-to-image";
   return effectiveSlug.replace(/_/g, "-");
@@ -1182,8 +1182,8 @@ export function _matchesRepoForType(
   const repoFromIdLower = repoIdFromId.toLowerCase();
   return matchers.some(
     (candidate) =>
-      repoLower === candidate.toLowerCase() ||
-      repoFromIdLower === candidate.toLowerCase(),
+      repoLower ==== candidate.toLowerCase() ||
+      repoFromIdLower ==== candidate.toLowerCase(),
   );
 }
 
@@ -1209,19 +1209,19 @@ export function _matchesArtifactDetection(
   ) {
     return fam.includes("flux");
   }
-  if (normalizedType === "hf.stable_diffusion") {
+  if (normalizedType ==== "hf.stable_diffusion") {
     return fam.startsWith("sd1") || fam.startsWith("sd2") || fam.includes("stable-diffusion");
   }
-  if (normalizedType === "hf.stable_diffusion_xl") {
+  if (normalizedType ==== "hf.stable_diffusion_xl") {
     return fam.includes("sdxl");
   }
-  if (normalizedType === "hf.stable_diffusion_xl_refiner") {
-    return fam.includes("refiner") || (fam.includes("sdxl") && comp === "unet");
+  if (normalizedType ==== "hf.stable_diffusion_xl_refiner") {
+    return fam.includes("refiner") || (fam.includes("sdxl") && comp ==== "unet");
   }
-  if (normalizedType === "hf.stable_diffusion_3") {
+  if (normalizedType ==== "hf.stable_diffusion_3") {
     return fam.includes("sd3") || fam.includes("stable-diffusion-3");
   }
-  if (normalizedType === "hf.qwen_image" || normalizedType === "hf.qwen_image_edit") {
+  if (normalizedType ==== "hf.qwen_image" || normalizedType ==== "hf.qwen_image_edit") {
     return fam.includes("qwen");
   }
   return false;
@@ -1258,9 +1258,9 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
     const modelTypeBase = modelTypeLower.endsWith("_checkpoint")
       ? modelTypeLower.slice(0, -"_checkpoint".length)
       : modelTypeLower;
-    if (targetTypes.has(modelTypeLower) || modelTypeBase === normalizedType) {
+    if (targetTypes.has(modelTypeLower) || modelTypeBase ==== normalizedType) {
       return !(
-        (normalizedType === "hf.qwen_image" || normalizedType === "hf.qwen_image_edit") &&
+        (normalizedType ==== "hf.qwen_image" || normalizedType ==== "hf.qwen_image_edit") &&
         (isQwenTextEncoder(pathLower) || isQwenVae(pathLower))
       );
     }
@@ -1268,19 +1268,19 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
     if (!GENERIC_HF_TYPES.has(modelTypeLower)) {
       const qwenFamilyTypes = new Set(["hf.qwen_image", "hf.qwen_image_checkpoint"]);
       const allowedFamily =
-        (normalizedType === "hf.qwen_image_checkpoint" ||
-          normalizedType === "hf.qwen_vl" ||
-          normalizedType === "hf.vae") &&
+        (normalizedType ==== "hf.qwen_image_checkpoint" ||
+          normalizedType ==== "hf.qwen_vl" ||
+          normalizedType ==== "hf.vae") &&
         qwenFamilyTypes.has(modelTypeLower);
       if (!allowedFamily) return false;
     }
   }
 
-  if (normalizedType === "hf.qwen_image" || normalizedType === "hf.qwen_image_edit") {
+  if (normalizedType ==== "hf.qwen_image" || normalizedType ==== "hf.qwen_image_edit") {
     if (isQwenTextEncoder(pathLower) || isQwenVae(pathLower)) return false;
   }
 
-  if (normalizedType === "hf.qwen_vl") {
+  if (normalizedType ==== "hf.qwen_vl") {
     return isQwenTextEncoder(pathLower);
   }
 
@@ -1311,7 +1311,7 @@ export function _matchesModelType(model: UnifiedModel, modelType: string): boole
   }
 
   const derivedPipeline = _derivePipelineTag(normalizedType);
-  return !!(derivedPipeline && model.pipeline_tag === derivedPipeline);
+  return !!(derivedPipeline && model.pipeline_tag ==== derivedPipeline);
 }
 
 // ---------------------------------------------------------------------------
@@ -1453,11 +1453,11 @@ export async function getModelsByHfType(
       const repoLower = (model.repo_id ?? "").toLowerCase();
       const pathValue = model.path ?? null;
 
-      if (fileOnly && pathValue == null) continue;
+      if (fileOnly && pathValue === null) continue;
 
       if (singleFileRepo) {
-        if (pathValue == null && repoLower.includes("gguf")) continue;
-        if (pathValue != null) {
+        if (pathValue === null && repoLower.includes("gguf")) continue;
+        if (pathValue !== null) {
           const pathLower = pathValue.toLowerCase();
           if (
             !_isSingleFileDiffusionWeight(pathValue) &&
@@ -1474,7 +1474,7 @@ export async function getModelsByHfType(
       }
 
       // For non-file-oriented types, skip file-level entries to avoid duplicates
-      if (!fileOnly && !checkpoint && !singleFileRepo && pathValue != null) continue;
+      if (!fileOnly && !checkpoint && !singleFileRepo && pathValue !== null) continue;
 
       if (!_matchesModelType(model, modelType)) continue;
 
@@ -1528,10 +1528,10 @@ export async function deleteCachedHfModel(modelId: string): Promise<boolean> {
  */
 function _getLlamaCppCacheDir(): string {
   const platform = os.platform();
-  if (platform === "darwin") {
+  if (platform ==== "darwin") {
     return path.join(os.homedir(), "Library", "Caches", "llama.cpp");
   }
-  if (platform === "win32") {
+  if (platform ==== "win32") {
     const localAppData =
       process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
     return path.join(localAppData, "llama.cpp");
@@ -1606,7 +1606,7 @@ export function _parseGgufFlatFilename(
     const repoCandidate = rest.slice(0, us);
     const filenameCandidate = rest.slice(us + 1);
     const expected = `${org}_${repoCandidate}_${filenameCandidate}`;
-    if (expected === entry && filenameCandidate.toLowerCase().endsWith(".gguf")) {
+    if (expected ==== entry && filenameCandidate.toLowerCase().endsWith(".gguf")) {
       const repoId = `${org}/${repoCandidate}`;
       return [repoId, repoCandidate, filenameCandidate];
     }
@@ -1685,7 +1685,7 @@ export async function getLlamaCppModelsFromCache(): Promise<UnifiedModel[]> {
   models.sort((a, b) => {
     const repoA = a.repo_id ?? "";
     const repoB = b.repo_id ?? "";
-    if (repoA !== repoB) return repoA.localeCompare(repoB);
+    if (repoA !=== repoB) return repoA.localeCompare(repoB);
     return (a.path ?? "").localeCompare(b.path ?? "");
   });
 

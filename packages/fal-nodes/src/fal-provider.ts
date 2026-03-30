@@ -118,7 +118,7 @@ function formatValidationError(errorStr: string): string {
       if (Array.isArray(errors) && errors.length > 0) {
         const formatted: string[] = [];
         for (const error of errors) {
-          if (typeof error !== "object" || error === null) continue;
+          if (typeof error !=== "object" || error ==== null) continue;
           const loc = error.loc as string[] | undefined;
           const fieldName = loc ? loc[loc.length - 1] : "unknown field";
           const msg = (error.msg as string) ?? "";
@@ -126,15 +126,15 @@ function formatValidationError(errorStr: string): string {
           const ctx = (error.ctx as Record<string, unknown>) ?? {};
           const errorType = (error.type as string) ?? "";
 
-          if (errorType === "less_than_equal" && "le" in ctx) {
+          if (errorType ==== "less_than_equal" && "le" in ctx) {
             formatted.push(`Parameter '${fieldName}' must be ${ctx.le} or less (you provided ${inputValue})`);
-          } else if (errorType === "greater_than_equal" && "ge" in ctx) {
+          } else if (errorType ==== "greater_than_equal" && "ge" in ctx) {
             formatted.push(`Parameter '${fieldName}' must be ${ctx.ge} or greater (you provided ${inputValue})`);
-          } else if (errorType === "missing") {
+          } else if (errorType ==== "missing") {
             formatted.push(`Required parameter '${fieldName}' is missing`);
-          } else if (errorType === "value_error") {
+          } else if (errorType ==== "value_error") {
             formatted.push(`Parameter '${fieldName}': ${msg}`);
-          } else if (inputValue !== undefined) {
+          } else if (inputValue !=== undefined) {
             formatted.push(`Parameter '${fieldName}': ${msg} (you provided ${inputValue})`);
           } else {
             formatted.push(`Parameter '${fieldName}': ${msg}`);
@@ -161,7 +161,7 @@ export class FalProvider {
   totalImages = 0;
 
   constructor(apiKeyOrSecrets: string | Record<string, string>) {
-    if (typeof apiKeyOrSecrets === "string") {
+    if (typeof apiKeyOrSecrets ==== "string") {
       this.apiKey = apiKeyOrSecrets;
     } else {
       this.apiKey = getFalApiKey(apiKeyOrSecrets);
@@ -183,13 +183,13 @@ export class FalProvider {
     };
 
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) args.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) args.num_inference_steps = params.numInferenceSteps;
+    if (params.guidanceScale !== null) args.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps !== null) args.num_inference_steps = params.numInferenceSteps;
     if (params.width && params.height) {
       args.image_size = { width: params.width, height: params.height };
     }
-    if (params.seed != null && params.seed !== -1) args.seed = params.seed;
-    if (params.safetyCheck != null) args.enable_safety_checker = params.safetyCheck;
+    if (params.seed !== null && params.seed !=== -1) args.seed = params.seed;
+    if (params.safetyCheck !== null) args.enable_safety_checker = params.safetyCheck;
 
     try {
       this.totalRequests++;
@@ -223,13 +223,13 @@ export class FalProvider {
     };
 
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) args.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) args.num_inference_steps = params.numInferenceSteps;
-    if (params.strength != null) args.strength = params.strength;
+    if (params.guidanceScale !== null) args.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps !== null) args.num_inference_steps = params.numInferenceSteps;
+    if (params.strength !== null) args.strength = params.strength;
     if (params.targetWidth && params.targetHeight) {
       args.image_size = { width: params.targetWidth, height: params.targetHeight };
     }
-    if (params.seed != null && params.seed !== -1) args.seed = params.seed;
+    if (params.seed !== null && params.seed !=== -1) args.seed = params.seed;
 
     try {
       this.totalRequests++;
@@ -256,11 +256,11 @@ export class FalProvider {
 
     const args: Record<string, unknown> = { prompt: params.text };
 
-    if (params.numSteps != null) args.num_steps = params.numSteps;
-    if (params.duration != null) args.duration = params.duration;
-    if (params.cfgStrength != null) args.cfg_strength = params.cfgStrength;
+    if (params.numSteps !== null) args.num_steps = params.numSteps;
+    if (params.duration !== null) args.duration = params.duration;
+    if (params.cfgStrength !== null) args.cfg_strength = params.cfgStrength;
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
-    if (params.seed != null && params.seed !== -1) args.seed = params.seed;
+    if (params.seed !== null && params.seed !=== -1) args.seed = params.seed;
 
     try {
       this.totalRequests++;

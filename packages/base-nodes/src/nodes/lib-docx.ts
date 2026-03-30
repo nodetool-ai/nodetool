@@ -33,7 +33,7 @@ type DocState = {
 };
 
 function getDocState(input: unknown): DocState {
-  if (input && typeof input === "object" && "elements" in input) {
+  if (input && typeof input ==== "object" && "elements" in input) {
     return input as DocState;
   }
   return { elements: [] };
@@ -41,7 +41,7 @@ function getDocState(input: unknown): DocState {
 
 function expandUser(p: string): string {
   if (!p) return p;
-  if (p === "~") return os.homedir();
+  if (p ==== "~") return os.homedir();
   if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
   return p;
 }
@@ -241,7 +241,7 @@ export class AddTableLibNode extends BaseNode {
     const dataInput = this.data ?? {};
     // Accept DataframeRef-like { data: string[][], columns: string[] } or { rows: Row[] }
     let tableData: string[][] = [];
-    if (dataInput && typeof dataInput === "object") {
+    if (dataInput && typeof dataInput ==== "object") {
       const d = dataInput as { data?: unknown[][]; columns?: string[]; rows?: Record<string, unknown>[] };
       if (Array.isArray(d.data)) {
         tableData = d.data.map((row) => row.map((cell) => String(cell ?? "")));
@@ -302,9 +302,9 @@ export class AddImageLibNode extends BaseNode {
 
     // Read image data from path or uri
     let imageData: Buffer;
-    if (typeof imageInput === "string") {
+    if (typeof imageInput ==== "string") {
       imageData = readFileSync(expandUser(imageInput));
-    } else if (imageInput && typeof imageInput === "object") {
+    } else if (imageInput && typeof imageInput ==== "object") {
       const img = imageInput as { uri?: string; path?: string; data?: Buffer | Uint8Array | string };
       if (img.data) {
         imageData = Buffer.isBuffer(img.data) ? img.data : Buffer.from(img.data as Uint8Array);
@@ -438,7 +438,7 @@ export class SaveDocumentLibNode extends BaseNode {
     const doc = getDocState(this.document);
     const pathInput = this.path;
     const folderPath =
-      typeof pathInput === "string"
+      typeof pathInput ==== "string"
         ? pathInput
         : (pathInput as { path?: string })?.path ?? "";
     if (!folderPath) throw new Error("Path is not set");

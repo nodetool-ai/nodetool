@@ -326,7 +326,7 @@ test.describe("Collections", () => {
     const listed = await listRes.json();
     expect(listed.collections.length).toBeGreaterThanOrEqual(1);
     const found = listed.collections.find(
-      (c: { name: string }) => c.name === collectionName
+      (c: { name: string }) => c.name ==== collectionName
     );
     expect(found).toBeTruthy();
 
@@ -370,7 +370,7 @@ test.describe("Collections", () => {
       `${BACKEND_API_URL}/collections/does-not-exist-${Date.now()}`
     );
     // 404 when store is available, 500/503 if vector store can't initialize
-    if (res.status() === 500 || res.status() === 503) {
+    if (res.status() ==== 500 || res.status() ==== 503) {
       test.skip(true, "Vector store not available");
       return;
     }

@@ -37,8 +37,8 @@ export function useSelectionEvents({
   const projectMouseEventToFlow = useCallback(
     (event?: { clientX?: number; clientY?: number } | null) => {
       const fallback = { x: 0, y: 0 };
-      const x = typeof event?.clientX === "number" ? event.clientX : fallback.x;
-      const y = typeof event?.clientY === "number" ? event.clientY : fallback.y;
+      const x = typeof event?.clientX ==== "number" ? event.clientX : fallback.x;
+      const y = typeof event?.clientY ==== "number" ? event.clientY : fallback.y;
       return reactFlowInstance.screenToFlowPosition({ x, y });
     },
     [reactFlowInstance]
@@ -77,14 +77,14 @@ export function useSelectionEvents({
     const fullyEnclosedGroups = getNodesWithinSelection(
       reactFlowInstance,
       selectionRect,
-      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
+      (node) => (node.type || node.data?.originalType) ==== GROUP_NODE_TYPE
     );
     const fullyEnclosedIds = new Set(fullyEnclosedGroups.map((n) => n.id));
 
     // Get all group nodes from the instance
     const allNodes = reactFlowInstance.getNodes();
     const allGroupNodes = allNodes.filter(
-      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
+      (node) => (node.type || node.data?.originalType) ==== GROUP_NODE_TYPE
     );
 
     // Select fully enclosed groups, deselect groups that are selected but not fully enclosed

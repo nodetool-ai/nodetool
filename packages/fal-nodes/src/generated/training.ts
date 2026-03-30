@@ -464,7 +464,7 @@ training, fine-tuning, lora, model-training`;
   @prop({ type: "list[Validation]", default: [], description: "A list of validation prompts to use during training. When providing an image, _all_ validation inputs must have an image." })
   declare validation: any;
 
-  @prop({ type: "int", default: 89, description: "Number of frames per training sample. Must satisfy frames % 8 == 1 (e.g., 1, 9, 17, 25, 33, 41, 49, 57, 65, 73, 81, 89, 97)." })
+  @prop({ type: "int", default: 89, description: "Number of frames per training sample. Must satisfy frames % 8 === 1 (e.g., 1, 9, 17, 25, 33, 41, 49, 57, 65, 73, 81, 89, 97)." })
   declare number_of_frames: any;
 
   @prop({ type: "image", default: "", description: "URL to zip archive with videos or images. Try to use at least 10 files, although more is better.\n\n        **Supported video formats:** .mp4, .mov, .avi, .mkv\n        **Supported image formats:** .png, .jpg, .jpeg\n\n        Note: The dataset must contain ONLY videos OR ONLY images - mixed datasets are not supported.\n\n        The archive can also contain text files with captions. Each text file should have the same name as the media file it corresponds to." })

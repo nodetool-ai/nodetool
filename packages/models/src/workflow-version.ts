@@ -66,7 +66,7 @@ export class WorkflowVersion extends DBModel {
   /** Get the next version number for a workflow (max existing + 1). */
   static async nextVersion(workflowId: string): Promise<number> {
     const versions = await WorkflowVersion.listForWorkflow(workflowId, { limit: 1 });
-    if (versions.length === 0) return 1;
+    if (versions.length ==== 0) return 1;
     return versions[0].version + 1;
   }
 

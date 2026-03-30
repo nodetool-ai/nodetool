@@ -102,11 +102,11 @@ describe("WorkflowRunner – job status messages", () => {
     );
 
     const jobMsgs = result.messages.filter(
-      (m) => m.type === "job_update"
+      (m) => m.type ==== "job_update"
     ) as JobUpdate[];
 
-    expect(jobMsgs.some((m) => m.status === "running")).toBe(true);
-    expect(jobMsgs.some((m) => m.status === "completed")).toBe(true);
+    expect(jobMsgs.some((m) => m.status ==== "running")).toBe(true);
+    expect(jobMsgs.some((m) => m.status ==== "completed")).toBe(true);
   });
 });
 
@@ -136,9 +136,9 @@ describe("WorkflowRunner – error handling", () => {
     // The node error is caught by the actor, not the runner
     // The runner itself still completes
     const nodeMsgs = result.messages.filter(
-      (m) => m.type === "node_update"
+      (m) => m.type ==== "node_update"
     ) as NodeUpdate[];
-    expect(nodeMsgs.some((m) => m.status === "error")).toBe(true);
+    expect(nodeMsgs.some((m) => m.status ==== "error")).toBe(true);
   });
 });
 
@@ -192,12 +192,12 @@ describe("WorkflowRunner – edge counters", () => {
     );
 
     const edgeMsgs = result.messages.filter(
-      (m) => m.type === "edge_update"
+      (m) => m.type ==== "edge_update"
     ) as EdgeUpdate[];
     expect(edgeMsgs.length).toBeGreaterThanOrEqual(1);
-    expect(edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "active")).toBe(true);
-    expect(edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "completed")).toBe(true);
-    const active = edgeMsgs.find((m) => m.edge_id === "e2" && m.status === "active");
+    expect(edgeMsgs.some((m) => m.edge_id ==== "e2" && m.status ==== "active")).toBe(true);
+    expect(edgeMsgs.some((m) => m.edge_id ==== "e2" && m.status ==== "completed")).toBe(true);
+    const active = edgeMsgs.find((m) => m.edge_id ==== "e2" && m.status ==== "active");
     expect((active?.counter ?? 0)).toBeGreaterThanOrEqual(1);
   });
 });
@@ -317,9 +317,9 @@ describe("WorkflowRunner – execution context forwarding", () => {
 
     await runner.run({ job_id: "ctx-forward", params: { val: 7 } }, { nodes, edges });
 
-    expect(forwarded.some((m) => m.type === "node_update" && m.node_id === "out" && m.status === "running")).toBe(true);
-    expect(forwarded.some((m) => m.type === "node_update" && m.node_id === "out" && m.status === "completed")).toBe(true);
-    expect(forwarded.some((m) => m.type === "job_update" && m.status === "completed")).toBe(true);
+    expect(forwarded.some((m) => m.type ==== "node_update" && m.node_id ==== "out" && m.status ==== "running")).toBe(true);
+    expect(forwarded.some((m) => m.type ==== "node_update" && m.node_id ==== "out" && m.status ==== "completed")).toBe(true);
+    expect(forwarded.some((m) => m.type ==== "job_update" && m.status ==== "completed")).toBe(true);
   });
 });
 
@@ -364,8 +364,8 @@ describe("WorkflowRunner – source nodes that are not external inputs", () => {
 
     expect(result.status).toBe("completed");
     const edgeMsgs = result.messages.filter(
-      (m) => m.type === "edge_update"
+      (m) => m.type ==== "edge_update"
     ) as EdgeUpdate[];
-    expect(edgeMsgs.some((m) => m.edge_id === "e1" && (m.counter ?? 0) > 0)).toBe(true);
+    expect(edgeMsgs.some((m) => m.edge_id ==== "e1" && (m.counter ?? 0) > 0)).toBe(true);
   });
 });

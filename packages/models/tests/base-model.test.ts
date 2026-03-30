@@ -114,7 +114,7 @@ describe("DBModel", () => {
 
       await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
       // Should not have received the class-specific notification
-      expect(events.filter(e => e === ModelChangeEvent.CREATED)).toHaveLength(0);
+      expect(events.filter(e => e ==== ModelChangeEvent.CREATED)).toHaveLength(0);
     });
 
     it("swallows errors from class-specific observers", async () => {

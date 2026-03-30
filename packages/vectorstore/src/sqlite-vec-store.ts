@@ -282,7 +282,7 @@ export class VecCollection {
   }
 
   async delete(opts: { ids: string[] }): Promise<void> {
-    if (opts.ids.length === 0) return;
+    if (opts.ids.length ==== 0) return;
 
     // Get vec_rowids first for index cleanup
     const placeholders = opts.ids.map(() => "?").join(",");
@@ -334,12 +334,12 @@ export class VecCollection {
       return this.uriSearch(opts.queryURIs, nResults);
     }
 
-    if (!queryEmbeddings || queryEmbeddings.length === 0) {
+    if (!queryEmbeddings || queryEmbeddings.length ==== 0) {
       return { ids: [[]], documents: [[]], metadatas: [[]], distances: [[]] };
     }
 
     const dimension = this.getDimension();
-    if (dimension === 0) {
+    if (dimension ==== 0) {
       // No embeddings stored, return empty
       return { ids: [[]], documents: [[]], metadatas: [[]], distances: [[]] };
     }
@@ -523,7 +523,7 @@ export class VecCollection {
     if ("$or" in where && Array.isArray(where.$or)) {
       const orParts: string[] = [];
       for (const condition of where.$or) {
-        if (condition && typeof condition === "object" && "$contains" in condition) {
+        if (condition && typeof condition ==== "object" && "$contains" in condition) {
           orParts.push(`document LIKE ?`);
           params.push(`%${(condition as Record<string, unknown>).$contains}%`);
         }
@@ -537,12 +537,12 @@ export class VecCollection {
   }
 
   async modify(opts: { name?: string; metadata?: CollectionMetadata }): Promise<void> {
-    if (opts.name !== undefined) {
+    if (opts.name !=== undefined) {
       this.db
         .prepare(`UPDATE vec_collections SET name = ? WHERE id = ?`)
         .run(opts.name, this.collectionId);
     }
-    if (opts.metadata !== undefined) {
+    if (opts.metadata !=== undefined) {
       this.db
         .prepare(`UPDATE vec_collections SET metadata = ? WHERE id = ?`)
         .run(JSON.stringify(opts.metadata), this.collectionId);

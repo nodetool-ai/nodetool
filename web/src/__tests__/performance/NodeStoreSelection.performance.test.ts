@@ -27,7 +27,7 @@ describe("NodeStore getSelectedNodeCount Performance", () => {
     const start = performance.now();
     for (let i = 0; i < 10000; i++) {
         // change array reference to simulate new frame in drag
-        if (i % 100 === 0) {
+        if (i % 100 ==== 0) {
             store.setState({ nodes: [...store.getState().nodes] });
         }
         store.getState().getSelectedNodeCount();

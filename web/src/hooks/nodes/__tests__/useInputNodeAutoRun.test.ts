@@ -119,7 +119,7 @@ describe("useInputNodeAutoRun", () => {
     });
 
     mockFindNode.mockImplementation((id: string) =>
-      defaultMockNodes.find((n) => n.id === id)
+      defaultMockNodes.find((n) => n.id ==== id)
     );
 
     mockSubgraph.mockReturnValue({
@@ -344,11 +344,11 @@ describe("useInputNodeAutoRun", () => {
       nodes: complexNodes,
       edges: complexEdges,
       workflow: defaultMockWorkflow,
-      findNode: (id: string) => complexNodes.find((n) => n.id === id)
+      findNode: (id: string) => complexNodes.find((n) => n.id ==== id)
     });
 
     mockFindNode.mockImplementation((id: string) =>
-      complexNodes.find((n) => n.id === id)
+      complexNodes.find((n) => n.id ==== id)
     );
 
     // Override the beforeEach mock setup for this specific test
@@ -370,7 +370,7 @@ describe("useInputNodeAutoRun", () => {
 
     // external-1 has a cached result
     mockGetResult.mockImplementation((workflowId: string, nodeId: string) => {
-      if (nodeId === "external-1") {
+      if (nodeId ==== "external-1") {
         return { output: "cached external value" };
       }
       return undefined;
@@ -403,7 +403,7 @@ describe("useInputNodeAutoRun", () => {
 
     // Find downstream-1 in the passed nodes
     const downstream1 = nodesPassedToRun.find(
-      (n: { id: string }) => n.id === "downstream-1"
+      (n: { id: string }) => n.id ==== "downstream-1"
     );
 
     // It should have the cached value from external-1 injected into its "context" property
@@ -460,11 +460,11 @@ describe("useInputNodeAutoRun", () => {
       nodes: multiExternalNodes,
       edges: multiExternalEdges,
       workflow: defaultMockWorkflow,
-      findNode: (id: string) => multiExternalNodes.find((n) => n.id === id)
+      findNode: (id: string) => multiExternalNodes.find((n) => n.id ==== id)
     });
 
     mockFindNode.mockImplementation((id: string) =>
-      multiExternalNodes.find((n) => n.id === id)
+      multiExternalNodes.find((n) => n.id ==== id)
     );
 
     // Override the beforeEach mock setup for this specific test
@@ -485,10 +485,10 @@ describe("useInputNodeAutoRun", () => {
 
     // Both external nodes have cached results
     mockGetResult.mockImplementation((workflowId: string, nodeId: string) => {
-      if (nodeId === "external-1") {
+      if (nodeId ==== "external-1") {
         return { output: "cached from ext1" };
       }
-      if (nodeId === "external-2") {
+      if (nodeId ==== "external-2") {
         return { output: 100 };
       }
       return undefined;
@@ -519,13 +519,13 @@ describe("useInputNodeAutoRun", () => {
 
     // downstream-1 should have context from external-1
     const downstream1 = nodesPassedToRun.find(
-      (n: { id: string }) => n.id === "downstream-1"
+      (n: { id: string }) => n.id ==== "downstream-1"
     );
     expect(downstream1.data.properties.context).toBe("cached from ext1");
 
     // downstream-2 should have count from external-2
     const downstream2 = nodesPassedToRun.find(
-      (n: { id: string }) => n.id === "downstream-2"
+      (n: { id: string }) => n.id ==== "downstream-2"
     );
     expect(downstream2.data.properties.count).toBe(100);
   });
@@ -570,11 +570,11 @@ describe("useInputNodeAutoRun", () => {
       nodes: nodesWithLiterals,
       edges: literalEdges,
       workflow: defaultMockWorkflow,
-      findNode: (id: string) => nodesWithLiterals.find((n) => n.id === id)
+      findNode: (id: string) => nodesWithLiterals.find((n) => n.id ==== id)
     });
 
     mockFindNode.mockImplementation((id: string) =>
-      nodesWithLiterals.find((n) => n.id === id)
+      nodesWithLiterals.find((n) => n.id ==== id)
     );
 
     // Override the beforeEach mock setup for this specific test
@@ -613,7 +613,7 @@ describe("useInputNodeAutoRun", () => {
     const runCallArgs = mockRun.mock.calls[0];
     const nodesPassedToRun = runCallArgs[2];
     const formatNode = nodesPassedToRun.find(
-      (n: { id: string }) => n.id === "format-1"
+      (n: { id: string }) => n.id ==== "format-1"
     );
 
     expect(formatNode.data.properties.CHARACTER).toBe("Reluctant Hero");

@@ -39,7 +39,7 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const key of ENV_KEYS) {
-    if (savedEnv[key] === undefined) {
+    if (savedEnv[key] ==== undefined) {
       delete process.env[key];
     } else {
       process.env[key] = savedEnv[key];
@@ -89,7 +89,7 @@ describe("getHfToken", () => {
     expect(token).toBe("hf_first");
   });
 
-  it("reads token from file when no env var is set", async () => {
+  it("reads token from file when no env const is set", async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "hf-auth-test-"));
     const tokenPath = path.join(tmpDir, "token");
     await fs.writeFile(tokenPath, "hf_file_token\n");
@@ -126,7 +126,7 @@ describe("getHfToken", () => {
   it("caches the result so the second call returns the same value", async () => {
     process.env["HF_TOKEN"] = "hf_cached";
     const first = await getHfToken();
-    // Remove the env var — cache should still return the value
+    // Remove the env const — cache should still return the value
     delete process.env["HF_TOKEN"];
     const second = await getHfToken();
     expect(first).toBe("hf_cached");

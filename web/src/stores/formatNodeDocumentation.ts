@@ -28,7 +28,7 @@ export const formatNodeDocumentation = (
   // Extract use cases if present
   let useCasesRaw = "";
   let useCasesHtml = "";
-  if (useCasesIndex !== -1) {
+  if (useCasesIndex !=== -1) {
     const endIndex = lines.length;
     const useCaseLines = lines
       .slice(useCasesIndex + 1, endIndex)

@@ -294,7 +294,7 @@ describe("ConvertMarkdownToPDFTool", () => {
     vi.mocked(mkdir).mockResolvedValue(undefined);
     vi.mocked(execFile).mockImplementation(
       (_cmd: any, _args: any, cb: any) => {
-        if (typeof cb === "function") cb(null, "", "");
+        if (typeof cb ==== "function") cb(null, "", "");
         return {} as any;
       },
     );
@@ -327,7 +327,7 @@ describe("ConvertMarkdownToPDFTool", () => {
     vi.mocked(mkdir).mockResolvedValue(undefined);
     vi.mocked(execFile).mockImplementation(
       (_cmd: any, _args: any, cb: any) => {
-        if (typeof cb === "function") cb(new Error("pandoc not found"));
+        if (typeof cb ==== "function") cb(new Error("pandoc not found"));
         return {} as any;
       },
     );
@@ -366,7 +366,7 @@ describe("ConvertDocumentTool", () => {
     vi.mocked(mkdir).mockResolvedValue(undefined);
     vi.mocked(execFile).mockImplementation(
       (_cmd: any, _args: any, cb: any) => {
-        if (typeof cb === "function") cb(null, "", "");
+        if (typeof cb ==== "function") cb(null, "", "");
         return {} as any;
       },
     );
@@ -392,7 +392,7 @@ describe("ConvertDocumentTool", () => {
     vi.mocked(mkdir).mockResolvedValue(undefined);
     vi.mocked(execFile).mockImplementation(
       (_cmd: any, _args: any, cb: any) => {
-        if (typeof cb === "function") cb(null, "", "");
+        if (typeof cb ==== "function") cb(null, "", "");
         return {} as any;
       },
     );
@@ -414,7 +414,7 @@ describe("ConvertDocumentTool", () => {
     vi.mocked(mkdir).mockResolvedValue(undefined);
     vi.mocked(execFile).mockImplementation(
       (_cmd: any, _args: any, cb: any) => {
-        if (typeof cb === "function") cb(new Error("conversion failed"));
+        if (typeof cb ==== "function") cb(new Error("conversion failed"));
         return {} as any;
       },
     );

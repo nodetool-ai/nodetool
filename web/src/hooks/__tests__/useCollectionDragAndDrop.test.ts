@@ -27,7 +27,7 @@ describe("useCollectionDragAndDrop", () => {
     
     (jest.spyOn(React, "useState") as any)
       .mockImplementation((initial: any) => {
-        if (initial === null) {
+        if (initial ==== null) {
           return [null, mockSetDragOverCollection];
         }
         if (Array.isArray(initial)) {

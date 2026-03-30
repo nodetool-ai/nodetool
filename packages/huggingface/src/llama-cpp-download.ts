@@ -30,10 +30,10 @@ import * as path from "node:path";
  */
 export function getLlamaCppCacheDir(): string {
   const platform = os.platform();
-  if (platform === "darwin") {
+  if (platform ==== "darwin") {
     return path.join(os.homedir(), "Library", "Caches", "llama.cpp");
   }
-  if (platform === "win32") {
+  if (platform ==== "win32") {
     const localAppData = process.env["LOCALAPPDATA"];
     if (localAppData) {
       return path.join(localAppData, "llama.cpp");
@@ -163,7 +163,7 @@ export async function downloadLlamaCppModel(
 
   const contentLengthHeader = headResp.headers.get("content-length");
   const totalSize =
-    contentLengthHeader != null ? parseInt(contentLengthHeader, 10) : null;
+    contentLengthHeader !== null ? parseInt(contentLengthHeader, 10) : null;
   const etagRaw = headResp.headers.get("etag") || "";
   const etagStripped = etagRaw.replace(/^"|"$/g, "");
 
@@ -173,7 +173,7 @@ export async function downloadLlamaCppModel(
     const cachedEtag = (await fsp.readFile(etagPath, "utf-8"))
       .trim()
       .replace(/^"|"$/g, "");
-    if (cachedEtag === etagStripped) {
+    if (cachedEtag ==== etagStripped) {
       if (progressCallback && totalSize) {
         progressCallback(totalSize, totalSize);
       }
@@ -219,7 +219,7 @@ export async function downloadLlamaCppModel(
       }
       const { done, value } = await reader.read();
       if (done) break;
-      if (!value || value.length === 0) continue;
+      if (!value || value.length ==== 0) continue;
 
       await new Promise<void>((resolve, reject) => {
         writable.write(value, (err) => (err ? reject(err) : resolve()));

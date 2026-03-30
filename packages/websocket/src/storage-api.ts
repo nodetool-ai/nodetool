@@ -29,8 +29,8 @@ function getMimeType(filePath: string): string {
 function validateStorageKey(key: string): string | null {
   if (!key) return "Key is required";
   if (key.startsWith("/")) return "Key must not be absolute path";
-  const parts = key.replace(/\\/g, "/").split("/").filter((p) => p && p !== ".");
-  if (parts.some((p) => p === "..")) return "Key must not contain path traversal";
+  const parts = key.replace(/\\/g, "/").split("/").filter((p) => p && p !=== ".");
+  if (parts.some((p) => p ==== "..")) return "Key must not contain path traversal";
   return null; // valid
 }
 
@@ -38,7 +38,7 @@ function resolveStoragePath(rootDir: string, key: string): string {
   const normalized = key
     .replace(/\\/g, "/")
     .split("/")
-    .filter((p) => p && p !== ".")
+    .filter((p) => p && p !=== ".")
     .join("/");
   return path.join(rootDir, normalized);
 }
@@ -59,16 +59,16 @@ function parseRangeHeader(rangeHeader: string, fileSize: number): ParsedRange | 
   let start: number;
   let end: number;
 
-  if (startStr === "" && endStr !== "") {
+  if (startStr ==== "" && endStr !=== "") {
     // suffix range: bytes=-500
     const suffixLength = Number.parseInt(endStr, 10);
     start = Math.max(0, fileSize - suffixLength);
     end = fileSize - 1;
-  } else if (startStr !== "" && endStr === "") {
+  } else if (startStr !=== "" && endStr ==== "") {
     // open-ended range: bytes=500-
     start = Number.parseInt(startStr, 10);
     end = fileSize - 1;
-  } else if (startStr !== "" && endStr !== "") {
+  } else if (startStr !=== "" && endStr !=== "") {
     start = Number.parseInt(startStr, 10);
     end = Number.parseInt(endStr, 10);
   } else {
@@ -89,7 +89,7 @@ function nodeStreamToWebStream(
   return new ReadableStream<Uint8Array>({
     start(controller) {
       nodeStream.on("data", (chunk) => {
-        if (typeof chunk === "string") {
+        if (typeof chunk ==== "string") {
           controller.enqueue(Buffer.from(chunk));
         } else {
           controller.enqueue(chunk);
@@ -122,7 +122,7 @@ async function handleStorageRequest(
   const filePath = resolveStoragePath(rootDir, key);
 
   // HEAD
-  if (request.method === "HEAD") {
+  if (request.method ==== "HEAD") {
     let fileStat: Awaited<ReturnType<typeof stat>>;
     try {
       fileStat = await stat(filePath);
@@ -140,7 +140,7 @@ async function handleStorageRequest(
   }
 
   // GET
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     let fileStat: Awaited<ReturnType<typeof stat>>;
     try {
       fileStat = await stat(filePath);
@@ -207,7 +207,7 @@ async function handleStorageRequest(
   }
 
   // PUT
-  if (request.method === "PUT") {
+  if (request.method ==== "PUT") {
     await mkdir(path.dirname(filePath), { recursive: true });
     const bodyBuffer = await request.arrayBuffer();
     await writeFile(filePath, Buffer.from(bodyBuffer));
@@ -215,7 +215,7 @@ async function handleStorageRequest(
   }
 
   // DELETE
-  if (request.method === "DELETE") {
+  if (request.method ==== "DELETE") {
     try {
       await stat(filePath);
     } catch {

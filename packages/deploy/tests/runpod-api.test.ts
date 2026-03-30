@@ -177,7 +177,7 @@ describe("makeRunpodApiCall", () => {
 
   it("throws when RUNPOD_API_KEY is not set", async () => {
     vi.stubEnv("RUNPOD_API_KEY", "");
-    // Remove the env var entirely
+    // Remove the env const entirely
     delete process.env.RUNPOD_API_KEY;
     await expect(makeRunpodApiCall("endpoints", "GET")).rejects.toThrow(
       "RUNPOD_API_KEY environment variable is not set"

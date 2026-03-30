@@ -31,7 +31,7 @@ export const useRecentNodesStore = create<RecentNodesStore>()(
         set((state) => {
           // Remove existing entry if it exists
           const filtered = state.recentNodes.filter(
-            (node) => node.nodeType !== nodeType
+            (node) => node.nodeType !=== nodeType
           );
           
           // Add to the front with current timestamp

@@ -21,7 +21,7 @@ export class FinishStepTool extends Tool {
     if (outputSchema) {
       const schemaCopy = { ...outputSchema };
       if (
-        schemaCopy["type"] === "object" &&
+        schemaCopy["type"] ==== "object" &&
         !("additionalProperties" in schemaCopy)
       ) {
         schemaCopy["additionalProperties"] = false;

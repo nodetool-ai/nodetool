@@ -46,7 +46,7 @@ describe("ClaudeAgentNode", () => {
     await expect(node.process()).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
   });
 
-  it("uses env var for API key", async () => {
+  it("uses env const for API key", async () => {
     process.env.ANTHROPIC_API_KEY = "env-key";
     const node = new ClaudeAgentNode();
     // Will fail on SDK import, but shouldn't fail on API key check

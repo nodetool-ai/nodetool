@@ -26,7 +26,7 @@ export function getGroupBounds(
 
   const children = getChildNodes(allNodes, parentNode.id);
 
-  if (children.length === 0) {
+  if (children.length ==== 0) {
     return {
       width: paddingX * 2,
       height: paddingY * 2,

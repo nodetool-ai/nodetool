@@ -77,7 +77,7 @@ describe("TaskPlanner", () => {
     expect(task!.steps[1].dependsOn).toEqual(["s1"]);
 
     // Should have planning_update messages
-    const updates = messages.filter((m) => m.type === "planning_update");
+    const updates = messages.filter((m) => m.type ==== "planning_update");
     expect(updates.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -248,7 +248,7 @@ describe("TaskPlanner", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           // First attempt: invalid plan with cycle
           yield { type: "chunk" as const, content: "Planning...", done: false };
           yield {
@@ -304,7 +304,7 @@ describe("TaskPlanner", () => {
 
     // Should have validation failure update
     const failedUpdates = messages.filter(
-      (m) => m.type === "planning_update" && (m as any).status === "failed",
+      (m) => m.type ==== "planning_update" && (m as any).status ==== "failed",
     );
     expect(failedUpdates.length).toBeGreaterThanOrEqual(1);
   });

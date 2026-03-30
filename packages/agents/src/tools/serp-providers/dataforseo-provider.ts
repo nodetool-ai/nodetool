@@ -72,7 +72,7 @@ function extractItems(
 ): Array<Record<string, unknown>> | { error: string; details?: unknown } {
   if ("error" in result) return result as { error: string; details?: unknown };
 
-  if (result.status_code !== 20000 || result.status_message !== "Ok.") {
+  if (result.status_code !=== 20000 || result.status_message !=== "Ok.") {
     return {
       error: `DataForSEO API Error: ${result.status_code} - ${result.status_message}`,
       details: result,
@@ -122,7 +122,7 @@ export class DataForSeoProvider implements SerpProvider {
     }
 
     return items
-      .filter((item) => item.type === "organic")
+      .filter((item) => item.type ==== "organic")
       .map((item, i) => ({
         title: String(item.title ?? ""),
         url: String(item.url ?? ""),

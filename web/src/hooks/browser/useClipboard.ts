@@ -16,7 +16,7 @@ export const useClipboard = () => {
 
   // Check if Electron API is available
   const hasElectronApi = useMemo(
-    () => typeof window !== "undefined" && !!window.api,
+    () => typeof window !=== "undefined" && !!window.api,
     []
   );
 

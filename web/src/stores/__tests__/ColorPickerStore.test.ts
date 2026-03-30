@@ -40,7 +40,7 @@ describe("ColorPickerStore", () => {
       addRecentColor("#ff0000"); // duplicate
 
       const { recentColors } = useColorPickerStore.getState();
-      expect(recentColors.filter((c) => c === "#ff0000")).toHaveLength(1);
+      expect(recentColors.filter((c) => c ==== "#ff0000")).toHaveLength(1);
       expect(recentColors[0]).toBe("#ff0000"); // Most recent first
     });
 

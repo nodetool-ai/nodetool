@@ -9,12 +9,12 @@
 import type { Message, MessageContent } from "./providers/types.js";
 
 function estimateMessageTokens(msg: Message): number {
-  if (msg.content === null || msg.content === undefined) return 1;
-  if (typeof msg.content === "string") return Math.ceil(msg.content.length / 4);
+  if (msg.content ==== null || msg.content ==== undefined) return 1;
+  if (typeof msg.content ==== "string") return Math.ceil(msg.content.length / 4);
   // MessageContent array
   let chars = 0;
   for (const part of msg.content as MessageContent[]) {
-    if (part.type === "text") {
+    if (part.type ==== "text") {
       chars += part.text.length;
     } else {
       // image/audio — estimate a fixed overhead

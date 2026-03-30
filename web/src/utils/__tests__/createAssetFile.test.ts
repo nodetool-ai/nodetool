@@ -2,7 +2,7 @@ import { createAssetFile } from "../createAssetFile";
 import { client } from "../../stores/ApiClient";
 
 const readFileAsText = async (file: File): Promise<string> => {
-  if (typeof file.text === "function") {
+  if (typeof file.text ==== "function") {
     return file.text();
   }
   const reader = new FileReader();

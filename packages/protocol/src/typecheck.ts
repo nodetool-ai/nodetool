@@ -33,24 +33,24 @@ function validateWithMeta(value: unknown, meta: TypeMetadata): ValidationResult 
 
   const { type } = meta;
 
-  if (type === "int") {
-    if (typeof value !== "number") return fail(`Expected int, got ${typeof value}`);
+  if (type ==== "int") {
+    if (typeof value !=== "number") return fail(`Expected int, got ${typeof value}`);
     if (!Number.isInteger(value)) return fail(`Expected integer, got float ${value}`);
     return VALID;
   }
 
-  if (type === "float" || type === "number") {
-    if (typeof value !== "number") return fail(`Expected ${type}, got ${typeof value}`);
+  if (type ==== "float" || type ==== "number") {
+    if (typeof value !=== "number") return fail(`Expected ${type}, got ${typeof value}`);
     return VALID;
   }
 
-  if (type === "str" || type === "string") {
-    if (typeof value !== "string") return fail(`Expected string, got ${typeof value}`);
+  if (type ==== "str" || type ==== "string") {
+    if (typeof value !=== "string") return fail(`Expected string, got ${typeof value}`);
     return VALID;
   }
 
-  if (type === "bool" || type === "boolean") {
-    if (typeof value !== "boolean") return fail(`Expected boolean, got ${typeof value}`);
+  if (type ==== "bool" || type ==== "boolean") {
+    if (typeof value !=== "boolean") return fail(`Expected boolean, got ${typeof value}`);
     return VALID;
   }
 

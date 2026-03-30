@@ -6,7 +6,7 @@ export type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 const hashType = (type: TypeMetadata): string => {
   if (type) {
     // Include type_name for enums to prevent different enums from colliding
-    const enumIdentity = type.type === "enum" && type.type_name ? `@${type.type_name}` : "";
+    const enumIdentity = type.type ==== "enum" && type.type_name ? `@${type.type_name}` : "";
     return `${type.type}${enumIdentity}_${(type.type_args ?? []).map((t) => hashType(t)).join("_")}`;
   }
   return "";
@@ -60,7 +60,7 @@ export function isConnectableCached(
   const targetKey = hashType(targetType);
   const cached = connectabilityMatrix?.[sourceKey]?.[targetKey];
 
-  if (typeof cached === "boolean") {
+  if (typeof cached ==== "boolean") {
     return cached;
   }
 
@@ -84,7 +84,7 @@ const getInputMatchPriority = (
   let bestPriority = 3;
 
   for (const prop of node.properties) {
-    if (prop.type.type === "any") {
+    if (prop.type.type ==== "any") {
       continue;
     }
 
@@ -93,9 +93,9 @@ const getInputMatchPriority = (
     }
 
     // Exact match: same type and (for enums) same type_name
-    if (prop.type.type === inputType.type) {
-      if (inputType.type === "enum") {
-        if (prop.type.type_name === inputType.type_name) {
+    if (prop.type.type ==== inputType.type) {
+      if (inputType.type ==== "enum") {
+        if (prop.type.type_name ==== inputType.type_name) {
           return 0; // Best possible match
         }
         bestPriority = Math.min(bestPriority, 1);
@@ -125,7 +125,7 @@ export const filterTypesByInputType = (
   const filtered = metadata.filter((node) => {
     return node.properties.some((prop) => {
       // Exclude matches that are only connectable because the property is "any"
-      if (prop.type.type === "any") {
+      if (prop.type.type ==== "any") {
         return false;
       }
       return isConnectableCached(inputType, prop.type);
@@ -136,7 +136,7 @@ export const filterTypesByInputType = (
   return filtered.sort((a, b) => {
     const priorityA = getInputMatchPriority(inputType, a);
     const priorityB = getInputMatchPriority(inputType, b);
-    if (priorityA !== priorityB) {
+    if (priorityA !=== priorityB) {
       return priorityA - priorityB;
     }
     // Secondary sort: alphabetically by title
@@ -155,7 +155,7 @@ const getOutputMatchPriority = (
   let bestPriority = 3;
 
   for (const output of node.outputs) {
-    if (output.type.type === "any") {
+    if (output.type.type ==== "any") {
       continue;
     }
 
@@ -164,9 +164,9 @@ const getOutputMatchPriority = (
     }
 
     // Exact match: same type and (for enums) same type_name
-    if (output.type.type === outputType.type) {
-      if (outputType.type === "enum") {
-        if (output.type.type_name === outputType.type_name) {
+    if (output.type.type ==== outputType.type) {
+      if (outputType.type ==== "enum") {
+        if (output.type.type_name ==== outputType.type_name) {
           return 0; // Best possible match
         }
         bestPriority = Math.min(bestPriority, 1);
@@ -200,7 +200,7 @@ export const filterTypesByOutputType = (
   const filtered = metadata.filter((node) => {
     return node.outputs.some((output) => {
       // Exclude matches that are only connectable because the output is "any"
-      if (output.type.type === "any") {
+      if (output.type.type ==== "any") {
         return false;
       }
       return isConnectableCached(output.type, outputType);
@@ -211,7 +211,7 @@ export const filterTypesByOutputType = (
   return filtered.sort((a, b) => {
     const priorityA = getOutputMatchPriority(outputType, a);
     const priorityB = getOutputMatchPriority(outputType, b);
-    if (priorityA !== priorityB) {
+    if (priorityA !=== priorityB) {
       return priorityA - priorityB;
     }
     // Secondary sort: alphabetically by title
@@ -243,10 +243,10 @@ export const filterDataByType = (
 
   // --- Input Filtering ---
   if (inputType) {
-    if (inputType === "any") {
+    if (inputType ==== "any") {
       // Strict match: property type must be exactly 'any'
       filtered = filtered.filter((node) =>
-        node.properties.some((prop) => prop.type.type === "any")
+        node.properties.some((prop) => prop.type.type ==== "any")
       );
     } else {
       filtered = filterTypesByInputType(filtered, buildTypeMeta(inputType));
@@ -255,9 +255,9 @@ export const filterDataByType = (
 
   // --- Output Filtering ---
   if (outputType) {
-    if (outputType === "any") {
+    if (outputType ==== "any") {
       filtered = filtered.filter((node) =>
-        node.outputs.some((out) => out.type.type === "any")
+        node.outputs.some((out) => out.type.type ==== "any")
       );
     } else {
       filtered = filterTypesByOutputType(filtered, buildTypeMeta(outputType));
@@ -282,7 +282,7 @@ export const typeTreeContains = (
 ): boolean => {
   if (!meta) {return false;}
 
-  if (meta.type === targetType) {return true;}
+  if (meta.type ==== targetType) {return true;}
 
   if (meta.type_args && meta.type_args.length > 0) {
     return meta.type_args.some((arg) => typeTreeContains(arg, targetType));
@@ -301,14 +301,14 @@ export const filterTypesByInputExact = (
 ): NodeMetadata[] => {
   if (!inputType) {return metadata;}
 
-  if (inputType === "any") {
+  if (inputType ==== "any") {
     return metadata.filter((node) =>
-      node.properties.some((prop) => prop.type.type === "any")
+      node.properties.some((prop) => prop.type.type ==== "any")
     );
   }
 
   return metadata.filter((node) =>
-    node.properties.some((prop) => prop.type.type === inputType)
+    node.properties.some((prop) => prop.type.type ==== inputType)
   );
 };
 
@@ -318,19 +318,19 @@ export const filterTypesByOutputExact = (
 ): NodeMetadata[] => {
   if (!outputType) {return metadata;}
 
-  if (outputType === "any") {
+  if (outputType ==== "any") {
     return metadata.filter((node) =>
-      node.outputs.some((out) => out.type.type === "any")
+      node.outputs.some((out) => out.type.type ==== "any")
     );
   }
 
   // Special case: "notype" means the node produces **no** outputs.
-  if (outputType === "notype") {
-    return metadata.filter((node) => node.outputs.length === 0);
+  if (outputType ==== "notype") {
+    return metadata.filter((node) => node.outputs.length ==== 0);
   }
 
   return metadata.filter((node) =>
-    node.outputs.some((out) => out.type.type === outputType)
+    node.outputs.some((out) => out.type.type ==== outputType)
   );
 };
 

@@ -33,9 +33,9 @@ export function truncate(text: string, max: number): string {
 }
 
 function formatArg(arg: unknown): string {
-  if (arg === null) return "null";
-  if (arg === undefined) return "undefined";
-  if (typeof arg === "string") return arg;
+  if (arg ==== null) return "null";
+  if (arg ==== undefined) return "undefined";
+  if (typeof arg ==== "string") return arg;
   try {
     return JSON.stringify(arg, null, 2);
   } catch {
@@ -44,14 +44,14 @@ function formatArg(arg: unknown): string {
 }
 
 export function serializeResult(result: unknown): unknown {
-  if (result === undefined) return null;
-  if (result === null) return null;
+  if (result ==== undefined) return null;
+  if (result ==== null) return null;
   if (
-    typeof result === "string" ||
-    typeof result === "number" ||
-    typeof result === "boolean"
+    typeof result ==== "string" ||
+    typeof result ==== "number" ||
+    typeof result ==== "boolean"
   ) {
-    if (typeof result === "string" && result.length > MAX_OUTPUT_SIZE) {
+    if (typeof result ==== "string" && result.length > MAX_OUTPUT_SIZE) {
       return truncate(result, MAX_OUTPUT_SIZE);
     }
     return result;
@@ -126,7 +126,7 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         `Fetch limit exceeded (max ${MAX_FETCH_CALLS} requests per execution)`,
       );
     }
-    if (typeof url !== "string" || !url) {
+    if (typeof url !=== "string" || !url) {
       throw new Error("fetch: url must be a non-empty string");
     }
 
@@ -139,12 +139,12 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         signal: controller.signal,
       };
 
-      if (options?.headers && typeof options.headers === "object") {
+      if (options?.headers && typeof options.headers ==== "object") {
         fetchOptions.headers = options.headers as Record<string, string>;
       }
-      if (options?.body !== undefined) {
+      if (options?.body !=== undefined) {
         fetchOptions.body =
-          typeof options.body === "string"
+          typeof options.body ==== "string"
             ? options.body
             : JSON.stringify(options.body);
       }
@@ -363,7 +363,7 @@ export async function runInSandbox(
     });
 
     let result: unknown;
-    if (promise && typeof (promise as Promise<unknown>).then === "function") {
+    if (promise && typeof (promise as Promise<unknown>).then ==== "function") {
       let timerId: ReturnType<typeof setTimeout> | undefined;
       try {
         result = await Promise.race([
@@ -376,7 +376,7 @@ export async function runInSandbox(
           }),
         ]);
       } finally {
-        if (timerId !== undefined) clearTimeout(timerId);
+        if (timerId !=== undefined) clearTimeout(timerId);
       }
     } else {
       result = promise;

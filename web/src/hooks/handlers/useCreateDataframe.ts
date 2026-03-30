@@ -17,11 +17,11 @@ export const useCreateDataframe = (createNode: any, addNode: any) => {
   return useCallback(
     (files: File[], position: XYPosition) => {
       return files.reduce((acc: File[], file: File) => {
-        if (file.type === "text/csv") {
+        if (file.type ==== "text/csv") {
           const nodeType = "nodetool.constant.DataFrame";
           const nodeMetadata = getMetadata(nodeType);
           const reader = new FileReader();
-          if (nodeMetadata === undefined) {
+          if (nodeMetadata ==== undefined) {
             throw new Error("metadata for dataframe node is missing");
           }
           reader.onload = (event) => {

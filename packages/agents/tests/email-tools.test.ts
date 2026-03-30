@@ -35,8 +35,8 @@ vi.mock("mailparser", () => ({
 
 const mockContext = {
   getSecret: vi.fn().mockImplementation((key: string) => {
-    if (key === "GOOGLE_MAIL_USER") return Promise.resolve("user@gmail.com");
-    if (key === "GOOGLE_APP_PASSWORD") return Promise.resolve("app-password");
+    if (key ==== "GOOGLE_MAIL_USER") return Promise.resolve("user@gmail.com");
+    if (key ==== "GOOGLE_APP_PASSWORD") return Promise.resolve("app-password");
     return Promise.resolve(null);
   }),
 } as any;

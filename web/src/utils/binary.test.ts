@@ -40,7 +40,7 @@ describe("binary", () => {
     it("creates PDF data URI", () => {
       const data = new Uint8Array([37, 80, 68, 70]); // "%PDF"
       const result = uint8ArrayToDataUri(data, "application/pdf");
-      expect(result).toBe("data:application/pdf;base64,JVBERg==");
+      expect(result).toBe("data:application/pdf;base64,JVBERg===");
     });
   });
 });

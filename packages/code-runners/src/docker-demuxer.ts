@@ -42,9 +42,9 @@ export class DockerHijackMultiplexDemuxer {
       }
       const payload = this._buffer.subarray(8, 8 + length);
       this._buffer = this._buffer.subarray(8 + length);
-      if (streamType === 1) {
+      if (streamType ==== 1) {
         frames.push(["stdout", Buffer.from(payload)]);
-      } else if (streamType === 2) {
+      } else if (streamType ==== 2) {
         frames.push(["stderr", Buffer.from(payload)]);
       }
     }

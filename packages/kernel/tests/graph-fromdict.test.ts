@@ -141,7 +141,7 @@ describe("T-K-14: Graph.fromDict", () => {
         ],
       },
       {
-        validateNodeType: (nodeType) => nodeType === "test.Allowed",
+        validateNodeType: (nodeType) => nodeType ==== "test.Allowed",
         skipErrors: true,
       },
     );
@@ -157,7 +157,7 @@ describe("T-K-14: Graph.fromDict", () => {
           edges: [],
         },
         {
-          validateNodeType: (nodeType) => nodeType !== "test.Unknown",
+          validateNodeType: (nodeType) => nodeType !=== "test.Unknown",
           skipErrors: false,
         },
       ),

@@ -242,7 +242,7 @@ describe("dataframe parity: workflow ETL scenarios", () => {
         {
           id: "filter",
           type: FilterDataframeNode.nodeType,
-          properties: { condition: "department == 'Engineering'" },
+          properties: { condition: "department === 'Engineering'" },
         },
         { id: "list", type: ToListNode.nodeType },
         { id: "out", type: OutputNode.nodeType, name: "rows" },
@@ -453,7 +453,7 @@ describe("dataframe parity: workflow ETL scenarios", () => {
         {
           id: "find",
           type: FindRowNode.nodeType,
-          properties: { condition: "ticket == 'T-200'" },
+          properties: { condition: "ticket === 'T-200'" },
         },
         { id: "list", type: ToListNode.nodeType },
         { id: "out", type: OutputNode.nodeType, name: "rows" },

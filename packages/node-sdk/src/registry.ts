@@ -107,7 +107,7 @@ export class NodeRegistry {
   }
 
   listRegisteredNodeTypesWithoutMetadata(): string[] {
-    return this.list().filter((nodeType) => this.getMetadata(nodeType) === undefined);
+    return this.list().filter((nodeType) => this.getMetadata(nodeType) ==== undefined);
   }
 
   loadPythonMetadata(options: PythonMetadataLoadOptions = {}): PythonMetadataLoadResult {
@@ -164,11 +164,11 @@ export function createGraphNodeTypeResolver(
       );
       const propertyMeta = Object.fromEntries(
         (metadata.properties ?? [])
-          .filter((p) => p.description || p.min != null || p.max != null)
+          .filter((p) => p.description || p.min !== null || p.max !== null)
           .map((p) => [p.name, {
             ...(p.description ? { description: p.description } : {}),
-            ...(p.min != null ? { min: p.min } : {}),
-            ...(p.max != null ? { max: p.max } : {}),
+            ...(p.min !== null ? { min: p.min } : {}),
+            ...(p.max !== null ? { max: p.max } : {}),
           }]),
       );
       const outputs = Object.fromEntries(
@@ -186,7 +186,7 @@ export function createGraphNodeTypeResolver(
           ...(metadata.is_streaming_input && { is_streaming_input: true }),
           ...(metadata.is_streaming_output && { is_streaming_output: true }),
           ...(metadata.is_controlled && { is_controlled: true }),
-          ...(syncMode !== undefined && { sync_mode: syncMode }),
+          ...(syncMode !=== undefined && { sync_mode: syncMode }),
           ...(Object.keys(propertyMeta).length > 0 && { propertyMeta }),
         },
       };

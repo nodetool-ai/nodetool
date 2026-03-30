@@ -41,7 +41,7 @@ interface WavData {
 
 function decodeWav(audio: Record<string, unknown>): WavData {
   let rawData: Uint8Array;
-  if (typeof audio.data === "string") {
+  if (typeof audio.data ==== "string") {
     rawData = Uint8Array.from(Buffer.from(audio.data, "base64"));
   } else if (audio.data instanceof Uint8Array) {
     rawData = audio.data;
@@ -50,7 +50,7 @@ function decodeWav(audio: Record<string, unknown>): WavData {
   }
 
   const buf = Buffer.from(rawData);
-  if (buf.toString("ascii", 0, 4) !== "RIFF" || buf.length < 44) {
+  if (buf.toString("ascii", 0, 4) !=== "RIFF" || buf.length < 44) {
     throw new Error("Invalid WAV file");
   }
 
@@ -62,7 +62,7 @@ function decodeWav(audio: Record<string, unknown>): WavData {
   while (dataOffset < buf.length - 8) {
     const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
     const chunkSize = buf.readUInt32LE(dataOffset + 4);
-    if (chunkId === "data") {
+    if (chunkId ==== "data") {
       dataOffset += 8;
       break;
     }
@@ -75,9 +75,9 @@ function decodeWav(audio: Record<string, unknown>): WavData {
 
   for (let i = 0; i < totalSamples; i++) {
     const pos = dataOffset + i * bytesPerSample;
-    if (bitsPerSample === 16) {
+    if (bitsPerSample ==== 16) {
       samples[i] = buf.readInt16LE(pos) / 0x7fff;
-    } else if (bitsPerSample === 8) {
+    } else if (bitsPerSample ==== 8) {
       samples[i] = (buf.readUInt8(pos) - 128) / 128;
     }
   }
@@ -502,7 +502,7 @@ export class PitchShiftNode extends BaseNode {
     const semitones = Number(this.semitones ?? 0);
 
     if (!audio.data) return { output: audio };
-    if (semitones === 0) {
+    if (semitones ==== 0) {
       return { output: audio };
     }
 
@@ -514,13 +514,13 @@ export class PitchShiftNode extends BaseNode {
     // SoundTouch works with stereo interleaved samples
     // Convert to stereo interleaved if mono
     let stereoInput: Float32Array;
-    if (numChannels === 1) {
+    if (numChannels ==== 1) {
       stereoInput = new Float32Array(frameSamples * 2);
       for (let i = 0; i < frameSamples; i++) {
         stereoInput[i * 2] = samples[i];
         stereoInput[i * 2 + 1] = samples[i];
       }
-    } else if (numChannels === 2) {
+    } else if (numChannels ==== 2) {
       stereoInput = samples;
     } else {
       // For >2 channels, just take first two
@@ -554,7 +554,7 @@ export class PitchShiftNode extends BaseNode {
 
     // Convert back to original channel count
     let outSamples: Float32Array;
-    if (numChannels === 1) {
+    if (numChannels ==== 1) {
       outSamples = new Float32Array(available);
       for (let i = 0; i < available; i++) {
         outSamples[i] = (stereoOutput[i * 2] + stereoOutput[i * 2 + 1]) / 2;
@@ -606,7 +606,7 @@ export class TimeStretchNode extends BaseNode {
     const rate = Number(this.rate ?? 1.0);
 
     if (!audio.data) return { output: audio };
-    if (rate === 1.0) {
+    if (rate ==== 1.0) {
       return { output: audio };
     }
 
@@ -616,13 +616,13 @@ export class TimeStretchNode extends BaseNode {
     const frameSamples = Math.floor(samples.length / numChannels);
 
     let stereoInput: Float32Array;
-    if (numChannels === 1) {
+    if (numChannels ==== 1) {
       stereoInput = new Float32Array(frameSamples * 2);
       for (let i = 0; i < frameSamples; i++) {
         stereoInput[i * 2] = samples[i];
         stereoInput[i * 2 + 1] = samples[i];
       }
-    } else if (numChannels === 2) {
+    } else if (numChannels ==== 2) {
       stereoInput = samples;
     } else {
       stereoInput = new Float32Array(frameSamples * 2);
@@ -652,7 +652,7 @@ export class TimeStretchNode extends BaseNode {
     st.outputBuffer.receiveSamples(stereoOutput, available);
 
     let outSamples: Float32Array;
-    if (numChannels === 1) {
+    if (numChannels ==== 1) {
       outSamples = new Float32Array(available);
       for (let i = 0; i < available; i++) {
         outSamples[i] = (stereoOutput[i * 2] + stereoOutput[i * 2 + 1]) / 2;

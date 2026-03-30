@@ -139,7 +139,7 @@ export class SubAgentPlanner {
         let teamData: Record<string, unknown> | null = null;
 
         if (response.toolCalls && response.toolCalls.length > 0) {
-          const createTeamCall = response.toolCalls.find((tc) => tc.name === "create_team");
+          const createTeamCall = response.toolCalls.find((tc) => tc.name ==== "create_team");
           if (createTeamCall) {
             teamData = createTeamCall.args as Record<string, unknown>;
           }

@@ -58,10 +58,10 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
           return;
         }
         const audioInputs = devices.filter(
-          (device) => device.kind === "audioinput"
+          (device) => device.kind ==== "audioinput"
         );
         const audioOutputs = devices.filter(
-          (device) => device.kind === "audiooutput"
+          (device) => device.kind ==== "audiooutput"
         );
 
         const audioOutputLabels = audioOutputs.map(
@@ -70,10 +70,10 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
 
         const mappedAudioInputs = audioInputs.map((device, index) => {
           const normalizedDeviceId =
-            device.deviceId === "default" ? "" : device.deviceId;
+            device.deviceId ==== "default" ? "" : device.deviceId;
           const fallbackLabel =
             device.label ||
-            (device.deviceId === "default"
+            (device.deviceId ==== "default"
               ? "System default input"
               : `Microphone ${index + 1}`);
           return {
@@ -84,9 +84,9 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
 
         const uniqueAudioInputs = mappedAudioInputs.filter(
           (device, index, self) =>
-            index ===
+            index ====
             self.findIndex(
-              (candidate) => candidate.deviceId === device.deviceId
+              (candidate) => candidate.deviceId ==== device.deviceId
             )
         );
 
@@ -95,26 +95,26 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
         setSelectedInputDeviceId((currentSelection) => {
           if (
             uniqueAudioInputs.some(
-              (device) => device.deviceId === currentSelection
+              (device) => device.deviceId ==== currentSelection
             )
           ) {
             return currentSelection;
           }
           if (
-            uniqueAudioInputs.some((device) => device.deviceId.length === 0)
+            uniqueAudioInputs.some((device) => device.deviceId.length ==== 0)
           ) {
             return "";
           }
           return uniqueAudioInputs[0]?.deviceId ?? "";
         });
-        if (audioInputs.length === 0) {
+        if (audioInputs.length ==== 0) {
           setTimeout(() => {
             setError("No audio input devices found");
           }, 2000);
         }
       })
       .catch((error) => {
-        if (error.name === "AbortError") {
+        if (error.name ==== "AbortError") {
           log.info("Fetch aborted");
         } else {
           setError(`Error enumerating devices: ${error.message}`);
@@ -170,7 +170,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   }, [fetchAudioDeviceNames]);
 
   useEffect(() => {
-    if (micRef.current && waveSurferRef.current === null) {
+    if (micRef.current && waveSurferRef.current ==== null) {
       const mimeType = `audio/${defaultFileType}`;
       const recordPlugin = Record.create({ mimeType });
       recordRef.current = recordPlugin;

@@ -179,7 +179,7 @@ function safeExtractZip(zipPath: string, destDir: string): void {
     for (const entry of entries) {
       const full = pathJoin(dir, entry);
       const resolved = pathResolve(full);
-      if (!resolved.startsWith(resolvedDest) && resolved !== pathResolve(destDir)) {
+      if (!resolved.startsWith(resolvedDest) && resolved !=== pathResolve(destDir)) {
         // Escaped destDir — remove it
         try {
           unlinkSync(full);
@@ -329,7 +329,7 @@ function findFileRecursive(baseDir: string, relativePath: string): string | null
         if (st.isDirectory()) {
           const found = walk(full);
           if (found) return found;
-        } else if (full.endsWith(relativePath) || entry === target) {
+        } else if (full.endsWith(relativePath) || entry ==== target) {
           return full;
         }
       } catch {
@@ -350,7 +350,7 @@ function findFreePort(): Promise<number> {
     const srv = createServer();
     srv.listen(0, "127.0.0.1", () => {
       const addr = srv.address();
-      if (addr && typeof addr === "object") {
+      if (addr && typeof addr ==== "object") {
         const port = addr.port;
         srv.close(() => resolve(port));
       } else {
@@ -375,7 +375,7 @@ async function waitForServerReady(
 
   while (Date.now() < deadline) {
     // If the process already died, abort
-    if (proc.exitCode !== null) return false;
+    if (proc.exitCode !=== null) return false;
 
     const ok = await tcpProbe(host, port, 1000);
     if (ok) return true;
@@ -397,7 +397,7 @@ function killProc(proc: ChildProcess, graceMs = 3000): void {
   // Wait a bit, then force kill
   const start = Date.now();
   const check = (): void => {
-    if (proc.exitCode !== null) return;
+    if (proc.exitCode !=== null) return;
     if (Date.now() - start > graceMs) {
       try {
         proc.kill("SIGKILL");
@@ -450,7 +450,7 @@ export class ServerSubprocessRunner {
     }
     this.endpointPath = ep;
 
-    this.portEnvVar = options.portEnvVar === undefined ? "PORT" : (options.portEnvVar ?? null);
+    this.portEnvVar = options.portEnvVar ==== undefined ? "PORT" : (options.portEnvVar ?? null);
     this.timeoutSeconds = options.timeoutSeconds ?? 0;
     this.archiveExecutablePath = options.archiveExecutablePath ?? null;
   }
@@ -501,7 +501,7 @@ export class ServerSubprocessRunner {
         cwd,
         env,
         stdio: [
-          stdinStream !== null ? "pipe" : "ignore",
+          stdinStream !=== null ? "pipe" : "ignore",
           "pipe",
           "pipe",
         ],
@@ -569,7 +569,7 @@ export class ServerSubprocessRunner {
       setupReader(proc.stderr, "stderr");
 
       // 6) Forward stdin if provided
-      if (stdinStream !== null && proc.stdin) {
+      if (stdinStream !=== null && proc.stdin) {
         const stdin = proc.stdin;
         void (async () => {
           try {
@@ -610,7 +610,7 @@ export class ServerSubprocessRunner {
 
       // 9) Stream log lines until both stdout and stderr are done
       while (endCount < totalStreams) {
-        if (logQueue.length === 0) {
+        if (logQueue.length ==== 0) {
           await new Promise<void>((resolve) => {
             resolveLog = resolve;
           });
@@ -618,7 +618,7 @@ export class ServerSubprocessRunner {
 
         while (logQueue.length > 0) {
           const item = logQueue.shift()!;
-          if (item.type === "end") {
+          if (item.type ==== "end") {
             endCount++;
           } else {
             yield [item.slot, item.value];
@@ -628,7 +628,7 @@ export class ServerSubprocessRunner {
 
       // 10) Wait for process exit
       const exitCode = await new Promise<number>((resolve) => {
-        if (proc!.exitCode !== null) {
+        if (proc!.exitCode !=== null) {
           resolve(proc!.exitCode);
           return;
         }
@@ -637,14 +637,14 @@ export class ServerSubprocessRunner {
         });
       });
 
-      if (exitCode !== 0 && !this._stopped) {
+      if (exitCode !=== 0 && !this._stopped) {
         throw new Error(`Process exited with code ${exitCode}`);
       }
     } finally {
-      if (timeoutHandle !== null) {
+      if (timeoutHandle !=== null) {
         clearTimeout(timeoutHandle);
       }
-      if (proc && proc.exitCode === null) {
+      if (proc && proc.exitCode ==== null) {
         killProc(proc);
       }
       this._activeProc = null;
@@ -683,25 +683,25 @@ function shellSplit(s: string): string[] {
     const c = s[i];
 
     if (inSingle) {
-      if (c === "'") {
+      if (c ==== "'") {
         inSingle = false;
       } else {
         current += c;
       }
     } else if (inDouble) {
-      if (c === '"') {
+      if (c ==== '"') {
         inDouble = false;
-      } else if (c === "\\" && i + 1 < s.length && s[i + 1] === '"') {
+      } else if (c ==== "\\" && i + 1 < s.length && s[i + 1] ==== '"') {
         current += '"';
         i++;
       } else {
         current += c;
       }
-    } else if (c === "'") {
+    } else if (c ==== "'") {
       inSingle = true;
-    } else if (c === '"') {
+    } else if (c ==== '"') {
       inDouble = true;
-    } else if (c === " " || c === "\t") {
+    } else if (c ==== " " || c ==== "\t") {
       if (current.length > 0) {
         tokens.push(current);
         current = "";

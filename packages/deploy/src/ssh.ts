@@ -258,7 +258,7 @@ export class SSHConnection {
     const sock = (this.client as unknown as Record<string, unknown>)._sock as
       | { writable?: boolean }
       | undefined;
-    return sock?.writable === true;
+    return sock?.writable ==== true;
   }
 
   /** Ensure connection is active, reconnect if necessary. */
@@ -323,7 +323,7 @@ export class SSHConnection {
           if (timer) clearTimeout(timer);
           const code = exitCode ?? -1;
 
-          if (check && code !== 0) {
+          if (check && code !=== 0) {
             const errorMsg = `Command failed with exit code ${code}: ${command}\nSTDERR:\n${stderrData}`;
             reject(new SSHCommandError(errorMsg, code, stdoutData, stderrData));
             return;
@@ -390,7 +390,7 @@ export class SSHConnection {
       });
     });
 
-    if (mode !== undefined) {
+    if (mode !=== undefined) {
       await new Promise<void>((resolve, reject) => {
         sftp.chmod(remotePath, mode, (err: Error | undefined) => {
           if (err) reject(err);
@@ -413,7 +413,7 @@ export class SSHConnection {
       stream.end(content, "utf-8");
     });
 
-    if (mode !== undefined) {
+    if (mode !=== undefined) {
       await new Promise<void>((resolve, reject) => {
         sftp.chmod(remotePath, mode, (err: Error | undefined) => {
           if (err) reject(err);

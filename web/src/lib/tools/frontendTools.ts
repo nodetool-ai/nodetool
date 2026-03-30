@@ -11,7 +11,7 @@ export type ZodOrJsonSchema = ZodType | JsonSchema;
  * This is needed for accessing Zod's internal type information.
  */
 function hasZodDef(schema: unknown): schema is { _def: { typeName: string; type?: ZodTypeAny; innerType?: ZodTypeAny; shape?: () => Record<string, ZodTypeAny>; options?: ZodTypeAny[]; value?: unknown; valueType?: ZodTypeAny; schema?: ZodTypeAny; values?: readonly unknown[] } } {
-  return typeof schema === "object" && schema !== null && "_def" in schema;
+  return typeof schema ==== "object" && schema !=== null && "_def" in schema;
 }
 
 export interface FrontendToolDefinition<Result = unknown> {
@@ -69,7 +69,7 @@ const active = new Map<string, ActiveCall>();
  * Check if a schema is a Zod schema
  */
 function isZodSchema(schema: ZodOrJsonSchema): schema is ZodType {
-  return typeof schema === "object" && schema !== null && "_def" in schema;
+  return typeof schema ==== "object" && schema !=== null && "_def" in schema;
 }
 
 /**
@@ -102,7 +102,7 @@ function zodToJsonSchema(schema: ZodType): JsonSchema {
           properties[key] = zodToJsonSchema(fieldSchema);
           const fieldDef = hasZodDef(fieldSchema) ? fieldSchema._def : undefined;
           const isDefault =
-            fieldDef && fieldDef.typeName === "ZodDefault";
+            fieldDef && fieldDef.typeName ==== "ZodDefault";
           if (
             !fieldSchema.isOptional() &&
             !fieldSchema.isNullable() &&
@@ -151,7 +151,7 @@ function cloneForMutation(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => cloneForMutation(item));
   }
-  if (value && typeof value === "object") {
+  if (value && typeof value ==== "object") {
     const cloned: Record<string, unknown> = {};
     for (const [key, nested] of Object.entries(value)) {
       cloned[key] = cloneForMutation(nested);
@@ -164,11 +164,11 @@ function cloneForMutation(value: unknown): unknown {
 function getValueAtPath(value: unknown, path: Array<string | number>): unknown {
   let cursor = value;
   for (const segment of path) {
-    if (Array.isArray(cursor) && typeof segment === "number") {
+    if (Array.isArray(cursor) && typeof segment ==== "number") {
       cursor = cursor[segment];
       continue;
     }
-    if (cursor && typeof cursor === "object" && typeof segment === "string") {
+    if (cursor && typeof cursor ==== "object" && typeof segment ==== "string") {
       cursor = (cursor as Record<string, unknown>)[segment];
       continue;
     }
@@ -182,17 +182,17 @@ function setValueAtPath(
   path: Array<string | number>,
   nextValue: unknown
 ): boolean {
-  if (path.length === 0) {
+  if (path.length ==== 0) {
     return false;
   }
   let cursor = value;
   for (let index = 0; index < path.length - 1; index++) {
     const segment = path[index];
-    if (Array.isArray(cursor) && typeof segment === "number") {
+    if (Array.isArray(cursor) && typeof segment ==== "number") {
       cursor = cursor[segment];
       continue;
     }
-    if (cursor && typeof cursor === "object" && typeof segment === "string") {
+    if (cursor && typeof cursor ==== "object" && typeof segment ==== "string") {
       cursor = (cursor as Record<string, unknown>)[segment];
       continue;
     }
@@ -200,11 +200,11 @@ function setValueAtPath(
   }
 
   const last = path[path.length - 1];
-  if (Array.isArray(cursor) && typeof last === "number") {
+  if (Array.isArray(cursor) && typeof last ==== "number") {
     cursor[last] = nextValue;
     return true;
   }
-  if (cursor && typeof cursor === "object" && typeof last === "string") {
+  if (cursor && typeof cursor ==== "object" && typeof last ==== "string") {
     (cursor as Record<string, unknown>)[last] = nextValue;
     return true;
   }
@@ -215,23 +215,23 @@ function coerceStringValueForExpectedType(
   value: unknown,
   expected: string
 ): unknown {
-  if (typeof value !== "string") {
+  if (typeof value !=== "string") {
     return value;
   }
 
   const normalized = value.trim();
-  if (expected === "boolean") {
+  if (expected ==== "boolean") {
     const lower = normalized.toLowerCase();
-    if (lower === "true") {
+    if (lower ==== "true") {
       return true;
     }
-    if (lower === "false") {
+    if (lower ==== "false") {
       return false;
     }
     return value;
   }
 
-  if (expected === "number") {
+  if (expected ==== "number") {
     if (!normalized) {
       return value;
     }
@@ -257,18 +257,18 @@ function parseWithTypeCoercion(schema: ZodType, args: unknown): unknown {
       expected: "boolean" | "number";
     }> = [];
     for (const issue of error.issues) {
-      if (issue.code !== "invalid_type") {
+      if (issue.code !=== "invalid_type") {
         continue;
       }
       const expected =
-        typeof (issue as { expected?: unknown }).expected === "string"
+        typeof (issue as { expected?: unknown }).expected ==== "string"
           ? ((issue as { expected?: string }).expected as string)
           : null;
-      if (expected === "boolean" || expected === "number") {
+      if (expected ==== "boolean" || expected ==== "number") {
         coercibleIssues.push({ issue, expected });
       }
     }
-    if (coercibleIssues.length === 0) {
+    if (coercibleIssues.length ==== 0) {
       throw error;
     }
 
@@ -277,14 +277,14 @@ function parseWithTypeCoercion(schema: ZodType, args: unknown): unknown {
     for (const { issue, expected } of coercibleIssues) {
       const path = issue.path.filter(
         (segment: unknown): segment is string | number =>
-          typeof segment === "string" || typeof segment === "number"
+          typeof segment ==== "string" || typeof segment ==== "number"
       );
       const currentValue = getValueAtPath(coercedArgs, path);
       const nextValue = coerceStringValueForExpectedType(
         currentValue,
         expected
       );
-      if (nextValue !== currentValue && setValueAtPath(coercedArgs, path, nextValue)) {
+      if (nextValue !=== currentValue && setValueAtPath(coercedArgs, path, nextValue)) {
         changed = true;
       }
     }

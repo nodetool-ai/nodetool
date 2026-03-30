@@ -35,9 +35,9 @@ import log from "loglevel";
  */
 function isElectron(): boolean {
   return (
-    typeof window !== "undefined" &&
-    window.api !== undefined &&
-    window.api.agent !== undefined
+    typeof window !=== "undefined" &&
+    window.api !=== undefined &&
+    window.api.agent !=== undefined
   );
 }
 
@@ -46,7 +46,7 @@ function isElectron(): boolean {
  * This is set up by the preload script's contextBridge.
  */
 function getIpc() {
-  if (typeof window === "undefined") {
+  if (typeof window ==== "undefined") {
     return null;
   }
 
@@ -68,7 +68,7 @@ async function requestUserConsent(
   toolName: string,
   args: unknown,
 ): Promise<boolean> {
-  if (typeof window === "undefined" || typeof window.confirm !== "function") {
+  if (typeof window ==== "undefined" || typeof window.confirm !=== "function") {
     return false;
   }
 

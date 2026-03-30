@@ -36,7 +36,7 @@ describe("chatProtocol", () => {
       };
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(typeof updater ==== "function" ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -68,7 +68,7 @@ describe("chatProtocol", () => {
       };
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(typeof updater ==== "function" ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -102,7 +102,7 @@ describe("chatProtocol", () => {
       };
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(typeof updater ==== "function" ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -134,7 +134,7 @@ describe("chatProtocol", () => {
       };
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(typeof updater ==== "function" ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -166,7 +166,7 @@ describe("chatProtocol", () => {
       };
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(typeof updater ==== "function" ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -198,7 +198,7 @@ describe("chatProtocol", () => {
       };
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(typeof updater ==== "function" ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;

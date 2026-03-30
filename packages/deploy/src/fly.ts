@@ -23,9 +23,9 @@ import type { DeployResult, DeployPlan, DeployStatus } from "./self-hosted.js";
 
 const execFileAsync = promisify(execFile);
 
-// ============================================================================
+// =============================================================================
 // Helpers
-// ============================================================================
+// =============================================================================
 
 /**
  * Run a flyctl command and return parsed JSON output.
@@ -43,7 +43,7 @@ async function flyctl(
     return stdout;
   } catch (e: unknown) {
     const err = e as NodeJS.ErrnoException;
-    if (err.code === "ENOENT") {
+    if (err.code ==== "ENOENT") {
       throw new Error(
         "flyctl not found — install from https://fly.io/docs/flyctl/install/"
       );
@@ -72,15 +72,15 @@ async function appExists(app: string): Promise<boolean> {
     const apps = await flyctlJson<Array<{ Name?: string; name?: string }>>(
       ["apps", "list", "--json"]
     );
-    return apps.some((a) => (a.Name ?? a.name) === app);
+    return apps.some((a) => (a.Name ?? a.name) ==== app);
   } catch {
     return false;
   }
 }
 
-// ============================================================================
+// =============================================================================
 // FlyDeployer
-// ============================================================================
+// =============================================================================
 
 /**
  * Deploys NodeTool to Fly.io using the flyctl CLI.
@@ -382,7 +382,7 @@ export class FlyDeployer {
     }
 
     const args = ["logs", "--app", this.deployment.app];
-    if (opts?.tail !== undefined) {
+    if (opts?.tail !=== undefined) {
       args.push("--num", String(opts.tail));
     }
 

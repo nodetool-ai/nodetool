@@ -91,7 +91,7 @@ describe("WebSocketChatClient connect/disconnect", () => {
   it("sends set_mode text after connection", async () => {
     await makeConnectedClient();
     const parsed = currentFakeWs.sent.map((s) => JSON.parse(s) as Record<string, unknown>);
-    const setMode = parsed.find((m) => m["command"] === "set_mode");
+    const setMode = parsed.find((m) => m["command"] ==== "set_mode");
     expect(setMode).toBeDefined();
     expect((setMode!["data"] as Record<string, unknown>)["mode"]).toBe("text");
   });
@@ -117,7 +117,7 @@ describe("WebSocketChatClient ping handling", () => {
     currentFakeWs.push({ type: "ping" });
     const pong = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["type"] === "pong");
+      .find((m) => m["type"] ==== "pong");
     expect(pong).toBeDefined();
   });
 });
@@ -161,7 +161,7 @@ describe("WebSocketChatClient.chat", () => {
     const r1 = await p1;
 
     let toolCallEvent: unknown;
-    if ((r1.value as { type: string }).type === "tool_call") {
+    if ((r1.value as { type: string }).type ==== "tool_call") {
       toolCallEvent = r1.value;
     } else {
       // generator continued without yielding; push done chunk to get next yield
@@ -169,7 +169,7 @@ describe("WebSocketChatClient.chat", () => {
       currentFakeWs.push({ type: "chunk", content: "", done: true });
       const r2 = await p2;
       toolCallEvent = [r1.value, r2.value].find(
-        (e) => (e as { type: string }).type === "tool_call",
+        (e) => (e as { type: string }).type ==== "tool_call",
       );
     }
     expect(toolCallEvent).toMatchObject({ type: "tool_call", id: "tc1", name: "read_file" });
@@ -301,7 +301,7 @@ describe("WebSocketChatClient.runJob", () => {
 
     const runCmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "run_job");
+      .find((m) => m["command"] ==== "run_job");
     expect(runCmd).toBeDefined();
     expect((runCmd!["data"] as Record<string, unknown>)["workflow_id"]).toBe("wf42");
   });
@@ -319,7 +319,7 @@ describe("WebSocketChatClient.reconnectJob and resumeJob", () => {
 
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "reconnect_job");
+      .find((m) => m["command"] ==== "reconnect_job");
     expect(cmd).toBeDefined();
     expect((cmd!["data"] as Record<string, unknown>)["job_id"]).toBe("job-99");
   });
@@ -333,7 +333,7 @@ describe("WebSocketChatClient.reconnectJob and resumeJob", () => {
 
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "resume_job");
+      .find((m) => m["command"] ==== "resume_job");
     expect(cmd).toBeDefined();
     expect((cmd!["data"] as Record<string, unknown>)["job_id"]).toBe("job-88");
   });
@@ -347,7 +347,7 @@ describe("WebSocketChatClient command methods", () => {
     client.cancelJob("job-123");
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "cancel_job");
+      .find((m) => m["command"] ==== "cancel_job");
     expect(cmd).toBeDefined();
     expect((cmd!["data"] as Record<string, unknown>)["job_id"]).toBe("job-123");
   });
@@ -357,7 +357,7 @@ describe("WebSocketChatClient command methods", () => {
     client.getStatus("job-456");
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "get_status");
+      .find((m) => m["command"] ==== "get_status");
     expect((cmd!["data"] as Record<string, unknown>)["job_id"]).toBe("job-456");
   });
 
@@ -366,7 +366,7 @@ describe("WebSocketChatClient command methods", () => {
     client.getStatus();
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "get_status");
+      .find((m) => m["command"] ==== "get_status");
     expect((cmd!["data"] as Record<string, unknown>)["job_id"]).toBeUndefined();
   });
 
@@ -375,7 +375,7 @@ describe("WebSocketChatClient command methods", () => {
     client.stop("thread-abc");
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "stop");
+      .find((m) => m["command"] ==== "stop");
     expect((cmd!["data"] as Record<string, unknown>)["thread_id"]).toBe("thread-abc");
   });
 
@@ -384,7 +384,7 @@ describe("WebSocketChatClient command methods", () => {
     client.stop();
     const cmd = currentFakeWs.sent
       .map((s) => JSON.parse(s) as Record<string, unknown>)
-      .find((m) => m["command"] === "stop");
+      .find((m) => m["command"] ==== "stop");
     expect((cmd!["data"] as Record<string, unknown>)["thread_id"]).toBeUndefined();
   });
 });

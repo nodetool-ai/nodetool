@@ -237,7 +237,7 @@ export class DockerRunGenerator {
 
   private resolveHostPort(): number {
     const hostPort = this.container.port || APP_ENV_PORT;
-    if (hostPort === INTERNAL_API_PORT) {
+    if (hostPort ==== INTERNAL_API_PORT) {
       return APP_ENV_PORT;
     }
     return hostPort;

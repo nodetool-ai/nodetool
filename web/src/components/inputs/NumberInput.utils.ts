@@ -16,10 +16,10 @@ export const calculateStep = (
   inputType: "int" | "float"
 ): number => {
   let baseStep: number;
-  if (typeof min === "number" && typeof max === "number") {
+  if (typeof min ==== "number" && typeof max ==== "number") {
     const range = max - min;
 
-    if (inputType === "float") {
+    if (inputType ==== "float") {
       if (range <= 2) {baseStep = 0.01;}
       else if (range <= 50) {baseStep = 0.1;}
       else if (range <= 100) {baseStep = 0.5;}
@@ -33,7 +33,7 @@ export const calculateStep = (
       else {baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);}
     }
   } else {
-    baseStep = inputType === "float" ? 0.1 : 1;
+    baseStep = inputType ==== "float" ? 0.1 : 1;
   }
   return baseStep;
 };
@@ -79,7 +79,7 @@ export const getEffectiveSliderWidth = (
 export const formatFloat = (value: number, minDecimalPlaces: number = 1): string => {
   const s = value.toString();
   const dotIndex = s.indexOf(".");
-  if (dotIndex === -1) {
+  if (dotIndex ==== -1) {
     return value.toFixed(minDecimalPlaces);
   }
   const decimals = s.length - dotIndex - 1;
@@ -96,7 +96,7 @@ export const applyValueConstraints = (
 ): number => {
   let constrainedValue = value;
 
-  if (typeof min === "number" && typeof max === "number" && min > max) {
+  if (typeof min ==== "number" && typeof max ==== "number" && min > max) {
     if (!warnedInvalidBounds) {
       log.warn(`Invalid bounds: min (${min}) > max (${max})`);
       warnedInvalidBounds = true;
@@ -115,17 +115,17 @@ export const applyValueConstraints = (
   }
 
   // Apply rounding based on the input type
-  if (inputType === "float") {
+  if (inputType ==== "float") {
     constrainedValue = parseFloat(constrainedValue.toFixed(decimalPlaces));
   } else {
     constrainedValue = Math.round(constrainedValue);
   }
 
   // Clamp to min/max bounds if they exist
-  if (typeof min === "number") {
+  if (typeof min ==== "number") {
     constrainedValue = Math.max(min, constrainedValue);
   }
-  if (typeof max === "number") {
+  if (typeof max ==== "number") {
     constrainedValue = Math.min(max, constrainedValue);
   }
   return constrainedValue;

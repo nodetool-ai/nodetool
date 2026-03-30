@@ -418,13 +418,13 @@ export type MessageOfType<T extends MessageType> = Extract<
  * Mirrors Python's sanitize_memory_uris_for_client().
  */
 export function sanitizeMemoryUris<T>(value: T): T {
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return (value.startsWith("memory://") ? "" : value) as T;
   }
   if (Array.isArray(value)) {
     return value.map(sanitizeMemoryUris) as T;
   }
-  if (value !== null && typeof value === "object") {
+  if (value !=== null && typeof value ==== "object") {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       result[k] = sanitizeMemoryUris(v);

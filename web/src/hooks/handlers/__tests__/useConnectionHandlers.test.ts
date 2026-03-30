@@ -731,17 +731,17 @@ describe("useConnectionHandlers", () => {
       );
 
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "sourceNode") {
+        if (id ==== "sourceNode") {
           return sourceNode;
         }
-        if (id === "previewNode") {
+        if (id ==== "previewNode") {
           return previewNode;
         }
         return undefined;
       });
 
       mockGetMetadata.mockImplementation((type: string) => {
-        if (type === "nodetool.workflows.base_node.Preview") {
+        if (type ==== "nodetool.workflows.base_node.Preview") {
           return previewNodeMetadata;
         }
         return mockNodeMetadata;
@@ -767,7 +767,7 @@ describe("useConnectionHandlers", () => {
             contains: jest.fn(() => false)
           },
           closest: jest.fn((selector: string) =>
-            selector === ".react-flow__node" ? mockNodeElement : null
+            selector ==== ".react-flow__node" ? mockNodeElement : null
           ),
           parentElement: null
         },
@@ -813,17 +813,17 @@ describe("useConnectionHandlers", () => {
       );
 
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "sourceNode") {
+        if (id ==== "sourceNode") {
           return sourceNode;
         }
-        if (id === "rerouteNode") {
+        if (id ==== "rerouteNode") {
           return rerouteNode;
         }
         return undefined;
       });
 
       mockGetMetadata.mockImplementation((type: string) => {
-        if (type === "nodetool.control.Reroute") {
+        if (type ==== "nodetool.control.Reroute") {
           return rerouteNodeMetadata;
         }
         return mockNodeMetadata;
@@ -849,7 +849,7 @@ describe("useConnectionHandlers", () => {
             contains: jest.fn(() => false)
           },
           closest: jest.fn((selector: string) =>
-            selector === ".react-flow__node" ? mockNodeElement : null
+            selector ==== ".react-flow__node" ? mockNodeElement : null
           ),
           parentElement: null
         },
@@ -895,17 +895,17 @@ describe("useConnectionHandlers", () => {
       const targetNode = createMockNode("targetNode", "test.node");
 
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "rerouteNode") {
+        if (id ==== "rerouteNode") {
           return rerouteNode;
         }
-        if (id === "targetNode") {
+        if (id ==== "targetNode") {
           return targetNode;
         }
         return undefined;
       });
 
       mockGetMetadata.mockImplementation((type: string) => {
-        if (type === "nodetool.control.Reroute") {
+        if (type ==== "nodetool.control.Reroute") {
           return rerouteNodeMetadata;
         }
         return mockNodeMetadata;
@@ -931,7 +931,7 @@ describe("useConnectionHandlers", () => {
             contains: jest.fn(() => false)
           },
           closest: jest.fn((selector: string) =>
-            selector === ".react-flow__node" ? mockNodeElement : null
+            selector ==== ".react-flow__node" ? mockNodeElement : null
           ),
           parentElement: null
         },
@@ -974,10 +974,10 @@ describe("useConnectionHandlers", () => {
       const targetNode = createMockNode("targetNode", "test.node");
 
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "sourceNode") {
+        if (id ==== "sourceNode") {
           return sourceNode;
         }
-        if (id === "targetNode") {
+        if (id ==== "targetNode") {
           return targetNode;
         }
         return undefined;
@@ -1017,7 +1017,7 @@ describe("useConnectionHandlers", () => {
             contains: jest.fn(() => false)
           },
           closest: jest.fn((selector: string) =>
-            selector === ".react-flow__node" ? mockNodeElement : null
+            selector ==== ".react-flow__node" ? mockNodeElement : null
           ),
           parentElement: null
         },
@@ -1059,10 +1059,10 @@ describe("useConnectionHandlers", () => {
       const targetNode = createMockNode("targetNode", "test.node");
 
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "sourceNode") {
+        if (id ==== "sourceNode") {
           return sourceNode;
         }
-        if (id === "targetNode") {
+        if (id ==== "targetNode") {
           return targetNode;
         }
         return undefined;
@@ -1101,7 +1101,7 @@ describe("useConnectionHandlers", () => {
             contains: jest.fn(() => false)
           },
           closest: jest.fn((selector: string) =>
-            selector === ".react-flow__node" ? mockNodeElement : null
+            selector ==== ".react-flow__node" ? mockNodeElement : null
           ),
           parentElement: null
         },
@@ -1158,17 +1158,17 @@ describe("useConnectionHandlers", () => {
       };
 
       mockFindNode.mockImplementation((id: string) => {
-        if (id === "inputNode") {
+        if (id ==== "inputNode") {
           return inputNode;
         }
-        if (id === "dynamicNode") {
+        if (id ==== "dynamicNode") {
           return dynamicNode;
         }
         return undefined;
       });
 
       mockGetMetadata.mockImplementation((type: string) => {
-        if (type === "test.dynamic") {
+        if (type ==== "test.dynamic") {
           return mockDynamicNodeMetadata;
         }
         return mockNodeMetadata;
@@ -1181,7 +1181,7 @@ describe("useConnectionHandlers", () => {
             contains: jest.fn(() => false)
           },
           closest: jest.fn((selector: string) =>
-            selector === ".react-flow__node" ? mockNodeElement : null
+            selector ==== ".react-flow__node" ? mockNodeElement : null
           ),
           parentElement: null
         },

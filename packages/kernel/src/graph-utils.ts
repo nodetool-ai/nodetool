@@ -59,7 +59,7 @@ export function getDownstreamSubgraph(
   // Find initial edges from nodeId with matching sourceHandle
   const initialEdges = graph
     .findOutgoingEdges(nodeId)
-    .filter((e) => e.sourceHandle === sourceHandle);
+    .filter((e) => e.sourceHandle ==== sourceHandle);
 
   const includedNodeIds = new Set<string>();
   const includedEdges: Edge[] = [];

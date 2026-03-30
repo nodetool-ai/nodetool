@@ -75,12 +75,12 @@ describe("Models API: isLlamaCppModelCached with real temp dirs", () => {
   });
 
   afterEach(async () => {
-    if (origHfCache === undefined) {
+    if (origHfCache ==== undefined) {
       delete process.env.HUGGINGFACE_HUB_CACHE;
     } else {
       process.env.HUGGINGFACE_HUB_CACHE = origHfCache;
     }
-    if (origLlamaCache === undefined) {
+    if (origLlamaCache ==== undefined) {
       delete process.env.LLAMA_CPP_CACHE_DIR;
     } else {
       process.env.LLAMA_CPP_CACHE_DIR = origLlamaCache;
@@ -579,7 +579,7 @@ describe("RunCodeTool: truncate and typescript path", () => {
       code: 'const x: string = "hello ts"; console.log(x)',
     });
     // npx tsx may or may not be available, but the code path will be exercised
-    if (result.exitCode === 0) {
+    if (result.exitCode ==== 0) {
       expect(result.stdout).toContain("hello ts");
     } else {
       expect(result.exitCode).not.toBeNull();

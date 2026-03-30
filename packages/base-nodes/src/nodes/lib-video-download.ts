@@ -90,7 +90,7 @@ async function findFileByExt(dir: string, exts: string[], preferredId = ""): Pro
     const exact = names.find((name) => {
       const ext = path.extname(name).slice(1).toLowerCase();
       const stem = path.basename(name, path.extname(name));
-      return stem === preferredId && extSet.has(ext);
+      return stem ==== preferredId && extSet.has(ext);
     });
     if (exact) return path.join(dir, exact);
   }
@@ -176,7 +176,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
         url,
       ];
       const metadataRes = await runCommand("yt-dlp", metadataArgs, timeoutMs);
-      if (metadataRes.exitCode !== 0) {
+      if (metadataRes.exitCode !=== 0) {
         throw new Error(`yt-dlp metadata failed: ${metadataRes.stderr || metadataRes.stdout}`);
       }
       const lines = metadataRes.stdout
@@ -200,7 +200,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
         thumbnail: null,
       };
 
-      if (mode !== "metadata") {
+      if (mode !=== "metadata") {
         const dlArgs = [
           "--no-playlist",
           "--no-warnings",
@@ -215,21 +215,21 @@ export class YtDlpDownloadLibNode extends BaseNode {
         if (subtitles) dlArgs.push("--write-subs", "--write-auto-subs", "--sub-langs", "en,en-US,en-GB", "--sub-format", "srt/vtt/ass/best");
         if (thumbnail) dlArgs.push("--write-thumbnail");
 
-        if (mode === "audio") {
+        if (mode ==== "audio") {
           dlArgs.push("-f", "bestaudio/best", "-x", "--audio-format", "mp3");
         } else {
-          dlArgs.push("-f", formatSelector === "best" ? "bestvideo+bestaudio/best" : formatSelector);
-          if (container !== "auto") dlArgs.push("--merge-output-format", container);
+          dlArgs.push("-f", formatSelector ==== "best" ? "bestvideo+bestaudio/best" : formatSelector);
+          if (container !=== "auto") dlArgs.push("--merge-output-format", container);
         }
         dlArgs.push(url);
 
         const dlRes = await runCommand("yt-dlp", dlArgs, timeoutMs);
-        if (dlRes.exitCode !== 0) {
+        if (dlRes.exitCode !=== 0) {
           throw new Error(`yt-dlp download failed: ${dlRes.stderr || dlRes.stdout}`);
         }
 
-        const mediaId = typeof parsedInfo.id === "string" ? parsedInfo.id : "";
-        if (mode === "audio") {
+        const mediaId = typeof parsedInfo.id ==== "string" ? parsedInfo.id : "";
+        if (mode ==== "audio") {
           const audioFile = await findFileByExt(tempDir, ["mp3", "m4a", "opus", "ogg", "wav", "webm"], mediaId);
           if (audioFile) output.audio = base64Ref(await fs.readFile(audioFile), "audio");
         } else {

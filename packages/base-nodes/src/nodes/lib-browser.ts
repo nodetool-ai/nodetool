@@ -49,7 +49,7 @@ export class WebFetchLibNode extends BaseNode {
 
     const $ = cheerio.load(String(response.data));
     const elements = $(selector);
-    if (elements.length === 0) {
+    if (elements.length ==== 0) {
       throw new Error(`No elements found matching selector: ${selector}`);
     }
 
@@ -258,7 +258,7 @@ export class BrowserNavigationLibNode extends BaseNode {
     const extractType = String(this.extract_type ?? "text") as ExtractType;
     const attribute = String(this.attribute ?? "");
 
-    if (action === "goto" && !url) throw new Error("URL is required for goto action");
+    if (action ==== "goto" && !url) throw new Error("URL is required for goto action");
 
     const { chromium } = await import("playwright");
     const browser = await chromium.launch({ headless: true });
@@ -266,21 +266,21 @@ export class BrowserNavigationLibNode extends BaseNode {
       const ctx = await browser.newContext({ bypassCSP: true });
       const page = await ctx.newPage();
 
-      if (action === "goto") {
+      if (action ==== "goto") {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout });
-      } else if (action === "reload") {
+      } else if (action ==== "reload") {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout });
         await page.reload({ waitUntil: "domcontentloaded", timeout });
-      } else if (action === "click") {
+      } else if (action ==== "click") {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout });
         const el = await page.waitForSelector(selector, { timeout });
         if (!el) throw new Error(`Element not found: ${selector}`);
         await el.click();
-      } else if (action === "extract") {
+      } else if (action ==== "extract") {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout });
-      } else if (action === "back") {
+      } else if (action ==== "back") {
         await page.goBack({ timeout, waitUntil: "domcontentloaded" });
-      } else if (action === "forward") {
+      } else if (action ==== "forward") {
         await page.goForward({ timeout, waitUntil: "domcontentloaded" });
       }
 
@@ -289,15 +289,15 @@ export class BrowserNavigationLibNode extends BaseNode {
       }
 
       let extracted: unknown = null;
-      if (action === "extract") {
+      if (action ==== "extract") {
         if (selector) {
           const el = await page.waitForSelector(selector, { timeout });
           if (!el) throw new Error(`Element not found: ${selector}`);
-          if (extractType === "html") {
+          if (extractType ==== "html") {
             extracted = await el.evaluate((e: Element) => e.outerHTML);
-          } else if (extractType === "value") {
+          } else if (extractType ==== "value") {
             extracted = await el.evaluate((e: HTMLInputElement) => e.value ?? "");
-          } else if (extractType === "attribute") {
+          } else if (extractType ==== "attribute") {
             extracted = await el.evaluate(
               (e: Element, a: string) => e.getAttribute(a),
               attribute
@@ -308,7 +308,7 @@ export class BrowserNavigationLibNode extends BaseNode {
             );
           }
         } else {
-          if (extractType === "html") {
+          if (extractType ==== "html") {
             extracted = await page.content();
           } else {
             extracted = await page.evaluate(
@@ -444,10 +444,10 @@ export class SpiderCrawlLibNode extends BaseNode {
               if (sameDomainOnly) {
                 const linkParsed = new URL(resolved);
                 const linkDomain = `${linkParsed.protocol}//${linkParsed.host}`;
-                if (linkDomain !== startDomain) return;
+                if (linkDomain !=== startDomain) return;
               }
 
-              if (!toVisit.some((v) => v.url === resolved)) {
+              if (!toVisit.some((v) => v.url ==== resolved)) {
                 toVisit.push({ url: resolved, depth: depth + 1 });
               }
             } catch {

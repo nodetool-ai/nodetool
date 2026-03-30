@@ -65,7 +65,7 @@ function bytesFromUnknown(value: unknown): Uint8Array {
   if (Array.isArray(value) && value.every((x) => Number.isInteger(x))) {
     return new Uint8Array(value as number[]);
   }
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return Uint8Array.from(Buffer.from(value, "base64"));
   }
   return new Uint8Array();
@@ -520,7 +520,7 @@ export class JoinWorkspacePathsNode extends BaseNode {
     const parts = Array.isArray(this.paths ?? this.paths)
       ? (this.paths ?? this.paths) as unknown[]
       : [];
-    if (parts.length === 0) {
+    if (parts.length ==== 0) {
       throw new Error("paths cannot be empty");
     }
     const joined = path.join(...parts.map((p) => String(p)));

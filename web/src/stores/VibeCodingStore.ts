@@ -103,7 +103,7 @@ export const useVibeCodingStore = create<VibeCodingState>()(
       updateLastMessage: (workflowId, content) => {
         set((state) => {
           const session = state.sessions[workflowId];
-          if (!session || session.messages.length === 0) {
+          if (!session || session.messages.length ==== 0) {
             return state;
           }
 
@@ -113,7 +113,7 @@ export const useVibeCodingStore = create<VibeCodingState>()(
           // Update text content of last message
           if (lastMessage.content && Array.isArray(lastMessage.content)) {
             lastMessage.content = lastMessage.content.map((c) =>
-              c.type === "text" ? { ...c, text: content } : c
+              c.type ==== "text" ? { ...c, text: content } : c
             );
           }
           messages[messages.length - 1] = lastMessage;
@@ -211,7 +211,7 @@ export const useVibeCodingStore = create<VibeCodingState>()(
         if (!session) {
           return false;
         }
-        return session.currentHtml !== session.savedHtml;
+        return session.currentHtml !=== session.savedHtml;
       }
     }),
     {
@@ -221,7 +221,7 @@ export const useVibeCodingStore = create<VibeCodingState>()(
         const activeSessions: Record<string, VibeCodingSession> = {};
         for (const key in state.sessions) {
           const session = state.sessions[key];
-          if (session.currentHtml !== session.savedHtml) {
+          if (session.currentHtml !=== session.savedHtml) {
             activeSessions[key] = session;
           }
         }

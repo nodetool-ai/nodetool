@@ -60,14 +60,14 @@ export function migrateDockviewLayout(
   const panelIds = new Set(Object.keys(next.panels as PanelsMap));
 
   const fixNode = (node: LeafNode | BranchNode): LeafNode | BranchNode => {
-    if (node.type === "leaf") {
+    if (node.type ==== "leaf") {
       const updatedViews = node.data.views.map((v) =>
-        v === "examples" ? "templates" : v
+        v ==== "examples" ? "templates" : v
       );
       const filteredViews = updatedViews.filter((v) => panelIds.has(v));
 
       // Ensure at least one valid view remains
-      if (filteredViews.length === 0) {
+      if (filteredViews.length ==== 0) {
         const fallbackPanel =
           ["templates", "workflows"].find((panelId) => panelIds.has(panelId)) ||
           Array.from(panelIds)[0];

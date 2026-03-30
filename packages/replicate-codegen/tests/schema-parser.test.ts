@@ -145,7 +145,7 @@ describe("parse() with sdxl schema", () => {
 
   it('finds the "prompt" field as a required string input', () => {
     const spec = parser.parse(sdxlSchema);
-    const prompt = spec.inputFields.find((f) => f.name === "prompt");
+    const prompt = spec.inputFields.find((f) => f.name ==== "prompt");
     expect(prompt).toBeDefined();
     expect(prompt?.tsType).toBe("string");
     expect(prompt?.propType).toBe("str");
@@ -154,7 +154,7 @@ describe("parse() with sdxl schema", () => {
 
   it('finds "width" as an integer field with correct default', () => {
     const spec = parser.parse(sdxlSchema);
-    const field = spec.inputFields.find((f) => f.name === "width");
+    const field = spec.inputFields.find((f) => f.name ==== "width");
     expect(field).toBeDefined();
     expect(field?.propType).toBe("int");
     expect(field?.tsType).toBe("number");
@@ -163,7 +163,7 @@ describe("parse() with sdxl schema", () => {
 
   it('finds "guidance_scale" as a float field', () => {
     const spec = parser.parse(sdxlSchema);
-    const field = spec.inputFields.find((f) => f.name === "guidance_scale");
+    const field = spec.inputFields.find((f) => f.name ==== "guidance_scale");
     expect(field).toBeDefined();
     expect(field?.propType).toBe("float");
     expect(field?.default).toBe(7.5);
@@ -171,7 +171,7 @@ describe("parse() with sdxl schema", () => {
 
   it('finds "apply_watermark" as a boolean field', () => {
     const spec = parser.parse(sdxlSchema);
-    const field = spec.inputFields.find((f) => f.name === "apply_watermark");
+    const field = spec.inputFields.find((f) => f.name ==== "apply_watermark");
     expect(field).toBeDefined();
     expect(field?.tsType).toBe("boolean");
     expect(field?.propType).toBe("bool");
@@ -180,7 +180,7 @@ describe("parse() with sdxl schema", () => {
 
   it('detects "image" uri field as image type', () => {
     const spec = parser.parse(sdxlSchema);
-    const field = spec.inputFields.find((f) => f.name === "image");
+    const field = spec.inputFields.find((f) => f.name ==== "image");
     expect(field).toBeDefined();
     expect(field?.propType).toBe("image");
     expect(field?.tsType).toBe("image");
@@ -189,19 +189,19 @@ describe("parse() with sdxl schema", () => {
 
   it('detects "mask" uri field as image type', () => {
     const spec = parser.parse(sdxlSchema);
-    const field = spec.inputFields.find((f) => f.name === "mask");
+    const field = spec.inputFields.find((f) => f.name ==== "mask");
     expect(field).toBeDefined();
     expect(field?.propType).toBe("image");
   });
 
   it('detects "scheduler" as an enum and extracts values', () => {
     const spec = parser.parse(sdxlSchema);
-    const field = spec.inputFields.find((f) => f.name === "scheduler");
+    const field = spec.inputFields.find((f) => f.name ==== "scheduler");
     expect(field).toBeDefined();
     expect(field?.propType).toBe("enum");
     expect(field?.enumRef).toBe("Scheduler");
 
-    const enumDef = spec.enums.find((e) => e.name === "Scheduler");
+    const enumDef = spec.enums.find((e) => e.name ==== "Scheduler");
     expect(enumDef).toBeDefined();
     expect(enumDef?.values.map(([k]) => k)).toContain("DDIM");
     expect(enumDef?.values.map(([k]) => k)).toContain("K_EULER");
@@ -212,7 +212,7 @@ describe("parse() with sdxl schema", () => {
 
   it('detects "refine" as an enum', () => {
     const spec = parser.parse(sdxlSchema);
-    const field = spec.inputFields.find((f) => f.name === "refine");
+    const field = spec.inputFields.find((f) => f.name ==== "refine");
     expect(field).toBeDefined();
     expect(field?.enumRef).toBe("Refine");
   });
@@ -249,27 +249,27 @@ describe("type mapping via parse()", () => {
 
   it("maps string type to str", () => {
     const spec = parser.parse(makeSchema("prompt", { type: "string" }));
-    const f = spec.inputFields.find((f) => f.name === "prompt")!;
+    const f = spec.inputFields.find((f) => f.name ==== "prompt")!;
     expect(f.propType).toBe("str");
     expect(f.tsType).toBe("string");
   });
 
   it("maps integer type to int", () => {
     const spec = parser.parse(makeSchema("steps", { type: "integer", default: 28 }));
-    const f = spec.inputFields.find((f) => f.name === "steps")!;
+    const f = spec.inputFields.find((f) => f.name ==== "steps")!;
     expect(f.propType).toBe("int");
     expect(f.tsType).toBe("number");
   });
 
   it("maps number type to float", () => {
     const spec = parser.parse(makeSchema("scale", { type: "number", default: 7.5 }));
-    const f = spec.inputFields.find((f) => f.name === "scale")!;
+    const f = spec.inputFields.find((f) => f.name ==== "scale")!;
     expect(f.propType).toBe("float");
   });
 
   it("maps boolean type to bool", () => {
     const spec = parser.parse(makeSchema("enabled", { type: "boolean", default: false }));
-    const f = spec.inputFields.find((f) => f.name === "enabled")!;
+    const f = spec.inputFields.find((f) => f.name ==== "enabled")!;
     expect(f.propType).toBe("bool");
     expect(f.tsType).toBe("boolean");
   });
@@ -278,7 +278,7 @@ describe("type mapping via parse()", () => {
     const spec = parser.parse(
       makeSchema("video_url", { type: "string", format: "uri" }),
     );
-    const f = spec.inputFields.find((f) => f.name === "video_url")!;
+    const f = spec.inputFields.find((f) => f.name ==== "video_url")!;
     expect(f.propType).toBe("video");
     expect(f.tsType).toBe("video");
   });
@@ -287,7 +287,7 @@ describe("type mapping via parse()", () => {
     const spec = parser.parse(
       makeSchema("audio_url", { type: "string", format: "uri" }),
     );
-    const f = spec.inputFields.find((f) => f.name === "audio_url")!;
+    const f = spec.inputFields.find((f) => f.name ==== "audio_url")!;
     expect(f.propType).toBe("audio");
   });
 
@@ -295,7 +295,7 @@ describe("type mapping via parse()", () => {
     const spec = parser.parse(
       makeSchema("sound_file", { type: "string", format: "uri" }),
     );
-    const f = spec.inputFields.find((f) => f.name === "sound_file")!;
+    const f = spec.inputFields.find((f) => f.name ==== "sound_file")!;
     expect(f.propType).toBe("audio");
   });
 
@@ -303,7 +303,7 @@ describe("type mapping via parse()", () => {
     const spec = parser.parse(
       makeSchema("music_file", { type: "string", format: "uri" }),
     );
-    const f = spec.inputFields.find((f) => f.name === "music_file")!;
+    const f = spec.inputFields.find((f) => f.name ==== "music_file")!;
     expect(f.propType).toBe("audio");
   });
 
@@ -311,7 +311,7 @@ describe("type mapping via parse()", () => {
     const spec = parser.parse(
       makeSchema("image_url", { type: "string", format: "uri" }),
     );
-    const f = spec.inputFields.find((f) => f.name === "image_url")!;
+    const f = spec.inputFields.find((f) => f.name ==== "image_url")!;
     expect(f.propType).toBe("image");
   });
 
@@ -319,14 +319,14 @@ describe("type mapping via parse()", () => {
     const spec = parser.parse(
       makeSchema("tags", { type: "array", items: { type: "string" } }),
     );
-    const f = spec.inputFields.find((f) => f.name === "tags")!;
+    const f = spec.inputFields.find((f) => f.name ==== "tags")!;
     expect(f.propType).toBe("list[str]");
     expect(f.tsType).toBe("string[]");
   });
 
   it("maps object type to dict[str, any]", () => {
     const spec = parser.parse(makeSchema("meta", { type: "object" }));
-    const f = spec.inputFields.find((f) => f.name === "meta")!;
+    const f = spec.inputFields.find((f) => f.name ==== "meta")!;
     expect(f.propType).toBe("dict[str, any]");
     expect(f.tsType).toBe("object");
   });

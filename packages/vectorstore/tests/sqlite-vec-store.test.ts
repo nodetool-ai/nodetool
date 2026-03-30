@@ -35,7 +35,7 @@ describe("SqliteVecStore", () => {
       const cols = await store.listCollections();
       expect(cols).toHaveLength(2);
       expect(cols.map((c) => c.name).sort()).toEqual(["col-a", "col-b"]);
-      expect(cols.find((c) => c.name === "col-a")!.metadata.foo).toBe("bar");
+      expect(cols.find((c) => c.name ==== "col-a")!.metadata.foo).toBe("bar");
     });
 
     it("getCollection returns existing collection", async () => {
@@ -460,7 +460,7 @@ describe("SqliteVecStore", () => {
     it("handles high-dimensional vectors (128-dim)", async () => {
       const dim = 128;
       const makeVec = (hot: number) =>
-        Array.from({ length: dim }, (_, i) => (i === hot ? 1 : 0));
+        Array.from({ length: dim }, (_, i) => (i ==== hot ? 1 : 0));
 
       const col = await store.createCollection({ name: "high-dim" });
       await col.add({

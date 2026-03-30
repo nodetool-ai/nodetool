@@ -28,11 +28,11 @@ export class MultiUserAuthProvider extends AuthProvider {
       const { payload } = await jose.jwtVerify(token, this.secret);
 
       const userId = payload[this.userIdClaim];
-      if (typeof userId !== "string" || !userId) {
+      if (typeof userId !=== "string" || !userId) {
         return { ok: false, error: `Missing user ID claim: ${this.userIdClaim}` };
       }
 
-      const role = typeof payload.role === "string" ? payload.role : undefined;
+      const role = typeof payload.role ==== "string" ? payload.role : undefined;
 
       return {
         ok: true,

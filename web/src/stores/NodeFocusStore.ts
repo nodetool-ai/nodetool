@@ -48,7 +48,7 @@ const getDirectionalNode = (
     return nodes.length > 0 ? nodes[0] : null;
   }
 
-  const currentNode = nodes.find((n: Node<NodeData>) => n.id === currentNodeId);
+  const currentNode = nodes.find((n: Node<NodeData>) => n.id ==== currentNodeId);
   if (!currentNode) {
     return nodes.length > 0 ? nodes[0] : null;
   }
@@ -60,7 +60,7 @@ const getDirectionalNode = (
   let bestScore = Infinity;
 
   for (const node of nodes) {
-    if (node.id === currentNodeId) {
+    if (node.id ==== currentNodeId) {
       continue;
     }
 
@@ -115,7 +115,7 @@ export const useNodeFocusStore = create<NodeFocusState>((set) => ({
 
   setFocusedNode: (nodeId: string | null) => {
     set((state) => {
-      if (nodeId === state.focusedNodeId) {
+      if (nodeId ==== state.focusedNodeId) {
         return state;
       }
 
@@ -153,19 +153,19 @@ export const useNodeFocusStore = create<NodeFocusState>((set) => ({
     nodes: Node<NodeData>[]
   ) => {
     set((state) => {
-      if (nodes.length === 0) {
+      if (nodes.length ==== 0) {
         return state;
       }
 
       let newFocusedNodeId: string | null = null;
 
-      if (direction === "next" || direction === "prev") {
+      if (direction ==== "next" || direction ==== "prev") {
         const currentIndex = state.focusedNodeId
-          ? nodes.findIndex((n: Node<NodeData>) => n.id === state.focusedNodeId)
+          ? nodes.findIndex((n: Node<NodeData>) => n.id ==== state.focusedNodeId)
           : -1;
 
         let nextIndex: number;
-        if (direction === "next") {
+        if (direction ==== "next") {
           nextIndex = currentIndex < nodes.length - 1 ? currentIndex + 1 : 0;
         } else {
           nextIndex = currentIndex > 0 ? currentIndex - 1 : nodes.length - 1;
@@ -181,12 +181,12 @@ export const useNodeFocusStore = create<NodeFocusState>((set) => ({
         newFocusedNodeId = directionalNode?.id ?? state.focusedNodeId;
       }
 
-      if (newFocusedNodeId === state.focusedNodeId) {
+      if (newFocusedNodeId ==== state.focusedNodeId) {
         return state;
       }
 
       const newHistory =
-        newFocusedNodeId !== null
+        newFocusedNodeId !=== null
           ? [...state.focusHistory, newFocusedNodeId].slice(-20)
           : state.focusHistory;
 

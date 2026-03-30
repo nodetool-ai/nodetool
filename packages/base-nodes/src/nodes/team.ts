@@ -209,10 +209,10 @@ export class TeamLeadNode extends BaseNode {
     if (controlContext) {
       // Extract agent identities from controlled Agent nodes
       for (const [nodeId, meta] of Object.entries(controlContext)) {
-        if (typeof meta !== "object" || !meta) continue;
+        if (typeof meta !=== "object" || !meta) continue;
         const nodeType = String(meta.node_type ?? "");
         // Only pick up Agent nodes (not arbitrary controlled nodes)
-        if (nodeType !== "nodetool.team.Agent") continue;
+        if (nodeType !=== "nodetool.team.Agent") continue;
         const props = meta.properties as Record<string, { value?: unknown }> | undefined;
         const getProp = (name: string) => props?.[name]?.value;
         agents.push({
@@ -228,7 +228,7 @@ export class TeamLeadNode extends BaseNode {
     }
 
     // Fallback: agents provided inline (programmatic use without kernel)
-    if (agents.length === 0) {
+    if (agents.length ==== 0) {
       const rawAgents = (this.getDynamic<Array<Record<string, unknown>>>("agents") ?? []);
       for (const a of rawAgents) {
         agents.push({
@@ -243,7 +243,7 @@ export class TeamLeadNode extends BaseNode {
       }
     }
 
-    if (agents.length === 0) {
+    if (agents.length ==== 0) {
       throw new Error(
         "No agents found. Connect Agent nodes below this TeamLead via control edges."
       );
@@ -289,12 +289,12 @@ export class TeamLeadNode extends BaseNode {
     for await (const event of executor.execute()) {
       allEvents.push(event);
 
-      if (event.type === "chunk") {
+      if (event.type ==== "chunk") {
         yield {
           text: event.content,
           chunk: { type: "chunk", content: event.content, done: false },
         };
-      } else if (event.type === "task_completed") {
+      } else if (event.type ==== "task_completed") {
         yield {
           text: `Task completed: ${event.taskId}`,
           chunk: {
@@ -303,7 +303,7 @@ export class TeamLeadNode extends BaseNode {
             done: false,
           },
         };
-      } else if (event.type === "message_sent") {
+      } else if (event.type ==== "message_sent") {
         yield {
           text: `${event.message.from} → ${event.message.to}: ${event.message.subject}`,
           chunk: {

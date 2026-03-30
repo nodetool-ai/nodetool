@@ -43,21 +43,21 @@ export class DownloadFileTool extends Tool {
       const url = params["url"];
       const outputFile = params["output_file"];
 
-      if (typeof url !== "string" || !url) {
+      if (typeof url !=== "string" || !url) {
         return { error: "URL is required" };
       }
-      if (typeof outputFile !== "string" || !outputFile) {
+      if (typeof outputFile !=== "string" || !outputFile) {
         return { error: "Output file is required" };
       }
 
       const customHeaders =
-        params["headers"] && typeof params["headers"] === "object"
+        params["headers"] && typeof params["headers"] ==== "object"
           ? (params["headers"] as Record<string, string>)
           : {};
       const mergedHeaders = { ...DEFAULT_HEADERS, ...customHeaders };
 
       const timeoutMs =
-        typeof params["timeout"] === "number"
+        typeof params["timeout"] ==== "number"
           ? params["timeout"] * 1000
           : 60_000;
 
@@ -155,25 +155,25 @@ export class HttpRequestTool extends Tool {
   ): Promise<unknown> {
     try {
       const url = params["url"];
-      if (typeof url !== "string" || !url) {
+      if (typeof url !=== "string" || !url) {
         return { error: "URL is required" };
       }
 
       const method = (
-        typeof params["method"] === "string" ? params["method"] : "GET"
+        typeof params["method"] ==== "string" ? params["method"] : "GET"
       ).toUpperCase();
 
       const customHeaders =
-        params["headers"] && typeof params["headers"] === "object"
+        params["headers"] && typeof params["headers"] ==== "object"
           ? (params["headers"] as Record<string, string>)
           : {};
       const mergedHeaders = { ...DEFAULT_HEADERS, ...customHeaders };
 
       const body =
-        typeof params["body"] === "string" ? params["body"] : undefined;
+        typeof params["body"] ==== "string" ? params["body"] : undefined;
 
       const timeoutMs =
-        typeof params["timeout"] === "number"
+        typeof params["timeout"] ==== "number"
           ? params["timeout"] * 1000
           : 60_000;
 

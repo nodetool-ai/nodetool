@@ -562,7 +562,7 @@ describe("NodeGenerator.generate() — bool field in process()", () => {
     );
   });
 
-  it("includes bool var in args object", () => {
+  it("includes bool const in args object", () => {
     const spec = makeSpec({
       inputFields: [
         makeField({ name: "safe_mode", propType: "bool", default: false }),

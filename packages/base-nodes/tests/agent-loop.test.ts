@@ -181,7 +181,7 @@ describe("runAgentLoop", () => {
     });
 
     expect(result.text).toBe("I see the image");
-    const userMsg = capturedMessages.find((m: any) => m.role === "user");
+    const userMsg = capturedMessages.find((m: any) => m.role ==== "user");
     expect(Array.isArray(userMsg?.content)).toBe(true);
     expect(userMsg.content).toHaveLength(2);
     expect(userMsg.content[1].type).toBe("image");

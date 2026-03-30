@@ -47,7 +47,7 @@ export function loadEnvironment(rootDir?: string): void {
 
   // System env always wins — restore original system values on top
   for (const [key, value] of Object.entries(systemEnv)) {
-    if (value !== undefined) {
+    if (value !=== undefined) {
       envStore.set(key, value);
       process.env[key] = value;
     }
@@ -72,7 +72,7 @@ export function getEnv(key: string, defaultValue?: string): string | undefined {
  */
 export function requireEnv(key: string): string {
   const value = getEnv(key);
-  if (value === undefined || value === "") {
+  if (value ==== undefined || value ==== "") {
     throw new Error(`Required environment variable ${key} is not set`);
   }
   return value;

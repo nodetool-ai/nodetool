@@ -282,7 +282,7 @@ describe("WorkflowRunner – multi-edge list detection", () => {
 
     const runner = new WorkflowRunner("test-multi-edge", {
       resolveExecutor: (node) => {
-        if (node.type === "test.Src") {
+        if (node.type ==== "test.Src") {
           return simpleExecutor(() => ({ out: node.id }));
         }
         return simpleExecutor((inputs) => ({ collected: inputs.items }));
@@ -317,7 +317,7 @@ describe("WorkflowRunner – control edges initialize __control__ handle (lines 
     const calls: Array<Record<string, unknown>> = [];
     const runner = new WorkflowRunner("test-ctrl-init", {
       resolveExecutor: (node) => {
-        if (node.type === "test.Controller") {
+        if (node.type ==== "test.Controller") {
           // Controller emits a RunEvent through __control__ output handle
           return {
             async process() { return {}; },
@@ -369,7 +369,7 @@ describe("WorkflowRunner – edge without id", () => {
 
     expect(result.status).toBe("completed");
     // Check that edge_update messages use generated ids
-    const edgeMsgs = result.messages.filter((m) => m.type === "edge_update");
+    const edgeMsgs = result.messages.filter((m) => m.type ==== "edge_update");
     expect(edgeMsgs.length).toBeGreaterThan(0);
   });
 });
@@ -397,7 +397,7 @@ describe("WorkflowRunner – repeated runs on the same instance", () => {
     );
     const firstOutputs = structuredClone(first.outputs);
     const firstMessageValues = first.messages
-      .filter((message) => message.type === "output_update")
+      .filter((message) => message.type ==== "output_update")
       .map((message) => message.value);
     const second = await runner.run(
       { job_id: "repeat-2", params: { x: 2 } },
@@ -408,7 +408,7 @@ describe("WorkflowRunner – repeated runs on the same instance", () => {
     expect(firstMessageValues).toEqual([1]);
     expect(second.outputs.result).toEqual([2]);
     expect(
-      second.messages.filter((message) => message.type === "output_update").map((message) => message.value),
+      second.messages.filter((message) => message.type ==== "output_update").map((message) => message.value),
     ).toEqual([2]);
   });
 });
@@ -439,7 +439,7 @@ describe("WorkflowRunner – external workflow inputs", () => {
 
     const runner = new WorkflowRunner("test-external-input-names", {
       resolveExecutor: (node) => {
-        if (node.id === "sum") {
+        if (node.id ==== "sum") {
           return simpleExecutor((inputs) => ({
             value: Number(inputs.a ?? 0) + Number(inputs.b ?? 0),
           }));
@@ -482,7 +482,7 @@ describe("WorkflowRunner – external workflow inputs", () => {
 
     const runner = new WorkflowRunner("test-external-input-defaults", {
       resolveExecutor: (node) => {
-        if (node.id === "sum") {
+        if (node.id ==== "sum") {
           return simpleExecutor((inputs) => ({
             value: Number(inputs.a ?? 0) + Number(inputs.b ?? 0),
           }));

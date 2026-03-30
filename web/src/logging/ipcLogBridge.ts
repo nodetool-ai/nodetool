@@ -6,7 +6,7 @@ let installed = false;
 let inLoglevelDispatch = false;
 
 const toStringSafe = (value: unknown): string => {
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return value;
   }
   if (value instanceof Error) {
@@ -20,10 +20,10 @@ const toStringSafe = (value: unknown): string => {
 };
 
 const normalizeLevel = (level: string): FrontendLogLevel => {
-  if (level === "error") {
+  if (level ==== "error") {
     return "error";
   }
-  if (level === "warn") {
+  if (level ==== "warn") {
     return "warn";
   }
   return "info";

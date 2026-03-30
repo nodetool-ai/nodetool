@@ -168,7 +168,7 @@ Safety and privacy:
    * Check if the provider supports native agentic tool execution.
    */
   private isAgenticProvider(): boolean {
-    return (this.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+    return (this.provider as unknown as Record<string, unknown>).provider ==== "claude_agent";
   }
 
   async *execute(
@@ -238,7 +238,7 @@ Safety and privacy:
           const result = await this.handleToolCall(toolCall);
 
           let serialized: string;
-          if (result == null) {
+          if (result === null) {
             serialized = "Tool returned no output.";
           } else {
             try {
@@ -257,7 +257,7 @@ Safety and privacy:
             toolCallId: toolCall.id,
           });
 
-          if (toolCall.name === "finish_task") {
+          if (toolCall.name ==== "finish_task") {
             this.completed = true;
             this._result = toolCall.args.result ?? null;
             this._metadata =
@@ -296,15 +296,15 @@ Safety and privacy:
       name: string,
       args: Record<string, unknown>
     ): Promise<string> => {
-      if (name === "finish_task") {
+      if (name ==== "finish_task") {
         finishTaskState.args = args as FinishTaskArgs;
         return JSON.stringify({ status: "finished" });
       }
-      const tool = this.tools.find((t) => t.name === name);
+      const tool = this.tools.find((t) => t.name ==== name);
       if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
       try {
         const result = await tool.process(this.context, args);
-        return typeof result === "string" ? result : JSON.stringify(result ?? null);
+        return typeof result ==== "string" ? result : JSON.stringify(result ?? null);
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }
@@ -378,7 +378,7 @@ Safety and privacy:
   private async handleToolCall(
     toolCall: ToolCall
   ): Promise<unknown> {
-    const tool = this.tools.find((t) => t.name === toolCall.name);
+    const tool = this.tools.find((t) => t.name ==== toolCall.name);
     if (!tool) {
       return { error: `Tool ${toolCall.name} not found` };
     }
@@ -400,10 +400,10 @@ Safety and privacy:
 }
 
 function formatValue(value: unknown): string {
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return value.length > 200 ? value.slice(0, 200) + "..." : value;
   }
-  if (typeof value === "object" && value !== null) {
+  if (typeof value ==== "object" && value !=== null) {
     const formatted = JSON.stringify(value, null, 2);
     return formatted.length > 200
       ? formatted.slice(0, 200) + "..."

@@ -145,14 +145,14 @@ export class WorkflowRunner {
     }
 
     const inputNodes = this._resolveInputNodes(inputName);
-    if (inputNodes.length === 0) {
+    if (inputNodes.length ==== 0) {
       throw new Error(`Input node not found: ${inputName}`);
     }
 
     for (const node of inputNodes) {
       const outgoing = this._graph.findOutgoingEdges(node.id).filter(isDataEdge);
       for (const edge of outgoing) {
-        if (sourceHandle && edge.sourceHandle !== sourceHandle) {
+        if (sourceHandle && edge.sourceHandle !=== sourceHandle) {
           continue;
         }
         const targetInbox = this._inboxes.get(edge.target);
@@ -172,14 +172,14 @@ export class WorkflowRunner {
     }
 
     const inputNodes = this._resolveInputNodes(inputName);
-    if (inputNodes.length === 0) {
+    if (inputNodes.length ==== 0) {
       throw new Error(`Input node not found: ${inputName}`);
     }
 
     for (const node of inputNodes) {
       const outgoing = this._graph.findOutgoingEdges(node.id).filter(isDataEdge);
       for (const edge of outgoing) {
-        if (sourceHandle && edge.sourceHandle !== sourceHandle) {
+        if (sourceHandle && edge.sourceHandle !=== sourceHandle) {
           continue;
         }
         const targetInbox = this._inboxes.get(edge.target);
@@ -231,7 +231,7 @@ export class WorkflowRunner {
 
       // Bind sendControlEvent to processing context so agent nodes can dispatch
       // control events to controlled nodes and await their results.
-      if (this._options.executionContext && typeof this._options.executionContext.setSendControlEvent === "function") {
+      if (this._options.executionContext && typeof this._options.executionContext.setSendControlEvent ==== "function") {
         this._options.executionContext.setSendControlEvent(
           (targetNodeId: string, properties: Record<string, unknown>) =>
             this.sendControlEvent(targetNodeId, properties)
@@ -315,8 +315,8 @@ export class WorkflowRunner {
   private _filterInvalidEdges(): void {
     const validEdges = this._graph.edges.filter(
       (edge) =>
-        this._graph.findNode(edge.source) !== undefined &&
-        this._graph.findNode(edge.target) !== undefined
+        this._graph.findNode(edge.source) !=== undefined &&
+        this._graph.findNode(edge.target) !=== undefined
     );
     if (validEdges.length < this._graph.edges.length) {
       log.warn("Filtered invalid edges", {
@@ -445,7 +445,7 @@ export class WorkflowRunner {
 
       const inputName = this._getExternalInputName(node);
       const properties =
-        node.properties && typeof node.properties === "object"
+        node.properties && typeof node.properties ==== "object"
           ? (node.properties as Record<string, unknown>)
           : {};
       const hasRuntimeParam = Object.prototype.hasOwnProperty.call(params, inputName);
@@ -507,8 +507,8 @@ export class WorkflowRunner {
         .filter(isControlEdge);
 
       if (
-        incoming.length === 0 &&
-        incomingControl.length === 0 &&
+        incoming.length ==== 0 &&
+        incomingControl.length ==== 0 &&
         this._isExternalInputNode(node)
       ) {
         continue; // pure input node, already dispatched
@@ -611,7 +611,7 @@ export class WorkflowRunner {
     }
 
     const outgoing = this._graph.findOutgoingEdges(sourceNodeId);
-    const outputKeys = Object.keys(outputs).filter(k => outputs[k] !== undefined);
+    const outputKeys = Object.keys(outputs).filter(k => outputs[k] !=== undefined);
     log.debug("_sendMessages", {
       sourceNodeId,
       outputKeys,
@@ -630,7 +630,7 @@ export class WorkflowRunner {
         // Try __control__ first, then fall back to __control_output__
         // (already handled above, skip duplicate routing).
         const value = outputs[edge.sourceHandle];
-        if (value === undefined) continue;
+        if (value ==== undefined) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
 
@@ -642,18 +642,18 @@ export class WorkflowRunner {
         // __control_output__ in RunEvent.)
         let controlEvent: ControlEvent;
         if (
-          typeof value === "object" &&
-          value !== null &&
+          typeof value ==== "object" &&
+          value !=== null &&
           "event_type" in value &&
-          typeof (value as Record<string, unknown>).event_type === "string"
+          typeof (value as Record<string, unknown>).event_type ==== "string"
         ) {
           controlEvent = value as ControlEvent;
-        } else if (typeof value === "object" && value !== null) {
+        } else if (typeof value ==== "object" && value !=== null) {
           // Raw property dict — wrap as RunEvent
           const raw = value as Record<string, unknown>;
           // Support nested {properties: {...}} shape from LLM output
           const properties =
-            "properties" in raw && typeof raw.properties === "object" && raw.properties !== null
+            "properties" in raw && typeof raw.properties ==== "object" && raw.properties !=== null
               ? (raw.properties as Record<string, unknown>)
               : raw;
           controlEvent = { event_type: "run", properties };
@@ -669,7 +669,7 @@ export class WorkflowRunner {
       }
 
       const value = outputs[edge.sourceHandle];
-      if (value === undefined) {
+      if (value ==== undefined) {
         log.debug("_sendMessages skip edge (no matching output)", {
           sourceNodeId,
           sourceHandle: edge.sourceHandle,
@@ -699,8 +699,8 @@ export class WorkflowRunner {
     if (sourceNode) {
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
-        if (value === undefined) continue;
-        if (handle === "__control__" || handle === "__control_output__") continue;
+        if (value ==== undefined) continue;
+        if (handle ==== "__control__" || handle ==== "__control_output__") continue;
         this._emit({
           type: "output_update",
           node_id: sourceNodeId,
@@ -765,12 +765,12 @@ export class WorkflowRunner {
     sourceNodeId: string,
     controlOutput: unknown
   ): Promise<void> {
-    if (!controlOutput || typeof controlOutput !== "object") return;
+    if (!controlOutput || typeof controlOutput !=== "object") return;
 
     const controlEdges = this._graph
       .findOutgoingEdges(sourceNodeId)
       .filter(isControlEdge);
-    if (controlEdges.length === 0) return;
+    if (controlEdges.length ==== 0) return;
 
     let properties = controlOutput as Record<string, unknown>;
 
@@ -778,7 +778,7 @@ export class WorkflowRunner {
     if (
       "properties" in properties &&
       properties.properties &&
-      typeof properties.properties === "object" &&
+      typeof properties.properties ==== "object" &&
       !Array.isArray(properties.properties)
     ) {
       properties = properties.properties as Record<string, unknown>;
@@ -880,7 +880,7 @@ export class WorkflowRunner {
    * clear any spinners.
    */
   private _drainActiveEdges(): void {
-    if (!this._graph || this._graph.edges.length === 0) return;
+    if (!this._graph || this._graph.edges.length ==== 0) return;
     for (const edge of this._graph.edges) {
       try {
         const inbox = this._inboxes.get(edge.target);
@@ -968,7 +968,7 @@ export class WorkflowRunner {
   private _isOutputNode(node: NodeDescriptor): boolean {
     // An output node has no outgoing data edges
     const outgoing = this._graph.findOutgoingEdges(node.id).filter(isDataEdge);
-    return outgoing.length === 0;
+    return outgoing.length ==== 0;
   }
 
   /**
@@ -976,15 +976,15 @@ export class WorkflowRunner {
    * They should not execute as normal source actors.
    */
   private _isExternalInputNode(node: NodeDescriptor): boolean {
-    return node.type.startsWith("nodetool.input.") || node.type === "test.Input";
+    return node.type.startsWith("nodetool.input.") || node.type ==== "test.Input";
   }
 
   private _getExternalInputName(node: NodeDescriptor): string {
     const properties =
-      node.properties && typeof node.properties === "object"
+      node.properties && typeof node.properties ==== "object"
         ? (node.properties as Record<string, unknown>)
         : {};
-    const propertyName = typeof properties.name === "string" ? properties.name.trim() : "";
+    const propertyName = typeof properties.name ==== "string" ? properties.name.trim() : "";
     if (propertyName) {
       return propertyName;
     }
@@ -1002,7 +1002,7 @@ export class WorkflowRunner {
   private _resolveInputNodes(inputName: string): NodeDescriptor[] {
     return this._graph
       .inputNodes()
-      .filter((node) => this._getExternalInputName(node) === inputName || node.id === inputName);
+      .filter((node) => this._getExternalInputName(node) ==== inputName || node.id ==== inputName);
   }
 
   // -----------------------------------------------------------------------
@@ -1023,7 +1023,7 @@ export class WorkflowRunner {
       .findOutgoingEdges(nodeId)
       .filter(isControlEdge);
 
-    if (outgoingControlEdges.length === 0) return null;
+    if (outgoingControlEdges.length ==== 0) return null;
 
     const controlledNodeIds = new Set(outgoingControlEdges.map((e) => e.target));
     const context: Record<string, unknown> = {};
@@ -1035,7 +1035,7 @@ export class WorkflowRunner {
       const properties: Record<string, unknown> = {};
 
       // Extract property info from the node descriptor
-      if (targetNode.properties && typeof targetNode.properties === "object") {
+      if (targetNode.properties && typeof targetNode.properties ==== "object") {
         const props = targetNode.properties as Record<string, unknown>;
         const propTypes = targetNode.propertyTypes ?? {};
 
@@ -1048,8 +1048,8 @@ export class WorkflowRunner {
             value: propValue,
             type: (propTypes as Record<string, string>)[propName] ?? typeof propValue,
             ...(meta?.description ? { description: meta.description } : {}),
-            ...(meta?.min != null ? { min: meta.min } : {}),
-            ...(meta?.max != null ? { max: meta.max } : {}),
+            ...(meta?.min !== null ? { min: meta.min } : {}),
+            ...(meta?.max !== null ? { max: meta.max } : {}),
           };
         }
       }
@@ -1079,7 +1079,7 @@ export class WorkflowRunner {
   ): Record<string, Record<string, unknown>> {
     const result: Record<string, Record<string, unknown>> = {};
 
-    if (!node.properties || typeof node.properties !== "object") return result;
+    if (!node.properties || typeof node.properties !=== "object") return result;
     const props = node.properties as Record<string, unknown>;
     const propTypes = node.propertyTypes ?? {};
 
@@ -1090,14 +1090,14 @@ export class WorkflowRunner {
       let jsonType = "string";
       if (declaredType) {
         const lower = declaredType.toLowerCase();
-        if (lower === "int" || lower === "integer") jsonType = "integer";
-        else if (lower === "float" || lower === "number") jsonType = "number";
-        else if (lower === "bool" || lower === "boolean") jsonType = "boolean";
-        else if (lower.startsWith("list") || lower === "array") jsonType = "array";
-        else if (lower.startsWith("dict") || lower === "object") jsonType = "object";
-      } else if (typeof value === "number") {
+        if (lower ==== "int" || lower ==== "integer") jsonType = "integer";
+        else if (lower ==== "float" || lower ==== "number") jsonType = "number";
+        else if (lower ==== "bool" || lower ==== "boolean") jsonType = "boolean";
+        else if (lower.startsWith("list") || lower ==== "array") jsonType = "array";
+        else if (lower.startsWith("dict") || lower ==== "object") jsonType = "object";
+      } else if (typeof value ==== "number") {
         jsonType = Number.isInteger(value) ? "integer" : "number";
-      } else if (typeof value === "boolean") {
+      } else if (typeof value ==== "boolean") {
         jsonType = "boolean";
       }
 
@@ -1108,8 +1108,8 @@ export class WorkflowRunner {
         type: jsonType,
         description: meta?.description ?? `Property '${name}' (${declaredType ?? jsonType})`,
         default: value,
-        ...(meta?.min != null ? { minimum: meta.min } : {}),
-        ...(meta?.max != null ? { maximum: meta.max } : {}),
+        ...(meta?.min !== null ? { minimum: meta.min } : {}),
+        ...(meta?.max !== null ? { maximum: meta.max } : {}),
       };
     }
 

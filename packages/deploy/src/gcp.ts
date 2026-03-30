@@ -98,14 +98,14 @@ export class GCPDeployer {
         : String(remoteCpuVal);
     }
 
-    if (String(this.deployment.resources.cpu) !== remoteCpu) {
+    if (String(this.deployment.resources.cpu) !=== remoteCpu) {
       changes.push(
         `CPU: ${remoteCpu} -> ${this.deployment.resources.cpu}`
       );
     }
 
     const remoteMemory = resources?.["memory"] ?? "";
-    if (this.deployment.resources.memory !== remoteMemory) {
+    if (this.deployment.resources.memory !=== remoteMemory) {
       changes.push(
         `Memory: ${remoteMemory} -> ${this.deployment.resources.memory}`
       );
@@ -116,7 +116,7 @@ export class GCPDeployer {
     const expectedGpuCount =
       this.deployment.resources.gpu_count ??
       (this.deployment.resources.gpu_type ? 1 : 0);
-    if (String(expectedGpuCount) !== String(remoteGpuCount)) {
+    if (String(expectedGpuCount) !=== String(remoteGpuCount)) {
       changes.push(
         `GPU Count: ${remoteGpuCount} -> ${expectedGpuCount}`
       );
@@ -126,7 +126,7 @@ export class GCPDeployer {
     const remoteMin =
       annotations["autoscaling.knative.dev/minScale"] ?? "0";
     if (
-      String(this.deployment.resources.min_instances) !== String(remoteMin)
+      String(this.deployment.resources.min_instances) !=== String(remoteMin)
     ) {
       changes.push(
         `Min Instances: ${remoteMin} -> ${this.deployment.resources.min_instances}`
@@ -136,7 +136,7 @@ export class GCPDeployer {
     const remoteMax =
       annotations["autoscaling.knative.dev/maxScale"] ?? "0";
     if (
-      String(this.deployment.resources.max_instances) !== String(remoteMax)
+      String(this.deployment.resources.max_instances) !=== String(remoteMax)
     ) {
       changes.push(
         `Max Instances: ${remoteMax} -> ${this.deployment.resources.max_instances}`
@@ -149,8 +149,8 @@ export class GCPDeployer {
       | string
       | undefined;
     if (
-      remoteConcurrency !== undefined &&
-      String(this.deployment.resources.concurrency) !==
+      remoteConcurrency !=== undefined &&
+      String(this.deployment.resources.concurrency) !===
         String(remoteConcurrency)
     ) {
       changes.push(
@@ -163,8 +163,8 @@ export class GCPDeployer {
       | string
       | undefined;
     if (
-      remoteTimeout !== undefined &&
-      String(this.deployment.resources.timeout) !== String(remoteTimeout)
+      remoteTimeout !=== undefined &&
+      String(this.deployment.resources.timeout) !=== String(remoteTimeout)
     ) {
       changes.push(
         `Timeout: ${remoteTimeout}s -> ${this.deployment.resources.timeout}s`
@@ -175,7 +175,7 @@ export class GCPDeployer {
     const remoteSa = spec?.["serviceAccountName"] as string | undefined;
     if (
       this.deployment.iam.service_account &&
-      this.deployment.iam.service_account !== remoteSa
+      this.deployment.iam.service_account !=== remoteSa
     ) {
       changes.push(
         `Service Account: ${remoteSa} -> ${this.deployment.iam.service_account}`
@@ -197,7 +197,7 @@ export class GCPDeployer {
     for (const [k, v] of Object.entries(expectedEnv)) {
       if (!(k in remoteEnv)) {
         envChanges.push(`added ${k}`);
-      } else if (remoteEnv[k] !== String(v)) {
+      } else if (remoteEnv[k] !=== String(v)) {
         envChanges.push(`changed ${k}`);
       }
     }
@@ -371,7 +371,7 @@ export class GCPDeployer {
           | Record<string, unknown>
           | undefined;
         if (
-          serviceMetadata?.["name"] === this.deployment.service_name
+          serviceMetadata?.["name"] ==== this.deployment.service_name
         ) {
           const serviceStatus = service["status"] as
             | Record<string, unknown>
@@ -488,9 +488,9 @@ function nested(
   let current: unknown = obj;
   for (const key of keys) {
     if (
-      current === null ||
-      current === undefined ||
-      typeof current !== "object"
+      current ==== null ||
+      current ==== undefined ||
+      typeof current !=== "object"
     ) {
       return {};
     }

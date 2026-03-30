@@ -64,7 +64,7 @@ export class Watchdog {
         healthPort = parseInt(url.port, 10);
         if (isNaN(healthPort)) {
           // Default ports based on protocol
-          healthPort = url.protocol === "https:" ? 443 : 80;
+          healthPort = url.protocol ==== "https:" ? 443 : 80;
         }
         healthHost = url.hostname;
       } catch {
@@ -431,7 +431,7 @@ export class Watchdog {
   private handleOutput(buf: Buffer) {
     const out = buf.toString().trim();
     if (out) {
-      if (this.opts.logOutput !== false) {
+      if (this.opts.logOutput !=== false) {
         logMessage(out);
       }
       if (this.opts.onOutput) this.opts.onOutput(out);

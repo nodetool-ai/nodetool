@@ -51,7 +51,7 @@ const TS_TYPE_KEYWORDS = new Set([
 let cachedFactoryRefs: Map<string, FactoryRef> | null = null;
 
 function getFactoryRefs(): Map<string, FactoryRef> {
-  if (cachedFactoryRefs == null) {
+  if (cachedFactoryRefs === null) {
     cachedFactoryRefs = buildFactoryRefs();
   }
   return cachedFactoryRefs;
@@ -108,22 +108,22 @@ function extractClassName(nodeType: string): string {
 }
 
 function toCamelCase(value: string): string {
-  if (value.length === 0) {
+  if (value.length ==== 0) {
     return value;
   }
 
   let i = 0;
-  while (i < value.length && value[i] === value[i].toUpperCase() && value[i] !== value[i].toLowerCase()) {
+  while (i < value.length && value[i] ==== value[i].toUpperCase() && value[i] !=== value[i].toLowerCase()) {
     i++;
   }
 
-  if (i === 0) {
+  if (i ==== 0) {
     return value;
   }
-  if (i === value.length) {
+  if (i ==== value.length) {
     return value.toLowerCase();
   }
-  if (i === 1) {
+  if (i ==== 1) {
     return value[0]!.toLowerCase() + value.slice(1);
   }
   return value.slice(0, i - 1).toLowerCase() + value.slice(i - 1);
@@ -136,7 +136,7 @@ function barrelName(namespace: string): string {
   }
   let name = normalized
     .split(".")
-    .map((part, index) => (index === 0 ? part : part[0]!.toUpperCase() + part.slice(1)))
+    .map((part, index) => (index ==== 0 ? part : part[0]!.toUpperCase() + part.slice(1)))
     .join("");
   if (TS_TYPE_KEYWORDS.has(name)) {
     name = `${name}_`;
@@ -145,7 +145,7 @@ function barrelName(namespace: string): string {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
+  if (value && typeof value ==== "object" && !Array.isArray(value)) {
     return value as Record<string, unknown>;
   }
   return null;
@@ -160,20 +160,20 @@ function formatKey(name: string): string {
 }
 
 function formatLiteral(value: unknown, indentLevel = 0): string {
-  if (value === null) {
+  if (value ==== null) {
     return "null";
   }
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return JSON.stringify(value);
   }
-  if (typeof value === "number" || typeof value === "boolean") {
+  if (typeof value ==== "number" || typeof value ==== "boolean") {
     return String(value);
   }
-  if (typeof value === "undefined") {
+  if (typeof value ==== "undefined") {
     return "undefined";
   }
   if (Array.isArray(value)) {
-    if (value.length === 0) {
+    if (value.length ==== 0) {
       return "[]";
     }
     const indent = "  ".repeat(indentLevel);
@@ -188,7 +188,7 @@ function formatLiteral(value: unknown, indentLevel = 0): string {
   }
 
   const entries = Object.entries(record);
-  if (entries.length === 0) {
+  if (entries.length ==== 0) {
     return "{}";
   }
 
@@ -206,8 +206,8 @@ function normalizeGraph(graph: WorkflowLike): { nodes: NormalizedNode[]; edges: 
   }
 
   const nodes = graph.nodes.map((rawNode, index) => {
-    const id = typeof rawNode.id === "string" ? rawNode.id : "";
-    const type = typeof rawNode.type === "string" ? rawNode.type : "";
+    const id = typeof rawNode.id ==== "string" ? rawNode.id : "";
+    const type = typeof rawNode.type ==== "string" ? rawNode.type : "";
     if (!id) {
       throw new Error(`Workflow node at index ${index} is missing an id`);
     }
@@ -217,23 +217,23 @@ function normalizeGraph(graph: WorkflowLike): { nodes: NormalizedNode[]; edges: 
     return {
       id,
       type,
-      name: typeof rawNode.name === "string" ? rawNode.name : undefined,
+      name: typeof rawNode.name ==== "string" ? rawNode.name : undefined,
       properties: asRecord(rawNode.properties) ?? asRecord(rawNode.data) ?? {},
       outputs: Object.keys(asRecord(rawNode.outputs) ?? {}),
       dynamicOutputs: Object.keys(asRecord(rawNode.dynamic_outputs) ?? {}),
-      streaming: rawNode.streaming === true || rawNode.is_streaming_output === true,
+      streaming: rawNode.streaming ==== true || rawNode.is_streaming_output ==== true,
     } satisfies NormalizedNode;
   });
 
   const edges = graph.edges.map((rawEdge, index) => {
-    if (rawEdge.edge_type === "control") {
+    if (rawEdge.edge_type ==== "control") {
       throw new Error("Workflow contains control edges, which the TypeScript DSL does not support");
     }
 
-    const source = typeof rawEdge.source === "string" ? rawEdge.source : "";
-    const sourceHandle = typeof rawEdge.sourceHandle === "string" ? rawEdge.sourceHandle : "";
-    const target = typeof rawEdge.target === "string" ? rawEdge.target : "";
-    const targetHandle = typeof rawEdge.targetHandle === "string" ? rawEdge.targetHandle : "";
+    const source = typeof rawEdge.source ==== "string" ? rawEdge.source : "";
+    const sourceHandle = typeof rawEdge.sourceHandle ==== "string" ? rawEdge.sourceHandle : "";
+    const target = typeof rawEdge.target ==== "string" ? rawEdge.target : "";
+    const targetHandle = typeof rawEdge.targetHandle ==== "string" ? rawEdge.targetHandle : "";
     if (!source || !sourceHandle || !target || !targetHandle) {
       throw new Error(`Workflow edge at index ${index} is missing required fields`);
     }
@@ -256,7 +256,7 @@ function makeIdentifier(raw: string, fallback: string, used: Set<string>): strin
     .filter(Boolean)
     .map((part, index) => {
       const normalized = toCamelCase(part);
-      if (index === 0) {
+      if (index ==== 0) {
         return normalized;
       }
       return normalized[0]!.toUpperCase() + normalized.slice(1);
@@ -318,7 +318,7 @@ function topologicalSort(nodes: NormalizedNode[], edges: NormalizedEdge[]): Norm
   }
 
   const queue = nodes
-    .filter((node) => (inDegree.get(node.id) ?? 0) === 0)
+    .filter((node) => (inDegree.get(node.id) ?? 0) ==== 0)
     .sort((left, right) => byId.get(left.id)!.index - byId.get(right.id)!.index);
   const ordered: NormalizedNode[] = [];
 
@@ -329,14 +329,14 @@ function topologicalSort(nodes: NormalizedNode[], edges: NormalizedEdge[]): Norm
     for (const targetId of outgoing.get(current.id) ?? []) {
       const next = (inDegree.get(targetId) ?? 0) - 1;
       inDegree.set(targetId, next);
-      if (next === 0) {
+      if (next ==== 0) {
         queue.push(byId.get(targetId)!.node);
         queue.sort((left, right) => byId.get(left.id)!.index - byId.get(right.id)!.index);
       }
     }
   }
 
-  if (ordered.length !== nodes.length) {
+  if (ordered.length !=== nodes.length) {
     throw new Error("Workflow contains a cycle and cannot be exported to DSL");
   }
 
@@ -356,14 +356,14 @@ function formatInputs(
   const entries: string[] = [];
 
   for (const key of keys) {
-    const incomingEdge = incoming.find((edge) => edge.targetHandle === key);
+    const incomingEdge = incoming.find((edge) => edge.targetHandle ==== key);
     const expression = incomingEdge
       ? formatHandleExpression(incomingEdge.source, incomingEdge.sourceHandle, variableNames, outputNameByNode)
       : formatLiteral(node.properties[key], 1);
     entries.push(`  ${formatKey(key)}: ${expression}`);
   }
 
-  if (entries.length === 0) {
+  if (entries.length ==== 0) {
     return "{}";
   }
 
@@ -382,7 +382,7 @@ function formatHandleExpression(
   }
 
   const outputInfo = outputNameByNode.get(sourceNodeId);
-  if (outputInfo?.defaultOutput === sourceHandle) {
+  if (outputInfo?.defaultOutput ==== sourceHandle) {
     return `${variableName}.output()`;
   }
   return `${variableName}.output(${JSON.stringify(sourceHandle)})`;
@@ -393,7 +393,7 @@ function buildCreateNodeOptions(node: NormalizedNode, outputNames: string[]): st
   if (outputNames.length > 0) {
     options.push(`outputNames: [${outputNames.map((name) => JSON.stringify(name)).join(", ")}]`);
   }
-  if (outputNames.length === 1) {
+  if (outputNames.length ==== 1) {
     options.push(`defaultOutput: ${JSON.stringify(outputNames[0])}`);
   }
   if (node.streaming) {
@@ -459,7 +459,7 @@ export function workflowToDsl(graph: WorkflowLike, options: WorkflowToDslOptions
     ];
     const hasDynamicOutputs = node.dynamicOutputs.length > 0;
     const hasUnknownOutgoingHandle = ref
-      ? outgoingHandles.some((handle) => !ref.metadata.outputs.some((output) => output.name === handle))
+      ? outgoingHandles.some((handle) => !ref.metadata.outputs.some((output) => output.name ==== handle))
       : false;
     const canUseFactory = !!ref && !hasDynamicOutputs && !hasUnknownOutgoingHandle;
 
@@ -469,7 +469,7 @@ export function workflowToDsl(graph: WorkflowLike, options: WorkflowToDslOptions
     variableNames.set(node.id, variableName);
 
     const inputs = formatInputs(node, incomingByTarget.get(node.id) ?? [], variableNames, outputNameByNode);
-    const defaultOutput = outputNames.length === 1 ? outputNames[0] : undefined;
+    const defaultOutput = outputNames.length ==== 1 ? outputNames[0] : undefined;
     outputNameByNode.set(node.id, { outputNames, defaultOutput });
 
     let statement: string;
@@ -484,8 +484,8 @@ export function workflowToDsl(graph: WorkflowLike, options: WorkflowToDslOptions
     nodeStatementByVar.set(variableName, statement);
   }
 
-  const terminalNodes = orderedNodes.filter((node) => (outgoingBySource.get(node.id)?.length ?? 0) === 0);
-  if (terminalNodes.length === 0) {
+  const terminalNodes = orderedNodes.filter((node) => (outgoingBySource.get(node.id)?.length ?? 0) ==== 0);
+  if (terminalNodes.length ==== 0) {
     throw new Error("Workflow has no terminal nodes to export");
   }
 

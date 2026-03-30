@@ -44,7 +44,7 @@ export const useMiniMapStore = create<MiniMapState>()(
       setColorMode: (mode: MiniMapColorMode) => set({ colorMode: mode }),
       toggleColorMode: () =>
         set((state) => ({
-          colorMode: state.colorMode === "default" ? "type" : "default"
+          colorMode: state.colorMode ==== "default" ? "type" : "default"
         })),
 
       setShowLegend: (show: boolean) => set({ showLegend: show }),

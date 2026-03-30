@@ -27,26 +27,26 @@ export class OutputNode extends BaseNode {
 
 
   private inferOutputType(value: unknown): string {
-    if (value === null || value === undefined) return "any";
-    if (typeof value === "string") return "str";
-    if (typeof value === "number") return Number.isInteger(value) ? "int" : "float";
-    if (typeof value === "boolean") return "bool";
+    if (value ==== null || value ==== undefined) return "any";
+    if (typeof value ==== "string") return "str";
+    if (typeof value ==== "number") return Number.isInteger(value) ? "int" : "float";
+    if (typeof value ==== "boolean") return "bool";
     if (Array.isArray(value)) return "list";
-    if (value && typeof value === "object") return "dict";
+    if (value && typeof value ==== "object") return "dict";
     return "any";
   }
 
   private async normalize(value: unknown, context?: ProcessingContext): Promise<unknown> {
-    if (!context || typeof context.normalizeOutputValue !== "function") return value;
+    if (!context || typeof context.normalizeOutputValue !=== "function") return value;
     return context.normalizeOutputValue(value);
   }
 
   private emitOutputUpdate(value: unknown, context?: ProcessingContext): void {
-    if (!context || typeof context.emit !== "function") return;
+    if (!context || typeof context.emit !=== "function") return;
     const nodeId = String(this.__node_id ?? this.name ?? this.__node_name ?? "");
     const nodeName = String(this.__node_name ?? this.name ?? nodeId);
     const outputName =
-      typeof this.name === "string" && this.name.trim().length > 0
+      typeof this.name ==== "string" && this.name.trim().length > 0
         ? this.name
         : "output";
     context.emit({
@@ -82,12 +82,12 @@ export class PreviewNode extends BaseNode {
 
 
   private async normalize(value: unknown, context?: ProcessingContext): Promise<unknown> {
-    if (!context || typeof context.normalizeOutputValue !== "function") return value;
+    if (!context || typeof context.normalizeOutputValue !=== "function") return value;
     return context.normalizeOutputValue(value);
   }
 
   private emitPreview(value: unknown, context?: ProcessingContext): void {
-    if (!context || typeof context.emit !== "function") return;
+    if (!context || typeof context.emit !=== "function") return;
     const nodeId = String(this.__node_id ?? this.name ?? this.__node_name ?? "");
     context.emit({
       type: "preview_update",

@@ -17,9 +17,9 @@ class EchoRunner extends StreamRunnerBase {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // ContainerFailureError
-// ============================================================================
+// =============================================================================
 
 describe("ContainerFailureError", () => {
   it("has the name ContainerFailureError", () => {
@@ -53,9 +53,9 @@ describe("ContainerFailureError", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase constructor defaults
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase constructor defaults", () => {
   it("defaults mode to docker", () => {
@@ -149,9 +149,9 @@ describe("StreamRunnerBase constructor defaults", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase.buildContainerCommand throws by default
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase.buildContainerCommand", () => {
   it("throws when not overridden", () => {
@@ -162,9 +162,9 @@ describe("StreamRunnerBase.buildContainerCommand", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase.wrapSubprocessCommand / cleanupSubprocessWrapper
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase.wrapSubprocessCommand", () => {
   it("returns the same command by default", () => {
@@ -188,9 +188,9 @@ describe("StreamRunnerBase.cleanupSubprocessWrapper", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase.buildContainerEnvironment
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase.buildContainerEnvironment", () => {
   it("returns empty object for empty input", () => {
@@ -227,9 +227,9 @@ describe("StreamRunnerBase.buildContainerEnvironment", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase.dockerImage
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase.dockerImage", () => {
   it("returns the configured image name", () => {
@@ -243,9 +243,9 @@ describe("StreamRunnerBase.dockerImage", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase.getWorkspaceHostPath
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase.getWorkspaceHostPath", () => {
   it("returns null when no directory is provided", () => {
@@ -280,9 +280,9 @@ describe("StreamRunnerBase.getWorkspaceHostPath", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase.resolveExecutionWorkspacePath
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase.resolveExecutionWorkspacePath", () => {
   it("in docker mode without dir returns dockerWorkdir", () => {
@@ -309,9 +309,9 @@ describe("StreamRunnerBase.resolveExecutionWorkspacePath", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase subprocess mode — JavaScript runner
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   it("streams stdout output", async () => {
@@ -339,7 +339,7 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
       outputs.push(item);
     }
     const lines = outputs
-      .filter(([s]) => s === "stdout")
+      .filter(([s]) => s ==== "stdout")
       .map(([, v]) => v);
     expect(lines).toContain("a\n");
     expect(lines).toContain("b\n");
@@ -427,9 +427,9 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // StreamRunnerBase subprocess mode — Bash runner
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase subprocess mode (Bash)", () => {
   it("streams stdout from bash echo", async () => {
@@ -472,9 +472,9 @@ describe("StreamRunnerBase subprocess mode (Bash)", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // Timeout behavior
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase timeout", () => {
   it("kills subprocess when timeoutSeconds is exceeded", async () => {
@@ -490,9 +490,9 @@ describe("StreamRunnerBase timeout", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // stop()
-// ============================================================================
+// =============================================================================
 
 describe("StreamRunnerBase.stop()", () => {
   it("does not throw when called with no active subprocess", () => {

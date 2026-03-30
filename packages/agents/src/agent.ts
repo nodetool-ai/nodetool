@@ -49,7 +49,7 @@ export function parseFrontmatter(frontmatter: string): Record<string, string> {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
     const colonIdx = line.indexOf(":");
-    if (colonIdx === -1) continue;
+    if (colonIdx ==== -1) continue;
     const key = line.slice(0, colonIdx).trim();
     let value = line.slice(colonIdx + 1).trim();
     // Strip surrounding quotes
@@ -118,7 +118,7 @@ async function findSkillFiles(dir: string): Promise<string[]> {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       results.push(...(await findSkillFiles(fullPath)));
-    } else if (entry.name === "SKILL.md") {
+    } else if (entry.name ==== "SKILL.md") {
       results.push(fullPath);
     }
   }
@@ -326,7 +326,7 @@ export class Agent extends BaseAgent {
    * Build system prompt segment from active skills.
    */
   private buildSkillSystemPrompt(skills: AgentSkill[]): string | null {
-    if (skills.length === 0) return null;
+    if (skills.length ==== 0) return null;
     const sections = [
       "# Agent Skills",
       "Use these Skill instructions when relevant to the objective:",
@@ -341,7 +341,7 @@ export class Agent extends BaseAgent {
    * Build effective objective enriched with skill summaries.
    */
   private buildEffectiveObjective(skills: AgentSkill[]): string {
-    if (skills.length === 0) return this.objective;
+    if (skills.length ==== 0) return this.objective;
     const summaries = skills.map((s) => `- ${s.name}: ${s.description}`).join("\n");
     return `${this.objective}\n\nRelevant Skills:\n${summaries}`;
   }
@@ -449,7 +449,7 @@ export class Agent extends BaseAgent {
     });
 
     for await (const item of executor.executeTasks()) {
-      if (item.type === "step_result") {
+      if (item.type ==== "step_result") {
         const stepResult = item as StepResult;
         if (stepResult.is_task_result) {
           log.info("Setting final results", { objective: this.objective.slice(0, 50) });

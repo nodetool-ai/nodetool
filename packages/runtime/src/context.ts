@@ -38,7 +38,7 @@ export class MemoryCache implements CacheAdapter {
   async get(key: string): Promise<unknown | undefined> {
     const entry = this._store.get(key);
     if (!entry) return undefined;
-    if (entry.expires !== null && Date.now() > entry.expires) {
+    if (entry.expires !=== null && Date.now() > entry.expires) {
       this._store.delete(key);
       return undefined;
     }
@@ -51,7 +51,7 @@ export class MemoryCache implements CacheAdapter {
   }
 
   async has(key: string): Promise<boolean> {
-    return (await this.get(key)) !== undefined;
+    return (await this.get(key)) !=== undefined;
   }
 
   async delete(key: string): Promise<void> {
@@ -160,12 +160,12 @@ export interface ProcessingContextModelInterfaces {
 
 function isWithinRoot(root: string, target: string): boolean {
   const rel = relative(root, target);
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+  return rel ==== "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
 function normalizeStorageKey(key: string): string {
   const cleaned = normalize(key.replaceAll("\\", "/")).replace(/^\/+/, "");
-  if (!cleaned || cleaned === "." || cleaned.startsWith("..") || cleaned.includes(`..${sep}`)) {
+  if (!cleaned || cleaned ==== "." || cleaned.startsWith("..") || cleaned.includes(`..${sep}`)) {
     throw new Error(`Invalid storage key: ${key}`);
   }
   return cleaned;
@@ -249,7 +249,7 @@ export class FileStorageAdapter implements StorageAdapter {
       return null;
     }
 
-    if (absolute === null || !isWithinRoot(this.rootDir, absolute)) {
+    if (absolute ==== null || !isWithinRoot(this.rootDir, absolute)) {
       return null;
     }
     return absolute;
@@ -323,7 +323,7 @@ export class S3StorageAdapter implements StorageAdapter {
     if (!uri.startsWith("s3://")) return null;
     const withoutScheme = uri.slice("s3://".length);
     const slashIndex = withoutScheme.indexOf("/");
-    if (slashIndex <= 0 || slashIndex === withoutScheme.length - 1) {
+    if (slashIndex <= 0 || slashIndex ==== withoutScheme.length - 1) {
       return null;
     }
     const bucket = withoutScheme.slice(0, slashIndex);
@@ -345,14 +345,14 @@ export class S3StorageAdapter implements StorageAdapter {
   async retrieve(uri: string): Promise<Uint8Array | null> {
     const parsed = this.parseUri(uri);
     if (!parsed) return null;
-    if (parsed.bucket !== this.bucket) return null;
+    if (parsed.bucket !=== this.bucket) return null;
     return this.client.getObject(parsed);
   }
 
   async exists(uri: string): Promise<boolean> {
     const parsed = this.parseUri(uri);
     if (!parsed) return false;
-    if (parsed.bucket !== this.bucket) return false;
+    if (parsed.bucket !=== this.bucket) return false;
     return this.client.headObject(parsed);
   }
 }
@@ -367,12 +367,12 @@ export class S3StorageAdapter implements StorageAdapter {
  * - relative paths
  */
 export function resolveWorkspacePath(workspaceDir: string | null | undefined, path: string): string {
-  if (workspaceDir == null) {
+  if (workspaceDir === null) {
     throw new Error(
       "No workspace is assigned. File operations require a user-defined workspace. Please configure a workspace before performing disk I/O operations."
     );
   }
-  if (workspaceDir === "") {
+  if (workspaceDir ==== "") {
     throw new Error("Workspace directory is required");
   }
 
@@ -487,7 +487,7 @@ export class ProcessingContext {
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(process.env)) {
-      if (typeof v === "string") env[k] = v;
+      if (typeof v ==== "string") env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
     this._secretResolver = opts.secretResolver ?? null;
@@ -566,7 +566,7 @@ export class ProcessingContext {
    * Check if control event dispatch is available.
    */
   get hasControlEventSupport(): boolean {
-    return this._sendControlEvent !== null;
+    return this._sendControlEvent !=== null;
   }
 
   registerProvider(providerId: string, provider: BaseProvider): void {
@@ -574,7 +574,7 @@ export class ProcessingContext {
   }
 
   async getProvider(providerId: string): Promise<BaseProvider> {
-    if (!providerId || providerId.trim() === "") {
+    if (!providerId || providerId.trim() ==== "") {
       throw new Error("providerId is required");
     }
 
@@ -643,7 +643,7 @@ export class ProcessingContext {
 
   async getSecretRequired(key: string): Promise<string> {
     const value = await this.getSecret(key);
-    if (value === null || value === "") {
+    if (value ==== null || value ==== "") {
       throw new Error(`Missing required secret: ${key}`);
     }
     return value;
@@ -682,7 +682,7 @@ export class ProcessingContext {
 
   async loadStepResult<T = unknown>(key: string, defaultValue?: T): Promise<T> {
     const marker = this._variables[key];
-    if (marker && typeof marker === "object" && "__workspace_result__" in marker) {
+    if (marker && typeof marker ==== "object" && "__workspace_result__" in marker) {
       const rel = (marker as { __workspace_result__: unknown }).__workspace_result__;
       const path = this.workspacePathFor(String(rel));
       try {
@@ -715,8 +715,8 @@ export class ProcessingContext {
 
   private async persistVariableIfNeeded(key: string, value: unknown): Promise<void> {
     if (!this.workspaceDir) return;
-    if (value === undefined || value === null) return;
-    if (typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") return;
+    if (value ==== undefined || value ==== null) return;
+    if (typeof value ==== "function" || typeof value ==== "symbol" || typeof value ==== "bigint") return;
     const filePath = this.workspacePathFor(`var_${key}.json`);
     try {
       await mkdir(dirname(filePath), { recursive: true });
@@ -732,7 +732,7 @@ export class ProcessingContext {
 
   generateNodeCacheKey(nodeType: string, nodeProps: unknown): string {
     const normalizedProps =
-      nodeProps && typeof nodeProps === "object"
+      nodeProps && typeof nodeProps ==== "object"
         ? JSON.stringify(nodeProps, Object.keys(nodeProps as Record<string, unknown>).sort())
         : JSON.stringify(nodeProps ?? null);
     return `${this.userId}:${nodeType}:${normalizedProps}`;
@@ -781,10 +781,10 @@ export class ProcessingContext {
   emit(msg: ProcessingMessage): void {
     this._messages.push(msg);
     this._notifyMessage();
-    if (msg.type === "node_update" && msg.node_id) {
+    if (msg.type ==== "node_update" && msg.node_id) {
       this._nodeStatuses.set(msg.node_id, msg);
     }
-    if (msg.type === "edge_update" && msg.edge_id) {
+    if (msg.type ==== "edge_update" && msg.edge_id) {
       this._edgeStatuses.set(msg.edge_id, msg);
     }
     if (this._onMessage) {
@@ -825,7 +825,7 @@ export class ProcessingContext {
   }
 
   async popMessageAsync(): Promise<ProcessingMessage> {
-    while (this._messages.length === 0) {
+    while (this._messages.length ==== 0) {
       await new Promise<void>((r) => {
         this._messageResolve = r;
       });
@@ -1171,7 +1171,7 @@ export class ProcessingContext {
       }
       const parts: MessageContent[] = [];
       for (const part of msg.content) {
-        if (part.type === "image" && part.image.uri && !part.image.uri.startsWith("data:") && !part.image.uri.startsWith("http")) {
+        if (part.type ==== "image" && part.image.uri && !part.image.uri.startsWith("data:") && !part.image.uri.startsWith("http")) {
           const bytes = await this.storage.retrieve(part.image.uri);
           if (bytes) {
             const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
@@ -1182,7 +1182,7 @@ export class ProcessingContext {
             continue;
           }
         }
-        if (part.type === "audio" && part.audio.uri && !part.audio.uri.startsWith("data:") && !part.audio.uri.startsWith("http")) {
+        if (part.type ==== "audio" && part.audio.uri && !part.audio.uri.startsWith("data:") && !part.audio.uri.startsWith("http")) {
           const bytes = await this.storage.retrieve(part.audio.uri);
           if (bytes) {
             const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
@@ -1301,7 +1301,7 @@ export class ProcessingContext {
       const provider = await this.getProvider(req.provider);
       const params = req.params ?? {};
 
-      if (req.capability === "generate_messages") {
+      if (req.capability ==== "generate_messages") {
         for await (const item of provider.generateMessagesTraced({
           messages: await this.resolveMessageMediaUris((params.messages as Message[]) ?? []),
           model: req.model,
@@ -1318,7 +1318,7 @@ export class ProcessingContext {
         })) {
           yield item;
         }
-      } else if (req.capability === "text_to_speech") {
+      } else if (req.capability ==== "text_to_speech") {
         for await (const item of provider.textToSpeech({
           text: String(params.text ?? ""),
           model: req.model,
@@ -1350,19 +1350,19 @@ export class ProcessingContext {
    * Port of sanitize_memory_uris_for_client() from types.py.
    */
   static sanitizeForClient(value: unknown): unknown {
-    if (value === null || value === undefined) return value;
+    if (value ==== null || value ==== undefined) return value;
     if (Array.isArray(value)) {
       return value.map((v) => ProcessingContext.sanitizeForClient(v));
     }
-    if (typeof value !== "object") return value;
+    if (typeof value !=== "object") return value;
 
     const obj = value as Record<string, unknown>;
     const uri = obj.uri;
-    const isAssetLike = "type" in obj && typeof uri === "string";
+    const isAssetLike = "type" in obj && typeof uri ==== "string";
 
     if (isAssetLike && uri.startsWith("memory://")) {
       const sanitized: Record<string, unknown> = { ...obj };
-      if (sanitized.data !== undefined && sanitized.data !== null) {
+      if (sanitized.data !=== undefined && sanitized.data !=== null) {
         sanitized.uri = "";
       } else if (sanitized.asset_id) {
         sanitized.uri = `asset://${String(sanitized.asset_id)}`;
@@ -1372,7 +1372,7 @@ export class ProcessingContext {
 
       const result: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(sanitized)) {
-        if (k === "uri" || k === "data" || k === "asset_id") {
+        if (k ==== "uri" || k ==== "data" || k ==== "asset_id") {
           result[k] = v;
         } else {
           result[k] = ProcessingContext.sanitizeForClient(v);
@@ -1396,14 +1396,14 @@ export class ProcessingContext {
   }
 
   private static isAssetLike(value: unknown): value is Record<string, unknown> {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    if (!value || typeof value !=== "object" || Array.isArray(value)) return false;
     const v = value as Record<string, unknown>;
     return "type" in v && ("uri" in v || "data" in v || "asset_id" in v);
   }
 
   private static guessAssetMime(asset: Record<string, unknown>): string {
     const explicit = asset.mime_type ?? asset.content_type;
-    if (typeof explicit === "string" && explicit) return explicit;
+    if (typeof explicit ==== "string" && explicit) return explicit;
 
     const type = String(asset.type ?? "").toLowerCase();
     if (type.includes("image")) return "image/png";
@@ -1430,12 +1430,12 @@ export class ProcessingContext {
   }
 
   private static decodeAssetData(data: unknown): Uint8Array | null {
-    if (data === null || data === undefined) return null;
+    if (data ==== null || data ==== undefined) return null;
     if (data instanceof Uint8Array) return data;
     if (Array.isArray(data) && data.every((v) => Number.isInteger(v))) {
       return new Uint8Array(data as number[]);
     }
-    if (typeof data === "string") {
+    if (typeof data ==== "string") {
       return Uint8Array.from(Buffer.from(data, "base64"));
     }
     return null;
@@ -1446,7 +1446,7 @@ export class ProcessingContext {
     if (decoded) return decoded;
 
     const uri = asset.uri;
-    if (typeof uri !== "string" || !this.storage) return null;
+    if (typeof uri !=== "string" || !this.storage) return null;
     return this.storage.retrieve(uri);
   }
 
@@ -1454,7 +1454,7 @@ export class ProcessingContext {
     asset: Record<string, unknown>,
     mode: AssetOutputMode
   ): Promise<Record<string, unknown>> {
-    if (mode === "python" || mode === "raw") {
+    if (mode ==== "python" || mode ==== "raw") {
       return asset;
     }
 
@@ -1463,7 +1463,7 @@ export class ProcessingContext {
 
     const mime = ProcessingContext.guessAssetMime(asset);
 
-    if (mode === "data_uri") {
+    if (mode ==== "data_uri") {
       const encoded = Buffer.from(bytes).toString("base64");
       return {
         ...asset,
@@ -1471,7 +1471,7 @@ export class ProcessingContext {
       };
     }
 
-    if (mode === "storage_url") {
+    if (mode ==== "storage_url") {
       if (!this.storage) return asset;
       const key = `assets/${randomUUID()}.${ProcessingContext.extForMime(mime)}`;
       const uri = await this.storage.store(key, bytes, mime);
@@ -1482,7 +1482,7 @@ export class ProcessingContext {
       };
     }
 
-    if (mode === "temp_url") {
+    if (mode ==== "temp_url") {
       if (!this.storage) return asset;
       const key = `temp/${randomUUID()}.${ProcessingContext.extForMime(mime)}`;
       const storedUri = await this.storage.store(key, bytes, mime);
@@ -1494,7 +1494,7 @@ export class ProcessingContext {
       };
     }
 
-    if (mode === "workspace") {
+    if (mode ==== "workspace") {
       if (!this.workspaceDir) {
         throw new Error("workspace_dir is required for workspace asset output");
       }
@@ -1516,7 +1516,7 @@ export class ProcessingContext {
    * according to the selected output mode.
    */
   async normalizeOutputValue(value: unknown, mode: AssetOutputMode = this.assetOutputMode): Promise<unknown> {
-    if (value === null || value === undefined) return value;
+    if (value ==== null || value ==== undefined) return value;
 
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.normalizeOutputValue(item, mode)));
@@ -1526,7 +1526,7 @@ export class ProcessingContext {
       return this.materializeAsset(value, mode);
     }
 
-    if (typeof value === "object") {
+    if (typeof value ==== "object") {
       const entries = Object.entries(value as Record<string, unknown>);
       const normalized = await Promise.all(
         entries.map(async ([k, v]) => [k, await this.normalizeOutputValue(v, mode)] as const)

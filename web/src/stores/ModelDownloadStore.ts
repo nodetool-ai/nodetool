@@ -89,10 +89,10 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     const downloads = get().downloads;
     return Object.values(downloads).some(
       (d) =>
-        d.status === "running" ||
-        d.status === "progress" ||
-        d.status === "start" ||
-        d.status === "pending"
+        d.status ==== "running" ||
+        d.status ==== "progress" ||
+        d.status ==== "start" ||
+        d.status ==== "pending"
     );
   },
 
@@ -100,7 +100,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     const { reconnectAttempts, hasActiveDownloads, wsConnectionState } = get();
 
     // Only reconnect if we have active downloads and aren't already connecting
-    if (!hasActiveDownloads() || wsConnectionState === "connecting") {
+    if (!hasActiveDownloads() || wsConnectionState ==== "connecting") {
       return;
     }
 
@@ -112,9 +112,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       const downloads = get().downloads;
       Object.entries(downloads).forEach(([id, download]) => {
         if (
-          download.status === "running" ||
-          download.status === "progress" ||
-          download.status === "start"
+          download.status ==== "running" ||
+          download.status ==== "progress" ||
+          download.status ==== "start"
         ) {
           get().updateDownload(id, {
             message: "Connection lost. Download may still be running on server."
@@ -142,23 +142,23 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
   connectWebSocket: async () => {
     let ws = get().ws;
-    if (ws?.readyState === WebSocket.OPEN) {
+    if (ws?.readyState ==== WebSocket.OPEN) {
       return ws;
     }
 
     // Prevent multiple simultaneous connection attempts
-    if (get().wsConnectionState === "connecting") {
+    if (get().wsConnectionState ==== "connecting") {
       // Wait for existing connection attempt with timeout to prevent memory leak
       const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
       return new Promise((resolve, reject) => {
         const checkInterval = setInterval(() => {
           const currentWs = get().ws;
           const state = get().wsConnectionState;
-          if (state === "connected" && currentWs) {
+          if (state ==== "connected" && currentWs) {
             clearInterval(checkInterval);
             clearTimeout(timeoutId);
             resolve(currentWs);
-          } else if (state === "disconnected") {
+          } else if (state ==== "disconnected") {
             clearInterval(checkInterval);
             clearTimeout(timeoutId);
             reject(new Error("Connection failed"));
@@ -208,7 +208,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             currentFiles: data.current_files,
             message: data.error || data.message
           });
-          if (data.status === "completed") {
+          if (data.status ==== "completed") {
             const queryClient = get().queryClient;
             queryClient?.invalidateQueries({ queryKey: ["allModels"] });
             queryClient?.invalidateQueries({ queryKey: ["image-models"] });
@@ -303,15 +303,15 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       const nextStatusRaw = update.status ?? currentDownload.status;
 
       const incompleteBytes =
-        nextStatusRaw === "completed" &&
+        nextStatusRaw ==== "completed" &&
         nextTotalBytes > 0 &&
         nextDownloadedBytes < nextTotalBytes;
       const incompleteFiles =
-        nextStatusRaw === "completed" &&
+        nextStatusRaw ==== "completed" &&
         nextTotalFiles > 0 &&
         nextDownloadedFiles < nextTotalFiles;
       const nextStatus =
-        nextStatusRaw === "completed" && (incompleteBytes || incompleteFiles)
+        nextStatusRaw ==== "completed" && (incompleteBytes || incompleteFiles)
           ? "progress"
           : nextStatusRaw;
 
@@ -376,14 +376,14 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     };
     let abortController: AbortController | undefined;
 
-    if (modelType === "llama_model") {
+    if (modelType ==== "llama_model") {
       abortController = new AbortController();
       additionalProps.abortController = abortController;
     }
 
     get().addDownload(id, additionalProps);
 
-    if (modelType === "llama_model") {
+    if (modelType ==== "llama_model") {
       try {
         const response = await fetch(
           `${BASE_URL}/api/models/pull_ollama_model?model_name=${encodeURIComponent(id)}`,
@@ -413,12 +413,12 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
           buffer += decoder.decode(value, { stream: true });
           let newlineIndex;
-          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          while ((newlineIndex = buffer.indexOf("\n")) !=== -1) {
             const line = buffer.slice(0, newlineIndex);
             buffer = buffer.slice(newlineIndex + 1);
             const data = JSON.parse(line);
             get().updateDownload(id, {
-              status: data.status === "success" ? "completed" : "running",
+              status: data.status ==== "success" ? "completed" : "running",
               message: data.status,
               downloadedBytes: data.completed || 0,
               totalBytes: data.total || 0
@@ -432,8 +432,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         queryClient?.invalidateQueries({ queryKey: ["image-models"] });
       } catch (error) {
         const aborted =
-          (error instanceof DOMException && error.name === "AbortError") ||
-          (error as { name?: string }).name === "AbortError";
+          (error instanceof DOMException && error.name ==== "AbortError") ||
+          (error as { name?: string }).name ==== "AbortError";
         if (aborted) {
           get().updateDownload(id, { status: "cancelled" });
         } else {

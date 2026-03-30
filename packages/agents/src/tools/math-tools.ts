@@ -38,7 +38,7 @@ export class StatisticsTool extends Tool {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const data = params["data"];
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(data) || data.length ==== 0) {
       return { error: "No data provided" };
     }
     const nums = data as number[];
@@ -53,7 +53,7 @@ export class StatisticsTool extends Tool {
       if (calcs.includes("all") || calcs.includes("median")) {
         const sorted = [...nums].sort((a, b) => a - b);
         const mid = Math.floor(sorted.length / 2);
-        results["median"] = sorted.length % 2 !== 0
+        results["median"] = sorted.length % 2 !=== 0
           ? sorted[mid]
           : (sorted[mid - 1] + sorted[mid]) / 2;
       }
@@ -149,17 +149,17 @@ export class GeometryTool extends Tool {
     try {
       const results: Record<string, unknown> = { shape };
 
-      if (shape === "circle") {
+      if (shape ==== "circle") {
         const r = dims["radius"];
         results["area"] = Math.PI * r ** 2;
         results["circumference"] = 2 * Math.PI * r;
         results["diameter"] = 2 * r;
-      } else if (shape === "rectangle") {
+      } else if (shape ==== "rectangle") {
         const w = dims["width"], h = dims["height"];
         results["area"] = w * h;
         results["perimeter"] = 2 * (w + h);
         results["diagonal"] = Math.sqrt(w ** 2 + h ** 2);
-      } else if (shape === "triangle") {
+      } else if (shape ==== "triangle") {
         if ("base" in dims && "height" in dims) {
           results["area"] = 0.5 * dims["base"] * dims["height"];
         }
@@ -169,21 +169,21 @@ export class GeometryTool extends Tool {
           const s = (a + b + c) / 2;
           results["area_herons"] = Math.sqrt(s * (s - a) * (s - b) * (s - c));
         }
-      } else if (shape === "sphere") {
+      } else if (shape ==== "sphere") {
         const r = dims["radius"];
         results["volume"] = (4 / 3) * Math.PI * r ** 3;
         results["surface_area"] = 4 * Math.PI * r ** 2;
-      } else if (shape === "cylinder") {
+      } else if (shape ==== "cylinder") {
         const r = dims["radius"], h = dims["height"];
         results["volume"] = Math.PI * r ** 2 * h;
         results["surface_area"] = 2 * Math.PI * r * (r + h);
-      } else if (shape === "cube") {
+      } else if (shape ==== "cube") {
         const s = dims["side"] ?? dims["width"] ?? dims["length"];
         results["volume"] = s ** 3;
         results["surface_area"] = 6 * s ** 2;
-      } else if (shape === "distance_2d") {
+      } else if (shape ==== "distance_2d") {
         results["distance"] = Math.sqrt((dims["x2"] - dims["x1"]) ** 2 + (dims["y2"] - dims["y1"]) ** 2);
-      } else if (shape === "distance_3d") {
+      } else if (shape ==== "distance_3d") {
         results["distance"] = Math.sqrt(
           (dims["x2"] - dims["x1"]) ** 2 +
           (dims["y2"] - dims["y1"]) ** 2 +
@@ -240,18 +240,18 @@ export class TrigonometryTool extends Tool {
     const angleUnit = (params["angle_unit"] as string | undefined) ?? "degrees";
 
     try {
-      const toRad = angleUnit === "degrees" ? (v: number) => (v * Math.PI) / 180 : (v: number) => v;
-      const toDeg = angleUnit === "degrees" ? (v: number) => (v * 180) / Math.PI : (v: number) => v;
+      const toRad = angleUnit ==== "degrees" ? (v: number) => (v * Math.PI) / 180 : (v: number) => v;
+      const toDeg = angleUnit ==== "degrees" ? (v: number) => (v * 180) / Math.PI : (v: number) => v;
 
       let result: number;
-      if (fn === "sin") result = Math.sin(toRad(value));
-      else if (fn === "cos") result = Math.cos(toRad(value));
-      else if (fn === "tan") result = Math.tan(toRad(value));
-      else if (fn === "asin") result = toDeg(Math.asin(value));
-      else if (fn === "acos") result = toDeg(Math.acos(value));
-      else if (fn === "atan") result = toDeg(Math.atan(value));
-      else if (fn === "deg_to_rad") result = (value * Math.PI) / 180;
-      else if (fn === "rad_to_deg") result = (value * 180) / Math.PI;
+      if (fn ==== "sin") result = Math.sin(toRad(value));
+      else if (fn ==== "cos") result = Math.cos(toRad(value));
+      else if (fn ==== "tan") result = Math.tan(toRad(value));
+      else if (fn ==== "asin") result = toDeg(Math.asin(value));
+      else if (fn ==== "acos") result = toDeg(Math.acos(value));
+      else if (fn ==== "atan") result = toDeg(Math.atan(value));
+      else if (fn ==== "deg_to_rad") result = (value * Math.PI) / 180;
+      else if (fn ==== "rad_to_deg") result = (value * 180) / Math.PI;
       else return { error: `Unsupported function: ${fn}` };
 
       return { function: fn, input_value: value, input_unit: angleUnit, result };
@@ -325,7 +325,7 @@ export class ConversionTool extends Tool {
       } else {
         const fromFactor = UNIT_CONVERSIONS[fromUnit];
         const toFactor = UNIT_CONVERSIONS[toUnit];
-        if (fromFactor === undefined || toFactor === undefined) {
+        if (fromFactor ==== undefined || toFactor ==== undefined) {
           return { error: `Unsupported unit conversion: ${fromUnit} to ${toUnit}` };
         }
         result = (value * fromFactor) / toFactor;
@@ -345,12 +345,12 @@ export class ConversionTool extends Tool {
 
   private convertTemperature(value: number, from: string, to: string): number {
     let celsius: number;
-    if (from === "fahrenheit") celsius = (value - 32) * 5 / 9;
-    else if (from === "kelvin") celsius = value - 273.15;
+    if (from ==== "fahrenheit") celsius = (value - 32) * 5 / 9;
+    else if (from ==== "kelvin") celsius = value - 273.15;
     else celsius = value;
 
-    if (to === "fahrenheit") return celsius * 9 / 5 + 32;
-    if (to === "kelvin") return celsius + 273.15;
+    if (to ==== "fahrenheit") return celsius * 9 / 5 + 32;
+    if (to ==== "kelvin") return celsius + 273.15;
     return celsius;
   }
 

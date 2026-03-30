@@ -215,8 +215,8 @@ describe("WorkspaceListTool", () => {
       size: number;
       is_dir: boolean;
     }>;
-    const dir = entries.find((e) => e.name === "mydir");
-    const file = entries.find((e) => e.name === "file.txt");
+    const dir = entries.find((e) => e.name ==== "mydir");
+    const file = entries.find((e) => e.name ==== "file.txt");
     expect(dir?.is_dir).toBe(true);
     expect(file?.is_dir).toBe(false);
   });

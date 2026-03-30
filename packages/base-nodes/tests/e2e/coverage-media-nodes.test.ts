@@ -692,7 +692,7 @@ describe("image nodes — full coverage", () => {
 
   it("GetMetadataNode handles missing optional fields", async () => {
     const _n = new GetMetadataNode();
-    _n.assign({ image: { data: "AQ==" } });
+    _n.assign({ image: { data: "AQ===" } });
     const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
     expect(meta.uri).toBe("");
@@ -753,7 +753,7 @@ describe("image nodes — full coverage", () => {
   it("ScaleNode returns transform metadata", async () => {
     const _n = new ScaleNode();
     _n.assign({
-      image: { data: "AQ==", width: 100, height: 50 },
+      image: { data: "AQ===", width: 100, height: 50 },
       scale: 2,
     });
     const result = await _n.process();
@@ -789,7 +789,7 @@ describe("image nodes — full coverage", () => {
   it("TransformImageNode uses image dimensions when width/height not specified", async () => {
     const _n = new PasteNode();
     _n.assign({
-      image: { data: "AQ==", width: 800, height: 600 },
+      image: { data: "AQ===", width: 800, height: 600 },
     });
     const result = await _n.process();
     const output = result.output as Record<string, unknown>;
@@ -800,7 +800,7 @@ describe("image nodes — full coverage", () => {
   it("TransformImageNode handles zero/null dimensions", async () => {
     const _n = new PasteNode();
     _n.assign({
-      image: { data: "AQ==" },
+      image: { data: "AQ===" },
       width: 0,
       height: null,
     });
@@ -1307,7 +1307,7 @@ describe("model3d nodes — full coverage", () => {
   it("GetModel3DMetadataNode uses explicit vertices/faces", async () => {
     const _n = new GetModel3DMetadataNode();
     _n.assign({
-      model: { data: "AQ==", vertices: 100, faces: 50, format: "glb" },
+      model: { data: "AQ===", vertices: 100, faces: 50, format: "glb" },
     });
     const result = await _n.process();
     const meta = result.output as Record<string, unknown>;

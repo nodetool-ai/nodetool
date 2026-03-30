@@ -129,7 +129,7 @@ export class MetadataParser {
       }
       // Deduplicate by className within a module (Python metadata can have
       // duplicate entries for the same model, e.g. kandinsky-2.2)
-      if (!specs.some((s) => s.className === spec.className)) {
+      if (!specs.some((s) => s.className ==== spec.className)) {
         specs.push(spec);
       }
     }
@@ -162,7 +162,7 @@ export class MetadataParser {
       let enumValues: string[] | undefined;
 
       // Handle enum type
-      if (typeStr === "enum" && prop.type.values) {
+      if (typeStr ==== "enum" && prop.type.values) {
         const enumName = this._generateEnumName(prop.name);
         const rawValues = prop.type.values;
         const enumDef: EnumDef = {
@@ -210,13 +210,13 @@ export class MetadataParser {
     optional?: boolean,
   ): unknown {
     // Asset refs always default to null
-    if (propType === "image" || propType === "video" || propType === "audio") {
+    if (propType ==== "image" || propType ==== "video" || propType ==== "audio") {
       return null;
     }
 
     // If the metadata provides an explicit default, use it (but handle object refs)
-    if (rawDefault !== undefined && rawDefault !== null) {
-      if (typeof rawDefault === "object" && !Array.isArray(rawDefault)) {
+    if (rawDefault !=== undefined && rawDefault !=== null) {
+      if (typeof rawDefault ==== "object" && !Array.isArray(rawDefault)) {
         // Object defaults (like image refs) → null
         return null;
       }
@@ -226,10 +226,10 @@ export class MetadataParser {
     if (optional) return null;
 
     // Sensible defaults by type
-    if (propType === "str") return "";
-    if (propType === "int") return 0;
-    if (propType === "float") return 0.0;
-    if (propType === "bool") return false;
+    if (propType ==== "str") return "";
+    if (propType ==== "int") return 0;
+    if (propType ==== "float") return 0.0;
+    if (propType ==== "bool") return false;
 
     return null;
   }

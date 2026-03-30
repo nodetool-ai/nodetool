@@ -14,7 +14,7 @@ const buildMenu = () => {
   }
   const menu = Menu.buildFromTemplate([
     {
-      label: process.platform === "darwin" ? "NodeTool" : "",
+      label: process.platform ==== "darwin" ? "NodeTool" : "",
       submenu: [
         { role: "about" },
         { type: "separator" },
@@ -310,7 +310,7 @@ Features & Versions
       : dialog.showMessageBox(dialogOptions);
     
     const result = await showDialog;
-    if (result.response === 1) {
+    if (result.response ==== 1) {
       // Copy to clipboard
       clipboard.writeText(message);
     }

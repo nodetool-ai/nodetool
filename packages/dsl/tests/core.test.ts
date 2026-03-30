@@ -126,7 +126,7 @@ describe("workflow", () => {
         targetHandle: "lhs",
       })
     );
-    const bNode = wf.nodes.find((n) => n.type === "nodetool.math.Add")!;
+    const bNode = wf.nodes.find((n) => n.type ==== "nodetool.math.Add")!;
     expect(bNode.data).toEqual({ rhs: 1 });
     expect(bNode.data).not.toHaveProperty("lhs");
   });

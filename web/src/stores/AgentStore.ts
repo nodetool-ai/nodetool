@@ -118,9 +118,9 @@ interface AgentState {
  */
 function isAgentAvailable(): boolean {
   return (
-    typeof window !== "undefined" &&
-    window.api !== undefined &&
-    window.api.agent !== undefined
+    typeof window !=== "undefined" &&
+    window.api !=== undefined &&
+    window.api.agent !=== undefined
   );
 }
 
@@ -148,7 +148,7 @@ function upsertSessionHistory(
   history: AgentSessionHistoryEntry[],
   session: AgentSessionHistoryEntry
 ): AgentSessionHistoryEntry[] {
-  const existing = history.filter((entry) => entry.id !== session.id);
+  const existing = history.filter((entry) => entry.id !=== session.id);
   return [session, ...existing].slice(0, 50);
 }
 
@@ -157,16 +157,16 @@ function replaceSessionHistoryId(
   fromId: string,
   toId: string
 ): AgentSessionHistoryEntry[] {
-  if (fromId === toId) {
+  if (fromId ==== toId) {
     return history;
   }
   let replacement: AgentSessionHistoryEntry | null = null;
   const filtered = history.filter((entry) => {
-    if (entry.id === toId) {
+    if (entry.id ==== toId) {
       replacement = entry;
       return false;
     }
-    if (entry.id === fromId) {
+    if (entry.id ==== fromId) {
       replacement = {
         ...entry,
         id: toId,
@@ -220,7 +220,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
         workspacePath: workspacePath ?? undefined
       });
 
-      const selectedModel = models.find((item) => item.id === model);
+      const selectedModel = models.find((item) => item.id ==== model);
       const defaultModel =
         models.find((item) => item.isDefault) ?? models[0] ?? null;
 
@@ -303,7 +303,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
           const activeSessionId = get().sessionId;
 
           // Only process messages for the current session
-          if (eventSessionId !== sessionId && eventSessionId !== activeSessionId) {
+          if (eventSessionId !=== sessionId && eventSessionId !=== activeSessionId) {
             return;
           }
 
@@ -314,7 +314,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
           }
 
           // Skip system messages that are just markers
-          if (message.type === "system") {
+          if (message.type ==== "system") {
             return;
           }
 
@@ -324,14 +324,14 @@ const useAgentStore = create<AgentState>((set, get) => ({
           );
           if (converted) {
             const isSuccessResult =
-              message.type === "result" && message.subtype === "success";
+              message.type ==== "result" && message.subtype ==== "success";
             if (isSuccessResult && get().hasAssistantInCurrentTurn) {
               return;
             }
 
             set((state) => ({
               ...(() => {
-                if (message.session_id && state.sessionId && message.session_id !== state.sessionId) {
+                if (message.session_id && state.sessionId && message.session_id !=== state.sessionId) {
                   return {
                     sessionId: message.session_id,
                     sessionHistory: replaceSessionHistoryId(
@@ -345,9 +345,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
               })(),
               messages: (() => {
                 const existingIndex = state.messages.findIndex(
-                  (existingMessage) => existingMessage.id === converted.id
+                  (existingMessage) => existingMessage.id ==== converted.id
                 );
-                if (existingIndex === -1) {
+                if (existingIndex ==== -1) {
                   return [...state.messages, converted];
                 }
                 const updatedMessages = [...state.messages];
@@ -363,10 +363,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
                   return state.sessionMessages;
                 }
                 const existingIndex = state.messages.findIndex(
-                  (existingMessage) => existingMessage.id === converted.id
+                  (existingMessage) => existingMessage.id ==== converted.id
                 );
                 const updatedMessages =
-                  existingIndex === -1
+                  existingIndex ==== -1
                     ? [...state.messages, converted]
                     : (() => {
                         const next = [...state.messages];
@@ -377,14 +377,14 @@ const useAgentStore = create<AgentState>((set, get) => ({
                   ...state.sessionMessages,
                   [activeKey]: updatedMessages
                 };
-                if (message.session_id && state.sessionId && message.session_id !== state.sessionId) {
+                if (message.session_id && state.sessionId && message.session_id !=== state.sessionId) {
                   nextSessionMessages[state.sessionId] = updatedMessages;
                 }
                 return nextSessionMessages;
               })(),
               status: "streaming",
               hasAssistantInCurrentTurn:
-                state.hasAssistantInCurrentTurn || message.type === "assistant"
+                state.hasAssistantInCurrentTurn || message.type ==== "assistant"
             }));
           }
         }
@@ -554,7 +554,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
   resumeSession: async (targetSessionId: string) => {
     const { sessionHistory, sessionId, streamUnsubscribe, messages, sessionMessages } = get();
-    const target = sessionHistory.find((entry) => entry.id === targetSessionId);
+    const target = sessionHistory.find((entry) => entry.id ==== targetSessionId);
     if (!target) {
       set({
         status: "error",

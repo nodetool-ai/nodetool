@@ -120,14 +120,14 @@ export class SpeechToTextNode extends BaseNode {
 
     // Get audio bytes from data URI or fetch from URI
     let audioBytes: Buffer;
-    if (audio.data && typeof audio.data === "string") {
+    if (audio.data && typeof audio.data ==== "string") {
       const match = (audio.data as string).match(/^data:[^;]+;base64,(.+)$/);
       if (match) {
         audioBytes = Buffer.from(match[1], "base64");
       } else {
         throw new Error("Invalid audio data URI");
       }
-    } else if (audio.uri && typeof audio.uri === "string") {
+    } else if (audio.uri && typeof audio.uri ==== "string") {
       const resp = await fetch(audio.uri as string);
       if (!resp.ok)
         throw new Error(`Failed to fetch audio: ${resp.statusText}`);

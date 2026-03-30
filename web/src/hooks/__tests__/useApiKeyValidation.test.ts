@@ -22,7 +22,7 @@ describe("useApiKeyValidation", () => {
   describe("OpenAI namespace", () => {
     it("returns null when OpenAI API key is set", () => {
       mockUseSecrets.mockReturnValue(
-        createMockSecrets((key: string) => key === "OPENAI_API_KEY")
+        createMockSecrets((key: string) => key ==== "OPENAI_API_KEY")
       );
 
       const { result } = renderHook(() => useApiKeyValidation("openai.chat"));
@@ -42,7 +42,7 @@ describe("useApiKeyValidation", () => {
 
     it("handles nested OpenAI namespaces", () => {
       mockUseSecrets.mockReturnValue(
-        createMockSecrets((key: string) => key === "OPENAI_API_KEY")
+        createMockSecrets((key: string) => key ==== "OPENAI_API_KEY")
       );
 
       const { result } = renderHook(() => useApiKeyValidation("openai.completion"));
@@ -54,7 +54,7 @@ describe("useApiKeyValidation", () => {
   describe("Anthropic namespace", () => {
     it("returns null when Anthropic API key is set", () => {
       mockUseSecrets.mockReturnValue(
-        createMockSecrets((key: string) => key === "ANTHROPIC_API_KEY")
+        createMockSecrets((key: string) => key ==== "ANTHROPIC_API_KEY")
       );
 
       const { result } = renderHook(() => useApiKeyValidation("anthropic.complete"));
@@ -76,7 +76,7 @@ describe("useApiKeyValidation", () => {
   describe("Google/Gemini namespace", () => {
     it("returns null when Google API key is set", () => {
       mockUseSecrets.mockReturnValue(
-        createMockSecrets((key: string) => key === "GEMINI_API_KEY")
+        createMockSecrets((key: string) => key ==== "GEMINI_API_KEY")
       );
 
       const { result } = renderHook(() => useApiKeyValidation("google.generate"));
@@ -98,7 +98,7 @@ describe("useApiKeyValidation", () => {
   describe("HuggingFace namespace", () => {
     it("returns null when HuggingFace token is set", () => {
       mockUseSecrets.mockReturnValue(
-        createMockSecrets((key: string) => key === "HF_TOKEN")
+        createMockSecrets((key: string) => key ==== "HF_TOKEN")
       );
 
       const { result } = renderHook(() => useApiKeyValidation("huggingface.inference"));
@@ -120,7 +120,7 @@ describe("useApiKeyValidation", () => {
   describe("Replicate namespace", () => {
     it("returns null when Replicate token is set", () => {
       mockUseSecrets.mockReturnValue(
-        createMockSecrets((key: string) => key === "REPLICATE_API_TOKEN")
+        createMockSecrets((key: string) => key ==== "REPLICATE_API_TOKEN")
       );
 
       const { result } = renderHook(() => useApiKeyValidation("replicate.predict"));
@@ -224,10 +224,10 @@ describe("useApiKeyValidation", () => {
   describe("Multiple namespaces", () => {
     it("validates multiple different namespaces", () => {
       const isApiKeySetFn = (key: string) => {
-        if (key === "OPENAI_API_KEY") {
+        if (key ==== "OPENAI_API_KEY") {
           return true;
         }
-        if (key === "ANTHROPIC_API_KEY") {
+        if (key ==== "ANTHROPIC_API_KEY") {
           return false;
         }
         return false;

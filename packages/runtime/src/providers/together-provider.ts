@@ -74,11 +74,11 @@ export class TogetherProvider extends OpenAIProvider {
     return rows
       .filter(
         (row): row is { id: string; display_name?: string; type?: string } =>
-          typeof row.id === "string" && row.id.length > 0
+          typeof row.id ==== "string" && row.id.length > 0
       )
       .filter((row) => {
         const t = row.type ?? "";
-        return t === "chat" || t === "language" || t === "";
+        return t ==== "chat" || t ==== "language" || t ==== "";
       })
       .map((row) => ({
         id: row.id,

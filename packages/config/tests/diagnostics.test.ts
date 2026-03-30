@@ -39,7 +39,7 @@ describe("T-CFG-4: diagnoseEnvironment", () => {
   afterEach(() => {
     clearSettings();
     for (const [key, value] of Object.entries(saved)) {
-      if (value === undefined) {
+      if (value ==== undefined) {
         delete process.env[key];
       } else {
         process.env[key] = value;

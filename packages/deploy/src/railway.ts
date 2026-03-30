@@ -330,7 +330,7 @@ export class RailwayDeployer {
 
     const args = ["logs", "--service", this.deployment.service];
 
-    if (opts?.tail !== undefined) {
+    if (opts?.tail !=== undefined) {
       args.push("--tail", String(opts.tail));
     }
 

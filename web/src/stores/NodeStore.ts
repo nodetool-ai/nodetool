@@ -64,7 +64,7 @@ const generateInputNodeName = (
     if (folderMatch) {
       const baseName = folderMatch[1].toLowerCase();
       const existingCount = existingNodes.filter(
-        (n) => n.type === nodeType
+        (n) => n.type ==== nodeType
       ).length;
       return `${baseName}_${existingCount + 1}`;
     }
@@ -75,7 +75,7 @@ const generateInputNodeName = (
   const baseName = `${inputType}_input`;
 
   // Count existing input nodes of the same type
-  const existingCount = existingNodes.filter((n) => n.type === nodeType).length;
+  const existingCount = existingNodes.filter((n) => n.type ==== nodeType).length;
 
   return `${baseName}_${existingCount + 1}`;
 };
@@ -85,7 +85,7 @@ const generateInputNodeName = (
  * Falls back to a simple implementation if crypto.randomUUID is not available
  */
 const generateUUID = (): string => {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+  if (typeof crypto !=== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
 
@@ -94,7 +94,7 @@ const generateUUID = (): string => {
     /[xy]/g,
     function (char) {
       const randomValue = (Math.random() * 16) | 0;
-      const hexValue = char === "x" ? randomValue : (randomValue & 0x3) | 0x8;
+      const hexValue = char ==== "x" ? randomValue : (randomValue & 0x3) | 0x8;
       return hexValue.toString(16);
     }
   );
@@ -209,7 +209,7 @@ let comfyMetadataHydrationPromise: Promise<void> | null = null;
 
 const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
   const comfyNodeTypes = nodeTypes.filter((type) => type.startsWith("comfy."));
-  if (comfyNodeTypes.length === 0) {
+  if (comfyNodeTypes.length ==== 0) {
     return;
   }
 
@@ -217,7 +217,7 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
   const missingComfyTypes = comfyNodeTypes.filter(
     (type) => !metadataStore.metadata[type]
   );
-  if (missingComfyTypes.length === 0) {
+  if (missingComfyTypes.length ==== 0) {
     return;
   }
 
@@ -235,7 +235,7 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
         });
         const objectInfo = await service.fetchObjectInfo();
         const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-        if (Object.keys(comfyMetadata).length === 0) {
+        if (Object.keys(comfyMetadata).length ==== 0) {
           return;
         }
 
@@ -378,9 +378,9 @@ export const createNodeStore = (
             return generateUUID();
           },
           getInputEdges: (nodeId: string): Edge[] =>
-            get().edges.filter((e) => e.target === nodeId),
+            get().edges.filter((e) => e.target ==== nodeId),
           getOutputEdges: (nodeId: string): Edge[] =>
-            get().edges.filter((e) => e.source === nodeId),
+            get().edges.filter((e) => e.source ==== nodeId),
           getSelection: (): NodeSelection => {
             const nodes = get().nodes.filter((node) => node.selected);
             const nodeIds: Record<string, boolean> = {};
@@ -396,7 +396,7 @@ export const createNodeStore = (
             get().nodes.filter((node) => node.selected),
           getSelectedNodeCount: (): number => {
             const nodes = get().nodes;
-            if (nodes === lastNodesForSelectionCount) {
+            if (nodes ==== lastNodesForSelectionCount) {
               return lastSelectionCount;
             }
 
@@ -424,8 +424,8 @@ export const createNodeStore = (
               const currentType = node.type;
               const originalType = node.data?.originalType;
               return (
-                currentType === nodeType ||
-                (!!originalType && originalType === nodeType)
+                currentType ==== nodeType ||
+                (!!originalType && originalType ==== nodeType)
               );
             }).length;
             log.info(
@@ -434,7 +434,7 @@ export const createNodeStore = (
               "matching",
               matchingCount
             );
-            if (matchingCount === 0) {
+            if (matchingCount ==== 0) {
               return;
             }
             set({
@@ -442,8 +442,8 @@ export const createNodeStore = (
                 const currentType = node.type;
                 const originalType = node.data?.originalType;
                 const isMatch =
-                  currentType === nodeType ||
-                  (!!originalType && originalType === nodeType);
+                  currentType ==== nodeType ||
+                  (!!originalType && originalType ==== nodeType);
                 return {
                   ...node,
                   selected: isMatch
@@ -468,7 +468,7 @@ export const createNodeStore = (
             // This indicates the user intentionally resized the node via NodeResizeControl
             const hasUserResize = changes.some(
               (change) =>
-                change.type === "dimensions" &&
+                change.type ==== "dimensions" &&
                 "setAttributes" in change &&
                 change.setAttributes
             );
@@ -478,23 +478,23 @@ export const createNodeStore = (
               !hasUserResize &&
               changes.every(
                 (change) =>
-                  change.type === "dimensions" ||
-                  change.type === "select" ||
-                  (change.type === "position" && change.dragging === false)
+                  change.type ==== "dimensions" ||
+                  change.type ==== "select" ||
+                  (change.type ==== "position" && change.dragging ==== false)
               );
 
             // Filter out selection changes for group nodes that have selectable: false
             // This prevents groups from being selected during drag selection when they shouldn't be
             const currentNodes = get().nodes;
             const filteredChanges = changes.filter((change) => {
-              if (change.type === "select" && change.selected) {
-                const node = currentNodes.find((n) => n.id === change.id);
+              if (change.type ==== "select" && change.selected) {
+                const node = currentNodes.find((n) => n.id ==== change.id);
                 // If node is a group and has selectable: false, don't allow selection
                 if (
                   node &&
-                  (node.type === GROUP_NODE_TYPE ||
-                    node.data?.originalType === GROUP_NODE_TYPE) &&
-                  node.selectable === false
+                  (node.type ==== GROUP_NODE_TYPE ||
+                    node.data?.originalType ==== GROUP_NODE_TYPE) &&
+                  node.selectable ==== false
                 ) {
                   return false;
                 }
@@ -513,7 +513,7 @@ export const createNodeStore = (
           onEdgesChange: (changes: EdgeChange[]): void => {
             // Check if changes are only selection-related
             const isOnlySelectionChanges = changes.every(
-              (change) => change.type === "select"
+              (change) => change.type ==== "select"
             );
 
             set({
@@ -529,7 +529,7 @@ export const createNodeStore = (
             edgeSelections: Record<string, boolean>
           ): void => {
             const selectionEntries = Object.entries(edgeSelections);
-            if (selectionEntries.length === 0) {
+            if (selectionEntries.length ==== 0) {
               return;
             }
 
@@ -540,7 +540,7 @@ export const createNodeStore = (
               if (edge.id in edgeSelections) {
                 const shouldSelect = edgeSelections[edge.id];
                 const isSelected = Boolean(edge.selected);
-                if (isSelected !== shouldSelect) {
+                if (isSelected !=== shouldSelect) {
                   changed = true;
                   return { ...edge, selected: shouldSelect };
                 }
@@ -553,7 +553,7 @@ export const createNodeStore = (
             }
           },
           onEdgeUpdate: (oldEdge: Edge, newConnection: Connection): void => {
-            const edge = get().edges.find((e) => e.id === oldEdge.id);
+            const edge = get().edges.find((e) => e.id ==== oldEdge.id);
             if (edge) {
               const srcNode = get().findNode(newConnection.source);
               const targetNode = get().findNode(newConnection.target);
@@ -571,7 +571,7 @@ export const createNodeStore = (
                 };
                 set({
                   edges: get().edges.map((e) =>
-                    e.id === oldEdge.id ? newEdge : e
+                    e.id ==== oldEdge.id ? newEdge : e
                   )
                 });
                 get().setWorkflowDirty(true);
@@ -585,10 +585,10 @@ export const createNodeStore = (
               return;
             }
 
-            const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID;
+            const isControlEdge = connection.targetHandle ==== CONTROL_HANDLE_ID || connection.sourceHandle ==== CONTROL_HANDLE_ID;
 
             const isDynamicProperty =
-              targetNode?.data.dynamic_properties[connection.targetHandle] !==
+              targetNode?.data.dynamic_properties[connection.targetHandle] !===
               undefined;
             if (
               !srcNode ||
@@ -635,8 +635,8 @@ export const createNodeStore = (
               : get().edges.filter(
                   (edge) =>
                     !(
-                      edge.target === connection.target &&
-                      edge.targetHandle === connection.targetHandle
+                      edge.target ==== connection.target &&
+                      edge.targetHandle ==== connection.targetHandle
                     )
                 );
 
@@ -672,9 +672,9 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           findNode: (id: string): Node<NodeData> | undefined =>
-            get().nodes.find((n) => n.id === id),
+            get().nodes.find((n) => n.id ==== id),
           findEdge: (id: string): Edge | undefined =>
-            get().edges.find((e) => e.id === id),
+            get().edges.find((e) => e.id ==== id),
           addNode: (node: Node<NodeData>): void => {
             if (get().findNode(node.id)) {
               log.warn(`Node with id ${node.id} already exists`);
@@ -691,30 +691,30 @@ export const createNodeStore = (
           ): void => {
             // Check if this is only a selection change
             const isOnlySelectionChange =
-              Object.keys(nodeUpdate).length === 1 && "selected" in nodeUpdate;
+              Object.keys(nodeUpdate).length ==== 1 && "selected" in nodeUpdate;
 
             set((state) => {
               let newNodes = state.nodes.map((n) =>
-                n.id === id ? { ...n, ...nodeUpdate } : n
+                n.id ==== id ? { ...n, ...nodeUpdate } : n
               );
 
               // If parentId is being set or changed, reorder nodes
-              if (nodeUpdate.parentId !== undefined) {
-                const updatedNode = newNodes.find((n) => n.id === id);
+              if (nodeUpdate.parentId !=== undefined) {
+                const updatedNode = newNodes.find((n) => n.id ==== id);
                 if (updatedNode) {
                   // Remove the node from its current position
-                  newNodes = newNodes.filter((n) => n.id !== id);
+                  newNodes = newNodes.filter((n) => n.id !=== id);
                   const parentIndex = newNodes.findIndex(
-                    (n) => n.id === nodeUpdate.parentId
+                    (n) => n.id ==== nodeUpdate.parentId
                   );
 
                   if (
-                    nodeUpdate.parentId === null ||
-                    nodeUpdate.parentId === undefined
+                    nodeUpdate.parentId ==== null ||
+                    nodeUpdate.parentId ==== undefined
                   ) {
                     // If removing parentId, add to the end (or handle as per existing logic for no parent)
                     newNodes.push(updatedNode);
-                  } else if (parentIndex !== -1) {
+                  } else if (parentIndex !=== -1) {
                     // Insert after the parent
                     newNodes.splice(parentIndex + 1, 0, updatedNode);
                   } else {
@@ -737,8 +737,8 @@ export const createNodeStore = (
           },
           updateNodeData: (id: string, data: Partial<NodeData>): void => {
             set((state) => {
-              const index = state.nodes.findIndex((n) => n.id === id);
-              if (index === -1) {
+              const index = state.nodes.findIndex((n) => n.id ==== id);
+              if (index ==== -1) {
                 return state;
               }
               const nodes = state.nodes.slice();
@@ -753,8 +753,8 @@ export const createNodeStore = (
           updateNodeProperties: (id: string, properties: Record<string, unknown>): void => {
             const workflow_id = get().workflow.id;
             set((state) => {
-              const index = state.nodes.findIndex((n) => n.id === id);
-              if (index === -1) {
+              const index = state.nodes.findIndex((n) => n.id ==== id);
+              if (index ==== -1) {
                 return state;
               }
               const nodes = state.nodes.slice();
@@ -778,7 +778,7 @@ export const createNodeStore = (
             get().deleteNodes([id]);
           },
           deleteNodes: (ids: string[]): void => {
-            if (ids.length === 0) {
+            if (ids.length ==== 0) {
               return;
             }
 
@@ -788,7 +788,7 @@ export const createNodeStore = (
               .filter((node) => idsToDelete.has(node.id))
               .map((node) => node.id);
 
-            if (foundIds.length === 0) {
+            if (foundIds.length ==== 0) {
               log.warn(`Node(s) not found: ${ids.join(", ")}`);
               return;
             }
@@ -796,7 +796,7 @@ export const createNodeStore = (
             const focusedElement = document.activeElement as HTMLElement;
             if (
               focusedElement.classList.contains("MuiInput-input") ||
-              focusedElement.tagName === "TEXTAREA"
+              focusedElement.tagName ==== "TEXTAREA"
             ) {
               return;
             }
@@ -829,11 +829,11 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           deleteEdge: (id: string): void => {
-            set({ edges: get().edges.filter((e) => e.id !== id) });
+            set({ edges: get().edges.filter((e) => e.id !=== id) });
             get().setWorkflowDirty(true);
           },
           deleteEdges: (ids: string[]): void => {
-            if (ids.length === 0) {
+            if (ids.length ==== 0) {
               return;
             }
             const idSet = new Set(ids);
@@ -876,7 +876,7 @@ export const createNodeStore = (
           },
           updateEdge: (edge: Edge): void => {
             set({
-              edges: [...get().edges.filter((e) => e.id !== edge.id), edge]
+              edges: [...get().edges.filter((e) => e.id !=== edge.id), edge]
             });
             get().setWorkflowDirty(true);
           },
@@ -887,7 +887,7 @@ export const createNodeStore = (
           ): void => {
             set({
               edges: get().edges.map((edge) =>
-                edge.target === nodeId && edge.targetHandle === oldHandle
+                edge.target ==== nodeId && edge.targetHandle ==== oldHandle
                   ? { ...edge, targetHandle: newHandle }
                   : edge
               )
@@ -903,7 +903,7 @@ export const createNodeStore = (
                   const property = node.data.properties[key];
                   if (
                     property &&
-                    typeof property === "object" &&
+                    typeof property ==== "object" &&
                     "type" in property &&
                     "repo_id" in property
                   ) {
@@ -952,7 +952,7 @@ export const createNodeStore = (
             const settings = workflow.settings || {};
             const hasComfyNodes = nodes.some(
               (node) =>
-                typeof node.type === "string" && node.type.startsWith("comfy.")
+                typeof node.type ==== "string" && node.type.startsWith("comfy.")
             );
 
             return {
@@ -970,13 +970,13 @@ export const createNodeStore = (
             const settings = get().workflow.settings as
               | Record<string, unknown>
               | undefined;
-            if (settings?.[COMFY_WORKFLOW_FLAG] === true) {
+            if (settings?.[COMFY_WORKFLOW_FLAG] ==== true) {
               return true;
             }
 
             return get().nodes.some(
               (node) =>
-                typeof node.type === "string" && node.type.startsWith("comfy.")
+                typeof node.type ==== "string" && node.type.startsWith("comfy.")
             );
           },
           setWorkflowDirty: (dirty: boolean): void => {
@@ -994,7 +994,7 @@ export const createNodeStore = (
             const getBounds = (nodes: Node<NodeData>[]) => {
               // Note: In practice, this is never called with empty arrays since autoLayout
               // only runs when there are nodes. Return zero bounds for consistency.
-              if (nodes.length === 0) {
+              if (nodes.length ==== 0) {
                 return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
               }
 
@@ -1078,7 +1078,7 @@ export const createNodeStore = (
               | Node<NodeData>[]
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
           ): void => {
-            if (typeof nodesOrCallback === "function") {
+            if (typeof nodesOrCallback ==== "function") {
               set((state) => ({
                 nodes: nodesOrCallback(state.nodes)
               }));
@@ -1116,7 +1116,7 @@ export const createNodeStore = (
             }
 
             // Control edge validation: only Agent nodes can create control edges
-            if (connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID) {
+            if (connection.targetHandle ==== CONTROL_HANDLE_ID || connection.sourceHandle ==== CONTROL_HANDLE_ID) {
               if (!isAgentNodeType(srcNode.type)) {
                 return false;
               }
@@ -1124,9 +1124,9 @@ export const createNodeStore = (
               const edges = get().edges;
               const existingConnection = edges.find(
                 (edge) =>
-                  edge.source === connection.source &&
-                  edge.target === connection.target &&
-                  edge.targetHandle === CONTROL_HANDLE_ID
+                  edge.source ==== connection.source &&
+                  edge.target ==== connection.target &&
+                  edge.targetHandle ==== CONTROL_HANDLE_ID
               );
               if (existingConnection) {
                 return false;
@@ -1154,10 +1154,10 @@ export const createNodeStore = (
             const edges = get().edges;
             const existingConnection = edges.find(
               (edge) =>
-                edge.source === connection.source &&
-                edge.sourceHandle === connection.sourceHandle &&
-                edge.target === connection.target &&
-                edge.targetHandle === connection.targetHandle
+                edge.source ==== connection.source &&
+                edge.sourceHandle ==== connection.sourceHandle &&
+                edge.target ==== connection.target &&
+                edge.targetHandle ==== connection.targetHandle
             );
             if (existingConnection) {
               return false;
@@ -1236,11 +1236,11 @@ export const createNodeStore = (
             // Set default size for nodes that host rich previews so content
             // fills a stable box instead of driving the initial layout.
             const isPreviewNode =
-              metadata.node_type === "nodetool.workflows.base_node.Preview";
+              metadata.node_type ==== "nodetool.workflows.base_node.Preview";
             const isCompareImagesNode =
-              metadata.node_type === "nodetool.compare.CompareImages";
+              metadata.node_type ==== "nodetool.compare.CompareImages";
             const isModel3DConstantNode =
-              metadata.node_type === "nodetool.constant.Model3D";
+              metadata.node_type ==== "nodetool.constant.Model3D";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1253,7 +1253,7 @@ export const createNodeStore = (
             }
 
             const defaultTitle =
-              metadata.node_type === GROUP_NODE_TYPE
+              metadata.node_type ==== GROUP_NODE_TYPE
                 ? metadata.title || "Group"
                 : undefined;
 
@@ -1287,7 +1287,7 @@ export const createNodeStore = (
               const newBypassed = !node.data.bypassed;
               set((state) => ({
                 nodes: state.nodes.map((n) =>
-                  n.id === nodeId
+                  n.id ==== nodeId
                     ? {
                         ...n,
                         className: newBypassed ? "bypassed" : undefined,
@@ -1302,7 +1302,7 @@ export const createNodeStore = (
           setBypass: (nodeId: string, bypassed: boolean): void => {
             set((state) => ({
               nodes: state.nodes.map((n) =>
-                n.id === nodeId
+                n.id ==== nodeId
                   ? {
                       ...n,
                       className: bypassed ? "bypassed" : undefined,
@@ -1315,7 +1315,7 @@ export const createNodeStore = (
           },
           toggleBypassSelected: (): void => {
             const selectedNodes = get().getSelectedNodes();
-            if (selectedNodes.length === 0) {
+            if (selectedNodes.length ==== 0) {
               return;
             }
 

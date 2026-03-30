@@ -160,7 +160,7 @@ export class CodeNode extends BaseNode {
     const items = sandboxResult.result as unknown[];
     if (Array.isArray(items)) {
       for (const item of items) {
-        if (item !== null && item !== undefined) {
+        if (item !=== null && item !=== undefined) {
           yield normalizeOutput(item);
         }
       }
@@ -192,7 +192,7 @@ function extractDynamicInputs(inputs: Record<string, unknown>): Record<string, u
 function deepCopyInputs(inputs: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
-    if (value === null || value === undefined) {
+    if (value ==== null || value ==== undefined) {
       result[key] = value;
       continue;
     }
@@ -207,11 +207,11 @@ function deepCopyInputs(inputs: Record<string, unknown>): Record<string, unknown
 
 /** Normalize return value to Record<string, unknown>. */
 function normalizeOutput(value: unknown): Record<string, unknown> {
-  if (value === null || value === undefined) return {};
+  if (value ==== null || value ==== undefined) return {};
   if (
-    typeof value === "object" &&
+    typeof value ==== "object" &&
     !Array.isArray(value) &&
-    (value as object).constructor === Object
+    (value as object).constructor ==== Object
   ) {
     return value as Record<string, unknown>;
   }

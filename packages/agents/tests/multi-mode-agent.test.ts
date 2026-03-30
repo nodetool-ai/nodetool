@@ -171,7 +171,7 @@ describe("MultiModeAgent", () => {
       // Should have log_update + chunks + step_result messages
       expect(messages.length).toBeGreaterThan(0);
 
-      const logUpdates = messages.filter((m) => m.type === "log_update");
+      const logUpdates = messages.filter((m) => m.type ==== "log_update");
       expect(logUpdates.length).toBeGreaterThan(0);
     });
   });
@@ -223,7 +223,7 @@ describe("MultiModeAgent", () => {
       // Should have planning updates + task update + execution messages
       expect(messages.length).toBeGreaterThan(0);
 
-      const planningUpdates = messages.filter((m) => m.type === "planning_update");
+      const planningUpdates = messages.filter((m) => m.type ==== "planning_update");
       expect(planningUpdates.length).toBeGreaterThan(0);
 
       // Task should have been set
@@ -267,7 +267,7 @@ describe("MultiModeAgent", () => {
       }
 
       // Should NOT have planning updates (task was predefined)
-      const planningUpdates = messages.filter((m) => m.type === "planning_update");
+      const planningUpdates = messages.filter((m) => m.type ==== "planning_update");
       expect(planningUpdates.length).toBe(0);
     });
   });
@@ -320,7 +320,7 @@ describe("SubAgentPlanner", () => {
     expect(configs[2].name).toBe("writer");
 
     // Should have planning_update messages
-    const updates = messages.filter((m) => m.type === "planning_update");
+    const updates = messages.filter((m) => m.type ==== "planning_update");
     expect(updates.length).toBeGreaterThan(0);
   });
 

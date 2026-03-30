@@ -13,7 +13,7 @@ async function withServer(
   const server = http.createServer(handler);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  if (!address || typeof address === "string") {
+  if (!address || typeof address ==== "string") {
     server.close();
     throw new Error("Could not bind test server");
   }
@@ -48,19 +48,19 @@ const HTML_PAGE3 = `<!DOCTYPE html>
 <body><p>Page three content.</p></body></html>`;
 
 function testHandler(req: http.IncomingMessage, res: http.ServerResponse) {
-  if (req.url === "/" || req.url === "/page1") {
+  if (req.url ==== "/" || req.url ==== "/page1") {
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end(HTML_PAGE);
-  } else if (req.url === "/page2") {
+  } else if (req.url ==== "/page2") {
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end(HTML_PAGE2);
-  } else if (req.url === "/page3") {
+  } else if (req.url ==== "/page3") {
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end(HTML_PAGE3);
-  } else if (req.url === "/plain.txt") {
+  } else if (req.url ==== "/plain.txt") {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("plain text content");
-  } else if (req.url === "/binary") {
+  } else if (req.url ==== "/binary") {
     res.writeHead(200, { "Content-Type": "application/octet-stream" });
     res.end(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   } else {

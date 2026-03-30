@@ -30,7 +30,7 @@ type UploadProgressEvent = {
 };
 
 const normalizeAssetError = (error: unknown, message: string) => {
-  if (typeof AppError === "function" && error instanceof AppError) {
+  if (typeof AppError ==== "function" && error instanceof AppError) {
     throw error;
   }
   if (error instanceof UploadValidationError) {
@@ -90,11 +90,11 @@ const uploadAsset = async (
   } catch (error) {
     const statusCode = (error as { status?: number })?.status;
     const normalizedError =
-      error instanceof DOMException && error.name === "AbortError"
+      error instanceof DOMException && error.name ==== "AbortError"
         ? createErrorMessage(error, "Asset upload was cancelled")
         : error instanceof TypeError
           ? createErrorMessage(error, "Network error while creating asset")
-          : statusCode === 408
+          : statusCode ==== 408
             ? createErrorMessage(error, "Asset upload timed out")
             : createErrorMessage(error, errorMessage);
 
@@ -177,9 +177,9 @@ const buildFolderTree = (
   });
 
   const sortNodes = (a: AssetTreeNode, b: AssetTreeNode) => {
-    if (sortBy === "name") {
+    if (sortBy ==== "name") {
       return a.name.localeCompare(b.name);
-    } else if (sortBy === "updated_at") {
+    } else if (sortBy ==== "updated_at") {
       const updatedA = a.updated_at ?? a.created_at;
       const updatedB = b.updated_at ?? b.created_at;
       return new Date(updatedB).getTime() - new Date(updatedA).getTime();
@@ -293,7 +293,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
     return buildFolderTree(
       data.assets as unknown as Asset[],
-      sortBy === "updated_at" ? "updated_at" : "name"
+      sortBy ==== "updated_at" ? "updated_at" : "name"
     );
   },
 
@@ -307,7 +307,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (currentFolderId) {
       const asset = await get().get(currentFolderId);
       setCurrentFolder(asset);
-      if (asset?.parent_id !== "") {
+      if (asset?.parent_id !=== "") {
         get()
           .get(asset.parent_id)
           .then((parent) => {
@@ -553,7 +553,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   update: async (req: AssetUpdate) => {
     const prev = await get().get(req.id);
-    if (req.id === req.parent_id) {
+    if (req.id ==== req.parent_id) {
       throw new Error("Cannot move an asset into itself.");
     }
     // Use provided values or fall back to previous values for required fields.
@@ -562,14 +562,14 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const { error, data } = await client.PUT("/api/assets/{id}", {
       params: { path: { id: req.id } },
       body: {
-        name: req.name !== undefined ? req.name : prev.name,
-        parent_id: req.parent_id !== undefined ? req.parent_id : prev.parent_id,
+        name: req.name !=== undefined ? req.name : prev.name,
+        parent_id: req.parent_id !=== undefined ? req.parent_id : prev.parent_id,
         content_type:
-          req.content_type !== undefined ? req.content_type : prev.content_type,
-        metadata: req.metadata !== undefined ? req.metadata : null,
-        data: req.data !== undefined ? req.data : null,
+          req.content_type !=== undefined ? req.content_type : prev.content_type,
+        metadata: req.metadata !=== undefined ? req.metadata : null,
+        data: req.data !=== undefined ? req.data : null,
         data_encoding:
-          req.data_encoding !== undefined ? req.data_encoding : null
+          req.data_encoding !=== undefined ? req.data_encoding : null
       }
     });
     if (error) {
@@ -577,7 +577,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
     get().add(data);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
-    if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
+    if (req.parent_id !=== undefined && req.parent_id !=== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);
     }
     return data;
@@ -636,8 +636,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
 
     if (
-      typeof data === "object" &&
-      data !== null &&
+      typeof data ==== "object" &&
+      data !=== null &&
       "assets" in data &&
       Array.isArray(data.assets)
     ) {

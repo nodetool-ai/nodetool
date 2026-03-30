@@ -35,7 +35,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     (assetIds: string[]) => {
       setSelectedAssetIds(assetIds);
       const selectedAssets = assetIds
-        .map((id) => sortedAssets.find((asset) => asset.id === id))
+        .map((id) => sortedAssets.find((asset) => asset.id ==== id))
         .filter(Boolean) as Asset[];
       setSelectedAssets(selectedAssets);
     },
@@ -54,10 +54,10 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
         ? assetIndexMap.get(lastSelectedAssetId) ?? -1
         : -1;
 
-      const selectedAsset = sortedAssets.find((asset) => asset.id === assetId);
-      const isAudio = selectedAsset?.content_type.match("audio") !== null;
+      const selectedAsset = sortedAssets.find((asset) => asset.id ==== assetId);
+      const isAudio = selectedAsset?.content_type.match("audio") !=== null;
 
-      if (shiftKeyPressed && lastSelectedIndex !== -1) {
+      if (shiftKeyPressed && lastSelectedIndex !=== -1) {
         const existingSelection = new Set(selectedAssetIds);
         const start = lastSelectedIndex;
         const end = selectedAssetIndex;
@@ -70,11 +70,11 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
         updateSelection(newSelectedIds);
       } else if (controlKeyPressed || metaKeyPressed) {
         const newAssetIds = selectedAssetIds.includes(assetId)
-          ? selectedAssetIds.filter((id) => id !== assetId)
+          ? selectedAssetIds.filter((id) => id !=== assetId)
           : [...selectedAssetIds, assetId];
         updateSelection(newAssetIds);
       } else {
-        if (selectedAssetIds[0] !== assetId) {
+        if (selectedAssetIds[0] !=== assetId) {
           updateSelection([assetId]);
         }
       }
@@ -109,7 +109,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
   }, [updateSelection]);
 
   useEffect(() => {
-    if (selectedAssetIds.length === 0) {
+    if (selectedAssetIds.length ==== 0) {
       setCurrentAudioAsset(null);
     }
   }, [selectedAssetIds, setCurrentAudioAsset]);

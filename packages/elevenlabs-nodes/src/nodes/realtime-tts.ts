@@ -154,7 +154,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     // Inject secrets manually since run() bypasses _injectSecrets
     const secretsCtx = context as Record<string, unknown> | undefined;
     let apiKey = "";
-    if (secretsCtx && typeof (secretsCtx as any).getSecret === "function") {
+    if (secretsCtx && typeof (secretsCtx as any).getSecret ==== "function") {
       apiKey = (await (secretsCtx as any).getSecret("ELEVENLABS_API_KEY")) || "";
     }
     if (!apiKey) apiKey = process.env.ELEVENLABS_API_KEY || "";
@@ -175,7 +175,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       output_format: outputFormat,
       enable_ssml_parsing: enableSsml,
     });
-    if (languageCode !== "none") {
+    if (languageCode !=== "none") {
       params.set("language_code", languageCode);
     }
     const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?${params}`;
@@ -232,7 +232,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
             return;
           }
 
-          if (msg.audio && typeof msg.audio === "string") {
+          if (msg.audio && typeof msg.audio ==== "string") {
             await outputs.emit("chunk", {
               type: "chunk",
               content: msg.audio,
@@ -259,13 +259,13 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     // Producer: read streaming text input and forward to WebSocket
     try {
       for await (const [handle, item] of inputs.any()) {
-        if (handle === "__control__") continue;
+        if (handle ==== "__control__") continue;
 
         const chunk = item as Record<string, unknown> | string;
         let content: string;
         let done = false;
 
-        if (typeof chunk === "string") {
+        if (typeof chunk ==== "string") {
           content = chunk;
         } else {
           content = String(chunk.content ?? "");
@@ -280,7 +280,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
       }
     } finally {
       // Send empty string to close the ElevenLabs stream
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws.readyState ==== WebSocket.OPEN) {
         ws.send(JSON.stringify({ text: "" }));
       }
     }
@@ -288,7 +288,7 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     // Wait for consumer to finish receiving audio
     await consumerPromise;
 
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState ==== WebSocket.OPEN) {
       ws.close();
     }
   }

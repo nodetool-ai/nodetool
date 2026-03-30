@@ -117,7 +117,7 @@ export const createWorkflowRunner = () =>
             buffer = new Uint8Array(event);
           } else if (event instanceof ArrayBuffer) {
             buffer = new Uint8Array(event);
-          } else if (typeof event === "string") {
+          } else if (typeof event ==== "string") {
             // Convert string to Uint8Array
             const encoder = new TextEncoder();
             buffer = encoder.encode(event);
@@ -127,16 +127,16 @@ export const createWorkflowRunner = () =>
           }
           const data = decode(buffer) as any;
 
-          if (data.type === "node_update") {
+          if (data.type ==== "node_update") {
             set({
               statusMessage: `${data.node_name} ${data.status}`,
             });
           }
 
-          if (data.type === "job_update") {
+          if (data.type ==== "job_update") {
             set({
               state:
-                data.status === "running" || data.status === "queued"
+                data.status ==== "running" || data.status ==== "queued"
                   ? "running"
                   : "idle",
               statusMessage: `Job ${data.status}`,
@@ -175,13 +175,13 @@ export const createWorkflowRunner = () =>
                 }
                 break;
             }
-          } else if (data.type === "node_progress") {
+          } else if (data.type ==== "node_progress") {
             set({
               progress: { current: data.progress, total: data.total },
             });
-          } else if (data.type === "chunk") {
+          } else if (data.type ==== "chunk") {
             set({ chunks: [...get().chunks, data.content] });
-          } else if (data.type === "node_update") {
+          } else if (data.type ==== "node_update") {
             if (data.error) {
               set({ state: "error" });
               get().addNotification({
@@ -217,7 +217,7 @@ export const createWorkflowRunner = () =>
     },
 
     run: async (workflow: Workflow, params: Record<string, any>) => {
-      if (!get().socket || get().state !== "connected") {
+      if (!get().socket || get().state !=== "connected") {
         await get().connect();
       }
 
@@ -259,7 +259,7 @@ export const createWorkflowRunner = () =>
     },
 
     resume: async (jobId: string, workflowId?: string) => {
-      if (!get().socket || get().state !== "connected") {
+      if (!get().socket || get().state !=== "connected") {
         await get().connect();
       }
 
@@ -304,7 +304,7 @@ export const createWorkflowRunner = () =>
         title: "Nodetool",
         body: notification.content,
         silent: false,
-        urgency: notification.type === "error" ? "critical" : "normal",
+        urgency: notification.type ==== "error" ? "critical" : "normal",
       }).show();
 
       set({ notifications: [...get().notifications, notificationWithId] });
@@ -312,7 +312,7 @@ export const createWorkflowRunner = () =>
 
     removeNotification: (id) => {
       set({
-        notifications: get().notifications.filter((n) => n.id !== id),
+        notifications: get().notifications.filter((n) => n.id !=== id),
       });
     },
   }));

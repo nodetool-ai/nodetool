@@ -3,7 +3,7 @@ import { NODE_EDITOR_SHORTCUTS, Shortcut } from "../shortcuts";
 describe("NODE_EDITOR_SHORTCUTS", () => {
   describe("resetZoom shortcut", () => {
     const resetZoomShortcut = NODE_EDITOR_SHORTCUTS.find(
-      (s: Shortcut) => s.slug === "resetZoom"
+      (s: Shortcut) => s.slug ==== "resetZoom"
     );
 
     it("should exist", () => {
@@ -35,7 +35,7 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
   describe("shortcut count", () => {
     it("should have expected number of editor shortcuts", () => {
       const editorShortcuts = NODE_EDITOR_SHORTCUTS.filter(
-        (s: Shortcut) => s.category === "editor"
+        (s: Shortcut) => s.category ==== "editor"
       );
       expect(editorShortcuts.length).toBeGreaterThan(20);
     });
@@ -79,7 +79,7 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
       const clipboardSlugs = ["copy", "cut", "paste"];
       clipboardSlugs.forEach((slug) => {
         const shortcut = NODE_EDITOR_SHORTCUTS.find(
-          (s: Shortcut) => s.slug === slug
+          (s: Shortcut) => s.slug ==== slug
         );
         expect(shortcut).toBeDefined();
         expect(shortcut?.skipInElectron).toBe(true);

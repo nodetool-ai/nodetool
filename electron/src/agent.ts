@@ -40,11 +40,11 @@ function getClaudeCodeExecutablePath(): string {
     }
   }
 
-  const whichCommand = process.platform === "win32" ? "where" : "which";
+  const whichCommand = process.platform ==== "win32" ? "where" : "which";
   const result = spawnSync(whichCommand, ["claude"], {
     encoding: "utf8",
   });
-  if (result.status === 0 && result.stdout.trim().length > 0) {
+  if (result.status ==== 0 && result.stdout.trim().length > 0) {
     const [firstPath] = result.stdout.trim().split(/\r?\n/);
     if (firstPath && firstPath.trim().length > 0) {
       return firstPath.trim();
@@ -321,7 +321,7 @@ function buildMcpServer(
         args,
       );
       const text =
-        typeof result === "string" ? result : JSON.stringify(result ?? null);
+        typeof result ==== "string" ? result : JSON.stringify(result ?? null);
       return { content: [{ type: "text" as const, text }] };
     }),
   );
@@ -335,7 +335,7 @@ function convertSdkMessage(
 ): AgentMessage | null {
   const uuid = randomUUID();
 
-  if (msg.type === "assistant") {
+  if (msg.type ==== "assistant") {
     const message = msg.message as Record<string, unknown> | undefined;
     const content = message?.content;
     if (!Array.isArray(content)) return null;
@@ -344,14 +344,14 @@ function convertSdkMessage(
     const toolCalls: AgentMessage["tool_calls"] = [];
 
     for (const block of content) {
-      if (!block || typeof block !== "object") continue;
+      if (!block || typeof block !=== "object") continue;
       const b = block as Record<string, unknown>;
-      if (b.type === "text" && typeof b.text === "string") {
+      if (b.type ==== "text" && typeof b.text ==== "string") {
         textBlocks.push({ type: "text", text: b.text });
       } else if (
-        b.type === "tool_use" &&
-        typeof b.id === "string" &&
-        typeof b.name === "string"
+        b.type ==== "tool_use" &&
+        typeof b.id ==== "string" &&
+        typeof b.name ==== "string"
       ) {
         toolCalls.push({
           id: b.id,
@@ -364,7 +364,7 @@ function convertSdkMessage(
       }
     }
 
-    if (textBlocks.length === 0 && toolCalls.length === 0) return null;
+    if (textBlocks.length ==== 0 && toolCalls.length ==== 0) return null;
 
     return {
       type: "assistant",
@@ -375,15 +375,15 @@ function convertSdkMessage(
     };
   }
 
-  if (msg.type === "result") {
+  if (msg.type ==== "result") {
     const subtype = msg.subtype as string | undefined;
-    if (subtype === "success") {
+    if (subtype ==== "success") {
       return {
         type: "result",
         uuid,
         session_id: sessionId,
         subtype: "success",
-        text: typeof msg.result === "string" ? msg.result : undefined,
+        text: typeof msg.result ==== "string" ? msg.result : undefined,
       };
     }
     return {
@@ -398,18 +398,18 @@ function convertSdkMessage(
     };
   }
 
-  if (msg.type === "system") return null;
+  if (msg.type ==== "system") return null;
 
-  if (msg.type === "stream_event") {
+  if (msg.type ==== "stream_event") {
     const event = msg as Record<string, unknown>;
     const partial = event.message as Record<string, unknown> | undefined;
     const content = partial?.content;
     if (Array.isArray(content)) {
       const textBlocks: Array<{ type: string; text: string }> = [];
       for (const block of content) {
-        if (block && typeof block === "object") {
+        if (block && typeof block ==== "object") {
           const b = block as Record<string, unknown>;
-          if (b.type === "text" && typeof b.text === "string") {
+          if (b.type ==== "text" && typeof b.text ==== "string") {
             textBlocks.push({ type: "text", text: b.text });
           }
         }
@@ -499,8 +499,8 @@ class ClaudeAgentSession implements AgentQuerySession {
       const outputMessages: AgentMessage[] = [];
       for await (const msg of queryHandle) {
         if (
-          msg.type === "system" &&
-          (msg as Record<string, unknown>).subtype === "init"
+          msg.type ==== "system" &&
+          (msg as Record<string, unknown>).subtype ==== "init"
         ) {
           this.resolvedSessionId =
             (msg as Record<string, unknown>).session_id as string;
@@ -628,7 +628,7 @@ class ClaudeCliSession {
   }
 
   private logPipe(direction: "stdin" | "stdout", payload: unknown): void {
-    const text = typeof payload === "string" ? payload : JSON.stringify(payload);
+    const text = typeof payload ==== "string" ? payload : JSON.stringify(payload);
     logMessage(`Claude Code ${direction}: ${text}`);
   }
 
@@ -701,7 +701,7 @@ class ClaudeCliSession {
         });
 
         const existingState = toolUseStateById.get(toolUseId);
-        if (existingState === "resolved") {
+        if (existingState ==== "resolved") {
           logMessage(
             `Skipping tool bridge for ${toolName} (${toolUseId}) because a tool_result already exists`,
             "warn",
@@ -736,7 +736,7 @@ class ClaudeCliSession {
         let toolResult: unknown;
         let isError = false;
         const searchCacheKey =
-          toolName === "ui_search_nodes"
+          toolName ==== "ui_search_nodes"
             ? JSON.stringify(toolArgs ?? {})
             : null;
         if (searchCacheKey && uiSearchCache.has(searchCacheKey)) {
@@ -766,7 +766,7 @@ class ClaudeCliSession {
         }
 
         const latestState = toolUseStateById.get(toolUseId);
-        if (latestState === "resolved") {
+        if (latestState ==== "resolved") {
           logMessage(
             `Skipping stale frontend tool_result for ${toolName} (${toolUseId})`,
             "warn",
@@ -783,7 +783,7 @@ class ClaudeCliSession {
                 type: "tool_result",
                 tool_use_id: toolUseId,
                 content:
-                  typeof toolResult === "string"
+                  typeof toolResult ==== "string"
                     ? toolResult
                     : JSON.stringify(toolResult, null, 2),
                 is_error: isError,
@@ -811,31 +811,31 @@ class ClaudeCliSession {
           return;
         }
 
-        const type = typeof parsed.type === "string" ? parsed.type : "";
-        if (typeof parsed.session_id === "string") {
+        const type = typeof parsed.type ==== "string" ? parsed.type : "";
+        if (typeof parsed.session_id ==== "string") {
           this.resolvedSessionId = parsed.session_id;
         }
-        if (typeof parsed.sessionId === "string") {
+        if (typeof parsed.sessionId ==== "string") {
           this.resolvedSessionId = parsed.sessionId;
         }
 
         if (
-          type === "system" &&
-          parsed.subtype === "init" &&
-          typeof parsed.session_id === "string"
+          type ==== "system" &&
+          parsed.subtype ==== "init" &&
+          typeof parsed.session_id ==== "string"
         ) {
           this.resolvedSessionId = parsed.session_id;
           return;
         }
 
-        if (type === "init" && typeof parsed.sessionId === "string") {
+        if (type ==== "init" && typeof parsed.sessionId ==== "string") {
           this.resolvedSessionId = parsed.sessionId;
           return;
         }
 
-        if (type === "message") {
+        if (type ==== "message") {
           const text =
-            typeof parsed.content === "string" ? parsed.content : "";
+            typeof parsed.content ==== "string" ? parsed.content : "";
           emitMessage({
             type: "assistant",
             uuid: randomUUID(),
@@ -845,9 +845,9 @@ class ClaudeCliSession {
           return;
         }
 
-        if (type === "assistant") {
+        if (type ==== "assistant") {
           const messageRecord =
-            parsed.message && typeof parsed.message === "object"
+            parsed.message && typeof parsed.message ==== "object"
               ? (parsed.message as Record<string, unknown>)
               : null;
           const content = messageRecord?.content;
@@ -856,14 +856,14 @@ class ClaudeCliSession {
           }
 
           for (const item of content) {
-            if (!item || typeof item !== "object") {
+            if (!item || typeof item !=== "object") {
               continue;
             }
             const contentItem = item as Record<string, unknown>;
             const contentType =
-              typeof contentItem.type === "string" ? contentItem.type : "";
+              typeof contentItem.type ==== "string" ? contentItem.type : "";
 
-            if (contentType === "text" && typeof contentItem.text === "string") {
+            if (contentType ==== "text" && typeof contentItem.text ==== "string") {
               const text = contentItem.text;
               if (
                 successfulFrontendToolCalls > 0 &&
@@ -887,9 +887,9 @@ class ClaudeCliSession {
             }
 
             if (
-              contentType === "tool_use" &&
-              typeof contentItem.id === "string" &&
-              typeof contentItem.name === "string"
+              contentType ==== "tool_use" &&
+              typeof contentItem.id ==== "string" &&
+              typeof contentItem.name ==== "string"
             ) {
               await handleToolUse(
                 contentItem.id,
@@ -902,17 +902,17 @@ class ClaudeCliSession {
         }
 
         if (
-          type === "tool_use" &&
-          typeof parsed.id === "string" &&
-          typeof parsed.name === "string"
+          type ==== "tool_use" &&
+          typeof parsed.id ==== "string" &&
+          typeof parsed.name ==== "string"
         ) {
           await handleToolUse(parsed.id, parsed.name, parsed.input);
           return;
         }
 
-        if (type === "user") {
+        if (type ==== "user") {
           const messageRecord =
-            parsed.message && typeof parsed.message === "object"
+            parsed.message && typeof parsed.message ==== "object"
               ? (parsed.message as Record<string, unknown>)
               : null;
           const content = messageRecord?.content;
@@ -921,27 +921,27 @@ class ClaudeCliSession {
           }
 
           for (const item of content) {
-            if (!item || typeof item !== "object") {
+            if (!item || typeof item !=== "object") {
               continue;
             }
             const contentItem = item as Record<string, unknown>;
-            if (contentItem.type !== "tool_result") {
+            if (contentItem.type !=== "tool_result") {
               continue;
             }
             const toolUseId =
-              typeof contentItem.tool_use_id === "string"
+              typeof contentItem.tool_use_id ==== "string"
                 ? contentItem.tool_use_id
-                : typeof contentItem.tool_call_id === "string"
+                : typeof contentItem.tool_call_id ==== "string"
                   ? contentItem.tool_call_id
                   : "";
             if (toolUseId) {
-              const isError = contentItem.is_error === true;
+              const isError = contentItem.is_error ==== true;
               const contentValue =
-                typeof contentItem.content === "string" ? contentItem.content : "";
+                typeof contentItem.content ==== "string" ? contentItem.content : "";
               const isRuntimeUnknownToolError =
                 isError && contentValue.includes("No such tool available:");
               const existingState = toolUseStateById.get(toolUseId);
-              if (existingState === "resolved") {
+              if (existingState ==== "resolved") {
                 continue;
               }
               const originatingToolName = toolNameByUseId.get(toolUseId) ?? "";
@@ -982,17 +982,17 @@ class ClaudeCliSession {
           return;
         }
 
-        if (type === "result") {
+        if (type ==== "result") {
           const status =
-            parsed.is_error === true
+            parsed.is_error ==== true
               ? "error"
-              : parsed.status === "success" ||
-                  parsed.subtype === "success" ||
-                  parsed.is_error === false
+              : parsed.status ==== "success" ||
+                  parsed.subtype ==== "success" ||
+                  parsed.is_error ==== false
                 ? "success"
                 : "error";
-          const text = typeof parsed.result === "string" ? parsed.result : "";
-          if (status !== "success") {
+          const text = typeof parsed.result ==== "string" ? parsed.result : "";
+          if (status !=== "success") {
             emitMessage({
               type: "result",
               uuid: randomUUID(),
@@ -1036,7 +1036,7 @@ class ClaudeCliSession {
             // ignore trailing parse errors
           });
         }
-        if (code === 0 || this.interruptRequested) {
+        if (code ==== 0 || this.interruptRequested) {
           settle(() => resolve(outputMessages));
           return;
         }
@@ -1141,10 +1141,10 @@ async function requestRendererToolsEvent<T>(
       responseEvent: Electron.IpcMainEvent,
       response: { requestId?: string; error?: string; manifest?: T; result?: T },
     ) => {
-      if (responseEvent.sender !== webContents) {
+      if (responseEvent.sender !=== webContents) {
         return;
       }
-      if (!response || response.requestId !== requestId) {
+      if (!response || response.requestId !=== requestId) {
         return;
       }
 
@@ -1156,11 +1156,11 @@ async function requestRendererToolsEvent<T>(
         return;
       }
 
-      if ("manifest" in response && response.manifest !== undefined) {
+      if ("manifest" in response && response.manifest !=== undefined) {
         resolve(response.manifest);
         return;
       }
-      if ("result" in response && response.result !== undefined) {
+      if ("result" in response && response.result !=== undefined) {
         resolve(response.result);
         return;
       }
@@ -1178,7 +1178,7 @@ async function requestRendererToolsEvent<T>(
 
 function removeSessionAliases(targetSession: AgentQuerySession): void {
   for (const [id, session] of activeSessions.entries()) {
-    if (session === targetSession) {
+    if (session ==== targetSession) {
       activeSessions.delete(id);
     }
   }
@@ -1273,10 +1273,10 @@ export async function createAgentSession(
     `${sessionMode} ${provider} agent session with model: ${options.model} (workspace: ${options.workspacePath})`,
   );
 
-  const useCliAgent = process.env.NODETOOL_AGENT_USE_CLI === "1";
+  const useCliAgent = process.env.NODETOOL_AGENT_USE_CLI ==== "1";
 
   const session: AgentQuerySession =
-    provider === "codex"
+    provider ==== "codex"
       ? new CodexQuerySession({
           model: options.model,
           workspacePath: options.workspacePath,
@@ -1289,7 +1289,7 @@ export async function createAgentSession(
             workspacePath: options.workspacePath,
             resumeSessionId: options.resumeSessionId,
             systemPrompt:
-              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
+              process.env.NODETOOL_AGENT_VERBOSE_PROMPT ==== "1"
                 ? HELP_SYSTEM_PROMPT
                 : FAST_WORKFLOW_SYSTEM_PROMPT,
           })
@@ -1298,7 +1298,7 @@ export async function createAgentSession(
             workspacePath: options.workspacePath,
             resumeSessionId: options.resumeSessionId,
             systemPrompt:
-              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
+              process.env.NODETOOL_AGENT_VERBOSE_PROMPT ==== "1"
                 ? HELP_SYSTEM_PROMPT
                 : FAST_WORKFLOW_SYSTEM_PROMPT,
           });
@@ -1325,7 +1325,7 @@ export async function sendAgentMessage(
   // Message-only mode has no renderer tool bridge, so frontend tools are disabled.
   const messages = await session.send(message, null, sessionId, []);
   for (const serialized of messages) {
-    if (serialized.session_id && serialized.session_id !== sessionId) {
+    if (serialized.session_id && serialized.session_id !=== sessionId) {
       activeSessions.set(serialized.session_id, session);
     }
   }
@@ -1361,7 +1361,7 @@ export async function sendAgentMessageStreaming(
     sessionId,
     frontendTools,
     (serialized) => {
-      if (serialized.session_id && serialized.session_id !== sessionId) {
+      if (serialized.session_id && serialized.session_id !=== sessionId) {
         activeSessions.set(serialized.session_id, session);
       }
       messageCount++;
@@ -1424,7 +1424,7 @@ export async function listAgentModels(
   options: AgentModelsRequest,
 ): Promise<AgentModelDescriptor[]> {
   const provider: AgentProvider = options.provider ?? "claude";
-  if (provider === "codex") {
+  if (provider ==== "codex") {
     const workspacePath = options.workspacePath || process.cwd();
     try {
       return await listCodexModels(workspacePath);

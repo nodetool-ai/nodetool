@@ -48,7 +48,7 @@ export function agentMessageToNodeToolMessage(
       const contents: MessageContent[] = [];
       if (msg.content && Array.isArray(msg.content)) {
         for (const block of msg.content) {
-          if (block.type === "text" && block.text) {
+          if (block.type ==== "text" && block.text) {
             contents.push({ type: "text", text: block.text });
           }
         }
@@ -74,7 +74,7 @@ export function agentMessageToNodeToolMessage(
 
       // Preserve empty text only when there are no tool calls so stream updates
       // still have a renderable payload.
-      if (contents.length === 0 && !toolCalls) {
+      if (contents.length ==== 0 && !toolCalls) {
         contents.push({ type: "text", text: "" });
       }
 
@@ -92,7 +92,7 @@ export function agentMessageToNodeToolMessage(
     }
 
     case "result": {
-      if (msg.subtype === "success" && msg.text) {
+      if (msg.subtype ==== "success" && msg.text) {
         return {
           type: "message",
           id: msg.uuid,
@@ -130,17 +130,17 @@ export function agentMessageToNodeToolMessage(
  * sending to the Claude Agent SDK via session.send().
  */
 export function nodeToolMessageToText(message: Message): string {
-  if (typeof message.content === "string") {
+  if (typeof message.content ==== "string") {
     return message.content;
   }
   if (Array.isArray(message.content)) {
     return message.content
       .filter(
         (block): block is { type: "text"; text: string } =>
-          typeof block === "object" &&
-          block !== null &&
+          typeof block ==== "object" &&
+          block !=== null &&
           "type" in block &&
-          block.type === "text"
+          block.type ==== "text"
       )
       .map((block) => block.text)
       .join("\n");

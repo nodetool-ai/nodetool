@@ -46,7 +46,7 @@ function runSubprocess(
         let exitCode: number | null = 0;
         if (error) {
           // Node sets `killed` when the timeout fires
-          exitCode = (error as any).code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER"
+          exitCode = (error as any).code ==== "ERR_CHILD_PROCESS_STDIO_MAXBUFFER"
             ? 1
             : child.exitCode ?? 1;
           if ((error as any).killed) {
@@ -97,7 +97,7 @@ export class RunCodeTool extends Tool {
     const language = params.language as Language;
     const code = params.code as string;
 
-    if (!code || typeof code !== "string" || !code.trim()) {
+    if (!code || typeof code !=== "string" || !code.trim()) {
       return { stdout: "", stderr: "No code provided.", exitCode: 1 };
     }
 

@@ -93,7 +93,7 @@ describe("useFloatingToolbarActions", () => {
     };
     mockUseWebsocketRunner.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector(mockRunnerState as any);
       }
       // Fallback for non-function selectors
@@ -108,7 +108,7 @@ describe("useFloatingToolbarActions", () => {
     };
     mockUseNodes.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector(mockNodesState as any);
       }
       // Fallback for non-function selectors
@@ -131,7 +131,7 @@ describe("useFloatingToolbarActions", () => {
     };
     mockUseWorkflowManager.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector(mockWorkflowManagerState as any);
       }
       // Fallback for non-function selectors
@@ -149,7 +149,7 @@ describe("useFloatingToolbarActions", () => {
     };
     mockUseSettingsStore.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector(mockSettingsState as any);
       }
       // Fallback for non-function selectors
@@ -169,7 +169,7 @@ describe("useFloatingToolbarActions", () => {
     };
     mockUseNodeMenuStore.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector(mockNodeMenuState as any);
       }
       // Fallback for non-function selectors
@@ -186,7 +186,7 @@ describe("useFloatingToolbarActions", () => {
     };
     mockUseMiniMapStore.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector(mockMiniMapState as any);
       }
       // Fallback for non-function selectors
@@ -226,7 +226,7 @@ describe("useFloatingToolbarActions", () => {
           resume: mockResume,
           state: "running"
         };
-        if (typeof selector === 'function') {
+        if (typeof selector ==== 'function') {
           return selector(mockRunnerState as any);
         }
         return mockRunnerState as any;
@@ -251,7 +251,7 @@ describe("useFloatingToolbarActions", () => {
             }
           }
         };
-        if (typeof selector === 'function') {
+        if (typeof selector ==== 'function') {
           return selector(mockSettingsState as any);
         }
         return {
@@ -356,7 +356,7 @@ describe("useFloatingToolbarActions", () => {
           autoLayout: mockAutoLayout,
           workflowJSON: mockWorkflowJSON
         };
-        if (typeof selector === 'function') {
+        if (typeof selector ==== 'function') {
           return selector(mockNodesState as any);
         }
         return mockNodesState as any;
@@ -398,7 +398,7 @@ describe("useFloatingToolbarActions", () => {
           autoLayout: mockAutoLayout,
           workflowJSON: mockWorkflowJSON
         };
-        if (typeof selector === 'function') {
+        if (typeof selector ==== 'function') {
           return selector(mockNodesState as any);
         }
         return mockNodesState as any;
@@ -434,7 +434,7 @@ describe("useFloatingToolbarActions", () => {
           closeNodeMenu: mockCloseNodeMenu,
           isMenuOpen: true
         };
-        if (typeof selector === 'function') {
+        if (typeof selector ==== 'function') {
           return selector(mockNodeMenuState as any);
         }
         return mockNodeMenuState as any;
@@ -501,7 +501,7 @@ describe("useFloatingToolbarActions", () => {
           resume: mockResume,
           state: "running"
         };
-        if (typeof selector === 'function') {
+        if (typeof selector ==== 'function') {
           return selector(mockRunnerState as any);
         }
         return mockRunnerState as any;
@@ -523,7 +523,7 @@ describe("useFloatingToolbarActions", () => {
           resume: mockResume,
           state: "paused"
         };
-        if (typeof selector === 'function') {
+        if (typeof selector ==== 'function') {
           return selector(mockRunnerState as any);
         }
         return mockRunnerState as any;

@@ -127,7 +127,7 @@ API pagination, conditional logic, or batch operations`;
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const code = params.code;
-    if (typeof code !== "string" || !code.trim()) {
+    if (typeof code !=== "string" || !code.trim()) {
       return { success: false, error: "No code provided", logs: [] };
     }
 

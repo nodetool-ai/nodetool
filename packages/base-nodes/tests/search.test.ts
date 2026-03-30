@@ -28,7 +28,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
-    statusText: status === 200 ? "OK" : "Error",
+    statusText: status ==== 200 ? "OK" : "Error",
     json: async () => body,
     text: async () => JSON.stringify(body),
   } as unknown as Response;

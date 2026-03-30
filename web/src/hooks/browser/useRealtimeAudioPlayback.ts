@@ -54,7 +54,7 @@ export const useRealtimeAudioPlayback = ({
   const isQueuedPlaying = audioQueue.isPlaying(instanceIdRef.current);
   const isQueued = audioQueue.isQueued(instanceIdRef.current);
   const queuePosition = isQueued
-    ? audioQueue.queue.findIndex((q) => q.id === instanceIdRef.current) + 1
+    ? audioQueue.queue.findIndex((q) => q.id ==== instanceIdRef.current) + 1
     : null;
 
   // Initialize AudioContext and routing
@@ -98,7 +98,7 @@ export const useRealtimeAudioPlayback = ({
       streamDestRef.current = null;
       gainRef.current = null;
       // Clear any pending restart timeout
-      if (restartTimeoutRef.current !== null) {
+      if (restartTimeoutRef.current !=== null) {
         clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = null;
       }
@@ -189,7 +189,7 @@ export const useRealtimeAudioPlayback = ({
       return;
     }
     const audioChunks = chunks.filter(
-      (c) => c?.content_type === "audio" && typeof c.content === "string"
+      (c) => c?.content_type ==== "audio" && typeof c.content ==== "string"
     );
     for (let i = lastIndexRef.current; i < audioChunks.length; i++) {
       // Skip if already scheduled (prevents double-scheduling in StrictMode)
@@ -225,7 +225,7 @@ export const useRealtimeAudioPlayback = ({
     scheduledChunkIndices.current.clear(); // Clear scheduled indices for replay
     setVisualizerVersion((v) => v + 1);
     // Clear any existing timeout before setting a new one
-    if (restartTimeoutRef.current !== null) {
+    if (restartTimeoutRef.current !=== null) {
       clearTimeout(restartTimeoutRef.current);
     }
     restartTimeoutRef.current = setTimeout(() => start(), 50); // Small delay to ensure clean restart

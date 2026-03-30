@@ -36,7 +36,7 @@ jest.mock("../../../stores/NodeMenuStore", () => {
         closeNodeMenu: mockCloseNodeMenu,
         isMenuOpen: mockIsMenuOpen
       };
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector(mockModule);
       }
       return mockModule;
@@ -74,7 +74,7 @@ describe("usePaneEvents", () => {
       openContextMenu: mockOpenContextMenu
     });
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector({
           createNode: mockCreateNode,
           addNode: mockAddNode

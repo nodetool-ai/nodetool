@@ -390,7 +390,7 @@ export const createWorkflowRunnerStore = (
       const { job_id, workflow, state } = get();
       log.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
 
-      if (state === "cancelled" || state === "idle" || state === "error") {
+      if (state ==== "cancelled" || state ==== "idle" || state ==== "error") {
         return;
       }
 
@@ -429,7 +429,7 @@ export const createWorkflowRunnerStore = (
       const { job_id, state } = get();
       log.info(`WorkflowRunner[${workflowId}]: Pausing job`, { job_id });
 
-      if (state !== "running") {
+      if (state !=== "running") {
         log.warn(`WorkflowRunner[${workflowId}]: Cannot pause - not running`);
         return;
       }
@@ -459,7 +459,7 @@ export const createWorkflowRunnerStore = (
       const { job_id, state } = get();
       log.info(`WorkflowRunner[${workflowId}]: Resuming job`, { job_id });
 
-      if (state !== "paused" && state !== "suspended") {
+      if (state !=== "paused" && state !=== "suspended") {
         log.warn(
           `WorkflowRunner[${workflowId}]: Cannot resume - not paused or suspended (state: ${state})`
         );

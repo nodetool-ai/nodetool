@@ -11,9 +11,9 @@ import {
   luaLiteral,
 } from "../src/lua-runner.js";
 
-// ============================================================================
+// =============================================================================
 // BashDockerRunner
-// ============================================================================
+// =============================================================================
 
 describe("BashDockerRunner", () => {
   it("uses bash:5.2 as default image", () => {
@@ -110,9 +110,9 @@ describe("BashDockerRunner", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // JavaScriptDockerRunner
-// ============================================================================
+// =============================================================================
 
 describe("JavaScriptDockerRunner", () => {
   it("uses node:22-alpine as default image", () => {
@@ -191,9 +191,9 @@ describe("JavaScriptDockerRunner", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // PythonDockerRunner
-// ============================================================================
+// =============================================================================
 
 describe("PythonDockerRunner", () => {
   it("uses python:3.11-slim as default image", () => {
@@ -276,9 +276,9 @@ describe("PythonDockerRunner", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // RubyDockerRunner
-// ============================================================================
+// =============================================================================
 
 describe("RubyDockerRunner", () => {
   it("uses ruby:3.3-alpine as default image", () => {
@@ -354,9 +354,9 @@ describe("RubyDockerRunner", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // CommandDockerRunner
-// ============================================================================
+// =============================================================================
 
 describe("CommandDockerRunner", () => {
   it("uses bash:5.2 as default image", () => {
@@ -393,40 +393,40 @@ describe("CommandDockerRunner", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // luaEscapeString
-// ============================================================================
+// =============================================================================
 
 describe("luaEscapeString", () => {
   it("wraps normal string in long-bracket syntax", () => {
-    expect(luaEscapeString("hello")).toBe("[===[hello]===]");
+    expect(luaEscapeString("hello")).toBe("[====[hello]====]");
   });
 
   it("wraps empty string in long-bracket syntax", () => {
-    expect(luaEscapeString("")).toBe("[===[" + "" + "]===]");
+    expect(luaEscapeString("")).toBe("[====[" + "" + "]====]");
   });
 
   it("wraps multiline string preserving newlines", () => {
     const s = "line1\nline2";
-    expect(luaEscapeString(s)).toBe("[===[line1\nline2]===]");
+    expect(luaEscapeString(s)).toBe("[====[line1\nline2]====]");
   });
 
   it("wraps string with embedded quotes", () => {
     const s = 'say "hello"';
-    expect(luaEscapeString(s)).toBe('[===[say "hello"]===]');
+    expect(luaEscapeString(s)).toBe('[====[say "hello"]====]');
   });
 
-  it("falls back to escaped double-quoted string when ]===] present", () => {
-    const s = "a]===]b";
+  it("falls back to escaped double-quoted string when ]====] present", () => {
+    const s = "a]====]b";
     const result = luaEscapeString(s);
     expect(result.startsWith('"')).toBe(true);
     expect(result.endsWith('"')).toBe(true);
     // Not wrapped in long-bracket syntax
-    expect(result).not.toMatch(/^\[===\[/);
+    expect(result).not.toMatch(/^\[====\[/);
   });
 
   it("escaped fallback wraps special chars", () => {
-    const s = "x]===]y\nz";
+    const s = "x]====]y\nz";
     const result = luaEscapeString(s);
     // Should be double-quoted with escape sequences
     expect(result.startsWith('"')).toBe(true);
@@ -434,9 +434,9 @@ describe("luaEscapeString", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // luaLiteral
-// ============================================================================
+// =============================================================================
 
 describe("luaLiteral", () => {
   it("returns nil for null", () => {
@@ -468,7 +468,7 @@ describe("luaLiteral", () => {
   });
 
   it("wraps string in long-bracket escape", () => {
-    expect(luaLiteral("hello")).toBe("[===[hello]===]");
+    expect(luaLiteral("hello")).toBe("[====[hello]====]");
   });
 
   it("encodes empty array as empty Lua table", () => {
@@ -481,7 +481,7 @@ describe("luaLiteral", () => {
 
   it("encodes mixed array", () => {
     const result = luaLiteral([1, "x", true, null]);
-    expect(result).toBe("{1, [===[x]===], true, nil}");
+    expect(result).toBe("{1, [====[x]====], true, nil}");
   });
 
   it("encodes nested array", () => {
@@ -500,8 +500,8 @@ describe("luaLiteral", () => {
 
   it("encodes object with non-identifier key using bracket syntax", () => {
     const result = luaLiteral({ "key-1": "val" });
-    expect(result).toContain("[[===[key-1]===]]");
-    expect(result).toContain("[===[val]===]");
+    expect(result).toContain("[[====[key-1]====]]");
+    expect(result).toContain("[====[val]====]");
   });
 
   it("returns nil when depth > 10", () => {
@@ -516,13 +516,13 @@ describe("luaLiteral", () => {
     // Symbol falls through to the fallback
     const sym = Symbol("test");
     const result = luaLiteral(sym);
-    expect(result.startsWith("[===[") || result.startsWith('"')).toBe(true);
+    expect(result.startsWith("[====[") || result.startsWith('"')).toBe(true);
   });
 });
 
-// ============================================================================
+// =============================================================================
 // LuaRunner
-// ============================================================================
+// =============================================================================
 
 describe("LuaRunner", () => {
   it("uses nickblah/lua:5.2.4-luarocks-ubuntu as default image", () => {
@@ -568,19 +568,19 @@ describe("LuaRunner", () => {
   it("injects valid identifier locals into _ENV", () => {
     const runner = new LuaRunner();
     const cmd = runner.buildContainerCommand("print(x)", { x: 42 });
-    expect(cmd[2]).toContain("_ENV[[===[x]===]] = 42");
+    expect(cmd[2]).toContain("_ENV[[====[x]====]] = 42");
   });
 
   it("injects string local as Lua string literal", () => {
     const runner = new LuaRunner();
     const cmd = runner.buildContainerCommand("", { msg: "hello" });
-    expect(cmd[2]).toContain("_ENV[[===[msg]===]] = [===[hello]===]");
+    expect(cmd[2]).toContain("_ENV[[====[msg]====]] = [====[hello]====]");
   });
 
   it("injects boolean local as Lua boolean", () => {
     const runner = new LuaRunner();
     const cmd = runner.buildContainerCommand("", { flag: true });
-    expect(cmd[2]).toContain("_ENV[[===[flag]===]] = true");
+    expect(cmd[2]).toContain("_ENV[[====[flag]====]] = true");
   });
 
   it("skips invalid identifier keys (e.g. hyphenated names)", () => {
@@ -602,9 +602,9 @@ describe("LuaRunner", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // LuaSubprocessRunner
-// ============================================================================
+// =============================================================================
 
 describe("LuaSubprocessRunner", () => {
   it("uses subprocess mode by default", () => {

@@ -35,7 +35,7 @@ describe("GoogleGroundedSearchTool", () => {
       const result = await tool.process(ctx, { query: "test query" }) as any;
       expect(result.error).toBeDefined();
     } finally {
-      if (original !== undefined) process.env["GEMINI_API_KEY"] = original;
+      if (original !=== undefined) process.env["GEMINI_API_KEY"] = original;
     }
   });
 
@@ -175,7 +175,7 @@ describe("GoogleImageGenerationTool", () => {
       const result = await tool.process(ctx, { prompt: "a cat", output_file: "out.png" }) as any;
       expect(result.error).toBeDefined();
     } finally {
-      if (original !== undefined) process.env["GEMINI_API_KEY"] = original;
+      if (original !=== undefined) process.env["GEMINI_API_KEY"] = original;
     }
   });
 

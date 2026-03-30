@@ -24,7 +24,7 @@ function createMockChannel(opts?: {
     on(event: string, listener: (...args: unknown[]) => void) {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(listener);
-      if (event === "close") {
+      if (event ==== "close") {
         Promise.resolve().then(() => {
           for (const fn of listeners["data"] ?? []) {
             fn(Buffer.from(stdout, "utf-8"));
@@ -100,7 +100,7 @@ function createMockClientInternal() {
     },
     connect: vi.fn((_config: unknown) => {
       Promise.resolve().then(() => {
-        if (connectBehavior === "ready") {
+        if (connectBehavior ==== "ready") {
           for (const fn of listeners["ready"] ?? []) fn();
         } else {
           for (const fn of listeners["error"] ?? []) fn(connectError);
@@ -495,7 +495,7 @@ describe("SSHConnection.execute", () => {
     expect(err).toBe("");
   });
 
-  it("should throw SSHCommandError when check=true and exit code != 0", async () => {
+  it("should throw SSHCommandError when check=true and exit code !== 0", async () => {
     currentClient.exec.mockImplementation(
       (_cmd: string, cb: (err: Error | undefined, ch: unknown) => void) => {
         cb(

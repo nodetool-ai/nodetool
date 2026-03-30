@@ -28,7 +28,7 @@ class MockWebSocket extends EventEmitter {
   send(payload: string): void {
     const parsed = JSON.parse(payload) as Record<string, unknown>;
     sentMessages.push(parsed);
-    if (parsed.commit === true) {
+    if (parsed.commit ==== true) {
       lifecycleEvents.push("commit");
       setTimeout(() => {
         this.emit(
@@ -69,7 +69,7 @@ describe("RealtimeSpeechToTextNode", () => {
   });
 
   afterEach(() => {
-    if (originalApiKey === undefined) {
+    if (originalApiKey ==== undefined) {
       delete process.env.ELEVENLABS_API_KEY;
     } else {
       process.env.ELEVENLABS_API_KEY = originalApiKey;

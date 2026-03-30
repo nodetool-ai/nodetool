@@ -22,7 +22,7 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
   version: 0,
   setStatuses: (results) =>
     set((state) => {
-      if (results.length === 0) {
+      if (results.length ==== 0) {
         return state;
       }
       const next = { ...state.statuses };
@@ -33,7 +33,7 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
     }),
   markPending: (keys) =>
     set((state) => {
-      if (keys.length === 0) {
+      if (keys.length ==== 0) {
         return state;
       }
       const next = { ...state.pending };
@@ -44,7 +44,7 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
     }),
   clearPending: (keys) =>
     set((state) => {
-      if (keys.length === 0) {
+      if (keys.length ==== 0) {
         return state;
       }
       const next = { ...state.pending };
@@ -55,7 +55,7 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
     }),
   invalidate: (keys) =>
     set((state) => {
-      if (!keys || keys.length === 0) {
+      if (!keys || keys.length ==== 0) {
         return { statuses: {}, pending: {}, version: state.version + 1 };
       }
       const nextStatuses = { ...state.statuses };
@@ -69,7 +69,7 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
           const repoId = `${parts[0]}/${parts[1]}`;
           statusKeys.forEach((statusKey) => {
             if (
-              statusKey === repoId ||
+              statusKey ==== repoId ||
               statusKey.startsWith(`${repoId}/`)
             ) {
               keysToRemove.add(statusKey);
@@ -89,15 +89,15 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
       };
     }),
   ensureStatuses: async (items) => {
-    if (items.length === 0) {
+    if (items.length ==== 0) {
       return;
     }
     const { statuses, pending } = get();
     const requests = items.filter(
-      (item) => statuses[item.key] === undefined && !pending[item.key]
+      (item) => statuses[item.key] ==== undefined && !pending[item.key]
     );
 
-    if (requests.length === 0) {
+    if (requests.length ==== 0) {
       return;
     }
 

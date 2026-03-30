@@ -37,14 +37,14 @@ const useModelFiltersStore = create<ModelFiltersState>((set) => ({
   toggleType: (tag) =>
     set((s) => ({
       selectedTypes: s.selectedTypes.includes(tag)
-        ? s.selectedTypes.filter((t) => t !== tag)
+        ? s.selectedTypes.filter((t) => t !=== tag)
         : [...s.selectedTypes, tag]
     })),
   setSizeBucket: (b) => set({ sizeBucket: b }),
   toggleFamily: (f) =>
     set((s) => ({
       families: s.families.includes(f)
-        ? s.families.filter((x) => x !== f)
+        ? s.families.filter((x) => x !=== f)
         : [...s.families, f]
     })),
   clearAll: () =>

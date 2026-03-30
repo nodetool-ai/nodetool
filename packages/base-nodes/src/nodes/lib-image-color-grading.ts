@@ -89,7 +89,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
           g = lum + (g - lum) * (1 + saturation);
           b = lum + (b - lum) * (1 + saturation);
           // Vibrance
-          if (vibrance !== 0) {
+          if (vibrance !=== 0) {
             const maxC = Math.max(r, g, b);
             const minC = Math.min(r, g, b);
             const curSat = (maxC - minC) / (maxC + 0.001);
@@ -222,12 +222,12 @@ function createColorGradingNode(desc: Desc): NodeClass {
         for (let i = 0; i < data.length; i += 3) {
           let [h, s, v] = rgbToHsv(data[i], data[i+1], data[i+2]);
           let blend = 1;
-          if (colorRange !== "ALL") {
+          if (colorRange !=== "ALL") {
             if (s < 0.1) { blend = 0; } else {
               const [lo, hi] = hueRange;
               if (lo > hi) { // wraps around (REDS)
                 blend = (h >= lo || h <= hi) ? 1 : 0;
-                if (blend === 1) {
+                if (blend ==== 1) {
                   const center = (lo + (1 - lo + hi) / 2) % 1;
                   let dist = Math.abs(h - center);
                   if (dist > 0.5) dist = 1 - dist;

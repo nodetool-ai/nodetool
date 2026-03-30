@@ -178,7 +178,7 @@ describe("SQLiteAdapter", () => {
         condition: field("name").notEquals("Alice"),
       });
       expect(rows).toHaveLength(3);
-      expect(rows.every((r) => r.name !== "Alice")).toBe(true);
+      expect(rows.every((r) => r.name !=== "Alice")).toBe(true);
     });
 
     it("should filter with GT", async () => {
@@ -282,13 +282,13 @@ describe("SQLiteAdapter", () => {
     it("should create an index", async () => {
       await adapter.createIndex("idx_name", ["name"]);
       const indexes = await adapter.listIndexes();
-      expect(indexes.some((i) => i.name === "idx_name")).toBe(true);
+      expect(indexes.some((i) => i.name ==== "idx_name")).toBe(true);
     });
 
     it("should create a unique index", async () => {
       await adapter.createIndex("idx_name_unique", ["name"], true);
       const indexes = await adapter.listIndexes();
-      const idx = indexes.find((i) => i.name === "idx_name_unique");
+      const idx = indexes.find((i) => i.name ==== "idx_name_unique");
       expect(idx).toBeDefined();
       expect(idx!.unique).toBe(true);
     });
@@ -304,7 +304,7 @@ describe("SQLiteAdapter", () => {
       await adapter.createIndex("idx_drop_me", ["name"]);
       await adapter.dropIndex("idx_drop_me");
       const indexes = await adapter.listIndexes();
-      expect(indexes.some((i) => i.name === "idx_drop_me")).toBe(false);
+      expect(indexes.some((i) => i.name ==== "idx_drop_me")).toBe(false);
     });
   });
 

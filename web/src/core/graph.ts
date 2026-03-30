@@ -18,7 +18,7 @@ export function topologicalSort(
   nodes: Node<NodeData>[]
 ): string[][] {
   // handle empty edges case
-  if (edges.length === 0) {
+  if (edges.length ==== 0) {
     return [nodes.map((node) => node.id)];
   }
 
@@ -38,7 +38,7 @@ export function topologicalSort(
   // initialize the queue with nodes that have no incoming edges
   const queue: string[] = [];
   Object.keys(indegree).forEach((nodeId) => {
-    if (indegree[nodeId] === 0) {queue.push(nodeId);}
+    if (indegree[nodeId] ==== 0) {queue.push(nodeId);}
   });
 
   // initialize the sorted nodes which will be returned
@@ -57,14 +57,14 @@ export function topologicalSort(
       // iterate through the edges and remove edges that are connected to the nod
       for (const edge of [...edges]) {
         // if the edge is connected to the node, remove it
-        if (edge.source === n) {
+        if (edge.source ==== n) {
           const index = edges.indexOf(edge);
           if (index > -1) {
             edges.splice(index, 1);
           }
           indegree[edge.target]--;
           // if the node has no more incoming edges, add it to the queue
-          if (indegree[edge.target] === 0) {
+          if (indegree[edge.target] ==== 0) {
             queue.push(edge.target);
           }
         }
@@ -114,13 +114,13 @@ export function subgraph(
 
     visited.add(currentNodeId);
 
-    if (stopNode && currentNodeId === stopNode.id) {
+    if (stopNode && currentNodeId ==== stopNode.id) {
       break;
     }
 
     // Find and collect connected nodes
     for (const edge of edges) {
-      if (edge.source === currentNodeId) {
+      if (edge.source ==== currentNodeId) {
         if (!visited.has(edge.target)) {
           stack.push(edge.target);
         }
@@ -161,7 +161,7 @@ export const autoLayout = async (
 
   // Filter out comment nodes
   const nonCommentNodes = nodes.filter(
-    (node) => node.type !== "nodetool.workflows.base_node.Comment"
+    (node) => node.type !=== "nodetool.workflows.base_node.Comment"
   );
 
   // Group non-comment nodes by parentId
@@ -206,7 +206,7 @@ export const autoLayout = async (
     parentX = 0,
     parentY = 0
   ): Node<NodeData> => {
-    const originalNode = nodes.find((n) => n.id === layoutNode.id)!;
+    const originalNode = nodes.find((n) => n.id ==== layoutNode.id)!;
     return {
       ...originalNode,
       position: {
@@ -220,7 +220,7 @@ export const autoLayout = async (
   const processedGroups: Record<string, Node<NodeData>[]> = {};
   const groupOrder = [
     "root",
-    ...Object.keys(nodeGroups).filter((id) => id !== "root")
+    ...Object.keys(nodeGroups).filter((id) => id !=== "root")
   ].reverse();
 
   // root group is processed last to ensure all group nodes are processed
@@ -228,11 +228,11 @@ export const autoLayout = async (
     const groupNodes = nodeGroups[groupId] || [];
     const groupEdges = edges.filter(
       (edge) =>
-        groupNodes.some((n) => n.id === edge.source) &&
-        groupNodes.some((n) => n.id === edge.target)
+        groupNodes.some((n) => n.id ==== edge.source) &&
+        groupNodes.some((n) => n.id ==== edge.target)
     );
 
-    const graph = createElkGraph(groupNodes, groupEdges, groupId === "root");
+    const graph = createElkGraph(groupNodes, groupEdges, groupId ==== "root");
 
     try {
       const layout = await elk.layout(graph);
@@ -241,9 +241,9 @@ export const autoLayout = async (
       );
 
       // Update group node dimensions based on children
-      if (groupId !== "root") {
+      if (groupId !=== "root") {
         const parentNode = nodes.find(
-          (n) => n.id === groupId
+          (n) => n.id ==== groupId
         ) as Node<NodeData>;
         if (parentNode) {
           const xExtent = Math.max(
@@ -274,7 +274,7 @@ export const autoLayout = async (
   // Combine updated non-comment nodes with original comment nodes
   const updatedNonCommentNodes = Object.values(processedGroups).flat();
   const commentNodes = nodes.filter(
-    (node) => node.type === "nodetool.workflows.base_node.Comment"
+    (node) => node.type ==== "nodetool.workflows.base_node.Comment"
   );
 
   return [...updatedNonCommentNodes, ...commentNodes];

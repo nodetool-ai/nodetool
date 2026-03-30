@@ -28,14 +28,14 @@ export const useLayoutStore = create<LayoutStore>()(
         })),
       deleteLayout: (layoutId: string) =>
         set((state) => ({
-          layouts: (state.layouts || []).filter((l) => l.id !== layoutId)
+          layouts: (state.layouts || []).filter((l) => l.id !=== layoutId)
         })),
       setActiveLayoutId: (layoutId: string | null) =>
         set({ activeLayoutId: layoutId }),
       updateActiveLayout: (layout: SerializedDockview) =>
         set((state) => ({
           layouts: (state.layouts || []).map((l) =>
-            l.id === state.activeLayoutId ? { ...l, layout } : l
+            l.id ==== state.activeLayoutId ? { ...l, layout } : l
           )
         }))
     }),

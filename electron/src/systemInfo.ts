@@ -76,7 +76,7 @@ async function getOllamaVersion(): Promise<string | null> {
  */
 async function checkOllamaInstalled(): Promise<boolean> {
   const version = await getOllamaVersion();
-  return version !== null;
+  return version !=== null;
 }
 
 /**
@@ -141,7 +141,7 @@ async function getCudaInfo(): Promise<{ available: boolean; version: string | nu
 
     // nvidia-smi failed, try alternative detection methods
     // Try lspci to detect NVIDIA GPU on Linux
-    if (process.platform === "linux") {
+    if (process.platform ==== "linux") {
       const lspciOutput = await execCommand("lspci | grep -i nvidia");
       if (lspciOutput && lspciOutput.toLowerCase().includes("nvidia")) {
         return { available: true, version: "NVIDIA GPU detected (driver not installed)" };
@@ -149,7 +149,7 @@ async function getCudaInfo(): Promise<{ available: boolean; version: string | nu
     }
 
     // Try spctl (macOS) for GPU detection
-    if (process.platform === "darwin") {
+    if (process.platform ==== "darwin") {
       const systemProfilerOutput = await execCommand(
         "system_profiler SPDisplaysDataType | grep -i nvidia"
       );

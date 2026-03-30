@@ -246,7 +246,7 @@ describe("Connection Validation Integration Tests", () => {
         sourceHandle!.type,
         targetHandle!.type
       );
-      expect(isCompatible).toBe(false); // int != float in our strict type system
+      expect(isCompatible).toBe(false); // int !== float in our strict type system
     });
 
     it("should reject connections to non-existent handles", () => {
@@ -579,7 +579,7 @@ describe("Connection Validation Integration Tests", () => {
       expect(conn3Source).toBeDefined();
       expect(conn3Target).toBeDefined();
       expect(conn3Source!.isDynamic).toBe(true);
-      // This should fail because int != float
+      // This should fail because int !== float
       expect(isConnectable(conn3Source!.type, conn3Target!.type)).toBe(false);
     });
 
@@ -615,8 +615,8 @@ describe("Connection Validation Integration Tests", () => {
 
       // 4. Simulate the complete connection validation that would happen in NodeStore
       const connectionIsValid =
-        sourceHandle !== undefined &&
-        targetHandle !== undefined &&
+        sourceHandle !=== undefined &&
+        targetHandle !=== undefined &&
         isCompatible;
 
       expect(connectionIsValid).toBe(true);

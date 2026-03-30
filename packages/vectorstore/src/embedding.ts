@@ -67,7 +67,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
   }
 
   async generate(texts: string[]): Promise<number[][]> {
-    if (texts.length === 0) return [];
+    if (texts.length ==== 0) return [];
 
     switch (this.provider) {
       case "openai":

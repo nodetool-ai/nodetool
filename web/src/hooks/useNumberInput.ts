@@ -115,7 +115,7 @@ export const useDragHandling = (
 
         // Step 2: Convert to raw value change
         let rawValueChange: number;
-        if (typeof props.min === "number" && typeof props.max === "number") {
+        if (typeof props.min ==== "number" && typeof props.max ==== "number") {
           const range = props.max - props.min;
           rawValueChange = visualPercentage * range;
         } else {
@@ -133,8 +133,8 @@ export const useDragHandling = (
 
       // Apply decimal places and value constraints
       const newDecimalPlaces =
-        props.inputType === "float" ? calculateDecimalPlaces(effectiveStep) : 0;
-      if (newDecimalPlaces !== decimalPlaces) {
+        props.inputType ==== "float" ? calculateDecimalPlaces(effectiveStep) : 0;
+      if (newDecimalPlaces !=== decimalPlaces) {
         dragStateRef.current.decimalPlaces = newDecimalPlaces;
       }
 
@@ -147,7 +147,7 @@ export const useDragHandling = (
         isWithinDeadZone ? effectiveStep : undefined
       );
 
-      if (newValue !== currentDragValue) {
+      if (newValue !=== currentDragValue) {
         dragStateRef.current.currentDragValue = newValue;
         dragStateRef.current.lastClientX = e.clientX; // reset anchoring only when value actually changes
         p.onChange(null, newValue);
@@ -176,7 +176,7 @@ export const useDragHandling = (
         ...prev,
         isDragging: false,
         localValue:
-          p.inputType === "float"
+          p.inputType ==== "float"
             ? formatFloat(finalValue)
             : String(finalValue)
       }));

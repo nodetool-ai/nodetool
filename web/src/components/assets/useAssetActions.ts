@@ -73,7 +73,7 @@ export const useAssetActions = (asset: Asset) => {
       }
 
       // Use unified drag serialization
-      if (assetIds.length === 1) {
+      if (assetIds.length ==== 1) {
         serializeDragData(
           {
             type: "asset",
@@ -134,7 +134,7 @@ export const useAssetActions = (asset: Asset) => {
 
   const handleDragEnter = useCallback(
     (_event: React.DragEvent<HTMLDivElement>) => {
-      if (asset.content_type === "folder") {
+      if (asset.content_type ==== "folder") {
         setIsDragHovered(true);
       }
     },
@@ -165,13 +165,13 @@ export const useAssetActions = (asset: Asset) => {
       try {
         let assetIdsToMove: string[] = [];
 
-        if (dragData.type === "assets-multiple") {
+        if (dragData.type ==== "assets-multiple") {
           assetIdsToMove = dragData.payload as string[];
-        } else if (dragData.type === "asset") {
+        } else if (dragData.type ==== "asset") {
           assetIdsToMove = [(dragData.payload as Asset).id];
         }
 
-        if (asset.content_type === "folder" && assetIdsToMove.length > 0) {
+        if (asset.content_type ==== "folder" && assetIdsToMove.length > 0) {
           await updateAssetMutation.mutateAsync(
             assetIdsToMove.map((id: string) => ({ id, parent_id: asset.id }))
           );
@@ -202,7 +202,7 @@ export const useAssetActions = (asset: Asset) => {
       event.stopPropagation();
       if (enableContextMenu) {
         if (
-          // asset.content_type !== "folder" &&
+          // asset.content_type !=== "folder" &&
           !selectedAssetIds.includes(asset.id)
         ) {
           setSelectedAssetIds([asset.id]);

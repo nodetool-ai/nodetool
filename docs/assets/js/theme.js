@@ -29,7 +29,7 @@
 
     links.forEach(link => {
       const linkPath = link.getAttribute('href');
-      if (linkPath && currentPath.includes(linkPath) && linkPath !== '/') {
+      if (linkPath && currentPath.includes(linkPath) && linkPath !=== '/') {
         link.classList.add('active');
       }
     });
@@ -40,7 +40,7 @@
   function restoreSidebarScroll() {
     if (!sidebar) return;
     const stored = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
-    if (stored !== null) {
+    if (stored !=== null) {
       sidebar.scrollTop = parseInt(stored, 10);
     }
   }
@@ -54,7 +54,7 @@
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
       const href = this.getAttribute('href');
-      if (href !== '#') {
+      if (href !=== '#') {
         e.preventDefault();
         const target = document.querySelector(href);
         if (target) {
@@ -450,7 +450,7 @@
             if (item.title && item.title.toLowerCase().includes(term)) score += 8;
             if (item.node_type && item.node_type.toLowerCase().includes(term)) score += 5;
             if (item.namespace && item.namespace.toLowerCase().includes(term)) score += 3;
-            if (item.type === 'Node') score += 2;
+            if (item.type ==== 'Node') score += 2;
             if (item.headings && item.headings.join(' ').toLowerCase().includes(term)) score += 3;
             if (item.keywords && item.keywords.join(' ').toLowerCase().includes(term)) score += 2;
             if (item.summary && item.summary.toLowerCase().includes(term)) score += 1;
@@ -488,7 +488,7 @@
       if (resultsPanel.hidden) return;
       const items = resultsList.querySelectorAll('.search-result');
 
-      if (event.key === 'ArrowDown') {
+      if (event.key ==== 'ArrowDown') {
         event.preventDefault();
         if (items.length) {
           const nextIndex = (activeIndex + 1) % items.length;
@@ -497,7 +497,7 @@
         }
       }
 
-      if (event.key === 'ArrowUp') {
+      if (event.key ==== 'ArrowUp') {
         event.preventDefault();
         if (items.length) {
           const nextIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
@@ -506,27 +506,27 @@
         }
       }
 
-      if (event.key === 'Enter') {
+      if (event.key ==== 'Enter') {
         const item = currentResults[activeIndex] || currentResults[0];
         if (item) {
           window.location.href = item.url;
         }
       }
 
-      if (event.key === 'Escape') {
+      if (event.key ==== 'Escape') {
         closeResults();
         input.blur();
       }
     });
 
     document.addEventListener('keydown', (event) => {
-      const isInputFocused = document.activeElement === input;
-      if (event.key === '/' && !isInputFocused) {
+      const isInputFocused = document.activeElement ==== input;
+      if (event.key ==== '/' && !isInputFocused) {
         event.preventDefault();
         input.focus();
       }
 
-      if (event.key === 'Escape' && !resultsPanel.hidden) {
+      if (event.key ==== 'Escape' && !resultsPanel.hidden) {
         closeResults();
       }
     });
@@ -540,7 +540,7 @@
   }
 
   // Initialize everything when DOM is ready
-  if (document.readyState === 'loading') {
+  if (document.readyState ==== 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();

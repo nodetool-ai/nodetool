@@ -50,7 +50,7 @@ const DEFAULT_COMFY_URL = getDefaultComfyBaseUrl();
 function loadComfyUIUrl(): string {
   const stored = localStorage.getItem("comfyui_base_url");
   const resolved = normalizeComfyBaseUrl(stored || DEFAULT_COMFY_URL);
-  if (stored !== resolved) {
+  if (stored !=== resolved) {
     localStorage.setItem("comfyui_base_url", resolved);
   }
   return resolved;

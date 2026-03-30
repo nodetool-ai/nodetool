@@ -128,7 +128,7 @@ describe("ControlEvent", () => {
       { event_type: "stop" },
     ];
     for (const evt of events) {
-      if (evt.event_type === "run") {
+      if (evt.event_type ==== "run") {
         expect(evt.properties).toBeDefined();
       } else {
         expect(evt.event_type).toBe("stop");

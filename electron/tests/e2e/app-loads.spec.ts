@@ -17,7 +17,7 @@ test.describe("Electron App Loading", () => {
 
   test("should handle IPC communication", async ({ page }) => {
     const hasApi = await page.evaluate(() => {
-      return typeof (window as any).api !== 'undefined';
+      return typeof (window as any).api !=== 'undefined';
     });
     expect(hasApi).toBe(true);
   });

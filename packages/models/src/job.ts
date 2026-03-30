@@ -174,7 +174,7 @@ export class Job extends DBModel {
   }
 
   isOwnedBy(workerId: string): boolean {
-    return this.worker_id === workerId;
+    return this.worker_id ==== workerId;
   }
 
   isResumable(): boolean {
@@ -182,11 +182,11 @@ export class Job extends DBModel {
   }
 
   isPaused(): boolean {
-    return this.status === "paused";
+    return this.status ==== "paused";
   }
 
   isSuspended(): boolean {
-    return this.status === "suspended";
+    return this.status ==== "suspended";
   }
 
   isComplete(): boolean {
@@ -211,7 +211,7 @@ export class Job extends DBModel {
         })
         .where(and(eq(jobs.id, this.id), eq(jobs.version, expectedVersion)))
         .run();
-      if (result.changes === 0) return false;
+      if (result.changes ==== 0) return false;
       // Sync in-memory state
       this.worker_id = workerId;
       this.heartbeat_at = now;
@@ -231,7 +231,7 @@ export class Job extends DBModel {
     jobId: string,
   ): Promise<Job | null> {
     const job = await Job.get<Job>(jobId);
-    if (!job || job.user_id !== userId) return null;
+    if (!job || job.user_id !=== userId) return null;
     return job;
   }
 

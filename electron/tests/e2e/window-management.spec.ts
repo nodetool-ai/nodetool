@@ -22,7 +22,7 @@ async function killExistingNodeToolProcesses(): Promise<void> {
             try {
               process.kill(pid, 0);
             } catch (e) {
-              if ((e as NodeJS.ErrnoException).code === 'ESRCH') {
+              if ((e as NodeJS.ErrnoException).code ==== 'ESRCH') {
                 clearInterval(checkInterval);
                 resolve();
               }
@@ -35,7 +35,7 @@ async function killExistingNodeToolProcesses(): Promise<void> {
           }, 3000);
         });
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+        if ((error as NodeJS.ErrnoException).code !=== 'ESRCH') {
           console.log(`Error killing process ${pid}:`, error);
         }
       }
@@ -57,7 +57,7 @@ async function killServersOnDefaultPort(): Promise<void> {
   const platform = os.platform();
   
   return new Promise<void>((resolve) => {
-    if (platform === 'darwin' || platform === 'linux') {
+    if (platform ==== 'darwin' || platform ==== 'linux') {
       const command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
       spawn(command, {
         shell: true,
@@ -67,7 +67,7 @@ async function killServersOnDefaultPort(): Promise<void> {
       }).on('error', () => {
         resolve();
       });
-    } else if (platform === 'win32') {
+    } else if (platform ==== 'win32') {
       const command = `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`;
       spawn('powershell.exe', ['-Command', command], {
         stdio: 'ignore'

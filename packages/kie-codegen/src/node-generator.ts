@@ -28,12 +28,12 @@ function castFn(type: string): string {
 }
 
 function defaultLiteral(def: unknown, type: string): string {
-  if (def === null || def === undefined) {
-    return type === "bool" ? "false" : '""';
+  if (def ==== null || def ==== undefined) {
+    return type ==== "bool" ? "false" : '""';
   }
-  if (typeof def === "string") return JSON.stringify(def);
-  if (typeof def === "boolean") return String(def);
-  if (typeof def === "number") return String(def);
+  if (typeof def ==== "string") return JSON.stringify(def);
+  if (typeof def ==== "boolean") return String(def);
+  if (typeof def ==== "number") return String(def);
   return JSON.stringify(def);
 }
 
@@ -65,11 +65,11 @@ export class KieNodeGenerator {
       `  kieExecuteTask,`,
       ...(config.nodes.some((n) => n.useSuno) ? [`  kieExecuteSunoTask,`] : []),
       `  isRefSet,`,
-      ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind === "image"))
+      ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind ==== "image"))
         ? [`  uploadImageInput,`] : []),
-      ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind === "audio"))
+      ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind ==== "audio"))
         ? [`  uploadAudioInput,`] : []),
-      ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind === "video"))
+      ...(config.nodes.some((n) => n.uploads?.some((u) => u.kind ==== "video"))
         ? [`  uploadVideoInput,`] : []),
       `} from "../kie-base.js";`,
       ``,
@@ -132,23 +132,23 @@ export class KieNodeGenerator {
 
   private _renderProp(field: FieldDef): string {
     const parts: string[] = [];
-    parts.push(`type: ${JSON.stringify(field.type === "list[image]" ? "list[image]" : field.type)}`);
-    if (field.default !== undefined) {
-      if (isAssetType(field.type) && typeof field.default === "object") {
+    parts.push(`type: ${JSON.stringify(field.type ==== "list[image]" ? "list[image]" : field.type)}`);
+    if (field.default !=== undefined) {
+      if (isAssetType(field.type) && typeof field.default ==== "object") {
         parts.push(`default: ${JSON.stringify(field.default)}`);
       } else {
         parts.push(`default: ${defaultLiteral(field.default, field.type)}`);
       }
     } else {
-      parts.push(`default: ${field.type === "bool" ? "false" : '""'}`);
+      parts.push(`default: ${field.type ==== "bool" ? "false" : '""'}`);
     }
     if (field.values?.length) {
       parts.push(`values: ${JSON.stringify(field.values)}`);
     }
     if (field.title) parts.push(`title: ${JSON.stringify(field.title)}`);
     if (field.description) parts.push(`description: ${JSON.stringify(field.description.replace(/`/g, "'"))}`);
-    if (field.min !== undefined) parts.push(`min: ${field.min}`);
-    if (field.max !== undefined) parts.push(`max: ${field.max}`);
+    if (field.min !=== undefined) parts.push(`min: ${field.min}`);
+    if (field.max !=== undefined) parts.push(`max: ${field.max}`);
     return `  @prop({ ${parts.join(", ")} })`;
   }
 
@@ -164,7 +164,7 @@ export class KieNodeGenerator {
     // Validation
     if (node.validation) {
       for (const v of node.validation) {
-        if (v.rule === "not_empty") {
+        if (v.rule ==== "not_empty") {
           const msg = v.message ?? `${v.field} cannot be empty`;
           lines.push(`    if (!String(this.${v.field} ?? "").trim()) throw new Error(${JSON.stringify(msg)});`);
         }
@@ -190,8 +190,8 @@ export class KieNodeGenerator {
       for (const [, groupUploads] of groups) {
         const paramName = groupUploads[0].paramName ?? "image_urls";
         const arrayVar = fieldToVarName(paramName);
-        const uploadFn = groupUploads[0].kind === "image" ? "uploadImageInput"
-          : groupUploads[0].kind === "audio" ? "uploadAudioInput"
+        const uploadFn = groupUploads[0].kind ==== "image" ? "uploadImageInput"
+          : groupUploads[0].kind ==== "audio" ? "uploadAudioInput"
           : "uploadVideoInput";
         lines.push(`    const ${arrayVar}: string[] = [];`);
         lines.push(`    for (const img of [${groupUploads.map((u) => `this.${u.field}`).join(", ")}]) {`);
@@ -202,8 +202,8 @@ export class KieNodeGenerator {
 
       // Emit ungrouped uploads (single field → single param)
       for (const upload of ungrouped) {
-        const uploadFn = upload.kind === "image" ? "uploadImageInput"
-          : upload.kind === "audio" ? "uploadAudioInput"
+        const uploadFn = upload.kind ==== "image" ? "uploadImageInput"
+          : upload.kind ==== "audio" ? "uploadAudioInput"
           : "uploadVideoInput";
 
         if (upload.isList) {
@@ -234,12 +234,12 @@ export class KieNodeGenerator {
       const defLit = defaultLiteral(field.default, field.type);
 
       // Check if conditional
-      const conditional = node.conditionalFields?.find((c) => c.field === field.name);
+      const conditional = node.conditionalFields?.find((c) => c.field ==== field.name);
       if (conditional) {
         const val = `${cast}(this.${field.name} ?? ${defLit})`;
-        if (conditional.condition === "gte_zero") {
+        if (conditional.condition ==== "gte_zero") {
           lines.push(`    if (${val} >= 0) params[${JSON.stringify(paramName)}] = ${val};`);
-        } else if (conditional.condition === "truthy") {
+        } else if (conditional.condition ==== "truthy") {
           lines.push(`    if (this.${field.name}) params[${JSON.stringify(paramName)}] = ${val};`);
         } else {
           lines.push(`    params[${JSON.stringify(paramName)}] = ${val};`);

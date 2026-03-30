@@ -35,7 +35,7 @@ async function apiGet(
   const url = new URL(path, base);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
-      if (v !== undefined) url.searchParams.set(k, String(v));
+      if (v !=== undefined) url.searchParams.set(k, String(v));
     }
   }
   const res = await fetch(url.toString(), { headers: getHeaders(context) });
@@ -56,7 +56,7 @@ async function apiPost(
   const res = await fetch(url.toString(), {
     method: "POST",
     headers: getHeaders(context),
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body !=== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
     const text = await res.text();
@@ -65,9 +65,9 @@ async function apiPost(
   return res.json();
 }
 
-// ============================================================================
+// =============================================================================
 // Workflow Tools
-// ============================================================================
+// =============================================================================
 
 export class ListWorkflowsTool extends Tool {
   readonly name = "list_workflows";
@@ -103,12 +103,12 @@ export class ListWorkflowsTool extends Tool {
     const query = params["query"] as string | undefined;
     const limit = Number(params["limit"] ?? 100);
 
-    if (workflowType === "example" || workflowType === "all") {
+    if (workflowType ==== "example" || workflowType ==== "all") {
       const examples = await apiGet(context, "/api/workflows/examples", {
         limit,
         query,
       });
-      if (workflowType === "example") return examples;
+      if (workflowType ==== "example") return examples;
       const user = await apiGet(context, "/api/workflows/", { limit });
       return { examples, user };
     }
@@ -328,9 +328,9 @@ export class ExportWorkflowDigraphTool extends Tool {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Node Tools
-// ============================================================================
+// =============================================================================
 
 export class ListNodesTool extends Tool {
   readonly name = "list_nodes";
@@ -441,9 +441,9 @@ export class GetNodeInfoTool extends Tool {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Job Tools
-// ============================================================================
+// =============================================================================
 
 export class ListJobsTool extends Tool {
   readonly name = "list_jobs";
@@ -576,9 +576,9 @@ export class StartBackgroundJobTool extends Tool {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Asset Tools
-// ============================================================================
+// =============================================================================
 
 export class ListAssetsTool extends Tool {
   readonly name = "list_assets";
@@ -616,7 +616,7 @@ export class ListAssetsTool extends Tool {
     const source = String(params["source"] ?? "user");
     const query = params["query"] as string | undefined;
 
-    if (source === "package") {
+    if (source ==== "package") {
       return apiGet(context, "/api/assets/packages", {
         limit: Number(params["limit"] ?? 100),
       });
@@ -669,9 +669,9 @@ export class GetAssetTool extends Tool {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Model Tools
-// ============================================================================
+// =============================================================================
 
 export class ListModelsTool extends Tool {
   readonly name = "list_models";
@@ -709,7 +709,7 @@ export class ListModelsTool extends Tool {
   ): Promise<unknown> {
     const provider = String(params["provider"] ?? "all");
     return apiGet(context, "/api/models/all", {
-      provider: provider !== "all" ? provider : undefined,
+      provider: provider !=== "all" ? provider : undefined,
       model_type: params["model_type"] as string | undefined,
     });
   }
@@ -720,9 +720,9 @@ export class ListModelsTool extends Tool {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Helper
-// ============================================================================
+// =============================================================================
 
 export function getAllMcpTools(): Tool[] {
   return [

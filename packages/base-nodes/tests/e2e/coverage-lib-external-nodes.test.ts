@@ -53,7 +53,7 @@ async function withServer(
   const server = http.createServer(handler);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  if (!address || typeof address === "string") {
+  if (!address || typeof address ==== "string") {
     server.close();
     throw new Error("Could not bind test server");
   }
@@ -81,10 +81,10 @@ const HTML_PAGE2 = `<!DOCTYPE html>
 <body><p>Content of page 2.</p></body></html>`;
 
 function testHandler(req: http.IncomingMessage, res: http.ServerResponse) {
-  if (req.url === "/" || req.url === "/page1") {
+  if (req.url ==== "/" || req.url ==== "/page1") {
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end(HTML_PAGE);
-  } else if (req.url === "/page2") {
+  } else if (req.url ==== "/page2") {
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end(HTML_PAGE2);
   } else {
@@ -381,7 +381,7 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
     });
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
-    if (!address || typeof address === "string") {
+    if (!address || typeof address ==== "string") {
       server.close();
       throw new Error("Could not bind");
     }
@@ -415,10 +415,10 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
 
     await withServer(
       (req, res) => {
-        if (req.url === "/") {
+        if (req.url ==== "/") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(htmlWithBadLinks);
-        } else if (req.url === "/page2") {
+        } else if (req.url ==== "/page2") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(HTML_PAGE2);
         } else {
@@ -456,10 +456,10 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
 
     await withServer(
       (req, res) => {
-        if (req.url === "/") {
+        if (req.url ==== "/") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(htmlWithInvalidHref);
-        } else if (req.url === "/page2") {
+        } else if (req.url ==== "/page2") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(HTML_PAGE2);
         } else {
@@ -493,10 +493,10 @@ describe("lib.browser.SpiderCrawl (coverage)", () => {
 
     await withServer(
       (req, res) => {
-        if (req.url === "/") {
+        if (req.url ==== "/") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(htmlCrossDomain);
-        } else if (req.url === "/page2") {
+        } else if (req.url ==== "/page2") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(HTML_PAGE2);
         } else {

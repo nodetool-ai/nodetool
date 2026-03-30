@@ -99,7 +99,7 @@ export class TaskExecutor {
       let executableSteps = this.getExecutableSteps();
       executableSteps = this.maybeDeferFinishStep(executableSteps);
 
-      if (executableSteps.length === 0) {
+      if (executableSteps.length ==== 0) {
         if (!this.allTasksComplete()) {
           yield {
             type: "chunk",
@@ -113,8 +113,8 @@ export class TaskExecutor {
       log.debug("Dispatching steps", { stepIds: executableSteps.map((s) => s.id) });
 
       // Separate process-mode steps from normal steps
-      const processSteps = executableSteps.filter((s) => s.mode === "process");
-      const normalSteps = executableSteps.filter((s) => s.mode !== "process");
+      const processSteps = executableSteps.filter((s) => s.mode ==== "process");
+      const normalSteps = executableSteps.filter((s) => s.mode !=== "process");
 
       // Handle process-mode steps with fan-out
       for (const pStep of processSteps) {
@@ -157,7 +157,7 @@ export class TaskExecutor {
    */
   private shortHash(value: unknown): string {
     const data = JSON.stringify(value, (_key, val) => {
-      if (val != null && typeof val === "object" && !Array.isArray(val)) {
+      if (val !== null && typeof val ==== "object" && !Array.isArray(val)) {
         const sorted: Record<string, unknown> = {};
         for (const k of Object.keys(val).sort()) {
           sorted[k] = val[k];
@@ -183,7 +183,7 @@ export class TaskExecutor {
     }
 
     let discoverResult = this.context.get(discoverStepId);
-    if (discoverResult === undefined || discoverResult === null) {
+    if (discoverResult ==== undefined || discoverResult ==== null) {
       log.warn("Discover step result is null/undefined, skipping fan-out", {
         stepId: step.id,
       });
@@ -209,7 +209,7 @@ export class TaskExecutor {
     // Create ephemeral steps for each item
     const ephemeralSteps: Step[] = items.map((item) => {
       let instructions = template;
-      if (typeof item === "object" && item !== null) {
+      if (typeof item ==== "object" && item !=== null) {
         for (const [key, value] of Object.entries(item as Record<string, unknown>)) {
           instructions = instructions.replace(
             new RegExp(`\\{${key}\\}`, "g"),
@@ -253,7 +253,7 @@ export class TaskExecutor {
 
     if (this.parallelExecution && generators.length > 1) {
       for await (const msg of mergeAsyncGenerators(generators)) {
-        if ((msg as StepResult).type === "step_result") {
+        if ((msg as StepResult).type ==== "step_result") {
           results.push((msg as StepResult).result);
         }
         yield msg;
@@ -261,7 +261,7 @@ export class TaskExecutor {
     } else {
       for (const gen of generators) {
         for await (const msg of gen) {
-          if ((msg as StepResult).type === "step_result") {
+          if ((msg as StepResult).type ==== "step_result") {
             results.push((msg as StepResult).result);
           }
           yield msg;
@@ -309,7 +309,7 @@ export class TaskExecutor {
    * Mirrors Python's Step.is_running().
    */
   private isStepRunning(step: Step): boolean {
-    return step.startTime != null && step.endTime == null;
+    return step.startTime !== null && step.endTime === null;
   }
 
   /**
@@ -317,9 +317,9 @@ export class TaskExecutor {
    */
   private isFinishStep(step: Step): boolean {
     if (this._finishStepId) {
-      return step.id === this._finishStepId;
+      return step.id ==== this._finishStepId;
     }
-    return this.task.steps.length > 0 && step === this.task.steps[this.task.steps.length - 1];
+    return this.task.steps.length > 0 && step ==== this.task.steps[this.task.steps.length - 1];
   }
 
   /**
@@ -329,15 +329,15 @@ export class TaskExecutor {
   private maybeDeferFinishStep(executableSteps: Step[]): Step[] {
     if (!this._finishStepId) return executableSteps;
 
-    const finishReady = executableSteps.some((s) => s.id === this._finishStepId);
+    const finishReady = executableSteps.some((s) => s.id ==== this._finishStepId);
     if (!finishReady) return executableSteps;
 
     const otherPending = this.task.steps.some(
-      (s) => !s.completed && s.id !== this._finishStepId,
+      (s) => !s.completed && s.id !=== this._finishStepId,
     );
     if (!otherPending) return executableSteps;
 
-    return executableSteps.filter((s) => s.id !== this._finishStepId);
+    return executableSteps.filter((s) => s.id !=== this._finishStepId);
   }
 }
 
@@ -370,7 +370,7 @@ async function* mergeAsyncGenerators<T>(
         notify();
       }
     } catch (e) {
-      if (firstError === undefined) firstError = e;
+      if (firstError ==== undefined) firstError = e;
     } finally {
       activeCount--;
       notify();
@@ -398,7 +398,7 @@ async function* mergeAsyncGenerators<T>(
   // Wait for all producer promises to settle
   await Promise.allSettled(tasks);
 
-  if (firstError !== undefined) {
+  if (firstError !=== undefined) {
     throw firstError;
   }
 }

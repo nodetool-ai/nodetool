@@ -101,7 +101,7 @@ export class MigrationRunner {
   // ── Migration tracking table management ────────────────────────────
 
   private async createTrackingTables(): Promise<void> {
-    const isPostgres = this.adapter.dbType === "postgres";
+    const isPostgres = this.adapter.dbType ==== "postgres";
 
     await this.adapter.execute(`
       CREATE TABLE IF NOT EXISTS ${MIGRATION_TRACKING_TABLE} (
@@ -258,7 +258,7 @@ export class MigrationRunner {
   // ── Migration discovery ────────────────────────────────────────────
 
   discoverMigrations(): Migration[] {
-    if (this.migrationsCache !== null) {
+    if (this.migrationsCache !=== null) {
       return this.migrationsCache;
     }
 
@@ -289,7 +289,7 @@ export class MigrationRunner {
 
     for (const [version, appliedMigration] of applied) {
       const migration = migrationsMap.get(version);
-      if (migration && migration.checksum !== appliedMigration.checksum) {
+      if (migration && migration.checksum !=== appliedMigration.checksum) {
         mismatches.push(version);
       }
     }
@@ -328,7 +328,7 @@ export class MigrationRunner {
 
     const dbState = await this.detectDatabaseState();
 
-    if (dbState !== DatabaseState.MIGRATION_TRACKED) {
+    if (dbState !=== DatabaseState.MIGRATION_TRACKED) {
       if (!dryRun) {
         await this.createTrackingTables();
       }
@@ -339,7 +339,7 @@ export class MigrationRunner {
     }
 
     try {
-      if (dbState === DatabaseState.LEGACY_DATABASE && !dryRun) {
+      if (dbState ==== DatabaseState.LEGACY_DATABASE && !dryRun) {
         await this.baselineMigrations();
       }
 
@@ -359,7 +359,7 @@ export class MigrationRunner {
         pending = pending.filter((m) => m.version <= target);
       }
 
-      if (pending.length === 0) {
+      if (pending.length ==== 0) {
         return [];
       }
 
@@ -411,7 +411,7 @@ export class MigrationRunner {
 
       const migration = migrationsMap.get(version);
       if (!migration) continue;
-      if (migration.modifiesTables.length === 0) continue;
+      if (migration.modifiesTables.length ==== 0) continue;
 
       try {
         await migration.up(this.adapter);
@@ -532,7 +532,7 @@ export class MigrationRunner {
         .reverse()
         .slice(0, steps);
 
-      if (versionsToRollback.length === 0) {
+      if (versionsToRollback.length ==== 0) {
         return [];
       }
 
@@ -584,7 +584,7 @@ export class MigrationRunner {
   async status(): Promise<MigrationStatus> {
     const dbState = await this.detectDatabaseState();
 
-    if (dbState === DatabaseState.FRESH_INSTALL) {
+    if (dbState ==== DatabaseState.FRESH_INSTALL) {
       return {
         state: dbState,
         currentVersion: null,
@@ -623,7 +623,7 @@ export class MigrationRunner {
 
   async getCurrentVersion(): Promise<string | null> {
     const applied = await this.getAppliedMigrations();
-    if (applied.size === 0) return null;
+    if (applied.size ==== 0) return null;
     return [...applied.keys()].sort().pop()!;
   }
 }

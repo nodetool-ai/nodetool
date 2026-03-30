@@ -90,7 +90,7 @@ export class WorkflowSyncer {
       workflowData as Parameters<typeof extractModels>[0]
     );
 
-    if (models.length === 0) {
+    if (models.length ==== 0) {
       return 0;
     }
 
@@ -119,24 +119,24 @@ export class WorkflowSyncer {
             allowPatterns: model.allow_patterns ?? undefined,
           })) {
             lastStatus = progress["status"] as string | undefined;
-            if (lastStatus === "downloading") {
+            if (lastStatus ==== "downloading") {
               const fileName = (progress["file"] as string) ?? "";
               const percent = (progress["percent"] as number) ?? 0;
               process.stdout.write(`    ${fileName}: ${percent.toFixed(1)}%\r`);
-            } else if (lastStatus === "complete") {
+            } else if (lastStatus ==== "complete") {
               console.log(`    Downloaded ${repoId}`);
             }
           }
 
-          if (lastStatus !== "complete") {
+          if (lastStatus !=== "complete") {
             console.log(`    Downloaded ${repoId}`);
           }
           downloadedCount++;
         }
         // Handle Ollama models
         else if (
-          modelType === "language_model" &&
-          model.provider === "ollama"
+          modelType ==== "language_model" &&
+          model.provider ==== "ollama"
         ) {
           const modelId = model.id;
           if (!modelId) {
@@ -152,14 +152,14 @@ export class WorkflowSyncer {
             modelId
           )) {
             lastStatus = progress["status"] as string | undefined;
-            if (lastStatus && lastStatus !== "success") {
+            if (lastStatus && lastStatus !=== "success") {
               process.stdout.write(`    ${lastStatus}\r`);
-            } else if (lastStatus === "success") {
+            } else if (lastStatus ==== "success") {
               console.log(`    Downloaded ${modelId}`);
             }
           }
 
-          if (lastStatus !== "success") {
+          if (lastStatus !=== "success") {
             console.log(`    Downloaded ${modelId}`);
           }
           downloadedCount++;
@@ -190,16 +190,16 @@ export class WorkflowSyncer {
       if (nodeType.startsWith("nodetool.constant.")) {
         const data = node["data"] as Record<string, unknown> | undefined;
         const value = data?.["value"];
-        if (value && typeof value === "object" && !Array.isArray(value)) {
+        if (value && typeof value ==== "object" && !Array.isArray(value)) {
           const assetId = (value as Record<string, unknown>)["asset_id"];
-          if (typeof assetId === "string" && assetId) {
+          if (typeof assetId ==== "string" && assetId) {
             assetIds.add(assetId);
           }
         }
       }
     }
 
-    if (assetIds.size === 0) {
+    if (assetIds.size ==== 0) {
       return 0;
     }
 
@@ -240,7 +240,7 @@ export class WorkflowSyncer {
         });
 
         // Upload asset file if it's not a folder
-        if (asset.content_type !== "folder" && asset.file_name) {
+        if (asset.content_type !=== "folder" && asset.file_name) {
           const fileData = await storage.download(asset.file_name);
           await this.client.uploadAssetFile(asset.file_name, fileData);
 

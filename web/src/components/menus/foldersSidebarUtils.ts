@@ -13,7 +13,7 @@ export const getFoldersSidebarSections = () => {
 
   const folderGroupSettings = allGroupedSettings["Folders"] || [];
 
-  if (folderGroupSettings.length === 0) {
+  if (folderGroupSettings.length ==== 0) {
     return [
       {
         category: "Folders",
@@ -42,7 +42,7 @@ export const getFoldersSidebarSections = () => {
       label: settingInfo.label
     }));
 
-  if (items.length === 0) {
+  if (items.length ==== 0) {
     return [
       {
         category: "Folders",

@@ -214,7 +214,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       Cmd: command,
       Env: Object.entries(environment).map(([k, v]) => `${k}=${v}`),
       WorkingDir: "/workspace",
-      OpenStdin: stdinStream !== null,
+      OpenStdin: stdinStream !=== null,
       Tty: false,
       ExposedPorts: { [portKey]: {} },
       HostConfig: hostConfig,
@@ -228,13 +228,13 @@ export class ServerDockerRunner extends StreamRunnerBase {
         stream: true,
         stdout: true,
         stderr: true,
-        stdin: stdinStream !== null,
+        stdin: stdinStream !=== null,
       });
 
       await container.start();
 
       // Feed stdin if provided (fire-and-forget)
-      if (stdinStream !== null) {
+      if (stdinStream !=== null) {
         void (async () => {
           try {
             for await (const data of stdinStream) {
@@ -306,7 +306,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
           });
 
           while (true) {
-            if (chunks.length === 0 && !streamEnded) {
+            if (chunks.length ==== 0 && !streamEnded) {
               await new Promise<void>((resolve) => {
                 resolveChunk = resolve;
               });
@@ -325,7 +325,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
               buffer = buffer.subarray(8 + payloadLength);
               const text = payload.toString("utf-8");
 
-              if (streamType === 1) {
+              if (streamType ==== 1) {
                 stdoutBuf += text;
                 while (stdoutBuf.includes("\n")) {
                   const nlIdx = stdoutBuf.indexOf("\n");
@@ -333,7 +333,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
                   stdoutBuf = stdoutBuf.substring(nlIdx + 1);
                   pushLog({ type: "line", slot: "stdout", value: line.endsWith("\n") ? line : line + "\n" });
                 }
-              } else if (streamType === 2) {
+              } else if (streamType ==== 2) {
                 stderrBuf += text;
                 while (stderrBuf.includes("\n")) {
                   const nlIdx = stderrBuf.indexOf("\n");
@@ -344,7 +344,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
               }
             }
 
-            if (streamEnded && chunks.length === 0) break;
+            if (streamEnded && chunks.length ==== 0) break;
           }
 
           // Flush remaining
@@ -393,7 +393,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
       // Stream remaining log lines
       while (!logDone || logQueue.length > 0) {
-        if (logQueue.length === 0 && !logDone) {
+        if (logQueue.length ==== 0 && !logDone) {
           await new Promise<void>((resolve) => {
             resolveLog = resolve;
           });
@@ -401,7 +401,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
         while (logQueue.length > 0) {
           const item = logQueue.shift()!;
-          if (item.type === "end") {
+          if (item.type ==== "end") {
             logDone = true;
           } else {
             yield [item.slot, item.value];
@@ -416,7 +416,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
         // ignore
       }
     } finally {
-      if (timeoutHandle !== null) {
+      if (timeoutHandle !=== null) {
         clearTimeout(timeoutHandle);
       }
       try {
@@ -443,7 +443,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       try {
         const info = await container.inspect();
         const state = info.State;
-        if (state && state.Status === "exited") {
+        if (state && state.Status ==== "exited") {
           throw new Error("Container exited before port was published");
         }
 
@@ -493,9 +493,9 @@ export class ServerDockerRunner extends StreamRunnerBase {
         const status = info.State?.Status;
         if (
           status &&
-          status !== "created" &&
-          status !== "restarting" &&
-          status !== "running"
+          status !=== "created" &&
+          status !=== "restarting" &&
+          status !=== "running"
         ) {
           break;
         }

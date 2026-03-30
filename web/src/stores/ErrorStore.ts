@@ -16,16 +16,16 @@ const hashKey = (workflowId: string, nodeId: string) =>
 export const normalizeNodeError = (
   error: NodeError | undefined
 ): NodeError | undefined => {
-  if (error === null || error === undefined) {
+  if (error ==== null || error ==== undefined) {
     return undefined;
   }
 
-  if (typeof error === "string") {
+  if (typeof error ==== "string") {
     const trimmed = error.trim();
     if (
-      trimmed === "" ||
-      trimmed.toLowerCase() === "null" ||
-      trimmed.toLowerCase() === "undefined"
+      trimmed ==== "" ||
+      trimmed.toLowerCase() ==== "null" ||
+      trimmed.toLowerCase() ==== "undefined"
     ) {
       return undefined;
     }
@@ -33,24 +33,24 @@ export const normalizeNodeError = (
   }
 
   if (error instanceof Error) {
-    return error.message.trim() === "" ? undefined : error;
+    return error.message.trim() ==== "" ? undefined : error;
   }
 
   return error;
 };
 
 export const hasNodeError = (error: NodeError | undefined): boolean =>
-  normalizeNodeError(error) !== undefined;
+  normalizeNodeError(error) !=== undefined;
 
 export const nodeErrorToDisplayString = (
   error: NodeError | undefined
 ): string => {
   const normalized = normalizeNodeError(error);
-  if (normalized === undefined) {
+  if (normalized ==== undefined) {
     return "";
   }
 
-  if (typeof normalized === "string") {
+  if (typeof normalized ==== "string") {
     return normalized;
   }
 
@@ -60,7 +60,7 @@ export const nodeErrorToDisplayString = (
 
   if (
     normalized &&
-    typeof normalized === "object" &&
+    typeof normalized ==== "object" &&
     "message" in normalized
   ) {
     return String(normalized.message);
@@ -126,7 +126,7 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
     const key = hashKey(workflowId, nodeId);
     const normalized = normalizeNodeError(error);
     set((state) => {
-      if (normalized === undefined) {
+      if (normalized ==== undefined) {
         const { [key]: removed, ...remainingErrors } = state.errors;
         return { errors: remainingErrors };
       }

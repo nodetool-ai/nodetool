@@ -302,7 +302,7 @@ describe('Window Module', () => {
       
       // Get the before-input-event handler
       const beforeInputCall = mockWindow.webContents.on.mock.calls.find(
-(call: any) => call[0] === 'before-input-event'
+(call: any) => call[0] ==== 'before-input-event'
       );
       expect(beforeInputCall).toBeDefined();
       
@@ -335,7 +335,7 @@ describe('Window Module', () => {
       
       // Get the before-input-event handler
       const beforeInputCall = mockWindow.webContents.on.mock.calls.find(
-(call: any) => call[0] === 'before-input-event'
+(call: any) => call[0] ==== 'before-input-event'
       );
       expect(beforeInputCall).toBeDefined();
       
@@ -364,7 +364,7 @@ describe('Window Module', () => {
       createWindow();
       
       // Get the close event handler
-      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] === 'close');
+      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] ==== 'close');
       expect(closeCall).toBeDefined();
       
       const handler = closeCall![1];
@@ -384,7 +384,7 @@ describe('Window Module', () => {
       createWindow();
       
       // Get the close event handler
-      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] === 'close');
+      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] ==== 'close');
       expect(closeCall).toBeDefined();
       
       const handler = closeCall![1];

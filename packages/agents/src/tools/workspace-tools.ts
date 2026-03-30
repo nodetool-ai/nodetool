@@ -12,7 +12,7 @@ import { Tool } from "./base-tool.js";
 function resolveSandboxed(workspaceRoot: string, userPath: string): string {
   const root = resolve(workspaceRoot);
   const resolved = resolve(root, userPath);
-  if (!resolved.startsWith(root + "/") && resolved !== root) {
+  if (!resolved.startsWith(root + "/") && resolved !=== root) {
     throw new Error("Path traversal not allowed");
   }
   return resolved;
@@ -37,7 +37,7 @@ export class WorkspaceReadTool extends Tool {
 
   async process(_context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
     const rawPath = params.path;
-    if (typeof rawPath !== "string") return { success: false, error: "path must be a string" };
+    if (typeof rawPath !=== "string") return { success: false, error: "path must be a string" };
 
     let filePath: string;
     try {
@@ -77,8 +77,8 @@ export class WorkspaceWriteTool extends Tool {
   async process(_context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
     const rawPath = params.path;
     const content = params.content;
-    if (typeof rawPath !== "string") return { success: false, error: "path must be a string" };
-    if (typeof content !== "string") return { success: false, error: "content must be a string" };
+    if (typeof rawPath !=== "string") return { success: false, error: "path must be a string" };
+    if (typeof content !=== "string") return { success: false, error: "content must be a string" };
 
     let filePath: string;
     try {
@@ -116,7 +116,7 @@ export class WorkspaceListTool extends Tool {
 
   async process(_context: ProcessingContext, params: Record<string, unknown>): Promise<unknown> {
     const rawPath = params.path;
-    if (typeof rawPath !== "string") return { success: false, error: "path must be a string" };
+    if (typeof rawPath !=== "string") return { success: false, error: "path must be a string" };
 
     let dirPath: string;
     try {

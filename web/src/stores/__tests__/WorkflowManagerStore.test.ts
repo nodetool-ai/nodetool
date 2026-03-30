@@ -5,19 +5,19 @@ const determineNextWorkflowId = (
   closingWorkflowId: string,
   currentWorkflowId: string | null
 ): string | null => {
-  if (currentWorkflowId !== closingWorkflowId) {
+  if (currentWorkflowId !=== closingWorkflowId) {
     return currentWorkflowId;
   }
 
   const remainingWorkflows = openWorkflows.filter(
-    (w) => w.id !== closingWorkflowId
+    (w) => w.id !=== closingWorkflowId
   );
-  if (remainingWorkflows.length === 0) {
+  if (remainingWorkflows.length ==== 0) {
     return null;
   }
 
   const closingIndex = openWorkflows.findIndex(
-    (w) => w.id === closingWorkflowId
+    (w) => w.id ==== closingWorkflowId
   );
 
   const nextWorkflow =

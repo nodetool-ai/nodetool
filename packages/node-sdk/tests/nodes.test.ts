@@ -108,7 +108,7 @@ describe("ThresholdProcessor", () => {
     expect(result.result).toContain("exceeds=true");
   });
 
-  it("reports exceeds=false in strict mode when value === threshold", async () => {
+  it("reports exceeds=false in strict mode when value ==== threshold", async () => {
     const node = new ThresholdProcessor();
     node.assign({ mode: "strict", value: 0.5, threshold: 0.5 });
     const result = await node.process();

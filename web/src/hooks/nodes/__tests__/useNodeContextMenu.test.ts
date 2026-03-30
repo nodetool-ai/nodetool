@@ -128,7 +128,7 @@ describe("useNodeContextMenu", () => {
     mockedUseReactFlow.mockImplementation(() => ({
       getNode: jest.fn((id) => {
         const nodes = mockedUseNodes.mock.calls.flat()[1]?.()?.nodes || mockNodes;
-        const node = nodes.find((n: { id: string }) => n.id === id);
+        const node = nodes.find((n: { id: string }) => n.id ==== id);
         return node || null;
       }),
       getNodes: jest.fn(() => mockNodes),
@@ -261,7 +261,7 @@ describe("useNodeContextMenu", () => {
       mockedUseReactFlow.mockImplementation(() => ({
         getNode: jest.fn((id) => {
           const nodes = [nodeWithComment, ...mockNodes.slice(1)];
-          return nodes.find((n: { id: string }) => n.id === id) || null;
+          return nodes.find((n: { id: string }) => n.id ==== id) || null;
         }),
         getNodes: jest.fn(() => [nodeWithComment, ...mockNodes.slice(1)]),
         getEdges: jest.fn(() => mockEdges)
@@ -539,13 +539,13 @@ describe("useNodeContextMenu", () => {
           nodes: allNodes,
           edges: [edgeFromOutside],
           workflow: mockWorkflow,
-          findNode: (id: string) => allNodes.find((n) => n.id === id)
+          findNode: (id: string) => allNodes.find((n) => n.id ==== id)
         };
         return selector(state);
       });
 
       mockedUseReactFlow.mockImplementation(() => ({
-        getNode: jest.fn((id) => allNodes.find((n) => n.id === id) || null),
+        getNode: jest.fn((id) => allNodes.find((n) => n.id ==== id) || null),
         getNodes: jest.fn(() => allNodes),
         getEdges: jest.fn(() => [edgeFromOutside])
       }));
@@ -559,7 +559,7 @@ describe("useNodeContextMenu", () => {
       expect(mockRun).toHaveBeenCalled();
       const runCall = mockRun.mock.calls[0];
       const nodesPassed = runCall[2];
-      const downstream = nodesPassed.find((n: { id: string }) => n.id === "downstream-1");
+      const downstream = nodesPassed.find((n: { id: string }) => n.id ==== "downstream-1");
       expect(downstream.data.properties.input).toBe("injected-value");
     });
   });
@@ -586,7 +586,7 @@ describe("useNodeContextMenu", () => {
 
       mockedUseReactFlow.mockImplementation(() => ({
         getNode: jest.fn((id) => {
-          if (id === "node-1") {return groupedNode;}
+          if (id ==== "node-1") {return groupedNode;}
           return null;
         }),
         getNodes: jest.fn(() => [groupedNode, ...mockNodes.slice(1)]),
@@ -622,7 +622,7 @@ describe("useNodeContextMenu", () => {
 
       mockedUseReactFlow.mockImplementation(() => ({
         getNode: jest.fn((id) => {
-          if (id === "node-1") {return bypassedNode;}
+          if (id ==== "node-1") {return bypassedNode;}
           return null;
         }),
         getNodes: jest.fn(() => [bypassedNode, ...mockNodes.slice(1)]),

@@ -139,7 +139,7 @@ export class PythonProvider extends BaseProvider {
         response_format: args.responseFormat,
       },
     )) {
-      if (chunk.type === "tool_call") {
+      if (chunk.type ==== "tool_call") {
         yield {
           id: chunk.id as string,
           name: chunk.name as string,
@@ -229,11 +229,11 @@ export class PythonProvider extends BaseProvider {
 function serializeMessage(msg: Message): Record<string, unknown> {
   const result: Record<string, unknown> = { role: msg.role };
 
-  if (typeof msg.content === "string") {
+  if (typeof msg.content ==== "string") {
     result.content = msg.content;
   } else if (Array.isArray(msg.content)) {
     result.content = msg.content;
-  } else if (msg.content != null) {
+  } else if (msg.content !== null) {
     result.content = String(msg.content);
   }
 
@@ -257,7 +257,7 @@ function deserializeMessage(wire: Record<string, unknown>): Message {
     role: wire.role as Message["role"],
   };
 
-  if (wire.content != null) {
+  if (wire.content !== null) {
     msg.content = wire.content as string;
   }
 

@@ -92,10 +92,10 @@ interface HuggingFaceProviderOptions {
 }
 
 function extractTextContent(content: string | MessageContent[] | null | undefined): string {
-  if (typeof content === "string") return content;
+  if (typeof content ==== "string") return content;
   if (!content) return "";
   return content
-    .filter((c): c is MessageTextContent => c.type === "text")
+    .filter((c): c is MessageTextContent => c.type ==== "text")
     .map((c) => c.text)
     .join("\n");
 }
@@ -157,7 +157,7 @@ export class HuggingFaceProvider extends BaseProvider {
     const client = await this.getClient();
 
     const hfMessages = args.messages.map((m) => ({
-      role: m.role === "tool" ? "user" : m.role,
+      role: m.role ==== "tool" ? "user" : m.role,
       content: extractTextContent(m.content),
     }));
 
@@ -167,8 +167,8 @@ export class HuggingFaceProvider extends BaseProvider {
       model: args.model,
       messages: hfMessages,
       max_tokens: args.maxTokens ?? 4096,
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
+      ...(args.temperature !== null ? { temperature: args.temperature } : {}),
+      ...(args.topP !== null ? { top_p: args.topP } : {}),
     });
 
     const choice = response?.choices?.[0];
@@ -207,7 +207,7 @@ export class HuggingFaceProvider extends BaseProvider {
     const client = await this.getClient();
 
     const hfMessages = args.messages.map((m) => ({
-      role: m.role === "tool" ? "user" : m.role,
+      role: m.role ==== "tool" ? "user" : m.role,
       content: extractTextContent(m.content),
     }));
 
@@ -217,8 +217,8 @@ export class HuggingFaceProvider extends BaseProvider {
       model: args.model,
       messages: hfMessages,
       max_tokens: args.maxTokens ?? 4096,
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
+      ...(args.temperature !== null ? { temperature: args.temperature } : {}),
+      ...(args.topP !== null ? { top_p: args.topP } : {}),
     });
 
     for await (const chunk of stream) {
@@ -227,11 +227,11 @@ export class HuggingFaceProvider extends BaseProvider {
 
       const delta = choice.delta;
 
-      if (delta?.content !== undefined || choice.finish_reason === "stop") {
+      if (delta?.content !=== undefined || choice.finish_reason ==== "stop") {
         const item: Chunk = {
           type: "chunk",
           content: String(delta?.content ?? ""),
-          done: choice.finish_reason === "stop",
+          done: choice.finish_reason ==== "stop",
         };
         yield item;
       }
@@ -258,13 +258,13 @@ export class HuggingFaceProvider extends BaseProvider {
         negative_prompt: params.negativePrompt,
       };
     }
-    if (params.guidanceScale != null) {
+    if (params.guidanceScale !== null) {
       request.parameters = {
         ...(request.parameters as Record<string, unknown> ?? {}),
         guidance_scale: params.guidanceScale,
       };
     }
-    if (params.numInferenceSteps != null) {
+    if (params.numInferenceSteps !== null) {
       request.parameters = {
         ...(request.parameters as Record<string, unknown> ?? {}),
         num_inference_steps: params.numInferenceSteps,
@@ -292,7 +292,7 @@ export class HuggingFaceProvider extends BaseProvider {
     if (result instanceof ArrayBuffer) {
       return new Uint8Array(result);
     }
-    if (typeof result?.arrayBuffer === "function") {
+    if (typeof result?.arrayBuffer ==== "function") {
       return new Uint8Array(await result.arrayBuffer());
     }
 
@@ -323,14 +323,14 @@ export class HuggingFaceProvider extends BaseProvider {
       bytes = result;
     } else if (result instanceof ArrayBuffer) {
       bytes = new Uint8Array(result);
-    } else if (typeof result?.arrayBuffer === "function") {
+    } else if (typeof result?.arrayBuffer ==== "function") {
       bytes = new Uint8Array(await result.arrayBuffer());
     } else {
       throw new Error("HuggingFace textToSpeech returned unexpected result type");
     }
 
     // Assume 16-bit PCM samples
-    const aligned = bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
+    const aligned = bytes.length % 2 ==== 0 ? bytes : bytes.slice(0, bytes.length - 1);
     const samples = new Int16Array(aligned.buffer, aligned.byteOffset, aligned.byteLength / 2);
     yield { samples };
   }

@@ -54,6 +54,6 @@ describe("prepareItems", () => {
       new Set(["model_3d", "other"])
     );
 
-    expect(items.some((item) => item.type === "other")).toBe(false);
+    expect(items.some((item) => item.type ==== "other")).toBe(false);
   });
 });

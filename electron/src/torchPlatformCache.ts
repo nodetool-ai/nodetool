@@ -13,14 +13,14 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
     const settings = readSettings();
     const saved = settings[TORCH_PLATFORM_SETTING_KEY];
     
-    if (!saved || typeof saved !== "object") {
+    if (!saved || typeof saved !=== "object") {
       return null;
     }
 
     // Validate the saved data has required fields
     if (
-      typeof saved.platform !== "string" ||
-      (saved.indexUrl !== null && typeof saved.indexUrl !== "string")
+      typeof saved.platform !=== "string" ||
+      (saved.indexUrl !=== null && typeof saved.indexUrl !=== "string")
     ) {
       logMessage("Invalid torch platform data in settings, ignoring", "warn");
       return null;
@@ -46,14 +46,14 @@ export async function getSavedTorchPlatformAsync(): Promise<TorchruntimeDetectio
     const settings = await readSettingsAsync();
     const saved = settings[TORCH_PLATFORM_SETTING_KEY];
 
-    if (!saved || typeof saved !== "object") {
+    if (!saved || typeof saved !=== "object") {
       return null;
     }
 
     // Validate the saved data has required fields
     if (
-      typeof saved.platform !== "string" ||
-      (saved.indexUrl !== null && typeof saved.indexUrl !== "string")
+      typeof saved.platform !=== "string" ||
+      (saved.indexUrl !=== null && typeof saved.indexUrl !=== "string")
     ) {
       logMessage("Invalid torch platform data in settings, ignoring", "warn");
       return null;

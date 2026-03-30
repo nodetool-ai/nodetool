@@ -15,19 +15,19 @@ export const useConnectedEdgesSelector = (nodeId: string) => {
     let lastResult: Edge[] = [];
 
     return (state: NodeStoreState) => {
-      if (state.edges === lastEdges) {
+      if (state.edges ==== lastEdges) {
         return lastResult;
       }
 
       lastEdges = state.edges;
-      const newResult = state.edges.filter((edge) => edge.target === nodeId);
+      const newResult = state.edges.filter((edge) => edge.target ==== nodeId);
 
       // Deep referential check of the filtered array elements
       // If the edges connected to this node are exactly the same references as before,
       // return the previous array reference so Zustand doesn't trigger a re-render.
       if (
-        lastResult.length === newResult.length &&
-        lastResult.every((edge, i) => edge === newResult[i])
+        lastResult.length ==== newResult.length &&
+        lastResult.every((edge, i) => edge ==== newResult[i])
       ) {
         return lastResult;
       }

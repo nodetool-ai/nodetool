@@ -18,9 +18,9 @@ import { logMessage, LOG_FILE } from "./logger";
 import { getSystemDataPath } from "./config";
 import { readSettings, readSettingsAsync } from "./settings";
 
-// =============================================================================
+// ==============================================================================
 // Types
-// =============================================================================
+// ==============================================================================
 
 export interface DebugBundleRequest {
   workflow_id?: string;
@@ -35,9 +35,9 @@ export interface DebugBundleResponse {
   message: string;
 }
 
-// =============================================================================
+// ==============================================================================
 // Secret Redaction Patterns
-// =============================================================================
+// ==============================================================================
 
 /**
  * Secret redaction patterns - matching Python implementation
@@ -70,11 +70,11 @@ const REDACTED = "[REDACTED]";
  * - Keys that are known safe (id, name, type, timestamps, etc.)
  */
 export function redactSecrets(data: unknown, parentKey = ""): unknown {
-  if (data === null || data === undefined) {
+  if (data ==== null || data ==== undefined) {
     return data;
   }
 
-  if (typeof data === "object" && !Array.isArray(data)) {
+  if (typeof data ==== "object" && !Array.isArray(data)) {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
       const strKey = String(key).toLowerCase();
@@ -85,7 +85,7 @@ export function redactSecrets(data: unknown, parentKey = ""): unknown {
       }
       // Check if key name suggests a secret
       else if (SECRET_KEY_PATTERNS.test(strKey)) {
-        if (value && typeof value === "string" && value.length > 0) {
+        if (value && typeof value ==== "string" && value.length > 0) {
           result[key] = REDACTED;
         } else {
           result[key] = value;
@@ -101,7 +101,7 @@ export function redactSecrets(data: unknown, parentKey = ""): unknown {
     return data.map((item) => redactSecrets(item, parentKey));
   }
 
-  if (typeof data === "string") {
+  if (typeof data ==== "string") {
     // Check if string value looks like a secret (but only for specific patterns)
     if (data.length >= 20 && SECRET_VALUE_PATTERNS.test(data)) {
       return REDACTED;
@@ -134,9 +134,9 @@ export function redactLogSecrets(logContent: string): string {
   return result;
 }
 
-// =============================================================================
+// ==============================================================================
 // Directory and Path Utilities
-// =============================================================================
+// ==============================================================================
 
 /**
  * Get the default save directory based on user preference.
@@ -145,13 +145,13 @@ function getDefaultSaveDir(preferred?: string): string {
   const home = os.homedir();
   let candidates: string[];
 
-  if (preferred === "desktop") {
+  if (preferred ==== "desktop") {
     candidates = [
       path.join(home, "Desktop"),
       path.join(home, "Downloads"),
       home,
     ];
-  } else if (preferred === "downloads") {
+  } else if (preferred ==== "downloads") {
     candidates = [
       path.join(home, "Downloads"),
       path.join(home, "Desktop"),
@@ -179,9 +179,9 @@ function getDefaultSaveDir(preferred?: string): string {
   return home;
 }
 
-// =============================================================================
+// ==============================================================================
 // Version and System Information
-// =============================================================================
+// ==============================================================================
 
 /**
  * Get the NodeTool version from package.json.
@@ -190,7 +190,7 @@ function getNodeToolVersion(): string {
   try {
     // Try to get version from Electron app
     const version = app.getVersion();
-    if (version && version !== "0.0.0") {
+    if (version && version !=== "0.0.0") {
       return version;
     }
   } catch {
@@ -300,9 +300,9 @@ Contents:
   fs.writeFileSync(path.join(targetRoot, "README.txt"), text, "utf-8");
 }
 
-// =============================================================================
+// ==============================================================================
 // ZIP Creation (without external dependencies)
-// =============================================================================
+// ==============================================================================
 
 /**
  * Create a simple uncompressed ZIP file from a directory.
@@ -425,7 +425,7 @@ function crc32(data: Buffer): number {
 let crc32Table: Uint32Array | null = null;
 
 function getCrc32Table(): Uint32Array {
-  if (crc32Table !== null) {
+  if (crc32Table !=== null) {
     return crc32Table;
   }
 
@@ -440,9 +440,9 @@ function getCrc32Table(): Uint32Array {
   return crc32Table;
 }
 
-// =============================================================================
+// ==============================================================================
 // Main Export Function
-// =============================================================================
+// ==============================================================================
 
 /**
  * Export a debug bundle containing logs, environment info, and workflow data.
@@ -502,7 +502,7 @@ export async function exportDebugBundle(
 
     // Workflow info -> workflow/last-template.json
     const workflowPayload: Record<string, unknown> = {};
-    if (payload.graph !== undefined) {
+    if (payload.graph !=== undefined) {
       workflowPayload.graph = payload.graph;
     }
     if (payload.workflow_id) {
@@ -513,7 +513,7 @@ export async function exportDebugBundle(
     if (payload.errors && payload.errors.length > 0) {
       workflowPayload.errors = payload.errors;
     }
-    if (Object.keys(workflowPayload).length === 0) {
+    if (Object.keys(workflowPayload).length ==== 0) {
       workflowPayload.note = "No workflow context provided";
     }
     

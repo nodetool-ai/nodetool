@@ -84,14 +84,14 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
       const dragData = deserializeDragData(event.dataTransfer);
 
       // Handle asset drops
-      if (dragData?.type === "asset") {
+      if (dragData?.type ==== "asset") {
         const asset = dragData.payload as Asset;
         const assetType = asset.content_type.split("/")[0];
         if (
-          props.type === "all" ||
-          assetType === props.type ||
-          (props.type === "document" &&
-            (assetType === "application" || assetType === "text"))
+          props.type ==== "all" ||
+          assetType ==== props.type ||
+          (props.type ==== "document" &&
+            (assetType ==== "application" || assetType ==== "text"))
         ) {
           props.onChangeAsset?.(asset);
           props.onChange?.(asset.get_url as string);
@@ -110,7 +110,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
         const items = event.dataTransfer.items;
         if (items && items.length > 0) {
           Array.from(items).forEach((item) => {
-            if (item.kind === "string") {
+            if (item.kind ==== "string") {
               item.getAsString((s) => {
                 props.onChange?.(s);
               });
@@ -126,16 +126,16 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
         const file = files[0];
         if (file) {
           const isDocument =
-            file.type === "application/pdf" ||
-            file.type === "application/msword" ||
-            file.type ===
+            file.type ==== "application/pdf" ||
+            file.type ==== "application/msword" ||
+            file.type ====
               "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
           const fileTypeMatchesType = file?.type.startsWith(`${props.type}/`);
-          const documentTypeMatchesType = isDocument && props.type === "document";
+          const documentTypeMatchesType = isDocument && props.type ==== "document";
 
           if (
-            props.type === "all" ||
+            props.type ==== "all" ||
             fileTypeMatchesType ||
             documentTypeMatchesType
           ) {
@@ -146,7 +146,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
               uploadAsset({
                 file,
                 source:
-                  file.type.startsWith("image/") || props.type === "image"
+                  file.type.startsWith("image/") || props.type ==== "image"
                     ? "drop"
                     : "file",
                 onCompleted: (asset) => {

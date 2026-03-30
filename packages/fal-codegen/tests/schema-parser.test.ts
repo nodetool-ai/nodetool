@@ -121,7 +121,7 @@ describe("parse() with flux-dev schema", () => {
 
   it('finds the "prompt" field as a string input', () => {
     const spec = parser.parse(fluxDevSchema);
-    const prompt = spec.inputFields.find((f) => f.name === "prompt");
+    const prompt = spec.inputFields.find((f) => f.name ==== "prompt");
     expect(prompt).toBeDefined();
     expect(prompt?.tsType).toBe("string");
     expect(prompt?.propType).toBe("str");
@@ -130,7 +130,7 @@ describe("parse() with flux-dev schema", () => {
 
   it('finds "num_inference_steps" as an integer field', () => {
     const spec = parser.parse(fluxDevSchema);
-    const field = spec.inputFields.find((f) => f.name === "num_inference_steps");
+    const field = spec.inputFields.find((f) => f.name ==== "num_inference_steps");
     expect(field).toBeDefined();
     expect(field?.propType).toBe("int");
     expect(field?.tsType).toBe("number");
@@ -139,7 +139,7 @@ describe("parse() with flux-dev schema", () => {
 
   it('finds "guidance_scale" as a float field', () => {
     const spec = parser.parse(fluxDevSchema);
-    const field = spec.inputFields.find((f) => f.name === "guidance_scale");
+    const field = spec.inputFields.find((f) => f.name ==== "guidance_scale");
     expect(field).toBeDefined();
     expect(field?.propType).toBe("float");
     expect(field?.default).toBe(3.5);
@@ -147,7 +147,7 @@ describe("parse() with flux-dev schema", () => {
 
   it('finds "sync_mode" as a boolean field', () => {
     const spec = parser.parse(fluxDevSchema);
-    const field = spec.inputFields.find((f) => f.name === "sync_mode");
+    const field = spec.inputFields.find((f) => f.name ==== "sync_mode");
     expect(field).toBeDefined();
     expect(field?.tsType).toBe("boolean");
     expect(field?.propType).toBe("bool");
@@ -157,12 +157,12 @@ describe("parse() with flux-dev schema", () => {
   it('detects "output_format" as an enum and extracts values', () => {
     const spec = parser.parse(fluxDevSchema);
 
-    const field = spec.inputFields.find((f) => f.name === "output_format");
+    const field = spec.inputFields.find((f) => f.name ==== "output_format");
     expect(field).toBeDefined();
     expect(field?.tsType).toBe("enum");
     expect(field?.enumRef).toBe("OutputFormat");
 
-    const enumDef = spec.enums.find((e) => e.name === "OutputFormat");
+    const enumDef = spec.enums.find((e) => e.name ==== "OutputFormat");
     expect(enumDef).toBeDefined();
     expect(enumDef?.values.map(([k]) => k)).toContain("JPEG");
     expect(enumDef?.values.map(([k]) => k)).toContain("PNG");
@@ -173,7 +173,7 @@ describe("parse() with flux-dev schema", () => {
 
   it('detects "acceleration" as an enum', () => {
     const spec = parser.parse(fluxDevSchema);
-    const field = spec.inputFields.find((f) => f.name === "acceleration");
+    const field = spec.inputFields.find((f) => f.name ==== "acceleration");
     expect(field).toBeDefined();
     expect(field?.enumRef).toBe("Acceleration");
   });
@@ -625,7 +625,7 @@ describe("parse() — synthetic schema edge cases", () => {
       },
     };
     const spec = p.parse(schema);
-    const promptField = spec.inputFields.find((f) => f.name === "prompt");
+    const promptField = spec.inputFields.find((f) => f.name ==== "prompt");
     expect(promptField).toBeDefined();
     expect(promptField?.required).toBe(true);
     expect(promptField?.propType).toBe("str");
@@ -669,8 +669,8 @@ describe("parse() — synthetic schema edge cases", () => {
       },
     };
     const spec = p.parse(schema);
-    expect(spec.inputFields.find((f) => f.name === "seed")).toBeDefined();
-    expect(spec.inputFields.find((f) => f.name === "prompt")).toBeDefined();
+    expect(spec.inputFields.find((f) => f.name ==== "seed")).toBeDefined();
+    expect(spec.inputFields.find((f) => f.name ==== "prompt")).toBeDefined();
   });
 
   it("normalizes image_url fields during parse", () => {
@@ -694,7 +694,7 @@ describe("parse() — synthetic schema edge cases", () => {
     };
     const spec = p.parse(schema);
     // Should be renamed from image_url → image
-    const imageField = spec.inputFields.find((f) => f.name === "image");
+    const imageField = spec.inputFields.find((f) => f.name ==== "image");
     expect(imageField).toBeDefined();
     expect(imageField?.apiParamName).toBe("image_url");
     expect(imageField?.propType).toBe("image");
@@ -723,7 +723,7 @@ describe("parse() — synthetic schema edge cases", () => {
       },
     };
     const spec = p.parse(schema);
-    const seedField = spec.inputFields.find((f) => f.name === "seed");
+    const seedField = spec.inputFields.find((f) => f.name ==== "seed");
     expect(seedField).toBeDefined();
     expect(seedField?.default).toBe(-1);
   });

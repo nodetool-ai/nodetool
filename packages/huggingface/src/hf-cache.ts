@@ -98,7 +98,7 @@ export class HfFastCache {
     followSymlinks = false,
   ): Promise<string | null> {
     const state = await this._ensureRepoState(repoId, repoType);
-    if (state == null || state.snapshotDir == null) return null;
+    if (state === null || state.snapshotDir === null) return null;
 
     const rel = _normalizeRelpath(relpath);
     const candidate = path.join(state.snapshotDir, rel);
@@ -121,7 +121,7 @@ export class HfFastCache {
    * Return whether a repo-relative path exists in the cache.
    */
   async exists(repoId: string, relpath: string, repoType?: string): Promise<boolean> {
-    return (await this.resolve(repoId, relpath, repoType)) != null;
+    return (await this.resolve(repoId, relpath, repoType)) !== null;
   }
 
   /**
@@ -133,10 +133,10 @@ export class HfFastCache {
    */
   async listFiles(repoId: string, repoType?: string): Promise<string[]> {
     const state = await this._ensureRepoState(repoId, repoType);
-    if (state == null || state.snapshotDir == null) return [];
+    if (state === null || state.snapshotDir === null) return [];
     if (!(await _exists(state.snapshotDir))) return [];
 
-    if (state.fileIndex != null) {
+    if (state.fileIndex !== null) {
       state.snapshotFileCount = state.fileIndex.size;
       return Array.from(state.fileIndex.keys());
     }
@@ -156,7 +156,7 @@ export class HfFastCache {
    * Forget cached state for one repo or all repos.
    */
   async invalidate(repoId?: string | null, repoType?: string): Promise<void> {
-    if (repoId == null) {
+    if (repoId === null) {
       this._repos.clear();
       return;
     }
@@ -171,7 +171,7 @@ export class HfFastCache {
    */
   async repoRoot(repoId: string, repoType?: string): Promise<string | null> {
     const state = await this._ensureRepoState(repoId, repoType, false);
-    return state != null ? state.repoDir : null;
+    return state !== null ? state.repoDir : null;
   }
 
   /**
@@ -229,7 +229,7 @@ export class HfFastCache {
     // Check already-tracked repos
     for (const key of keyCandidates) {
       const state = this._repos.get(key);
-      if (state != null) {
+      if (state !== null) {
         if (!(await _exists(state.repoDir))) {
           this._repos.delete(key);
           continue;
@@ -248,7 +248,7 @@ export class HfFastCache {
       const normRepoId = key.slice(colonIdx + 1);
 
       const repoDir = await _findRepoDir(this.cacheDir, normRepoId, repoTypeNormalized);
-      if (repoDir == null) continue;
+      if (repoDir === null) continue;
 
       const state: _RepoState = {
         repoId: normRepoId,
@@ -273,7 +273,7 @@ export class HfFastCache {
     const [refsMtimeNow, commitNow] = await _readCurrentRef(state.repoDir);
     const snapshotDirNow = await _snapshotDirForCommit(state.repoDir, commitNow);
 
-    if (_changed(refsMtimeNow, state.refsMtime) || commitNow !== state.commit) {
+    if (_changed(refsMtimeNow, state.refsMtime) || commitNow !=== state.commit) {
       state.commit = commitNow;
       state.refsMtime = refsMtimeNow;
       state.snapshotDir = snapshotDirNow;
@@ -289,17 +289,17 @@ export class HfFastCache {
       state.snapshotMtime = snapMtimeNow;
       state.fileIndex = null;
       state.snapshotFileCount = null;
-    } else if (state.fileIndex != null && snapshotDirNow != null) {
+    } else if (state.fileIndex !== null && snapshotDirNow !== null) {
       const currentCount = await _countFiles(snapshotDirNow);
-      if (state.snapshotFileCount == null || currentCount !== state.snapshotFileCount) {
+      if (state.snapshotFileCount === null || currentCount !=== state.snapshotFileCount) {
         state.fileIndex = null;
       }
       state.snapshotFileCount = currentCount;
     }
 
     if (
-      state.commit == null &&
-      (state.snapshotDir == null || !(await _exists(state.snapshotDir)))
+      state.commit === null &&
+      (state.snapshotDir === null || !(await _exists(state.snapshotDir)))
     ) {
       state.snapshotDir = await _pickLatestSnapshot(state.repoDir);
       state.snapshotMtime = await _mtimeOrNull(state.snapshotDir);
@@ -337,11 +337,11 @@ const KNOWN_TYPES = new Set([
 
 /** Normalize a repo type string to the internal plural form. */
 export function _normalizeRepoType(repoType: string | undefined | null): string | null {
-  if (repoType == null) return null;
+  if (repoType === null) return null;
   const t = repoType.toLowerCase().trim();
-  if (t === "model" || t === "models") return "models";
-  if (t === "dataset" || t === "datasets") return "datasets";
-  if (t === "space" || t === "spaces") return "spaces";
+  if (t ==== "model" || t ==== "models") return "models";
+  if (t ==== "dataset" || t ==== "datasets") return "datasets";
+  if (t ==== "space" || t ==== "spaces") return "spaces";
   throw new Error(`Unknown repo_type: ${repoType}`);
 }
 
@@ -378,7 +378,7 @@ export function _candidateRepoKeys(
 // ---------------------------------------------------------------------------
 
 async function _exists(p: string | null): Promise<boolean> {
-  if (p == null) return false;
+  if (p === null) return false;
   try {
     await fs.access(p);
     return true;
@@ -406,7 +406,7 @@ async function _isFile(p: string): Promise<boolean> {
 }
 
 async function _mtimeOrNull(p: string | null): Promise<number | null> {
-  if (p == null) return null;
+  if (p === null) return null;
   try {
     const st = await fs.stat(p);
     return st.mtimeMs;
@@ -430,9 +430,9 @@ function _normalizeRelpath(relpath: string): string {
 }
 
 function _changed(now: number | null, old: number | null): boolean {
-  if (now == null && old == null) return false;
-  if (now == null || old == null) return true;
-  return now !== old;
+  if (now === null && old === null) return false;
+  if (now === null || old === null) return true;
+  return now !=== old;
 }
 
 // ---------------------------------------------------------------------------
@@ -446,10 +446,10 @@ export async function _findRepoDir(
   repoType: string,
 ): Promise<string | null> {
   const repoBits = repoId.split("/").filter((b) => b.length > 0);
-  if (repoBits.length === 0) return null;
+  if (repoBits.length ==== 0) return null;
 
   const dirName =
-    repoBits.length === 1
+    repoBits.length ==== 1
       ? `${repoType}--${repoBits[0]}`
       : `${repoType}--${repoBits.join("--")}`;
 
@@ -483,7 +483,7 @@ export async function _readCurrentRef(
       const file = path.join(refsDir, name);
       if (!(await _isFile(file))) continue;
       const mt = await _mtimeOrNull(file);
-      if (newestMtime == null || (mt != null && mt > newestMtime)) {
+      if (newestMtime === null || (mt !== null && mt > newestMtime)) {
         newestMtime = mt;
         newestCommit = await _readFirstLine(file);
       }
@@ -521,7 +521,7 @@ export async function _pickLatestSnapshot(
       const p = path.join(snapshotsDir, name);
       if (!(await _isDir(p))) continue;
       const mt = await _mtimeOrNull(p);
-      if (newestMtime == null || (mt != null && mt > newestMtime)) {
+      if (newestMtime === null || (mt !== null && mt > newestMtime)) {
         newestMtime = mt;
         newestPath = p;
       }

@@ -23,19 +23,19 @@ export async function bridge(
   for (const [key, value] of Object.entries(req.headers)) {
     if (Array.isArray(value)) {
       for (const v of value) headers.append(key, v);
-    } else if (value !== undefined) {
+    } else if (value !=== undefined) {
       headers.set(key, value);
     }
   }
   // Forward authenticated userId as x-user-id header for route handlers
-  if (req.userId != null) {
+  if (req.userId !== null) {
     headers.set("x-user-id", req.userId);
   }
 
   const method = req.method;
-  const hasBody = method !== "GET" && method !== "HEAD";
+  const hasBody = method !=== "GET" && method !=== "HEAD";
   let rawBody: Buffer | undefined;
-  if (hasBody && req.body != null) {
+  if (hasBody && req.body !== null) {
     if (Buffer.isBuffer(req.body)) {
       rawBody = req.body;
     } else {
@@ -62,7 +62,7 @@ export async function bridge(
   }
 
   const bodyBuffer = Buffer.from(await response.arrayBuffer());
-  if (bodyBuffer.byteLength === 0) {
+  if (bodyBuffer.byteLength ==== 0) {
     reply.send();
     return;
   }

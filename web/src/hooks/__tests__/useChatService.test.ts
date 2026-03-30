@@ -99,7 +99,7 @@ describe("useChatService", () => {
       const state = createMockState();
 
       // Support function selector
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector(state);
       }
       return state;
@@ -165,7 +165,7 @@ describe("useChatService", () => {
       const mockSendMessage = jest.fn().mockResolvedValue(undefined);
       mockGlobalChatStore.mockImplementation((selector: any) => {
         const state = createMockState({ sendMessage: mockSendMessage });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -203,7 +203,7 @@ describe("useChatService", () => {
           messageCache: {},
           currentThreadId: null
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -238,7 +238,7 @@ describe("useChatService", () => {
           messageCache: {},
           currentThreadId: "thread-1"
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -308,7 +308,7 @@ describe("useChatService", () => {
 
       mockGlobalChatStore.mockImplementation((selector: any) => {
         const state = createMockState({ sendMessage: mockSendMessage });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -347,7 +347,7 @@ describe("useChatService", () => {
           messageCache: {},
           currentThreadId: null
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -378,7 +378,7 @@ describe("useChatService", () => {
           messageCache: {},
           currentThreadId: null
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -405,7 +405,7 @@ describe("useChatService", () => {
 
       mockGlobalChatStore.mockImplementation((selector: any) => {
         const state = createMockState({ switchThread: mockSwitchThread });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -447,7 +447,7 @@ describe("useChatService", () => {
 
       mockGlobalChatStore.mockImplementation((selector: any) => {
         const state = createMockState({ threads: mockThreadsWithLongTitle });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -477,7 +477,7 @@ describe("useChatService", () => {
           },
           messageCache: { "thread-new": [] }
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -516,7 +516,7 @@ describe("useChatService", () => {
           threads: mockThreadsWithoutTitle,
           messageCache: mockCacheForThread
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -556,7 +556,7 @@ describe("useChatService", () => {
           threads: mockThreadsWithLongMessage,
           messageCache: mockCacheWithLongMessage
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;
@@ -596,7 +596,7 @@ describe("useChatService", () => {
           threads: mockThreadsWithOnlyAssistant,
           messageCache: mockCacheWithOnlyAssistant
         });
-        if (typeof selector === "function") {
+        if (typeof selector ==== "function") {
           return selector(state);
         }
         return state;

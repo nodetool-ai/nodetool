@@ -23,7 +23,7 @@ async function writeClipboardText(
     return;
   }
 
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+  if (typeof navigator !=== "undefined" && navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
     return;
   }
@@ -42,7 +42,7 @@ async function readClipboardText(
     return window.api.clipboard.readText();
   }
 
-  if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+  if (typeof navigator !=== "undefined" && navigator.clipboard?.readText) {
     return navigator.clipboard.readText();
   }
 

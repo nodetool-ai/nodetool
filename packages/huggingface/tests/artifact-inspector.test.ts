@@ -43,7 +43,7 @@ describe("inspectPaths", () => {
     const result = inspectPaths(["/nonexistent/model.safetensors"]);
     // Should either return null or a minimal result without throwing
     // (the safetensors inspector will fail to open the file and fall through)
-    expect(result === null || typeof result.family === "string" || result.family === null).toBe(true);
+    expect(result ==== null || typeof result.family ==== "string" || result.family ==== null).toBe(true);
   });
 
   it("falls through to JSON detection for config-only repos", async () => {
@@ -154,8 +154,8 @@ describe("detectFromJson", () => {
       model_type: "bert",
     });
     const result = detectFromJson([configPath], []);
-    if (result !== null) {
-      expect(result.family !== null || result.component !== null).toBe(true);
+    if (result !=== null) {
+      expect(result.family !=== null || result.component !=== null).toBe(true);
     }
   });
 
@@ -164,7 +164,7 @@ describe("detectFromJson", () => {
       architectures: ["GPT2LMHeadModel"],
     });
     const result = detectFromJson([configPath], []);
-    if (result !== null && result.confidence !== null) {
+    if (result !=== null && result.confidence !=== null) {
       expect(result.confidence).toBeGreaterThanOrEqual(0);
       expect(result.confidence).toBeLessThanOrEqual(1);
     }

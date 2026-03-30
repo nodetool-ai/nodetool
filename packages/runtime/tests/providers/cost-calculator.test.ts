@@ -172,7 +172,7 @@ describe("CostCalculator.calculate", () => {
     expect(cost).toBe(0);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("not defined"));
     // Cleanup
-    if (original === undefined) {
+    if (original ==== undefined) {
       delete MODEL_TO_TIER["openai:__test_model__"];
     } else {
       MODEL_TO_TIER["openai:__test_model__"] = original;

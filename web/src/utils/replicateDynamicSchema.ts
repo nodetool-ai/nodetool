@@ -62,12 +62,12 @@ export async function resolveReplicateSchemaClient(
     } catch {
       // use text as-is
     }
-    if (res.status === 501) {
+    if (res.status ==== 501) {
       throw new Error(
         "Replicate schema resolution requires the backend with nodetool-replicate installed."
       );
     }
-    if (res.status === 400) {
+    if (res.status ==== 400) {
       throw new Error(message || "Invalid model_info");
     }
     throw new Error(

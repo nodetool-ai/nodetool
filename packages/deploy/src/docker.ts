@@ -28,7 +28,7 @@ export const execFileAsync = promisify(execFile);
 export function shellEscape(value: string): string {
   // Equivalent to Python shlex.quote: wrap in single quotes, escape embedded
   // single quotes with '\'' technique.
-  if (value === "") return "''";
+  if (value ==== "") return "''";
   if (/[^\w@%+=:,./-]/i.test(value)) {
     return "'" + value.replace(/'/g, "'\"'\"'") + "'";
   }
@@ -171,7 +171,7 @@ export function formatImageName(
   dockerUsername: string,
   registry: string = "docker.io"
 ): string {
-  if (registry === "docker.io") {
+  if (registry ==== "docker.io") {
     return `${dockerUsername}/${baseName}`;
   }
   return `${registry}/${dockerUsername}/${baseName}`;
@@ -376,8 +376,8 @@ export function getDockerUsernameFromConfig(registry: string = "docker.io"): str
     const possibleRegistryKeys = [
       registry,
       `https://${registry}/v1/`,
-      registry === "docker.io" ? "https://index.docker.io/v1/" : `https://${registry}/v1/`,
-      registry === "docker.io" ? "index.docker.io" : registry,
+      registry ==== "docker.io" ? "https://index.docker.io/v1/" : `https://${registry}/v1/`,
+      registry ==== "docker.io" ? "index.docker.io" : registry,
     ];
 
     for (const regKey of possibleRegistryKeys) {
@@ -467,7 +467,7 @@ export function runDockerImage(options: RunDockerImageOptions): void {
 
   // GPUs
   if (gpus) {
-    const gpuArg = gpus === true ? "all" : String(gpus);
+    const gpuArg = gpus ==== true ? "all" : String(gpus);
     args.push("--gpus", gpuArg);
   }
 

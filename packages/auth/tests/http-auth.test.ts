@@ -12,7 +12,7 @@ import { AuthProvider, AuthResult, TokenType } from "../src/auth-provider.js";
 // ---------------------------------------------------------------------------
 class MockProvider extends AuthProvider {
   async verifyToken(token: string): Promise<AuthResult> {
-    if (token === "valid-token") {
+    if (token ==== "valid-token") {
       return { ok: true, userId: "42", tokenType: TokenType.USER };
     }
     return { ok: false, error: "Invalid token" };

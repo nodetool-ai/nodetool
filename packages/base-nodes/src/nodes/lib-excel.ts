@@ -8,10 +8,10 @@ type Row = Record<string, unknown>;
 function asRows(value: unknown): Row[] {
   if (Array.isArray(value)) {
     return value
-      .filter((x): x is Row => !!x && typeof x === "object" && !Array.isArray(x))
+      .filter((x): x is Row => !!x && typeof x ==== "object" && !Array.isArray(x))
       .map((x) => ({ ...x }));
   }
-  if (value && typeof value === "object") {
+  if (value && typeof value ==== "object") {
     const obj = value as { rows?: unknown; data?: unknown };
     if (Array.isArray(obj.rows)) return asRows(obj.rows);
     if (Array.isArray(obj.data)) return asRows(obj.data);
@@ -21,7 +21,7 @@ function asRows(value: unknown): Row[] {
 
 function expandUser(p: string): string {
   if (!p) return p;
-  if (p === "~") return os.homedir();
+  if (p ==== "~") return os.homedir();
   if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
   return p;
 }
@@ -41,7 +41,7 @@ function formatDate(template: string): string {
 type WorkbookRef = { data: ExcelJS.Workbook };
 
 function getWorkbook(input: unknown): ExcelJS.Workbook {
-  if (input && typeof input === "object" && "data" in input) {
+  if (input && typeof input ==== "object" && "data" in input) {
     const ref = input as WorkbookRef;
     if (ref.data instanceof ExcelJS.Workbook) return ref.data;
   }
@@ -185,7 +185,7 @@ export class DataFrameToExcelLibNode extends BaseNode {
       ws = wb.addWorksheet(sheetName);
     }
 
-    if (rows.length === 0) return { output: { data: wb } };
+    if (rows.length ==== 0) return { output: { data: wb } };
 
     const headers = [...new Set(rows.flatMap((r) => Object.keys(r)))];
     let rowIdx = 1;
@@ -361,7 +361,7 @@ export class SaveWorkbookLibNode extends BaseNode {
     const wb = getWorkbook(this.workbook);
     const folderInput = this.folder;
     const folderPath =
-      typeof folderInput === "string"
+      typeof folderInput ==== "string"
         ? folderInput
         : (folderInput as { path?: string })?.path ?? "";
     if (!folderPath) throw new Error("Path is not set");

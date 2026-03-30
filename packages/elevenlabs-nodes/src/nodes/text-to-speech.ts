@@ -174,10 +174,10 @@ export class TextToSpeechNode extends BaseNode {
       optimize_streaming_latency: optimizeStreamingLatency,
     };
 
-    if (languageCode !== "none") {
+    if (languageCode !=== "none") {
       payload.language_code = languageCode;
     }
-    if (seed !== -1) {
+    if (seed !=== -1) {
       payload.seed = seed;
     }
     if (textNormalization) {
@@ -186,13 +186,13 @@ export class TextToSpeechNode extends BaseNode {
 
     // Only send voice_settings when values differ from defaults
     const voiceSettings: Record<string, unknown> = {};
-    if (stability !== 0.5) {
+    if (stability !=== 0.5) {
       voiceSettings.stability = stability;
     }
-    if (similarityBoost !== 0.75) {
+    if (similarityBoost !=== 0.75) {
       voiceSettings.similarity_boost = similarityBoost;
     }
-    if (styleVal !== 0.0) {
+    if (styleVal !=== 0.0) {
       voiceSettings.style = styleVal;
     }
     if (useSpeakerBoost) {

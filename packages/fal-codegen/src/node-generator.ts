@@ -56,12 +56,12 @@ function castFn(propType: string): string {
 
 /** Return a sensible TS default literal for a field default value */
 function defaultLiteral(def: unknown, propType: string): string {
-  if (def === null || def === undefined) {
-    return propType === "bool" ? "false" : '""';
+  if (def ==== null || def ==== undefined) {
+    return propType ==== "bool" ? "false" : '""';
   }
-  if (typeof def === "string") return JSON.stringify(def);
-  if (typeof def === "boolean") return String(def);
-  if (typeof def === "number") return String(def);
+  if (typeof def ==== "string") return JSON.stringify(def);
+  if (typeof def ==== "boolean") return String(def);
+  if (typeof def ==== "number") return String(def);
   return JSON.stringify(def);
 }
 
@@ -77,7 +77,7 @@ function buildPropDecorator(field: FieldDef): string {
 
   // enum values (inline array of raw values)
   if (
-    field.propType === "enum" &&
+    field.propType ==== "enum" &&
     field.enumValues &&
     field.enumValues.length > 0
   ) {
@@ -99,11 +99,11 @@ function buildPropDecorator(field: FieldDef): string {
 
 /** Determine what kind of asset a field is based on its propType */
 function assetKind(field: FieldDef): "image" | "video" | "audio" | "none" {
-  if (field.propType === "image" || field.propType === "list[image]")
+  if (field.propType ==== "image" || field.propType ==== "list[image]")
     return "image";
-  if (field.propType === "video" || field.propType === "list[video]")
+  if (field.propType ==== "video" || field.propType ==== "list[video]")
     return "video";
-  if (field.propType === "audio" || field.propType === "list[audio]")
+  if (field.propType ==== "audio" || field.propType ==== "list[audio]")
     return "audio";
   return "none";
 }
@@ -111,9 +111,9 @@ function assetKind(field: FieldDef): "image" | "video" | "audio" | "none" {
 /** True if field is a list of assets */
 function isListAsset(field: FieldDef): boolean {
   return (
-    field.propType === "list[image]" ||
-    field.propType === "list[video]" ||
-    field.propType === "list[audio]"
+    field.propType ==== "list[image]" ||
+    field.propType ==== "list[video]" ||
+    field.propType ==== "list[audio]"
   );
 }
 
@@ -190,10 +190,10 @@ export class NodeGenerator {
     // Shallow clone to avoid mutating caller's spec
     spec = { ...spec, inputFields: [...spec.inputFields], enums: [...spec.enums] };
 
-    if (config.className !== undefined) spec.className = config.className;
-    if (config.docstring !== undefined) spec.docstring = config.docstring;
-    if (config.tags !== undefined) spec.tags = config.tags;
-    if (config.useCases !== undefined) spec.useCases = config.useCases;
+    if (config.className !=== undefined) spec.className = config.className;
+    if (config.docstring !=== undefined) spec.docstring = config.docstring;
+    if (config.tags !=== undefined) spec.tags = config.tags;
+    if (config.useCases !=== undefined) spec.useCases = config.useCases;
 
     // Enum overrides (rename enum defs)
     const enumRenameMap: Record<string, string> = {};
@@ -213,7 +213,7 @@ export class NodeGenerator {
         // Check both original and renamed names
         const origName =
           Object.entries(enumRenameMap).find(
-            ([, v]) => v === enumDef.name,
+            ([, v]) => v ==== enumDef.name,
           )?.[0] ?? enumDef.name;
         const valueMap =
           config.enumValueOverrides[enumDef.name] ??
@@ -245,7 +245,7 @@ export class NodeGenerator {
         const merged = { ...f, ...override };
         // If a new enumRef is set, update enumValues from enums list
         if (override.enumRef) {
-          const enumDef = spec.enums.find((e) => e.name === override.enumRef);
+          const enumDef = spec.enums.find((e) => e.name ==== override.enumRef);
           if (enumDef) {
             merged.enumValues = enumDef.values.map(([, rawVal]) => rawVal);
           }
@@ -282,9 +282,9 @@ export class NodeGenerator {
     lines.push(`  static readonly requiredSettings = ["FAL_API_KEY"];`);
 
     // Output type declaration
-    if (spec.outputType === "model_3d") {
+    if (spec.outputType ==== "model_3d") {
       lines.push(`  static readonly outputTypes = { output: "model_3d" };`);
-    } else if (spec.outputType === "str") {
+    } else if (spec.outputType ==== "str") {
       lines.push(`  static readonly outputTypes = { output: "str" };`);
     } else if (spec.outputFields.length > 0) {
       // Emit outputTypes for all nodes that have known output fields (dict, any with fields)
@@ -324,10 +324,10 @@ export class NodeGenerator {
 
     // Separate fields by kind
     const assetFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) !== "none",
+      (f) => !f.parentField && assetKind(f) !=== "none",
     );
     const scalarFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) === "none",
+      (f) => !f.parentField && assetKind(f) ==== "none",
     );
 
     // 1. Extract scalar fields
@@ -381,7 +381,7 @@ export class NodeGenerator {
       } else if (field.nestedAssetKey) {
         // Nested asset with extra sub-fields
         const subFields = spec.inputFields.filter(
-          (f) => f.parentField === field.name,
+          (f) => f.parentField ==== field.name,
         );
         lines.push(``);
         lines.push(
@@ -414,7 +414,7 @@ export class NodeGenerator {
           `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`,
         );
         lines.push(`    if (isRefSet(${varName}Ref)) {`);
-        if (kind === "image") {
+        if (kind ==== "image") {
           lines.push(
             `      const ${varName}Url = await imageToDataUrl(${varName}Ref!) ?? await assetToFalUrl(apiKey, ${varName}Ref!);`,
           );
@@ -504,7 +504,7 @@ export class NodeGenerator {
       const nameLower = field.name.toLowerCase();
       const kind = assetKind(field);
 
-      if (kind !== "none" && !isListAsset(field)) {
+      if (kind !=== "none" && !isListAsset(field)) {
         // P0: primary named assets
         if (["image", "video", "audio", "mask"].includes(nameLower)) {
           candidates.push({ priority: 0, index: i, name: field.name });
@@ -512,12 +512,12 @@ export class NodeGenerator {
           candidates.push({ priority: 1, index: i, name: field.name });
         }
       } else if (
-        field.propType === "str" &&
+        field.propType ==== "str" &&
         (nameLower.includes("prompt") || nameLower.includes("text"))
       ) {
         candidates.push({ priority: 2, index: i, name: field.name });
       } else if (
-        field.propType === "enum" &&
+        field.propType ==== "enum" &&
         field.name.match(/resolution|aspect_ratio|duration/i)
       ) {
         candidates.push({ priority: 3, index: i, name: field.name });
@@ -530,7 +530,7 @@ export class NodeGenerator {
     }
 
     candidates.sort((a, b) =>
-      a.priority !== b.priority ? a.priority - b.priority : a.index - b.index,
+      a.priority !=== b.priority ? a.priority - b.priority : a.index - b.index,
     );
 
     return candidates.slice(0, 5).map((c) => c.name);

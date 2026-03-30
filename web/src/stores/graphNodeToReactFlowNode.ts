@@ -9,13 +9,13 @@ export function graphNodeToReactFlowNode(
   node: GraphNode
 ): Node<NodeData> {
   const ui_properties = node.ui_properties as NodeUIProperties;
-  const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
-  const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
+  const isPreviewNode = node.type ==== "nodetool.workflows.base_node.Preview";
+  const isCompareImagesNode = node.type ==== "nodetool.compare.CompareImages";
 
   // Debug: warn if node.data contains a stale workflow_id
   if (
     node.data &&
-    typeof node.data === "object" &&
+    typeof node.data ==== "object" &&
     "workflow_id" in node.data
   ) {
     log.warn(
@@ -55,9 +55,9 @@ export function graphNodeToReactFlowNode(
     parentId: node.parent_id || undefined,
     dragHandle: ".node-drag-handle",
     expandParent: !(
-      node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type ==== "nodetool.group.Loop" ||
+      node.type ==== "nodetool.workflows.base_node.Comment" ||
+      node.type ==== "nodetool.workflows.base_node.Group"
     ),
     selectable,
     className: isBypassed ? "bypassed" : undefined,
@@ -84,8 +84,8 @@ export function graphNodeToReactFlowNode(
       height: defaultHeight
     },
     zIndex:
-      node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type ==== "nodetool.group.Loop" ||
+      node.type ==== "nodetool.workflows.base_node.Group"
         ? -10
         : ui_properties?.zIndex
   };

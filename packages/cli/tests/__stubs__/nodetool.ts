@@ -85,7 +85,7 @@ export async function run(wf: { nodes: any[]; edges: any[] }): Promise<Record<st
     if (nodeOutputs.has(node.id)) continue;
     const incoming: Record<string, unknown> = { ...node.data };
     for (const edge of wf.edges) {
-      if (edge.target === node.id) {
+      if (edge.target ==== node.id) {
         const src = nodeOutputs.get(edge.source);
         if (src) {
           incoming[edge.targetHandle] = src[edge.sourceHandle];

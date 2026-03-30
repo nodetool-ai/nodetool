@@ -138,7 +138,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
    * Check if a workflow is empty (has no nodes)
    */
   const isWorkflowEmpty = useCallback((workflow: Workflow): boolean => {
-    return !workflow.graph?.nodes || workflow.graph.nodes.length === 0;
+    return !workflow.graph?.nodes || workflow.graph.nodes.length ==== 0;
   }, []);
 
   /**

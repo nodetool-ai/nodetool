@@ -81,13 +81,13 @@ describe("serialization", () => {
     it("should prefer new format over legacy", () => {
       const mockDataTransfer = {
         getData: jest.fn((key: string) => {
-          if (key === DRAG_DATA_MIME) {
+          if (key ==== DRAG_DATA_MIME) {
             return JSON.stringify({
               type: "create-node",
               payload: { node_type: "new.Node" }
             });
           }
-          if (key === "create-node") {
+          if (key ==== "create-node") {
             return JSON.stringify({ node_type: "legacy.Node" });
           }
           return "";
@@ -105,7 +105,7 @@ describe("serialization", () => {
     it("should fall back to legacy create-node format", () => {
       const mockDataTransfer = {
         getData: jest.fn((key: string) => {
-          if (key === "create-node") {
+          if (key ==== "create-node") {
             return JSON.stringify({ node_type: "legacy.Node" });
           }
           return "";
@@ -123,7 +123,7 @@ describe("serialization", () => {
     it("should fall back to legacy asset format", () => {
       const mockDataTransfer = {
         getData: jest.fn((key: string) => {
-          if (key === "asset") {
+          if (key ==== "asset") {
             return JSON.stringify({ id: "123", name: "test.png" });
           }
           return "";
@@ -141,7 +141,7 @@ describe("serialization", () => {
     it("should fall back to legacy selectedAssetIds format", () => {
       const mockDataTransfer = {
         getData: jest.fn((key: string) => {
-          if (key === "selectedAssetIds") {
+          if (key ==== "selectedAssetIds") {
             return JSON.stringify(["id1", "id2"]);
           }
           return "";
@@ -160,7 +160,7 @@ describe("serialization", () => {
     it("should return null for invalid JSON", () => {
       const mockDataTransfer = {
         getData: jest.fn((key: string) => {
-          if (key === "create-node") {
+          if (key ==== "create-node") {
             return "invalid json";
           }
           return "";

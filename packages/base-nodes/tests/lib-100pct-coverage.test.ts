@@ -88,7 +88,7 @@ function makeWav(opts: {
     const frameIdx = Math.floor(i / numChannels);
     const sample = Math.sin((2 * Math.PI * freq * frameIdx) / sampleRate);
     const pos = 44 + i * bytesPerSample;
-    if (bitsPerSample === 16) {
+    if (bitsPerSample ==== 16) {
       buffer.writeInt16LE(Math.round(sample * 0x7fff * 0.5), pos);
     } else {
       buffer.writeUInt8(Math.round((sample * 0.5 + 1) * 128), pos);

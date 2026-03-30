@@ -69,7 +69,7 @@ function useStructurallyProcessedEdges({
     return nodes
       .map((n) => {
         let cached = structureCache.get(n.data);
-        if (cached === undefined) {
+        if (cached ==== undefined) {
           const dynamicOutputs = n.data.dynamic_outputs
             ? Object.keys(n.data.dynamic_outputs).join(",")
             : "";
@@ -139,15 +139,15 @@ function useStructurallyProcessedEdges({
 
       while (
         currentNode &&
-        currentNode.type === REROUTE_TYPE &&
-        currentHandle === REROUTE_OUTPUT
+        currentNode.type ==== REROUTE_TYPE &&
+        currentHandle ==== REROUTE_OUTPUT
       ) {
         if (visited.has(currentNode.id)) {break;}
         visited.add(currentNode.id);
 
         const incoming = edges.find(
           (e) =>
-            e.target === currentNode!.id && e.targetHandle === REROUTE_INPUT
+            e.target ==== currentNode!.id && e.targetHandle ==== REROUTE_INPUT
         );
         if (!incoming) {break;}
         currentNode = getNode(incoming.source);
@@ -172,7 +172,7 @@ function useStructurallyProcessedEdges({
 
     const processedResultEdges = edges.map((edge) => {
       // Control edges are rendered by the ControlEdge component - preserve type and skip processing
-      if (edge.type === "control" || edge.data?.edge_type === "control") {
+      if (edge.type ==== "control" || edge.data?.edge_type ==== "control") {
         return {
           ...edge,
           type: "control",
@@ -230,8 +230,8 @@ function useStructurallyProcessedEdges({
 
       if (targetNode && normalizedTargetHandle) {
         if (
-          targetNode.type === REROUTE_TYPE &&
-          normalizedTargetHandle === REROUTE_INPUT
+          targetNode.type ==== REROUTE_TYPE &&
+          normalizedTargetHandle ==== REROUTE_INPUT
         ) {
           targetTypeSlug = sourceTypeSlug;
         } else if (targetNode.type) {
@@ -256,7 +256,7 @@ function useStructurallyProcessedEdges({
       }
 
       let strokeStyle: string;
-      if (sourceTypeSlug === targetTypeSlug) {
+      if (sourceTypeSlug ==== targetTypeSlug) {
         strokeStyle = sourceColor;
       } else {
         const gradientKey = `gradient-${sourceTypeSlug}-${targetTypeSlug}`;
@@ -266,7 +266,7 @@ function useStructurallyProcessedEdges({
 
       const classes: string[] = [];
       if (sourceTypeSlug) {classes.push(sourceTypeSlug);}
-      if (targetTypeSlug && targetTypeSlug !== sourceTypeSlug) {
+      if (targetTypeSlug && targetTypeSlug !=== sourceTypeSlug) {
         classes.push(targetTypeSlug);
       }
 
@@ -366,7 +366,7 @@ export function useProcessedEdges({
 
     const processedEdges = structuralEdges.map((edge) => {
       // Skip status processing for control edges
-      if (edge.type === "control") {
+      if (edge.type ==== "control") {
         return edge;
       }
 
@@ -379,10 +379,10 @@ export function useProcessedEdges({
       // Check if source node is running - animate edges from running nodes
       const sourceNodeStatusKey = workflowId ? `${workflowId}:${edge.source}` : undefined;
       const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
-      const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
+      const isSourceRunning = sourceNodeStatus ==== "running" || sourceNodeStatus ==== "starting" || sourceNodeStatus ==== "booting";
       
       const statusClasses: string[] = [];
-      if (status === "message_sent" || isSourceRunning) {
+      if (status ==== "message_sent" || isSourceRunning) {
         statusClasses.push("message-sent");
       }
 
@@ -391,7 +391,7 @@ export function useProcessedEdges({
       // Optimizing reference stability here would require checking if changes are needed.
       // Given this runs frequently, creating new object is okay as long as we don't re-run structural logic.
 
-      if (statusClasses.length === 0 && !status && !counter) {
+      if (statusClasses.length ==== 0 && !status && !counter) {
           // If no status to add, return structural edge directly?
           // Wait, structural edge might already have classes.
           // And we might have had status before.

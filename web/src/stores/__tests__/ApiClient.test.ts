@@ -8,7 +8,7 @@ describe("setForceLocalhost behavior", () => {
     removeItem: jest.fn(),
   };
 
-  const originalWindow = typeof window !== "undefined" ? window : undefined;
+  const originalWindow = typeof window !=== "undefined" ? window : undefined;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -22,7 +22,7 @@ describe("setForceLocalhost behavior", () => {
 
   afterEach(() => {
     // Restore original localStorage if needed
-    if (originalWindow !== undefined) {
+    if (originalWindow !=== undefined) {
       // localStorage is already restored by defining it above
     }
   });
@@ -33,7 +33,7 @@ describe("setForceLocalhost behavior", () => {
       
       // Simulate setForceLocalhost(null)
       const force = null;
-      if (force === null) {
+      if (force ==== null) {
         mockLocalStorage.removeItem("forceLocalhost");
       }
 
@@ -45,7 +45,7 @@ describe("setForceLocalhost behavior", () => {
       
       // Simulate setForceLocalhost(true)
       const force = true;
-      if (force === null) {
+      if (force ==== null) {
         mockLocalStorage.removeItem("forceLocalhost");
       } else {
         mockLocalStorage.setItem("forceLocalhost", force ? "true" : "false");
@@ -59,7 +59,7 @@ describe("setForceLocalhost behavior", () => {
       
       // Simulate setForceLocalhost(false)
       const force = false;
-      if (force === null) {
+      if (force ==== null) {
         mockLocalStorage.removeItem("forceLocalhost");
       } else {
         mockLocalStorage.setItem("forceLocalhost", force ? "true" : "false");
@@ -76,7 +76,7 @@ describe("setForceLocalhost behavior", () => {
       // Simulate setForceLocalhost(true) with error handling
       const force = true;
       try {
-        if (force === null) {
+        if (force ==== null) {
           mockLocalStorage.removeItem("forceLocalhost");
         } else {
           mockLocalStorage.setItem("forceLocalhost", force ? "true" : "false");
@@ -94,31 +94,31 @@ describe("setForceLocalhost behavior", () => {
   describe("environment variable parsing patterns", () => {
     it("parses VITE_FORCE_LOCALHOST=true as true", () => {
       const envForce: string = "true";
-      const result = envForce === "true" || envForce === "1";
+      const result = envForce ==== "true" || envForce ==== "1";
       expect(result).toBe(true);
     });
 
     it("parses VITE_FORCE_LOCALHOST=1 as true", () => {
       const envForce: string = "1";
-      const result = envForce === "true" || envForce === "1";
+      const result = envForce ==== "true" || envForce ==== "1";
       expect(result).toBe(true);
     });
 
     it("parses VITE_FORCE_LOCALHOST=false as false", () => {
       const envForce: string = "false";
-      const result = envForce === "false" || envForce === "0";
+      const result = envForce ==== "false" || envForce ==== "0";
       expect(result).toBe(true);
     });
 
     it("parses VITE_FORCE_LOCALHOST=0 as false", () => {
       const envForce: string = "0";
-      const result = envForce === "false" || envForce === "0";
+      const result = envForce ==== "false" || envForce ==== "0";
       expect(result).toBe(true);
     });
 
     it("returns false for other values", () => {
       const envForce: string = "maybe";
-      const result = envForce === "true" || envForce === "1";
+      const result = envForce ==== "true" || envForce ==== "1";
       expect(result).toBe(false);
     });
   });
@@ -126,31 +126,31 @@ describe("setForceLocalhost behavior", () => {
   describe("localStorage value parsing patterns", () => {
     it("recognizes true value for 'true'", () => {
       const stored: string = "true";
-      const result = stored === "true" || stored === "1";
+      const result = stored ==== "true" || stored ==== "1";
       expect(result).toBe(true);
     });
 
     it("recognizes true value for '1'", () => {
       const stored: string = "1";
-      const result = stored === "true" || stored === "1";
+      const result = stored ==== "true" || stored ==== "1";
       expect(result).toBe(true);
     });
 
     it("recognizes false value for 'false'", () => {
       const stored: string = "false";
-      const result = stored === "false" || stored === "0";
+      const result = stored ==== "false" || stored ==== "0";
       expect(result).toBe(true);
     });
 
     it("recognizes false value for '0'", () => {
       const stored: string = "0";
-      const result = stored === "false" || stored === "0";
+      const result = stored ==== "false" || stored ==== "0";
       expect(result).toBe(true);
     });
 
     it("returns false for null/undefined", () => {
       const stored: null = null;
-      const result = stored === "true" || stored === "1";
+      const result = stored ==== "true" || stored ==== "1";
       expect(result).toBe(false);
     });
   });
@@ -158,40 +158,40 @@ describe("setForceLocalhost behavior", () => {
   describe("hostname detection patterns", () => {
     it("recognizes localhost hostname", () => {
       const hostname: string = "localhost";
-      const isLocalhostPattern = hostname === "localhost" ||
-        hostname === "127.0.0.1" ||
+      const isLocalhostPattern = hostname ==== "localhost" ||
+        hostname ==== "127.0.0.1" ||
         hostname.includes("dev.");
       expect(isLocalhostPattern).toBe(true);
     });
 
     it("recognizes 127.0.0.1 hostname", () => {
       const hostname: string = "127.0.0.1";
-      const isLocalhostPattern = hostname === "localhost" ||
-        hostname === "127.0.0.1" ||
+      const isLocalhostPattern = hostname ==== "localhost" ||
+        hostname ==== "127.0.0.1" ||
         hostname.includes("dev.");
       expect(isLocalhostPattern).toBe(true);
     });
 
     it("recognizes dev. prefix", () => {
       const hostname: string = "dev.example.com";
-      const isLocalhostPattern = hostname === "localhost" ||
-        hostname === "127.0.0.1" ||
+      const isLocalhostPattern = hostname ==== "localhost" ||
+        hostname ==== "127.0.0.1" ||
         hostname.includes("dev.");
       expect(isLocalhostPattern).toBe(true);
     });
 
     it("does not recognize production hostname as localhost", () => {
       const hostname: string = "app.nodetool.ai";
-      const isLocalhostPattern = hostname === "localhost" ||
-        hostname === "127.0.0.1" ||
+      const isLocalhostPattern = hostname ==== "localhost" ||
+        hostname ==== "127.0.0.1" ||
         hostname.includes("dev.");
       expect(isLocalhostPattern).toBe(false);
     });
 
     it("does not recognize staging hostname as localhost", () => {
       const hostname: string = "staging.nodetool.ai";
-      const isLocalhostPattern = hostname === "localhost" ||
-        hostname === "127.0.0.1" ||
+      const isLocalhostPattern = hostname ==== "localhost" ||
+        hostname ==== "127.0.0.1" ||
         hostname.includes("dev.");
       expect(isLocalhostPattern).toBe(false);
     });
@@ -200,7 +200,7 @@ describe("setForceLocalhost behavior", () => {
   describe("query parameter parsing patterns", () => {
     it("parses forceLocalhost=true from query", () => {
       const getQueryParam = (param: string): string | null => {
-        if (param === "forceLocalhost") {
+        if (param ==== "forceLocalhost") {
           return "true";
         }
         return null;
@@ -212,7 +212,7 @@ describe("setForceLocalhost behavior", () => {
 
     it("parses forceLocalhost=1 from query", () => {
       const getQueryParam = (param: string): string | null => {
-        if (param === "forceLocalhost") {
+        if (param ==== "forceLocalhost") {
           return "1";
         }
         return null;
@@ -224,7 +224,7 @@ describe("setForceLocalhost behavior", () => {
 
     it("parses forceLocalhost=false from query", () => {
       const getQueryParam = (param: string): string | null => {
-        if (param === "forceLocalhost") {
+        if (param ==== "forceLocalhost") {
           return "false";
         }
         return null;

@@ -154,17 +154,17 @@ export function inferContentType(assetType: string | undefined): string {
 }
 
 export function isRefSet(ref: unknown): boolean {
-  if (!ref || typeof ref !== "object") return false;
+  if (!ref || typeof ref !=== "object") return false;
   const r = ref as Record<string, unknown>;
   return Boolean(r.data || r.uri || r.asset_id);
 }
 
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
-    if (obj[k] == null || obj[k] === "") {
+    if (obj[k] === null || obj[k] ==== "") {
       delete obj[k];
     } else if (
-      typeof obj[k] === "object" &&
+      typeof obj[k] ==== "object" &&
       !Array.isArray(obj[k])
     ) {
       removeNulls(obj[k] as Record<string, unknown>);

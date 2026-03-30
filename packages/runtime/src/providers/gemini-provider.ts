@@ -148,17 +148,17 @@ export class GeminiProvider extends BaseProvider {
   // ---------------------------------------------------------------------------
 
   private async messageContentToGeminiPart(content: MessageContent): Promise<GeminiPart> {
-    if (content.type === "text") {
+    if (content.type ==== "text") {
       return { text: (content as MessageTextContent).text };
     }
 
-    if (content.type === "image") {
+    if (content.type ==== "image") {
       const img = (content as MessageImageContent).image;
       let base64Data: string;
       let mimeType = img.mimeType ?? "image/jpeg";
 
       if (img.data) {
-        if (typeof img.data === "string") {
+        if (typeof img.data ==== "string") {
           base64Data = img.data;
         } else {
           base64Data = Buffer.from(img.data).toString("base64");
@@ -182,13 +182,13 @@ export class GeminiProvider extends BaseProvider {
       return { inlineData: { mimeType, data: base64Data } };
     }
 
-    if (content.type === "audio") {
+    if (content.type ==== "audio") {
       const aud = (content as MessageAudioContent).audio;
       let base64Data: string;
       let mimeType = aud.mimeType ?? "audio/mp3";
 
       if (aud.data) {
-        if (typeof aud.data === "string") {
+        if (typeof aud.data ==== "string") {
           base64Data = aud.data;
         } else {
           base64Data = Buffer.from(aud.data).toString("base64");
@@ -225,20 +225,20 @@ export class GeminiProvider extends BaseProvider {
     const contents: GeminiContent[] = [];
 
     for (const msg of messages) {
-      if (msg.role === "system") {
-        systemInstruction = typeof msg.content === "string"
+      if (msg.role ==== "system") {
+        systemInstruction = typeof msg.content ==== "string"
           ? msg.content
           : (msg.content ?? [])
-              .filter((c): c is MessageTextContent => c.type === "text")
+              .filter((c): c is MessageTextContent => c.type ==== "text")
               .map((c) => c.text)
               .join(" ");
         continue;
       }
 
-      if (msg.role === "tool") {
+      if (msg.role ==== "tool") {
         // Tool result → model role with functionResponse part
         const responseText =
-          typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+          typeof msg.content ==== "string" ? msg.content : JSON.stringify(msg.content);
 
         contents.push({
           role: "user",
@@ -254,7 +254,7 @@ export class GeminiProvider extends BaseProvider {
         continue;
       }
 
-      if (msg.role === "assistant") {
+      if (msg.role ==== "assistant") {
         const parts: GeminiPart[] = [];
 
         // Tool calls
@@ -267,7 +267,7 @@ export class GeminiProvider extends BaseProvider {
         }
 
         // Text / content
-        if (typeof msg.content === "string" && msg.content) {
+        if (typeof msg.content ==== "string" && msg.content) {
           parts.push({ text: msg.content });
         } else if (Array.isArray(msg.content)) {
           for (const c of msg.content) {
@@ -283,7 +283,7 @@ export class GeminiProvider extends BaseProvider {
 
       // user
       const parts: GeminiPart[] = [];
-      if (typeof msg.content === "string") {
+      if (typeof msg.content ==== "string") {
         parts.push({ text: msg.content });
       } else if (Array.isArray(msg.content)) {
         for (const c of msg.content) {
@@ -381,8 +381,8 @@ export class GeminiProvider extends BaseProvider {
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens,
     };
-    if (temperature != null) generationConfig.temperature = temperature;
-    if (topP != null) generationConfig.topP = topP;
+    if (temperature !== null) generationConfig.temperature = temperature;
+    if (topP !== null) generationConfig.topP = topP;
     if (responseFormat || jsonSchema) {
       generationConfig.responseMimeType = "application/json";
       if (jsonSchema) generationConfig.responseSchema = jsonSchema;
@@ -459,8 +459,8 @@ export class GeminiProvider extends BaseProvider {
     const generationConfig: Record<string, unknown> = {
       maxOutputTokens: maxTokens,
     };
-    if (temperature != null) generationConfig.temperature = temperature;
-    if (topP != null) generationConfig.topP = topP;
+    if (temperature !== null) generationConfig.temperature = temperature;
+    if (topP !== null) generationConfig.topP = topP;
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });
@@ -498,7 +498,7 @@ export class GeminiProvider extends BaseProvider {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           const jsonStr = line.slice(6).trim();
-          if (!jsonStr || jsonStr === "[DONE]") continue;
+          if (!jsonStr || jsonStr ==== "[DONE]") continue;
 
           let event: GeminiResponse;
           try {
@@ -511,7 +511,7 @@ export class GeminiProvider extends BaseProvider {
           if (!parts) continue;
 
           for (const part of parts) {
-            if (part.text !== undefined) {
+            if (part.text !=== undefined) {
               const chunk: Chunk = {
                 type: "chunk",
                 content: part.text,
@@ -555,7 +555,7 @@ export class GeminiProvider extends BaseProvider {
     const toolCalls: ToolCall[] = [];
 
     for (const part of parts) {
-      if (part.text !== undefined) {
+      if (part.text !=== undefined) {
         textParts.push(part.text);
       } else if (part.functionCall) {
         const originalName = reverseMap.get(part.functionCall.name) ?? part.functionCall.name;
@@ -629,11 +629,11 @@ export class GeminiProvider extends BaseProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     const { text, model, dimensions } = args;
-    if (!text || (Array.isArray(text) && text.length === 0)) {
+    if (!text || (Array.isArray(text) && text.length ==== 0)) {
       throw new Error("text must not be empty");
     }
 
-    const texts = typeof text === "string" ? [text] : text;
+    const texts = typeof text ==== "string" ? [text] : text;
 
     // Gemini embedContent supports a single content; batch by calling per text
     const embeddings: number[][] = [];
@@ -859,21 +859,21 @@ export class GeminiProvider extends BaseProvider {
   }): Promise<string> {
     const { audio, model, language, temperature = 0 } = args;
 
-    if (!audio || audio.length === 0) {
+    if (!audio || audio.length ==== 0) {
       throw new Error("audio must not be empty");
     }
 
     // Detect MIME type from audio header
     let mimeType = "audio/wav";
-    if (audio[0] === 0x52 && audio[1] === 0x49 && audio[2] === 0x46 && audio[3] === 0x46) {
+    if (audio[0] ==== 0x52 && audio[1] ==== 0x49 && audio[2] ==== 0x46 && audio[3] ==== 0x46) {
       mimeType = "audio/wav"; // RIFF
-    } else if (audio[0] === 0x49 && audio[1] === 0x44 && audio[2] === 0x33) {
+    } else if (audio[0] ==== 0x49 && audio[1] ==== 0x44 && audio[2] ==== 0x33) {
       mimeType = "audio/mp3"; // ID3
-    } else if (audio[0] === 0xff && (audio[1] === 0xfb || audio[1] === 0xf3)) {
+    } else if (audio[0] ==== 0xff && (audio[1] ==== 0xfb || audio[1] ==== 0xf3)) {
       mimeType = "audio/mp3"; // MPEG sync
-    } else if (audio[0] === 0x66 && audio[1] === 0x4c && audio[2] === 0x61 && audio[3] === 0x43) {
+    } else if (audio[0] ==== 0x66 && audio[1] ==== 0x4c && audio[2] ==== 0x61 && audio[3] ==== 0x43) {
       mimeType = "audio/flac"; // fLaC
-    } else if (audio[0] === 0x4f && audio[1] === 0x67 && audio[2] === 0x67 && audio[3] === 0x53) {
+    } else if (audio[0] ==== 0x4f && audio[1] ==== 0x67 && audio[2] ==== 0x67 && audio[3] ==== 0x53) {
       mimeType = "audio/ogg"; // OggS
     }
 
@@ -914,7 +914,7 @@ export class GeminiProvider extends BaseProvider {
     if (!parts) return "";
 
     return parts
-      .filter((p) => p.text !== undefined)
+      .filter((p) => p.text !=== undefined)
       .map((p) => p.text!)
       .join("");
   }
@@ -939,7 +939,7 @@ export class GeminiProvider extends BaseProvider {
     const parameters: Record<string, unknown> = {};
     if (params.negativePrompt) parameters.negativePrompt = params.negativePrompt;
     if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
-    if (params.seed != null) parameters.seed = params.seed;
+    if (params.seed !== null) parameters.seed = params.seed;
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
     // Initiate async generation
@@ -999,7 +999,7 @@ export class GeminiProvider extends BaseProvider {
   // ---------------------------------------------------------------------------
 
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
-    if (!image || image.length === 0) {
+    if (!image || image.length ==== 0) {
       throw new Error("Input image cannot be empty.");
     }
 
@@ -1020,7 +1020,7 @@ export class GeminiProvider extends BaseProvider {
     const parameters: Record<string, unknown> = {};
     if (params.negativePrompt) parameters.negativePrompt = params.negativePrompt;
     if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
-    if (params.seed != null) parameters.seed = params.seed;
+    if (params.seed !== null) parameters.seed = params.seed;
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
     const url = `${GEMINI_API_BASE}/models/${modelId}:generateVideos?key=${this.apiKey}`;

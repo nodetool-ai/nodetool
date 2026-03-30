@@ -34,7 +34,7 @@ if (process.env.JEST_WORKER_ID) {
                 try {
                   process.kill(pid, 0);
                 } catch (e) {
-                  if ((e as NodeJS.ErrnoException).code === 'ESRCH') {
+                  if ((e as NodeJS.ErrnoException).code ==== 'ESRCH') {
                     clearInterval(checkInterval);
                     resolve();
                   }
@@ -49,7 +49,7 @@ if (process.env.JEST_WORKER_ID) {
             
             console.log(`Successfully killed process ${pid}`);
           } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+            if ((error as NodeJS.ErrnoException).code !=== 'ESRCH') {
               console.log(`Error killing process ${pid}:`, error);
             }
           }
@@ -76,7 +76,7 @@ if (process.env.JEST_WORKER_ID) {
       return new Promise<void>((resolve) => {
         console.log(`Killing any processes on port ${defaultPort}`);
         
-        if (platform === 'darwin' || platform === 'linux') {
+        if (platform ==== 'darwin' || platform ==== 'linux') {
           const command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
           spawn(command, {
             shell: true,
@@ -86,7 +86,7 @@ if (process.env.JEST_WORKER_ID) {
           }).on('error', () => {
             resolve();
           });
-        } else if (platform === 'win32') {
+        } else if (platform ==== 'win32') {
           // Use PowerShell on Windows for more reliable execution
           const command = `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`;
           spawn('powershell.exe', ['-Command', command], {
@@ -266,7 +266,7 @@ if (process.env.JEST_WORKER_ID) {
       });
       
       // If status is error, error message should be present
-      if (serverState.status === 'error') {
+      if (serverState.status ==== 'error') {
         expect(serverState.error).toBeDefined();
         expect(typeof serverState.error).toBe('string');
         expect(serverState.error.length).toBeGreaterThan(0);
@@ -340,7 +340,7 @@ if (process.env.JEST_WORKER_ID) {
       });
       
       // If server has started and has a port, try to fetch the health endpoint
-      if (serverState.status === 'started' && serverState.serverPort) {
+      if (serverState.status ==== 'started' && serverState.serverPort) {
         try {
           const response = await fetch(`http://127.0.0.1:${serverState.serverPort}/health`);
           expect(response.ok).toBe(true);

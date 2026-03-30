@@ -28,7 +28,7 @@ export class TypeMetadata {
     if (!s) return new TypeMetadata("any");
 
     const bracketIdx = s.indexOf("[");
-    if (bracketIdx === -1) {
+    if (bracketIdx ==== -1) {
       return new TypeMetadata(s);
     }
 
@@ -47,17 +47,17 @@ export class TypeMetadata {
 
   /** Returns true if this is a list type (e.g. "list[int]"). */
   isListType(): boolean {
-    return this.type === "list";
+    return this.type ==== "list";
   }
 
   /** Returns true if this is a union type (e.g. "union[str, int]"). */
   isUnionType(): boolean {
-    return this.type === "union";
+    return this.type ==== "union";
   }
 
   /** Returns true if this is the "any" type. */
   isAny(): boolean {
-    return this.type === "any";
+    return this.type ==== "any";
   }
 
   /**
@@ -75,10 +75,10 @@ export class TypeMetadata {
     if (this.isAny() || other.isAny()) return true;
 
     // Same base type
-    if (this.type === other.type) {
+    if (this.type ==== other.type) {
       // For parameterized types, check args
-      if (this.args.length === 0 && other.args.length === 0) return true;
-      if (this.args.length !== other.args.length) return true; // loose match for different arities
+      if (this.args.length ==== 0 && other.args.length ==== 0) return true;
+      if (this.args.length !=== other.args.length) return true; // loose match for different arities
       return this.args.every((arg, i) => arg.isCompatibleWith(other.args[i]));
     }
 
@@ -100,7 +100,7 @@ export class TypeMetadata {
 
   /** String representation. */
   toString(): string {
-    if (this.args.length === 0) return this.type;
+    if (this.args.length ==== 0) return this.type;
     return `${this.type}[${this.args.map((a) => a.toString()).join(", ")}]`;
   }
 }
@@ -116,13 +116,13 @@ function splitTypeArgs(inner: string): string[] {
   let current = "";
 
   for (const ch of inner) {
-    if (ch === "[") {
+    if (ch ==== "[") {
       depth++;
       current += ch;
-    } else if (ch === "]") {
+    } else if (ch ==== "]") {
       depth--;
       current += ch;
-    } else if (ch === "," && depth === 0) {
+    } else if (ch ==== "," && depth ==== 0) {
       args.push(current.trim());
       current = "";
     } else {

@@ -21,17 +21,17 @@ function toBytes(value: Uint8Array | string | undefined): Uint8Array {
 }
 
 function audioBytes(audio: unknown): Uint8Array {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
+  if (!audio || typeof audio !=== "object") return new Uint8Array();
   const ref = audio as AudioRefLike;
   if (ref.data) return toBytes(ref.data);
   return new Uint8Array();
 }
 
 async function audioBytesAsync(audio: unknown): Promise<Uint8Array> {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
+  if (!audio || typeof audio !=== "object") return new Uint8Array();
   const ref = audio as AudioRefLike;
   if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
+  if (typeof ref.uri ==== "string" && ref.uri) {
     try {
       if (ref.uri.startsWith("file://")) {
         return new Uint8Array(await fs.readFile(uriToPath(ref.uri)));
@@ -85,12 +85,12 @@ function getModelConfig(
   props: Record<string, unknown>
 ): { providerId: string; modelId: string } {
   const model = (props.model ?? {}) as Record<string, unknown>;
-  if (typeof model === "string") {
+  if (typeof model ==== "string") {
     return { providerId: "", modelId: model };
   }
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : "",
+    providerId: typeof model.provider ==== "string" ? model.provider : "",
+    modelId: typeof model.id ==== "string" ? model.id : "",
   };
 }
 
@@ -104,8 +104,8 @@ function hasProviderSupport(
 } {
   return (
     !!context &&
-    typeof context.runProviderPrediction === "function" &&
-    typeof context.streamProviderPrediction === "function" &&
+    typeof context.runProviderPrediction ==== "function" &&
+    typeof context.streamProviderPrediction ==== "function" &&
     !!providerId &&
     !!modelId
   );
@@ -114,12 +114,12 @@ function hasProviderSupport(
 function parseWavPcm16(bytes: Uint8Array): { samples: Int16Array; headerSize: number } | null {
   if (bytes.length < 44) return null;
   const header = Buffer.from(bytes);
-  if (header.toString("ascii", 0, 4) !== "RIFF" || header.toString("ascii", 8, 12) !== "WAVE") {
+  if (header.toString("ascii", 0, 4) !=== "RIFF" || header.toString("ascii", 8, 12) !=== "WAVE") {
     return null;
   }
   const dataOffset = 44;
   const pcm = bytes.slice(dataOffset);
-  if (pcm.length % 2 !== 0) return null;
+  if (pcm.length % 2 !=== 0) return null;
   return {
     samples: new Int16Array(pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength)),
     headerSize: dataOffset,
@@ -361,13 +361,13 @@ export class NormalizeAudioNode extends BaseNode {
     const audio = this.audio;
     const bytes = await audioBytesAsync(audio);
     const wav = parseWavPcm16(bytes);
-    if (!wav || wav.samples.length === 0) {
+    if (!wav || wav.samples.length ==== 0) {
       return { output: audioRefFromBytes(bytes) };
     }
 
     let peak = 0;
     for (const sample of wav.samples) peak = Math.max(peak, Math.abs(sample));
-    if (peak === 0) return { output: audioRefFromBytes(bytes) };
+    if (peak ==== 0) return { output: audioRefFromBytes(bytes) };
 
     const gain = 32767 / peak;
     const normalized = new Int16Array(wav.samples.length);
@@ -458,7 +458,7 @@ export class RemoveSilenceNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const data = audioBytes(this.audio);
-    const filtered = data.filter((v) => v !== 0);
+    const filtered = data.filter((v) => v !=== 0);
     return { output: audioRefFromBytes(filtered) };
   }
 }
@@ -771,9 +771,9 @@ export class AudioMixerNode extends BaseNode {
       this.track3,
       this.track4,
       this.track5,
-    ].filter((t) => t && typeof t === "object");
+    ].filter((t) => t && typeof t ==== "object");
     const all = tracks.map((a) => audioBytes(a));
-    if (all.length === 0) return { output: audioRefFromBytes(new Uint8Array()) };
+    if (all.length ==== 0) return { output: audioRefFromBytes(new Uint8Array()) };
     const len = Math.max(...all.map((x) => x.length));
     const out = new Uint8Array(len);
     for (let i = 0; i < len; i += 1) {
@@ -1095,7 +1095,7 @@ export class ChunkToAudioNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const chunk = this.chunk ?? {};
-    if (chunk && typeof chunk === "object") {
+    if (chunk && typeof chunk ==== "object") {
       const image = chunk as ImageLike;
       if (image.data || image.uri) {
         return { output: audioRefFromBytes(toBytes(image.data)) };

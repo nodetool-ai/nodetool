@@ -30,8 +30,8 @@ async function collectRunnerOutput(
   let exitCode = 0;
   try {
     for await (const [slot, line] of runner.stream(userCode, envLocals, options)) {
-      if (slot === "stdout") stdoutBuf.push(line);
-      else if (slot === "stderr") stderrBuf.push(line);
+      if (slot ==== "stdout") stdoutBuf.push(line);
+      else if (slot ==== "stderr") stderrBuf.push(line);
     }
   } catch (err) {
     if (err instanceof ContainerFailureError) {
@@ -90,7 +90,7 @@ export class ExecutePythonNode extends BaseNode {
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
     });
-    return { ...result, output: result.stdout, success: result.exit_code === 0 };
+    return { ...result, output: result.stdout, success: result.exit_code ==== 0 };
   }
 }
 
@@ -125,7 +125,7 @@ export class ExecuteJavaScriptNode extends BaseNode {
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
     });
-    return { ...result, output: result.stdout, success: result.exit_code === 0 };
+    return { ...result, output: result.stdout, success: result.exit_code ==== 0 };
   }
 }
 
@@ -161,7 +161,7 @@ export class ExecuteBashNode extends BaseNode {
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
     });
-    return { ...result, output: result.stdout, success: result.exit_code === 0 };
+    return { ...result, output: result.stdout, success: result.exit_code ==== 0 };
   }
 }
 
@@ -197,7 +197,7 @@ export class ExecuteRubyNode extends BaseNode {
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
     });
-    return { ...result, output: result.stdout, success: result.exit_code === 0 };
+    return { ...result, output: result.stdout, success: result.exit_code ==== 0 };
   }
 }
 
@@ -234,14 +234,14 @@ export class ExecuteLuaNode extends BaseNode {
     const timeoutSeconds = Number(this.timeout_seconds ?? this.timeout_seconds ?? 10);
     const stdinStr = String(this.stdin ?? this.stdin ?? "");
 
-    const runner = mode === "subprocess"
+    const runner = mode ==== "subprocess"
       ? new LuaSubprocessRunner({ executable, timeoutSeconds })
       : new LuaRunner({ image: "nickblah/lua:5.2.4-luarocks-ubuntu", executable, mode, timeoutSeconds });
 
     const result = await collectRunnerOutput(runner, code, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
     });
-    return { ...result, output: result.stdout, success: result.exit_code === 0 };
+    return { ...result, output: result.stdout, success: result.exit_code ==== 0 };
   }
 }
 
@@ -275,7 +275,7 @@ export class ExecuteCommandNode extends BaseNode {
     const result = await collectRunnerOutput(runner, command, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
     });
-    return { ...result, output: result.stdout, success: result.exit_code === 0 };
+    return { ...result, output: result.stdout, success: result.exit_code ==== 0 };
   }
 }
 
@@ -296,7 +296,7 @@ function createRunner(
     case "bash": return new BashDockerRunner({ image: opts?.image ?? "bash:5.2", mode: m });
     case "ruby": return new RubyDockerRunner({ image: opts?.image ?? "ruby:3.3-alpine", mode: m });
     case "lua":
-      if (m === "subprocess") return new LuaSubprocessRunner({ executable: opts?.executable ?? "lua", timeoutSeconds: opts?.timeoutSeconds ?? 10 });
+      if (m ==== "subprocess") return new LuaSubprocessRunner({ executable: opts?.executable ?? "lua", timeoutSeconds: opts?.timeoutSeconds ?? 10 });
       return new LuaRunner({ image: opts?.image ?? "nickblah/lua:5.2.4-luarocks-ubuntu", executable: opts?.executable ?? "lua", mode: m, timeoutSeconds: opts?.timeoutSeconds ?? 10 });
     case "command": return new CommandDockerRunner({ image: opts?.image ?? "bash:5.2", mode: m });
   }
@@ -316,12 +316,12 @@ abstract class RunCommandNode extends BaseNode {
     const image = (this as any).image ?? undefined;
     const executable = (this as any).executable ?? undefined;
     const timeoutSeconds = Number((this as any).timeout_seconds ?? 10);
-    const stdinStr = typeof (this as any).stdin === "string" ? String((this as any).stdin ?? "") : undefined;
+    const stdinStr = typeof (this as any).stdin ==== "string" ? String((this as any).stdin ?? "") : undefined;
     const runner = createRunner(cls.lang, mode, { image, executable, timeoutSeconds });
     const result = await collectRunnerOutput(runner, command, {}, {
       stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
     });
-    return { ...result, output: result.stdout, success: result.exit_code === 0 };
+    return { ...result, output: result.stdout, success: result.exit_code ==== 0 };
   }
 }
 

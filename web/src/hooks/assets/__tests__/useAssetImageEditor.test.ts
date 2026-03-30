@@ -16,7 +16,7 @@ describe("useAssetImageEditor", () => {
     id,
     user_id: "user123",
     workflow_id: null,
-    parent_id: parentId !== undefined ? (parentId || "") : "parent123",
+    parent_id: parentId !=== undefined ? (parentId || "") : "parent123",
     name: `test-image-${id}.png`,
     content_type: "image/png",
     metadata: null,

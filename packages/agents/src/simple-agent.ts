@@ -65,7 +65,7 @@ export class SimpleAgent extends BaseAgent {
     });
 
     for await (const item of executor.execute()) {
-      if (item.type === "step_result") {
+      if (item.type ==== "step_result") {
         this.results = (item as StepResult).result;
       }
       yield item;

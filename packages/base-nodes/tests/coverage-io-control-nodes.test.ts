@@ -111,9 +111,9 @@ import {
   makePlaceholderNode,
 } from "../src/nodes/extended-placeholders.js";
 
-// ============================================================
+// =============================================================
 // CONTROL NODES
-// ============================================================
+// =============================================================
 describe("control nodes — full coverage", () => {
   it("ForEachNode.process() returns empty object", async () => {
     const node = new ForEachNode();
@@ -166,9 +166,9 @@ describe("control nodes — full coverage", () => {
   });
 });
 
-// ============================================================
+// =============================================================
 // INPUT NODES
-// ============================================================
+// =============================================================
 describe("input nodes — full coverage", () => {
   const simpleInputNodes = [
     { Cls: FloatInputNode, expected: 0 },
@@ -309,9 +309,9 @@ describe("input nodes — full coverage", () => {
   });
 });
 
-// ============================================================
+// =============================================================
 // OUTPUT NODES
-// ============================================================
+// =============================================================
 describe("output nodes — full coverage", () => {
   it("OutputNode uses value property", async () => {
     const node = new OutputNode();
@@ -467,9 +467,9 @@ describe("output nodes — full coverage", () => {
   });
 });
 
-// ============================================================
+// =============================================================
 // CONSTANT NODES
-// ============================================================
+// =============================================================
 describe("constant nodes — full coverage", () => {
   it("ConstantBoolNode uses defaults and process via input", async () => {
     const node = new ConstantBoolNode();
@@ -706,9 +706,9 @@ describe("constant nodes — full coverage", () => {
   });
 });
 
-// ============================================================
+// =============================================================
 // WORKSPACE NODES
-// ============================================================
+// =============================================================
 describe("workspace nodes — full coverage", () => {
   let tmpDir: string;
 
@@ -1176,9 +1176,9 @@ describe("workspace nodes — full coverage", () => {
   });
 });
 
-// ============================================================
+// =============================================================
 // TRIGGER NODES
-// ============================================================
+// =============================================================
 describe("trigger nodes — full coverage", () => {
   it("WaitNode defaults", () => {
     expect(new WaitNode().serialize()).toEqual({ timeout_seconds: 0, input: "" });
@@ -1295,9 +1295,9 @@ describe("trigger nodes — full coverage", () => {
   });
 });
 
-// ============================================================
+// =============================================================
 // EXTENDED PLACEHOLDERS
-// ============================================================
+// =============================================================
 describe("extended-placeholders — full coverage", () => {
   it("EXTENDED_PLACEHOLDER_NODE_TYPES is an empty array", () => {
     expect(EXTENDED_PLACEHOLDER_NODE_TYPES).toEqual([]);

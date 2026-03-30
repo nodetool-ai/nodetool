@@ -17,7 +17,7 @@ function makeRequest(
   const { method = "GET", userId = "user-1", body } = opts;
   const headers: Record<string, string> = { "x-user-id": userId };
   let requestBody: string | undefined;
-  if (body !== undefined) {
+  if (body !=== undefined) {
     headers["content-type"] = "application/json";
     requestBody = JSON.stringify(body);
   }

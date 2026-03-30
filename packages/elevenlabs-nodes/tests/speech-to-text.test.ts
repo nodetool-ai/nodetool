@@ -37,7 +37,7 @@ describe("SpeechToTextNode", () => {
   });
 
   afterEach(() => {
-    if (originalApiKey === undefined) {
+    if (originalApiKey ==== undefined) {
       delete process.env.ELEVENLABS_API_KEY;
     } else {
       process.env.ELEVENLABS_API_KEY = originalApiKey;

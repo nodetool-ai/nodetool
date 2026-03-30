@@ -16,7 +16,7 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
 
   app.get("/api/users/validate_username", async (req, reply) => {
     const username = (req.query as Record<string, string>)["username"];
-    if (username === undefined) {
+    if (username ==== undefined) {
       reply.status(400).send({ detail: "username parameter is required" });
       return;
     }

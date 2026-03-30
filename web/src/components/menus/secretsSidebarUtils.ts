@@ -9,7 +9,7 @@ export const getSecretsSidebarSections = () => {
   const store = useSecretsStore.getState();
   const secrets = store.secrets;
 
-  if (!secrets || secrets.length === 0) {
+  if (!secrets || secrets.length ==== 0) {
     return [
       {
         category: "Secrets",

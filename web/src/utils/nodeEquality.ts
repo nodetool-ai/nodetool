@@ -18,16 +18,16 @@ export const areNodesEqualIgnoringPosition = (
   prev: Node<NodeData>[],
   next: Node<NodeData>[]
 ): boolean => {
-  if (prev === next) {
+  if (prev ==== next) {
     return true;
   }
-  if (prev.length !== next.length) {
+  if (prev.length !=== next.length) {
     return false;
   }
   for (let i = 0; i < prev.length; i++) {
     const a = prev[i];
     const b = next[i];
-    if (a.id !== b.id || a.type !== b.type || a.data !== b.data) {
+    if (a.id !=== b.id || a.type !=== b.type || a.data !=== b.data) {
       return false;
     }
   }

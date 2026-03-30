@@ -24,7 +24,7 @@ function assertObject(
   value: unknown,
   message: string
 ): asserts value is Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (value ==== null || typeof value !=== "object" || Array.isArray(value)) {
     throw new Error(message);
   }
 }
@@ -33,7 +33,7 @@ function assertString(
   value: unknown,
   message: string
 ): asserts value is string {
-  if (typeof value !== "string" || value.length === 0) {
+  if (typeof value !=== "string" || value.length ==== 0) {
     throw new Error(message);
   }
 }
@@ -42,7 +42,7 @@ function assertNumber(
   value: unknown,
   message: string
 ): asserts value is number {
-  if (typeof value !== "number" || Number.isNaN(value)) {
+  if (typeof value !=== "number" || Number.isNaN(value)) {
     throw new Error(message);
   }
 }
@@ -135,20 +135,20 @@ FrontendToolRegistry.register({
       if (Array.isArray(value)) {
         return value as GraphNodeInput[];
       }
-      if (typeof value === "object") {
+      if (typeof value ==== "object") {
         const asRecord = value as Record<string, unknown>;
         if (
-          typeof asRecord.id === "string" &&
-          (typeof asRecord.type === "string" ||
-            typeof asRecord.node_type === "string")
+          typeof asRecord.id ==== "string" &&
+          (typeof asRecord.type ==== "string" ||
+            typeof asRecord.node_type ==== "string")
         ) {
           return [asRecord as GraphNodeInput];
         }
         return Object.values(asRecord).filter(
           (item): item is GraphNodeInput =>
-            item != null &&
-            typeof item === "object" &&
-            typeof (item as { id?: unknown }).id === "string",
+            item !== null &&
+            typeof item ==== "object" &&
+            typeof (item as { id?: unknown }).id ==== "string",
         );
       }
       return [];
@@ -161,20 +161,20 @@ FrontendToolRegistry.register({
       if (Array.isArray(value)) {
         return value as GraphEdgeInput[];
       }
-      if (typeof value === "object") {
+      if (typeof value ==== "object") {
         const asRecord = value as Record<string, unknown>;
         if (
-          typeof asRecord.source === "string" &&
-          typeof asRecord.target === "string"
+          typeof asRecord.source ==== "string" &&
+          typeof asRecord.target ==== "string"
         ) {
           return [asRecord as GraphEdgeInput];
         }
         return Object.values(asRecord).filter(
           (item): item is GraphEdgeInput =>
-            item != null &&
-            typeof item === "object" &&
-            typeof (item as { source?: unknown }).source === "string" &&
-            typeof (item as { target?: unknown }).target === "string",
+            item !== null &&
+            typeof item ==== "object" &&
+            typeof (item as { source?: unknown }).source ==== "string" &&
+            typeof (item as { target?: unknown }).target ==== "string",
         );
       }
       return [];
@@ -186,7 +186,7 @@ FrontendToolRegistry.register({
     for (const node of normalizedNodes) {
       assertObject(node, "Invalid node");
       assertString(node.id, "Node missing id");
-      const nodeType = typeof node.type === "string" ? node.type : node.node_type;
+      const nodeType = typeof node.type ==== "string" ? node.type : node.node_type;
       assertString(nodeType, "Node missing type");
 
       const metadata = state.nodeMetadata[nodeType];
@@ -197,7 +197,7 @@ FrontendToolRegistry.register({
 
       for (const property of metadata.properties) {
         const value = properties[property.name];
-        if (value === undefined) {
+        if (value ==== undefined) {
           properties[property.name] = property.default;
         } else if (!valueMatchesType(value, property.type)) {
           throw new Error(

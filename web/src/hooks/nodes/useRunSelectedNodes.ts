@@ -17,7 +17,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
   const nodeStore = useNodeStoreRef();
 
   const run = useWebsocketRunner((state) => state.run);
-  const isWorkflowRunning = useWebsocketRunner((state) => state.state === "running");
+  const isWorkflowRunning = useWebsocketRunner((state) => state.state ==== "running");
   const getResult = useResultsStore((state) => state.getResult);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
@@ -30,7 +30,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       nodeStore.getState();
 
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length === 0) {
+    if (selectedNodes.length ==== 0) {
       return;
     }
 

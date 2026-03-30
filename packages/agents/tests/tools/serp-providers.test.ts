@@ -284,7 +284,7 @@ describe("SerpApiProvider (extended)", () => {
     let capturedUrl = "";
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
-      capturedUrl = typeof url === "string" ? url : url.toString();
+      capturedUrl = typeof url ==== "string" ? url : url.toString();
       return {
         ok: true,
         status: 200,
@@ -310,7 +310,7 @@ describe("SerpApiProvider (extended)", () => {
     let capturedUrl = "";
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
-      capturedUrl = typeof url === "string" ? url : url.toString();
+      capturedUrl = typeof url ==== "string" ? url : url.toString();
       return {
         ok: true,
         status: 200,

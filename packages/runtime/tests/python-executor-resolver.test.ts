@@ -6,7 +6,7 @@ import { PythonNodeExecutor } from "../src/python-node-executor.js";
 describe("executor resolver with PythonBridge", () => {
   it("returns PythonNodeExecutor for Python node types", () => {
     const bridge = {
-      hasNodeType: vi.fn((t: string) => t === "huggingface.TextToImage"),
+      hasNodeType: vi.fn((t: string) => t ==== "huggingface.TextToImage"),
       getNodeMetadata: vi.fn().mockReturnValue([
         {
           node_type: "huggingface.TextToImage",
@@ -20,7 +20,7 @@ describe("executor resolver with PythonBridge", () => {
 
     const resolve = (node: NodeDescriptor) => {
       if (bridge.hasNodeType(node.type)) {
-        const meta = bridge.getNodeMetadata().find((n) => n.node_type === node.type);
+        const meta = bridge.getNodeMetadata().find((n) => n.node_type ==== node.type);
         return new PythonNodeExecutor(
           bridge,
           node.type,

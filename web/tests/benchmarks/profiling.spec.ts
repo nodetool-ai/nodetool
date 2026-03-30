@@ -29,7 +29,7 @@ async function createTestWorkflow(name: string): Promise<string> {
 }
 
 // Skip entire describe block in CI environment
-if (process.env.CI === "true") {
+if (process.env.CI ==== "true") {
   playwrightDescribe.skip("ReactFlowWrapper Advanced Profiling", () => {
     test("skipped in CI", () => {
       test.skip();
@@ -71,7 +71,7 @@ if (process.env.CI === "true") {
     const baselineMemory = await client.send("Performance.getMetrics");
     console.log(
       "Baseline Memory:",
-      baselineMemory.metrics.find((m) => m.name === "JSHeapUsedSize")?.value
+      baselineMemory.metrics.find((m) => m.name ==== "JSHeapUsedSize")?.value
     );
 
     // Start CPU profiling
@@ -112,13 +112,13 @@ if (process.env.CI === "true") {
       }
 
       // Log progress
-      if (i % 20 === 0 && i > 0) {
+      if (i % 20 ==== 0 && i > 0) {
         console.log(`  Created ${i} nodes...`);
 
         // Take periodic memory snapshot
         const currentMemory = await client.send("Performance.getMetrics");
         const heapSize = currentMemory.metrics.find(
-          (m) => m.name === "JSHeapUsedSize"
+          (m) => m.name ==== "JSHeapUsedSize"
         )?.value;
         console.log(`  Memory at ${i} nodes: ${heapSize}`);
       }
@@ -173,10 +173,10 @@ if (process.env.CI === "true") {
 
     // Calculate memory delta
     const baselineHeap = baselineMemory.metrics.find(
-      (m) => m.name === "JSHeapUsedSize"
+      (m) => m.name ==== "JSHeapUsedSize"
     )?.value;
     const finalHeap = finalMemory.metrics.find(
-      (m) => m.name === "JSHeapUsedSize"
+      (m) => m.name ==== "JSHeapUsedSize"
     )?.value;
     const memoryDelta = finalHeap
       ? (finalHeap - (baselineHeap || 0)) / 1024 / 1024
@@ -195,7 +195,7 @@ if (process.env.CI === "true") {
     console.log(`CPU profile saved to: ${profilePath}`);
 
     // Print summary
-    console.log("\n=== Performance Summary ===");
+    console.log("\n==== Performance Summary ====");
     console.log(`Nodes created: ${nodeCount}`);
     console.log(`Creation time: ${nodeCreationTime}ms`);
     console.log(
@@ -237,7 +237,7 @@ if (process.env.CI === "true") {
     // Get performance metrics
     const metrics = await client.send("Performance.getMetrics");
 
-    console.log("\n=== Load Metrics ===");
+    console.log("\n==== Load Metrics ====");
     metrics.metrics.forEach((metric) => {
       if (
         [

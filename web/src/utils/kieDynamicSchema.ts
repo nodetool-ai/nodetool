@@ -60,12 +60,12 @@ export async function resolveKieSchemaClient(
     } catch {
       // use text as-is
     }
-    if (res.status === 501) {
+    if (res.status ==== 501) {
       throw new Error(
         "Kie.ai schema resolution requires the backend with nodetool-base installed."
       );
     }
-    if (res.status === 400) {
+    if (res.status ==== 400) {
       throw new Error(message || "Invalid model_info");
     }
     throw new Error(

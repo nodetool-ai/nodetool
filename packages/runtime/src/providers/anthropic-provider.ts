@@ -28,16 +28,16 @@ type StructuredOutputSetup = {
 };
 
 function isTextContent(content: MessageContent): content is MessageTextContent {
-  return content.type === "text";
+  return content.type ==== "text";
 }
 
 function isImageContent(content: MessageContent): content is MessageImageContent {
-  return content.type === "image";
+  return content.type ==== "image";
 }
 
 function bytesToBase64(data: Uint8Array | string | undefined): string {
   if (!data) return "";
-  if (typeof data === "string") return data;
+  if (typeof data ==== "string") return data;
   return Buffer.from(data).toString("base64");
 }
 
@@ -127,7 +127,7 @@ export class AnthropicProvider extends BaseProvider {
         clearTimeout(timeout);
 
         // Don't retry on auth errors
-        if (response.status === 401 || response.status === 403) {
+        if (response.status ==== 401 || response.status ==== 403) {
           log.warn("Anthropic API auth error, not retrying", { status: response.status });
           return [];
         }
@@ -153,13 +153,13 @@ export class AnthropicProvider extends BaseProvider {
 
         return (payload.data ?? [])
           .map((m) => m.id ?? m.name)
-          .filter((id): id is string => typeof id === "string" && id.length > 0)
+          .filter((id): id is string => typeof id ==== "string" && id.length > 0)
           .map((id) => ({ id, name: id, provider: "anthropic" }));
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
 
         // AbortError means timeout
-        if (lastError.name === "AbortError") {
+        if (lastError.name ==== "AbortError") {
           log.warn("Anthropic API timeout", { attempt: attempt + 1, maxRetries });
         } else {
           log.warn("Anthropic API connection error", { error: lastError.message, attempt: attempt + 1, maxRetries });
@@ -176,17 +176,17 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   private prepareJsonSchema(schema: unknown): unknown {
-    if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
+    if (!schema || typeof schema !=== "object" || Array.isArray(schema)) {
       return schema;
     }
 
     const obj = { ...(schema as Record<string, unknown>) };
 
-    if (obj.type === "object" && obj.additionalProperties === undefined) {
+    if (obj.type ==== "object" && obj.additionalProperties ==== undefined) {
       obj.additionalProperties = false;
     }
 
-    if (obj.properties && typeof obj.properties === "object" && !Array.isArray(obj.properties)) {
+    if (obj.properties && typeof obj.properties ==== "object" && !Array.isArray(obj.properties)) {
       obj.properties = Object.fromEntries(
         Object.entries(obj.properties as Record<string, unknown>).map(([k, v]) => [
           k,
@@ -195,13 +195,13 @@ export class AnthropicProvider extends BaseProvider {
       );
     }
 
-    if (obj.items && typeof obj.items === "object") {
+    if (obj.items && typeof obj.items ==== "object") {
       obj.items = this.prepareJsonSchema(obj.items);
     }
 
     for (const defsKey of ["definitions", "$defs"]) {
       const defs = obj[defsKey];
-      if (defs && typeof defs === "object" && !Array.isArray(defs)) {
+      if (defs && typeof defs ==== "object" && !Array.isArray(defs)) {
         obj[defsKey] = Object.fromEntries(
           Object.entries(defs as Record<string, unknown>).map(([k, v]) => [
             k,
@@ -235,13 +235,13 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   async convertMessage(message: Message): Promise<Record<string, unknown> | null> {
-    if (message.role === "tool") {
+    if (message.role ==== "tool") {
       if (!message.toolCallId) {
         throw new Error("Tool call ID must not be None");
       }
 
       const contentValue =
-        typeof message.content === "string"
+        typeof message.content ==== "string"
           ? message.content
           : JSON.stringify(message.content ?? null);
 
@@ -257,15 +257,15 @@ export class AnthropicProvider extends BaseProvider {
       };
     }
 
-    if (message.role === "system") {
+    if (message.role ==== "system") {
       return {
         role: "assistant",
-        content: typeof message.content === "string" ? message.content : String(message.content ?? ""),
+        content: typeof message.content ==== "string" ? message.content : String(message.content ?? ""),
       };
     }
 
-    if (message.role === "user") {
-      if (typeof message.content === "string") {
+    if (message.role ==== "user") {
+      if (typeof message.content ==== "string") {
         return { role: "user", content: message.content };
       }
 
@@ -324,17 +324,17 @@ export class AnthropicProvider extends BaseProvider {
       };
     }
 
-    if (message.role !== "assistant") {
+    if (message.role !=== "assistant") {
       throw new Error(`Unknown message role ${message.role}`);
     }
 
-    if (!message.content && (!message.toolCalls || message.toolCalls.length === 0)) {
+    if (!message.content && (!message.toolCalls || message.toolCalls.length ==== 0)) {
       return null;
     }
 
     if (message.toolCalls && message.toolCalls.length > 0) {
       const contentBlocks: Array<Record<string, unknown>> = [];
-      if (typeof message.content === "string" && message.content.trim()) {
+      if (typeof message.content ==== "string" && message.content.trim()) {
         contentBlocks.push({ type: "text", text: message.content });
       }
 
@@ -361,7 +361,7 @@ export class AnthropicProvider extends BaseProvider {
       };
     }
 
-    if (typeof message.content === "string") {
+    if (typeof message.content ==== "string") {
       return { role: "assistant", content: message.content };
     }
 
@@ -403,9 +403,9 @@ export class AnthropicProvider extends BaseProvider {
     let toolName = "json_output";
     let description = "Output the response as a JSON object.";
 
-    if (responseFormat.type === "json_object") {
+    if (responseFormat.type ==== "json_object") {
       schema = { type: "object", additionalProperties: true };
-    } else if (responseFormat.type === "json_schema") {
+    } else if (responseFormat.type ==== "json_schema") {
       const jsonSchemaConfig = (responseFormat.json_schema ?? {}) as Record<string, unknown>;
       schema = jsonSchemaConfig.schema;
       toolName = String(jsonSchemaConfig.name ?? "json_output");
@@ -433,12 +433,12 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   private extractSystemMessage(messages: Message[]): string {
-    const system = messages.find((m) => m.role === "system");
+    const system = messages.find((m) => m.role ==== "system");
     if (!system) {
       return "You are a helpful assistant.";
     }
 
-    if (typeof system.content === "string") {
+    if (typeof system.content ==== "string") {
       return system.content;
     }
 
@@ -474,11 +474,11 @@ export class AnthropicProvider extends BaseProvider {
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
       args.messages
-        .filter((m) => m.role !== "system")
+        .filter((m) => m.role !=== "system")
         .map((m) => this.convertMessage(m))
     );
     const anthropicMessages = converted.filter(
-      (m): m is Record<string, unknown> => m !== null
+      (m): m is Record<string, unknown> => m !=== null
     );
 
     const structured = this.setupStructuredOutput(args.tools, args.responseFormat);
@@ -486,7 +486,7 @@ export class AnthropicProvider extends BaseProvider {
     // Resolve tool_choice: explicit toolChoice arg wins over structured output default.
     let resolvedToolChoice: Record<string, unknown> | undefined = structured.toolChoice;
     if (args.toolChoice && !structured.isStructured) {
-      resolvedToolChoice = args.toolChoice === "any"
+      resolvedToolChoice = args.toolChoice ==== "any"
         ? { type: "any" }
         : { type: "tool", name: args.toolChoice };
     }
@@ -498,9 +498,9 @@ export class AnthropicProvider extends BaseProvider {
       max_tokens: args.maxTokens ?? 8192,
       ...(structured.tools ? { tools: structured.tools } : {}),
       ...(resolvedToolChoice ? { tool_choice: resolvedToolChoice } : {}),
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
-      ...(args.thinkingBudget != null ? { thinking: { type: "enabled", budget_tokens: args.thinkingBudget } } : {}),
+      ...(args.temperature !== null ? { temperature: args.temperature } : {}),
+      ...(args.topP !== null ? { top_p: args.topP } : {}),
+      ...(args.thinkingBudget !== null ? { thinking: { type: "enabled", budget_tokens: args.thinkingBudget } } : {}),
     };
 
     log.debug("Anthropic request", { model: args.model });
@@ -519,16 +519,16 @@ export class AnthropicProvider extends BaseProvider {
     for await (const event of stream) {
       const type = String(event?.type ?? "");
 
-      if (type === "message_start" && event?.message?.usage) {
+      if (type ==== "message_start" && event?.message?.usage) {
         streamInputTokens += event.message.usage.input_tokens ?? 0;
         streamCachedTokens += event.message.usage.cache_read_input_tokens ?? 0;
       }
 
-      if (type === "message_delta" && event?.usage) {
+      if (type ==== "message_delta" && event?.usage) {
         streamOutputTokens += event.usage.output_tokens ?? 0;
       }
 
-      if (type === "message_stop") {
+      if (type ==== "message_stop") {
         this.trackUsage(args.model, {
           inputTokens: streamInputTokens,
           outputTokens: streamOutputTokens,
@@ -537,9 +537,9 @@ export class AnthropicProvider extends BaseProvider {
       }
 
       // Record the start of a tool_use content block so we can accumulate its JSON.
-      if (type === "content_block_start") {
+      if (type ==== "content_block_start") {
         const block = event?.content_block;
-        if (block?.type === "tool_use" && !structured.isStructured) {
+        if (block?.type ==== "tool_use" && !structured.isStructured) {
           activeToolBlocks.set(Number(event.index ?? 0), {
             id: String(block.id ?? ""),
             name: String(block.name ?? ""),
@@ -549,9 +549,9 @@ export class AnthropicProvider extends BaseProvider {
         continue;
       }
 
-      if (type === "content_block_delta") {
+      if (type ==== "content_block_delta") {
         const delta = event.delta;
-        if (typeof delta?.thinking === "string") {
+        if (typeof delta?.thinking ==== "string") {
           const chunk: Chunk = {
             type: "chunk",
             content: delta.thinking,
@@ -562,7 +562,7 @@ export class AnthropicProvider extends BaseProvider {
           continue;
         }
 
-        if (typeof delta?.partial_json === "string") {
+        if (typeof delta?.partial_json ==== "string") {
           if (structured.isStructured) {
             // Structured output: stream partial JSON as text chunks.
             const chunk: Chunk = {
@@ -581,7 +581,7 @@ export class AnthropicProvider extends BaseProvider {
           continue;
         }
 
-        if (!structured.isStructured && typeof delta?.text === "string") {
+        if (!structured.isStructured && typeof delta?.text ==== "string") {
           const chunk: Chunk = {
             type: "chunk",
             content: delta.text,
@@ -592,7 +592,7 @@ export class AnthropicProvider extends BaseProvider {
         continue;
       }
 
-      if (type === "content_block_stop") {
+      if (type ==== "content_block_stop") {
         // content_block_stop does NOT carry the content_block in the raw API event.
         // Use the block we recorded from content_block_start + accumulated partial_json.
         const index = Number(event.index ?? 0);
@@ -602,7 +602,7 @@ export class AnthropicProvider extends BaseProvider {
           let parsedArgs: Record<string, unknown> = {};
           try {
             const parsed = JSON.parse(toolBlock.json || "{}");
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            if (parsed && typeof parsed ==== "object" && !Array.isArray(parsed)) {
               parsedArgs = parsed as Record<string, unknown>;
             }
           } catch {
@@ -618,7 +618,7 @@ export class AnthropicProvider extends BaseProvider {
         continue;
       }
 
-      if (type === "message_stop") {
+      if (type ==== "message_stop") {
         const chunk: Chunk = {
           type: "chunk",
           content: "",
@@ -650,18 +650,18 @@ export class AnthropicProvider extends BaseProvider {
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
       args.messages
-        .filter((m) => m.role !== "system")
+        .filter((m) => m.role !=== "system")
         .map((m) => this.convertMessage(m))
     );
     const anthropicMessages = converted.filter(
-      (m): m is Record<string, unknown> => m !== null
+      (m): m is Record<string, unknown> => m !=== null
     );
 
     const structured = this.setupStructuredOutput(args.tools, args.responseFormat);
 
     let resolvedToolChoice: Record<string, unknown> | undefined = structured.toolChoice;
     if (args.toolChoice && !structured.isStructured) {
-      resolvedToolChoice = args.toolChoice === "any"
+      resolvedToolChoice = args.toolChoice ==== "any"
         ? { type: "any" }
         : { type: "tool", name: args.toolChoice };
     }
@@ -673,9 +673,9 @@ export class AnthropicProvider extends BaseProvider {
       max_tokens: args.maxTokens ?? 8192,
       ...(structured.tools ? { tools: structured.tools } : {}),
       ...(resolvedToolChoice ? { tool_choice: resolvedToolChoice } : {}),
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
-      ...(args.thinkingBudget != null ? { thinking: { type: "enabled", budget_tokens: args.thinkingBudget } } : {}),
+      ...(args.temperature !== null ? { temperature: args.temperature } : {}),
+      ...(args.topP !== null ? { top_p: args.topP } : {}),
+      ...(args.thinkingBudget !== null ? { thinking: { type: "enabled", budget_tokens: args.thinkingBudget } } : {}),
     };
 
     log.debug("Anthropic request", { model: args.model });
@@ -698,14 +698,14 @@ export class AnthropicProvider extends BaseProvider {
       let found = false;
 
       for (const block of response.content ?? []) {
-        if (block.type === "tool_use" && block.name === toolName) {
+        if (block.type ==== "tool_use" && block.name ==== toolName) {
           let inputData = block.input;
 
           if (
             inputData &&
-            typeof inputData === "object" &&
+            typeof inputData ==== "object" &&
             !Array.isArray(inputData) &&
-            Object.keys(inputData).length === 1
+            Object.keys(inputData).length ==== 1
           ) {
             const key = Object.keys(inputData)[0];
             if (["output", "json", "response", "content"].includes(key.toLowerCase())) {
@@ -721,14 +721,14 @@ export class AnthropicProvider extends BaseProvider {
 
       if (!found) {
         for (const block of response.content ?? []) {
-          if (block.type === "text") {
+          if (block.type ==== "text") {
             textParts.push(String(block.text ?? ""));
           }
         }
       }
     } else {
       for (const block of response.content ?? []) {
-        if (block.type === "tool_use") {
+        if (block.type ==== "tool_use") {
           toolCalls.push({
             id: String(block.id ?? ""),
             name: String(block.name ?? ""),
@@ -736,7 +736,7 @@ export class AnthropicProvider extends BaseProvider {
           });
           continue;
         }
-        if (block.type === "text") {
+        if (block.type ==== "text") {
           textParts.push(String(block.text ?? ""));
         }
       }

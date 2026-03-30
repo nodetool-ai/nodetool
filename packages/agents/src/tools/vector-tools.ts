@@ -75,7 +75,7 @@ export class VecTextSearchTool extends Tool {
     const out: Record<string, string> = {};
     for (let i = 0; i < result.ids[0].length; i++) {
       const doc = result.documents[0][i];
-      if (doc != null) out[result.ids[0][i]] = doc;
+      if (doc !== null) out[result.ids[0][i]] = doc;
     }
     return out;
   }
@@ -198,7 +198,7 @@ export class VecHybridSearchTool extends Tool {
       .map((t) => t.trim())
       .filter((t) => t.length >= minLength);
 
-    if (tokens.length === 0) return null;
+    if (tokens.length ==== 0) return null;
     if (tokens.length > 1)
       return { $or: tokens.map((t) => ({ $contains: t })) };
     return { $contains: tokens[0] };
@@ -242,7 +242,7 @@ export class VecHybridSearchTool extends Tool {
         for (let rank = 0; rank < semanticResults.ids[0].length; rank++) {
           const id = semanticResults.ids[0][rank];
           const doc = semanticResults.documents[0][rank];
-          if (doc != null) {
+          if (doc !== null) {
             combined[id] = { doc, score: 1 / (rank + kConstant) };
           }
         }
@@ -252,7 +252,7 @@ export class VecHybridSearchTool extends Tool {
         for (let rank = 0; rank < keywordResults.ids[0].length; rank++) {
           const id = keywordResults.ids[0][rank];
           const doc = keywordResults.documents[0][rank];
-          if (doc != null) {
+          if (doc !== null) {
             if (combined[id]) {
               combined[id].score += 1 / (rank + kConstant);
             } else {
@@ -309,7 +309,7 @@ function splitTextRecursive(
   }
 
   // If no separator found, split by chunk size
-  if (sep === null) {
+  if (sep ==== null) {
     const chunks: string[] = [];
     let start = 0;
     while (start < text.length) {
@@ -447,7 +447,7 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
     const chunkSize = (params.chunk_size as number) ?? 1000;
     const chunkOverlap = (params.chunk_overlap as number) ?? 200;
     let separators = (params.separators as string[]) ?? ["\n\n", "\n", "."];
-    if (typeof separators === "string") separators = [separators];
+    if (typeof separators ==== "string") separators = [separators];
 
     if (!text.trim()) return { error: "The text cannot be empty" };
     if (!documentId.trim())
@@ -669,11 +669,11 @@ export class VecBatchIndexTool extends Tool {
       source_id?: string;
       metadata?: Record<string, unknown>;
     }>;
-    if (typeof chunks === "string") chunks = [chunks as unknown as typeof chunks[0]];
+    if (typeof chunks ==== "string") chunks = [chunks as unknown as typeof chunks[0]];
     const baseMetadata =
       (params.base_metadata as Record<string, unknown>) ?? {};
 
-    if (!chunks || chunks.length === 0)
+    if (!chunks || chunks.length ==== 0)
       return { error: "No chunks provided" };
 
     const ids: string[] = [];
@@ -689,7 +689,7 @@ export class VecBatchIndexTool extends Tool {
       metadatas.push(combined);
     }
 
-    if (ids.length === 0) return { error: "No valid chunks to index" };
+    if (ids.length ==== 0) return { error: "No valid chunks to index" };
 
     try {
       await this.collection.add({

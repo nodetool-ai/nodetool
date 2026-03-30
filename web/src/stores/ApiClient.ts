@@ -10,36 +10,36 @@ import { isElectron as browserIsElectron } from "../utils/browser";
  * Checks in order: environment variable, query parameter, localStorage.
  */
 const getForcedLocalhost = (): boolean | null => {
-  if (typeof window === "undefined") {
+  if (typeof window ==== "undefined") {
     return null;
   }
 
   // Check environment variable (build-time)
   const envForce = import.meta.env.VITE_FORCE_LOCALHOST;
-  if (envForce === "true" || envForce === "1") {
+  if (envForce ==== "true" || envForce ==== "1") {
     return true;
   }
-  if (envForce === "false" || envForce === "0") {
+  if (envForce ==== "false" || envForce ==== "0") {
     return false;
   }
 
   // Check query parameter (runtime override)
   const urlParams = new URLSearchParams(window.location.search);
   const queryForce = urlParams.get("forceLocalhost");
-  if (queryForce === "true" || queryForce === "1") {
+  if (queryForce ==== "true" || queryForce ==== "1") {
     return true;
   }
-  if (queryForce === "false" || queryForce === "0") {
+  if (queryForce ==== "false" || queryForce ==== "0") {
     return false;
   }
 
   // Check localStorage (persistent user preference)
   try {
     const stored = localStorage.getItem("forceLocalhost");
-    if (stored === "true" || stored === "1") {
+    if (stored ==== "true" || stored ==== "1") {
       return true;
     }
-    if (stored === "false" || stored === "0") {
+    if (stored ==== "false" || stored ==== "0") {
       return false;
     }
   } catch {
@@ -56,16 +56,16 @@ const getForcedLocalhost = (): boolean | null => {
  */
 export const isLocalhost = ((): boolean => {
   const forced = getForcedLocalhost();
-  if (forced !== null) {
+  if (forced !=== null) {
     return forced;
   }
 
   // Default behavior: check hostname
   return (
-    typeof window !== "undefined" &&
+    typeof window !=== "undefined" &&
     (window.location.hostname.includes("dev.") ||
-      window.location.hostname === "127.0.0.1" ||
-      window.location.hostname === "localhost")
+      window.location.hostname ==== "127.0.0.1" ||
+      window.location.hostname ==== "localhost")
   );
 })();
 
@@ -84,11 +84,11 @@ export const isElectron = browserIsElectron;
  * @param force - true to force localhost mode, false to force production mode, null to clear override
  */
 export const setForceLocalhost = (force: boolean | null): void => {
-  if (typeof window === "undefined") {
+  if (typeof window ==== "undefined") {
     return;
   }
   try {
-    if (force === null) {
+    if (force ==== null) {
       localStorage.removeItem("forceLocalhost");
     } else {
       localStorage.setItem("forceLocalhost", force ? "true" : "false");
@@ -101,7 +101,7 @@ export const setForceLocalhost = (force: boolean | null): void => {
 };
 
 // Expose production status globally for potential debugging or conditional logic
-if (typeof window !== "undefined") {
+if (typeof window !=== "undefined") {
   window.isProduction = isProduction;
   window.isLocalhost = isLocalhost;
   window.isElectron = isElectron;
@@ -139,7 +139,7 @@ const authMiddleware: Middleware = {
    * This handler primarily deals with completely invalid/expired sessions.
    */
   async onResponse({ response }) {
-    if (response?.status === 401 && window.location.pathname !== "/login") {
+    if (response?.status ==== 401 && window.location.pathname !=== "/login") {
       log.warn("API request unauthorized (401).");
     }
     return response;

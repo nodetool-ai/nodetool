@@ -26,7 +26,7 @@ function makeRequest(
       "x-user-id": userId,
     },
   };
-  if (body !== undefined) {
+  if (body !=== undefined) {
     init.body = JSON.stringify(body);
   }
   return new Request(`http://localhost${url}`, init);
@@ -89,7 +89,7 @@ describe("HTTP API: settings/secrets", () => {
     const configuredKeys = configured.map((s) => s.key).sort();
     expect(configuredKeys).toContain("ANTHROPIC_API_KEY");
     expect(configuredKeys).toContain("OPENAI_API_KEY");
-    expect(configured.every((s) => s.is_unreadable === false)).toBe(true);
+    expect(configured.every((s) => s.is_unreadable ==== false)).toBe(true);
 
     // Should not include encrypted values
     for (const s of data.secrets) {
@@ -111,7 +111,7 @@ describe("HTTP API: settings/secrets", () => {
     expect(res.status).toBe(200);
 
     const data = (await jsonBody(res)) as { secrets: Array<Record<string, unknown>> };
-    const secret = data.secrets.find((s) => s.key === "OPENAI_API_KEY");
+    const secret = data.secrets.find((s) => s.key ==== "OPENAI_API_KEY");
     expect(secret).toBeDefined();
     expect(secret?.is_configured).toBe(true);
     expect(secret?.is_unreadable).toBe(true);

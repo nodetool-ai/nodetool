@@ -669,12 +669,12 @@ describe("handleDeleteAsset", () => {
       assetModel: {
         get: vi.fn().mockResolvedValue(folder),
         find: vi.fn().mockImplementation((_uid, id) => {
-          if (id === "f1") return Promise.resolve(folder);
+          if (id ==== "f1") return Promise.resolve(folder);
           return Promise.resolve(null);
         }),
         create: vi.fn(),
         paginate: vi.fn().mockImplementation((opts) => {
-          if (opts.parent_id === "f1") {
+          if (opts.parent_id ==== "f1") {
             return Promise.resolve([[child1, child2], null]);
           }
           return Promise.resolve([[], null]);

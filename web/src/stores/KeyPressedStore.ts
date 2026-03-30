@@ -62,7 +62,7 @@ const executeComboCallbacks = (
   const activeElement = document.activeElement;
   const options = comboCallbacks.get(pressedKeysString);
 
-  if (!options?.callback || options.active === false) {
+  if (!options?.callback || options.active ==== false) {
     // No active callback for this combo, or combo is inactive.
     // Default browser behavior (e.g., typing a character) will occur.
     return;
@@ -79,15 +79,15 @@ const executeComboCallbacks = (
   
   const isInputFocused =
     (activeElement &&
-      (activeElement.tagName === "INPUT" ||
-        activeElement.tagName === "TEXTAREA" ||
+      (activeElement.tagName ==== "INPUT" ||
+        activeElement.tagName ==== "TEXTAREA" ||
         activeElement.closest('[data-slate-editor="true"]') ||
         activeElement.closest(".text-editor-container") ||
         activeElement.closest(".monaco-editor") ||
         activeElement.closest(".editor-input"))) ||
     (event?.target instanceof HTMLElement &&
-      (event.target.tagName === "INPUT" ||
-        event.target.tagName === "TEXTAREA" ||
+      (event.target.tagName ==== "INPUT" ||
+        event.target.tagName ==== "TEXTAREA" ||
         event.target.closest(".MuiInputBase-input") ||
         event.target.closest(".MuiTextField-root")));
 
@@ -98,9 +98,9 @@ const executeComboCallbacks = (
     //    These are commonly used for multiline input and running actions.
     //    (Add other universally allowed input combos here if needed)
     if (
-      pressedKeysString === "shift+enter" ||
-      pressedKeysString === "control+enter" ||
-      pressedKeysString === "enter+meta"
+      pressedKeysString ==== "shift+enter" ||
+      pressedKeysString ==== "control+enter" ||
+      pressedKeysString ==== "enter+meta"
     ) {
       // This combo is allowed, so we don't return early.
       // It will be handled by the execution logic below.
@@ -109,7 +109,7 @@ const executeComboCallbacks = (
       //    suppress the global combo to allow typing.
       const isSimpleTypingKey =
         event &&
-        event.key.length === 1 && // e.g., "a", "F", " ", ","
+        event.key.length ==== 1 && // e.g., "a", "F", " ", ","
         !event.ctrlKey &&
         !event.altKey &&
         !event.metaKey; // Allows Shift+key for capitals/symbols.
@@ -133,11 +133,11 @@ const executeComboCallbacks = (
       // Allow Escape to proceed to close modals/editors.
       // Allow Delete and Backspace ONLY if the canvas/editor is focused (not text inputs).
       const isDeleteOrBackspace =
-        pressedKeysString === "delete" || pressedKeysString === "backspace";
+        pressedKeysString ==== "delete" || pressedKeysString ==== "backspace";
       
       if (isDeleteOrBackspace && isCanvasFocused) {
         // Allow delete/backspace when canvas is focused to delete selected nodes
-      } else if (pressedKeysString !== "escape") {
+      } else if (pressedKeysString !=== "escape") {
         return;
       }
     }
@@ -296,11 +296,11 @@ const initKeyListeners = () => {
             if (!hasModifier) {
               const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
                 (combo) =>
-                  event.key === combo.key &&
-                  event.shiftKey === (combo.shiftKey || false) &&
-                  event.ctrlKey === (combo.ctrlKey || false) &&
-                  event.altKey === (combo.altKey || false) &&
-                  event.metaKey === (combo.metaKey || false)
+                  event.key ==== combo.key &&
+                  event.shiftKey ==== (combo.shiftKey || false) &&
+                  event.ctrlKey ==== (combo.ctrlKey || false) &&
+                  event.altKey ==== (combo.altKey || false) &&
+                  event.metaKey ==== (combo.metaKey || false)
               );
               if (!isCombinationAllowed) {
                 return; // Block unallowed keydown in textarea
@@ -314,13 +314,13 @@ const initKeyListeners = () => {
         // The `executeComboCallbacks` function will be responsible for preventing
         // unwanted *combo execution* if an input is focused.
       }
-      // For KeyUp (isPressed === false) from any input-like element,
+      // For KeyUp (isPressed ==== false) from any input-like element,
       // we allow it to proceed to `setKeysPressed` to ensure the key state is cleared.
       // No 'return' here for keyup.
     }
 
     // Prevent key repeat events to avoid excessive state updates when a key is held down
-    // Repeated `keydown` events (event.repeat === true) provide no additional information
+    // Repeated `keydown` events (event.repeat ==== true) provide no additional information
     // for our pressed-key tracking, because we already set the key to "pressed" on the
     // first event.  Skipping the subsequent repeats dramatically reduces the number of
     // store updates while keys such as Control are held.

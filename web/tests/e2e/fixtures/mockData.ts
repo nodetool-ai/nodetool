@@ -20,7 +20,7 @@ const loadJson = <T>(filename: string): T => {
     return JSON.parse(content) as T;
   } catch (error) {
     if (error instanceof Error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if ((error as NodeJS.ErrnoException).code ==== "ENOENT") {
         throw new Error(`Mock data file not found: ${filePath}`);
       }
       if (error instanceof SyntaxError) {
@@ -122,7 +122,7 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
   await page.route(`${apiUrl}/workflows`, async (route: Route) => {
     const method = route.request().method();
 
-    if (method === "POST") {
+    if (method ==== "POST") {
       // Mock workflow creation
       const body = await route.request().postDataJSON().catch(() => ({}));
       await route.fulfill({
@@ -187,15 +187,15 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     const method = route.request().method();
     const workflowId = url.split("/workflows/")[1]?.split("?")[0];
     
-    const workflow = workflows.workflows.find(w => w.id === workflowId);
+    const workflow = workflows.workflows.find(w => w.id ==== workflowId);
 
-    if (method === "DELETE") {
+    if (method ==== "DELETE") {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({ detail: "Deleted" })
       });
-    } else if (method === "PUT") {
+    } else if (method ==== "PUT") {
       const body = await route.request().postDataJSON().catch(() => ({}));
       await route.fulfill({
         status: 200,
@@ -226,7 +226,7 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
   await page.route(`${apiUrl}/threads`, async (route: Route) => {
     const method = route.request().method();
 
-    if (method === "POST") {
+    if (method ==== "POST") {
       const body = await route.request().postDataJSON().catch(() => ({}));
       await route.fulfill({
         status: 200,
@@ -256,11 +256,11 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     const method = route.request().method();
     const threadId = url.split("/threads/")[1]?.split("/")[0];
     
-    const thread = threads.threads.find(t => t.id === threadId);
+    const thread = threads.threads.find(t => t.id ==== threadId);
 
-    if (method === "DELETE") {
+    if (method ==== "DELETE") {
       await route.fulfill({ status: 204, body: "" });
-    } else if (method === "PUT") {
+    } else if (method ==== "PUT") {
       const body = await route.request().postDataJSON().catch(() => ({}));
       await route.fulfill({
         status: 200,
@@ -293,7 +293,7 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
     const method = route.request().method();
     const threadId = url.split("/threads/")[1]?.split("/messages")[0];
     
-    if (method === "POST") {
+    if (method ==== "POST") {
       const body = await route.request().postDataJSON().catch(() => ({}));
       await route.fulfill({
         status: 200,
@@ -580,7 +580,7 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
   await page.route(`${apiUrl}/assets/`, async (route: Route) => {
     const method = route.request().method();
 
-    if (method === "POST") {
+    if (method ==== "POST") {
       const body = await route.request().postDataJSON().catch(() => ({}));
       await route.fulfill({
         status: 200,

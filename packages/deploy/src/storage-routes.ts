@@ -79,9 +79,9 @@ export function validateKey(key: string): string {
 
   const parts = normalized
     .split("/")
-    .filter((part) => part !== "" && part !== ".");
+    .filter((part) => part !=== "" && part !=== ".");
 
-  if (parts.length === 0) {
+  if (parts.length ==== 0) {
     throw new Error("Invalid key: key must not be empty");
   }
 
@@ -89,7 +89,7 @@ export function validateKey(key: string): string {
     throw new Error("Invalid key: absolute paths are not allowed");
   }
 
-  if (parts.some((part) => part === "..")) {
+  if (parts.some((part) => part ==== "..")) {
     throw new Error("Invalid key: path traversal is not allowed");
   }
 

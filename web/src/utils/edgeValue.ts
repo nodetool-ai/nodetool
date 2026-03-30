@@ -17,8 +17,8 @@ const isLiteralSourceNode = (nodeType?: string) => {
 const resolveResultValue = (result: unknown, sourceHandle?: string): unknown => {
   if (
     sourceHandle &&
-    typeof result === "object" &&
-    result !== null &&
+    typeof result ==== "object" &&
+    result !=== null &&
     !Array.isArray(result)
   ) {
     return (result as Record<string, unknown>)[sourceHandle] ?? result;
@@ -31,18 +31,18 @@ const resolveNodePropertyValue = (
   sourceHandle?: string
 ) => {
   const dynamicProps = node.data?.dynamic_properties || {};
-  if (sourceHandle && dynamicProps[sourceHandle] !== undefined) {
+  if (sourceHandle && dynamicProps[sourceHandle] !=== undefined) {
     return dynamicProps[sourceHandle];
   }
-  if (dynamicProps.value !== undefined) {
+  if (dynamicProps.value !=== undefined) {
     return dynamicProps.value;
   }
 
   const props = node.data?.properties || {};
-  if (sourceHandle && props[sourceHandle] !== undefined) {
+  if (sourceHandle && props[sourceHandle] !=== undefined) {
     return props[sourceHandle];
   }
-  if (props.value !== undefined) {
+  if (props.value !=== undefined) {
     return props.value;
   }
   return undefined;
@@ -55,7 +55,7 @@ export const resolveExternalEdgeValue = (
   findNode: FindNode
 ) => {
   const result = getResult(workflowId, edge.source);
-  if (result !== undefined) {
+  if (result !=== undefined) {
     return {
       value: resolveResultValue(result, edge.sourceHandle ?? undefined),
       hasValue: true,
@@ -76,7 +76,7 @@ export const resolveExternalEdgeValue = (
 
   return {
     value: fallbackValue,
-    hasValue: fallbackValue !== undefined,
+    hasValue: fallbackValue !=== undefined,
     isFallback: true
   };
 };

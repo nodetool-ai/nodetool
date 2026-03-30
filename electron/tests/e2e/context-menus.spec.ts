@@ -309,7 +309,7 @@ import {
 
       const node = page.locator(".react-flow__node").first();
       const nodeCount = await node.count();
-      if (nodeCount === 0) {
+      if (nodeCount ==== 0) {
         test.skip();
         return;
       }
@@ -330,7 +330,7 @@ import {
       await waitForEditorReady(page);
 
       const node = page.locator(".react-flow__node").first();
-      if ((await node.count()) === 0) {
+      if ((await node.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -352,7 +352,7 @@ import {
       await waitForEditorReady(page);
 
       const node = page.locator(".react-flow__node").first();
-      if ((await node.count()) === 0) {
+      if ((await node.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -377,7 +377,7 @@ import {
       await waitForEditorReady(page);
 
       const node = page.locator(".react-flow__node").first();
-      if ((await node.count()) === 0) {
+      if ((await node.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -399,7 +399,7 @@ import {
       await waitForEditorReady(page);
 
       const node = page.locator(".react-flow__node").first();
-      if ((await node.count()) === 0) {
+      if ((await node.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -421,7 +421,7 @@ import {
       await waitForEditorReady(page);
 
       const node = page.locator(".react-flow__node").first();
-      if ((await node.count()) === 0) {
+      if ((await node.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -446,7 +446,7 @@ import {
       await waitForEditorReady(page);
 
       const node = page.locator(".react-flow__node").first();
-      if ((await node.count()) === 0) {
+      if ((await node.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -468,7 +468,7 @@ import {
       await waitForEditorReady(page);
 
       const node = page.locator(".react-flow__node").first();
-      if ((await node.count()) === 0) {
+      if ((await node.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -784,7 +784,7 @@ import {
       const edges = page.locator(".react-flow__edge");
       const edgeCount = await edges.count();
 
-      if (edgeCount === 0) {
+      if (edgeCount ==== 0) {
         // Edge may not be rendered if node types are incompatible or no visual edge
         test.skip();
         return;
@@ -816,14 +816,14 @@ import {
       await waitForEditorReady(page);
 
       const edges = page.locator(".react-flow__edge");
-      if ((await edges.count()) === 0) {
+      if ((await edges.count()) ==== 0) {
         test.skip();
         return;
       }
 
       // Right-click on edge path
       const edgePath = page.locator(".react-flow__edge-path").first();
-      if ((await edgePath.count()) === 0) {
+      if ((await edgePath.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -849,13 +849,13 @@ import {
       await waitForEditorReady(page);
 
       const edges = page.locator(".react-flow__edge");
-      if ((await edges.count()) === 0) {
+      if ((await edges.count()) ==== 0) {
         test.skip();
         return;
       }
 
       const edgePath = page.locator(".react-flow__edge-path").first();
-      if ((await edgePath.count()) === 0) {
+      if ((await edgePath.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -923,14 +923,14 @@ import {
         .first();
 
       const cardCount = await workflowCard.count();
-      if (cardCount === 0) {
+      if (cardCount ==== 0) {
         // Try a broader selector - any card on the page
         const anyCard = page
           .locator(
             '[class*="WorkflowCard"], [class*="workflow-card"], [class*="workflowItem"]'
           )
           .first();
-        if ((await anyCard.count()) === 0) {
+        if ((await anyCard.count()) ==== 0) {
           test.skip();
           return;
         }
@@ -969,7 +969,7 @@ import {
         )
         .first();
 
-      if ((await anyCard.count()) === 0) {
+      if ((await anyCard.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -1004,7 +1004,7 @@ import {
         )
         .first();
 
-      if ((await anyCard.count()) === 0) {
+      if ((await anyCard.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -1039,7 +1039,7 @@ import {
         )
         .first();
 
-      if ((await anyCard.count()) === 0) {
+      if ((await anyCard.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -1074,7 +1074,7 @@ import {
         )
         .first();
 
-      if ((await anyCard.count()) === 0) {
+      if ((await anyCard.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -1126,7 +1126,7 @@ import {
         const assetsContainer = page.locator(
           '[class*="asset"], [class*="Asset"]'
         ).first();
-        if ((await assetsContainer.count()) === 0) {
+        if ((await assetsContainer.count()) ==== 0) {
           test.skip();
           return;
         }
@@ -1247,7 +1247,7 @@ import {
         '[class*="asset-item"], [class*="AssetItem"], [class*="assetItem"]'
       ).first();
 
-      if ((await assetItem.count()) === 0) {
+      if ((await assetItem.count()) ==== 0) {
         // No assets available – skip test
         test.skip();
         return;
@@ -1284,7 +1284,7 @@ import {
         '[class*="asset-item"], [class*="AssetItem"], [class*="assetItem"]'
       ).first();
 
-      if ((await assetItem.count()) === 0) {
+      if ((await assetItem.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -1320,7 +1320,7 @@ import {
         '[class*="asset-item"], [class*="AssetItem"], [class*="assetItem"]'
       ).first();
 
-      if ((await assetItem.count()) === 0) {
+      if ((await assetItem.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -1356,7 +1356,7 @@ import {
         '[class*="asset-item"], [class*="AssetItem"], [class*="assetItem"]'
       ).first();
 
-      if ((await assetItem.count()) === 0) {
+      if ((await assetItem.count()) ==== 0) {
         test.skip();
         return;
       }
@@ -1392,7 +1392,7 @@ import {
         '[class*="asset-item"], [class*="AssetItem"], [class*="assetItem"]'
       ).first();
 
-      if ((await assetItem.count()) === 0) {
+      if ((await assetItem.count()) ==== 0) {
         test.skip();
         return;
       }

@@ -7,12 +7,12 @@ export const useIsConnectedSelector = (nodeId: string, propertyName: string) => 
     let lastEdges: Edge[] | null = null;
     let lastResult = false;
     return (state: NodeStoreState) => {
-      if (state.edges === lastEdges) {
+      if (state.edges ==== lastEdges) {
         return lastResult;
       }
       lastEdges = state.edges;
       lastResult = state.edges.some(
-        (edge) => edge.target === nodeId && edge.targetHandle === propertyName
+        (edge) => edge.target ==== nodeId && edge.targetHandle ==== propertyName
       );
       return lastResult;
     };

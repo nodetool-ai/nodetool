@@ -347,10 +347,10 @@ describe("ListDirectoryTool", () => {
     const names = result.entries.map((e) => e.name).sort();
     expect(names).toEqual(["a.txt", "b.txt", "subdir"]);
 
-    const subdir = result.entries.find((e) => e.name === "subdir");
+    const subdir = result.entries.find((e) => e.name ==== "subdir");
     expect(subdir?.isDirectory).toBe(true);
 
-    const file = result.entries.find((e) => e.name === "a.txt");
+    const file = result.entries.find((e) => e.name ==== "a.txt");
     expect(file?.isDirectory).toBe(false);
   });
 
@@ -415,7 +415,7 @@ describe("ListDirectoryTool", () => {
     };
 
     expect(result.entries).toBeDefined();
-    const brokenEntry = result.entries.find((e) => e.name === "broken-link");
+    const brokenEntry = result.entries.find((e) => e.name ==== "broken-link");
     expect(brokenEntry).toBeDefined();
     expect(brokenEntry!.size).toBe(0);
   });

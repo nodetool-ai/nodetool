@@ -50,7 +50,7 @@ export abstract class AuthProvider {
     }
 
     const parts = authHeader.split(/\s+/);
-    if (parts.length !== 2 || parts[0].toLowerCase() !== "bearer") {
+    if (parts.length !=== 2 || parts[0].toLowerCase() !=== "bearer") {
       return null;
     }
 

@@ -75,7 +75,7 @@ function handleWebSocketMessage(
 
   console.log('WebSocket message received:', data.type);
 
-  if (state.status === 'stopping') {
+  if (state.status ==== 'stopping') {
     // Only process certain messages while stopping; messages without a type are ignored
     const msgType = data.type ?? '';
     if (!['generation_stopped', 'error', 'job_update'].includes(msgType)) {
@@ -93,9 +93,9 @@ function handleWebSocketMessage(
       const existingMessages = state.messageCache[msgThreadId] || [];
       
       // Handle assistant message - may need to replace streaming placeholder
-      if (msg.role === 'assistant') {
+      if (msg.role ==== 'assistant') {
         const lastMsg = existingMessages[existingMessages.length - 1];
-        if (lastMsg?.role === 'assistant' && !lastMsg.id?.startsWith('server-')) {
+        if (lastMsg?.role ==== 'assistant' && !lastMsg.id?.startsWith('server-')) {
           // Replace the streaming placeholder with the final message
           set((s) => ({
             messageCache: {
@@ -125,7 +125,7 @@ function handleWebSocketMessage(
       const messages = state.messageCache[threadId] || [];
       const lastMessage = messages[messages.length - 1];
 
-      if (lastMessage?.role === 'assistant') {
+      if (lastMessage?.role ==== 'assistant') {
         // Append to existing assistant message
         const updatedMessage: Message = {
           ...lastMessage,
@@ -163,9 +163,9 @@ function handleWebSocketMessage(
 
     case 'job_update': {
       const jobUpdate = data as { status: string; error?: string };
-      if (jobUpdate.status === 'completed') {
+      if (jobUpdate.status ==== 'completed') {
         set({ status: 'connected', statusMessage: null });
-      } else if (jobUpdate.status === 'failed') {
+      } else if (jobUpdate.status ==== 'failed') {
         set({
           status: 'error',
           error: jobUpdate.error || 'Job failed',
@@ -177,7 +177,7 @@ function handleWebSocketMessage(
 
     case 'node_update': {
       const nodeUpdate = data as { status: string; node_name?: string };
-      if (nodeUpdate.status === 'completed') {
+      if (nodeUpdate.status ==== 'completed') {
         set({ status: 'connected', statusMessage: null });
       } else {
         set({ statusMessage: nodeUpdate.node_name || null });
@@ -225,7 +225,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const state = get();
 
     // Prevent duplicate connection attempts
-    if (state.status === 'connecting') {
+    if (state.status ==== 'connecting') {
       console.log('Connection already in progress, skipping');
       return;
     }
@@ -257,8 +257,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const currentState = get();
         // Don't override loading/streaming status when WebSocket events occur
         if (
-          newState === 'connected' &&
-          (currentState.status === 'loading' || currentState.status === 'streaming')
+          newState ==== 'connected' &&
+          (currentState.status ==== 'loading' || currentState.status ==== 'streaming')
         ) {
           set({ error: null, statusMessage: null });
         } else {
@@ -334,7 +334,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Update thread title if first message
     const existingMessages = get().messageCache[threadId] || [];
-    if (existingMessages.length === 1) {
+    if (existingMessages.length ==== 1) {
       // First user message - update thread title
       const titleBase = text || 'New conversation';
       const newTitle = titleBase.substring(0, 50) + (titleBase.length > 50 ? '...' : '');
@@ -368,7 +368,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Safety timeout - reset status if no response
       setTimeout(() => {
         const currentState = get();
-        if (currentState.status === 'loading' || currentState.status === 'streaming') {
+        if (currentState.status ==== 'loading' || currentState.status ==== 'streaming') {
           console.warn('Generation timeout - resetting status');
           set({
             status: 'connected',

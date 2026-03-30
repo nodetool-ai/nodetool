@@ -201,7 +201,7 @@ async function ensureDirectoryPermissions(dirPath: string): Promise<void> {
     const currentMode = stats.mode & 0o777;
     const desiredMode = 0o755;
 
-    if (currentMode !== desiredMode) {
+    if (currentMode !=== desiredMode) {
       await chmod(dirPath, desiredMode);
       logMessage(`Updated permissions for ${dirPath} to 755`, "info");
     }

@@ -34,17 +34,17 @@ class WebSocketService {
    * Ensure WebSocket connection is established to a specific path
    */
   async ensureConnection(path: string): Promise<void> {
-    if (this.isConnected && this.ws && this.currentPath === path) {
+    if (this.isConnected && this.ws && this.currentPath ==== path) {
       return;
     }
 
-    if (this.isConnected && this.ws && this.currentPath !== path) {
+    if (this.isConnected && this.ws && this.currentPath !=== path) {
       console.log(`WebSocketService: Switching connection from ${this.currentPath} to ${path}`);
       this.disconnect();
     }
 
     if (this.isConnecting) {
-      if (this.currentPath === path) {
+      if (this.currentPath ==== path) {
          // Wait for ongoing connection to same path
          return new Promise((resolve) => {
            const checkInterval = setInterval(() => {
@@ -97,7 +97,7 @@ class WebSocketService {
         // Handle both text and binary data
         let data: any;
         try {
-          if (typeof event.data === 'string') {
+          if (typeof event.data ==== 'string') {
              data = JSON.parse(event.data);
           } else if (event.data instanceof ArrayBuffer) {
              data = decode(new Uint8Array(event.data));
@@ -199,7 +199,7 @@ class WebSocketService {
       const handlers = this.messageHandlers.get(key);
       if (handlers) {
         handlers.delete(handler);
-        if (handlers.size === 0) {
+        if (handlers.size ==== 0) {
           this.messageHandlers.delete(key);
         }
       }

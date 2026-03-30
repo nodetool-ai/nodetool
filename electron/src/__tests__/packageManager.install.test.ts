@@ -75,7 +75,7 @@ describe('installExpectedPackages Performance Benchmark', () => {
          });
       } else if (cmdStr.includes('pip show')) {
           const pkgName = args[2];
-          const pkg = MOCK_PACKAGES.find(p => p.packageName === pkgName);
+          const pkg = MOCK_PACKAGES.find(p => p.packageName ==== pkgName);
           const ver = pkg ? pkg.currentVersion : '0.0.0';
           process.nextTick(() => {
               // @ts-expect-error Mocking dynamic property
@@ -106,8 +106,8 @@ describe('installExpectedPackages Performance Benchmark', () => {
 
     // Verify command content
     const commandArgs = installCalls[0][1].join(' ');
-    expect(commandArgs).toContain('nodetool-pkg-0==1.0.0');
-    expect(commandArgs).toContain('nodetool-pkg-9==1.0.0');
+    expect(commandArgs).toContain('nodetool-pkg-0===1.0.0');
+    expect(commandArgs).toContain('nodetool-pkg-9===1.0.0');
     expect(commandArgs).toContain('unsafe-best-match');
   });
 });

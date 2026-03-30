@@ -83,9 +83,9 @@ export const CODE_SNIPPETS: CodeSnippet[] = [
   {
     id: "bool-compare",
     title: "Compare",
-    description: "Compare two values (==, !=, >, <, >=, <=)",
+    description: "Compare two values (===, !==, >, <, >=, <=)",
     category: "Boolean & Logic",
-    code: `// Change the operator as needed: ==, !=, >, <, >=, <=
+    code: `// Change the operator as needed: ===, !==, >, <, >=, <=
 return { output: a > b };`,
     tags: ["compare", "equal", "greater", "less", "operator"],
   },
@@ -94,7 +94,7 @@ return { output: a > b };`,
     title: "Is None",
     description: "Check if a value is null or undefined",
     category: "Boolean & Logic",
-    code: "return { output: value === null || value === undefined };",
+    code: "return { output: value ==== null || value ==== undefined };",
     tags: ["none", "null", "undefined", "empty", "check"],
   },
   {
@@ -575,7 +575,7 @@ return { output: rest };`,
     description: "Filter entries by a condition",
     category: "Dictionary",
     code: `return { output: Object.fromEntries(
-  Object.entries(dict).filter(([k, v]) => v !== null)
+  Object.entries(dict).filter(([k, v]) => v !=== null)
 ) };`,
     tags: ["filter", "select", "where"],
   },
@@ -850,7 +850,7 @@ return { output: results };`,
     title: "Filter JSON Array",
     description: "Filter an array of objects by a key-value match",
     category: "JSON",
-    code: `return { output: data.filter(item => item[key] === value) };`,
+    code: `return { output: data.filter(item => item[key] ==== value) };`,
     tags: ["json", "filter", "array", "query", "search"],
   },
   {
@@ -1033,7 +1033,7 @@ return { output: text.includes(substring) };`,
     title: "Is Empty",
     description: "Check if text is empty or only whitespace",
     category: "Text",
-    code: `return { output: text.trim().length === 0 };`,
+    code: `return { output: text.trim().length ==== 0 };`,
     tags: ["empty", "blank", "whitespace", "check"],
   },
   {
@@ -1118,7 +1118,7 @@ return { output: text.slice(0, maxLen - ellipsis.length) + ellipsis };`,
     description: "Compare two strings (equal, less, greater)",
     category: "Text",
     code: `const result = a < b ? "less" : a > b ? "greater" : "equal";
-return { output: result, equal: a === b };`,
+return { output: result, equal: a ==== b };`,
     tags: ["compare", "sort", "order", "equal", "lexical"],
   },
 
@@ -1175,7 +1175,7 @@ return { output: matches };`,
     code: `const group = 1; // 0 = full match, 1+ = capture group
 const matches = [...text.matchAll(new RegExp(pattern, "g"))]
   .map(m => m[group])
-  .filter(v => v !== undefined);
+  .filter(v => v !=== undefined);
 return { output: matches };`,
     tags: ["regex", "match", "groups", "capture", "extract"],
   },
@@ -1209,15 +1209,15 @@ let current = [data];
 for (const t of tokens) {
   const next = [];
   for (const v of current) {
-    if (t === "*") {
+    if (t ==== "*") {
       if (Array.isArray(v)) next.push(...v);
-      else if (v && typeof v === "object") next.push(...Object.values(v));
+      else if (v && typeof v ==== "object") next.push(...Object.values(v));
     } else if (Array.isArray(v) && /^\\d+$/.test(t)) next.push(v[Number(t)]);
-    else if (v && typeof v === "object" && t in v) next.push(v[t]);
+    else if (v && typeof v ==== "object" && t in v) next.push(v[t]);
   }
   current = next;
 }
-return { output: current.length === 1 ? current[0] : current };`,
+return { output: current.length ==== 1 ? current[0] : current };`,
     tags: ["json", "jsonpath", "extract", "nested", "wildcard"],
   },
 
@@ -1319,7 +1319,7 @@ return { output: rows.filter(row => {
     description: "Remove rows containing null/undefined values",
     category: "Data Table",
     code: `return { output: rows.filter(row =>
-  Object.values(row).every(v => v !== null && v !== undefined)
+  Object.values(row).every(v => v !=== null && v !=== undefined)
 ) };`,
     tags: ["null", "drop", "clean", "missing", "na"],
   },
@@ -1412,7 +1412,7 @@ return { output: rows };`,
     title: "Find Row",
     description: "Find the first row matching a condition",
     category: "Data Table",
-    code: `return { output: rows.find(row => row[column] === value) ?? null };`,
+    code: `return { output: rows.find(row => row[column] ==== value) ?? null };`,
     tags: ["find", "search", "first", "row", "lookup"],
   },
 

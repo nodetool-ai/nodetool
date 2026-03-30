@@ -535,7 +535,7 @@ describe("OllamaProvider – hasToolSupport with /api/show", () => {
 
     // Only one /api/show call should have been made
     const showCalls = fetchFn.mock.calls.filter(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/show")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/show")
     );
     expect(showCalls).toHaveLength(1);
   });
@@ -704,11 +704,11 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
 
   function makeFetchForEmulation(chatContent: string) {
     return vi.fn().mockImplementation(async (url: string, opts?: any) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         // Model does NOT support tools
         return jsonResponse({ capabilities: ["completion"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return jsonResponse({ message: { content: chatContent } });
       }
       return jsonResponse({});
@@ -738,13 +738,13 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
 
     // Verify tool descriptions were injected into the request body
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
     // Should NOT have tools in the request (emulation strips them)
     expect(body.tools).toBeUndefined();
     // System message should contain tool descriptions
-    const systemMsg = body.messages.find((m: any) => m.role === "system");
+    const systemMsg = body.messages.find((m: any) => m.role ==== "system");
     expect(systemMsg.content).toContain("search_web");
     expect(systemMsg.content).toContain("function_name(param='value')");
   });
@@ -768,12 +768,12 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
     });
 
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
     // Tool message should be converted to user message
     const toolAsUser = body.messages.find(
-      (m: any) => m.role === "user" && m.content.startsWith("Function result:")
+      (m: any) => m.role ==== "user" && m.content.startsWith("Function result:")
     );
     expect(toolAsUser).toBeDefined();
     expect(toolAsUser.content).toContain('{"results": ["a","b"]}');
@@ -781,10 +781,10 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
 
   it("uses native tool calls when hasToolSupport returns true", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["tools", "completion"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return jsonResponse({
           message: {
             content: "",
@@ -812,7 +812,7 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
     expect(result.toolCalls![0].name).toBe("search_web");
     // Verify tools were passed in the request (native mode)
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
     expect(body.tools).toBeDefined();
@@ -833,10 +833,10 @@ describe("OllamaProvider – tool emulation in generateMessage", () => {
     });
 
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
-    const systemMsg = body.messages.find((m: any) => m.role === "system");
+    const systemMsg = body.messages.find((m: any) => m.role ==== "system");
     expect(systemMsg).toBeDefined();
     expect(systemMsg.content).toContain("search_web");
   });
@@ -858,10 +858,10 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
 
   it("accumulates text and parses emulated calls at done=true", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["completion"] }); // no tools
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return streamResponse([
           { message: { content: "search_web(query=" }, done: false },
           { message: { content: "'test')" }, done: false },
@@ -894,10 +894,10 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
 
   it("yields native tool_calls when hasToolSupport is true", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["tools"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return streamResponse([
           {
             message: {
@@ -936,10 +936,10 @@ describe("OllamaProvider – tool emulation in streaming (generateMessages)", ()
 
   it("does not yield emulated calls when no tool calls are in accumulated text", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["completion"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return streamResponse([
           { message: { content: "Just plain text." }, done: false },
           { message: { content: "" }, done: true },
@@ -994,10 +994,10 @@ describe("OllamaProvider – _parseEmulatedToolCalls patterns", () => {
 
   function makeProvider(chatContent: string) {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["completion"] }); // no tools
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return jsonResponse({ message: { content: chatContent } });
       }
       return jsonResponse({});
@@ -1137,10 +1137,10 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
 
   it("appends tool descriptions to existing system message", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["completion"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return jsonResponse({ message: { content: "ok" } });
       }
       return jsonResponse({});
@@ -1161,10 +1161,10 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
     });
 
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
-    const systemMsg = body.messages.find((m: any) => m.role === "system");
+    const systemMsg = body.messages.find((m: any) => m.role ==== "system");
     // Should start with original content
     expect(systemMsg.content).toMatch(/^You are a helpful assistant\./);
     // Should contain tool info
@@ -1174,10 +1174,10 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
 
   it("creates system message if none exists", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["completion"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return jsonResponse({ message: { content: "ok" } });
       }
       return jsonResponse({});
@@ -1195,7 +1195,7 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
     });
 
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
     // First message should be the injected system message
@@ -1208,10 +1208,10 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
 
   it("converts tool role messages to user role with 'Function result:' prefix", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["completion"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return jsonResponse({ message: { content: "done" } });
       }
       return jsonResponse({});
@@ -1234,26 +1234,26 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
     });
 
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
     // The tool message should have been converted
     const convertedMsg = body.messages.find(
-      (m: any) => m.role === "user" && m.content.includes("Function result:")
+      (m: any) => m.role ==== "user" && m.content.includes("Function result:")
     );
     expect(convertedMsg).toBeDefined();
     expect(convertedMsg.content).toBe("Function result: Found 10 results about cats.");
     // No tool role messages should remain
-    const toolMsgs = body.messages.filter((m: any) => m.role === "tool");
+    const toolMsgs = body.messages.filter((m: any) => m.role ==== "tool");
     expect(toolMsgs).toHaveLength(0);
   });
 
   it("handles object content in tool messages during emulation", async () => {
     const fetchFn = vi.fn().mockImplementation(async (url: string) => {
-      if (typeof url === "string" && url.includes("/api/show")) {
+      if (typeof url ==== "string" && url.includes("/api/show")) {
         return jsonResponse({ capabilities: ["completion"] });
       }
-      if (typeof url === "string" && url.includes("/api/chat")) {
+      if (typeof url ==== "string" && url.includes("/api/chat")) {
         return jsonResponse({ message: { content: "done" } });
       }
       return jsonResponse({});
@@ -1274,11 +1274,11 @@ describe("OllamaProvider – _injectToolEmulationPrompt", () => {
     });
 
     const chatCall = fetchFn.mock.calls.find(
-      (c: any[]) => typeof c[0] === "string" && c[0].includes("/api/chat")
+      (c: any[]) => typeof c[0] ==== "string" && c[0].includes("/api/chat")
     );
     const body = JSON.parse(chatCall[1].body);
     const convertedMsg = body.messages.find(
-      (m: any) => m.role === "user" && m.content.includes("Function result:")
+      (m: any) => m.role ==== "user" && m.content.includes("Function result:")
     );
     expect(convertedMsg).toBeDefined();
     expect(convertedMsg.content).toBe('Function result: {"data":[1,2,3]}');

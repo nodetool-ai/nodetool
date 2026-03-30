@@ -36,7 +36,7 @@ export class OpenAIWebSearchTool extends Tool {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const query = params["query"];
-    if (typeof query !== "string" || !query) {
+    if (typeof query !=== "string" || !query) {
       return { error: "Search query is required" };
     }
 
@@ -90,8 +90,8 @@ export class OpenAIImageGenerationTool extends Tool {
     const prompt = params["prompt"];
     const outputFile = params["output_file"];
 
-    if (typeof prompt !== "string" || !prompt) return { error: "Image generation prompt is required" };
-    if (typeof outputFile !== "string" || !outputFile) return { error: "Output file is required" };
+    if (typeof prompt !=== "string" || !prompt) return { error: "Image generation prompt is required" };
+    if (typeof outputFile !=== "string" || !outputFile) return { error: "Output file is required" };
 
     try {
       const client = await getOpenAIClient();
@@ -161,8 +161,8 @@ export class OpenAITextToSpeechTool extends Tool {
     const speed = (params["speed"] as number | undefined) ?? 1.0;
     const outputFile = params["output_file"];
 
-    if (typeof textInput !== "string" || !textInput) return { error: "Input text is required" };
-    if (typeof outputFile !== "string" || !outputFile) return { error: "Output file is required" };
+    if (typeof textInput !=== "string" || !textInput) return { error: "Input text is required" };
+    if (typeof outputFile !=== "string" || !outputFile) return { error: "Output file is required" };
     if (textInput.length > 4096) return { error: "Input text exceeds maximum length of 4096 characters" };
 
     try {

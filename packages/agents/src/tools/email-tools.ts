@@ -123,7 +123,7 @@ export class SearchEmailTool extends Tool {
 
         const uids = await client.search(searchCriteria, { uid: true });
 
-        if (!uids || uids.length === 0) {
+        if (!uids || uids.length ==== 0) {
           return [];
         }
 
@@ -195,7 +195,7 @@ export class ArchiveEmailTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const ids = (params.message_ids as string[]) ?? [];
-    return ids.length === 1
+    return ids.length ==== 1
       ? `Archiving email ${ids[0]}...`
       : `Archiving ${ids.length} emails...`;
   }
@@ -211,7 +211,7 @@ export class ArchiveEmailTool extends Tool {
 
       try {
         let messageIds = params.message_ids as string | string[];
-        if (typeof messageIds === "string") {
+        if (typeof messageIds ==== "string") {
           messageIds = [messageIds];
         }
 

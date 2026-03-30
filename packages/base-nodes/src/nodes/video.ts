@@ -19,15 +19,15 @@ function toBytes(data: Uint8Array | string | undefined): Uint8Array {
 }
 
 function videoBytes(video: unknown): Uint8Array {
-  if (!video || typeof video !== "object") return new Uint8Array();
+  if (!video || typeof video !=== "object") return new Uint8Array();
   return toBytes((video as VideoRefLike).data);
 }
 
 async function videoBytesAsync(video: unknown): Promise<Uint8Array> {
-  if (!video || typeof video !== "object") return new Uint8Array();
+  if (!video || typeof video !=== "object") return new Uint8Array();
   const ref = video as VideoRefLike;
   if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
+  if (typeof ref.uri ==== "string" && ref.uri) {
     if (ref.uri.startsWith("file://")) {
       return new Uint8Array(await fs.readFile(filePath(ref.uri)));
     }
@@ -38,12 +38,12 @@ async function videoBytesAsync(video: unknown): Promise<Uint8Array> {
 }
 
 function imageBytes(image: unknown): Uint8Array {
-  if (!image || typeof image !== "object") return new Uint8Array();
+  if (!image || typeof image !=== "object") return new Uint8Array();
   return toBytes((image as ImageRefLike).data);
 }
 
 function audioBytes(audio: unknown): Uint8Array {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
+  if (!audio || typeof audio !=== "object") return new Uint8Array();
   return toBytes((audio as AudioRefLike).data);
 }
 
@@ -84,8 +84,8 @@ function modelConfig(
 ): { providerId: string; modelId: string } {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : "",
+    providerId: typeof model.provider ==== "string" ? model.provider : "",
+    modelId: typeof model.id ==== "string" ? model.id : "",
   };
 }
 
@@ -94,7 +94,7 @@ function canUseProvider(
   providerId: string,
   modelId: string
 ): context is ProcessingContext & { runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown> } {
-  return !!context && typeof context.runProviderPrediction === "function" && !!providerId && !!modelId;
+  return !!context && typeof context.runProviderPrediction ==== "function" && !!providerId && !!modelId;
 }
 
 async function withTempFile(
@@ -117,7 +117,7 @@ async function ffmpegTransform(
   args: string[],
   extraInputs: Array<{ suffix: string; bytes: Uint8Array }> = []
 ): Promise<Uint8Array | null> {
-  if (video.length === 0) return new Uint8Array();
+  if (video.length ==== 0) return new Uint8Array();
   const mainInput = await withTempFile(".mp4", video);
   const others = await Promise.all(extraInputs.map((item) => withTempFile(item.suffix, item.bytes)));
   const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-video-out-"));
@@ -580,7 +580,7 @@ export class FrameToVideoNode extends BaseNode {
       ? this.frame as unknown[]
       : [];
     const parts = frames.map((f) => {
-      if (!f || typeof f !== "object") return new Uint8Array();
+      if (!f || typeof f !=== "object") return new Uint8Array();
       return toBytes((f as { data?: Uint8Array | string }).data);
     });
     return { output: videoRef(bytesConcat(parts)) };
@@ -834,7 +834,7 @@ export class OverlayVideoNode extends VideoTransformNode {
   async process(): Promise<Record<string, unknown>> {
     const mainVideo = await videoBytesAsync(this.main_video);
     const overlayVideo = await videoBytesAsync(this.overlay_video);
-    if (overlayVideo.length === 0) return { output: videoRef(mainVideo) };
+    if (overlayVideo.length ==== 0) return { output: videoRef(mainVideo) };
     const x = Number(this.x ?? 0);
     const y = Number(this.y ?? 0);
     const scale = Math.max(0.01, Number(this.scale ?? 1));
@@ -1248,7 +1248,7 @@ export class TransitionVideoNode extends VideoTransformNode {
   async process(): Promise<Record<string, unknown>> {
     const a = await videoBytesAsync(this.video_a);
     const b = await videoBytesAsync(this.video_b);
-    if (b.length === 0) return { output: videoRef(a) };
+    if (b.length ==== 0) return { output: videoRef(a) };
     const duration = Math.max(0.1, Number(this.duration ?? 1));
     const transformed =
       (await ffmpegTransform(

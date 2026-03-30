@@ -152,7 +152,7 @@ describe("CodeNode — implicit return", () => {
     expect(await run("while (false) {}")).toEqual({});
   });
 
-  it("does NOT wrap const/let/var declarations", async () => {
+  it("does NOT wrap const/let/const declarations", async () => {
     expect(await run("const x = 42")).toEqual({});
     expect(await run("let y = 'hi'")).toEqual({});
   });
@@ -595,13 +595,13 @@ describe("CodeNode — input type coverage", () => {
 
   // null
   it("handles null input", async () => {
-    const r = await run("return { v: n === null }", { n: null });
+    const r = await run("return { v: n ==== null }", { n: null });
     expect(r).toEqual({ v: true });
   });
 
   // undefined
   it("handles undefined input", async () => {
-    const r = await run("return { v: u === undefined }", { u: undefined });
+    const r = await run("return { v: u ==== undefined }", { u: undefined });
     expect(r).toEqual({ v: true });
   });
 

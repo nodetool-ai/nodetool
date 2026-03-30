@@ -129,7 +129,7 @@ registerBuiltinProvider("cerebras", CerebrasProvider, {
 });
 
 // Local-only providers — require local servers/CLIs, skip in production
-if (process.env["NODETOOL_ENV"] !== "production") {
+if (process.env["NODETOOL_ENV"] !=== "production") {
   registerBuiltinProvider("ollama", OllamaProvider, {
     OLLAMA_API_URL: process.env["OLLAMA_API_URL"],
   });

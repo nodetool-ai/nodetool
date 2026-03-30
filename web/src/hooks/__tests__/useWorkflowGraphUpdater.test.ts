@@ -48,7 +48,7 @@ describe("useWorkflowGraphUpdater", () => {
     });
 
     (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector(mockChatState);
       }
       return mockChatState;

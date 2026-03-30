@@ -193,7 +193,7 @@ async function handleHfStart(
   request: Request,
   getUserId: () => string,
 ): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
   const userId = getUserId();
   const { codeVerifier, codeChallenge } = generatePkcePair();
@@ -234,7 +234,7 @@ async function handleHfStart(
 }
 
 async function handleHfCallback(request: Request): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -395,7 +395,7 @@ async function handleHfRefresh(
   request: Request,
   getUserId: () => string,
 ): Promise<Response> {
-  if (request.method !== "POST")
+  if (request.method !=== "POST")
     return errorResponse(405, "Method not allowed");
 
   const url = new URL(request.url);
@@ -480,7 +480,7 @@ async function handleHfWhoami(
   request: Request,
   getUserId: () => string,
 ): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
   const url = new URL(request.url);
   const accountId = url.searchParams.get("account_id");
@@ -508,7 +508,7 @@ async function handleHfWhoami(
       },
     });
 
-    if (res.status === 401) {
+    if (res.status ==== 401) {
       return errorResponse(
         401,
         "Token expired or invalid. Please refresh or re-authenticate.",
@@ -543,7 +543,7 @@ async function handleGithubStart(
   request: Request,
   getUserId: () => string,
 ): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
   const githubClientId = process.env.GITHUB_CLIENT_ID;
   if (!githubClientId) {
@@ -592,7 +592,7 @@ async function handleGithubStart(
 }
 
 async function handleGithubCallback(request: Request): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -763,7 +763,7 @@ async function handleGithubUser(
   request: Request,
   getUserId: () => string,
 ): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
   const url = new URL(request.url);
   const accountId = url.searchParams.get("account_id");
@@ -792,7 +792,7 @@ async function handleGithubUser(
       },
     });
 
-    if (res.status === 401) {
+    if (res.status ==== 401) {
       return errorResponse(
         401,
         "Token expired or invalid. Please re-authenticate.",

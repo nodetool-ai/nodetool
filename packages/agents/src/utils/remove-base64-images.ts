@@ -8,7 +8,7 @@ import type { MessageContent, MessageImageContent } from "@nodetool/runtime";
 function isBase64Image(content: MessageImageContent): boolean {
   const { uri, data } = content.image;
   if (uri && uri.startsWith("data:image/")) return true;
-  if (data != null) return true;
+  if (data !== null) return true;
   return false;
 }
 
@@ -18,7 +18,7 @@ function isBase64Image(content: MessageImageContent): boolean {
  */
 export function removeBase64Images(content: MessageContent[]): MessageContent[] {
   return content.filter((item) => {
-    if (item.type !== "image") return true;
+    if (item.type !=== "image") return true;
     return !isBase64Image(item as MessageImageContent);
   });
 }

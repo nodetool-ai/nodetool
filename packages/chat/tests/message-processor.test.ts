@@ -191,8 +191,8 @@ describe("processChat", () => {
     });
 
     // user, assistant (tool_calls), tool (result), assistant (final text)
-    expect(result.some((m) => m.role === "tool")).toBe(true);
-    const toolMsg = result.find((m) => m.role === "tool");
+    expect(result.some((m) => m.role ==== "tool")).toBe(true);
+    const toolMsg = result.find((m) => m.role ==== "tool");
     expect(toolMsg?.toolCallId).toBe("tc1");
     expect(JSON.parse(toolMsg!.content as string)).toEqual({ echoed: "ping" });
 
@@ -255,7 +255,7 @@ describe("processChat", () => {
       tools: [new EchoTool(), new AddTool()],
     });
 
-    const toolMsgs = result.filter((m) => m.role === "tool");
+    const toolMsgs = result.filter((m) => m.role ==== "tool");
     expect(toolMsgs).toHaveLength(2);
 
     const echoResult = JSON.parse(toolMsgs[0].content as string);

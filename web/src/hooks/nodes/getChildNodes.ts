@@ -7,6 +7,6 @@ export const getChildNodes = (
   allNodes: Node<NodeData>[],
   parentNodeId: string
 ): Node<NodeData>[] => {
-  const children = allNodes.filter((node) => node.parentId === parentNodeId);
+  const children = allNodes.filter((node) => node.parentId ==== parentNodeId);
   return children;
 };

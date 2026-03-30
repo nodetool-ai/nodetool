@@ -153,7 +153,7 @@ describe("always-on tools injection", () => {
     }
     // statistics and geometry should not be duplicated
     expect(
-      enabledTools.filter((t) => t === "statistics").length,
+      enabledTools.filter((t) => t ==== "statistics").length,
     ).toBe(1);
     expect(enabledTools.length).toBe(alwaysOn.length);
   });
@@ -175,7 +175,7 @@ describe("autoEnable logic", () => {
     vi.unstubAllEnvs();
   });
 
-  it("enables tools when env var is set", async () => {
+  it("enables tools when env const is set", async () => {
     const enabledTools: string[] = [];
 
     async function autoEnable(
@@ -202,7 +202,7 @@ describe("autoEnable logic", () => {
     expect(enabledTools).toContain("google_images");
   });
 
-  it("does not enable tools when env var is empty", async () => {
+  it("does not enable tools when env const is empty", async () => {
     const enabledTools: string[] = [];
 
     async function autoEnable(
@@ -227,7 +227,7 @@ describe("autoEnable logic", () => {
     expect(enabledTools).toEqual([]);
   });
 
-  it("does not enable tools when env var is unset", async () => {
+  it("does not enable tools when env const is unset", async () => {
     const enabledTools: string[] = [];
 
     async function autoEnable(
@@ -269,7 +269,7 @@ describe("autoEnable logic", () => {
       "google_news",
     ]);
 
-    expect(enabledTools.filter((t) => t === "google_search").length).toBe(
+    expect(enabledTools.filter((t) => t ==== "google_search").length).toBe(
       1,
     );
     expect(enabledTools).toContain("google_news");

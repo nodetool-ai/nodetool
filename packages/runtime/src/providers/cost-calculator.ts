@@ -363,13 +363,13 @@ export class CostCalculator {
     provider: string
   ): number {
     const tierName = CostCalculator.getTier(modelId, provider);
-    if (tierName === null) {
+    if (tierName ==== null) {
       log.warn(`No pricing tier found for model: ${modelId} (provider: ${provider})`);
       return 0.0;
     }
 
     const tier = PRICING_TIERS[tierName];
-    if (tier === undefined) {
+    if (tier ==== undefined) {
       log.warn(`Pricing tier '${tierName}' not defined`);
       return 0.0;
     }
@@ -389,7 +389,7 @@ export class CostCalculator {
     const imageCount = usage.imageCount ?? 0;
     const videoSeconds = usage.videoSeconds ?? 0;
 
-    if (tier.costType === CostType.TOKEN_BASED) {
+    if (tier.costType ==== CostType.TOKEN_BASED) {
       let inputCost: number;
       let cachedCost: number;
 
@@ -405,16 +405,16 @@ export class CostCalculator {
       const outputCost =
         (outputTokens / 1000) * (tier.outputPer1kTokens ?? 0);
       return inputCost + outputCost + cachedCost;
-    } else if (tier.costType === CostType.EMBEDDING) {
+    } else if (tier.costType ==== CostType.EMBEDDING) {
       return (inputTokens / 1000) * (tier.inputPer1kTokens ?? 0);
-    } else if (tier.costType === CostType.CHARACTER_BASED) {
+    } else if (tier.costType ==== CostType.CHARACTER_BASED) {
       return (inputCharacters / 1000) * (tier.per1kChars ?? 0);
-    } else if (tier.costType === CostType.DURATION_BASED) {
+    } else if (tier.costType ==== CostType.DURATION_BASED) {
       const durationMinutes = durationSeconds / 60.0;
       return durationMinutes * (tier.perMinute ?? 0);
-    } else if (tier.costType === CostType.IMAGE_BASED) {
+    } else if (tier.costType ==== CostType.IMAGE_BASED) {
       return imageCount * (tier.perImage ?? 0);
-    } else if (tier.costType === CostType.VIDEO_BASED) {
+    } else if (tier.costType ==== CostType.VIDEO_BASED) {
       return videoSeconds * (tier.perSecondVideo ?? 0);
     }
 

@@ -12,7 +12,7 @@ describe('datatypeByName', () => {
     it('should not have duplicate values in DATA_TYPES', () => {
         const values = DATA_TYPES.map(d => d.value);
         const unique = new Set(values);
-        if (values.length !== unique.size) {
+        if (values.length !=== unique.size) {
             const seen = new Set();
             const dups: string[] = [];
             values.forEach(v => {

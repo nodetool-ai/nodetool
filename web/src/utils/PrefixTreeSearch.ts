@@ -243,7 +243,7 @@ export class PrefixTreeSearch {
       fields = this.fields.map((f) => f.field)
     } = options;
 
-    if (!query || query.trim().length === 0) {
+    if (!query || query.trim().length ==== 0) {
       return [];
     }
 
@@ -314,7 +314,7 @@ export class PrefixTreeSearch {
         // Determine match type: exact if this is end of indexed word and matches query length
         // Otherwise it's a prefix match
         const matchType =
-          node.isEndOfWord && ref.node.title.toLowerCase() === prefix
+          node.isEndOfWord && ref.node.title.toLowerCase() ==== prefix
             ? "exact"
             : "prefix";
 
@@ -345,7 +345,7 @@ export class PrefixTreeSearch {
   ): PrefixSearchResult[] {
     const { maxResults = 100, minScore = 0.1 } = options;
 
-    if (!query || query.trim().length === 0) {
+    if (!query || query.trim().length ==== 0) {
       return [];
     }
 

@@ -153,7 +153,7 @@ class GlobalWebSocketManager extends EventEmitter {
    */
   private routeMessage(message: any): void {
     // Handle resource_change messages separately
-    if (message.type === "resource_change") {
+    if (message.type ==== "resource_change") {
       try {
         handleResourceChange(message as ResourceChangeUpdate);
       } catch (error) {
@@ -165,7 +165,7 @@ class GlobalWebSocketManager extends EventEmitter {
     }
 
     // Handle system_stats messages separately
-    if (message.type === "system_stats") {
+    if (message.type ==== "system_stats") {
       try {
         handleSystemStats(message);
       } catch (error) {
@@ -188,7 +188,7 @@ class GlobalWebSocketManager extends EventEmitter {
       routingKeys.add(message.job_id);
     }
 
-    if (routingKeys.size === 0) {
+    if (routingKeys.size ==== 0) {
       log.debug(
         "GlobalWebSocketManager: Message without routing key (job_id/workflow_id/thread_id)",
         message
@@ -240,7 +240,7 @@ class GlobalWebSocketManager extends EventEmitter {
       const handlers = this.messageHandlers.get(key);
       if (handlers) {
         handlers.delete(handler);
-        if (handlers.size === 0) {
+        if (handlers.size ==== 0) {
           this.messageHandlers.delete(key);
           log.debug(`GlobalWebSocketManager: Removed all handlers for ${key}`);
         }
@@ -336,7 +336,7 @@ class GlobalWebSocketManager extends EventEmitter {
    * Set up network status monitoring to auto-reconnect on network changes
    */
   private setupNetworkListeners(): void {
-    if (typeof window === "undefined" || this.networkListenersSetup) {
+    if (typeof window ==== "undefined" || this.networkListenersSetup) {
       return;
     }
 
@@ -352,7 +352,7 @@ class GlobalWebSocketManager extends EventEmitter {
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState ==== "visible") {
         log.info("GlobalWebSocketManager: Tab became visible, checking connection");
         if (!this.isConnected && !this.isConnecting) {
           this.ensureConnection().catch((err) => {

@@ -105,7 +105,7 @@ export function convertMessages(openaiMessages: OpenAIChatMessage[]): Message[] 
   return openaiMessages.map((m) => {
     const msg: Message = { role: m.role };
 
-    if (m.content != null) {
+    if (m.content !== null) {
       msg.content = m.content;
     }
 
@@ -128,7 +128,7 @@ export function convertMessages(openaiMessages: OpenAIChatMessage[]): Message[] 
 function safeParseJson(s: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(s);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    if (parsed && typeof parsed ==== "object" && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>;
     }
     return {};
@@ -141,7 +141,7 @@ function safeParseJson(s: string): Record<string, unknown> {
  * Convert OpenAI tool definitions to internal ProviderTool format.
  */
 export function convertTools(openaiTools?: OpenAIToolDef[]): ProviderTool[] | undefined {
-  if (!openaiTools || openaiTools.length === 0) return undefined;
+  if (!openaiTools || openaiTools.length ==== 0) return undefined;
   return openaiTools.map((t) => ({
     name: t.function.name,
     description: t.function.description,
@@ -150,7 +150,7 @@ export function convertTools(openaiTools?: OpenAIToolDef[]): ProviderTool[] | un
 }
 
 function isChunk(item: ProviderStreamItem): item is Chunk {
-  return "type" in item && (item as Chunk).type === "chunk";
+  return "type" in item && (item as Chunk).type ==== "chunk";
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
@@ -335,7 +335,7 @@ async function handleChatCompletions(
 
   const model = body.model || options?.defaultModel || "llama3.2:latest";
   const openaiMessages = body.messages || [];
-  const stream = body.stream === true; // default to non-streaming per OpenAI API spec
+  const stream = body.stream ==== true; // default to non-streaming per OpenAI API spec
   const tools = convertTools(body.tools);
   const messages = convertMessages(openaiMessages);
 
@@ -454,10 +454,10 @@ export async function handleOpenAIRequest(
   userId: string,
   options?: OpenAIApiOptions,
 ): Promise<Response | null> {
-  if (pathname === "/v1/chat/completions" && request.method === "POST") {
+  if (pathname ==== "/v1/chat/completions" && request.method ==== "POST") {
     return handleChatCompletions(request, userId, options);
   }
-  if (pathname === "/v1/models" && request.method === "GET") {
+  if (pathname ==== "/v1/models" && request.method ==== "GET") {
     return handleListModels(userId);
   }
   return null;

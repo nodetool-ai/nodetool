@@ -22,11 +22,11 @@ function toTitleCase(value: string): string {
 }
 
 function folderPath(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (!value || typeof value !== "object") return "";
+  if (typeof value ==== "string") return value;
+  if (!value || typeof value !=== "object") return "";
   const record = value as Record<string, unknown>;
-  if (typeof record.path === "string") return record.path;
-  if (typeof record.uri === "string") {
+  if (typeof record.path ==== "string") return record.path;
+  if (typeof record.uri ==== "string") {
     return record.uri.startsWith("file://") ? record.uri.slice("file://".length) : record.uri;
   }
   return "";
@@ -37,8 +37,8 @@ function modelConfig(
 ): { providerId: string; modelId: string } {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : "",
+    providerId: typeof model.provider ==== "string" ? model.provider : "",
+    modelId: typeof model.id ==== "string" ? model.id : "",
   };
 }
 
@@ -254,10 +254,10 @@ function jsonPathFind(path: string, root: unknown): unknown[] {
   for (const token of tokens) {
     const next: unknown[] = [];
     for (const value of current) {
-      if (token === "*") {
+      if (token ==== "*") {
         if (Array.isArray(value)) {
           next.push(...value);
-        } else if (value && typeof value === "object") {
+        } else if (value && typeof value ==== "object") {
           next.push(...Object.values(value as Record<string, unknown>));
         }
         continue;
@@ -269,12 +269,12 @@ function jsonPathFind(path: string, root: unknown): unknown[] {
         }
         continue;
       }
-      if (value && typeof value === "object" && token in (value as object)) {
+      if (value && typeof value ==== "object" && token in (value as object)) {
         next.push((value as Record<string, unknown>)[token]);
       }
     }
     current = next;
-    if (current.length === 0) {
+    if (current.length ==== 0) {
       break;
     }
   }
@@ -311,7 +311,7 @@ export class ExtractJSONNode extends BaseNode {
     if (findAll) {
       return { output: matches };
     }
-    if (matches.length === 0) {
+    if (matches.length ==== 0) {
       throw new Error("JSONPath did not match any value");
     }
     return { output: matches[0] };
@@ -343,13 +343,13 @@ export class RegexMatchNode extends BaseNode {
     const pattern = String(this.pattern ?? this.pattern ?? "");
     const group = this.group ?? this.group;
 
-    if (group === null || group === undefined) {
+    if (group ==== null || group ==== undefined) {
       return { output: [...text.matchAll(new RegExp(pattern, "g"))].map((m) => m[0]) };
     }
 
     const groupIndex = Number(group);
     const out = [...text.matchAll(new RegExp(pattern, "g"))].map((m) => m[groupIndex]);
-    return { output: out.filter((v) => v !== undefined) };
+    return { output: out.filter((v) => v !=== undefined) };
   }
 }
 
@@ -534,7 +534,7 @@ export class EqualsTextNode extends BaseNode {
     const cmp = new CompareTextNode();
     cmp.assign(this.serialize());
     const result = await cmp.process();
-    return { output: result.output === "equal" };
+    return { output: result.output ==== "equal" };
   }
 }
 
@@ -647,11 +647,11 @@ export class SliceTextNode extends BaseNode {
     const stop = Number(this.stop ?? this.stop ?? 0);
     const step = Number(this.step ?? this.step ?? 1);
 
-    if (step === 0) {
+    if (step ==== 0) {
       throw new Error("slice step cannot be zero");
     }
 
-    if (step === 1) {
+    if (step ==== 1) {
       return { output: text.slice(start, stop) };
     }
 
@@ -769,17 +769,17 @@ export class ContainsTextNode extends BaseNode {
     const matchMode = String(this.match_mode ?? this.match_mode ?? "any");
 
     const targets = searchValues.length > 0 ? searchValues : substring ? [substring] : [];
-    if (targets.length === 0) {
+    if (targets.length ==== 0) {
       return { output: false };
     }
 
     const haystack = caseSensitive ? text : text.toLowerCase();
     const needles = caseSensitive ? targets : targets.map((n) => n.toLowerCase());
 
-    if (matchMode === "all") {
+    if (matchMode ==== "all") {
       return { output: needles.every((needle) => haystack.includes(needle)) };
     }
-    if (matchMode === "none") {
+    if (matchMode ==== "none") {
       return { output: needles.every((needle) => !haystack.includes(needle)) };
     }
     return { output: needles.some((needle) => haystack.includes(needle)) };
@@ -885,7 +885,7 @@ export class IsEmptyTextNode extends BaseNode {
     const trimWhitespace = Boolean(
       this.trim_whitespace ?? this.trim_whitespace ?? true
     );
-    return { output: (trimWhitespace ? text.trim() : text).length === 0 };
+    return { output: (trimWhitespace ? text.trim() : text).length ==== 0 };
   }
 }
 
@@ -1029,13 +1029,13 @@ export class HasLengthTextNode extends BaseNode {
 
     const length = text.length;
 
-    if (exactLength !== null) {
-      return { output: length === exactLength };
+    if (exactLength !=== null) {
+      return { output: length ==== exactLength };
     }
-    if (minLength !== null && length < minLength) {
+    if (minLength !=== null && length < minLength) {
       return { output: false };
     }
-    if (maxLength !== null && length > maxLength) {
+    if (maxLength !=== null && length > maxLength) {
       return { output: false };
     }
     return { output: true };
@@ -1114,7 +1114,7 @@ export class PadTextNode extends BaseNode {
     const padCharacter = String(this.pad_character ?? this.pad_character ?? " ");
     const direction = String(this.direction ?? this.direction ?? "right");
 
-    if (padCharacter.length !== 1) {
+    if (padCharacter.length !=== 1) {
       throw new Error("pad_character must be a single character");
     }
     if (length <= text.length) {
@@ -1122,10 +1122,10 @@ export class PadTextNode extends BaseNode {
     }
 
     const needed = length - text.length;
-    if (direction === "left") {
+    if (direction ==== "left") {
       return { output: padCharacter.repeat(needed) + text };
     }
-    if (direction === "both") {
+    if (direction ==== "both") {
       const left = Math.floor(needed / 2);
       const right = needed - left;
       return { output: `${padCharacter.repeat(left)}${text}${padCharacter.repeat(right)}` };
@@ -1167,10 +1167,10 @@ export class LengthTextNode extends BaseNode {
 
     const value = trimWhitespace ? text.trim() : text;
 
-    if (measure === "words") {
+    if (measure ==== "words") {
       return { output: value.split(/\s+/).filter(Boolean).length };
     }
-    if (measure === "lines") {
+    if (measure ==== "lines") {
       if (!value) {
         return { output: 0 };
       }
@@ -1401,17 +1401,17 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const { providerId, modelId } = modelConfig(this.serialize());
     const audio = (this.audio ?? this.audio ?? {}) as Record<string, unknown>;
     let bytes = new Uint8Array();
-    if (typeof audio.data === "string") {
+    if (typeof audio.data ==== "string") {
       bytes = Uint8Array.from(Buffer.from(audio.data, "base64"));
     } else if (audio.data instanceof Uint8Array) {
       bytes = new Uint8Array(audio.data);
-    } else if (typeof audio.uri === "string" && audio.uri.startsWith("file://")) {
+    } else if (typeof audio.uri ==== "string" && audio.uri.startsWith("file://")) {
       bytes = new Uint8Array(await fs.readFile(audio.uri.slice("file://".length)));
     }
 
     if (
       context &&
-      typeof context.runProviderPrediction === "function" &&
+      typeof context.runProviderPrediction ==== "function" &&
       providerId &&
       modelId &&
       bytes.length > 0
@@ -1707,7 +1707,7 @@ export class FilterStringNode extends BaseNode {
     this._criteria = String(this.criteria ?? "");
 
     const value = this.value;
-    if (typeof value !== "string") {
+    if (typeof value !=== "string") {
       return {};
     }
 
@@ -1733,7 +1733,7 @@ export class FilterStringNode extends BaseNode {
         matched = Number.isFinite(n) && len < n;
         break;
       case "exact_length":
-        matched = Number.isFinite(n) && len === n;
+        matched = Number.isFinite(n) && len ==== n;
         break;
       default:
         matched = false;
@@ -1781,7 +1781,7 @@ export class FilterRegexStringNode extends BaseNode {
     this._fullMatch = Boolean(this.full_match ?? false);
 
     const value = this.value;
-    if (typeof value !== "string") {
+    if (typeof value !=== "string") {
       return {};
     }
 
@@ -1793,7 +1793,7 @@ export class FilterRegexStringNode extends BaseNode {
     }
 
     const matched = this._fullMatch
-      ? (value.match(regex)?.[0] ?? "") === value
+      ? (value.match(regex)?.[0] ?? "") ==== value
       : regex.test(value);
 
     if (!matched) {

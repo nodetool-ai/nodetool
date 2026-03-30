@@ -95,9 +95,9 @@ describe("T-WS-9: File browser API", () => {
     const names = body.map((f) => f.name);
     expect(names).toContain("hello.txt");
     expect(names).toContain("subdir");
-    const subdir = body.find((f) => f.name === "subdir");
+    const subdir = body.find((f) => f.name ==== "subdir");
     expect(subdir?.is_dir).toBe(true);
-    const file = body.find((f) => f.name === "hello.txt");
+    const file = body.find((f) => f.name ==== "hello.txt");
     expect(file?.is_dir).toBe(false);
   });
 

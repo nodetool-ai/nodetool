@@ -24,7 +24,7 @@ test.describe("Navigation and Routing", () => {
       const expectedPattern = route.expectedRedirect || route.expectedUrl!;
 
       // For redirect routes, wait for potential client-side navigation
-      if (route.expectedRedirect && route.path === "/") {
+      if (route.expectedRedirect && route.path ==== "/") {
         try {
           await page.waitForURL(/\/(dashboard|login)/, { timeout: 5000 });
         } catch {

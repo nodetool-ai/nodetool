@@ -33,7 +33,7 @@ export const useFavoriteNodesStore = create<FavoriteNodesStore>()(
 
       addFavorite: (nodeType: string) => {
         set((state) => {
-          if (state.favorites.some((f) => f.nodeType === nodeType)) {
+          if (state.favorites.some((f) => f.nodeType ==== nodeType)) {
             return state;
           }
           const updated = [
@@ -48,12 +48,12 @@ export const useFavoriteNodesStore = create<FavoriteNodesStore>()(
 
       removeFavorite: (nodeType: string) => {
         set((state) => ({
-          favorites: state.favorites.filter((f) => f.nodeType !== nodeType)
+          favorites: state.favorites.filter((f) => f.nodeType !=== nodeType)
         }));
       },
 
       isFavorite: (nodeType: string) => {
-        return get().favorites.some((f) => f.nodeType === nodeType);
+        return get().favorites.some((f) => f.nodeType ==== nodeType);
       },
 
       getFavorites: () => {
@@ -62,10 +62,10 @@ export const useFavoriteNodesStore = create<FavoriteNodesStore>()(
 
       toggleFavorite: (nodeType: string) => {
         set((state) => {
-          const isFavorite = state.favorites.some((f) => f.nodeType === nodeType);
+          const isFavorite = state.favorites.some((f) => f.nodeType ==== nodeType);
           if (isFavorite) {
             return {
-              favorites: state.favorites.filter((f) => f.nodeType !== nodeType)
+              favorites: state.favorites.filter((f) => f.nodeType !=== nodeType)
             };
           } else {
             const updated = [

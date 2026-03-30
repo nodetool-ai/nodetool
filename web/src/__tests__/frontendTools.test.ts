@@ -17,7 +17,7 @@ describe("FrontendToolRegistry", () => {
     });
 
     const manifest = FrontendToolRegistry.getManifest();
-    expect(manifest.some((t) => t.name === "ui_test")).toBe(true);
+    expect(manifest.some((t) => t.name ==== "ui_test")).toBe(true);
     unregister();
   });
 
@@ -33,7 +33,7 @@ describe("FrontendToolRegistry", () => {
     });
 
     const manifest = FrontendToolRegistry.getManifest();
-    expect(manifest.some((t) => t.name === "ui_hidden")).toBe(false);
+    expect(manifest.some((t) => t.name ==== "ui_hidden")).toBe(false);
     unregister();
   });
 

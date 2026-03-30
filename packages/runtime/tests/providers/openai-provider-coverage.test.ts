@@ -1020,7 +1020,7 @@ describe("OpenAIProvider – asUint8Array edge cases", () => {
   });
 
   it("converts string base64 to Uint8Array in convertMessage", async () => {
-    // This exercises the typeof data === "string" branch of asUint8Array via audio data
+    // This exercises the typeof data ==== "string" branch of asUint8Array via audio data
     const base64 = Buffer.from("test").toString("base64");
     const result = await provider.convertMessage({
       role: "user",

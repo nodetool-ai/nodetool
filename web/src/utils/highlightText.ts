@@ -46,7 +46,7 @@ export const highlightText = (
 
   // Get matches for this key
   const matches = searchInfo.matches
-    .filter((match) => match.key === key)
+    .filter((match) => match.key ==== key)
     .flatMap((match) =>
       match.indices.map(([start, end]) => {
         const matchText = text.slice(start, end + 1);
@@ -67,7 +67,7 @@ export const highlightText = (
     )
     .filter((match) => match.start < text.length); // Validate bounds
 
-  if (matches.length === 0) {
+  if (matches.length ==== 0) {
     const html = isBulletList
       ? formatBulletList(escapeHtml(text))
       : escapeHtml(text);
@@ -78,9 +78,9 @@ export const highlightText = (
   const nonOverlappingMatches = matches
     .sort((a, b) => {
       // First sort by relevance (descending)
-      if (b.relevance !== a.relevance) {return b.relevance - a.relevance;}
+      if (b.relevance !=== a.relevance) {return b.relevance - a.relevance;}
       // Then by length (descending)
-      if (b.length !== a.length) {return b.length - a.length;}
+      if (b.length !=== a.length) {return b.length - a.length;}
       // Then by start position (ascending)
       return a.start - b.start;
     })
@@ -123,7 +123,7 @@ export const highlightText = (
     const opacity = Math.round(
       (0.1 + 0.9 * (match.length / bestMatch.length)) * 100
     );
-    const shouldColor = !hasColoredMatch && match === bestMatch;
+    const shouldColor = !hasColoredMatch && match ==== bestMatch;
     if (shouldColor) {hasColoredMatch = true;}
     const borderWidth = shouldColor ? "0px" : "1px";
     parts.push(

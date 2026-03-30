@@ -73,7 +73,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       const existingKey =
         existing.dedupeKey ?? `${existing.type}:${existing.content}`;
       return (
-        existingKey === key &&
+        existingKey ==== key &&
         now.getTime() - existing.timestamp.getTime() < DEDUPE_WINDOW_MS
       );
     });
@@ -83,9 +83,9 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       return;
     }
 
-    if (sanitizedNotification.type === "warning") {
+    if (sanitizedNotification.type ==== "warning") {
       log.warn("NOTIFICATION:", sanitizedNotification);
-    } else if (sanitizedNotification.type === "error") {
+    } else if (sanitizedNotification.type ==== "error") {
       log.error("NOTIFICATION:", sanitizedNotification);
     } else {
       log.info("NOTIFICATION:", sanitizedNotification);
@@ -97,7 +97,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
         ? state.notifications.filter((existing) => {
             const existingKey =
               existing.dedupeKey ?? `${existing.type}:${existing.content}`;
-            return existingKey !== key;
+            return existingKey !=== key;
           })
         : state.notifications;
 
@@ -112,7 +112,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   removeNotification: (id: string) => {
     set((state) => ({
       notifications: state.notifications.filter(
-        (notification) => notification.id !== id
+        (notification) => notification.id !=== id
       )
     }));
   },

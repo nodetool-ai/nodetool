@@ -48,7 +48,7 @@ async function saveElementScreenshot(page: Page, selector: string, filename: str
 
 // Check if screenshot already exists (skip if FORCE_SCREENSHOTS is set)
 function shouldSkip(filename: string): boolean {
-  if (process.env.FORCE_SCREENSHOTS === 'true') {
+  if (process.env.FORCE_SCREENSHOTS ==== 'true') {
     return false;
   }
   const filepath = path.join(SCREENSHOT_DIR, filename);
@@ -56,13 +56,13 @@ function shouldSkip(filename: string): boolean {
 }
 
 // Skip when executed by Jest or in CI (this is a documentation tool, not a functional test)
-if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
+if (process.env.JEST_WORKER_ID || process.env.CI ==== "true") {
   test.skip("skipped in jest runner or CI", () => {});
 } else {
 
-  // ============================================================================
+  // =============================================================================
   // MAIN PAGES - Core application routes
-  // ============================================================================
+  // =============================================================================
   test.describe('Main Pages', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -125,9 +125,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // CHAT - Global chat interface and features
-  // ============================================================================
+  // =============================================================================
   test.describe('Chat Interface', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -208,9 +208,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // MINI-APPS - Mini application interface
-  // ============================================================================
+  // =============================================================================
   test.describe('Mini-Apps', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -241,9 +241,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // WORKFLOW EDITOR - Canvas, nodes, and editing features
-  // ============================================================================
+  // =============================================================================
   test.describe('Workflow Editor', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -358,9 +358,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // HEADER AND NAVIGATION
-  // ============================================================================
+  // =============================================================================
   test.describe('Header and Navigation', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -401,9 +401,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // SETTINGS AND CONFIGURATION
-  // ============================================================================
+  // =============================================================================
   test.describe('Settings and Configuration', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -528,9 +528,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // COMMAND MENU AND KEYBOARD SHORTCUTS
-  // ============================================================================
+  // =============================================================================
   test.describe('Command Menu', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -559,9 +559,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // DIALOGS AND MODALS
-  // ============================================================================
+  // =============================================================================
   test.describe('Dialogs and Modals', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -599,9 +599,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // ASSETS - Asset management features
-  // ============================================================================
+  // =============================================================================
   test.describe('Assets', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -640,9 +640,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // MODELS - Model management (Note: May require Ollama for full functionality)
-  // ============================================================================
+  // =============================================================================
   test.describe('Models Manager', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -687,9 +687,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // WORKFLOW FEATURES - Advanced workflow editor features
-  // ============================================================================
+  // =============================================================================
   test.describe('Workflow Features', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -768,9 +768,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // CHAT FEATURES - Advanced chat features
-  // ============================================================================
+  // =============================================================================
   test.describe('Chat Features', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -801,9 +801,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // KEY CONCEPTS - Educational screenshots
-  // ============================================================================
+  // =============================================================================
   test.describe('Key Concepts', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -826,9 +826,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // COOKBOOK EXAMPLES - Example workflow screenshots
-  // ============================================================================
+  // =============================================================================
   test.describe('Cookbook Examples', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -875,9 +875,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // RESPONSIVE VIEWS - Different viewport sizes
-  // ============================================================================
+  // =============================================================================
   test.describe('Responsive Views', () => {
     test('Dashboard Mobile View', async ({ page }) => {
       test.skip(shouldSkip('dashboard-mobile.png'), 'Screenshot already exists');
@@ -916,9 +916,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // PANELS - Different panel states
-  // ============================================================================
+  // =============================================================================
   test.describe('Panel States', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -969,9 +969,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // WORKFLOW ASSISTANT - AI-powered assistant
-  // ============================================================================
+  // =============================================================================
   test.describe('Workflow Assistant', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -992,9 +992,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // HUGGING FACE - HuggingFace integration
-  // ============================================================================
+  // =============================================================================
   test.describe('HuggingFace Integration', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -1015,9 +1015,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // ERROR STATES - Various error conditions
-  // ============================================================================
+  // =============================================================================
   test.describe('Error States', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -1041,9 +1041,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // LOADING STATES - Various loading conditions
-  // ============================================================================
+  // =============================================================================
   test.describe('Loading States', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
@@ -1065,9 +1065,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
   });
 
-  // ============================================================================
+  // =============================================================================
   // THEME VARIATIONS - Light/Dark theme
-  // ============================================================================
+  // =============================================================================
   test.describe('Theme Variations', () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });

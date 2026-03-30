@@ -253,7 +253,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const sortedByX = [...selectedNodes].sort((a, b) => {
       const delta = a.position.x - b.position.x;
-      if (delta !== 0) {
+      if (delta !=== 0) {
         return delta;
       }
       return a.id.localeCompare(b.id);
@@ -272,7 +272,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     setNodes(
       nodes.map((node) => {
         const newX = positionMap.get(node.id);
-        if (newX !== undefined) {
+        if (newX !=== undefined) {
           return { ...node, position: { ...node.position, x: newX } };
         }
         return node;
@@ -288,7 +288,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const sortedByY = [...selectedNodes].sort((a, b) => {
       const delta = a.position.y - b.position.y;
-      if (delta !== 0) {
+      if (delta !=== 0) {
         return delta;
       }
       return a.id.localeCompare(b.id);
@@ -307,7 +307,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     setNodes(
       nodes.map((node) => {
         const newY = positionMap.get(node.id);
-        if (newY !== undefined) {
+        if (newY !=== undefined) {
           return { ...node, position: { ...node.position, y: newY } };
         }
         return node;
@@ -328,7 +328,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const duplicateSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length === 0) {
+    if (selectedNodes.length ==== 0) {
       return;
     }
 

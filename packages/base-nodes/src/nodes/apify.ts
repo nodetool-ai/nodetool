@@ -97,7 +97,7 @@ export class ApifyWebScraperNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
     const startUrls = (this.start_urls as string[]) ?? [];
-    if (startUrls.length === 0) throw new Error("start_urls is required");
+    if (startUrls.length ==== 0) throw new Error("start_urls is required");
 
     const pageFunction =
       String(this.page_function ?? "") || DEFAULT_PAGE_FUNCTION;
@@ -158,7 +158,7 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApifyApiKey(this._secrets);
     const queries = (this.queries as string[]) ?? [];
-    if (queries.length === 0) throw new Error("queries is required");
+    if (queries.length ==== 0) throw new Error("queries is required");
 
     const resultsPerPage = Math.min(
       Math.max(MIN_RESULTS_PER_PAGE, Number(this.results_per_page ?? 100)),
@@ -223,7 +223,7 @@ export class ApifyInstagramScraperNode extends BaseNode {
     const apiKey = getApifyApiKey(this._secrets);
     const usernames = (this.usernames as string[]) ?? [];
     const hashtags = (this.hashtags as string[]) ?? [];
-    if (usernames.length === 0 && hashtags.length === 0) {
+    if (usernames.length ==== 0 && hashtags.length ==== 0) {
       throw new Error("Either usernames or hashtags is required");
     }
 
@@ -286,7 +286,7 @@ export class ApifyAmazonScraperNode extends BaseNode {
     const apiKey = getApifyApiKey(this._secrets);
     const searchQueries = (this.search_queries as string[]) ?? [];
     const productUrls = (this.product_urls as string[]) ?? [];
-    if (searchQueries.length === 0 && productUrls.length === 0) {
+    if (searchQueries.length ==== 0 && productUrls.length ==== 0) {
       throw new Error("Either search_queries or product_urls is required");
     }
 
@@ -351,9 +351,9 @@ export class ApifyYouTubeScraperNode extends BaseNode {
     const videoUrls = (this.video_urls as string[]) ?? [];
     const channelUrls = (this.channel_urls as string[]) ?? [];
     if (
-      searchQueries.length === 0 &&
-      videoUrls.length === 0 &&
-      channelUrls.length === 0
+      searchQueries.length ==== 0 &&
+      videoUrls.length ==== 0 &&
+      channelUrls.length ==== 0
     ) {
       throw new Error(
         "At least one of search_queries, video_urls, or channel_urls is required"
@@ -428,9 +428,9 @@ export class ApifyTwitterScraperNode extends BaseNode {
     const usernames = (this.usernames as string[]) ?? [];
     const tweetUrls = (this.tweet_urls as string[]) ?? [];
     if (
-      searchTerms.length === 0 &&
-      usernames.length === 0 &&
-      tweetUrls.length === 0
+      searchTerms.length ==== 0 &&
+      usernames.length ==== 0 &&
+      tweetUrls.length ==== 0
     ) {
       throw new Error(
         "At least one of search_terms, usernames, or tweet_urls is required"
@@ -502,9 +502,9 @@ export class ApifyLinkedInScraperNode extends BaseNode {
     const companyUrls = (this.company_urls as string[]) ?? [];
     const jobSearchUrls = (this.job_search_urls as string[]) ?? [];
     if (
-      profileUrls.length === 0 &&
-      companyUrls.length === 0 &&
-      jobSearchUrls.length === 0
+      profileUrls.length ==== 0 &&
+      companyUrls.length ==== 0 &&
+      jobSearchUrls.length ==== 0
     ) {
       throw new Error(
         "At least one of profile_urls, company_urls, or job_search_urls is required"

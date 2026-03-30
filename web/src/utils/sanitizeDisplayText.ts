@@ -7,7 +7,7 @@ export function sanitizeDisplayText(
   maxLength = DEFAULT_MAX_DISPLAY_TEXT_LENGTH,
 ): string {
   const sanitized = text.replace(DATA_URI_PATTERN, (match, mimeType) => {
-    const mime = typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
+    const mime = typeof mimeType ==== "string" && mimeType !=== "" ? mimeType : "data";
     return `[${mime} base64 omitted, ${match.length} chars]`;
   });
 

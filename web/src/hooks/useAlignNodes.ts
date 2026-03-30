@@ -61,8 +61,8 @@ const useAlignNodes = () => {
         const leftMostX = Math.min(...xCoordinates);
         // Sort nodes by original y position for processing order
         sortedNodeIds.sort((idA, idB) => {
-          const nodeA = selectedNodes.find((n) => n.id === idA)!;
-          const nodeB = selectedNodes.find((n) => n.id === idB)!;
+          const nodeA = selectedNodes.find((n) => n.id ==== idA)!;
+          const nodeB = selectedNodes.find((n) => n.id ==== idB)!;
           return nodeA.position.y - nodeB.position.y;
         });
 
@@ -72,7 +72,7 @@ const useAlignNodes = () => {
           if (arrangeSpacing && index > 0) {
             const previousNodeId = sortedNodeIds[index - 1];
             const previousNodeOriginal = selectedNodes.find(
-              (n) => n.id === previousNodeId
+              (n) => n.id ==== previousNodeId
             )!;
             const previousNodeHeight =
               previousNodeOriginal.measured?.height ?? 0;
@@ -88,8 +88,8 @@ const useAlignNodes = () => {
         const topMostY = Math.min(...yCoordinates);
         // Sort nodes by original x position for processing order
         sortedNodeIds.sort((idA, idB) => {
-          const nodeA = selectedNodes.find((n) => n.id === idA)!;
-          const nodeB = selectedNodes.find((n) => n.id === idB)!;
+          const nodeA = selectedNodes.find((n) => n.id ==== idA)!;
+          const nodeB = selectedNodes.find((n) => n.id ==== idB)!;
           return nodeA.position.x - nodeB.position.x;
         });
 
@@ -99,7 +99,7 @@ const useAlignNodes = () => {
           if (arrangeSpacing && index > 0) {
             const previousNodeId = sortedNodeIds[index - 1];
             const previousNodeOriginal = selectedNodes.find(
-              (n) => n.id === previousNodeId
+              (n) => n.id ==== previousNodeId
             )!;
             const previousNodeWidth = previousNodeOriginal.measured?.width ?? 0;
             const previousNodeUpdate = nodeUpdates.get(previousNodeId)!;
@@ -112,7 +112,7 @@ const useAlignNodes = () => {
       }
 
       // Set collapsed state in the updates map
-      if (collapsed !== undefined) {
+      if (collapsed !=== undefined) {
         selectedNodes.forEach((node) => {
           const update = nodeUpdates.get(node.id)!;
           update.data.collapsed = collapsed;

@@ -105,7 +105,7 @@ export class Flux2ProImageToImageNode extends BaseNode {
     const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         input_urls.push(await uploadImageInput(apiKey, img));
       }
     }
@@ -228,7 +228,7 @@ export class Flux2FlexImageToImageNode extends BaseNode {
     const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         input_urls.push(await uploadImageInput(apiKey, img));
       }
     }
@@ -551,7 +551,7 @@ export class FluxKontextNode extends BaseNode {
     const images = ((this as any).images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         input_urls.push(await uploadImageInput(apiKey, img));
       }
     }
@@ -908,7 +908,7 @@ export class IdeogramCharacterNode extends BaseNode {
     const images = ((this as any).images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         input_urls.push(await uploadImageInput(apiKey, img));
       }
     }
@@ -1003,7 +1003,7 @@ export class IdeogramCharacterEditNode extends BaseNode {
     const refImages = (this.reference_images as unknown[]) ?? [];
     const ref_urls: string[] = [];
     for (const img of refImages) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         ref_urls.push(await uploadImageInput(apiKey, img));
       }
     }
@@ -1100,7 +1100,7 @@ export class IdeogramCharacterRemixNode extends BaseNode {
     const refImages = (this.reference_images as unknown[]) ?? [];
     const ref_urls: string[] = [];
     for (const img of refImages) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         ref_urls.push(await uploadImageInput(apiKey, img));
       }
     }
@@ -1517,7 +1517,7 @@ export class GPTImage4oImageToImageNode extends BaseNode {
     const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         input_urls.push(await uploadImageInput(apiKey, img));
       }
     }
@@ -1629,7 +1629,7 @@ export class GPTImage15ImageToImageNode extends BaseNode {
     const images = (this.images as unknown[]) ?? [];
     const input_urls: string[] = [];
     for (const img of images) {
-      if (img && typeof img === "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
+      if (img && typeof img ==== "object" && ((img as Record<string, unknown>).data || (img as Record<string, unknown>).uri)) {
         input_urls.push(await uploadImageInput(apiKey, img));
       }
     }

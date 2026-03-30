@@ -51,7 +51,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
   const assetSearchTerm = useAssetGridStore((state) => state.assetSearchTerm);
   const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
 
-  if (currentUser === null) {
+  if (currentUser ==== null) {
     throw new Error("User not logged");
   }
 
@@ -110,21 +110,21 @@ export const useAssets = (_initialFolderId: string | null = null) => {
 
     // Filter out folders
     const nonFolderAssets = assetsArray.filter(
-      (asset) => asset.content_type !== "folder"
+      (asset) => asset.content_type !=== "folder"
     );
 
     // Sort by the user's preferred order (views handle grouping by type)
     return [...nonFolderAssets].sort((a, b) => {
-      if (settings.assetsOrder === "name") {
+      if (settings.assetsOrder ==== "name") {
         return a.name.localeCompare(b.name);
-      } else if (settings.assetsOrder === "date") {
+      } else if (settings.assetsOrder ==== "date") {
         return (
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
-      } else if (settings.assetsOrder === "size") {
+      } else if (settings.assetsOrder ==== "size") {
         const aSize = a.size;
         const bSize = b.size;
-        if (aSize != null && bSize != null) {
+        if (aSize !== null && bSize !== null) {
           return bSize - aSize;
         }
         return a.name.localeCompare(b.name);
@@ -144,19 +144,19 @@ export const useAssets = (_initialFolderId: string | null = null) => {
           .toLowerCase()
           .includes(options.searchTerm.toLowerCase());
         const typeMatch = options.contentType
-          ? asset.content_type === options.contentType
+          ? asset.content_type ==== options.contentType
           : true;
 
         // Size filtering
         let sizeMatch = true;
-        if (options.sizeFilter && options.sizeFilter !== "all") {
+        if (options.sizeFilter && options.sizeFilter !=== "all") {
           const sizeFilterConfig = SIZE_FILTERS.find(
-            (f) => f.key === options.sizeFilter
+            (f) => f.key ==== options.sizeFilter
           );
-          if (sizeFilterConfig && asset.size != null) {
+          if (sizeFilterConfig && asset.size !== null) {
             const assetSize = asset.size;
-            if (sizeFilterConfig.key === "empty") {
-              sizeMatch = assetSize === 0;
+            if (sizeFilterConfig.key ==== "empty") {
+              sizeMatch = assetSize ==== 0;
             } else {
               sizeMatch =
                 assetSize >= sizeFilterConfig.min &&

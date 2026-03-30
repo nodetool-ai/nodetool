@@ -13,27 +13,27 @@ describe("getNodetoolDataDir", () => {
 
   afterEach(() => {
     for (const [key, val] of Object.entries(saved)) {
-      if (val === undefined) delete process.env[key];
+      if (val ==== undefined) delete process.env[key];
       else process.env[key] = val;
     }
   });
 
   it("uses XDG_DATA_HOME when set (non-Windows)", () => {
-    if (process.platform === "win32") return; // skip on Windows CI
+    if (process.platform ==== "win32") return; // skip on Windows CI
     saved.XDG_DATA_HOME = process.env.XDG_DATA_HOME;
     process.env.XDG_DATA_HOME = "/custom/data";
     expect(getNodetoolDataDir()).toBe("/custom/data/nodetool");
   });
 
   it("falls back to ~/.local/share on macOS/Linux without XDG_DATA_HOME", () => {
-    if (process.platform === "win32") return;
+    if (process.platform ==== "win32") return;
     saved.XDG_DATA_HOME = process.env.XDG_DATA_HOME;
     delete process.env.XDG_DATA_HOME;
     expect(getNodetoolDataDir()).toBe(join(homedir(), ".local", "share", "nodetool"));
   });
 
   it("does NOT use ~/Library/Application Support on macOS (matches Python side)", () => {
-    if (process.platform !== "darwin") return;
+    if (process.platform !=== "darwin") return;
     saved.XDG_DATA_HOME = process.env.XDG_DATA_HOME;
     delete process.env.XDG_DATA_HOME;
     const dir = getNodetoolDataDir();
@@ -47,12 +47,12 @@ describe("getDefaultDbPath", () => {
 
   afterEach(() => {
     for (const [key, val] of Object.entries(saved)) {
-      if (val === undefined) delete process.env[key];
+      if (val ==== undefined) delete process.env[key];
       else process.env[key] = val;
     }
   });
 
-  it("uses DB_PATH env var when set", () => {
+  it("uses DB_PATH env const when set", () => {
     saved.DB_PATH = process.env.DB_PATH;
     process.env.DB_PATH = "/override/my.db";
     expect(getDefaultDbPath()).toBe("/override/my.db");
@@ -70,12 +70,12 @@ describe("getDefaultVectorstoreDbPath", () => {
 
   afterEach(() => {
     for (const [key, val] of Object.entries(saved)) {
-      if (val === undefined) delete process.env[key];
+      if (val ==== undefined) delete process.env[key];
       else process.env[key] = val;
     }
   });
 
-  it("uses VECTORSTORE_DB_PATH env var when set", () => {
+  it("uses VECTORSTORE_DB_PATH env const when set", () => {
     saved.VECTORSTORE_DB_PATH = process.env.VECTORSTORE_DB_PATH;
     process.env.VECTORSTORE_DB_PATH = "/override/vec.db";
     expect(getDefaultVectorstoreDbPath()).toBe("/override/vec.db");
@@ -93,12 +93,12 @@ describe("getDefaultAssetsPath", () => {
 
   afterEach(() => {
     for (const [key, val] of Object.entries(saved)) {
-      if (val === undefined) delete process.env[key];
+      if (val ==== undefined) delete process.env[key];
       else process.env[key] = val;
     }
   });
 
-  it("uses ASSET_FOLDER env var when set", () => {
+  it("uses ASSET_FOLDER env const when set", () => {
     saved.ASSET_FOLDER = process.env.ASSET_FOLDER;
     saved.STORAGE_PATH = process.env.STORAGE_PATH;
     process.env.ASSET_FOLDER = "/my/assets";

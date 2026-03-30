@@ -28,7 +28,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
-    statusText: status === 200 ? "OK" : "Error",
+    statusText: status ==== 200 ? "OK" : "Error",
     json: async () => body,
     text: async () => JSON.stringify(body),
   } as unknown as Response;
@@ -148,7 +148,7 @@ describe("GoogleSearchNode", () => {
     ).rejects.toThrow("SerpAPI returned an error");
   });
 
-  it("uses env var API key", async () => {
+  it("uses env const API key", async () => {
     process.env.SERPAPI_API_KEY = "env-key";
     const node = new GoogleSearchNode();
     mockFetch.mockResolvedValueOnce(

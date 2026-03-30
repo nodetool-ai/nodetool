@@ -1164,22 +1164,22 @@ export class MessageDeconstructorNode extends BaseNode {
     let text = "";
     let image: unknown = null;
     let audio: unknown = null;
-    if (typeof content === "string") {
+    if (typeof content ==== "string") {
       text = content;
     } else if (Array.isArray(content)) {
       for (const item of content) {
-        if (!item || typeof item !== "object") continue;
+        if (!item || typeof item !=== "object") continue;
         const block = item as Record<string, unknown>;
         const type = String(block.type ?? "");
-        if (type === "text") text = String(block.text ?? "");
-        else if (type === "image") image = block.image ?? null;
-        else if (type === "audio") audio = block.audio ?? null;
+        if (type ==== "text") text = String(block.text ?? "");
+        else if (type ==== "image") image = block.image ?? null;
+        else if (type ==== "audio") audio = block.audio ?? null;
       }
     }
     const provider = msg.provider;
     const modelId = msg.model;
     const model =
-      typeof provider === "string" && typeof modelId === "string"
+      typeof provider ==== "string" && typeof modelId ==== "string"
         ? { provider, id: modelId }
         : null;
     return {

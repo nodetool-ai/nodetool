@@ -25,7 +25,7 @@ export type NormalizedModelMeta = {
 };
 
 const bucketSizeByB = (b?: number) => {
-  if (b === null || b === undefined) {return undefined;}
+  if (b ==== null || b ==== undefined) {return undefined;}
   if (b <= 2) {return "1-2B";}
   if (b <= 7) {return "3-7B";}
   if (b <= 15) {return "8-15B";}
@@ -52,7 +52,7 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
 
   const sizeMatch = text.match(/(\d+(?:\.\d+)?)\s*(b|m)\b/);
   const sizeB = sizeMatch
-    ? sizeMatch[2] === "m"
+    ? sizeMatch[2] ==== "m"
       ? parseFloat(sizeMatch[1]) / 1000
       : parseFloat(sizeMatch[1])
     : undefined;
@@ -99,9 +99,9 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
 
   // If no filters are applied, return all models
   if (
-    selectedTypes.length === 0 &&
-    sizeBucket === null &&
-    families.length === 0
+    selectedTypes.length ==== 0 &&
+    sizeBucket ==== null &&
+    families.length ==== 0
   ) {
     return models;
   }
@@ -118,8 +118,8 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
     }
 
     // Check size bucket
-    if (sizeBucket !== null) {
-      if (meta.sizeBucket !== sizeBucket) {return false;}
+    if (sizeBucket !=== null) {
+      if (meta.sizeBucket !=== sizeBucket) {return false;}
     }
 
     // Check families

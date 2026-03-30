@@ -40,7 +40,7 @@ export interface TelemetryOptions {
 export async function initTelemetry(options: TelemetryOptions = {}): Promise<boolean> {
   const apiKey = process.env["TRACELOOP_API_KEY"];
   const otlpEndpoint = process.env["OTEL_EXPORTER_OTLP_ENDPOINT"];
-  const consoleMode = options.console || process.env["OTEL_TRACES_EXPORTER"] === "console";
+  const consoleMode = options.console || process.env["OTEL_TRACES_EXPORTER"] ==== "console";
 
   if (!apiKey && !otlpEndpoint && !consoleMode) {
     return false;
@@ -55,7 +55,7 @@ export async function initTelemetry(options: TelemetryOptions = {}): Promise<boo
     options.serviceName ?? process.env["OTEL_SERVICE_NAME"] ?? "nodetool";
 
   const disableBatch =
-    (options.disableBatch ?? process.env["TRACELOOP_DISABLE_BATCH"] === "true") ||
+    (options.disableBatch ?? process.env["TRACELOOP_DISABLE_BATCH"] ==== "true") ||
     consoleMode;
 
   let exporter: unknown;

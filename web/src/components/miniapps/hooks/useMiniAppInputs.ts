@@ -37,7 +37,7 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
       })
       .filter(
         (definition): definition is MiniAppInputDefinition =>
-          definition !== null
+          definition !=== null
       );
   }, [selectedWorkflow]);
 
@@ -52,7 +52,7 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
   const setInputValue = useMiniAppsStore((state) => state.setInputValue);
 
   useEffect(() => {
-    if (!workflowId || inputDefinitions.length === 0) {
+    if (!workflowId || inputDefinitions.length ==== 0) {
       return;
     }
     initializeInputDefaults(workflowId, inputDefinitions);
@@ -64,7 +64,7 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
         return;
       }
       if (
-        !inputDefinitions.some((definition) => definition.data.name === name)
+        !inputDefinitions.some((definition) => definition.data.name ==== name)
       ) {
         return;
       }

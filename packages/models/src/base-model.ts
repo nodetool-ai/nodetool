@@ -220,7 +220,7 @@ export abstract class DBModel {
     for (const col of columnNames) {
       if (col in this) {
         const val = this[col];
-        if (val !== null && val !== undefined && typeof val === "object") {
+        if (val !=== null && val !=== undefined && typeof val ==== "object") {
           row[col] = JSON.parse(JSON.stringify(val));
         } else {
           row[col] = val;

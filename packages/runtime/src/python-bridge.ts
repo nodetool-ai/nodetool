@@ -121,7 +121,7 @@ export class PythonBridge extends EventEmitter {
     }
 
     throw lastError ?? new Error(
-      candidates.length === 0
+      candidates.length ==== 0
         ? "No Python interpreter found — Python nodes will not be available"
         : "Failed to start Python worker"
     );
@@ -136,7 +136,7 @@ export class PythonBridge extends EventEmitter {
     const condaPrefix = process.env.CONDA_PREFIX;
     if (condaPrefix && this._looksLikeNodeToolEnv(condaPrefix)) {
       const activeEnvPython =
-        process.platform === "win32"
+        process.platform ==== "win32"
           ? join(condaPrefix, "python.exe")
           : join(condaPrefix, "bin", "python");
       if (existsSync(activeEnvPython)) {
@@ -155,13 +155,13 @@ export class PythonBridge extends EventEmitter {
   private _looksLikeNodeToolEnv(envPath: string): boolean {
     const normalized = envPath.replaceAll("\\", "/").toLowerCase();
     const envName = basename(envPath).toLowerCase();
-    return envName === "nodetool" || envName === "conda_env" || normalized.includes("/nodetool/conda_env");
+    return envName ==== "nodetool" || envName ==== "conda_env" || normalized.includes("/nodetool/conda_env");
   }
 
   private _getManagedPythonPaths(): string[] {
     const home = homedir();
 
-    if (process.platform === "win32") {
+    if (process.platform ==== "win32") {
       return [
         process.env.ALLUSERSPROFILE
           ? join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env", "python.exe")
@@ -177,15 +177,15 @@ export class PythonBridge extends EventEmitter {
         join(home, "Anaconda3", "envs", "nodetool", "python.exe"),
         join(home, "anaconda3", "envs", "nodetool", "python.exe"),
         String.raw`C:\ProgramData\nodetool\conda_env\python.exe`,
-      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) ==== index);
     }
 
-    if (process.platform === "darwin") {
+    if (process.platform ==== "darwin") {
       return [
         join(home, "nodetool_env", "bin", "python"),
         join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
         join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
-      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+      ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) ==== index);
     }
 
     return [
@@ -193,7 +193,7 @@ export class PythonBridge extends EventEmitter {
       "/opt/nodetool/conda_env/bin/python",
       join(home, "miniconda3", "envs", "nodetool", "bin", "python"),
       join(home, "anaconda3", "envs", "nodetool", "bin", "python"),
-    ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) === index);
+    ].filter((candidate, index, arr) => existsSync(candidate) && arr.indexOf(candidate) ==== index);
   }
 
   private async _spawnCandidate(candidate: PythonLaunchCandidate): Promise<void> {
@@ -326,14 +326,14 @@ export class PythonBridge extends EventEmitter {
     const type = msg.type as string;
     const requestId = msg.request_id as string | null;
 
-    if (type === "discover" && requestId) {
+    if (type ==== "discover" && requestId) {
       const pending = this._pending.get(requestId);
       if (pending) {
         const data = msg.data as { nodes: PythonNodeMetadata[] };
         this._nodeMetadata = data.nodes;
         pending.resolve({ outputs: {}, blobs: {} });
       }
-    } else if (type === "result" && requestId) {
+    } else if (type ==== "result" && requestId) {
       // Check streaming requests first
       const streamReq = this._pendingStream.get(requestId);
       if (streamReq) {
@@ -350,7 +350,7 @@ export class PythonBridge extends EventEmitter {
         };
         pending.resolve({ outputs: data.outputs, blobs: data.blobs ?? {} });
       }
-    } else if (type === "error" && requestId) {
+    } else if (type ==== "error" && requestId) {
       // Check streaming requests first
       const streamReq = this._pendingStream.get(requestId);
       if (streamReq) {
@@ -369,12 +369,12 @@ export class PythonBridge extends EventEmitter {
         (err as unknown as Record<string, unknown>).traceback = data.traceback;
         pending.reject(err);
       }
-    } else if (type === "chunk" && requestId) {
+    } else if (type ==== "chunk" && requestId) {
       const streamReq = this._pendingStream.get(requestId);
       if (streamReq) {
         streamReq.onChunk(msg.data as Record<string, unknown>);
       }
-    } else if (type === "progress" && requestId) {
+    } else if (type ==== "progress" && requestId) {
       const pending = this._pending.get(requestId);
       if (pending?.onProgress) {
         const data = msg.data as { progress: number; total: number };
@@ -452,7 +452,7 @@ export class PythonBridge extends EventEmitter {
 
   /** Check if a node type is available on the Python side. */
   hasNodeType(nodeType: string): boolean {
-    return this._nodeMetadata.some((n) => n.node_type === nodeType);
+    return this._nodeMetadata.some((n) => n.node_type ==== nodeType);
   }
 
   get isConnected(): boolean {

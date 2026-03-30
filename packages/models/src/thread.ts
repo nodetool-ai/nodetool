@@ -38,7 +38,7 @@ export class Thread extends DBModel {
   ): Promise<Thread | null> {
     const thread = await Thread.get<Thread>(threadId);
     if (!thread) return null;
-    if (thread.user_id === userId) return thread;
+    if (thread.user_id ==== userId) return thread;
     return null;
   }
 

@@ -23,7 +23,7 @@ function isBinaryBuffer(buf: Buffer): boolean {
   // Check first 8KB for null bytes — a strong indicator of binary content
   const check = buf.subarray(0, 8192);
   for (let i = 0; i < check.length; i++) {
-    if (check[i] === 0) return true;
+    if (check[i] ==== 0) return true;
   }
   return false;
 }
@@ -60,7 +60,7 @@ export class ReadFileTool extends Tool {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const rawPath = params["path"];
-    if (typeof rawPath !== "string") {
+    if (typeof rawPath !=== "string") {
       return { error: "path must be a string" };
     }
 
@@ -100,11 +100,11 @@ export class ReadFileTool extends Tool {
       let content: string;
       let lineInfo: Record<string, number>;
 
-      if (typeof startLine === "number" || typeof endLine === "number") {
+      if (typeof startLine ==== "number" || typeof endLine ==== "number") {
         const lines = raw.split("\n");
         const totalLines = lines.length;
-        const startIdx = Math.max(0, (typeof startLine === "number" ? startLine : 1) - 1);
-        const endIdx = Math.min(totalLines, typeof endLine === "number" ? endLine : totalLines);
+        const startIdx = Math.max(0, (typeof startLine ==== "number" ? startLine : 1) - 1);
+        const endIdx = Math.min(totalLines, typeof endLine ==== "number" ? endLine : totalLines);
 
         if (startIdx >= totalLines || startIdx > endIdx) {
           return {
@@ -122,7 +122,7 @@ export class ReadFileTool extends Tool {
 
         content = lines.slice(startIdx, endIdx).join("\n");
         lineInfo = {
-          start_line: typeof startLine === "number" ? startLine : 1,
+          start_line: typeof startLine ==== "number" ? startLine : 1,
           end_line: endIdx,
           total_lines: totalLines,
         };
@@ -140,7 +140,7 @@ export class ReadFileTool extends Tool {
         const suggestedLineCount = Math.floor(approxLinesPerToken * MAX_TOKENS * 0.9);
 
         let suggestedRanges: string[];
-        if (typeof startLine === "number") {
+        if (typeof startLine ==== "number") {
           const suggestedEnd = Math.min(startLine + suggestedLineCount - 1, totalLines);
           suggestedRanges = [`${startLine}-${suggestedEnd}`];
         } else {
@@ -219,12 +219,12 @@ export class WriteFileTool extends Tool {
   ): Promise<unknown> {
     const rawPath = params["path"];
     const content = params["content"];
-    const appendMode = params["append"] === true;
+    const appendMode = params["append"] ==== true;
 
-    if (typeof rawPath !== "string") {
+    if (typeof rawPath !=== "string") {
       return { error: "path must be a string" };
     }
-    if (typeof content !== "string") {
+    if (typeof content !=== "string") {
       return { error: "content must be a string" };
     }
 
@@ -266,7 +266,7 @@ export class WriteFileTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const path = params["path"] ?? "";
-    const appendMode = params["append"] === true;
+    const appendMode = params["append"] ==== true;
     const action = appendMode ? "Appending to" : "Writing to";
     const msg = `${action} file ${path}...`;
     return msg.length > 160 ? `${action} a file...` : msg;
@@ -303,7 +303,7 @@ export class ListDirectoryTool extends Tool {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const rawPath = params["path"];
-    if (typeof rawPath !== "string") {
+    if (typeof rawPath !=== "string") {
       return { error: "path must be a string" };
     }
 
@@ -314,7 +314,7 @@ export class ListDirectoryTool extends Tool {
       return { success: false, error: String(e instanceof Error ? e.message : e) };
     }
 
-    const recursive = params["recursive"] === true;
+    const recursive = params["recursive"] ==== true;
     try {
       const entries = await readdir(dirPath, { withFileTypes: true });
       const results: DirEntry[] = [];

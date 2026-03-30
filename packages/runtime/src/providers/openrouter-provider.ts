@@ -106,11 +106,11 @@ export class OpenRouterProvider extends OpenAIProvider {
       return messages;
     }
     return messages.map((msg) =>
-      msg.role === "system"
+      msg.role ==== "system"
         ? {
             ...msg,
             role: "user" as const,
-            content: `Instructions: ${typeof msg.content === "string" ? msg.content : ""}`,
+            content: `Instructions: ${typeof msg.content ==== "string" ? msg.content : ""}`,
           }
         : msg
     );
@@ -230,7 +230,7 @@ export class OpenRouterProvider extends OpenAIProvider {
     return rows
       .filter(
         (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
+          typeof row.id ==== "string" && row.id.length > 0
       )
       .map((row) => ({
         id: row.id,

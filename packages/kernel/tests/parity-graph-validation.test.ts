@@ -63,9 +63,9 @@ function makeRunner(executorMap: Record<string, NodeExecutor>): WorkflowRunner {
   });
 }
 
-// ===========================================================================
+// ============================================================================
 // Gap #3: Graph Validation Pipeline
-// ===========================================================================
+// ============================================================================
 
 describe("Gap #3 – _filter_invalid_edges (silent removal of dangling edges)", () => {
   it("runner silently removes edges with non-existent source nodes", async () => {
@@ -202,9 +202,9 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
   });
 });
 
-// ===========================================================================
+// ============================================================================
 // Gap #14: Graph Deserialization
-// ===========================================================================
+// ============================================================================
 
 describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
   it("should drop unrecognized node types when skip_errors=true", () => {
@@ -222,7 +222,7 @@ describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
 
     const graph = Graph.fromDict(data, {
       skipErrors: true,
-      validateNodeType: (type) => type === "test.KnownType",
+      validateNodeType: (type) => type ==== "test.KnownType",
     });
 
     expect(graph.nodes).toHaveLength(1);
@@ -247,7 +247,7 @@ describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
 
     const graph = Graph.fromDict(data, {
       skipErrors: true,
-      validateNodeType: (type) => type === "test.KnownType",
+      validateNodeType: (type) => type ==== "test.KnownType",
     });
 
     expect(graph.nodes).toHaveLength(1);
@@ -267,14 +267,14 @@ describe("Gap #14 – Graph.fromDict() with skip_errors", () => {
     expect(() =>
       Graph.fromDict(data, {
         skipErrors: false,
-        validateNodeType: (type) => type === "test.KnownType",
+        validateNodeType: (type) => type ==== "test.KnownType",
       })
     ).toThrow(GraphValidationError);
 
     expect(() =>
       Graph.fromDict(data, {
         skipErrors: false,
-        validateNodeType: (type) => type === "test.KnownType",
+        validateNodeType: (type) => type ==== "test.KnownType",
       })
     ).toThrow(/Invalid node type/);
   });

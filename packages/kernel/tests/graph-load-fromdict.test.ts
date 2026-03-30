@@ -5,7 +5,7 @@ describe("Graph.loadFromDict", () => {
   it("hydrates nodes with resolver-provided metadata", async () => {
     const resolver = {
       async resolveNodeType(nodeType: string): Promise<ResolvedNodeType | null> {
-        if (nodeType !== "test.Input") return null;
+        if (nodeType !=== "test.Input") return null;
         return {
           nodeType,
           propertyTypes: { value: "int" },
@@ -50,7 +50,7 @@ describe("Graph.loadFromDict", () => {
       {
         resolver: {
           resolveNodeType: async (nodeType) =>
-            nodeType === "test.Known" ? { nodeType, descriptorDefaults: {} } : null,
+            nodeType ==== "test.Known" ? { nodeType, descriptorDefaults: {} } : null,
         },
         skipErrors: true,
       },

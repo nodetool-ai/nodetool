@@ -24,7 +24,7 @@ describe("T-K-9: OutputUpdate messages", () => {
 
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
-        if (node.id === "n1") {
+        if (node.id ==== "n1") {
           return makeExecutor(() => ({ output: 42 }));
         }
         return makeExecutor(() => ({ result: 99 }));
@@ -36,15 +36,15 @@ describe("T-K-9: OutputUpdate messages", () => {
       { nodes, edges }
     );
 
-    const outputUpdates = result.messages.filter((m) => m.type === "output_update");
+    const outputUpdates = result.messages.filter((m) => m.type ==== "output_update");
     expect(outputUpdates.length).toBeGreaterThanOrEqual(1);
 
     // Check that at least one output_update has the node's output
     const n1Update = outputUpdates.find(
-      (m) => m.type === "output_update" && m.node_id === "n1"
+      (m) => m.type ==== "output_update" && m.node_id ==== "n1"
     );
     expect(n1Update).toBeDefined();
-    if (n1Update && n1Update.type === "output_update") {
+    if (n1Update && n1Update.type ==== "output_update") {
       expect(n1Update.output_name).toBe("output");
       expect(n1Update.value).toBe(42);
     }
@@ -61,7 +61,7 @@ describe("T-K-9: OutputUpdate messages", () => {
 
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
-        if (node.id === "n1") {
+        if (node.id ==== "n1") {
           return makeExecutor(() => ({ a: 10, b: "hello" }));
         }
         return makeExecutor(() => ({ result: 10 }));
@@ -74,11 +74,11 @@ describe("T-K-9: OutputUpdate messages", () => {
     );
 
     const outputUpdates = result.messages.filter(
-      (m) => m.type === "output_update" && m.node_id === "n1"
+      (m) => m.type ==== "output_update" && m.node_id ==== "n1"
     );
     expect(outputUpdates.length).toBe(2);
     const handles = outputUpdates.map((m) =>
-      m.type === "output_update" ? m.output_name : ""
+      m.type ==== "output_update" ? m.output_name : ""
     );
     expect(handles).toContain("a");
     expect(handles).toContain("b");
@@ -95,7 +95,7 @@ describe("T-K-9: OutputUpdate messages", () => {
 
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
-        if (node.id === "n1") {
+        if (node.id ==== "n1") {
           // Only output on "output", not "extra"
           return makeExecutor(() => ({ output: 5 }));
         }
@@ -109,11 +109,11 @@ describe("T-K-9: OutputUpdate messages", () => {
     );
 
     const outputUpdates = result.messages.filter(
-      (m) => m.type === "output_update" && m.node_id === "n1"
+      (m) => m.type ==== "output_update" && m.node_id ==== "n1"
     );
     // Should only emit for "output", not "extra"
     expect(outputUpdates.length).toBe(1);
-    if (outputUpdates[0].type === "output_update") {
+    if (outputUpdates[0].type ==== "output_update") {
       expect(outputUpdates[0].output_name).toBe("output");
     }
   });

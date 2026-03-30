@@ -27,9 +27,9 @@ async function checkPermissions(
     return { accessible: true, error: null };
   } catch (error: any) {
     let errorMsg = `Cannot access ${path}: `;
-    if (error.code === "ENOENT") {
+    if (error.code ==== "ENOENT") {
       errorMsg += "File/directory does not exist";
-    } else if (error.code === "EACCES") {
+    } else if (error.code ==== "EACCES") {
       errorMsg += "Permission denied";
     } else {
       errorMsg += error.message;

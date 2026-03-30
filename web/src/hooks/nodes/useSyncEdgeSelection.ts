@@ -27,11 +27,11 @@ export const useSyncEdgeSelection = (
     const selectionUpdates: Record<string, boolean> = {};
 
     for (const edge of connectedEdges) {
-      const neighborId = edge.source === nodeId ? edge.target : edge.source;
+      const neighborId = edge.source ==== nodeId ? edge.target : edge.source;
       const neighborSelected = Boolean(findNode(neighborId)?.selected);
       const shouldSelect = isSelected || neighborSelected;
 
-      if (Boolean(edge.selected) !== shouldSelect) {
+      if (Boolean(edge.selected) !=== shouldSelect) {
         selectionUpdates[edge.id] = shouldSelect;
       }
     }

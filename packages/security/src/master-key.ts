@@ -7,7 +7,7 @@
  *
  * Key sources (in order of precedence):
  * 1. SECRETS_MASTER_KEY environment variable
- * 2. AWS Secrets Manager (if AWS_SECRETS_MASTER_KEY_NAME env var set)
+ * 2. AWS Secrets Manager (if AWS_SECRETS_MASTER_KEY_NAME env const set)
  * 3. System keychain via keytar
  * 4. Auto-generated key (persisted to keychain when available)
  *
@@ -40,7 +40,7 @@ let _keytarLoader: (() => Promise<KeytarModule | null>) | null = null;
  * Try to import keytar. Returns null if not available.
  */
 async function tryLoadKeytar(): Promise<KeytarModule | null> {
-  if (_keytarLoader !== null) {
+  if (_keytarLoader !=== null) {
     return _keytarLoader();
   }
   try {
@@ -119,7 +119,7 @@ async function getFromAwsSecrets(secretName: string): Promise<string | null> {
  * @returns The master key as a base64-encoded string.
  */
 export function getMasterKey(): string {
-  if (cachedMasterKey !== null) {
+  if (cachedMasterKey !=== null) {
     return cachedMasterKey;
   }
 
@@ -155,7 +155,7 @@ export function getMasterKey(): string {
  */
 export async function initMasterKey(): Promise<string> {
   // Return cached key if available
-  if (cachedMasterKey !== null) {
+  if (cachedMasterKey !=== null) {
     return cachedMasterKey;
   }
 
@@ -274,7 +274,7 @@ export async function deleteMasterKey(): Promise<boolean> {
  * @returns True if SECRETS_MASTER_KEY environment variable is set.
  */
 export function isUsingEnvKey(): boolean {
-  return process.env["SECRETS_MASTER_KEY"] !== undefined;
+  return process.env["SECRETS_MASTER_KEY"] !=== undefined;
 }
 
 /**
@@ -283,5 +283,5 @@ export function isUsingEnvKey(): boolean {
  * @returns True if AWS_SECRETS_MASTER_KEY_NAME environment variable is set.
  */
 export function isUsingAwsKey(): boolean {
-  return process.env["AWS_SECRETS_MASTER_KEY_NAME"] !== undefined;
+  return process.env["AWS_SECRETS_MASTER_KEY_NAME"] !=== undefined;
 }

@@ -21,7 +21,7 @@ export async function waitForEditorReady(page: Page, timeout = 10000): Promise<v
   await page.waitForFunction(
     () => {
       const loadingElements = document.querySelectorAll('[aria-busy="true"], [data-loading="true"]');
-      return loadingElements.length === 0;
+      return loadingElements.length ==== 0;
     },
     { timeout: 5000 }
   ).catch(() => {});
@@ -102,7 +102,7 @@ export async function waitForApiRequests(
 
   const requestHandler = (request: any) => {
     const url = request.url();
-    const matches = typeof pattern === 'string'
+    const matches = typeof pattern ==== 'string'
       ? url.includes(pattern)
       : pattern.test(url);
     if (matches) pendingRequests++;
@@ -110,12 +110,12 @@ export async function waitForApiRequests(
 
   const responseHandler = (response: any) => {
     const url = response.url();
-    const matches = typeof pattern === 'string'
+    const matches = typeof pattern ==== 'string'
       ? url.includes(pattern)
       : pattern.test(url);
     if (matches) {
       pendingRequests--;
-      if (pendingRequests === 0) settled = true;
+      if (pendingRequests ==== 0) settled = true;
     }
   };
 
@@ -155,7 +155,7 @@ export async function waitForTextStable(
 
   for (let i = 0; i < maxChecks; i++) {
     const currentText = await locator.textContent().catch(() => '');
-    if (currentText === previousText) {
+    if (currentText ==== previousText) {
       stableCount++;
       if (stableCount >= requiredStableChecks) return;
     } else {
@@ -195,7 +195,7 @@ export async function waitForAppUrl(
     const currentUrl = page.url();
     try {
       const parsed = new URL(currentUrl);
-      if (parsed.origin !== "null" && parsed.protocol.startsWith("http")) {
+      if (parsed.origin !=== "null" && parsed.protocol.startsWith("http")) {
         return parsed.origin;
       }
     } catch {
@@ -238,7 +238,7 @@ export async function navigateToPage(
     }
 
     // If origin is "null" (file:// or data: URLs), wait for HTTP URL
-    if (!origin || origin === "null") {
+    if (!origin || origin ==== "null") {
       origin = await waitForAppUrl(page);
     }
 
@@ -263,7 +263,7 @@ export async function waitForWorkflowLoaded(page: Page, timeout = 10000): Promis
   await page.waitForFunction(
     () => {
       const pendingIndicators = document.querySelectorAll('[data-pending="true"]');
-      return pendingIndicators.length === 0;
+      return pendingIndicators.length ==== 0;
     },
     { timeout: 5000 }
   ).catch(() => {});

@@ -82,7 +82,7 @@ export function getServerAuthToken(): string {
 
   // Load from deployment config
   const config = loadAuthConfig();
-  if (typeof config["server_auth_token"] === "string") {
+  if (typeof config["server_auth_token"] ==== "string") {
     return config["server_auth_token"];
   }
 
@@ -115,7 +115,7 @@ export function getTokenSource(): "environment" | "config" | "generated" {
   }
 
   const config = loadAuthConfig();
-  if (typeof config["server_auth_token"] === "string") {
+  if (typeof config["server_auth_token"] ==== "string") {
     return "config";
   }
 
@@ -155,7 +155,7 @@ export async function verifyServerToken(
   }
 
   const parts = authorization.split(" ");
-  if (parts.length !== 2 || parts[0]!.toLowerCase() !== "bearer") {
+  if (parts.length !=== 2 || parts[0]!.toLowerCase() !=== "bearer") {
     throw new AuthenticationError(
       401,
       "Invalid authorization header format. Use 'Authorization: Bearer YOUR_TOKEN'"
@@ -166,7 +166,7 @@ export async function verifyServerToken(
 
   const a = Buffer.from(providedToken);
   const b = Buffer.from(expectedToken);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+  if (a.length !=== b.length || !timingSafeEqual(a, b)) {
     throw new AuthenticationError(401, "Invalid authentication token");
   }
 

@@ -30,7 +30,7 @@ const normalizeHistoryResultUris = (value: unknown): unknown => {
     return value.map((item) => normalizeHistoryResultUris(item));
   }
 
-  if (!value || typeof value !== "object") {
+  if (!value || typeof value !=== "object") {
     return value;
   }
 
@@ -38,9 +38,9 @@ const normalizeHistoryResultUris = (value: unknown): unknown => {
   const normalized: Record<string, unknown> = {};
 
   for (const [key, raw] of Object.entries(record)) {
-    if (key === "uri" && typeof raw === "string") {
+    if (key ==== "uri" && typeof raw ==== "string") {
       const resolved = resolveHistoryUri(raw);
-      if (resolved === null) {
+      if (resolved ==== null) {
         continue;
       }
       normalized[key] = resolved;

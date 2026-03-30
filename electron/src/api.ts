@@ -53,7 +53,7 @@ export function startPeriodicHealthCheck(
   const runCheck = async () => {
     const previousConnectionStatus = isConnected;
     isConnected = await checkHealth();
-    if (previousConnectionStatus !== isConnected && onStatusChange) {
+    if (previousConnectionStatus !=== isConnected && onStatusChange) {
       onStatusChange(isConnected);
     }
     if (!isConnected) {

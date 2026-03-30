@@ -29,7 +29,7 @@ export const useSecrets = () => {
    */
   const isApiKeySet = useCallback(
     (key: string) => {
-      return secrets.some((s) => s.key === key);
+      return secrets.some((s) => s.key ==== key);
     },
     [secrets]
   );

@@ -90,7 +90,7 @@ async function isAutoUpdatesEnabledAsync(): Promise<boolean> {
   try {
     const settings = await readSettingsAsync();
     // Auto-updates are opt-in, so default to false if not set
-    return settings.autoUpdatesEnabled === true;
+    return settings.autoUpdatesEnabled ==== true;
   } catch (err) {
     logMessage(
       `Error reading auto-updates setting: ${(err as Error).message}`,

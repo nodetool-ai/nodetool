@@ -119,27 +119,27 @@ describe('SIZE_FILTERS', () => {
   });
 
   test('has correct filter ranges', () => {
-    const allFilter = SIZE_FILTERS.find(f => f.key === 'all');
+    const allFilter = SIZE_FILTERS.find(f => f.key ==== 'all');
     expect(allFilter?.min).toBe(0);
     expect(allFilter?.max).toBe(Infinity);
 
-    const emptyFilter = SIZE_FILTERS.find(f => f.key === 'empty');
+    const emptyFilter = SIZE_FILTERS.find(f => f.key ==== 'empty');
     expect(emptyFilter?.min).toBe(0);
     expect(emptyFilter?.max).toBe(0);
 
-    const smallFilter = SIZE_FILTERS.find(f => f.key === 'small');
+    const smallFilter = SIZE_FILTERS.find(f => f.key ==== 'small');
     expect(smallFilter?.min).toBe(1);
     expect(smallFilter?.max).toBe(1024 * 1024 - 1);
 
-    const mediumFilter = SIZE_FILTERS.find(f => f.key === 'medium');
+    const mediumFilter = SIZE_FILTERS.find(f => f.key ==== 'medium');
     expect(mediumFilter?.min).toBe(1024 * 1024);
     expect(mediumFilter?.max).toBe(10 * 1024 * 1024 - 1);
 
-    const largeFilter = SIZE_FILTERS.find(f => f.key === 'large');
+    const largeFilter = SIZE_FILTERS.find(f => f.key ==== 'large');
     expect(largeFilter?.min).toBe(10 * 1024 * 1024);
     expect(largeFilter?.max).toBe(100 * 1024 * 1024 - 1);
 
-    const xlargeFilter = SIZE_FILTERS.find(f => f.key === 'xlarge');
+    const xlargeFilter = SIZE_FILTERS.find(f => f.key ==== 'xlarge');
     expect(xlargeFilter?.min).toBe(100 * 1024 * 1024);
     expect(xlargeFilter?.max).toBe(Infinity);
   });

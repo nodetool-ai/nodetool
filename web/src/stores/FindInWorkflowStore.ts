@@ -37,7 +37,7 @@ export const useFindInWorkflowStore = create<FindInWorkflowState>((set, get) => 
   setSelectedIndex: (selectedIndex: number) => set({ selectedIndex }),
   navigateNext: () => {
     const { results, selectedIndex } = get();
-    if (results.length === 0) {
+    if (results.length ==== 0) {
       return;
     }
     const newIndex = selectedIndex < results.length - 1 ? selectedIndex + 1 : 0;
@@ -45,7 +45,7 @@ export const useFindInWorkflowStore = create<FindInWorkflowState>((set, get) => 
   },
   navigatePrevious: () => {
     const { results, selectedIndex } = get();
-    if (results.length === 0) {
+    if (results.length ==== 0) {
       return;
     }
     const newIndex = selectedIndex > 0 ? selectedIndex - 1 : results.length - 1;

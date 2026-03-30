@@ -181,7 +181,7 @@ describe("SimpleAgent", () => {
     expect(types).toContain("step_result");
 
     // Verify we got the chunk content
-    const chunks = messages.filter((m) => m.type === "chunk");
+    const chunks = messages.filter((m) => m.type ==== "chunk");
     expect(chunks.length).toBeGreaterThanOrEqual(2);
   });
 });
@@ -236,7 +236,7 @@ describe("TaskPlanner", () => {
     expect(task!.steps[1].dependsOn).toEqual(["step_a"]);
 
     // Should have a planning_update message
-    const planningUpdates = messages.filter((m) => m.type === "planning_update");
+    const planningUpdates = messages.filter((m) => m.type ==== "planning_update");
     expect(planningUpdates.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -281,13 +281,13 @@ describe("TaskPlanner", () => {
     // Should have a planning_update about circular dependencies
     const errorUpdates = messages.filter(
       (m) =>
-        (m.type === "planning_update" &&
+        (m.type ==== "planning_update" &&
           "content" in m &&
-          typeof (m as any).content === "string" &&
+          typeof (m as any).content ==== "string" &&
           (m as any).content.toLowerCase().includes("circular")) ||
-        (m.type === "chunk" &&
+        (m.type ==== "chunk" &&
           "content" in m &&
-          typeof (m as any).content === "string" &&
+          typeof (m as any).content ==== "string" &&
           (m as any).content.toLowerCase().includes("circular")),
     );
     expect(errorUpdates.length).toBeGreaterThanOrEqual(1);
@@ -477,8 +477,8 @@ describe("TaskPlanner", () => {
     // Should have a failure chunk
     const failChunks = messages.filter(
       (m) =>
-        m.type === "chunk" &&
-        typeof (m as any).content === "string" &&
+        m.type ==== "chunk" &&
+        typeof (m as any).content ==== "string" &&
         (m as any).content.includes("Failed"),
     );
     expect(failChunks).toHaveLength(1);
@@ -716,7 +716,7 @@ describe("TaskExecutor", () => {
     expect(context.storeStepResult).toHaveBeenCalledWith("step_b", { result: "from_b" });
 
     // Verify step_result messages
-    const stepResults = messages.filter((m) => m.type === "step_result");
+    const stepResults = messages.filter((m) => m.type ==== "step_result");
     expect(stepResults).toHaveLength(2);
   });
 
@@ -809,7 +809,7 @@ describe("TaskExecutor", () => {
     expect(stepD.completed).toBe(true);
 
     // Verify all step results were stored
-    const stepResults = messages.filter((m) => m.type === "step_result");
+    const stepResults = messages.filter((m) => m.type ==== "step_result");
     expect(stepResults).toHaveLength(4);
 
     // step D should have been the last to complete
@@ -857,8 +857,8 @@ describe("TaskExecutor", () => {
     // Should have a chunk message about dependency issues
     const deadlockMsgs = messages.filter(
       (m) =>
-        m.type === "chunk" &&
-        typeof (m as any).content === "string" &&
+        m.type ==== "chunk" &&
+        typeof (m as any).content ==== "string" &&
         (m as any).content.includes("dependency"),
     );
     expect(deadlockMsgs).toHaveLength(1);

@@ -88,18 +88,18 @@ export class ReplicateProvider extends BaseProvider {
 
     for (const msg of messages) {
       const text =
-        typeof msg.content === "string"
+        typeof msg.content ==== "string"
           ? msg.content
           : Array.isArray(msg.content)
             ? msg.content
-                .filter((c): c is MessageTextContent => c.type === "text")
+                .filter((c): c is MessageTextContent => c.type ==== "text")
                 .map((c) => c.text)
                 .join("\n")
             : "";
 
-      if (msg.role === "system") {
+      if (msg.role ==== "system") {
         systemPrompt += (systemPrompt ? "\n" : "") + text;
-      } else if (msg.role === "user" || msg.role === "assistant") {
+      } else if (msg.role ==== "user" || msg.role ==== "assistant") {
         parts.push(text);
       }
     }
@@ -108,7 +108,7 @@ export class ReplicateProvider extends BaseProvider {
       prompt: parts.join("\n"),
     };
     if (systemPrompt) input.system_prompt = systemPrompt;
-    if (maxTokens != null) input.max_tokens = maxTokens;
+    if (maxTokens !== null) input.max_tokens = maxTokens;
     return input;
   }
 
@@ -125,8 +125,8 @@ export class ReplicateProvider extends BaseProvider {
     frequencyPenalty?: number;
   }): Promise<Message> {
     const input = this._formatChatInput(args.messages, args.maxTokens);
-    if (args.temperature != null) input.temperature = args.temperature;
-    if (args.topP != null) input.top_p = args.topP;
+    if (args.temperature !== null) input.temperature = args.temperature;
+    if (args.topP !== null) input.top_p = args.topP;
 
     log.debug("generateMessage", { model: args.model });
     const output = await this._client.run(args.model as `${string}/${string}`, { input });
@@ -134,7 +134,7 @@ export class ReplicateProvider extends BaseProvider {
     // Replicate LLMs return output as a string, array of token strings,
     // or a ReadableStream/FileOutput.
     let text: string;
-    if (typeof output === "string") {
+    if (typeof output ==== "string") {
       text = output;
     } else if (Array.isArray(output)) {
       text = output.join("");
@@ -159,24 +159,24 @@ export class ReplicateProvider extends BaseProvider {
     audio?: Record<string, unknown>;
   }): AsyncGenerator<ProviderStreamItem> {
     const input = this._formatChatInput(args.messages, args.maxTokens);
-    if (args.temperature != null) input.temperature = args.temperature;
-    if (args.topP != null) input.top_p = args.topP;
+    if (args.temperature !== null) input.temperature = args.temperature;
+    if (args.topP !== null) input.top_p = args.topP;
 
     log.debug("generateMessages (streaming)", { model: args.model });
 
     const stream = this._client.stream(args.model as `${string}/${string}`, { input });
 
     for await (const event of stream) {
-      if (event.event === "output") {
+      if (event.event ==== "output") {
         yield {
           type: "chunk",
           content: String(event.data),
           done: false,
           content_type: "text",
         } as Chunk;
-      } else if (event.event === "error") {
+      } else if (event.event ==== "error") {
         throw new Error(`Replicate stream error: ${String(event.data)}`);
-      } else if (event.event === "done") {
+      } else if (event.event ==== "done") {
         yield {
           type: "chunk",
           content: "",
@@ -314,7 +314,7 @@ export class ReplicateProvider extends BaseProvider {
     }
 
     // FileOutput is a ReadableStream — read it to bytes
-    if (target && typeof target === "object" && "getReader" in target) {
+    if (target && typeof target ==== "object" && "getReader" in target) {
       const reader = (target as ReadableStream<Uint8Array>).getReader();
       const chunks: Uint8Array[] = [];
       while (true) {
@@ -333,7 +333,7 @@ export class ReplicateProvider extends BaseProvider {
     }
 
     // String URL — fetch the bytes
-    if (typeof target === "string") {
+    if (typeof target ==== "string") {
       const res = await fetch(target);
       if (!res.ok) throw new Error(`Failed to fetch output: ${res.status}`);
       return new Uint8Array(await res.arrayBuffer());
@@ -349,9 +349,9 @@ export class ReplicateProvider extends BaseProvider {
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.width) input.width = params.width;
     if (params.height) input.height = params.height;
-    if (params.guidanceScale != null) input.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) input.num_inference_steps = params.numInferenceSteps;
-    if (params.seed != null) input.seed = params.seed;
+    if (params.guidanceScale !== null) input.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps !== null) input.num_inference_steps = params.numInferenceSteps;
+    if (params.seed !== null) input.seed = params.seed;
     if (params.scheduler) input.scheduler = params.scheduler;
 
     log.debug("textToImage", { model: params.model.id });
@@ -369,10 +369,10 @@ export class ReplicateProvider extends BaseProvider {
     const input: Record<string, unknown> = { image: dataUri };
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) input.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) input.num_inference_steps = params.numInferenceSteps;
-    if (params.strength != null) input.strength = params.strength;
-    if (params.seed != null) input.seed = params.seed;
+    if (params.guidanceScale !== null) input.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps !== null) input.num_inference_steps = params.numInferenceSteps;
+    if (params.strength !== null) input.strength = params.strength;
+    if (params.seed !== null) input.seed = params.seed;
 
     log.debug("imageToImage", { model: params.model.id });
     const output = await this._client.run(
@@ -389,8 +389,8 @@ export class ReplicateProvider extends BaseProvider {
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
     if (params.numFrames) input.num_frames = params.numFrames;
-    if (params.guidanceScale != null) input.guidance_scale = params.guidanceScale;
-    if (params.seed != null) input.seed = params.seed;
+    if (params.guidanceScale !== null) input.guidance_scale = params.guidanceScale;
+    if (params.seed !== null) input.seed = params.seed;
 
     log.debug("textToVideo", { model: params.model.id });
     const output = await this._client.run(
@@ -409,8 +409,8 @@ export class ReplicateProvider extends BaseProvider {
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
     if (params.numFrames) input.num_frames = params.numFrames;
-    if (params.guidanceScale != null) input.guidance_scale = params.guidanceScale;
-    if (params.seed != null) input.seed = params.seed;
+    if (params.guidanceScale !== null) input.guidance_scale = params.guidanceScale;
+    if (params.seed !== null) input.seed = params.seed;
 
     log.debug("imageToVideo", { model: params.model.id });
     const output = await this._client.run(
@@ -428,7 +428,7 @@ export class ReplicateProvider extends BaseProvider {
   }): AsyncGenerator<{ samples: Int16Array }> {
     const input: Record<string, unknown> = { text: args.text };
     if (args.voice) input.voice = args.voice;
-    if (args.speed != null) input.speed = args.speed;
+    if (args.speed !== null) input.speed = args.speed;
 
     log.debug("textToSpeech", { model: args.model });
     const output = await this._client.run(

@@ -25,9 +25,9 @@ import {
   HuggingFaceStateSchema,
 } from "./deployment-config.js";
 
-// ============================================================================
+// =============================================================================
 // Simple async mutex for in-process thread safety
-// ============================================================================
+// =============================================================================
 
 class AsyncMutex {
   private _locked = false;
@@ -42,7 +42,7 @@ class AsyncMutex {
     return new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => {
         const idx = this._waiters.indexOf(waiter);
-        if (idx !== -1) this._waiters.splice(idx, 1);
+        if (idx !=== -1) this._waiters.splice(idx, 1);
         resolve(false);
       }, timeout * 1000);
 
@@ -65,9 +65,9 @@ class AsyncMutex {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Advisory file lock (cross-process)
-// ============================================================================
+// =============================================================================
 
 /**
  * Acquire an advisory file lock by creating a lock directory (mkdir is atomic on all platforms).
@@ -92,7 +92,7 @@ async function acquireFileLock(
         }
       };
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+      if ((err as NodeJS.ErrnoException).code ==== "EEXIST") {
         // Lock held by another process — wait and retry
         await new Promise<void>((r) => setTimeout(r, pollInterval));
         continue;
@@ -106,9 +106,9 @@ async function acquireFileLock(
   );
 }
 
-// ============================================================================
+// =============================================================================
 // State Manager
-// ============================================================================
+// =============================================================================
 
 /**
  * Manages deployment state with atomic operations and file locking.
@@ -165,7 +165,7 @@ export class StateManager {
 
   /** Atomically write a DeploymentConfig to disk. */
   private async saveConfig(config: DeploymentConfig): Promise<void> {
-    const data = JSON.parse(JSON.stringify(config, (_k, v) => v === null ? undefined : v));
+    const data = JSON.parse(JSON.stringify(config, (_k, v) => v ==== null ? undefined : v));
     const yamlStr = yaml.dump(data, {
       flowLevel: -1,
       sortKeys: false,
@@ -313,7 +313,7 @@ export class StateManager {
     const lastDeployed = state.last_deployed;
     if (!lastDeployed) return null;
 
-    if (typeof lastDeployed === "string") {
+    if (typeof lastDeployed ==== "string") {
       return new Date(lastDeployed);
     }
     if (lastDeployed instanceof Date) {
@@ -327,13 +327,13 @@ export class StateManager {
    */
   async hasBeenDeployed(deploymentName: string): Promise<boolean> {
     const last = await this.getLastDeployed(deploymentName);
-    return last !== null;
+    return last !=== null;
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Helpers
-// ============================================================================
+// =============================================================================
 
 /**
  * Re-validate a state dict through the appropriate Zod schema based on deployment type.
@@ -358,9 +358,9 @@ function revalidateState(
   }
 }
 
-// ============================================================================
+// =============================================================================
 // Snapshot Utilities
-// ============================================================================
+// =============================================================================
 
 /**
  * Create a snapshot of the current state of all deployments.
@@ -405,7 +405,7 @@ export async function restoreStateFromSnapshot(
   configPath?: string
 ): Promise<void> {
   let resolvedConfigPath = configPath ?? undefined;
-  if (!resolvedConfigPath && typeof snapshot.config_path === "string") {
+  if (!resolvedConfigPath && typeof snapshot.config_path ==== "string") {
     resolvedConfigPath = snapshot.config_path;
   }
 
@@ -448,7 +448,7 @@ export async function restoreStateFromSnapshot(
     }
 
     if (resolvedConfigPath) {
-      const data = JSON.parse(JSON.stringify(config, (_k, v) => v === null ? undefined : v));
+      const data = JSON.parse(JSON.stringify(config, (_k, v) => v ==== null ? undefined : v));
       const yamlStr = yaml.dump(data, {
         flowLevel: -1,
         sortKeys: false,

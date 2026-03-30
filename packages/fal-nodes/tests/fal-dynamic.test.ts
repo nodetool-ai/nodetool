@@ -35,9 +35,9 @@ afterEach(() => {
   delete process.env.FAL_API_KEY;
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  Helpers                                                             */
-/* ================================================================== */
+/* =================================================================== */
 
 /** Minimal OpenAPI schema stub for a flux/dev-like endpoint */
 const minimalOpenApi = {
@@ -92,9 +92,9 @@ const minimalOpenApi = {
   },
 };
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalRawNode static metadata                                          */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalRawNode static metadata", () => {
   it("has expected nodeType", () => {
@@ -111,9 +111,9 @@ describe("FalRawNode static metadata", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalRawNode.process                                                  */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalRawNode.process", () => {
   it("calls the specified endpoint with parsed args and returns result", async () => {
@@ -190,9 +190,9 @@ describe("FalRawNode.process", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode static metadata                                      */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode static metadata", () => {
   it("has expected nodeType", () => {
@@ -212,9 +212,9 @@ describe("FalDynamicNode static metadata", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode.process — model_info validation                     */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode.process — model_info validation", () => {
   it("throws when model_info is empty", async () => {
@@ -238,9 +238,9 @@ describe("FalDynamicNode.process — model_info validation", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode.process — endpoint ID happy path                    */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode.process — endpoint ID resolution", () => {
   it("resolves an endpoint ID like 'fal-ai/flux/dev' and submits", async () => {
@@ -338,9 +338,9 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode.process — direct OpenAPI URL                        */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode.process — direct OpenAPI URL", () => {
   it("accepts a direct openapi.json URL as model_info", async () => {
@@ -364,9 +364,9 @@ describe("FalDynamicNode.process — direct OpenAPI URL", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode.process — domain validation                         */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode.process — domain validation", () => {
   it("rejects fetch to non-fal.ai domains", async () => {
@@ -401,9 +401,9 @@ describe("FalDynamicNode.process — domain validation", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode.process — required input validation                 */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode.process — required input validation", () => {
   it("throws when a required schema field is missing", async () => {
@@ -437,9 +437,9 @@ describe("FalDynamicNode.process — required input validation", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode.process — asset ref coercion                        */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode.process — asset ref coercion", () => {
   it("converts an image asset ref to a data URI before submission", async () => {
@@ -515,9 +515,9 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
   });
 });
 
-/* ================================================================== */
+/* =================================================================== */
 /*  FalDynamicNode.process — fal.ai model URL as model_info            */
-/* ================================================================== */
+/* =================================================================== */
 
 describe("FalDynamicNode.process — fal.ai model URL", () => {
   it("accepts a fal.ai model URL and fetches llms.txt from it", async () => {

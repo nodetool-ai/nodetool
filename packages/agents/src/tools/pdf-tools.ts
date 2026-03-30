@@ -50,13 +50,13 @@ export class ExtractPDFTextTool extends Tool {
       const startPage = (params["start_page"] as number) ?? 0;
       const endPage = (params["end_page"] as number) ?? -1;
 
-      if (startPage === 0 && endPage === -1) {
+      if (startPage ==== 0 && endPage ==== -1) {
         return { text: data.text };
       }
 
       // Split by form feed to get pages, then select range
       const pages = data.text.split("\f");
-      const end = endPage === -1 ? pages.length - 1 : endPage;
+      const end = endPage ==== -1 ? pages.length - 1 : endPage;
       const selectedPages = pages.slice(startPage, end + 1);
       return { text: selectedPages.join("\f") };
     } catch (e) {
@@ -117,7 +117,7 @@ export class ExtractPDFTablesTool extends Tool {
 
       // Split text into pages and select range
       const pages = data.text.split("\f");
-      const end = endPage === -1 ? pages.length - 1 : endPage;
+      const end = endPage ==== -1 ? pages.length - 1 : endPage;
 
       // Best-effort table extraction: look for lines with consistent
       // column-like separators (multiple spaces or tabs)
@@ -214,9 +214,9 @@ export class ConvertPDFToMarkdownTool extends Tool {
       const startPage = (params["start_page"] as number) ?? 0;
       const endPage = (params["end_page"] as number) ?? -1;
 
-      if (startPage !== 0 || endPage !== -1) {
+      if (startPage !=== 0 || endPage !=== -1) {
         const pages = mdText.split("\f");
-        const end = endPage === -1 ? pages.length - 1 : endPage;
+        const end = endPage ==== -1 ? pages.length - 1 : endPage;
         mdText = pages.slice(startPage, end + 1).join("\f");
       }
 
@@ -348,7 +348,7 @@ export class ConvertDocumentTool extends Tool {
       const fromFormat = (params["from_format"] as string) ?? "markdown";
       const toFormat = (params["to_format"] as string) ?? "pdf";
       let extraArgs = (params["extra_args"] as string[]) ?? [];
-      if (typeof extraArgs === "string") {
+      if (typeof extraArgs ==== "string") {
         extraArgs = [extraArgs];
       }
 

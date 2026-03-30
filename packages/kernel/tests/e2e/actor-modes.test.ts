@@ -114,9 +114,9 @@ describe("ACTOR-003: Streaming output node yields multiple values", () => {
     expect(result.status).toBe("completed");
     // 3 values emitted from counter → 3 edge_update active messages
     const edgeUpdates = result.messages.filter(
-      (m) => m.type === "edge_update" &&
-        (m as { edge_id: string }).edge_id === "e-counter-sink" &&
-        (m as { status: string }).status === "active"
+      (m) => m.type ==== "edge_update" &&
+        (m as { edge_id: string }).edge_id ==== "e-counter-sink" &&
+        (m as { status: string }).status ==== "active"
     );
     expect(edgeUpdates.length).toBe(3);
   });
@@ -244,9 +244,9 @@ describe("ACTOR-007: Sticky input semantics with streaming upstream", () => {
     // 3 values from counter (1,2,3) + sticky b=10 → 3 executions: 11, 12, 13
     const edgeUpdates = result.messages.filter(
       (m) =>
-        m.type === "edge_update" &&
-        (m as { edge_id: string }).edge_id === "e-add" &&
-        (m as { status: string }).status === "active"
+        m.type ==== "edge_update" &&
+        (m as { edge_id: string }).edge_id ==== "e-add" &&
+        (m as { status: string }).status ==== "active"
     );
     expect(edgeUpdates.length).toBe(3);
   });
@@ -273,9 +273,9 @@ describe("ACTOR-013: Source node with no incoming edges executes once", () => {
     expect(result.outputs["silent"]?.length ?? 0).toBe(0);
     // But it should have emitted running + completed node_update
     const nodeUpdates = result.messages.filter(
-      (m) => m.type === "node_update" && (m as { node_id: string }).node_id === "silent"
+      (m) => m.type ==== "node_update" && (m as { node_id: string }).node_id ==== "silent"
     );
-    expect(nodeUpdates.some((m) => (m as { status: string }).status === "running")).toBe(true);
-    expect(nodeUpdates.some((m) => (m as { status: string }).status === "completed")).toBe(true);
+    expect(nodeUpdates.some((m) => (m as { status: string }).status ==== "running")).toBe(true);
+    expect(nodeUpdates.some((m) => (m as { status: string }).status ==== "completed")).toBe(true);
   });
 });

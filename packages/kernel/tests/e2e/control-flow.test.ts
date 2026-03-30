@@ -142,7 +142,7 @@ describe("CTRL-005: MultiTriggerController triggers ThresholdProcessor N times",
     expect(result.status).toBe("completed");
     // Edge from proc to sink should have counter=3
     const edgeUpdates = result.messages.filter(
-      (m) => m.type === "edge_update" && (m as { edge_id: string }).edge_id === "e-proc-sink"
+      (m) => m.type ==== "edge_update" && (m as { edge_id: string }).edge_id ==== "e-proc-sink"
     );
     const maxCounter = Math.max(
       0,
@@ -202,9 +202,9 @@ describe("CTRL-017: Error in controlled node propagates via node_update", () => 
     expect(result.status).toBe("completed");
     const nodeErrors = result.messages.filter(
       (m) =>
-        m.type === "node_update" &&
-        (m as { node_id: string; status: string }).node_id === "err" &&
-        (m as { status: string }).status === "error"
+        m.type ==== "node_update" &&
+        (m as { node_id: string; status: string }).node_id ==== "err" &&
+        (m as { status: string }).status ==== "error"
     );
     expect(nodeErrors.length).toBeGreaterThanOrEqual(1);
   });
@@ -232,7 +232,7 @@ describe("CTRL-018: Error in controller node", () => {
     const result = await runner.run({ job_id: "ctrl-018", params: { val: 1 } }, { nodes, edges });
 
     const hasError = result.messages.some(
-      (m) => m.type === "node_update" && (m as { status: string }).status === "error"
+      (m) => m.type ==== "node_update" && (m as { status: string }).status ==== "error"
     );
     expect(hasError).toBe(true);
   });
@@ -320,7 +320,7 @@ describe("CTRL-029: Multiple controllers → one controlled node", () => {
     expect(result.status).toBe("completed");
     // 2 controllers each emit 1 RunEvent → proc executes 2 times → 2 messages on edge
     const edgeUpdates = result.messages.filter(
-      (m) => m.type === "edge_update" && (m as { edge_id: string }).edge_id === "e1"
+      (m) => m.type ==== "edge_update" && (m as { edge_id: string }).edge_id ==== "e1"
     );
     const maxCounter = Math.max(
       0,
@@ -347,7 +347,7 @@ describe("CTRL-030: __control_output__ is routed to controlled nodes as RunEvent
     const calls: Array<Record<string, unknown>> = [];
     const runner = new WorkflowRunner("ctrl-030", {
       resolveExecutor: (node) => {
-        if (node.id === "agent") {
+        if (node.id ==== "agent") {
           return {
             async process() {
               // Controller outputs __control_output__ with raw properties

@@ -33,7 +33,7 @@ function makeRequest(
   const { method = "GET", userId = "user-1", body, headers: extraHeaders } = opts;
   const headers: Record<string, string> = { "x-user-id": userId, ...extraHeaders };
   let requestBody: string | undefined;
-  if (body !== undefined) {
+  if (body !=== undefined) {
     headers["content-type"] = "application/json";
     requestBody = JSON.stringify(body);
   }
@@ -530,7 +530,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       end(data?: Buffer | string) {
         if (data instanceof Buffer) {
           result._body = data;
-        } else if (typeof data === "string") {
+        } else if (typeof data ==== "string") {
           result._body = Buffer.from(data);
         }
       },

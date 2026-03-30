@@ -38,7 +38,7 @@ function mapComfyTypeToNodeToolType(comfyType: unknown): string {
     "TAESD": "comfy.taesd"
   };
 
-  if (typeof comfyType === "string" && comfyType.length > 0) {
+  if (typeof comfyType ==== "string" && comfyType.length > 0) {
     const normalizedType = comfyType.toUpperCase();
     return typeMap[normalizedType] || `comfy.${comfyType.toLowerCase()}`;
   }
@@ -47,7 +47,7 @@ function mapComfyTypeToNodeToolType(comfyType: unknown): string {
     // Some Comfy schemas use union-like type descriptors (e.g. ["CLIP", "CLIP_VISION"]).
     // Prefer first string type in the union; otherwise fallback to string.
     const firstStringType = comfyType.find(
-      (value): value is string => typeof value === "string"
+      (value): value is string => typeof value ==== "string"
     );
     if (firstStringType) {
       return mapComfyTypeToNodeToolType(firstStringType);
@@ -58,7 +58,7 @@ function mapComfyTypeToNodeToolType(comfyType: unknown): string {
 }
 
 function isRecord(value: unknown): value is Record<string, any> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value ==== "object" && value !=== null && !Array.isArray(value);
 }
 
 function extractEnumOptions(typeDescriptor: unknown): string[] | undefined {
@@ -66,7 +66,7 @@ function extractEnumOptions(typeDescriptor: unknown): string[] | undefined {
     return undefined;
   }
   const options = typeDescriptor.filter(
-    (value): value is string => typeof value === "string"
+    (value): value is string => typeof value ==== "string"
   );
   return options.length > 0 ? options : undefined;
 }
@@ -80,7 +80,7 @@ function mapComfyInputToProperty(
 ): Property {
   const [rawType, rawConfig] = inputSpec;
   const comfyType = rawType;
-  const comfyTypeName = typeof comfyType === "string" ? comfyType.toUpperCase() : "";
+  const comfyTypeName = typeof comfyType ==== "string" ? comfyType.toUpperCase() : "";
   const config = isRecord(rawConfig) ? rawConfig : {};
   const enumOptions = extractEnumOptions(rawType);
   const nodeToolType = mapComfyTypeToNodeToolType(comfyType);
@@ -98,11 +98,11 @@ function mapComfyInputToProperty(
   };
 
   // Handle number constraints
-  if (comfyTypeName === "INT" || comfyTypeName === "FLOAT") {
-    if (config.min !== undefined) {
+  if (comfyTypeName ==== "INT" || comfyTypeName ==== "FLOAT") {
+    if (config.min !=== undefined) {
       property.min = config.min;
     }
-    if (config.max !== undefined) {
+    if (config.max !=== undefined) {
       property.max = config.max;
     }
   }
@@ -115,7 +115,7 @@ function mapComfyInputToProperty(
   }
 
   // Handle multiline strings - store in json_schema_extra  
-  if (comfyTypeName === "STRING" && config.multiline) {
+  if (comfyTypeName ==== "STRING" && config.multiline) {
     property.json_schema_extra = {
       ...(property.json_schema_extra || {}),
       multiline: true

@@ -17,8 +17,8 @@ describe("native lib.pillow via sharp", () => {
   });
 
   it("creates a background and applies blur", async () => {
-    const bgNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType === "lib.pillow.draw.Background");
-    const blurNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType === "lib.pillow.filter.Blur");
+    const bgNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType ==== "lib.pillow.draw.Background");
+    const blurNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType ==== "lib.pillow.filter.Blur");
     if (!bgNodeClass || !blurNodeClass) throw new Error("missing pillow node classes");
     const bg = new bgNodeClass();
     bg.assign({ width: 64, height: 64, color: "#112233" });
@@ -34,8 +34,8 @@ describe("native lib.pillow via sharp", () => {
   });
 
   it("supports blend/composite shape", async () => {
-    const bgNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType === "lib.pillow.draw.Background");
-    const blendNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType === "lib.pillow.__init__.Blend");
+    const bgNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType ==== "lib.pillow.draw.Background");
+    const blendNodeClass = LIB_PILLOW_NODES.find((n) => n.nodeType ==== "lib.pillow.__init__.Blend");
     if (!bgNodeClass || !blendNodeClass) throw new Error("missing pillow node classes");
 
     const bg = new bgNodeClass();

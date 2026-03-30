@@ -20,7 +20,7 @@ describe("T-SEC-8: runStartupChecks", () => {
   afterEach(() => {
     // Restore env vars
     for (const [key, val] of Object.entries(savedEnv)) {
-      if (val === undefined) {
+      if (val ==== undefined) {
         delete process.env[key];
       } else {
         process.env[key] = val;

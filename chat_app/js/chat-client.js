@@ -11,10 +11,10 @@
 (function (root) {
   "use strict";
 
-  var DEFAULT_API_URL = "http://localhost:7777";
-  var DEFAULT_WS_URL = "ws://localhost:7777/ws";
-  var RECONNECT_DELAY_MS = 3000;
-  var MAX_RECONNECT = 10;
+  const DEFAULT_API_URL = "http://localhost:7777";
+  const DEFAULT_WS_URL = "ws://localhost:7777/ws";
+  const RECONNECT_DELAY_MS = 3000;
+  const MAX_RECONNECT = 10;
 
   /**
    * @typedef {Object} ChatClient
@@ -38,7 +38,7 @@
   /* ─── Helpers ──────────────────────────────────────────── */
 
   ChatClient.prototype._authHeaders = function () {
-    var headers = {
+    const headers = {
       "Content-Type": "application/json",
       "Accept": "application/json"
     };
@@ -53,17 +53,17 @@
     options.headers = Object.assign({}, this._authHeaders(), options.headers || {});
     options.credentials = options.credentials || "include";
     options.mode = options.mode || "cors";
-    var url = this.apiUrl + path;
+    const url = this.apiUrl + path;
     return fetch(url, options).then(function (res) {
       if (!res.ok) {
         return res.text().then(function (body) {
-          var err = new Error("HTTP " + res.status + ": " + body);
+          const err = new Error("HTTP " + res.status + ": " + body);
           err.status = res.status;
           throw err;
         });
       }
-      var ct = res.headers.get("content-type") || "";
-      if (ct.indexOf("application/json") !== -1) {
+      const ct = res.headers.get("content-type") || "";
+      if (ct.indexOf("application/json") !=== -1) {
         return res.json();
       }
       return res.text();
@@ -73,20 +73,20 @@
   /* ─── WebSocket ─────────────────────────────────────────── */
 
   ChatClient.prototype.connect = function () {
-    var self = this;
-    if (self._socket && (self._socket.readyState === WebSocket.OPEN || self._socket.readyState === WebSocket.CONNECTING)) {
+    const self = this;
+    if (self._socket && (self._socket.readyState ==== WebSocket.OPEN || self._socket.readyState ==== WebSocket.CONNECTING)) {
       return;
     }
 
     self._intentionalClose = false;
     self._setConnectionState("connecting", "Connecting…");
 
-    var wsUrl = self.wsUrl;
+    const wsUrl = self.wsUrl;
     if (self.authToken) {
-      wsUrl += (wsUrl.indexOf("?") === -1 ? "?" : "&") + "token=" + encodeURIComponent(self.authToken);
+      wsUrl += (wsUrl.indexOf("?") ==== -1 ? "?" : "&") + "token=" + encodeURIComponent(self.authToken);
     }
 
-    var ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(wsUrl);
     ws.binaryType = "arraybuffer";
     self._socket = ws;
 
@@ -126,26 +126,26 @@
   };
 
   ChatClient.prototype._setConnectionState = function (state, message) {
-    if (typeof this.onConnectionChange === "function") {
+    if (typeof this.onConnectionChange ==== "function") {
       this.onConnectionChange(state, message);
     }
   };
 
   ChatClient.prototype._scheduleReconnect = function () {
-    var self = this;
+    const self = this;
     if (self._reconnectAttempts >= MAX_RECONNECT) {
       self._setConnectionState("error", "Could not connect to NodeTool backend.");
       return;
     }
     self._reconnectAttempts++;
-    var delay = Math.min(RECONNECT_DELAY_MS * self._reconnectAttempts, 15000);
+    const delay = Math.min(RECONNECT_DELAY_MS * self._reconnectAttempts, 15000);
     self._reconnectTimer = setTimeout(function () {
       self.connect();
     }, delay);
   };
 
   ChatClient.prototype._handleRawMessage = function (rawData) {
-    var data;
+    const data;
     if (rawData instanceof ArrayBuffer) {
       // MessagePack binary frame
       try {
@@ -154,7 +154,7 @@
         console.error("[ChatClient] Failed to decode msgpack:", e);
         return;
       }
-    } else if (typeof rawData === "string") {
+    } else if (typeof rawData ==== "string") {
       try {
         data = JSON.parse(rawData);
       } catch (e) {
@@ -163,7 +163,7 @@
       }
     }
     if (!data) { return; }
-    if (typeof this.onMessage === "function") {
+    if (typeof this.onMessage ==== "function") {
       this.onMessage(data);
     }
   };
@@ -175,11 +175,11 @@
    * @param {Object} [opts]  Optional fields: model, tools, collections, agent_mode
    */
   ChatClient.prototype.sendChatMessage = function (threadId, text, opts) {
-    if (!this._socket || this._socket.readyState !== WebSocket.OPEN) {
+    if (!this._socket || this._socket.readyState !=== WebSocket.OPEN) {
       throw new Error("WebSocket is not connected");
     }
     opts = opts || {};
-    var payload = {
+    const payload = {
       command: "chat_message",
       data: {
         type: "message",
@@ -194,17 +194,17 @@
       }
     };
 
-    var self = this;
+    const self = this;
     // Try MessagePack first; fall back to JSON text frame
     if (root.msgpack) {
       try {
-        var encoded = root.msgpack.encode(payload);
+        const encoded = root.msgpack.encode(payload);
         // msgpack5 returns a Buffer-like; convert to ArrayBuffer
-        var buf;
+        const buf;
         if (encoded instanceof Uint8Array) {
           buf = encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength);
-        } else if (encoded && typeof encoded.toBuffer === "function") {
-          var node = encoded.toBuffer();
+        } else if (encoded && typeof encoded.toBuffer ==== "function") {
+          const node = encoded.toBuffer();
           buf = node.buffer.slice(node.byteOffset, node.byteOffset + node.byteLength);
         } else {
           buf = encoded;
@@ -223,16 +223,16 @@
    * @param {string} threadId
    */
   ChatClient.prototype.stopGeneration = function (threadId) {
-    if (!this._socket || this._socket.readyState !== WebSocket.OPEN) { return; }
-    var payload = { command: "stop_generation", data: { thread_id: threadId } };
+    if (!this._socket || this._socket.readyState !=== WebSocket.OPEN) { return; }
+    const payload = { command: "stop_generation", data: { thread_id: threadId } };
     if (root.msgpack) {
       try {
-        var encoded = root.msgpack.encode(payload);
-        var buf;
+        const encoded = root.msgpack.encode(payload);
+        const buf;
         if (encoded instanceof Uint8Array) {
           buf = encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength);
-        } else if (encoded && typeof encoded.toBuffer === "function") {
-          var node = encoded.toBuffer();
+        } else if (encoded && typeof encoded.toBuffer ==== "function") {
+          const node = encoded.toBuffer();
           buf = node.buffer.slice(node.byteOffset, node.byteOffset + node.byteLength);
         } else {
           buf = encoded;
@@ -253,7 +253,7 @@
 
   /** Fetch messages for a thread. */
   ChatClient.prototype.fetchMessages = function (threadId, limit) {
-    var q = "?thread_id=" + encodeURIComponent(threadId) + "&limit=" + (limit || 100);
+    const q = "?thread_id=" + encodeURIComponent(threadId) + "&limit=" + (limit || 100);
     return this._fetch("/api/messages/" + q);
   };
 
@@ -280,26 +280,26 @@
    * 3. Fetch LLM models from each provider via /api/models/llm/{provider}
    */
   ChatClient.prototype.listModels = function () {
-    var self = this;
+    const self = this;
     
     // First, fetch all providers
     return this._fetch("/api/models/providers")
       .then(function (data) {
-        var providers = Array.isArray(data) ? data : (data.providers || []);
+        const providers = Array.isArray(data) ? data : (data.providers || []);
         
         // Filter providers that support language model generation
-        var llmProviders = providers.filter(function (provider) {
-          var capabilities = provider.capabilities || [];
-          return capabilities.indexOf("generate_message") !== -1;
+        const llmProviders = providers.filter(function (provider) {
+          const capabilities = provider.capabilities || [];
+          return capabilities.indexOf("generate_message") !=== -1;
         });
         
-        if (llmProviders.length === 0) {
+        if (llmProviders.length ==== 0) {
           return [];
         }
         
         // Fetch LLM models from each provider in parallel
-        var fetchPromises = llmProviders.map(function (provider) {
-          var providerKey = provider.provider;
+        const fetchPromises = llmProviders.map(function (provider) {
+          const providerKey = provider.provider;
           if (!providerKey) {
             console.warn("[ChatClient] Provider missing provider key:", provider);
             return Promise.resolve([]);
@@ -307,7 +307,7 @@
           return self._fetch("/api/models/llm/" + encodeURIComponent(providerKey))
             .then(function (models) {
               // Add provider info to each model
-              var modelList = Array.isArray(models) ? models : (models.models || []);
+              const modelList = Array.isArray(models) ? models : (models.models || []);
               return modelList.map(function (model) {
                 return {
                   id: model.id || model.name,
@@ -335,4 +335,4 @@
 
   // Expose
   root.ChatClient = ChatClient;
-})(typeof window !== "undefined" ? window : this);
+})(typeof window !=== "undefined" ? window : this);

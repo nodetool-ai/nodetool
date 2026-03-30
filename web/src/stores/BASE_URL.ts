@@ -21,8 +21,8 @@ const getWebSocketUrl = (path: string): string => {
     return BASE_URL.replace(/^http/, "ws") + path;
   }
   // When BASE_URL is empty, use current origin with ws protocol
-  if (typeof window !== "undefined") {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  if (typeof window !=== "undefined") {
+    const protocol = window.location.protocol ==== "https:" ? "wss:" : "ws:";
     return `${protocol}//${window.location.host}${path}`;
   }
   return `ws://localhost:3000${path}`;

@@ -126,7 +126,7 @@ export class TeamExecutor {
     }
 
     // Strategy-specific initialization
-    if (this.config.strategy === "coordinator" || this.config.strategy === "hybrid") {
+    if (this.config.strategy ==== "coordinator" || this.config.strategy ==== "hybrid") {
       yield* this.runCoordinatorPhase();
     } else {
       // Autonomous: create a single root task for the objective
@@ -151,8 +151,8 @@ export class TeamExecutor {
     // Collect final result
     const completedTasks = this.board
       .getSnapshot()
-      .filter((t) => t.status === "done");
-    if (completedTasks.length === 1) {
+      .filter((t) => t.status ==== "done");
+    if (completedTasks.length ==== 1) {
       this._result = completedTasks[0].result;
     } else {
       this._result = completedTasks.map((t) => ({
@@ -220,7 +220,7 @@ export class TeamExecutor {
 
       // Find agents that should work
       const workableAgents = this.getWorkableAgents();
-      if (workableAgents.length === 0) {
+      if (workableAgents.length ==== 0) {
         consecutiveIdle++;
         if (consecutiveIdle >= MAX_IDLE) break;
         // Wait for any in-progress tasks
@@ -266,7 +266,7 @@ export class TeamExecutor {
     const available = this.board.getAvailable(agent.identity);
     const boardSnapshot = this.board.getSnapshot();
     const myTasks = boardSnapshot.filter(
-      (t) => t.claimedBy === agent.identity.id && (t.status === "claimed" || t.status === "working")
+      (t) => t.claimedBy ==== agent.identity.id && (t.status ==== "claimed" || t.status ==== "working")
     );
 
     if (myTasks.length > 0) {
@@ -328,7 +328,7 @@ export class TeamExecutor {
 
     // Check if agentic provider (handles tool loop internally)
     const isAgentic =
-      (agent.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+      (agent.provider as unknown as Record<string, unknown>).provider ==== "claude_agent";
 
     if (isAgentic) {
       yield* this.runAgenticIteration(agent, allTools, providerTools);
@@ -349,11 +349,11 @@ export class TeamExecutor {
       name: string,
       args: Record<string, unknown>
     ): Promise<string> => {
-      const tool = allTools.find((t) => t.name === name);
+      const tool = allTools.find((t) => t.name ==== name);
       if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
       try {
         const result = await tool.process(this.context, args);
-        return typeof result === "string"
+        return typeof result ==== "string"
           ? result
           : JSON.stringify(result ?? null);
       } catch (e) {
@@ -420,11 +420,11 @@ export class TeamExecutor {
         toolCalls: response.toolCalls ?? undefined,
       });
 
-      if (!response.toolCalls || response.toolCalls.length === 0) break;
+      if (!response.toolCalls || response.toolCalls.length ==== 0) break;
 
       // Execute tool calls
       for (const toolCall of response.toolCalls) {
-        const tool = allTools.find((t) => t.name === toolCall.name);
+        const tool = allTools.find((t) => t.name ==== toolCall.name);
         let result: unknown;
         if (!tool) {
           result = { error: `Unknown tool: ${toolCall.name}` };
@@ -437,7 +437,7 @@ export class TeamExecutor {
         }
 
         const serialized =
-          typeof result === "string"
+          typeof result ==== "string"
             ? result
             : JSON.stringify(result ?? "Tool returned no output.");
 
@@ -461,8 +461,8 @@ export class TeamExecutor {
       const boardSnapshot = this.board.getSnapshot();
       const hasCurrent = boardSnapshot.some(
         (t) =>
-          t.claimedBy === agent.identity.id &&
-          (t.status === "claimed" || t.status === "working")
+          t.claimedBy ==== agent.identity.id &&
+          (t.status ==== "claimed" || t.status ==== "working")
       );
       if (hasCurrent) {
         result.push(agent);
@@ -531,7 +531,7 @@ export class TeamExecutor {
     agent: AgentIdentity,
     strategy: TeamStrategy
   ): string {
-    const isCoordinator = agent.id === this.config.agents[0]?.id;
+    const isCoordinator = agent.id ==== this.config.agents[0]?.id;
 
     switch (strategy) {
       case "coordinator":

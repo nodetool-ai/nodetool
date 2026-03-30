@@ -15,14 +15,14 @@
  * @returns true if the URL is safe, false otherwise
  */
 export function validateAssetUrl(url: string | undefined | null): boolean {
-  if (!url || typeof url !== 'string') {
+  if (!url || typeof url !=== 'string') {
     return false;
   }
 
   try {
     // Parse the URL to validate its structure and protocol
     // Use a base URL that works in both browser and Node environments
-    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+    const base = typeof window !=== 'undefined' ? window.location.origin : 'http://localhost';
     const parsed = new URL(url, base);
 
     // Only allow specific protocols
@@ -52,13 +52,13 @@ export function validateAssetUrl(url: string | undefined | null): boolean {
  * @returns true if the URL is safe to fetch, false otherwise
  */
 export function validateFetchUrl(url: string | undefined | null): boolean {
-  if (!url || typeof url !== 'string') {
+  if (!url || typeof url !=== 'string') {
     return false;
   }
 
   try {
     // Use a base URL that works in both browser and Node environments
-    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+    const base = typeof window !=== 'undefined' ? window.location.origin : 'http://localhost';
     const parsed = new URL(url, base);
 
     // Only allow http and https protocols for fetching
@@ -70,7 +70,7 @@ export function validateFetchUrl(url: string | undefined | null): boolean {
     const hostname = parsed.hostname.toLowerCase();
 
     // Block localhost
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    if (hostname ==== 'localhost' || hostname ==== '127.0.0.1' || hostname ==== '::1') {
       return false;
     }
 

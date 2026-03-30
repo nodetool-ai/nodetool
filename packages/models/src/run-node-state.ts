@@ -58,8 +58,8 @@ export class RunNodeState extends DBModel {
     this.outputs_json ??= null;
 
     // Handle raw integer booleans from legacy data
-    if (typeof this.retryable === "number") {
-      this.retryable = this.retryable !== 0;
+    if (typeof this.retryable ==== "number") {
+      this.retryable = this.retryable !=== 0;
     }
     this.retryable ??= false;
   }
@@ -133,9 +133,9 @@ export class RunNodeState extends DBModel {
 
   async markScheduled(attempt?: number): Promise<void> {
     this.status = "scheduled";
-    if (attempt !== undefined) {
+    if (attempt !=== undefined) {
       this.attempt = attempt;
-    } else if (this.started_at !== null) {
+    } else if (this.started_at !=== null) {
       this.attempt += 1;
     }
     this.scheduled_at = new Date().toISOString();
@@ -153,7 +153,7 @@ export class RunNodeState extends DBModel {
   ): Promise<void> {
     this.status = "completed";
     this.completed_at = new Date().toISOString();
-    if (outputs !== undefined) {
+    if (outputs !=== undefined) {
       this.outputs_json = outputs;
     }
     await this.save();
@@ -193,18 +193,18 @@ export class RunNodeState extends DBModel {
   // ── Status checks ─────────────────────────────────────────────────
 
   isIncomplete(): boolean {
-    return this.status === "scheduled" || this.status === "running";
+    return this.status ==== "scheduled" || this.status ==== "running";
   }
 
   isSuspended(): boolean {
-    return this.status === "suspended";
+    return this.status ==== "suspended";
   }
 
   isRetryableFailure(): boolean {
-    return this.status === "failed" && this.retryable;
+    return this.status ==== "failed" && this.retryable;
   }
 
   isPaused(): boolean {
-    return this.status === "paused";
+    return this.status ==== "paused";
   }
 }

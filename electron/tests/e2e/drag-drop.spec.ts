@@ -100,7 +100,7 @@ import {
 
         const nodes = page.locator(".react-flow__node");
         const nodeCount = await nodes.count();
-        test.skip(nodeCount === 0, "No nodes in workflow to drag");
+        test.skip(nodeCount ==== 0, "No nodes in workflow to drag");
 
         const node = nodes.first();
         const initialBounds = await node.boundingBox();
@@ -140,7 +140,7 @@ import {
 
         const nodes = page.locator(".react-flow__node");
         const nodeCount = await nodes.count();
-        test.skip(nodeCount === 0, "No nodes in workflow to drag");
+        test.skip(nodeCount ==== 0, "No nodes in workflow to drag");
 
         const node = nodes.first();
         const bounds = await node.boundingBox();
@@ -173,7 +173,7 @@ import {
 
         const nodes = page.locator(".react-flow__node");
         const nodeCount = await nodes.count();
-        test.skip(nodeCount === 0, "No nodes in workflow to drag");
+        test.skip(nodeCount ==== 0, "No nodes in workflow to drag");
 
         const node = nodes.first();
         const bounds = await node.boundingBox();
@@ -210,7 +210,7 @@ import {
         // Look for output handles
         const sourceHandles = page.locator(".react-flow__handle.react-flow__handle-right");
         const handleCount = await sourceHandles.count();
-        test.skip(handleCount === 0, "No source handles available in workflow");
+        test.skip(handleCount ==== 0, "No source handles available in workflow");
 
         const sourceHandle = sourceHandles.first();
         const handleBounds = await sourceHandle.boundingBox();
@@ -246,7 +246,7 @@ import {
 
         const sourceHandles = page.locator(".react-flow__handle.react-flow__handle-right");
         const handleCount = await sourceHandles.count();
-        test.skip(handleCount === 0, "No source handles available in workflow");
+        test.skip(handleCount ==== 0, "No source handles available in workflow");
 
         const sourceHandle = sourceHandles.first();
         const handleBounds = await sourceHandle.boundingBox();

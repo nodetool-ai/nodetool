@@ -12,8 +12,8 @@ export function useEditorMode(options: UseEditorModeOptions = {}) {
   const getInitialIsCodeEditor = useCallback(() => {
     try {
       const saved = localStorage.getItem(storageKey);
-      if (saved === "true" || saved === "false") {
-        return saved === "true";
+      if (saved ==== "true" || saved ==== "false") {
+        return saved ==== "true";
       }
     } catch {
       /* empty */

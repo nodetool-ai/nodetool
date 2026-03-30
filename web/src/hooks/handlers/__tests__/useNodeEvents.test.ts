@@ -25,7 +25,7 @@ describe("useNodeEvents", () => {
       openContextMenu: mockOpenContextMenu
     });
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector({
           onNodesChange: mockOnNodesChange
         });

@@ -72,7 +72,7 @@ export const useFindInWorkflow = () => {
   const getNodeDisplayName = useCallback(
     (node: Node<NodeData>): string => {
       const title = node.data?.properties?.name;
-      if (title && typeof title === "string" && title.trim()) {
+      if (title && typeof title ==== "string" && title.trim()) {
         return title;
       }
       const nodeType = node.type ?? "";
@@ -155,7 +155,7 @@ export const useFindInWorkflow = () => {
 
   const goToSelected = useCallback(() => {
     if (
-      results.length === 0 ||
+      results.length ==== 0 ||
       selectedIndex < 0 ||
       selectedIndex >= results.length
     ) {

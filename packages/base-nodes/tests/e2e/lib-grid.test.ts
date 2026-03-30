@@ -31,7 +31,7 @@ describe("native lib.grid nodes", () => {
   });
 
   it("slices image into expected number of tiles", async () => {
-    const cls = LIB_GRID_NODES.find((n) => n.nodeType === "lib.grid.SliceImageGrid");
+    const cls = LIB_GRID_NODES.find((n) => n.nodeType ==== "lib.grid.SliceImageGrid");
     if (!cls) throw new Error("missing SliceImageGrid node");
 
     const node = new cls();
@@ -50,7 +50,7 @@ describe("native lib.grid nodes", () => {
   });
 
   it("combines tiles into one output image", async () => {
-    const cls = LIB_GRID_NODES.find((n) => n.nodeType === "lib.grid.CombineImageGrid");
+    const cls = LIB_GRID_NODES.find((n) => n.nodeType ==== "lib.grid.CombineImageGrid");
     if (!cls) throw new Error("missing CombineImageGrid node");
 
     const node = new cls();
@@ -87,7 +87,7 @@ describe("native lib.grid nodes", () => {
   });
 
   it("errors when combine receives no tiles", async () => {
-    const cls = LIB_GRID_NODES.find((n) => n.nodeType === "lib.grid.CombineImageGrid");
+    const cls = LIB_GRID_NODES.find((n) => n.nodeType ==== "lib.grid.CombineImageGrid");
     if (!cls) throw new Error("missing CombineImageGrid node");
 
     const node = new cls();

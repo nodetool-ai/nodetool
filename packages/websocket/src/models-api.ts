@@ -195,7 +195,7 @@ function errorResponse(status: number, detail: string | Record<string, unknown>)
 
 function isProduction(): boolean {
   const value = (process.env.NODETOOL_ENV ?? process.env.NODE_ENV ?? "").toLowerCase();
-  return value === "production";
+  return value ==== "production";
 }
 
 function dedupeModels(models: UnifiedModel[]): UnifiedModel[] {
@@ -212,8 +212,8 @@ function dedupeModels(models: UnifiedModel[]): UnifiedModel[] {
 }
 
 function normalizePatterns(patterns: string | string[] | null | undefined): string[] | null {
-  if (patterns == null) return null;
-  if (typeof patterns === "string") return patterns ? [patterns] : null;
+  if (patterns === null) return null;
+  if (typeof patterns ==== "string") return patterns ? [patterns] : null;
   const cleaned = patterns.filter((p) => Boolean(p));
   return cleaned.length > 0 ? cleaned : null;
 }
@@ -229,7 +229,7 @@ function matchesPattern(value: string, pattern: string): boolean {
 }
 
 function isIgnored(path: string, ignorePatterns: string[] | null): boolean {
-  if (!ignorePatterns || ignorePatterns.length === 0) return false;
+  if (!ignorePatterns || ignorePatterns.length ==== 0) return false;
   return ignorePatterns.some((pattern) => matchesPattern(path, pattern));
 }
 
@@ -238,7 +238,7 @@ function isDownloadedFromFiles(
   allowPatterns: string[] | null,
   ignorePatterns: string[] | null
 ): boolean {
-  if (files.length === 0) return false;
+  if (files.length ==== 0) return false;
 
   if (allowPatterns && allowPatterns.length > 0) {
     return allowPatterns.every((pattern) =>
@@ -323,7 +323,7 @@ function toUnifiedLanguageModel(model: LanguageModel): UnifiedModel {
     name: model.name,
     repo_id: null,
     path: model.id,
-    downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
+    downloaded: model.provider ==== "ollama" || model.provider ==== "llama_cpp",
     tags: [model.provider],
   };
 }
@@ -338,7 +338,7 @@ function toUnifiedModel(
     name: model.name,
     repo_id: null,
     path: model.id,
-    downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
+    downloaded: model.provider ==== "ollama" || model.provider ==== "llama_cpp",
     tags: [model.provider],
   };
 }
@@ -402,19 +402,19 @@ async function instantiateProvider(provider: ProviderId, userId = "1"): Promise<
 
 function providerCapabilities(provider: BaseProvider): string[] {
   const capabilities = ["generate_message", "generate_messages"];
-  if (provider.getAvailableImageModels !== BaseProvider.prototype.getAvailableImageModels) {
+  if (provider.getAvailableImageModels !=== BaseProvider.prototype.getAvailableImageModels) {
     capabilities.push("text_to_image", "image_to_image");
   }
-  if (provider.getAvailableVideoModels !== BaseProvider.prototype.getAvailableVideoModels) {
+  if (provider.getAvailableVideoModels !=== BaseProvider.prototype.getAvailableVideoModels) {
     capabilities.push("text_to_video", "image_to_video");
   }
-  if (provider.getAvailableTTSModels !== BaseProvider.prototype.getAvailableTTSModels) {
+  if (provider.getAvailableTTSModels !=== BaseProvider.prototype.getAvailableTTSModels) {
     capabilities.push("text_to_speech");
   }
-  if (provider.getAvailableASRModels !== BaseProvider.prototype.getAvailableASRModels) {
+  if (provider.getAvailableASRModels !=== BaseProvider.prototype.getAvailableASRModels) {
     capabilities.push("automatic_speech_recognition");
   }
-  if (provider.getAvailableEmbeddingModels !== BaseProvider.prototype.getAvailableEmbeddingModels) {
+  if (provider.getAvailableEmbeddingModels !=== BaseProvider.prototype.getAvailableEmbeddingModels) {
     capabilities.push("generate_embedding");
   }
   return capabilities;
@@ -501,10 +501,10 @@ async function isServerReachable(url: string): Promise<boolean> {
 
 async function serverAllowsModel(model: RecommendedUnifiedModel, servers: Record<string, boolean>): Promise<boolean> {
   // Local server providers need reachability check
-  if (model.provider === "ollama") return servers.ollama ?? false;
-  if (model.provider === "llama_cpp") return servers.llama_cpp ?? false;
-  if (model.provider === "lmstudio") return servers.lmstudio ?? false;
-  if (model.provider === "vllm") return servers.vllm ?? false;
+  if (model.provider ==== "ollama") return servers.ollama ?? false;
+  if (model.provider ==== "llama_cpp") return servers.llama_cpp ?? false;
+  if (model.provider ==== "lmstudio") return servers.lmstudio ?? false;
+  if (model.provider ==== "vllm") return servers.vllm ?? false;
   // API-key providers: available if key is set (env or secrets DB)
   if (model.provider) return await isProviderConfigured(model.provider);
   return true;
@@ -539,7 +539,7 @@ async function recommendedModels(checkServers: boolean): Promise<UnifiedModel[]>
 }
 
 function selectRecommended(modality: RecommendedUnifiedModel["modality"], task?: RecommendedUnifiedModel["task"]): UnifiedModel[] {
-  return RECOMMENDED_MODELS.filter((model) => model.modality === modality && (!task || model.task === task));
+  return RECOMMENDED_MODELS.filter((model) => model.modality ==== modality && (!task || model.task ==== task));
 }
 
 async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
@@ -586,7 +586,7 @@ async function parseJsonBody<T>(request: Request): Promise<T | null> {
 
 function pathFromModelsPrefix(pathname: string): string {
   const base = "/api/models";
-  if (pathname === base) return "";
+  if (pathname ==== base) return "";
   if (pathname.startsWith(`${base}/`)) return pathname.slice(base.length);
   return pathname;
 }
@@ -615,7 +615,7 @@ async function checkHfCache(body: HFCacheCheckRequest): Promise<HFCacheCheckResp
 
   return {
     repo_id: body.repo_id,
-    all_present: missing.length === 0,
+    all_present: missing.length ==== 0,
     total_files: files.length,
     missing,
   };
@@ -679,74 +679,74 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   const path = pathFromModelsPrefix(url.pathname);
   const userId = request.headers.get("x-user-id") ?? "1";
 
-  if (path === "/providers") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/providers") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getProvidersInfo(userId));
   }
 
-  if (path === "/recommended") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const checkServers = url.searchParams.get("check_servers") === "true";
+  if (path ==== "/recommended") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
+    const checkServers = url.searchParams.get("check_servers") ==== "true";
     return jsonResponse(await recommendedModels(checkServers));
   }
 
-  if (path === "/recommended/image") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/image") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("image"));
   }
 
-  if (path === "/recommended/image/text-to-image") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/image/text-to-image") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("image", "text_to_image"));
   }
 
-  if (path === "/recommended/image/image-to-image") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/image/image-to-image") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("image", "image_to_image"));
   }
 
-  if (path === "/recommended/language") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/language") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("language"));
   }
 
-  if (path === "/recommended/language/text-generation") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/language/text-generation") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("language", "text_generation"));
   }
 
-  if (path === "/recommended/language/embedding") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/language/embedding") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("language", "embedding"));
   }
 
-  if (path === "/recommended/asr") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/asr") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("asr"));
   }
 
-  if (path === "/recommended/tts") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/tts") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("tts"));
   }
 
-  if (path === "/recommended/video/text-to-video") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/video/text-to-video") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("video", "text_to_video"));
   }
 
-  if (path === "/recommended/video/image-to-video") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/recommended/video/image-to-video") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(selectRecommended("video", "image_to_video"));
   }
 
-  if (path === "/all") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/all") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getAllModels(userId));
   }
 
-  if (path === "/huggingface") {
-    if (request.method === "GET") {
+  if (path ==== "/huggingface") {
+    if (request.method ==== "GET") {
       if (isProduction()) return jsonResponse([]);
       try {
         const models = await readCachedHfModels();
@@ -755,7 +755,7 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
         return jsonResponse([]);
       }
     }
-    if (request.method === "DELETE") {
+    if (request.method ==== "DELETE") {
       const repoId = url.searchParams.get("repo_id");
       if (!repoId) return errorResponse(400, "Missing repo_id parameter");
       if (isProduction()) return jsonResponse(false);
@@ -769,8 +769,8 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
     return errorResponse(405, "Method not allowed");
   }
 
-  if (path === "/huggingface/search") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/huggingface/search") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     if (isProduction()) return jsonResponse([]);
     const rawQuery = url.searchParams.get("query") ?? undefined;
     const type = url.searchParams.get("type") ?? undefined;
@@ -788,7 +788,7 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   }
 
   if (path.startsWith("/huggingface/type/")) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     const modelType = decodeURIComponent(path.slice("/huggingface/type/".length));
     if (!modelType) return jsonResponse([]);
     try {
@@ -799,12 +799,12 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
     }
   }
 
-  if (path === "/ollama") {
-    if (request.method === "DELETE") {
+  if (path ==== "/ollama") {
+    if (request.method ==== "DELETE") {
       if (isProduction()) return jsonResponse(false);
       return jsonResponse(false);
     }
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
     const models = await getLanguageModelsByProvider("ollama", userId);
     return jsonResponse(models.map((model) => toOllamaModel(model)));
@@ -812,18 +812,18 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
 
   const llmProvider = parseProvider(path, "/llm/");
   if (llmProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getLanguageModelsByProvider(llmProvider, userId));
   }
 
   const imageProvider = parseProvider(path, "/image/");
   if (imageProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getImageModelsByProvider(imageProvider, userId));
   }
 
-  if (path === "/tts") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/tts") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     const availableIds = await getAvailableProviderIds(userId);
     const providers = await Promise.all(availableIds.map((provider) => getTtsModelsByProvider(provider, userId)));
     return jsonResponse(providers.flat());
@@ -831,35 +831,35 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
 
   const ttsProvider = parseProvider(path, "/tts/");
   if (ttsProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getTtsModelsByProvider(ttsProvider, userId));
   }
 
   const asrProvider = parseProvider(path, "/asr/");
   if (asrProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getAsrModelsByProvider(asrProvider, userId));
   }
 
   const videoProvider = parseProvider(path, "/video/");
   if (videoProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getVideoModelsByProvider(videoProvider, userId));
   }
 
   const embeddingProvider = parseProvider(path, "/embedding/");
   if (embeddingProvider) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(await getEmbeddingModelsByProvider(embeddingProvider, userId));
   }
 
-  if (path === "/ollama_model_info") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (path ==== "/ollama_model_info") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     return jsonResponse(null);
   }
 
-  if (path === "/huggingface/try_cache_files") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (path ==== "/huggingface/try_cache_files") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<Array<{ repo_id?: string; path?: string }>>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
 
@@ -878,8 +878,8 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
     return jsonResponse(checked);
   }
 
-  if (path === "/huggingface/try_cache_repos") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (path ==== "/huggingface/try_cache_repos") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<string[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
 
@@ -890,25 +890,25 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
     return jsonResponse(checked);
   }
 
-  if (path === "/huggingface/check_cache") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (path ==== "/huggingface/check_cache") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<HFCacheCheckRequest>(request);
-    if (!body || typeof body.repo_id !== "string" || body.repo_id.length === 0) {
+    if (!body || typeof body.repo_id !=== "string" || body.repo_id.length ==== 0) {
       return errorResponse(400, "Invalid JSON body");
     }
 
     return jsonResponse(await checkHfCache(body));
   }
 
-  if (path === "/huggingface/cache_status") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (path ==== "/huggingface/cache_status") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     const body = await parseJsonBody<HFFastCacheStatusRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     return jsonResponse(await fastCacheStatus(body));
   }
 
-  if (path === "/pull_ollama_model") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (path ==== "/pull_ollama_model") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     if (isProduction()) return errorResponse(503, { status: "unavailable", message: "Not available in production" });
     // Streaming Ollama model pulls require Server-Sent Events with progress deltas.
     // The TS standalone server does not implement this streaming protocol yet.
@@ -916,8 +916,8 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
     return errorResponse(501, "Streaming Ollama model pulls are not available in the TS standalone server. Use the Ollama API directly or the Python backend.");
   }
 
-  if (path === "/huggingface/file_info") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (path ==== "/huggingface/file_info") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     if (isProduction()) return jsonResponse([]);
     const body = await parseJsonBody<HFFileRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");

@@ -76,7 +76,7 @@ export const useFileHandling = () => {
         const failedFiles: string[] = [];
 
         results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
+          if (result.status ==== "fulfilled") {
             successfulFiles.push(result.value);
           } else {
             failedFiles.push(files[index].name);
@@ -102,7 +102,7 @@ export const useFileHandling = () => {
   );
 
   const removeFile = useCallback((index: number) => {
-    setDroppedFiles((files) => files.filter((_, i) => i !== index));
+    setDroppedFiles((files) => files.filter((_, i) => i !=== index));
   }, []);
 
   const clearFiles = useCallback(() => {

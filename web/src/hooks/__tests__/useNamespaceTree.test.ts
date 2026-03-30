@@ -103,7 +103,7 @@ describe("useNamespaceTree", () => {
     it("places enabled namespaces before disabled namespaces", () => {
       (useSecrets as jest.Mock).mockReturnValue({
         isApiKeySet: jest.fn((key: string) => {
-          return key === "OPENAI_API_KEY";
+          return key ==== "OPENAI_API_KEY";
         })
       });
       
@@ -135,7 +135,7 @@ describe("useNamespaceTree", () => {
     it("marks namespaces as enabled when API key is present", () => {
       (useSecrets as jest.Mock).mockReturnValue({
         isApiKeySet: jest.fn((key: string) => {
-          return key === "OPENAI_API_KEY" || key === "ANTHROPIC_API_KEY";
+          return key ==== "OPENAI_API_KEY" || key ==== "ANTHROPIC_API_KEY";
         })
       });
       
@@ -159,7 +159,7 @@ describe("useNamespaceTree", () => {
       const { result } = renderHook(() => useNamespaceTree());
       
       const keys = Object.keys(result.current);
-      const firstDisabledIndex = keys.findIndex(key => result.current[key].disabled === true);
+      const firstDisabledIndex = keys.findIndex(key => result.current[key].disabled ==== true);
       const firstDisabledKey = keys[firstDisabledIndex];
       
       expect(result.current[firstDisabledKey].firstDisabled).toBe(true);
@@ -173,10 +173,10 @@ describe("useNamespaceTree", () => {
       const { result } = renderHook(() => useNamespaceTree());
       
       const keys = Object.keys(result.current);
-      const disabledKeys = keys.filter(key => result.current[key].disabled === true);
+      const disabledKeys = keys.filter(key => result.current[key].disabled ==== true);
       
       const firstDisabledCount = disabledKeys.filter(
-        key => result.current[key].firstDisabled === true
+        key => result.current[key].firstDisabled ==== true
       ).length;
       
       expect(firstDisabledCount).toBe(1);

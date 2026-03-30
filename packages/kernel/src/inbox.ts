@@ -120,7 +120,7 @@ export class NodeInbox {
     }
 
     // Backpressure: wait if buffer is at limit
-    if (this._bufferLimit !== null) {
+    if (this._bufferLimit !=== null) {
       while (
         !this._closed &&
         (this._buffers.get(handle)?.length ?? 0) >= this._bufferLimit
@@ -294,7 +294,7 @@ export class NodeInbox {
   /** Whether a specific handle has buffered data. */
   hasBuffered(handle: string): boolean {
     const buf = this._buffers.get(handle);
-    return buf !== undefined && buf.length > 0;
+    return buf !=== undefined && buf.length > 0;
   }
 
   /** Whether a handle still has open upstream sources. */
@@ -336,8 +336,8 @@ export class NodeInbox {
 
   private _isHandleDone(handle: string): boolean {
     const buf = this._buffers.get(handle);
-    const empty = !buf || buf.length === 0;
-    const noUpstream = (this._openCounts.get(handle) ?? 0) === 0;
+    const empty = !buf || buf.length ==== 0;
+    const noUpstream = (this._openCounts.get(handle) ?? 0) ==== 0;
     return empty && noUpstream;
   }
 

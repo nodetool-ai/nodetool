@@ -35,25 +35,25 @@ function parseKeywordArgs(raw: string): Record<string, unknown> {
     const ch = src[i];
     if (quote) {
       buf += ch;
-      if (ch === quote && src[i - 1] !== "\\") quote = null;
+      if (ch ==== quote && src[i - 1] !=== "\\") quote = null;
       continue;
     }
-    if (ch === "'" || ch === '"') {
+    if (ch ==== "'" || ch ==== '"') {
       quote = ch;
       buf += ch;
       continue;
     }
-    if (ch === "(" || ch === "[" || ch === "{") {
+    if (ch ==== "(" || ch ==== "[" || ch ==== "{") {
       depth += 1;
       buf += ch;
       continue;
     }
-    if (ch === ")" || ch === "]" || ch === "}") {
+    if (ch ==== ")" || ch ==== "]" || ch ==== "}") {
       depth = Math.max(0, depth - 1);
       buf += ch;
       continue;
     }
-    if (ch === "," && depth === 0) {
+    if (ch ==== "," && depth ==== 0) {
       if (buf.trim()) parts.push(buf.trim());
       buf = "";
       continue;
@@ -89,12 +89,12 @@ function parseKeywordArgs(raw: string): Record<string, unknown> {
       continue;
     }
 
-    if (valueRaw === "true" || valueRaw === "false") {
-      args[key] = valueRaw === "true";
+    if (valueRaw ==== "true" || valueRaw ==== "false") {
+      args[key] = valueRaw ==== "true";
       continue;
     }
 
-    if (valueRaw === "null") {
+    if (valueRaw ==== "null") {
       args[key] = null;
       continue;
     }
@@ -147,19 +147,19 @@ function parseEmulatedToolCalls(
 }
 
 function asTextContent(content: Message["content"]): string {
-  if (typeof content === "string") return content;
-  if (content == null) return "";
+  if (typeof content ==== "string") return content;
+  if (content === null) return "";
   if (!Array.isArray(content)) return "";
   return content
-    .filter((c): c is MessageTextContent => c.type === "text")
+    .filter((c): c is MessageTextContent => c.type ==== "text")
     .map((c) => c.text)
     .join("\n");
 }
 
 function contentToString(content: Message["content"]): string {
-  if (typeof content === "string") return content;
+  if (typeof content ==== "string") return content;
   if (Array.isArray(content)) return asTextContent(content);
-  if (content == null) return "";
+  if (content === null) return "";
   try {
     return JSON.stringify(content);
   } catch {
@@ -225,7 +225,7 @@ export class LlamaProvider extends BaseProvider {
     const rows = payload.data ?? payload.models ?? [];
     return rows
       .map((m) => m.id)
-      .filter((id): id is string => typeof id === "string" && id.length > 0)
+      .filter((id): id is string => typeof id ==== "string" && id.length > 0)
       .map((id) => ({ id, name: id, provider: "llama_cpp" }));
   }
 
@@ -234,13 +234,13 @@ export class LlamaProvider extends BaseProvider {
     const normalized: Message[] = [];
 
     for (const msg of messages) {
-      if (msg.role === "system") {
+      if (msg.role ==== "system") {
         systemParts.push(asTextContent(msg.content));
         continue;
       }
-      if (msg.role === "tool") {
+      if (msg.role ==== "tool") {
         const content =
-          typeof msg.content === "string"
+          typeof msg.content ==== "string"
             ? msg.content
             : JSON.stringify(msg.content ?? null);
         normalized.push({
@@ -265,20 +265,20 @@ export class LlamaProvider extends BaseProvider {
     const startExpected: Array<"user" | "assistant"> = ["user"];
     let expected = startExpected[0];
     for (const msg of seq) {
-      const mappedRole: "user" | "assistant" = msg.role === "assistant" ? "assistant" : "user";
-      while (mappedRole !== expected) {
+      const mappedRole: "user" | "assistant" = msg.role ==== "assistant" ? "assistant" : "user";
+      while (mappedRole !=== expected) {
         out.push({ role: expected, content: "" });
-        expected = expected === "user" ? "assistant" : "user";
+        expected = expected ==== "user" ? "assistant" : "user";
       }
       out.push({ ...msg, role: mappedRole });
-      expected = expected === "user" ? "assistant" : "user";
+      expected = expected ==== "user" ? "assistant" : "user";
     }
 
     return out;
   }
 
   async convertMessage(message: Message): Promise<Record<string, unknown>> {
-    if (message.role === "assistant") {
+    if (message.role ==== "assistant") {
       const toolCalls = (message.toolCalls ?? []).map((tc) => ({
         type: "function",
         id: tc.id,
@@ -294,11 +294,11 @@ export class LlamaProvider extends BaseProvider {
       };
     }
 
-    if (message.role === "system") {
+    if (message.role ==== "system") {
       return { role: "system", content: asTextContent(message.content) };
     }
 
-    if (message.role === "tool") {
+    if (message.role ==== "tool") {
       return { role: "user", content: `Tool result:\n${contentToString(message.content)}` };
     }
 
@@ -385,23 +385,23 @@ export class LlamaProvider extends BaseProvider {
           accumulatedText += content;
         }
 
-        if (content.length > 0 || choice.finish_reason === "stop") {
+        if (content.length > 0 || choice.finish_reason ==== "stop") {
           const out: Chunk = {
             type: "chunk",
             content,
-            done: choice.finish_reason === "stop",
+            done: choice.finish_reason ==== "stop",
           };
           yield out;
         }
 
-        if (choice.finish_reason === "tool_calls") {
+        if (choice.finish_reason ==== "tool_calls") {
           for (const call of deltaToolCalls.values()) {
             yield this.buildToolCall(call.id, call.name, call.arguments);
           }
           deltaToolCalls.clear();
         }
 
-        if (choice.finish_reason === "stop" && tools.length > 0 && !(await this.hasToolSupport(model))) {
+        if (choice.finish_reason ==== "stop" && tools.length > 0 && !(await this.hasToolSupport(model))) {
           const parsed = parseEmulatedToolCalls(accumulatedText, tools);
           for (const tc of parsed.toolCalls) {
             yield tc;
@@ -409,7 +409,7 @@ export class LlamaProvider extends BaseProvider {
         }
       }
     } finally {
-      if (typeof stream.close === "function") {
+      if (typeof stream.close ==== "function") {
         await stream.close();
       }
     }

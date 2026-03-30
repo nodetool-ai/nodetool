@@ -117,7 +117,7 @@ async function setupFakeExecutionWebSocket(
 
       // Wait for the second message (run_job) before sending execution events.
       // The first message is always tools_manifest.
-      if (messageCount === 2) {
+      if (messageCount ==== 2) {
         // Acknowledge job started
         ws.send(
           JSON.stringify({
@@ -223,7 +223,7 @@ async function setupFakeExecutionWebSocket(
       expect(Array.isArray(result)).toBe(true);
 
       const fakeEntry = result.find(
-        (p: { provider: string }) => p.provider === "fake"
+        (p: { provider: string }) => p.provider ==== "fake"
       );
       expect(fakeEntry).toBeDefined();
       expect(fakeEntry.capabilities).toContain("generate_message");
@@ -259,7 +259,7 @@ async function setupFakeExecutionWebSocket(
       const creationRequests: string[] = [];
       page.on("request", (req) => {
         if (
-          req.method() === "POST" &&
+          req.method() ==== "POST" &&
           req.url().includes("/api/workflows")
         ) {
           creationRequests.push(req.url());
@@ -465,7 +465,7 @@ async function setupFakeExecutionWebSocket(
         ws.onMessage(async (_msg) => {
           msgCount++;
 
-          if (msgCount === 2) {
+          if (msgCount ==== 2) {
             ws.send(
               JSON.stringify({
                 type: "job_update",
@@ -522,7 +522,7 @@ async function setupFakeExecutionWebSocket(
         ws.onMessage(async (_msg) => {
           msgCount++;
 
-          if (msgCount === 2) {
+          if (msgCount ==== 2) {
             ws.send(
               JSON.stringify({
                 type: "job_update",

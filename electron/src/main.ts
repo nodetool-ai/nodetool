@@ -125,11 +125,11 @@ async function notifyPackageUpdates(): Promise<void> {
  */
 async function checkAndInstallExpectedPackages(): Promise<boolean> {
   try {
-    logMessage("=== Starting Expected Package Version Check ===");
+    logMessage("==== Starting Expected Package Version Check ====");
 
     const packagesNeedingUpdate = await checkExpectedPackageVersions();
 
-    if (packagesNeedingUpdate.length === 0) {
+    if (packagesNeedingUpdate.length ==== 0) {
       logMessage("All expected packages are at correct versions");
       return false;
     }
@@ -156,7 +156,7 @@ async function checkAndInstallExpectedPackages(): Promise<boolean> {
       }
     }
 
-    logMessage("=== Expected Package Version Check Complete ===");
+    logMessage("==== Expected Package Version Check Complete ====");
     return result.success && result.packagesUpdated > 0;
   } catch (error: any) {
     logMessage(
@@ -173,7 +173,7 @@ async function checkAndInstallExpectedPackages(): Promise<boolean> {
  * Does NOT trigger installation — that is handled by the package manager.
  */
 async function checkPythonEnvironmentExists(): Promise<boolean> {
-  logMessage("=== Checking Python Environment (non-blocking) ===");
+  logMessage("==== Checking Python Environment (non-blocking) ====");
   try {
     const hasCondaEnv = await isCondaEnvironmentInstalled();
     logMessage(`Python environment available: ${hasCondaEnv}`);
@@ -240,15 +240,15 @@ async function waitForWebDevServerReady(
  */
 async function initialize(): Promise<void> {
   try {
-    logMessage("=== Starting Application Initialization ===");
+    logMessage("==== Starting Application Initialization ====");
 
     // Skip heavy initialization in test mode
-    if (process.env.NODE_ENV === "test") {
+    if (process.env.NODE_ENV ==== "test") {
       logMessage("Running in test mode, skipping Python/server initialization");
       assert(mainWindow, "MainWindow is not initialized");
       // Load a simple page for testing
       mainWindow.loadURL("data:text/html,<html><body>Test Mode</body></html>");
-      logMessage("=== Application Initialization Complete (Test Mode) ===");
+      logMessage("==== Application Initialization Complete (Test Mode) ====");
       return;
     }
 
@@ -320,18 +320,18 @@ async function initialize(): Promise<void> {
     void notifyPackageUpdates();
 
     // Request notification permissions
-    if (process.platform === "darwin") {
+    if (process.platform ==== "darwin") {
       logMessage("Setting activation policy for macOS (regular)");
       // Use 'regular' so the app has a normal menu bar and responds to menu clicks
       app.setActivationPolicy("regular");
     }
 
-    logMessage("=== Application Initialization Complete ===");
+    logMessage("==== Application Initialization Complete ====");
   } catch (error) {
     logMessage(`Initialization error: ${error}`, "error");
     const message = error instanceof Error ? error.message : String(error);
 
-    if (serverState.status === "error") {
+    if (serverState.status ==== "error") {
       logMessage(
         "Backend failed to start; staying on splash screen for recovery actions",
         "warn",
@@ -355,7 +355,7 @@ async function initialize(): Promise<void> {
  * Checks system media permissions and requests access if needed
  */
 async function checkMediaPermissions(): Promise<void> {
-  if (process.platform === "win32" || process.platform === "darwin") {
+  if (process.platform ==== "win32" || process.platform ==== "darwin") {
     try {
       logMessage("Starting microphone permission check");
 
@@ -363,12 +363,12 @@ async function checkMediaPermissions(): Promise<void> {
         systemPreferences.getMediaAccessStatus("microphone");
       logMessage(`Current microphone status: ${microphoneStatus}`);
 
-      if (microphoneStatus !== "granted") {
+      if (microphoneStatus !=== "granted") {
         logMessage(
           `Microphone not granted, current status: ${microphoneStatus}`,
         );
 
-        if (process.platform === "darwin") {
+        if (process.platform ==== "darwin") {
           logMessage("Requesting microphone access on macOS");
           const granted =
             await systemPreferences.askForMediaAccess("microphone");
@@ -380,7 +380,7 @@ async function checkMediaPermissions(): Promise<void> {
               "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
             );
           }
-        } else if (process.platform === "win32") {
+        } else if (process.platform ==== "win32") {
           logMessage("Opening Windows privacy settings for microphone");
           shell.openExternal("ms-settings:privacy-microphone");
         }
@@ -410,7 +410,7 @@ app.on("ready", async () => {
 
   const ipcPromise = initializeIpcHandlers();
 
-  const mediaPromise = process.env.NODE_ENV !== "test"
+  const mediaPromise = process.env.NODE_ENV !=== "test"
     ? checkMediaPermissions()
     : Promise.resolve();
 
@@ -424,7 +424,7 @@ app.on("ready", async () => {
       isInitialized = true;
 
       // Skip menu/tray creation in test mode
-      if (process.env.NODE_ENV !== "test") {
+      if (process.env.NODE_ENV !=== "test") {
         // Build menu and tray in parallel
         await Promise.all([buildMenu(), createTray()]);
       }
@@ -465,11 +465,11 @@ app.on("window-all-closed", async () => {
   const closeAction = settings.windowCloseAction;
 
   // If user has already made a choice, use it
-  if (closeAction === "quit") {
+  if (closeAction ==== "quit") {
     logMessage("User preference: quit on close");
     app.quit();
     return;
-  } else if (closeAction === "background") {
+  } else if (closeAction ==== "background") {
     logMessage("User preference: keep running in background");
     return; // Keep running in background (tray is still active)
   }
@@ -488,7 +488,7 @@ app.on("window-all-closed", async () => {
     checkboxChecked: false,
   });
 
-  const shouldQuit = result.response === 0;
+  const shouldQuit = result.response ==== 0;
   const rememberChoice = result.checkboxChecked;
 
   if (rememberChoice) {

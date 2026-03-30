@@ -50,9 +50,9 @@ describe("auth", () => {
     process.env = originalEnv;
   });
 
-  // =========================================================================
+  // ==========================================================================
   // AUTH_DEPLOYMENT_CONFIG_FILE
-  // =========================================================================
+  // ==========================================================================
 
   describe("AUTH_DEPLOYMENT_CONFIG_FILE", () => {
     it("should be a string path", () => {
@@ -69,9 +69,9 @@ describe("auth", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // generateSecureToken
-  // =========================================================================
+  // ==========================================================================
 
   describe("generateSecureToken", () => {
     it("should return a string", () => {
@@ -97,9 +97,9 @@ describe("auth", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // loadAuthConfig
-  // =========================================================================
+  // ==========================================================================
 
   describe("loadAuthConfig", () => {
     it("should return empty object when file does not exist", () => {
@@ -153,9 +153,9 @@ describe("auth", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // saveAuthConfig
-  // =========================================================================
+  // ==========================================================================
 
   describe("saveAuthConfig", () => {
     it("should create directory recursively", () => {
@@ -187,12 +187,12 @@ describe("auth", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // getServerAuthToken
-  // =========================================================================
+  // ==========================================================================
 
   describe("getServerAuthToken", () => {
-    it("should return env var when SERVER_AUTH_TOKEN is set", () => {
+    it("should return env const when SERVER_AUTH_TOKEN is set", () => {
       process.env["SERVER_AUTH_TOKEN"] = "env-token";
       expect(getServerAuthToken()).toBe("env-token");
     });
@@ -212,41 +212,41 @@ describe("auth", () => {
       expect(mockedWriteFileSync).toHaveBeenCalled();
     });
 
-    it("should prioritize env var over config file", () => {
+    it("should prioritize env const over config file", () => {
       process.env["SERVER_AUTH_TOKEN"] = "env-wins";
       mockedExistsSync.mockReturnValue(true);
       mockedReadFileSync.mockReturnValue("server_auth_token: file-token\n");
       expect(getServerAuthToken()).toBe("env-wins");
     });
 
-    it("should not read file when env var is available", () => {
+    it("should not read file when env const is available", () => {
       process.env["SERVER_AUTH_TOKEN"] = "env-token";
       getServerAuthToken();
       expect(mockedExistsSync).not.toHaveBeenCalled();
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // isAuthEnabled
-  // =========================================================================
+  // ==========================================================================
 
   describe("isAuthEnabled", () => {
     it("should always return true", () => {
       expect(isAuthEnabled()).toBe(true);
     });
 
-    it("should return true even with no env var set", () => {
+    it("should return true even with no env const set", () => {
       delete process.env["SERVER_AUTH_TOKEN"];
       expect(isAuthEnabled()).toBe(true);
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // getTokenSource
-  // =========================================================================
+  // ==========================================================================
 
   describe("getTokenSource", () => {
-    it("should return 'environment' when env var is set", () => {
+    it("should return 'environment' when env const is set", () => {
       process.env["SERVER_AUTH_TOKEN"] = "some-token";
       expect(getTokenSource()).toBe("environment");
     });
@@ -257,15 +257,15 @@ describe("auth", () => {
       expect(getTokenSource()).toBe("config");
     });
 
-    it("should return 'generated' when no env var and no config token", () => {
+    it("should return 'generated' when no env const and no config token", () => {
       mockedExistsSync.mockReturnValue(false);
       expect(getTokenSource()).toBe("generated");
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // AuthenticationError
-  // =========================================================================
+  // ==========================================================================
 
   describe("AuthenticationError", () => {
     it("should be an instance of Error", () => {
@@ -294,9 +294,9 @@ describe("auth", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // verifyServerToken
-  // =========================================================================
+  // ==========================================================================
 
   describe("verifyServerToken", () => {
     beforeEach(() => {
@@ -361,7 +361,7 @@ describe("auth", () => {
     });
 
     it("should be case-insensitive for Bearer prefix", async () => {
-      // The code does parts[0]!.toLowerCase() === "bearer"
+      // The code does parts[0]!.toLowerCase() ==== "bearer"
       const result = await verifyServerToken("BEARER valid-token");
       expect(result).toBe("authenticated");
     });

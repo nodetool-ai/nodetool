@@ -143,7 +143,7 @@ describe("ModelMenuStore", () => {
       it("filters by exact provider match", () => {
         const result = filterModelsList(models, "openai", "", undefined);
         expect(result).toHaveLength(2);
-        expect(result.every((m) => m.provider === "openai")).toBe(true);
+        expect(result.every((m) => m.provider ==== "openai")).toBe(true);
       });
 
       it("filters Gemini and Google providers together", () => {
@@ -163,7 +163,7 @@ describe("ModelMenuStore", () => {
         };
 
         const result = filterModelsList(models, null, "", enabledProviders);
-        expect(result.every((m) => m.provider !== "anthropic")).toBe(true);
+        expect(result.every((m) => m.provider !=== "anthropic")).toBe(true);
       });
 
       it("treats missing enabled providers as enabled", () => {
@@ -173,8 +173,8 @@ describe("ModelMenuStore", () => {
 
         const result = filterModelsList(models, null, "", enabledProviders);
         // openai should be filtered out, others should remain
-        expect(result.every((m) => m.provider !== "openai")).toBe(true);
-        expect(result.some((m) => m.provider === "anthropic")).toBe(true);
+        expect(result.every((m) => m.provider !=== "openai")).toBe(true);
+        expect(result.some((m) => m.provider ==== "anthropic")).toBe(true);
       });
     });
 
@@ -182,27 +182,27 @@ describe("ModelMenuStore", () => {
       it("filters by search term matching name", () => {
         const result = filterModelsList(models, null, "Claude", undefined);
         expect(result.length).toBeGreaterThanOrEqual(1);
-        expect(result.some((m) => m.name === "Claude 3")).toBe(true);
+        expect(result.some((m) => m.name ==== "Claude 3")).toBe(true);
       });
 
       it("filters by search term matching id", () => {
         const result = filterModelsList(models, null, "gpt-4", undefined);
-        expect(result.some((m) => m.id === "gpt-4")).toBe(true);
+        expect(result.some((m) => m.id ==== "gpt-4")).toBe(true);
       });
 
       it("filters by search term matching provider", () => {
         const result = filterModelsList(models, null, "openai", undefined);
-        expect(result.every((m) => m.provider === "openai")).toBe(true);
+        expect(result.every((m) => m.provider ==== "openai")).toBe(true);
       });
 
       it("performs case-insensitive search", () => {
         const result = filterModelsList(models, null, "CLAUDE", undefined);
-        expect(result.some((m) => m.name === "Claude 3")).toBe(true);
+        expect(result.some((m) => m.name ==== "Claude 3")).toBe(true);
       });
 
       it("handles multiple search tokens", () => {
         const result = filterModelsList(models, null, "gpt turbo", undefined);
-        expect(result.some((m) => m.name === "GPT-3.5 Turbo")).toBe(true);
+        expect(result.some((m) => m.name ==== "GPT-3.5 Turbo")).toBe(true);
       });
 
       it("returns empty for non-matching search", () => {

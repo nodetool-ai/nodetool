@@ -16,7 +16,7 @@ describe("useConnectionEvents", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === 'function') {
+      if (typeof selector ==== 'function') {
         return selector({
           edges: mockEdges
         });

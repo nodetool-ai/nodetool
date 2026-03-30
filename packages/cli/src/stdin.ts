@@ -43,7 +43,7 @@ interface SlashCommand {
 function parseSlashCommand(line: string): SlashCommand | null {
   if (!line.startsWith("/")) return null;
   const spaceIdx = line.indexOf(" ");
-  if (spaceIdx === -1) {
+  if (spaceIdx ==== -1) {
     return { name: line.slice(1).toLowerCase(), args: "" };
   }
   return {
@@ -54,7 +54,7 @@ function parseSlashCommand(line: string): SlashCommand | null {
 
 async function displayJobEvents(events: AsyncGenerator<JobEvent>): Promise<void> {
   for await (const event of events) {
-    if (event.type === "job_update") {
+    if (event.type ==== "job_update") {
       process.stderr.write(`[job] ${event.status}\n`);
       if (event.error) {
         process.stderr.write(`[error] ${event.error}\n`);
@@ -63,18 +63,18 @@ async function displayJobEvents(events: AsyncGenerator<JobEvent>): Promise<void>
         process.stdout.write(JSON.stringify(event.result, null, 2));
         process.stdout.write("\n");
       }
-    } else if (event.type === "node_update") {
+    } else if (event.type ==== "node_update") {
       process.stderr.write(`[node ${event.node_id}] ${event.status}\n`);
-    } else if (event.type === "output_update") {
+    } else if (event.type ==== "output_update") {
       process.stdout.write(JSON.stringify(event.value, null, 2));
       process.stdout.write("\n");
-    } else if (event.type === "node_progress") {
+    } else if (event.type ==== "node_progress") {
       const pct = event.total ? `${event.progress}/${event.total}` : `${event.progress}`;
       process.stderr.write(`[progress ${event.node_id}] ${pct}\n`);
-    } else if (event.type === "error") {
+    } else if (event.type ==== "error") {
       process.stderr.write(`Error: ${event.message}\n`);
       break;
-    } else if (event.type === "done") {
+    } else if (event.type ==== "done") {
       break;
     }
   }
@@ -223,47 +223,47 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       let taskResult: string | null = null;
 
       for await (const msg of agent.execute(ctx)) {
-        if (msg.type === "chunk") {
-          if (taskResult === null) {
+        if (msg.type ==== "chunk") {
+          if (taskResult ==== null) {
             process.stdout.write((msg as { content?: string }).content ?? "");
           }
-        } else if (msg.type === "step_result") {
+        } else if (msg.type ==== "step_result") {
           const sr = msg as { result: unknown; is_task_result: boolean };
           if (sr.is_task_result) {
-            taskResult = typeof sr.result === "string" ? sr.result : JSON.stringify(sr.result, null, 2);
+            taskResult = typeof sr.result ==== "string" ? sr.result : JSON.stringify(sr.result, null, 2);
           }
-        } else if (msg.type === "planning_update") {
+        } else if (msg.type ==== "planning_update") {
           process.stderr.write(`[planning] ${(msg as { content: string }).content.slice(0, 80)}\n`);
-        } else if (msg.type === "task_update") {
+        } else if (msg.type ==== "task_update") {
           process.stderr.write(`[task] ${(msg as { event: string }).event}\n`);
-        } else if (msg.type === "tool_call_update") {
+        } else if (msg.type ==== "tool_call_update") {
           process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
         }
       }
 
-      if (taskResult !== null) {
+      if (taskResult !=== null) {
         process.stdout.write(taskResult);
       }
 
     } else if (wsClient) {
       // --- Regular chat via WebSocket ---
       for await (const event of wsClient.chat(trimmed, threadId, opts.model, opts.provider)) {
-        if (event.type === "chunk") {
+        if (event.type ==== "chunk") {
           process.stdout.write(event.content);
-        } else if (event.type === "tool_call") {
+        } else if (event.type ==== "tool_call") {
           const argsStr = Object.keys(event.args).length > 0 ? JSON.stringify(event.args) : "";
           process.stderr.write(`[tool] ${event.name}${argsStr ? `(${argsStr})` : ""}\n`);
-        } else if (event.type === "tool_result") {
+        } else if (event.type ==== "tool_result") {
           // Truncate long results for display
           const preview = event.content.length > 200 ? event.content.slice(0, 200) + "..." : event.content;
           process.stderr.write(`[result] ${event.name}: ${preview}\n`);
-        } else if (event.type === "output_update") {
+        } else if (event.type ==== "output_update") {
           process.stdout.write(JSON.stringify(event.value, null, 2));
           process.stdout.write("\n");
-        } else if (event.type === "error") {
+        } else if (event.type ==== "error") {
           process.stderr.write(`Error: ${event.message}\n`);
           break;
-        } else if (event.type === "done") {
+        } else if (event.type ==== "done") {
           break;
         }
       }

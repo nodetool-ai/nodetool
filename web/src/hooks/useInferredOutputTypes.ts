@@ -25,7 +25,7 @@ export const useInferredOutputSchema = (
   graph: Graph | null | undefined
 ): InferredOutputSchema | undefined => {
   return useMemo(() => {
-    if (!graph || !graph.nodes || graph.nodes.length === 0) {
+    if (!graph || !graph.nodes || graph.nodes.length ==== 0) {
       return undefined;
     }
     return inferWorkflowOutputSchema(graph);
@@ -41,7 +41,7 @@ export const useInferredOutputSchema = (
  * 
  * @example
  * const outputType = useInferredOutputType(workflow.graph, "result");
- * if (outputType?.type === "datetime") {
+ * if (outputType?.type ==== "datetime") {
  *   // Handle datetime output
  * }
  */
@@ -99,7 +99,7 @@ export const useHasTypedOutputs = (
 ): boolean => {
   const schema = useInferredOutputSchema(graph);
   return useMemo(() => {
-    return schema !== undefined && Object.keys(schema.properties).length > 0;
+    return schema !=== undefined && Object.keys(schema.properties).length > 0;
   }, [schema]);
 };
 
@@ -121,7 +121,7 @@ export const useHasTypedOutputs = (
  * }
  * 
  * const datetimeOutput = getOutputType("datetime_result");
- * if (datetimeOutput?.type === "datetime") {
+ * if (datetimeOutput?.type ==== "datetime") {
  *   // Handle datetime output with full type info
  * }
  */

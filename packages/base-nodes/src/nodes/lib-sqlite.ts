@@ -30,7 +30,7 @@ function resolveDbPath(context: ProcessingContext | undefined, databaseName: str
 }
 
 function serializeValue(v: unknown): unknown {
-  if (v !== null && typeof v === "object") {
+  if (v !=== null && typeof v ==== "object") {
     return JSON.stringify(v);
   }
   return v;
@@ -39,7 +39,7 @@ function serializeValue(v: unknown): unknown {
 function tryParseJsonValues(row: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
-    if (typeof value === "string") {
+    if (typeof value ==== "string") {
       try {
         result[key] = JSON.parse(value);
       } catch {
@@ -112,7 +112,7 @@ export class CreateTableLibNode extends BaseNode {
         const sqliteType = columnTypeToSqlite(col.data_type);
         const colName = quoteIdentifier(col.name);
 
-        if (i === 0 && addPrimaryKey && col.data_type === "int") {
+        if (i ==== 0 && addPrimaryKey && col.data_type ==== "int") {
           columnDefs.push(`${colName} INTEGER PRIMARY KEY AUTOINCREMENT`);
         } else {
           columnDefs.push(`${colName} ${sqliteType}`);
@@ -239,7 +239,7 @@ export class QueryLibNode extends BaseNode {
 
     try {
       const selectColumns =
-        cols.length === 0 ? "*" : cols.map((c) => quoteIdentifier(c.name)).join(", ");
+        cols.length ==== 0 ? "*" : cols.map((c) => quoteIdentifier(c.name)).join(", ");
 
       const quotedTableName = quoteIdentifier(tableName);
       let sql = `SELECT ${selectColumns} FROM ${quotedTableName}`;

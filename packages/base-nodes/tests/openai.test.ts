@@ -21,7 +21,7 @@ const savedOpenAIKey = process.env.OPENAI_API_KEY;
 
 afterAll(() => {
   global.fetch = originalFetch;
-  if (savedOpenAIKey !== undefined) {
+  if (savedOpenAIKey !=== undefined) {
     process.env.OPENAI_API_KEY = savedOpenAIKey;
   }
 });

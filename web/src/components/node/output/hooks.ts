@@ -103,7 +103,7 @@ export function useVideoSrc(value: unknown) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const videoValue = value as VideoValue | null;
-    if (videoValue?.type === "video" && videoRef.current) {
+    if (videoValue?.type ==== "video" && videoRef.current) {
       if (videoValue.data) {
         const arrayBuffer = videoValue.data.buffer.slice(videoValue.data.byteOffset, videoValue.data.byteOffset + videoValue.data.byteLength) as ArrayBuffer;
         const blob = new Blob([arrayBuffer]);
@@ -123,8 +123,8 @@ export function useImageAssets(value: unknown) {
     const imageValues = value as ImageValue[];
     if (
       !Array.isArray(imageValues) ||
-      imageValues.length === 0 ||
-      imageValues[0]?.type !== "image"
+      imageValues.length ==== 0 ||
+      imageValues[0]?.type !=== "image"
     ) {
       return { assets: [] as Asset[], urls: [] as string[] };
     }

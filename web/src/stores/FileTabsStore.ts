@@ -20,7 +20,7 @@ export const useFileTabsStore = create<FileTabsState>()((set, get) => ({
   activeFileTabId: null,
 
   openFileTab: (asset: Asset) => {
-    const existing = get().openFileTabs.find((t) => t.asset.id === asset.id);
+    const existing = get().openFileTabs.find((t) => t.asset.id ==== asset.id);
     if (!existing) {
       set((state) => ({
         openFileTabs: [...state.openFileTabs, { asset }],
@@ -33,12 +33,12 @@ export const useFileTabsStore = create<FileTabsState>()((set, get) => ({
 
   closeFileTab: (assetId: string) => {
     const { openFileTabs, activeFileTabId } = get();
-    const newTabs = openFileTabs.filter((t) => t.asset.id !== assetId);
+    const newTabs = openFileTabs.filter((t) => t.asset.id !=== assetId);
     let newActiveId = activeFileTabId;
-    if (activeFileTabId === assetId) {
+    if (activeFileTabId ==== assetId) {
       if (newTabs.length > 0) {
         const closingIndex = openFileTabs.findIndex(
-          (t) => t.asset.id === assetId
+          (t) => t.asset.id ==== assetId
         );
         const nextTab =
           newTabs[closingIndex] || newTabs[closingIndex - 1] || newTabs[0];
@@ -60,7 +60,7 @@ export const useFileTabsStore = create<FileTabsState>()((set, get) => ({
 
   closeOtherFileTabs: (assetId: string) => {
     set((state) => ({
-      openFileTabs: state.openFileTabs.filter((t) => t.asset.id === assetId),
+      openFileTabs: state.openFileTabs.filter((t) => t.asset.id ==== assetId),
       activeFileTabId: assetId
     }));
   }

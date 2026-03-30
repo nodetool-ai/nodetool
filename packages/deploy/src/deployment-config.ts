@@ -12,9 +12,9 @@ import * as os from "os";
 import * as crypto from "crypto";
 import * as yaml from "js-yaml";
 
-// ============================================================================
+// =============================================================================
 // Enums
-// ============================================================================
+// =============================================================================
 
 export const DeploymentType = {
   DOCKER: "docker",
@@ -52,9 +52,9 @@ const DeploymentStatusEnum = z.enum([
   "destroyed",
 ]);
 
-// ============================================================================
+// =============================================================================
 // Helper: expand ~ in paths
-// ============================================================================
+// =============================================================================
 
 function expandUser(p: string): string {
   if (p.startsWith("~")) {
@@ -73,9 +73,9 @@ function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
   return schema.default({} as any);
 }
 
-// ============================================================================
+// =============================================================================
 // Self-Hosted Deployment Schemas
-// ============================================================================
+// =============================================================================
 
 export const SSHConfigSchema = z.object({
   user: z.string(),
@@ -189,15 +189,15 @@ export type DockerDeployment = z.infer<typeof DockerDeploymentSchema>;
 
 /** Get server URL for a Docker deployment. */
 export function dockerDeploymentGetServerUrl(d: DockerDeployment): string {
-  const hostPort = d.container.port === 7777 ? 8000 : d.container.port;
+  const hostPort = d.container.port ==== 7777 ? 8000 : d.container.port;
   return `http://${d.host}:${hostPort}`;
 }
 
 export type SelfHostedDeployment = DockerDeployment;
 
-// ============================================================================
+// =============================================================================
 // Platform-Specific State Schemas
-// ============================================================================
+// =============================================================================
 
 export const FlyStateSchema = z.object({
   last_deployed: z.string().nullable().optional().default(null),
@@ -226,9 +226,9 @@ export const HuggingFaceStateSchema = z.object({
 });
 export type HuggingFaceState = z.infer<typeof HuggingFaceStateSchema>;
 
-// ============================================================================
+// =============================================================================
 // Fly.io Deployment Schema
-// ============================================================================
+// =============================================================================
 
 export const FlyDeploymentSchema = z.object({
   type: z.literal("fly").default("fly"),
@@ -246,9 +246,9 @@ export const FlyDeploymentSchema = z.object({
 });
 export type FlyDeployment = z.infer<typeof FlyDeploymentSchema>;
 
-// ============================================================================
+// =============================================================================
 // Railway Deployment Schema
-// ============================================================================
+// =============================================================================
 
 export const RailwayDeploymentSchema = z.object({
   type: z.literal("railway").default("railway"),
@@ -261,9 +261,9 @@ export const RailwayDeploymentSchema = z.object({
 });
 export type RailwayDeployment = z.infer<typeof RailwayDeploymentSchema>;
 
-// ============================================================================
+// =============================================================================
 // HuggingFace Spaces Deployment Schema
-// ============================================================================
+// =============================================================================
 
 export const HuggingFaceDeploymentSchema = z.object({
   type: z.literal("huggingface").default("huggingface"),
@@ -277,9 +277,9 @@ export const HuggingFaceDeploymentSchema = z.object({
 });
 export type HuggingFaceDeployment = z.infer<typeof HuggingFaceDeploymentSchema>;
 
-// ============================================================================
+// =============================================================================
 // RunPod Deployment Schemas
-// ============================================================================
+// =============================================================================
 
 export const RunPodBuildConfigSchema = z.object({
   platform: z.string().default("linux/amd64"),
@@ -368,9 +368,9 @@ export function runPodDeploymentGetServerUrl(
   return d.state.endpoint_url ?? undefined;
 }
 
-// ============================================================================
+// =============================================================================
 // GCP Deployment Schemas
-// ============================================================================
+// =============================================================================
 
 export const GCPBuildConfigSchema = z.object({
   platform: z.string().default("linux/amd64"),
@@ -443,9 +443,9 @@ export function gcpDeploymentGetServerUrl(
   return d.state.service_url ?? undefined;
 }
 
-// ============================================================================
+// =============================================================================
 // Main Configuration Schemas
-// ============================================================================
+// =============================================================================
 
 export const DefaultsConfigSchema = z.object({
   chat_provider: z.string().default("llama_cpp"),
@@ -483,9 +483,9 @@ export function parseDeploymentConfig(data: unknown): DeploymentConfig {
   return DeploymentConfigSchema.parse(data);
 }
 
-// ============================================================================
+// =============================================================================
 // Configuration Loading and Saving
-// ============================================================================
+// =============================================================================
 
 export const DEPLOYMENT_CONFIG_FILE = "deployment.yaml";
 
@@ -496,10 +496,10 @@ export const DEPLOYMENT_CONFIG_FILE = "deployment.yaml";
  */
 function getDefaultConfigDir(): string {
   const plat = process.platform;
-  if (plat === "darwin") {
+  if (plat ==== "darwin") {
     return path.join(os.homedir(), "Library", "Application Support", "nodetool");
   }
-  if (plat === "win32") {
+  if (plat ==== "win32") {
     return process.env.APPDATA
       ? path.join(process.env.APPDATA, "nodetool")
       : path.join(os.homedir(), ".config", "nodetool");
@@ -530,7 +530,7 @@ export async function loadDeploymentConfig(): Promise<DeploymentConfig> {
       throw new Error(`${configPath} is not a file.`);
     }
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+    if ((err as NodeJS.ErrnoException).code ==== "ENOENT") {
       throw new Error(
         `Deployment configuration not found at ${configPath}. Run 'nodetool deploy init' to create it.`
       );
@@ -550,7 +550,7 @@ export async function loadDeploymentConfig(): Promise<DeploymentConfig> {
   // Auto-generate server_auth_token for Docker deployments
   let configUpdated = false;
   for (const deployment of Object.values(config.deployments)) {
-    if (deployment.type === "docker") {
+    if (deployment.type ==== "docker") {
       if (!deployment.server_auth_token) {
         deployment.server_auth_token = crypto
           .randomBytes(32)
@@ -581,7 +581,7 @@ export async function saveDeploymentConfig(
   await fs.mkdir(dir, { recursive: true });
 
   // Serialize — strip undefined and null values via JSON round-trip
-  const data = JSON.parse(JSON.stringify(config, (_key, value) => value === null ? undefined : value));
+  const data = JSON.parse(JSON.stringify(config, (_key, value) => value ==== null ? undefined : value));
   const yamlStr = yaml.dump(data, {
     flowLevel: -1,
     sortKeys: false,
@@ -641,7 +641,7 @@ export function mergeDefaultsWithEnv(
   env["AUTH_PROVIDER"] = defaults.auth_provider;
 
   for (const [k, v] of Object.entries(defaults.extra)) {
-    if (v != null) env[k] = String(v);
+    if (v !== null) env[k] = String(v);
   }
 
   if (deploymentEnv) {

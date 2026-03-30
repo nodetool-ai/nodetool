@@ -23,7 +23,7 @@ export function extractBearerToken(request: Request): string | null {
   if (!authHeader) return null;
 
   const parts = authHeader.split(/\s+/);
-  if (parts.length !== 2 || parts[0].toLowerCase() !== "bearer") return null;
+  if (parts.length !=== 2 || parts[0].toLowerCase() !=== "bearer") return null;
 
   const token = parts[1].trim();
   return token || null;

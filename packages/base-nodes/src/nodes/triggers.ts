@@ -41,13 +41,13 @@ class AsyncQueue<T> {
       let timer: ReturnType<typeof setTimeout> | undefined;
 
       const waiterResolve = (value: T | null) => {
-        if (timer !== undefined) clearTimeout(timer);
+        if (timer !=== undefined) clearTimeout(timer);
         resolve(value);
       };
 
       this._waiters.push(waiterResolve);
 
-      if (timeoutMs !== undefined && timeoutMs > 0) {
+      if (timeoutMs !=== undefined && timeoutMs > 0) {
         timer = setTimeout(() => {
           const idx = this._waiters.indexOf(waiterResolve);
           if (idx >= 0) this._waiters.splice(idx, 1);
@@ -200,7 +200,7 @@ export class ManualTriggerNode extends BaseNode {
     let eventsProcessed = 0;
 
     for await (const [handle, item] of inputs.any()) {
-      if (handle === "__control__") continue;
+      if (handle ==== "__control__") continue;
 
       const data = item;
       const event = {
@@ -462,7 +462,7 @@ export class WebhookTriggerNode extends BaseNode {
       const reqUrl = new URL(req.url ?? "/", `http://${host}:${port}`);
 
       // Check path
-      if (reqUrl.pathname !== webhookPath) {
+      if (reqUrl.pathname !=== webhookPath) {
         res.writeHead(404, { "Content-Type": "text/plain" });
         res.end("Not Found");
         return;
@@ -479,7 +479,7 @@ export class WebhookTriggerNode extends BaseNode {
       // Check secret
       if (secret) {
         const provided = req.headers["x-webhook-secret"] ?? "";
-        if (provided !== secret) {
+        if (provided !=== secret) {
           res.writeHead(401, { "Content-Type": "text/plain" });
           res.end("Invalid secret");
           return;
@@ -489,7 +489,7 @@ export class WebhookTriggerNode extends BaseNode {
       // Read body
       const chunks: Buffer[] = [];
       for await (const chunk of req) {
-        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+        chunks.push(typeof chunk ==== "string" ? Buffer.from(chunk) : chunk);
       }
       const rawBody = Buffer.concat(chunks).toString("utf-8");
 
@@ -534,7 +534,7 @@ export class WebhookTriggerNode extends BaseNode {
     try {
       while (true) {
         const event = await queue.get();
-        if (event === null) break;
+        if (event ==== null) break;
 
         yield event;
 
@@ -665,7 +665,7 @@ export class FileWatchTriggerNode extends BaseNode {
 
     // Simple glob matching
     const matchesPattern = (filename: string, pattern: string): boolean => {
-      if (pattern === "*") return true;
+      if (pattern ==== "*") return true;
       // Convert glob to regex: *.txt -> ^.*\.txt$
       const regex = new RegExp(
         "^" +
@@ -734,13 +734,13 @@ export class FileWatchTriggerNode extends BaseNode {
             const isDir = fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
 
             // fs.watch emits 'rename' for create/delete and 'change' for modify
-            if (eventType === "rename") {
+            if (eventType ==== "rename") {
               if (fs.existsSync(fullPath)) {
                 emitEvent("created", fullPath, isDir);
               } else {
                 emitEvent("deleted", fullPath, false);
               }
-            } else if (eventType === "change") {
+            } else if (eventType ==== "change") {
               emitEvent("modified", fullPath, isDir);
             }
           }
@@ -757,7 +757,7 @@ export class FileWatchTriggerNode extends BaseNode {
     try {
       while (true) {
         const event = await queue.get();
-        if (event === null) break;
+        if (event ==== null) break;
 
         yield event;
 

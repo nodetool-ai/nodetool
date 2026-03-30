@@ -110,7 +110,7 @@ function shellQuote(s: string): string {
  * Expand a leading ~ to the user's home directory.
  */
 function expandUser(p: string): string {
-  if (p === "~" || p.startsWith("~/")) {
+  if (p ==== "~" || p.startsWith("~/")) {
     return path.join(os.homedir(), p.slice(1));
   }
   return p;
@@ -178,7 +178,7 @@ export function isLocalhost(host: string): boolean {
     return false;
   }
 
-  if (hostIps.size === 0) return false;
+  if (hostIps.size ==== 0) return false;
 
   const localIps = new Set<string>();
   for (const target of ["localhost", os.hostname()]) {
@@ -250,11 +250,11 @@ export class LocalExecutor {
       };
 
       const exitCode = e.status ?? -1;
-      const stdout = typeof e.stdout === "string" ? e.stdout : "";
-      const stderr = typeof e.stderr === "string" ? e.stderr : "";
+      const stdout = typeof e.stdout ==== "string" ? e.stdout : "";
+      const stderr = typeof e.stderr ==== "string" ? e.stderr : "";
 
       // Timeout
-      if (e.killed || e.signal === "SIGTERM") {
+      if (e.killed || e.signal ==== "SIGTERM") {
         throw new SSHCommandError(
           `Command timed out: ${command}`,
           -1,
@@ -263,7 +263,7 @@ export class LocalExecutor {
         );
       }
 
-      if (check && exitCode !== 0) {
+      if (check && exitCode !=== 0) {
         throw new SSHCommandError(
           `Command failed: ${command}`,
           exitCode,
@@ -437,7 +437,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
 
   protected resolveLocalRuntimeCommand(): string {
     const override = process.env["NODETOOL_CONTAINER_RUNTIME"];
-    if (override === "docker" || override === "podman") return override;
+    if (override ==== "docker" || override ==== "podman") return override;
 
     try {
       execFileSync("which", ["docker"], { encoding: "utf-8" });
@@ -456,7 +456,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
 
   protected runtimeCommandForShell(): string {
     const override = process.env["NODETOOL_CONTAINER_RUNTIME"];
-    if (override === "docker" || override === "podman") return override;
+    if (override ==== "docker" || override ==== "podman") return override;
     if (this.isLocalhost) return this.resolveLocalRuntimeCommand();
     return '$((command -v docker >/dev/null 2>&1 && echo docker) || (command -v podman >/dev/null 2>&1 && echo podman) || echo docker)';
   }
@@ -497,7 +497,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
    */
   protected appHostPort(): number {
     const container = (this.deployment as DockerDeployment).container;
-    if (container && container.port === 7777) return 8000;
+    if (container && container.port ==== 7777) return 8000;
     return container?.port ?? 8000;
   }
 
@@ -560,7 +560,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         "Initial deployment - will create all resources"
       );
       plan.will_create.push(`App container: ${containerName}`);
-    } else if (currentHash !== newHash) {
+    } else if (currentHash !=== newHash) {
       plan.changes.push("Container configuration has changed");
       plan.will_update.push("App container");
     }
@@ -689,7 +689,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       for (const line of stdout.split("\n")) {
         const conflictName = line.trim();
         if (!conflictName) continue;
-        if (conflictName === containerName) continue;
+        if (conflictName ==== containerName) continue;
         if (!conflictName.startsWith("nodetool-")) continue;
         results.steps.push(
           `  Found conflicting NodeTool container on port ${this.appHostPort()}: ${conflictName}`
@@ -778,7 +778,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       for (const line of stdout.split("\n")) {
         const conflictName = line.trim();
         if (!conflictName) continue;
-        if (conflictName === containerName) continue;
+        if (conflictName ==== containerName) continue;
         if (!conflictName.startsWith("nodetool-")) continue;
         results.steps.push(
           `  Found conflicting NodeTool container on port ${hostPort}: ${conflictName}`
@@ -869,7 +869,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
           true,
           20
         );
-        if (attemptErrors.length === 0) {
+        if (attemptErrors.length ==== 0) {
           results.steps.push(`  Health endpoint OK: ${healthUrl}`);
           return;
         }
@@ -914,7 +914,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
   }
 
   private isLocalDockerRuntime(): boolean {
-    return this.isLocalhost && this.resolveLocalRuntimeCommand() === "docker";
+    return this.isLocalhost && this.resolveLocalRuntimeCommand() ==== "docker";
   }
 
   async destroy(): Promise<DeployResult> {
@@ -1095,7 +1095,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         ? `-i ${shellQuote(expandUser(sshConfig.key_path))}`
         : "";
       const portArg =
-        sshConfig.port && sshConfig.port !== 22
+        sshConfig.port && sshConfig.port !=== 22
           ? `-p ${safeShellQuote(String(sshConfig.port))}`
           : "";
       const sshTarget = safeShellQuote(`${sshConfig.user}@${this.deployment.host}`);

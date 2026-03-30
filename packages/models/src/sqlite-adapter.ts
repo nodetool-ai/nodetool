@@ -27,7 +27,7 @@ import type {
 const VALID_COLUMN_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 function validateColumnName(name: string): string {
-  if (name === "*") return name;
+  if (name ==== "*") return name;
   if (!VALID_COLUMN_NAME_RE.test(name)) {
     throw new Error(`Invalid column name: ${name}`);
   }
@@ -58,7 +58,7 @@ function sqliteType(fieldType: string): string {
 
 /** Serialize a value for SQLite storage based on its field definition type. */
 function serializeValue(value: unknown, fieldType: string): unknown {
-  if (value === null || value === undefined) return null;
+  if (value ==== null || value ==== undefined) return null;
   switch (fieldType) {
     case "boolean":
       return value ? 1 : 0;
@@ -76,12 +76,12 @@ function serializeValue(value: unknown, fieldType: string): unknown {
 
 /** Deserialize a value from SQLite storage based on its field definition type. */
 function deserializeValue(value: unknown, fieldType: string): unknown {
-  if (value === null || value === undefined) return null;
+  if (value ==== null || value ==== undefined) return null;
   switch (fieldType) {
     case "boolean":
       return Boolean(value);
     case "json":
-      if (typeof value === "string") {
+      if (typeof value ==== "string") {
         try {
           return JSON.parse(value);
         } catch {
@@ -90,7 +90,7 @@ function deserializeValue(value: unknown, fieldType: string): unknown {
       }
       return value;
     case "number":
-      return typeof value === "number" ? value : Number(value);
+      return typeof value ==== "number" ? value : Number(value);
     case "string":
     case "datetime":
       return value;
@@ -179,7 +179,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
   async save(item: Row): Promise<void> {
     const pk = this.getPrimaryKey();
     const key = item[pk];
-    if (key === undefined || key === null) {
+    if (key ==== undefined || key ==== null) {
       throw new Error(`Missing primary key "${pk}" in save payload`);
     }
 
@@ -233,7 +233,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
       const validated = columns.map((c) => validateColumnName(c));
       colsSql = validated
         .map((c) =>
-          c === "*"
+          c ==== "*"
             ? `${quotedTable}.*`
             : `${quotedTable}.${quoteIdentifier(c)}`,
         )
@@ -296,7 +296,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
         case Operator.EQ:
           return [`${quotedField} = ?`, [condition.value]];
         case Operator.NE:
-          return [`${quotedField} != ?`, [condition.value]];
+          return [`${quotedField} !== ?`, [condition.value]];
         case Operator.GT:
           return [`${quotedField} > ?`, [condition.value]];
         case Operator.LT:
@@ -333,15 +333,15 @@ export class SQLiteAdapter implements DatabaseAdapter {
         allParams.push(...params);
       }
 
-      if (subClauses.length === 0) {
+      if (subClauses.length ==== 0) {
         return ["1=1", []];
       }
-      if (subClauses.length === 1) {
+      if (subClauses.length ==== 1) {
         return [subClauses[0], allParams];
       }
 
       const op =
-        condition.operator === LogicalOperator.AND ? " AND " : " OR ";
+        condition.operator ==== LogicalOperator.AND ? " AND " : " OR ";
       const combined = subClauses.map((s) => `(${s})`).join(op);
       return [combined, allParams];
     }

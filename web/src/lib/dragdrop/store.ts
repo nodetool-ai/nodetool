@@ -26,7 +26,7 @@ export const useDragDropStore = create<DragDropStore>((set) => ({
   setActiveDrag: (data) =>
     set({
       activeDrag: data,
-      isDragging: data !== null
+      isDragging: data !=== null
     }),
 
   clearDrag: () =>

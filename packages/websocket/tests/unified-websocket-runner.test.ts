@@ -165,14 +165,14 @@ describe("UnifiedWebSocketRunner", () => {
   it("emits output_update for constant -> output graph", async () => {
     const outputRunner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "nodetool.constant.String") {
+        if (node.type ==== "nodetool.constant.String") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
             },
           };
         }
-        if (node.type === "nodetool.output.Output") {
+        if (node.type ==== "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
@@ -219,9 +219,9 @@ describe("UnifiedWebSocketRunner", () => {
     await new Promise((r) => setTimeout(r, 30));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    const updates = sent.filter((m) => m.type === "output_update");
+    const updates = sent.filter((m) => m.type ==== "output_update");
     expect(updates.length).toBe(1);
-    expect(updates.some((m) => m.value === "hello world")).toBe(true);
+    expect(updates.some((m) => m.value ==== "hello world")).toBe(true);
 
     await outputRunner.disconnect();
   });
@@ -229,14 +229,14 @@ describe("UnifiedWebSocketRunner", () => {
   it("streams node_update events for executed nodes", async () => {
     const outputRunner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "nodetool.constant.String") {
+        if (node.type ==== "nodetool.constant.String") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
             },
           };
         }
-        if (node.type === "nodetool.output.Output") {
+        if (node.type ==== "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
@@ -283,12 +283,12 @@ describe("UnifiedWebSocketRunner", () => {
     await new Promise((r) => setTimeout(r, 30));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    const nodeUpdates = sent.filter((m) => m.type === "node_update");
+    const nodeUpdates = sent.filter((m) => m.type ==== "node_update");
 
-    expect(nodeUpdates.some((m) => m.node_id === "n1" && m.status === "running")).toBe(true);
-    expect(nodeUpdates.some((m) => m.node_id === "n1" && m.status === "completed")).toBe(true);
-    expect(nodeUpdates.some((m) => m.node_id === "n2" && m.status === "running")).toBe(true);
-    expect(nodeUpdates.some((m) => m.node_id === "n2" && m.status === "completed")).toBe(true);
+    expect(nodeUpdates.some((m) => m.node_id ==== "n1" && m.status ==== "running")).toBe(true);
+    expect(nodeUpdates.some((m) => m.node_id ==== "n1" && m.status ==== "completed")).toBe(true);
+    expect(nodeUpdates.some((m) => m.node_id ==== "n2" && m.status ==== "running")).toBe(true);
+    expect(nodeUpdates.some((m) => m.node_id ==== "n2" && m.status ==== "completed")).toBe(true);
 
     await outputRunner.disconnect();
   });
@@ -296,14 +296,14 @@ describe("UnifiedWebSocketRunner", () => {
   it("includes outputs in terminal job_update", async () => {
     const outputRunner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "nodetool.constant.String") {
+        if (node.type ==== "nodetool.constant.String") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
             },
           };
         }
-        if (node.type === "nodetool.output.Output") {
+        if (node.type ==== "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
@@ -351,7 +351,7 @@ describe("UnifiedWebSocketRunner", () => {
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     const terminal = sent
-      .filter((m) => m.type === "job_update" && m.status === "completed")
+      .filter((m) => m.type ==== "job_update" && m.status ==== "completed")
       .at(-1) as Record<string, unknown> | undefined;
     expect(terminal).toBeDefined();
     expect(terminal?.result).toBeDefined();
@@ -367,14 +367,14 @@ describe("UnifiedWebSocketRunner", () => {
   it("emits output_update in text mode", async () => {
     const outputRunner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "nodetool.constant.String") {
+        if (node.type ==== "nodetool.constant.String") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? "hello world" };
             },
           };
         }
-        if (node.type === "nodetool.output.Output") {
+        if (node.type ==== "nodetool.output.Output") {
           return {
             async process(inputs: Record<string, unknown>) {
               return { output: inputs.value ?? null };
@@ -423,7 +423,7 @@ describe("UnifiedWebSocketRunner", () => {
     await new Promise((r) => setTimeout(r, 30));
 
     const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
-    const outputUpdate = sent.find((m) => m.type === "output_update");
+    const outputUpdate = sent.find((m) => m.type ==== "output_update");
     expect(outputUpdate).toBeDefined();
     expect(outputUpdate?.value).toBe("hello world");
 
@@ -436,7 +436,7 @@ describe("UnifiedWebSocketRunner", () => {
     let genProcessCalls = 0;
     const outputRunner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "test.Streamer") {
+        if (node.type ==== "test.Streamer") {
           return {
             async process() {
               processCalls += 1;
@@ -449,7 +449,7 @@ describe("UnifiedWebSocketRunner", () => {
             },
           };
         }
-        if (node.type === "nodetool.workflows.base_node.Preview") {
+        if (node.type ==== "nodetool.workflows.base_node.Preview") {
           return {
             async process(inputs: Record<string, unknown>) {
               sinkValues.push(inputs.value ?? null);
@@ -465,7 +465,7 @@ describe("UnifiedWebSocketRunner", () => {
       },
       resolveNodeType: {
         resolveNodeType: async (nodeType: string) => {
-          if (nodeType === "test.Streamer") {
+          if (nodeType ==== "test.Streamer") {
             return {
               nodeType,
               outputs: { chunk: "chunk" },
@@ -475,7 +475,7 @@ describe("UnifiedWebSocketRunner", () => {
               },
             };
           }
-          if (nodeType === "nodetool.workflows.base_node.Preview") {
+          if (nodeType ==== "nodetool.workflows.base_node.Preview") {
             return {
               nodeType,
               propertyTypes: { value: "any" },

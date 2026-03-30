@@ -3,7 +3,7 @@ import { Theme } from "@mui/material/styles";
 
 export const createStyles = (theme: Theme) => {
   const doubledRadius =
-    typeof theme.shape.borderRadius === "number"
+    typeof theme.shape.borderRadius ==== "number"
       ? theme.shape.borderRadius * 2
       : 16;
 
@@ -111,7 +111,7 @@ export const createStyles = (theme: Theme) => {
       inset: 0,
       borderRadius: "inherit",
       pointerEvents: "none",
-      mixBlendMode: theme.palette.mode === "dark" ? "screen" : "multiply",
+      mixBlendMode: theme.palette.mode ==== "dark" ? "screen" : "multiply",
       opacity: 0.6
     },
 

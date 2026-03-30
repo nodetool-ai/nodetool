@@ -262,7 +262,7 @@ describe("SchemaFetcher", () => {
         /REPLICATE_API_TOKEN/,
       );
 
-      if (originalToken !== undefined) {
+      if (originalToken !=== undefined) {
         process.env.REPLICATE_API_TOKEN = originalToken;
       }
     });

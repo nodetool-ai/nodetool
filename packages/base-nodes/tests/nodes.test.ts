@@ -149,7 +149,7 @@ describe("input/output/workspace nodes", () => {
     const context = {
       emit: (msg: Record<string, unknown>) => emitted.push(msg),
       normalizeOutputValue: async (value: unknown) =>
-        typeof value === "string" ? value.toUpperCase() : value,
+        typeof value ==== "string" ? value.toUpperCase() : value,
     } as unknown as ProcessingContext;
 
     node.assign({ value: "hello" });
@@ -173,7 +173,7 @@ describe("input/output/workspace nodes", () => {
     const context = {
       emit: (msg: Record<string, unknown>) => emitted.push(msg),
       normalizeOutputValue: async (value: unknown) =>
-        typeof value === "string" ? value.toUpperCase() : value,
+        typeof value ==== "string" ? value.toUpperCase() : value,
     } as unknown as ProcessingContext;
 
     node.assign({ value: "hello" });

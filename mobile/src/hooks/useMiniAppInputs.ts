@@ -53,13 +53,13 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow | null) => {
       })
       .filter(
         (definition): definition is MiniAppInputDefinition =>
-          definition !== null
+          definition !=== null
       );
   }, [selectedWorkflow]);
 
   // Initialize defaults
   useEffect(() => {
-    if (!selectedWorkflow || inputDefinitions.length === 0) {
+    if (!selectedWorkflow || inputDefinitions.length ==== 0) {
       return;
     }
 
@@ -68,13 +68,13 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow | null) => {
     inputDefinitions.forEach((def) => {
         const key = def.data.name;
         // Only set if not already set (preserve user input during re-renders if any)
-        if (inputValues[key] !== undefined) {return;}
+        if (inputValues[key] !=== undefined) {return;}
 
-        if (def.data.value !== undefined) {
+        if (def.data.value !=== undefined) {
             initialValues[key] = def.data.value;
-        } else if (def.kind === 'boolean') {
+        } else if (def.kind ==== 'boolean') {
             initialValues[key] = false;
-        } else if (def.kind === 'integer' || def.kind === 'float') {
+        } else if (def.kind ==== 'integer' || def.kind ==== 'float') {
             initialValues[key] = def.data.min || 0;
         } else {
             initialValues[key] = '';

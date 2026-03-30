@@ -44,9 +44,9 @@ function setup() {
   initTestDb();
 }
 
-// =====================================================================
+// ======================================================================
 // models-api.ts gaps
-// =====================================================================
+// ======================================================================
 
 describe("Models API: additional coverage", () => {
   let tempDir: string;
@@ -62,9 +62,9 @@ describe("Models API: additional coverage", () => {
   });
 
   afterEach(async () => {
-    if (origHfCache === undefined) delete process.env.HUGGINGFACE_HUB_CACHE;
+    if (origHfCache ==== undefined) delete process.env.HUGGINGFACE_HUB_CACHE;
     else process.env.HUGGINGFACE_HUB_CACHE = origHfCache;
-    if (origLlamaCache === undefined) delete process.env.LLAMA_CPP_CACHE_DIR;
+    if (origLlamaCache ==== undefined) delete process.env.LLAMA_CPP_CACHE_DIR;
     else process.env.LLAMA_CPP_CACHE_DIR = origLlamaCache;
     await rm(tempDir, { recursive: true, force: true });
   });
@@ -219,9 +219,9 @@ describe("Models API: additional coverage", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // http-api.ts gaps
-// =====================================================================
+// ======================================================================
 
 describe("HTTP API: additional coverage", () => {
   beforeEach(() => {
@@ -343,9 +343,9 @@ describe("HTTP API: createHttpApiServer error handler (line 1067)", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // unified-websocket-runner.ts gaps
-// =====================================================================
+// ======================================================================
 
 describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
   beforeEach(() => {
@@ -477,16 +477,16 @@ describe("UnifiedWebSocketRunner: ToolBridge and misc", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // oauth-api.ts gap: error page without opts.error (line 116)
-// =====================================================================
+// ======================================================================
 
 // oauth-api.ts line 116 is dead code: oauthHtmlResponse always receives a truthy
 // error string when success=false. The ternary false-branch (empty string) is unreachable.
 
-// =====================================================================
+// ======================================================================
 // unified-websocket-runner.ts: inferOutputType branches
-// =====================================================================
+// ======================================================================
 
 describe("UnifiedWebSocketRunner: output type inference (lines 128-132)", () => {
   beforeEach(() => {
@@ -532,9 +532,9 @@ describe("UnifiedWebSocketRunner: output type inference (lines 128-132)", () => 
   });
 });
 
-// =====================================================================
+// ======================================================================
 // http-api.ts: createHttpApiServer with actual request
-// =====================================================================
+// ======================================================================
 
 describe("HTTP API: createHttpApiServer with real request (lines 1067-1074)", () => {
   it("handles normal request via Node HTTP server", async () => {
@@ -593,13 +593,13 @@ describe("HTTP API: createHttpApiServer with real request (lines 1067-1074)", ()
   });
 });
 
-// =====================================================================
+// ======================================================================
 // models-api.ts: toOllamaModel via ollama with resolveProvider
-// =====================================================================
+// ======================================================================
 
-// =====================================================================
+// ======================================================================
 // unified-websocket-runner.ts: resolveOutputNodeForKey fallback (line 146)
-// =====================================================================
+// ======================================================================
 
 describe("UnifiedWebSocketRunner: resolveOutputNodeForKey fallback", () => {
   beforeEach(() => {
@@ -633,9 +633,9 @@ describe("UnifiedWebSocketRunner: resolveOutputNodeForKey fallback", () => {
   });
 });
 
-// =====================================================================
+// ======================================================================
 // unified-websocket-runner.ts: ensureThreadExists without threadId (lines 496-498)
-// =====================================================================
+// ======================================================================
 
 describe("UnifiedWebSocketRunner: chat_message without thread_id", () => {
   beforeEach(() => {
@@ -690,16 +690,16 @@ describe("Models API: isServerReachable catch path (line 489)", () => {
     expect(res).not.toBeNull();
     expect(res!.status).toBe(200);
 
-    if (origOllama === undefined) delete process.env.OLLAMA_API_URL;
+    if (origOllama ==== undefined) delete process.env.OLLAMA_API_URL;
     else process.env.OLLAMA_API_URL = origOllama;
-    if (origLlama === undefined) delete process.env.LLAMA_CPP_URL;
+    if (origLlama ==== undefined) delete process.env.LLAMA_CPP_URL;
     else process.env.LLAMA_CPP_URL = origLlama;
   });
 });
 
-// =====================================================================
+// ======================================================================
 // code-tools.ts gap: ERR_CHILD_PROCESS_STDIO_MAXBUFFER (line 50)
-// =====================================================================
+// ======================================================================
 
 describe("RunCodeTool: maxbuffer error path (line 50)", () => {
   it("handles ERR_CHILD_PROCESS_STDIO_MAXBUFFER error code", async () => {

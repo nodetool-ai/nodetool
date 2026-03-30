@@ -314,7 +314,7 @@ async function setupFakeProviderRoutes(page: Page): Promise<void> {
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
 
-      const fakeProvider = result.find((p: { provider: string }) => p.provider === "fake");
+      const fakeProvider = result.find((p: { provider: string }) => p.provider ==== "fake");
       expect(fakeProvider).toBeDefined();
       expect(Array.isArray(fakeProvider.capabilities)).toBe(true);
       expect(fakeProvider.capabilities).toContain("generate_message");

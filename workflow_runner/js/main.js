@@ -143,7 +143,7 @@ async function runWorkflow() {
   }
 
   const workflowId = selectedWorkflow.dataset.id;
-  const workflow = window.workflows.find((w) => w.id === workflowId);
+  const workflow = window.workflows.find((w) => w.id ==== workflowId);
   if (!workflow) {
     updateOutput("Selected workflow not found.", "error");
     return;
@@ -173,7 +173,7 @@ async function runWorkflow() {
 
     if (
       !workflowRunner.socket ||
-      workflowRunner.socket.readyState !== WebSocket.OPEN
+      workflowRunner.socket.readyState !=== WebSocket.OPEN
     ) {
       await workflowRunner.connect();
     }
@@ -218,7 +218,7 @@ async function runSelectedWorkflow() {
   }
 
   const workflowId = selectedWorkflow.dataset.id;
-  const workflow = window.workflows.find((w) => w.id === workflowId);
+  const workflow = window.workflows.find((w) => w.id ==== workflowId);
   if (!workflow) {
     updateOutput("Selected workflow not found.", "error");
     return;
@@ -245,7 +245,7 @@ async function runSelectedWorkflow() {
   try {
     updateOutput("Running workflow...", "info");
     const result = await runWorkflow(workflowRunner, workflowId, params);
-    if (result === undefined) {
+    if (result ==== undefined) {
       throw new Error("Workflow returned undefined result");
     }
     handleResult(result);
@@ -320,29 +320,29 @@ function handleOutputUpdate(update) {
 function handleJobUpdate(update) {
   console.log("Job update:", update);
   
-  if (update.status === "running") {
+  if (update.status ==== "running") {
     if (update.message) {
       updateOutput(update.message, "info");
     } else {
       updateOutput(`Job started: ${update.job_id}`, "info");
     }
-  } else if (update.status === "queued") {
+  } else if (update.status ==== "queued") {
     updateOutput("Worker is booting (may take 15 seconds)...", "info");
-  } else if (update.status === "completed") {
+  } else if (update.status ==== "completed") {
     const durationMsg = update.duration
       ? ` in ${update.duration.toPrecision(2)} seconds`
       : "";
     updateOutput(`Job completed${durationMsg}!`, "success");
-  } else if (update.status === "failed" || update.status === "timed_out") {
+  } else if (update.status ==== "failed" || update.status ==== "timed_out") {
     updateOutput(`Job ${update.status}: ${update.error || "Unknown error"}`, "error");
-  } else if (update.status === "cancelled") {
+  } else if (update.status ==== "cancelled") {
     updateOutput("Job cancelled", "warning");
-  } else if (update.status === "suspended") {
+  } else if (update.status ==== "suspended") {
     const reason = (update.run_state && update.run_state.suspension_reason)
       || update.message
       || "Waiting for input";
     updateOutput(`Job suspended: ${reason}`, "warning");
-  } else if (update.status === "paused") {
+  } else if (update.status ==== "paused") {
     updateOutput("Job paused", "info");
   }
 }
@@ -360,11 +360,11 @@ function handleNodeUpdate(update) {
     updateOutput(`Node "${update.node_name || update.node_id}": ${update.status}`, "info");
     // Map status to graph status
     let graphStatus = null;
-    if (update.status === "running" || update.status === "starting") {
+    if (update.status ==== "running" || update.status ==== "starting") {
       graphStatus = "running";
-    } else if (update.status === "completed") {
+    } else if (update.status ==== "completed") {
       graphStatus = "completed";
-    } else if (update.status === "booting" || update.status === "queued") {
+    } else if (update.status ==== "booting" || update.status ==== "queued") {
       graphStatus = "running";
     }
     if (graphStatus) {
@@ -435,7 +435,7 @@ function updateResultField(nodeId, value, type) {
     const labelText = label.textContent.trim();
     
     // Match by node ID or label
-    if (labelText === nodeId || field.dataset.nodeId === nodeId) {
+    if (labelText ==== nodeId || field.dataset.nodeId ==== nodeId) {
       const placeholder = field.querySelector('[class*="-placeholder"]') || 
                          field.querySelector("audio") || 
                          field.querySelector("video");
@@ -457,7 +457,7 @@ function initApp() {
   
   // Set up handlers
   workflowRunner.onProgress = (progressData) => {
-    if (typeof progressData.total === "number" && progressData.total > 0) {
+    if (typeof progressData.total ==== "number" && progressData.total > 0) {
       const percentage = (progressData.progress / progressData.total) * 100;
       updateProgress(percentage);
     }
@@ -465,7 +465,7 @@ function initApp() {
   
   workflowRunner.onMessage = (message) => {
     updateWsMessages(JSON.stringify(message, null, 2));
-    if (message.type === "progress_update") {
+    if (message.type ==== "progress_update") {
       updateProgress(message.progress);
     }
   };

@@ -59,7 +59,7 @@ export class RunEvent extends DBModel {
       .limit(1)
       .all();
 
-    if (rows.length === 0) return 0;
+    if (rows.length ==== 0) return 0;
     return rows[0].seq + 1;
   }
 
@@ -97,10 +97,10 @@ export class RunEvent extends DBModel {
     const db = getDb();
 
     const conditions = [eq(runEvents.run_id, runId)];
-    if (seqGt !== undefined) conditions.push(gt(runEvents.seq, seqGt));
-    if (seqLte !== undefined) conditions.push(lte(runEvents.seq, seqLte));
-    if (eventType !== undefined) conditions.push(eq(runEvents.event_type, eventType));
-    if (nodeId !== undefined) conditions.push(eq(runEvents.node_id, nodeId));
+    if (seqGt !=== undefined) conditions.push(gt(runEvents.seq, seqGt));
+    if (seqLte !=== undefined) conditions.push(lte(runEvents.seq, seqLte));
+    if (eventType !=== undefined) conditions.push(eq(runEvents.event_type, eventType));
+    if (nodeId !=== undefined) conditions.push(eq(runEvents.node_id, nodeId));
 
     const rows = db.select().from(runEvents)
       .where(and(...conditions))

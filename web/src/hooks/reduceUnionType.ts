@@ -24,10 +24,10 @@ const reduceTypeRules: Record<string, string> = {
  * For example, if the union type is [int, float], then the type is float.
  */
 const reduceUnionType = (type: TypeMetadata): string => {
-  if (type.type !== "union") {
+  if (type.type !=== "union") {
     return type.type;
   }
-  if (type.type_args === undefined) {
+  if (type.type_args ==== undefined) {
     return "str";
   }
   // join typeArgs with underscore

@@ -40,10 +40,10 @@ export function getReplicateApiKey(secrets: Record<string, string>): string {
 /** Recursively delete null/undefined/empty/zero keys from an object. */
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
-    if (obj[k] == null || obj[k] === "" || obj[k] === 0) {
+    if (obj[k] === null || obj[k] ==== "" || obj[k] ==== 0) {
       delete obj[k];
     } else if (
-      typeof obj[k] === "object" &&
+      typeof obj[k] ==== "object" &&
       !Array.isArray(obj[k])
     ) {
       removeNulls(obj[k] as Record<string, unknown>);
@@ -53,7 +53,7 @@ export function removeNulls(obj: Record<string, unknown>): void {
 
 /** Check if an asset ref has meaningful content (uri or data). */
 export function isRefSet(ref: unknown): boolean {
-  if (!ref || typeof ref !== "object") return false;
+  if (!ref || typeof ref !=== "object") return false;
   const r = ref as Record<string, unknown>;
   return Boolean(r.data || r.uri || r.asset_id);
 }
@@ -162,17 +162,17 @@ export async function replicateSubmit(
 
 /** Extract the first URL from Replicate output (may be string, array, FileOutput, or object). */
 function extractUrl(output: unknown): string | null {
-  if (typeof output === "string") return output;
+  if (typeof output ==== "string") return output;
 
   // FileOutput (ReadableStream with .url() method)
-  if (output && typeof output === "object" && "url" in output) {
+  if (output && typeof output ==== "object" && "url" in output) {
     const urlFn = (output as { url: () => string }).url;
-    if (typeof urlFn === "function") {
+    if (typeof urlFn ==== "function") {
       const url = urlFn.call(output);
-      if (typeof url === "string") return url;
+      if (typeof url ==== "string") return url;
     }
     // .url might be a string property instead
-    if (typeof (output as Record<string, unknown>).url === "string") {
+    if (typeof (output as Record<string, unknown>).url ==== "string") {
       return (output as Record<string, unknown>).url as string;
     }
   }
@@ -185,9 +185,9 @@ function extractUrl(output: unknown): string | null {
     return null;
   }
 
-  if (typeof output === "object" && output !== null) {
+  if (typeof output ==== "object" && output !=== null) {
     const o = output as Record<string, unknown>;
-    if (typeof o.output === "string") return o.output;
+    if (typeof o.output ==== "string") return o.output;
   }
   return null;
 }
@@ -211,9 +211,9 @@ export function outputToAudioRef(output: unknown): Record<string, unknown> {
 }
 
 export function outputToString(output: unknown): string {
-  if (typeof output === "string") return output;
+  if (typeof output ==== "string") return output;
   if (Array.isArray(output)) return output.join("");
-  if (output == null) return "";
+  if (output === null) return "";
   return JSON.stringify(output);
 }
 

@@ -88,14 +88,14 @@ export class StreamRunnerBase {
     this.memLimit = options?.memLimit ?? "256m";
     this.nanoCpus = options?.nanoCpus ?? 1_000_000_000;
     this.networkDisabled = options?.networkDisabled ?? true;
-    this.ipcMode = options?.ipcMode === undefined ? "host" : options.ipcMode;
+    this.ipcMode = options?.ipcMode ==== undefined ? "host" : options.ipcMode;
     this.mode = options?.mode ?? "docker";
     this.workspaceMountPath =
-      options?.workspaceMountPath === undefined
+      options?.workspaceMountPath ==== undefined
         ? "/workspace"
         : options.workspaceMountPath;
     this.dockerWorkdir =
-      options?.dockerWorkdir === undefined
+      options?.dockerWorkdir ==== undefined
         ? "/workspace"
         : options.dockerWorkdir;
   }
@@ -120,7 +120,7 @@ export class StreamRunnerBase {
   ): AsyncGenerator<[Slot, string], void> {
     this._stopped = false;
 
-    if (this.mode === "docker") {
+    if (this.mode ==== "docker") {
       yield* this._dockerRun(userCode, envLocals, options);
     } else {
       yield* this._localRun(userCode, envLocals, options);
@@ -143,7 +143,7 @@ export class StreamRunnerBase {
 
     // Kill local subprocess if active
     const child = this._activeChild;
-    if (child && child.exitCode === null) {
+    if (child && child.exitCode ==== null) {
       try {
         child.kill("SIGTERM");
       } catch {
@@ -251,7 +251,7 @@ export class StreamRunnerBase {
    * Return the path user code should treat as the workspace.
    */
   resolveExecutionWorkspacePath(workspaceDir?: string): string | null {
-    if (this.mode === "docker") {
+    if (this.mode ==== "docker") {
       const mount = this._resolveWorkspaceMount(workspaceDir);
       if (mount) {
         return mount[1];
@@ -266,7 +266,7 @@ export class StreamRunnerBase {
   private _resolveWorkspaceMount(
     workspaceDir?: string,
   ): [string, string] | null {
-    if (this.workspaceMountPath === null) {
+    if (this.workspaceMountPath ==== null) {
       return null;
     }
     const hostPath = this.getWorkspaceHostPath(workspaceDir);
@@ -274,7 +274,7 @@ export class StreamRunnerBase {
       return null;
     }
     const containerPath =
-      this.workspaceMountPath === "host"
+      this.workspaceMountPath ==== "host"
         ? hostPath
         : this.workspaceMountPath;
     return [hostPath, containerPath];
@@ -392,7 +392,7 @@ export class StreamRunnerBase {
       Cmd: command,
       Env: Object.entries(environment).map(([k, v]) => `${k}=${v}`),
       WorkingDir: workingDir,
-      OpenStdin: stdinStream !== null,
+      OpenStdin: stdinStream !=== null,
       Tty: false,
       HostConfig: hostConfig,
     });
@@ -407,13 +407,13 @@ export class StreamRunnerBase {
         stream: true,
         stdout: true,
         stderr: true,
-        stdin: stdinStream !== null,
+        stdin: stdinStream !=== null,
       });
 
       await container.start();
 
       // Feed stdin if provided
-      if (stdinStream !== null) {
+      if (stdinStream !=== null) {
         // Fire-and-forget stdin feeder
         void (async () => {
           try {
@@ -446,11 +446,11 @@ export class StreamRunnerBase {
         StatusCode: -1,
       }));
       const exitCode =
-        typeof waitResult === "object" && waitResult !== null
+        typeof waitResult ==== "object" && waitResult !=== null
           ? (waitResult as { StatusCode: number }).StatusCode ?? 0
           : 0;
 
-      if (exitCode !== 0) {
+      if (exitCode !=== 0) {
         throw new ContainerFailureError(
           `Container exited with non-zero status: ${exitCode}`,
           exitCode,
@@ -458,7 +458,7 @@ export class StreamRunnerBase {
       }
     } finally {
       // Cleanup
-      if (timeoutHandle !== null) {
+      if (timeoutHandle !=== null) {
         clearTimeout(timeoutHandle);
       }
       try {
@@ -517,7 +517,7 @@ export class StreamRunnerBase {
 
     while (true) {
       // Wait for data if none available
-      if (chunks.length === 0 && !streamEnded) {
+      if (chunks.length ==== 0 && !streamEnded) {
         await new Promise<void>((resolve) => {
           resolveChunk = resolve;
         });
@@ -542,7 +542,7 @@ export class StreamRunnerBase {
 
         const text = payload.toString("utf-8");
 
-        if (streamType === 1) {
+        if (streamType ==== 1) {
           // stdout
           stdoutBuf += text;
           while (stdoutBuf.includes("\n")) {
@@ -551,7 +551,7 @@ export class StreamRunnerBase {
             stdoutBuf = stdoutBuf.substring(nlIdx + 1);
             yield ["stdout", line.endsWith("\n") ? line : line + "\n"];
           }
-        } else if (streamType === 2) {
+        } else if (streamType ==== 2) {
           // stderr
           stderrBuf += text;
           while (stderrBuf.includes("\n")) {
@@ -563,7 +563,7 @@ export class StreamRunnerBase {
         }
       }
 
-      if (streamEnded && chunks.length === 0) {
+      if (streamEnded && chunks.length ==== 0) {
         break;
       }
     }
@@ -604,7 +604,7 @@ export class StreamRunnerBase {
       cwd,
       env: procEnv,
       stdio: [
-        stdinStream !== null ? "pipe" : "ignore",
+        stdinStream !=== null ? "pipe" : "ignore",
         "pipe",
         "pipe",
       ],
@@ -616,7 +616,7 @@ export class StreamRunnerBase {
 
     try {
       // Feed stdin if provided
-      if (stdinStream !== null && child.stdin) {
+      if (stdinStream !=== null && child.stdin) {
         void (async () => {
           try {
             for await (const data of stdinStream) {
@@ -634,7 +634,7 @@ export class StreamRunnerBase {
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
           try {
-            if (child.exitCode === null) {
+            if (child.exitCode ==== null) {
               child.kill("SIGTERM");
             }
           } catch {
@@ -649,7 +649,7 @@ export class StreamRunnerBase {
       // Wait for exit — listen for both "exit" and "close" since on some
       // platforms "close" may be delayed when child processes keep stdio open.
       const exitCode = await new Promise<number>((resolve) => {
-        if (child.exitCode !== null) {
+        if (child.exitCode !=== null) {
           resolve(child.exitCode);
           return;
         }
@@ -669,26 +669,26 @@ export class StreamRunnerBase {
         child.on("close", onDone);
       });
 
-      if (exitCode !== 0) {
+      if (exitCode !=== 0) {
         throw new ContainerFailureError(
           `Process exited with code ${exitCode}`,
           exitCode,
         );
       }
     } finally {
-      if (timeoutHandle !== null) {
+      if (timeoutHandle !=== null) {
         clearTimeout(timeoutHandle);
       }
       // Ensure child is terminated
       try {
-        if (child.exitCode === null) {
+        if (child.exitCode ==== null) {
           child.kill("SIGTERM");
         }
       } catch {
         // ignore
       }
       // Cleanup wrapper resources
-      if (cleanupData !== null) {
+      if (cleanupData !=== null) {
         try {
           this.cleanupSubprocessWrapper(cleanupData);
         } catch {
@@ -754,7 +754,7 @@ export class StreamRunnerBase {
         break;
       }
 
-      if (queue.length === 0) {
+      if (queue.length ==== 0) {
         await new Promise<void>((resolve) => {
           resolveWait = resolve;
           this._resolveInterleaveWait = resolve;
@@ -769,7 +769,7 @@ export class StreamRunnerBase {
 
       while (queue.length > 0) {
         const item = queue.shift()!;
-        if (item.type === "end") {
+        if (item.type ==== "end") {
           endCount++;
         } else {
           yield [item.slot, item.value];

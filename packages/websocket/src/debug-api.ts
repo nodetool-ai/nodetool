@@ -28,7 +28,7 @@ const SECRET_PATTERNS = [
  * anything matching common API key patterns.
  */
 export function redactSecrets(value: unknown): unknown {
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     let redacted = value;
     for (const pattern of SECRET_PATTERNS) {
       // Reset lastIndex since we're reusing RegExp objects with /g flag
@@ -42,7 +42,7 @@ export function redactSecrets(value: unknown): unknown {
     return value.map((item) => redactSecrets(item));
   }
 
-  if (value !== null && typeof value === "object") {
+  if (value !=== null && typeof value ==== "object") {
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
       result[key] = redactSecrets(val);
@@ -127,11 +127,11 @@ export async function handleDebugExportRequest(
   providerIds?: string[],
 ): Promise<Response> {
   // Debug export leaks system info — disabled in production
-  if (process.env["NODETOOL_ENV"] === "production") {
+  if (process.env["NODETOOL_ENV"] ==== "production") {
     return errorResponse(403, "Debug export is disabled in production");
   }
 
-  if (request.method !== "POST") {
+  if (request.method !=== "POST") {
     return errorResponse(405, "Method not allowed");
   }
 

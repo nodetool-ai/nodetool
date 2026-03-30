@@ -63,7 +63,7 @@ export class Secret extends DBModel {
     if (existing) {
       existing.encrypted_value = encryptedValue;
       existing.updated_at = now;
-      if (opts.description !== undefined) {
+      if (opts.description !=== undefined) {
         existing.description = opts.description ?? "";
       }
       await existing.save();
@@ -94,7 +94,7 @@ export class Secret extends DBModel {
     if (existing) {
       existing.encrypted_value = opts.encryptedValue;
       existing.updated_at = now;
-      if (opts.description !== undefined) {
+      if (opts.description !=== undefined) {
         existing.description = opts.description ?? "";
       }
       await existing.save();

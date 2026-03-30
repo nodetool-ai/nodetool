@@ -25,17 +25,17 @@ type NodeMetadata = {
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (!value || typeof value !=== "object" || Array.isArray(value)) {
     return null;
   }
   return value as Record<string, unknown>;
 };
 
 const toStringId = (value: unknown): string | null => {
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return value;
   }
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (typeof value ==== "number" && Number.isFinite(value)) {
     return String(value);
   }
   return null;
@@ -45,7 +45,7 @@ const buildNodeLookup = (graph: Graph): Map<string, NodeMetadata> => {
   const nodeLookup = new Map<string, NodeMetadata>();
   for (const node of graph.nodes) {
     const nodeData = asRecord(node.data);
-    const title = typeof nodeData?.title === "string" ? nodeData.title : null;
+    const title = typeof nodeData?.title ==== "string" ? nodeData.title : null;
     nodeLookup.set(node.id, {
       id: node.id,
       name: title || node.type || node.id,
@@ -118,7 +118,7 @@ const finalizeActiveNodes = (
   nodeLookup: Map<string, NodeMetadata>,
   activeNodeIds: Set<string>
 ): void => {
-  if (activeNodeIds.size === 0) {
+  if (activeNodeIds.size ==== 0) {
     return;
   }
 
@@ -153,7 +153,7 @@ const translateComfyMessage = (
   const data = asRecord(message.data) || {};
   const messagePromptId = toStringId(data.prompt_id);
 
-  if (messagePromptId && messagePromptId !== promptId) {
+  if (messagePromptId && messagePromptId !=== promptId) {
     log.info("[ComfyBridge] skipping message for other prompt", {
       messageType: type,
       promptId: messagePromptId
@@ -230,8 +230,8 @@ const translateComfyMessage = (
         log.warn("[ComfyBridge] progress message without node id");
         return;
       }
-      const value = typeof data.value === "number" ? data.value : 0;
-      const max = typeof data.max === "number" ? data.max : 1;
+      const value = typeof data.value ==== "number" ? data.value : 0;
+      const max = typeof data.max ==== "number" ? data.max : 1;
       emitWorkflowUpdate(workflow, {
         type: "node_progress",
         node_id: nodeId,
@@ -287,7 +287,7 @@ const translateComfyMessage = (
     case "execution_error": {
       const nodeId = toStringId(data.node) || currentNodeIdRef.current;
       const messageText =
-        typeof data.exception_message === "string"
+        typeof data.exception_message ==== "string"
           ? data.exception_message
           : "Comfy execution error";
       if (nodeId) {
@@ -310,7 +310,7 @@ const translateComfyMessage = (
         workflow_id: workflow.id,
         error: messageText,
         traceback:
-          typeof data.traceback === "string" ? data.traceback : undefined
+          typeof data.traceback ==== "string" ? data.traceback : undefined
       } as MsgpackData);
       return;
     }
@@ -382,9 +382,9 @@ export async function executeViaComfyUI(
         const msg = data as { type?: string; data?: unknown };
         log.info("[ComfyWS] update received", {
           type: msg?.type ?? "unknown",
-          hasData: msg?.data !== undefined,
+          hasData: msg?.data !=== undefined,
           keys:
-            msg?.data && typeof msg.data === "object"
+            msg?.data && typeof msg.data ==== "object"
               ? Object.keys(msg.data as Record<string, unknown>)
               : [],
         });

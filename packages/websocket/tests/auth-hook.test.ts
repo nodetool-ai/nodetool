@@ -27,9 +27,9 @@ async function buildApp(opts: {
 
   app.addHook("onRequest", async (req, reply) => {
     const pathname = req.url.split("?")[0];
-    if (pathname === "/health" || req.url.startsWith("/api/oauth/")) return;
+    if (pathname ==== "/health" || req.url.startsWith("/api/oauth/")) return;
 
-    const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
+    const isWs = req.headers["upgrade"]?.toLowerCase() ==== "websocket";
     const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
     const token = isWs
       ? provider.extractTokenFromWs(req.headers as Record<string, string>, searchParams)
@@ -45,7 +45,7 @@ async function buildApp(opts: {
 
     // Dev mode
     const remoteAddr = req.socket?.remoteAddress ?? "127.0.0.1";
-    const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
+    const isLocalhost = remoteAddr ==== "127.0.0.1" || remoteAddr ==== "::1";
     if (!isLocalhost) { reply.status(401).send({ error: "Remote access requires authentication" }); return; }
     req.userId = "1";
   });
@@ -94,7 +94,7 @@ describe("auth hook — Supabase mode", () => {
     app = await buildApp({
       supabaseMode: true,
       mockVerify: async (token: string) => {
-        if (token === "valid-token") return { ok: true, userId: "user-42" };
+        if (token ==== "valid-token") return { ok: true, userId: "user-42" };
         return { ok: false, error: "Invalid token" };
       },
     });

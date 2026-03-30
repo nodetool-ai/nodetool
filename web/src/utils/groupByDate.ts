@@ -4,7 +4,7 @@ export function groupByDate(
   date: Date | string,
   now: Date = new Date()
 ): string {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+  const dateObj = typeof date ==== "string" ? new Date(date) : date;
 
   // Normalize to start-of-day in UTC to get full-day difference
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -19,10 +19,10 @@ export function groupByDate(
     (nowStart.getTime() - dateStart.getTime()) / MS_PER_DAY
   );
 
-  if (diffDays === 0) {
+  if (diffDays ==== 0) {
     return "Today";
   }
-  if (diffDays === 1) {
+  if (diffDays ==== 1) {
     return "Yesterday";
   }
   if (diffDays < 7) {

@@ -39,7 +39,7 @@ export const createImageUrl = (
   let data: ImageData | undefined;
 
   if (
-    typeof source === "object" &&
+    typeof source ==== "object" &&
     !Array.isArray(source) &&
     !(source instanceof Uint8Array)
   ) {
@@ -61,7 +61,7 @@ export const createImageUrl = (
   }
 
   // Case 2: Data is a string
-  if (typeof data === "string") {
+  if (typeof data ==== "string") {
     if (
       data.startsWith("data:") ||
       data.startsWith("blob:") ||

@@ -259,7 +259,7 @@ describe("handleCollectionIndex", () => {
     let callCount = 0;
     const countFn: IndexFileToCollectionFn = vi.fn(async () => {
       callCount++;
-      return callCount === 2 ? "error on second" : null;
+      return callCount ==== 2 ? "error on second" : null;
     });
 
     const [r1, r2, r3] = await Promise.all([
@@ -271,7 +271,7 @@ describe("handleCollectionIndex", () => {
     expect(countFn).toHaveBeenCalledTimes(3);
     // One of them should have the error
     const results = [r1, r2, r3];
-    const errors = results.filter((r) => r.error !== null);
+    const errors = results.filter((r) => r.error !=== null);
     expect(errors).toHaveLength(1);
     expect(errors[0].error).toBe("error on second");
   });

@@ -69,12 +69,12 @@ export const useAddNodeFromAsset = () => {
 
   const addNodeFromAsset = useCallback(
     (asset: Asset | undefined, position: XYPosition) => {
-      if (asset === undefined) {
+      if (asset ==== undefined) {
         return;
       }
       const assetType = contentTypeToNodeType(asset.content_type);
       const nodeType = constantForType(assetType || "");
-      if (nodeType === null) {
+      if (nodeType ==== null) {
         addNotification({
           type: "warning",
           alert: true,
@@ -89,7 +89,7 @@ export const useAddNodeFromAsset = () => {
           throw new Error("metadata for node type " + nodeType + " is missing");
         }
         const newNode = createNode(metadata, position);
-        if (asset.content_type === "folder") {
+        if (asset.content_type ==== "folder") {
           newNode.data.properties.folder = {
             type: "folder",
             asset_id: asset.id
@@ -116,7 +116,7 @@ export const useAddNodeFromAsset = () => {
           nodeMetadata = getMetadata("nodetool.constant.DataFrame");
           downloadAssetContent(asset)
             .then((csvContent) => {
-              if (nodeMetadata === undefined) {
+              if (nodeMetadata ==== undefined) {
                 throw new Error("metadata for DataFrame is undefined");
               }
               createDataframeNode(csvContent, position, nodeMetadata);

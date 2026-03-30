@@ -79,7 +79,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         roots: apiOptions.metadataRoots,
         maxDepth: apiOptions.metadataMaxDepth,
       });
-      const pkg = loaded.packages.find((p) => p.name === pkgName);
+      const pkg = loaded.packages.find((p) => p.name ==== pkgName);
       if (!pkg || !pkg.sourceFolder) {
         return new Response(JSON.stringify({ detail: `Package '${pkgName}' not found` }), {
           status: 404,
@@ -97,7 +97,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const baseDir = resolve(`${pkg.sourceFolder}/nodetool/assets/${pkgName}`);
       const assetPath = resolve(baseDir, aName);
       // Prevent path traversal: resolved path must stay within the base directory
-      if (!assetPath.startsWith(baseDir + "/") && assetPath !== baseDir) {
+      if (!assetPath.startsWith(baseDir + "/") && assetPath !=== baseDir) {
         return new Response(JSON.stringify({ detail: "Not found" }), {
           status: 404,
           headers: { "content-type": "application/json" },

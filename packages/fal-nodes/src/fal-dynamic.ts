@@ -153,9 +153,9 @@ function validateFalUrl(url: string): void {
   }
   if (
     !domain.endsWith(".fal.ai") &&
-    domain !== "fal.ai" &&
+    domain !=== "fal.ai" &&
     !domain.endsWith(".fal.run") &&
-    domain !== "fal.run"
+    domain !=== "fal.run"
   ) {
     throw new Error(
       `Invalid domain for FAL schema resolution: ${domain}. Only *.fal.ai or *.fal.run domains are permitted.`
@@ -185,7 +185,7 @@ function resolveSchemaRef(
   openapi: Record<string, unknown>,
   schema: Record<string, unknown>
 ): Record<string, unknown> {
-  if (!schema || typeof schema !== "object") return {};
+  if (!schema || typeof schema !=== "object") return {};
   if ("$ref" in schema) {
     return resolveRef(openapi, schema.$ref as string);
   }
@@ -208,11 +208,11 @@ function resolveRef(openapi: Record<string, unknown>, ref: string): Record<strin
   const parts = ref.slice(2).split("/");
   let current: unknown = openapi;
   for (const part of parts) {
-    if (!current || typeof current !== "object") return {};
+    if (!current || typeof current !=== "object") return {};
     current = (current as Record<string, unknown>)[part];
-    if (current === undefined) return {};
+    if (current ==== undefined) return {};
   }
-  if (typeof current === "object" && current !== null) {
+  if (typeof current ==== "object" && current !=== null) {
     return resolveSchemaRef(openapi, current as Record<string, unknown>);
   }
   return {};
@@ -314,9 +314,9 @@ async function coerceInputValue(
   const resolved = resolveSchemaRef(openapi, propSchema);
 
   // Check for asset ref (has .uri or .data)
-  if (value && typeof value === "object" && !Array.isArray(value)) {
+  if (value && typeof value ==== "object" && !Array.isArray(value)) {
     const ref = value as Record<string, unknown>;
-    if (ref.uri !== undefined || ref.data !== undefined) {
+    if (ref.uri !=== undefined || ref.data !=== undefined) {
       // Try data URI for images, CDN upload otherwise
       const dataUrl = await imageToDataUrl(ref);
       if (dataUrl) return dataUrl;
@@ -324,9 +324,9 @@ async function coerceInputValue(
       if (uri?.startsWith("https://") && !uri.includes("localhost")) return uri;
       const data = ref.data as string | undefined;
       if (data) {
-        const contentType = ref.type === "video" ? "video/mp4"
-          : ref.type === "audio" ? "audio/mp3"
-          : ref.type === "document" ? "application/pdf"
+        const contentType = ref.type ==== "video" ? "video/mp4"
+          : ref.type ==== "audio" ? "audio/mp3"
+          : ref.type ==== "document" ? "application/pdf"
           : "application/octet-stream";
         const bytes = Uint8Array.from(Buffer.from(data, "base64"));
         return falUpload(apiKey, bytes, contentType);
@@ -336,7 +336,7 @@ async function coerceInputValue(
   }
 
   // Arrays
-  if (resolved.type === "array" && Array.isArray(value)) {
+  if (resolved.type ==== "array" && Array.isArray(value)) {
     const itemSchema = (resolved.items as Record<string, unknown>) ?? {};
     return Promise.all(
       (value as unknown[]).map((item) =>
@@ -365,17 +365,17 @@ function mapOutputValue(
   schema: Record<string, unknown>,
   value: unknown
 ): unknown {
-  if (value === null || value === undefined) return value;
+  if (value ==== null || value ==== undefined) return value;
   const resolved = resolveSchemaRef(openapi, schema);
 
-  if (resolved.type === "array" && Array.isArray(value)) {
+  if (resolved.type ==== "array" && Array.isArray(value)) {
     const itemSchema = (resolved.items as Record<string, unknown>) ?? {};
     return (value as unknown[]).map((item) => mapOutputValue(openapi, name, itemSchema, item));
   }
 
   // File schema (has "url" property) → return {uri, type}
   const props = resolved.properties as Record<string, unknown> | undefined;
-  if (props && "url" in props && typeof value === "object" && value !== null) {
+  if (props && "url" in props && typeof value ==== "object" && value !=== null) {
     const fileObj = value as Record<string, unknown>;
     const url = fileObj.url as string | undefined;
     if (url) {
@@ -524,7 +524,7 @@ export class FalDynamicNode extends BaseNode {
     // First pass: schema-declared properties
     for (const [name, propSchema] of Object.entries(schemaProps)) {
       const value = this.getDynamic(name) ?? (this as any)[name];
-      if (value === undefined || value === null) {
+      if (value ==== undefined || value ==== null) {
         if (required.has(name)) {
           throw new Error(`Missing required input: ${name}`);
         }
@@ -537,7 +537,7 @@ export class FalDynamicNode extends BaseNode {
     for (const [key, value] of this.dynamicProps.entries()) {
       if (SKIP_KEYS.has(key)) continue;
       if (key in args) continue; // already handled
-      if (value !== undefined && value !== null) args[key] = value;
+      if (value !=== undefined && value !=== null) args[key] = value;
     }
 
     const result = await falSubmit(apiKey, endpointId, args) as Record<string, unknown>;

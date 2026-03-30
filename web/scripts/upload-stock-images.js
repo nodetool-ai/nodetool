@@ -219,12 +219,12 @@ async function createFolder(baseUrl, folderName) {
 
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
-    const protocol = parsedUrl.protocol === "https:" ? https : http;
+    const protocol = parsedUrl.protocol ==== "https:" ? https : http;
 
     /** @type {http.RequestOptions} */
     const options = {
       hostname: parsedUrl.hostname,
-      port: parsedUrl.port || (parsedUrl.protocol === "https:" ? 443 : 80),
+      port: parsedUrl.port || (parsedUrl.protocol ==== "https:" ? 443 : 80),
       path: parsedUrl.pathname,
       method: "POST",
       headers: {
@@ -247,7 +247,7 @@ async function createFolder(baseUrl, folderName) {
           }
         } else {
           // Folder might already exist, which is fine
-          if (res.statusCode === 409) {
+          if (res.statusCode ==== 409) {
             console.log(`Folder "${folderName}" already exists, proceeding...`);
             resolve(null);
           } else {
@@ -328,12 +328,12 @@ async function uploadAsset(
 
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
-    const protocol = parsedUrl.protocol === "https:" ? https : http;
+    const protocol = parsedUrl.protocol ==== "https:" ? https : http;
 
     /** @type {http.RequestOptions} */
     const options = {
       hostname: parsedUrl.hostname,
-      port: parsedUrl.port || (parsedUrl.protocol === "https:" ? 443 : 80),
+      port: parsedUrl.port || (parsedUrl.protocol ==== "https:" ? 443 : 80),
       path: parsedUrl.pathname,
       method: "POST",
       headers: {
@@ -377,17 +377,17 @@ async function checkServerHealth(baseUrl) {
   return new Promise((resolve) => {
     const url = new URL("/health", baseUrl);
     const parsedUrl = new URL(url);
-    const protocol = parsedUrl.protocol === "https:" ? https : http;
+    const protocol = parsedUrl.protocol ==== "https:" ? https : http;
 
     const req = protocol.get(
       {
         hostname: parsedUrl.hostname,
-        port: parsedUrl.port || (parsedUrl.protocol === "https:" ? 443 : 80),
+        port: parsedUrl.port || (parsedUrl.protocol ==== "https:" ? 443 : 80),
         path: parsedUrl.pathname,
         timeout: 5000
       },
       (res) => {
-        resolve(res.statusCode === 200);
+        resolve(res.statusCode ==== 200);
       }
     );
 
@@ -403,7 +403,7 @@ async function main() {
   const options = parseArgs();
 
   console.log("🖼️  Stock Image Uploader for NodeTool");
-  console.log("=====================================");
+  console.log("======================================");
   console.log(`Server URL: ${options.url}`);
   console.log(`Images to upload: ${options.count}`);
   console.log(`Image dimensions: ${options.width}x${options.height}`);
@@ -477,7 +477,7 @@ async function main() {
   }
 
   // Summary
-  console.log("=====================================");
+  console.log("======================================");
   console.log("📊 Summary");
   console.log(`   ✅ Successfully uploaded: ${results.success}`);
   if (results.failed > 0) {

@@ -16,15 +16,15 @@
  * ```
  */
 export const serializeValue = (value: unknown): string | null => {
-  if (value === null || value === undefined) {
+  if (value ==== null || value ==== undefined) {
     return null;
   }
 
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return value;
   }
 
-  if (typeof value === "number" || typeof value === "boolean") {
+  if (typeof value ==== "number" || typeof value ==== "boolean") {
     return value.toString();
   }
 

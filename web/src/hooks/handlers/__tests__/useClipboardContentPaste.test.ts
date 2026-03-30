@@ -64,7 +64,7 @@ describe("useClipboardContentPaste", () => {
       data: { properties: {} }
     });
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector({
           createNode: mockCreateNode,
           addNode: mockAddNode,
@@ -85,7 +85,7 @@ describe("useClipboardContentPaste", () => {
 
     // Mock useAssetGridStore
     mockedUseAssetGridStore.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector({ currentFolderId: "folder-123" });
       }
       return { currentFolderId: "folder-123" };
@@ -93,7 +93,7 @@ describe("useClipboardContentPaste", () => {
 
     // Mock useAuth
     mockedUseAuth.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector({ user: { id: "user-123" } });
       }
       return { user: { id: "user-123" } };
@@ -107,14 +107,14 @@ describe("useClipboardContentPaste", () => {
       properties: []
     });
     mockedUseMetadataStore.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector({ getMetadata: mockGetMetadata });
       }
       return { getMetadata: mockGetMetadata };
     });
 
     mockedUseNotificationStore.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector({ addNotification: jest.fn() });
       }
       return { addNotification: jest.fn() };

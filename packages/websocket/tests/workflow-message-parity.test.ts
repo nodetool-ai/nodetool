@@ -58,18 +58,18 @@ function sentMsgs(ws: MockWS): Record<string, unknown>[] {
 
 /** Executor that reads value from node.properties (mimics real node behavior) */
 function makeExecutor(node: { id: string; type: string; [key: string]: unknown }) {
-  const props = (typeof node.properties === "object" && node.properties !== null) ? node.properties as Record<string, unknown> : {};
-  if (node.type === "nodetool.constant.String") {
+  const props = (typeof node.properties ==== "object" && node.properties !=== null) ? node.properties as Record<string, unknown> : {};
+  if (node.type ==== "nodetool.constant.String") {
     const val = props.value ?? "";
     return { async process(inputs: Record<string, unknown>) { return { output: inputs.value ?? val }; } };
   }
-  if (node.type === "nodetool.output.Output") {
+  if (node.type ==== "nodetool.output.Output") {
     return { async process(inputs: Record<string, unknown>) { return { output: inputs.value ?? null }; } };
   }
-  if (node.type === "test.ImageProducer") {
+  if (node.type ==== "test.ImageProducer") {
     return { async process() { return { output: { type: "image", uri: "file:///test.png" } }; } };
   }
-  if (node.type === "test.ErrorNode") {
+  if (node.type ==== "test.ErrorNode") {
     return { async process() { throw new Error("Node exploded"); } };
   }
   return { async process(inputs: Record<string, unknown>) { return { output: inputs.value ?? props.value ?? "" }; } };
@@ -95,7 +95,7 @@ function mockProvider() {
 }
 
 function streamingResolver(nodeType: string) {
-  if (nodeType === "test.Streamer") {
+  if (nodeType ==== "test.Streamer") {
     return {
       nodeType,
       outputs: { chunk: "chunk" },
@@ -105,7 +105,7 @@ function streamingResolver(nodeType: string) {
       },
     };
   }
-  if (nodeType === "nodetool.workflows.base_node.Preview") {
+  if (nodeType ==== "nodetool.workflows.base_node.Preview") {
     return {
       nodeType,
       propertyTypes: { value: "any" },
@@ -159,14 +159,14 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
     const msgs = sentMsgs(ws);
 
     // Should NOT see "regular chat response" from the mock provider
-    expect(msgs.some((m) => m.type === "chunk" && m.content === "regular chat response")).toBe(false);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.content ==== "regular chat response")).toBe(false);
 
     // Should see workflow execution events (job_update, node_update, etc.)
     expect(msgs.some((m) =>
-      m.type === "job_update" ||
-      m.type === "node_update" ||
-      m.type === "output_update" ||
-      (m.type === "chunk" && m.done === true)
+      m.type ==== "job_update" ||
+      m.type ==== "node_update" ||
+      m.type ==== "output_update" ||
+      (m.type ==== "chunk" && m.done ==== true)
     )).toBe(true);
 
     await runner.disconnect();
@@ -203,10 +203,10 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
     const msgs = sentMsgs(ws);
 
     // Should NOT be regular chat
-    expect(msgs.some((m) => m.type === "chunk" && m.content === "regular chat response")).toBe(false);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.content ==== "regular chat response")).toBe(false);
 
     // Should send done chunk at completion
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
 
     await runner.disconnect();
   });
@@ -230,7 +230,7 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
 
     const msgs = sentMsgs(ws);
     // Should see regular chat response
-    expect(msgs.some((m) => m.type === "chunk" && m.content === "regular chat response")).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.content ==== "regular chat response")).toBe(true);
 
     await runner.disconnect();
   });
@@ -263,7 +263,7 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
 
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "test.Streamer") {
+        if (node.type ==== "test.Streamer") {
           return {
             async process() {
               processCalls += 1;
@@ -276,7 +276,7 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
             },
           };
         }
-        if (node.type === "nodetool.workflows.base_node.Preview") {
+        if (node.type ==== "nodetool.workflows.base_node.Preview") {
           return {
             async process(inputs: Record<string, unknown>) {
               sinkValues.push(inputs.value ?? null);
@@ -339,7 +339,7 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
 
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: (node) => {
-        if (node.type === "test.Streamer") {
+        if (node.type ==== "test.Streamer") {
           return {
             async process() {
               return { chunk: "buffered" };
@@ -350,7 +350,7 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
             },
           };
         }
-        if (node.type === "nodetool.workflows.base_node.Preview") {
+        if (node.type ==== "nodetool.workflows.base_node.Preview") {
           return {
             async process(inputs: Record<string, unknown>) {
               sinkValues.push(inputs.value ?? null);
@@ -432,13 +432,13 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
     const msgs = sentMsgs(ws);
 
     // Done chunk signals completion
-    const doneChunk = msgs.find((m) => m.type === "chunk" && m.done === true);
+    const doneChunk = msgs.find((m) => m.type ==== "chunk" && m.done ==== true);
     expect(doneChunk).toBeDefined();
     expect(doneChunk?.workflow_id).toBe(workflow.id);
 
     // Final response message (type: "message", role: "assistant") with workflow output
     const responseMsg = msgs.find(
-      (m) => m.type === "message" && m.role === "assistant" && m.workflow_id === workflow.id,
+      (m) => m.type ==== "message" && m.role ==== "assistant" && m.workflow_id ==== workflow.id,
     );
     expect(responseMsg).toBeDefined();
 
@@ -464,8 +464,8 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
     await new Promise((r) => setTimeout(r, 200));
 
     const msgs = sentMsgs(ws);
-    expect(msgs.some((m) => m.type === "error")).toBe(true);
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "error")).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
 
     await runner.disconnect();
   });
@@ -501,15 +501,15 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
     const msgs = sentMsgs(ws);
     // All workflow-related messages should have workflow_id
     const wfMsgs = msgs.filter((m) =>
-      m.type === "job_update" || m.type === "node_update" || m.type === "output_update" ||
-      (m.type === "chunk" && m.done === true) || (m.type === "message" && m.role === "assistant"),
+      m.type ==== "job_update" || m.type ==== "node_update" || m.type ==== "output_update" ||
+      (m.type ==== "chunk" && m.done ==== true) || (m.type ==== "message" && m.role ==== "assistant"),
     );
     for (const m of wfMsgs) {
       expect(m.workflow_id).toBe(workflow.id);
     }
 
     // At least the done chunk and response should have a job_id
-    const doneChunk = msgs.find((m) => m.type === "chunk" && m.done === true);
+    const doneChunk = msgs.find((m) => m.type ==== "chunk" && m.done ==== true);
     expect(doneChunk?.job_id).toBeDefined();
 
     await runner.disconnect();
@@ -581,7 +581,7 @@ describe("detectMessageInputNames: scans graph for input node types", () => {
     // (This tests the detection mechanism indirectly)
     const msgs = sentMsgs(ws);
     // At minimum, workflow should have executed (done chunk)
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
 
     await runner.disconnect();
   });
@@ -632,16 +632,16 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
 
     const msgs = sentMsgs(ws);
     const responseMsg = msgs.find(
-      (m) => m.type === "message" && m.role === "assistant",
+      (m) => m.type ==== "message" && m.role ==== "assistant",
     );
     expect(responseMsg).toBeDefined();
 
     // Content should contain the workflow output
     const content = responseMsg?.content;
     if (Array.isArray(content)) {
-      expect(content.some((c: any) => c.type === "text" && typeof c.text === "string" && c.text.includes("text result"))).toBe(true);
+      expect(content.some((c: any) => c.type ==== "text" && typeof c.text ==== "string" && c.text.includes("text result"))).toBe(true);
     } else {
-      expect(typeof content === "string" && content.includes("text result")).toBe(true);
+      expect(typeof content ==== "string" && content.includes("text result")).toBe(true);
     }
 
     await runner.disconnect();
@@ -682,7 +682,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
 
     const msgs = sentMsgs(ws);
     const responseMsg = msgs.find(
-      (m) => m.type === "message" && m.role === "assistant",
+      (m) => m.type ==== "message" && m.role ==== "assistant",
     );
     expect(responseMsg).toBeDefined();
 
@@ -690,7 +690,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
     const content = responseMsg?.content;
     if (Array.isArray(content)) {
       expect(content.some((c: any) =>
-        c.type === "image" || (c.image && c.image.uri),
+        c.type ==== "image" || (c.image && c.image.uri),
       )).toBe(true);
     }
 
@@ -729,7 +729,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
 
     const msgs = sentMsgs(ws);
     const responseMsg = msgs.find(
-      (m) => m.type === "message" && m.role === "assistant",
+      (m) => m.type ==== "message" && m.role ==== "assistant",
     );
     expect(responseMsg).toBeDefined();
 
@@ -737,10 +737,10 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
     const content = responseMsg?.content;
     if (Array.isArray(content)) {
       expect(content.some((c: any) =>
-        typeof c.text === "string" && c.text.toLowerCase().includes("completed"),
+        typeof c.text ==== "string" && c.text.toLowerCase().includes("completed"),
       )).toBe(true);
     } else {
-      expect(typeof content === "string" && content.toLowerCase().includes("completed")).toBe(true);
+      expect(typeof content ==== "string" && content.toLowerCase().includes("completed")).toBe(true);
     }
 
     await runner.disconnect();
@@ -791,13 +791,13 @@ describe("handleWorkflowMessage: error handling", () => {
 
     // Should have a node error or error message (kernel may complete job despite node errors)
     expect(msgs.some((m) =>
-      m.type === "error" ||
-      (m.type === "node_update" && m.status === "error") ||
-      (m.type === "job_update" && m.status === "failed"),
+      m.type ==== "error" ||
+      (m.type ==== "node_update" && m.status ==== "error") ||
+      (m.type ==== "job_update" && m.status ==== "failed"),
     )).toBe(true);
 
     // Should still send done chunk
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
 
     await runner.disconnect();
   });
@@ -849,9 +849,9 @@ describe("Chat workflow routing: run_mode='chat'", () => {
 
     const msgs = sentMsgs(ws);
     // Should complete successfully with done chunk
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
     // Should have a response message
-    expect(msgs.some((m) => m.type === "message" && m.role === "assistant")).toBe(true);
+    expect(msgs.some((m) => m.type ==== "message" && m.role ==== "assistant")).toBe(true);
 
     await runner.disconnect();
   });
@@ -902,8 +902,8 @@ describe("handleWorkflowMessage: message persistence", () => {
     await new Promise((r) => setTimeout(r, 400));
 
     const [dbMsgs] = await Message.paginate("t-wf-persist", { limit: 100 });
-    expect(dbMsgs.some((m) => m.role === "user")).toBe(true);
-    expect(dbMsgs.some((m) => m.role === "assistant")).toBe(true);
+    expect(dbMsgs.some((m) => m.role ==== "user")).toBe(true);
+    expect(dbMsgs.some((m) => m.role ==== "assistant")).toBe(true);
 
     await runner.disconnect();
   });

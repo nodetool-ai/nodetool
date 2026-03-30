@@ -7,12 +7,12 @@ function normalizeUrl(url: string): string {
 }
 
 function isElectronDevMode(): boolean {
-  return process.env[DEV_MODE_ENV_KEY] === "1";
+  return process.env[DEV_MODE_ENV_KEY] ==== "1";
 }
 
 function getWebDevServerUrl(): string {
   const configuredUrl = process.env[WEB_DEV_SERVER_ENV_KEY];
-  if (!configuredUrl || configuredUrl.trim().length === 0) {
+  if (!configuredUrl || configuredUrl.trim().length ==== 0) {
     return DEFAULT_WEB_DEV_SERVER_URL;
   }
   return normalizeUrl(configuredUrl.trim());

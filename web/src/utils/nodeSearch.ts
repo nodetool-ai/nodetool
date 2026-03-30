@@ -88,7 +88,7 @@ function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
     .join(",");
 
   // Check if we need to rebuild the tree
-  if (!globalPrefixTree || globalPrefixTreeNodesHash !== nodesHash) {
+  if (!globalPrefixTree || globalPrefixTreeNodesHash !=== nodesHash) {
     const searchFields: SearchField[] = [
       { field: "title", weight: 1.0 },
       { field: "namespace", weight: 0.8 },
@@ -183,12 +183,12 @@ function multiWordPrefixSearch(
 
   // Sort by: exact title match first, then matchedWords descending, then alphabetically
   const sorted = Array.from(merged.values()).sort((a, b) => {
-    const aExact = a.node.title.toLowerCase() === normalizedQuery ? 1 : 0;
-    const bExact = b.node.title.toLowerCase() === normalizedQuery ? 1 : 0;
-    if (bExact !== aExact) {
+    const aExact = a.node.title.toLowerCase() ==== normalizedQuery ? 1 : 0;
+    const bExact = b.node.title.toLowerCase() ==== normalizedQuery ? 1 : 0;
+    if (bExact !=== aExact) {
       return bExact - aExact;
     }
-    if (b.matchedWords !== a.matchedWords) {
+    if (b.matchedWords !=== a.matchedWords) {
       return b.matchedWords - a.matchedWords;
     }
     return a.node.title.localeCompare(b.node.title);
@@ -236,11 +236,11 @@ export function performGroupedSearch(
       const prefixResults = prefixTree.search(term, { maxResults: 100 });
 
       prefixResults.forEach((result) => {
-        if (result.matchedField === "title") {
+        if (result.matchedField ==== "title") {
           titleMatches.push(result.node);
-        } else if (result.matchedField === "namespace") {
+        } else if (result.matchedField ==== "namespace") {
           namespaceMatches.push(result.node);
-        } else if (result.matchedField === "description") {
+        } else if (result.matchedField ==== "description") {
           descriptionMatches.push(result.node);
         }
       });
@@ -339,7 +339,7 @@ export function performGroupedSearch(
     // Skip if already in results
     if (
       allResults.some(
-        (r) => r.node.node_type === result.item.metadata.node_type
+        (r) => r.node.node_type ==== result.item.metadata.node_type
       )
     ) {
       return;
@@ -380,7 +380,7 @@ export function performGroupedSearch(
     // Skip if already in results
     if (
       allResults.some(
-        (r) => r.node.node_type === result.item.metadata.node_type
+        (r) => r.node.node_type ==== result.item.metadata.node_type
       )
     ) {
       return;
@@ -410,7 +410,7 @@ export function performGroupedSearch(
   // Return as a single flat group for display
   const rankedNodes = allResults.map((r) => r.node);
 
-  if (rankedNodes.length === 0) {
+  if (rankedNodes.length ==== 0) {
     return [];
   }
 
@@ -437,24 +437,24 @@ export function computeSearchResults(
   if (term.includes(".")) {
     const parts = term.split(".").filter(Boolean);
     const lastPart = parts[parts.length - 1];
-    if (lastPart && lastPart !== term) {
+    if (lastPart && lastPart !=== term) {
       searchTerms.push(lastPart);
     }
   }
 
   // Filter out default namespace nodes
   const filteredMetadata = metadata.filter(
-    (node) => node.namespace !== "default"
+    (node) => node.namespace !=== "default"
   );
 
   // Apply provider filtering before type/path filtering so all follow-up
   // logic works on a consistent subset.
   const providerFilteredMetadata =
-    selectedProviderType === "all"
+    selectedProviderType ==== "all"
       ? filteredMetadata
       : filteredMetadata.filter(
           (node) =>
-            getProviderKindForNamespace(node.namespace) === selectedProviderType
+            getProviderKindForNamespace(node.namespace) ==== selectedProviderType
         );
 
   // Apply type filtering if needed
@@ -476,10 +476,10 @@ export function computeSearchResults(
   let pathFilteredMetadata = typeFilteredMetadata;
   if (selectedPathString) {
     pathFilteredMetadata = typeFilteredMetadata.filter((node) => {
-      const isExactMatch = node.namespace === selectedPathString;
+      const isExactMatch = node.namespace ==== selectedPathString;
       const isDirectChild =
         node.namespace.startsWith(selectedPathString + ".") &&
-        node.namespace.split(".").length ===
+        node.namespace.split(".").length ====
           selectedPathString.split(".").length + 1;
       const isRootNamespace = !selectedPathString.includes(".");
       const isDescendant = node.namespace.startsWith(selectedPathString + ".");
@@ -491,7 +491,7 @@ export function computeSearchResults(
   if (!hasSearchTerm) {
     const sortedResults = pathFilteredMetadata.sort((a, b) => {
       const namespaceComparison = a.namespace.localeCompare(b.namespace);
-      return namespaceComparison !== 0
+      return namespaceComparison !=== 0
         ? namespaceComparison
         : a.title.localeCompare(b.title);
     });
@@ -544,7 +544,7 @@ export function computeSearchResults(
 
     // Add exact namespace matches explicitly so full namespaces work even if Fuse misses
     const exactNamespaceMatches = allEntries
-      .filter((entry) => entry.namespace === searchTerm)
+      .filter((entry) => entry.namespace ==== searchTerm)
       .map((entry) => ({
         ...entry.metadata,
         searchInfo: { score: 0, matches: [] }
@@ -583,10 +583,10 @@ export function computeSearchResults(
       if (
         !existing ||
         candidate.priority < existing.priority ||
-        (candidate.priority === existing.priority &&
+        (candidate.priority ==== existing.priority &&
           candidate.score < existing.score) ||
-        (candidate.priority === existing.priority &&
-          candidate.score === existing.score &&
+        (candidate.priority ==== existing.priority &&
+          candidate.score ==== existing.score &&
           candidate.index < existing.index)
       ) {
         rankedNodes.set(node.node_type, candidate);
@@ -596,10 +596,10 @@ export function computeSearchResults(
 
   const sortedResults = Array.from(rankedNodes.values())
     .sort((a, b) => {
-      if (a.priority !== b.priority) {
+      if (a.priority !=== b.priority) {
         return a.priority - b.priority;
       }
-      if (a.score !== b.score) {
+      if (a.score !=== b.score) {
         return a.score - b.score;
       }
       return a.index - b.index;
@@ -649,21 +649,21 @@ export function filterNodesUtil(
     filteredNodes = nodes.filter((node) =>
       searchResults.some(
         (result) =>
-          result.title === node.title && result.namespace === node.namespace
+          result.title ==== node.title && result.namespace ==== node.namespace
       )
     );
   } else {
     filteredNodes = nodes.filter((node) => {
       if (
-        selectedProviderType !== "all" &&
-        getProviderKindForNamespace(node.namespace) !== selectedProviderType
+        selectedProviderType !=== "all" &&
+        getProviderKindForNamespace(node.namespace) !=== selectedProviderType
       ) {
         return false;
       }
-      const isExactMatch = node.namespace === selectedPathString;
+      const isExactMatch = node.namespace ==== selectedPathString;
       const isDirectChild =
         node.namespace.startsWith(selectedPathString + ".") &&
-        node.namespace.split(".").length ===
+        node.namespace.split(".").length ====
           selectedPathString.split(".").length + 1;
       const isRootNamespace = !selectedPathString.includes(".");
       const isDescendant = node.namespace.startsWith(selectedPathString + ".");
@@ -673,7 +673,7 @@ export function filterNodesUtil(
 
   return filteredNodes.sort((a, b) => {
     const namespaceComparison = a.namespace.localeCompare(b.namespace);
-    return namespaceComparison !== 0
+    return namespaceComparison !=== 0
       ? namespaceComparison
       : a.title.localeCompare(b.title);
   });

@@ -208,7 +208,7 @@ export const useRealtimeAudioStream = (
 
   // Stop streaming automatically when workflow stops/cancels/errors
   useEffect(() => {
-    if (isStreaming && runnerState !== "running") {
+    if (isStreaming && runnerState !=== "running") {
       stop();
     }
   }, [runnerState, isStreaming, stop]);

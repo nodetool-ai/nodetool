@@ -19,39 +19,39 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   // Persist explicit user resize dimensions
   // ReactFlow's applyNodeChanges sets node.width/height (top-level) when user resizes via NodeResizeControl
   // Also check node.style.width/height for initial load values from graphNodeToReactFlowNode
-  if (typeof node.width === "number") {
+  if (typeof node.width ==== "number") {
     ui_properties.width = node.width;
   } else if (
     node.style &&
     "width" in node.style &&
-    typeof node.style.width === "number"
+    typeof node.style.width ==== "number"
   ) {
     ui_properties.width = node.style.width;
   }
 
-  if (typeof node.height === "number") {
+  if (typeof node.height ==== "number") {
     ui_properties.height = node.height;
   } else if (
     node.style &&
     "height" in node.style &&
-    typeof node.style.height === "number"
+    typeof node.style.height ==== "number"
   ) {
     ui_properties.height = node.style.height;
   }
 
-  if (node.type === "nodetool.group.Loop") {
+  if (node.type ==== "nodetool.group.Loop") {
     ui_properties.selectable = false;
-    if (ui_properties.height === undefined) {
+    if (ui_properties.height ==== undefined) {
       ui_properties.height = node.measured?.height;
     }
   }
 
   if (
-    node.type === "nodetool.workflows.base_node.Comment" ||
-    node.type === "nodetool.workflows.base_node.Group" ||
-    node.type === "nodetool.workflows.base_node.Preview"
+    node.type ==== "nodetool.workflows.base_node.Comment" ||
+    node.type ==== "nodetool.workflows.base_node.Group" ||
+    node.type ==== "nodetool.workflows.base_node.Preview"
   ) {
-    if (ui_properties.height === undefined) {
+    if (ui_properties.height ==== undefined) {
       ui_properties.height = node.measured?.height;
     }
   }

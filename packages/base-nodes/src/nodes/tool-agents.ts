@@ -42,13 +42,13 @@ type AssetRef = {
 // ---------------------------------------------------------------------------
 
 function isAssetRef(v: unknown): v is AssetRef {
-  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  if (!v || typeof v !=== "object" || Array.isArray(v)) return false;
   const obj = v as Record<string, unknown>;
   // Match objects with explicit type field (ImageRef from UI properties)
   // OR objects with data/uri but no type (imageRef() output from upstream nodes)
-  const hasType = typeof obj.type === "string" && obj.type.length > 0;
-  const hasData = obj.data != null;
-  const hasUri = typeof obj.uri === "string" && obj.uri.length > 0;
+  const hasType = typeof obj.type ==== "string" && obj.type.length > 0;
+  const hasData = obj.data !== null;
+  const hasUri = typeof obj.uri ==== "string" && obj.uri.length > 0;
   return (hasType && (hasUri || hasData)) || (!hasType && (hasData || hasUri));
 }
 
@@ -84,9 +84,9 @@ function guessMime(asset: AssetRef, fieldHint?: string): string {
   const explicit = String((asset as Record<string, unknown>).mimeType ?? "").trim();
   if (explicit && explicit.includes("/")) return explicit;
   const kind = inferAssetKind(asset, fieldHint);
-  if (kind === "image") return "image/png";
-  if (kind === "audio") return "audio/wav";
-  if (kind === "video") return "video/mp4";
+  if (kind ==== "image") return "image/png";
+  if (kind ==== "audio") return "audio/wav";
+  if (kind ==== "video") return "video/mp4";
   return "application/octet-stream";
 }
 
@@ -98,7 +98,7 @@ async function getAssetBytes(
   // Inline base64 data (string or Uint8Array)
   if (asset.data) {
     if (asset.data instanceof Uint8Array) return asset.data;
-    if (typeof asset.data === "string" && asset.data.length > 0) {
+    if (typeof asset.data ==== "string" && asset.data.length > 0) {
       // Handle data: URI format
       const dataUriMatch = (asset.data as string).match(/^data:[^;]*;base64,(.+)$/s);
       if (dataUriMatch) {
@@ -185,14 +185,14 @@ async function buildAssetContentParts(
   const parts: MessageContentPart[] = [];
   for (const asset of assets) {
     const bytes = await getAssetBytes(asset, context);
-    if (!bytes || bytes.length === 0) continue;
+    if (!bytes || bytes.length ==== 0) continue;
     const kind = inferAssetKind(asset, fieldHint);
     const mime = guessMime(asset, fieldHint);
     const base64 = Buffer.from(bytes).toString("base64");
-    if (kind === "image" || kind === "unknown") {
+    if (kind ==== "image" || kind ==== "unknown") {
       // Default unknown assets to image (most common multimodal case)
-      parts.push({ type: "image", image: { data: base64, mimeType: mime === "application/octet-stream" ? "image/png" : mime } });
-    } else if (kind === "audio") {
+      parts.push({ type: "image", image: { data: base64, mimeType: mime ==== "application/octet-stream" ? "image/png" : mime } });
+    } else if (kind ==== "audio") {
       parts.push({ type: "audio", audio: { data: base64, mimeType: mime } });
     }
     // Video and document are described in text rather than sent as content
@@ -252,7 +252,7 @@ export function makeSetOutputTool(
       const relPath = String(params.path ?? "");
       if (!relPath) return { success: false, error: "No path provided" };
       const absPath = path.resolve(workspaceDir, relPath);
-      if (!absPath.startsWith(path.resolve(workspaceDir) + path.sep) && absPath !== path.resolve(workspaceDir)) {
+      if (!absPath.startsWith(path.resolve(workspaceDir) + path.sep) && absPath !=== path.resolve(workspaceDir)) {
         return { success: false, error: "Path is outside workspace directory" };
       }
       try {
@@ -308,7 +308,7 @@ class ToolAgentNode extends BaseNode {
   protected async readOutputSinks(workspaceDir: string): Promise<Record<string, unknown>> {
     const result: Record<string, unknown> = {};
     for (const [outputName, sink] of Object.entries(this._outputSinks)) {
-      if (sink.length === 0) continue;
+      if (sink.length ==== 0) continue;
       const absPath = path.resolve(workspaceDir, sink[0]);
       try {
         const bytes = await readFile(absPath);
@@ -337,7 +337,7 @@ class ToolAgentNode extends BaseNode {
     if (!providerId || !modelId) {
       throw new Error("Select a model for this skill.");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!context || typeof context.getProvider !=== "function") {
       throw new Error("Processing context with provider access is required");
     }
 
@@ -356,7 +356,7 @@ class ToolAgentNode extends BaseNode {
     const workspaceFiles: string[] = [];
     for (let i = 0; i < assets.length; i++) {
       const bytes = await getAssetBytes(assets[i], context);
-      if (!bytes || bytes.length === 0) continue;
+      if (!bytes || bytes.length ==== 0) continue;
       const kind = inferAssetKind(assets[i], "image");
       const mime = guessMime(assets[i], "image");
       const ext = mime.split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
@@ -370,10 +370,10 @@ class ToolAgentNode extends BaseNode {
 
     // Convert skills-local MessageContentPart[] to runtime MessageContent[] format
     const contentParts = assetParts.map((part) => {
-      if (part.type === "image") {
+      if (part.type ==== "image") {
         return { type: "image" as const, image: { data: part.image.data, mimeType: part.image.mimeType } };
       }
-      if (part.type === "audio") {
+      if (part.type ==== "audio") {
         return { type: "audio" as const, audio: { data: part.audio.data, mimeType: part.audio.mimeType } };
       }
       return { type: "text" as const, text: (part as any).text ?? "" };

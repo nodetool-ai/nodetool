@@ -153,7 +153,7 @@ export class TaskPlanner {
       // (e.g. ClaudeAgentProvider) can register create_task as a real tool.
       // The handler is a no-op — we capture the args from the yielded ToolCall.
       const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
-        if (name === "create_task") {
+        if (name ==== "create_task") {
           taskData = args;
           return JSON.stringify({ status: "task_created" });
         }
@@ -176,9 +176,9 @@ export class TaskPlanner {
       });
 
       for await (const item of stream) {
-        if ("type" in item && (item as unknown as Record<string, unknown>)["type"] === "chunk") {
+        if ("type" in item && (item as unknown as Record<string, unknown>)["type"] ==== "chunk") {
           const chunk = item as { content?: string };
-          if (typeof chunk.content === "string") {
+          if (typeof chunk.content ==== "string") {
             content += chunk.content;
             yield {
               type: "chunk",
@@ -187,7 +187,7 @@ export class TaskPlanner {
             } satisfies Chunk;
           }
         }
-        if ("name" in item && item.name === "create_task") {
+        if ("name" in item && item.name ==== "create_task") {
           taskData = item.args as Record<string, unknown>;
         }
       }
@@ -195,7 +195,7 @@ export class TaskPlanner {
       // If no tool call, try extracting from text
       if (!taskData && content) {
         const parsed = extractJSON(content);
-        if (parsed && typeof parsed === "object") {
+        if (parsed && typeof parsed ==== "object") {
           taskData = parsed as Record<string, unknown>;
         }
       }
@@ -404,7 +404,7 @@ export class TaskPlanner {
 
     if (aggregatorIds.size > 0 && extractorIds.length > 0) {
       for (const aggId of aggregatorIds) {
-        const agg = steps.find((s) => s.id === aggId);
+        const agg = steps.find((s) => s.id ==== aggId);
         if (!agg) continue;
         const declaredDeps = new Set(agg.dependsOn);
         const missing = extractorIds.filter((eid) => !declaredDeps.has(eid));
@@ -459,13 +459,13 @@ export class TaskPlanner {
    * Format tool info with full schemas for the planning prompt.
    */
   private formatToolsInfo(): string {
-    if (this.tools.length === 0) return "No execution tools available.";
+    if (this.tools.length ==== 0) return "No execution tools available.";
 
     const lines: string[] = ["Available execution tools for steps:"];
     for (const tool of this.tools) {
       let schemaInfo = "";
       const schema = tool.inputSchema;
-      if (schema && typeof schema === "object" && "properties" in schema) {
+      if (schema && typeof schema ==== "object" && "properties" in schema) {
         const props = Object.keys(schema.properties as Record<string, unknown>);
         const required = Array.isArray(schema.required) ? (schema.required as string[]) : [];
         const propDetails = props.map((p) => {
@@ -489,10 +489,10 @@ export class TaskPlanner {
     for (const step of steps) {
       if (!step.outputSchema) continue;
       try {
-        const parsed = typeof step.outputSchema === "string"
+        const parsed = typeof step.outputSchema ==== "string"
           ? JSON.parse(step.outputSchema)
           : step.outputSchema;
-        if (typeof parsed === "object" && parsed !== null) {
+        if (typeof parsed ==== "object" && parsed !=== null) {
           if (!("type" in parsed)) {
             (parsed as Record<string, unknown>)["type"] = "object";
             step.outputSchema = JSON.stringify(parsed);
@@ -510,23 +510,23 @@ export class TaskPlanner {
    * Build a Task object from raw LLM output data.
    */
   private buildTask(data: Record<string, unknown>): Task {
-    const title = typeof data["title"] === "string" ? data["title"] : "Untitled Task";
+    const title = typeof data["title"] ==== "string" ? data["title"] : "Untitled Task";
     const rawSteps = Array.isArray(data["steps"]) ? data["steps"] : [];
 
     const steps: Step[] = rawSteps.map((s: unknown) => {
       const raw = s as Record<string, unknown>;
       return {
-        id: typeof raw["id"] === "string" ? raw["id"] : randomUUID(),
-        instructions: typeof raw["instructions"] === "string" ? raw["instructions"] : "",
+        id: typeof raw["id"] ==== "string" ? raw["id"] : randomUUID(),
+        instructions: typeof raw["instructions"] ==== "string" ? raw["instructions"] : "",
         completed: false,
         dependsOn: Array.isArray(raw["depends_on"])
           ? (raw["depends_on"] as string[])
           : Array.isArray(raw["dependsOn"])
             ? (raw["dependsOn"] as string[])
             : [],
-        outputSchema: typeof raw["output_schema"] === "string"
+        outputSchema: typeof raw["output_schema"] ==== "string"
           ? raw["output_schema"]
-          : typeof raw["outputSchema"] === "string"
+          : typeof raw["outputSchema"] ==== "string"
             ? raw["outputSchema"]
             : undefined,
         tools: Array.isArray(raw["tools"]) ? (raw["tools"] as string[]) : undefined,

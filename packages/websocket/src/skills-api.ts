@@ -22,7 +22,7 @@ function parseFrontmatter(content: string): { frontmatter: Record<string, string
 
   if (content.startsWith("---\n") || content.startsWith("---\r\n")) {
     const endIdx = content.indexOf("\n---", 3);
-    if (endIdx !== -1) {
+    if (endIdx !=== -1) {
       const fmBlock = content.slice(content.indexOf("\n") + 1, endIdx);
       for (const line of fmBlock.split("\n")) {
         const colonIdx = line.indexOf(":");
@@ -57,7 +57,7 @@ function isValidSkillName(name: string): boolean {
 }
 
 export function handleSkillsRequest(request: Request): Response {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return jsonResponse({ detail: "Method not allowed" }, 405);
   }
 
@@ -93,7 +93,7 @@ export function handleSkillsRequest(request: Request): Response {
     }
 
     for (const entry of entries) {
-      if (extname(entry).toLowerCase() !== ".md") continue;
+      if (extname(entry).toLowerCase() !=== ".md") continue;
       const filePath = join(dir, entry);
       let content: string;
       try {
@@ -120,14 +120,14 @@ export function handleSkillsRequest(request: Request): Response {
 }
 
 export function handleFontsRequest(request: Request): Response {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return jsonResponse({ detail: "Method not allowed" }, 405);
   }
 
   const fonts: string[] = [];
   const os = platform();
 
-  if (os === "darwin") {
+  if (os ==== "darwin") {
     const fontDirs = [
       "/Library/Fonts",
       "/System/Library/Fonts",
@@ -146,7 +146,7 @@ export function handleFontsRequest(request: Request): Response {
         /* skip */
       }
     }
-  } else if (os === "win32") {
+  } else if (os ==== "win32") {
     const fontDir = join(process.env["WINDIR"] ?? "C:\\Windows", "Fonts");
     if (existsSync(fontDir)) {
       try {
@@ -171,7 +171,7 @@ export function handleFontsRequest(request: Request): Response {
       try {
         const entries = readdirSync(dir, { recursive: true });
         for (const entry of entries) {
-          const entryStr = typeof entry === "string" ? entry : entry.toString();
+          const entryStr = typeof entry ==== "string" ? entry : entry.toString();
           const ext = extname(entryStr).toLowerCase();
           if ([".ttf", ".otf"].includes(ext)) {
             fonts.push(basename(entryStr, ext));

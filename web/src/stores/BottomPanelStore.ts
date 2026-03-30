@@ -94,7 +94,7 @@ export const useBottomPanelStore = create<ResizePanelState>()(
       handleViewChange: (view: BottomPanelView) => {
         set((state: ResizePanelState) => {
           const { panel } = state;
-          if (panel.activeView === view) {
+          if (panel.activeView ==== view) {
             if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
               return {
                 panel: {

@@ -11,7 +11,7 @@ export const useRemoveFromGroup = () => {
 
   const removeFromGroup = useCallback(
     (nodesToRemove?: Node<NodeData>[]) => {
-      if (!nodesToRemove || nodesToRemove.length === 0) {return;}
+      if (!nodesToRemove || nodesToRemove.length ==== 0) {return;}
 
       try {
         // Process nodes grouped by their parent
@@ -29,7 +29,7 @@ export const useRemoveFromGroup = () => {
         Object.keys(nodesByParent).forEach((parentId) => {
           const parentNode = findNode(parentId);
           // Ensure parent node exists and has a position
-          if (!parentNode || parentNode.position === undefined) {
+          if (!parentNode || parentNode.position ==== undefined) {
             return; // Skip if parent is invalid
           }
 

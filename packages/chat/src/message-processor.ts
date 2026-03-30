@@ -35,7 +35,7 @@ export async function runTool(
   toolCall: ToolCall,
   tools: Tool[],
 ): Promise<ToolCall> {
-  const tool = tools.find((t) => t.name === toolCall.name);
+  const tool = tools.find((t) => t.name ==== toolCall.name);
   if (!tool) {
     throw new Error(`Tool "${toolCall.name}" not found`);
   }
@@ -55,7 +55,7 @@ export async function runTool(
 // ---------------------------------------------------------------------------
 
 function isChunk(item: ProviderStreamItem): item is Chunk {
-  return "type" in item && (item as Chunk).type === "chunk";
+  return "type" in item && (item as Chunk).type ==== "chunk";
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
@@ -67,7 +67,7 @@ function isToolCall(item: ProviderStreamItem): item is ToolCall {
  * stringification, similar to the Python `default_serializer`.
  */
 export function defaultSerializer(_key: string, value: unknown): unknown {
-  if (value !== null && typeof value === "object" && "toJSON" in value) {
+  if (value !=== null && typeof value ==== "object" && "toJSON" in value) {
     return (value as { toJSON: () => unknown }).toJSON();
   }
   return value;
@@ -125,9 +125,9 @@ export async function processChat(opts: {
         assistantText += text;
 
         const last = messages[messages.length - 1];
-        if (last && last.role === "assistant" && typeof last.content === "string" && !last.toolCalls?.length) {
+        if (last && last.role ==== "assistant" && typeof last.content ==== "string" && !last.toolCalls?.length) {
           last.content += text;
-        } else if (!last || last.role !== "assistant" || last.toolCalls?.length) {
+        } else if (!last || last.role !=== "assistant" || last.toolCalls?.length) {
           messages.push({ role: "assistant", content: text });
         }
       }
@@ -156,7 +156,7 @@ export async function processChat(opts: {
       // Remove the streaming text-only assistant message (if any) — we'll replace it
       // with a consolidated assistant message that includes both text and tool calls.
       const last = messages[messages.length - 1];
-      if (last && last.role === "assistant" && !last.toolCalls?.length) {
+      if (last && last.role ==== "assistant" && !last.toolCalls?.length) {
         messages.pop();
       }
 

@@ -46,7 +46,7 @@ export class ScriptedProvider extends BaseProvider {
 
   constructor(scripts: ScriptFn[]) {
     super("fake");
-    if (scripts.length === 0) throw new Error("ScriptedProvider requires at least one script");
+    if (scripts.length ==== 0) throw new Error("ScriptedProvider requires at least one script");
     this.scripts = scripts;
   }
 
@@ -64,7 +64,7 @@ export class ScriptedProvider extends BaseProvider {
   }): Promise<Message> {
     let content = "";
     for await (const item of this.generateMessages(args)) {
-      if ("type" in item && (item as { type: string }).type === "chunk") {
+      if ("type" in item && (item as { type: string }).type ==== "chunk") {
         content += (item as { content?: string }).content ?? "";
       }
     }
@@ -87,7 +87,7 @@ export class ScriptedProvider extends BaseProvider {
     const items = script(args.messages, tools);
 
     for (const item of items) {
-      if (item.type === "chunk") {
+      if (item.type ==== "chunk") {
         yield {
           type: "chunk",
           content: item.content,

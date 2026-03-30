@@ -76,7 +76,7 @@ function writeResultToClipboard(workflow: Workflow, results: any[]) {
     const outputNode = getOutputNodes(workflow)[0];
     if (outputNode) {
       const outputValue = results[results.length - 1];
-      if (outputNode.data?.type === "image" || outputValue?.type === "image") {
+      if (outputNode.data?.type ==== "image" || outputValue?.type ==== "image") {
         const image = nativeImage.createFromBuffer(
           Buffer.from(outputValue.uri, "base64")
         );
@@ -99,7 +99,7 @@ export async function runWorkflow(workflow: Workflow) {
   );
   let params: Record<string, any> = {};
 
-  if (workflow.settings?.run_mode === "headless") {
+  if (workflow.settings?.run_mode ==== "headless") {
     logMessage(`Running headless workflow: ${workflow.name}`);
     // Try both clipboard inputs for headless workflows
     params = {
@@ -111,7 +111,7 @@ export async function runWorkflow(workflow: Workflow) {
     workflowRunner.setState({
       onComplete: (results: any[]) => {
         logMessage(`Results: ${results}`);
-        if (workflow.settings?.run_mode === "headless") {
+        if (workflow.settings?.run_mode ==== "headless") {
           writeResultToClipboard(workflow, results);
         }
       },

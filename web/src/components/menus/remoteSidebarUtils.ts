@@ -17,14 +17,14 @@ export const getRemoteSidebarSections = () => {
 
   const filteredGroupEntries = Object.entries(initialGroupedSettings).filter(
     ([group]) => {
-      const isFoldersGroup = group === "Folders";
+      const isFoldersGroup = group ==== "Folders";
       return !isFoldersGroup;
     }
   );
 
   const finalGroupedSettings = Object.fromEntries(filteredGroupEntries);
 
-  if (Object.keys(finalGroupedSettings).length === 0) {
+  if (Object.keys(finalGroupedSettings).length ==== 0) {
     return [
       {
         category: "API Services", // Fallback category
@@ -46,7 +46,7 @@ export const getRemoteSidebarSections = () => {
 
           // Exclude specific labels
           const isExcludedLabel =
-            label === "Font Path" || label === "Comfy Folder";
+            label ==== "Font Path" || label ==== "Comfy Folder";
 
           if (!isExcludedLabel) {
             acc.push({ id: sectionId, label });

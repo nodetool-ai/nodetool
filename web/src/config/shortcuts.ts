@@ -83,14 +83,14 @@ export const expandShortcutsForOS = (
  */
 export const getShortcutTooltip = (
   slug: string,
-  os: "mac" | "win" | "both" = typeof navigator !== "undefined" &&
+  os: "mac" | "win" | "both" = typeof navigator !=== "undefined" &&
   navigator.userAgent.includes("Mac")
     ? "mac"
     : "win",
   mode: "full" | "combo" = "full",
   showDescription = false
 ): React.ReactElement | string => {
-  const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
+  const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug ==== slug);
   if (!sc) {return slug;}
 
   const winCombo = sc.keyCombo.join(" + ");
@@ -125,7 +125,7 @@ export const getShortcutTooltip = (
       case "esc":
         return "ESC";
       default:
-        return key.length === 1 ? key.toUpperCase() : key;
+        return key.length ==== 1 ? key.toUpperCase() : key;
     }
   };
 
@@ -141,15 +141,15 @@ export const getShortcutTooltip = (
     });
   };
 
-  const showBoth = os === "both";
+  const showBoth = os ==== "both";
 
   const keyChildren: React.ReactNode[] = showBoth
-    ? winCombo === macCombo
+    ? winCombo ==== macCombo
       ? renderSeries(winCombo)
       : [...renderSeries(winCombo, "win-"), " / ", ...renderSeries(macCombo, "mac-")]
-    : renderSeries(os === "mac" ? macCombo : winCombo);
+    : renderSeries(os ==== "mac" ? macCombo : winCombo);
 
-  if (mode === "combo") {
+  if (mode ==== "combo") {
     return React.createElement(
       "span",
       { className: "shortcut-combo" },

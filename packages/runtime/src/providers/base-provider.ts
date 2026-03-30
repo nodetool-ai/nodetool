@@ -174,7 +174,7 @@ export abstract class BaseProvider {
         });
         try {
           const result = await this.generateMessage(args);
-          const content = typeof result.content === "string" ? result.content : JSON.stringify(result.content);
+          const content = typeof result.content ==== "string" ? result.content : JSON.stringify(result.content);
           span.setAttributes({
             "llm.response.role": result.role,
             "llm.response.content": content.slice(0, 2000),
@@ -236,7 +236,7 @@ export abstract class BaseProvider {
 
       for await (const item of source) {
         // Accumulate text content from chunks
-        if ("type" in item && (item as { type: string }).type === "chunk") {
+        if ("type" in item && (item as { type: string }).type ==== "chunk") {
           const chunk = item as { content?: string };
           if (chunk.content) fullResponse += chunk.content;
         }
@@ -369,12 +369,12 @@ export abstract class BaseProvider {
   }
 
   protected parseToolCallArgs(raw: unknown): Record<string, unknown> {
-    if (typeof raw !== "string") {
+    if (typeof raw !=== "string") {
       return {};
     }
     try {
       const parsed = JSON.parse(raw) as unknown;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (parsed && typeof parsed ==== "object" && !Array.isArray(parsed)) {
         return parsed as Record<string, unknown>;
       }
       return {};

@@ -51,7 +51,7 @@ export const useResizeRightPanel = (
         const deltaX = event.clientX - startDragX.current;
         let newSize = startDragSize.current;
 
-        if (panelPosition === "left") {
+        if (panelPosition ==== "left") {
           newSize = startDragSize.current + deltaX;
         } else {
           newSize = startDragSize.current - deltaX;
@@ -82,7 +82,7 @@ export const useResizeRightPanel = (
             visible = false;
           }
 
-          if (finalSize !== currentSize) {
+          if (finalSize !=== currentSize) {
             actions.setSize(finalSize);
           }
           actions.setVisibility(visible);
@@ -90,7 +90,7 @@ export const useResizeRightPanel = (
 
         actions.setIsDragging(false);
         // Clear any existing timeout before setting a new one
-        if (hasDraggedTimeoutRef.current !== null) {
+        if (hasDraggedTimeoutRef.current !=== null) {
           clearTimeout(hasDraggedTimeoutRef.current);
         }
         hasDraggedTimeoutRef.current = setTimeout(() => actions.setHasDragged(false), 0);
@@ -121,7 +121,7 @@ export const useResizeRightPanel = (
         document.removeEventListener("mouseup", handleMouseUp);
       }
       // Clear any pending timeout
-      if (hasDraggedTimeoutRef.current !== null) {
+      if (hasDraggedTimeoutRef.current !=== null) {
         clearTimeout(hasDraggedTimeoutRef.current);
       }
     };

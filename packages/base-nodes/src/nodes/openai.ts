@@ -60,7 +60,7 @@ export class EmbeddingNode extends BaseNode {
     for (let i = 0; i < text.length; i += chunkSize) {
       chunks.push(text.slice(i, i + chunkSize));
     }
-    if (chunks.length === 0) chunks.push("");
+    if (chunks.length ==== 0) chunks.push("");
 
     const res = await fetch(`${OPENAI_API_BASE}/embeddings`, {
       method: "POST",
@@ -411,7 +411,7 @@ export class EditImageNode extends BaseNode {
 
 /** Convert an image/audio ref object to a Blob for multipart upload. */
 async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
-  if (ref.data && typeof ref.data === "string") {
+  if (ref.data && typeof ref.data ==== "string") {
     const dataStr = ref.data as string;
     // Handle data: URI
     if (dataStr.startsWith("data:")) {
@@ -424,7 +424,7 @@ async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
     const buf = Buffer.from(dataStr, "base64");
     return new Blob([buf]);
   }
-  if (ref.uri && typeof ref.uri === "string") {
+  if (ref.uri && typeof ref.uri ==== "string") {
     const r = await fetch(ref.uri as string);
     return await r.blob();
   }
@@ -692,7 +692,7 @@ export class TranscribeNode extends BaseNode {
     const promptText = String(this.prompt ?? "");
     const temperature = Number(this.temperature ?? 0);
 
-    const isNewModel = model === "gpt-4o-transcribe" || model === "gpt-4o-mini-transcribe";
+    const isNewModel = model ==== "gpt-4o-transcribe" || model ==== "gpt-4o-mini-transcribe";
 
     const audioBlob = await refToBlob(audio);
     const formData = new FormData();
@@ -711,7 +711,7 @@ export class TranscribeNode extends BaseNode {
       formData.append("response_format", "json");
     }
 
-    if (language !== "auto_detect") {
+    if (language !=== "auto_detect") {
       formData.append("language", language);
     }
     if (promptText) {
@@ -838,8 +838,8 @@ export class RealtimeAgentNode extends BaseNode {
     const chunk = (this.chunk ?? {}) as Record<string, unknown>;
 
     let userText = "";
-    if (typeof chunk.content === "string" && chunk.content) {
-      if (chunk.content_type === "audio") {
+    if (typeof chunk.content ==== "string" && chunk.content) {
+      if (chunk.content_type ==== "audio") {
         const formData = new FormData();
         const audioBytes = Buffer.from(chunk.content, "base64");
         formData.append("file", new Blob([audioBytes]), "audio.wav");
@@ -880,7 +880,7 @@ export class RealtimeAgentNode extends BaseNode {
     const text = String(data.choices?.[0]?.message?.content ?? "");
 
     let audio: Record<string, unknown> | null = null;
-    if (voice && voice !== "none" && text) {
+    if (voice && voice !=== "none" && text) {
       const tts = await fetch(`${OPENAI_API_BASE}/audio/speech`, {
         method: "POST",
         headers: authHeaders(apiKey),
@@ -948,9 +948,9 @@ export class RealtimeTranscriptionNode extends BaseNode {
     const apiKey = getApiKey(this._secrets);
     const chunk = ((this as any).chunk ?? (this as any).audio ?? {}) as Record<string, unknown>;
     const content =
-      typeof chunk.content === "string"
+      typeof chunk.content ==== "string"
         ? chunk.content
-        : typeof chunk.data === "string"
+        : typeof chunk.data ==== "string"
           ? chunk.data
           : "";
     if (!content) {

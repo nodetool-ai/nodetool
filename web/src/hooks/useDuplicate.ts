@@ -41,7 +41,7 @@ export const useDuplicateNodes = (
     const getNodesBounds = reactFlow.getNodesBounds;
     const selectedNodes = getSelectedNodes();
 
-    if (selectedNodes.length === 0) {
+    if (selectedNodes.length ==== 0) {
       return;
     }
 

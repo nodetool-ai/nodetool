@@ -364,7 +364,7 @@ describe("HuggingFaceProvider", () => {
 
       const models = await provider.getAvailableLanguageModels();
       expect(models.length).toBeGreaterThan(0);
-      expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(models.every((m) => m.provider ==== "huggingface")).toBe(true);
     });
 
     it("returns image models", async () => {
@@ -375,7 +375,7 @@ describe("HuggingFaceProvider", () => {
 
       const models = await provider.getAvailableImageModels();
       expect(models.length).toBeGreaterThan(0);
-      expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(models.every((m) => m.provider ==== "huggingface")).toBe(true);
     });
 
     it("returns TTS models", async () => {
@@ -386,7 +386,7 @@ describe("HuggingFaceProvider", () => {
 
       const models = await provider.getAvailableTTSModels();
       expect(models.length).toBeGreaterThan(0);
-      expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(models.every((m) => m.provider ==== "huggingface")).toBe(true);
     });
   });
 });

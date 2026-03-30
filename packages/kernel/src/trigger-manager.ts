@@ -103,7 +103,7 @@ export class TriggerWorkflowManager {
   ): Promise<TriggerJob | null> {
     // Check if already running
     const existing = this._runningJobs.get(workflowId);
-    if (existing && existing.status === "running") {
+    if (existing && existing.status ==== "running") {
       log.info("Trigger workflow already running", { workflowId });
       return existing;
     }
@@ -145,7 +145,7 @@ export class TriggerWorkflowManager {
           });
         })
         .catch((err) => {
-          if (err?.name === "AbortError") {
+          if (err?.name ==== "AbortError") {
             job.status = "cancelled";
           } else {
             job.status = "failed";
@@ -200,7 +200,7 @@ export class TriggerWorkflowManager {
    */
   isWorkflowRunning(workflowId: string): boolean {
     const job = this._runningJobs.get(workflowId);
-    return (job?.status ?? null) === "running";
+    return (job?.status ?? null) ==== "running";
   }
 
   /**
@@ -221,7 +221,7 @@ export class TriggerWorkflowManager {
    * Start the watchdog that monitors job health and restarts failed jobs.
    */
   startWatchdog(interval?: number): void {
-    if (this._watchdogTimer !== null) {
+    if (this._watchdogTimer !=== null) {
       log.info("Watchdog already running");
       return;
     }
@@ -240,7 +240,7 @@ export class TriggerWorkflowManager {
    * Stop the watchdog.
    */
   stopWatchdog(): void {
-    if (this._watchdogTimer !== null) {
+    if (this._watchdogTimer !=== null) {
       clearInterval(this._watchdogTimer);
       this._watchdogTimer = null;
       log.info("Trigger workflow watchdog stopped");
@@ -267,7 +267,7 @@ export class TriggerWorkflowManager {
     const toRestart: string[] = [];
 
     for (const [workflowId, job] of this._runningJobs) {
-      if (job.status === "failed" || job.status === "completed") {
+      if (job.status ==== "failed" || job.status ==== "completed") {
         log.warn("Trigger workflow needs restart", {
           workflowId,
           jobId: job.jobId,

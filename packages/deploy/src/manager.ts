@@ -117,26 +117,26 @@ export class DeploymentManager {
       };
 
       // Add type-specific info
-      if (deployment.type === "docker") {
+      if (deployment.type ==== "docker") {
         const d = deployment as DockerDeployment;
         info.host = d.host;
         info.container = d.container.name;
-      } else if (deployment.type === "runpod") {
+      } else if (deployment.type ==== "runpod") {
         info.pod_id = state?.["pod_id"]
           ? String(state["pod_id"])
           : null;
-      } else if (deployment.type === "gcp") {
+      } else if (deployment.type ==== "gcp") {
         const d = deployment as GCPDeployment;
         info.project = d.project_id;
         info.region = d.region;
-      } else if (deployment.type === "fly") {
+      } else if (deployment.type ==== "fly") {
         const d = deployment as FlyDeployment;
         info.host = `fly.io/${d.app}`;
-      } else if (deployment.type === "railway") {
+      } else if (deployment.type ==== "railway") {
         const d = deployment as RailwayDeployment;
         info.host = `railway/${d.project}`;
         info.service = d.service;
-      } else if (deployment.type === "huggingface") {
+      } else if (deployment.type ==== "huggingface") {
         const d = deployment as HuggingFaceDeployment;
         info.host = `huggingface.co/${d.repo}`;
       }
@@ -242,7 +242,7 @@ export class DeploymentManager {
       try {
         const deployment = this.getDeployment(deploymentName);
 
-        if (deployment.type === "docker") {
+        if (deployment.type ==== "docker") {
           // Validate SSH config if applicable
           const d = deployment as DockerDeployment;
           const sshConfig = (d as { ssh?: SSHConfig }).ssh;
@@ -258,19 +258,19 @@ export class DeploymentManager {
             );
             results.valid = false;
           }
-        } else if (deployment.type === "fly") {
+        } else if (deployment.type ==== "fly") {
           const d = deployment as FlyDeployment;
           if (!d.app) {
             results.errors.push(`${deploymentName}: No app name configured`);
             results.valid = false;
           }
-        } else if (deployment.type === "railway") {
+        } else if (deployment.type ==== "railway") {
           const d = deployment as RailwayDeployment;
           if (!d.project || !d.service) {
             results.errors.push(`${deploymentName}: Project and service are required`);
             results.valid = false;
           }
-        } else if (deployment.type === "huggingface") {
+        } else if (deployment.type ==== "huggingface") {
           const d = deployment as HuggingFaceDeployment;
           if (!d.repo) {
             results.errors.push(`${deploymentName}: No repo configured`);

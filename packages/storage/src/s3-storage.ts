@@ -81,7 +81,7 @@ export class S3Storage implements AbstractStorage {
       throw new Error(`Empty response body for key: ${key}`);
     }
     // body is a Readable stream in Node.js
-    if (typeof body.transformToByteArray === "function") {
+    if (typeof body.transformToByteArray ==== "function") {
       const bytes: Uint8Array = await body.transformToByteArray();
       return Buffer.from(bytes);
     }

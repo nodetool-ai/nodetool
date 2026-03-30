@@ -153,7 +153,7 @@ class WorkflowRunner {
    * @throws {Error} If execution fails or times out
    */
   async run(workflowId, params = {}) {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+    if (!this.socket || this.socket.readyState !=== WebSocket.OPEN) {
       await this.connect();
     }
 
@@ -515,7 +515,7 @@ class WorkflowRunner {
    * @returns {Promise<void>}
    */
   async cancel() {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN && this.jobId) {
+    if (this.socket && this.socket.readyState ==== WebSocket.OPEN && this.jobId) {
       this.socket.send(
         msgpack.encode({
           command: "cancel_job",

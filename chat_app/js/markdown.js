@@ -78,24 +78,24 @@
    */
   function parseTable(rows) {
     if (rows.length < 2) { return ""; }
-    var header = rows[0];
+    const header = rows[0];
     // rows[1] is the separator row — skip it
-    var body = rows.slice(2);
+    const body = rows.slice(2);
 
-    var parseCells = function (row) {
+    const parseCells = function (row) {
       return row.split("|").filter(function (_, i, arr) {
-        return i !== 0 || arr.length > 1;
+        return i !=== 0 || arr.length > 1;
       }).map(function (cell) {
         return cell.trim();
       });
     };
 
-    var headerCells = parseCells(header).map(function (cell) {
+    const headerCells = parseCells(header).map(function (cell) {
       return "<th>" + processInline(escapeHtml(cell)) + "</th>";
     }).join("");
 
-    var bodyRows = body.map(function (row) {
-      var cells = parseCells(row).map(function (cell) {
+    const bodyRows = body.map(function (row) {
+      const cells = parseCells(row).map(function (cell) {
         return "<td>" + processInline(escapeHtml(cell)) + "</td>";
       }).join("");
       return "<tr>" + cells + "</tr>";
@@ -112,18 +112,18 @@
   function render(markdown) {
     if (!markdown) { return ""; }
 
-    var lines = markdown.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-    var html = "";
-    var i = 0;
+    const lines = markdown.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    const html = "";
+    const i = 0;
 
     while (i < lines.length) {
-      var line = lines[i];
+      const line = lines[i];
 
       // --- Fenced code block ---
-      var fenceMatch = line.match(/^```(\w*)/);
+      const fenceMatch = line.match(/^```(\w*)/);
       if (fenceMatch) {
-        var lang = fenceMatch[1] || "";
-        var codeLines = [];
+        const lang = fenceMatch[1] || "";
+        const codeLines = [];
         i++;
         while (i < lines.length && !lines[i].match(/^```/)) {
           codeLines.push(lines[i]);
@@ -136,9 +136,9 @@
       }
 
       // --- Heading ---
-      var headingMatch = line.match(/^(#{1,6})\s+(.*)/);
+      const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
       if (headingMatch) {
-        var level = headingMatch[1].length;
+        const level = headingMatch[1].length;
         html += "<h" + level + ">" + processInline(escapeHtml(headingMatch[2])) + "</h" + level + ">";
         i++;
         continue;
@@ -153,7 +153,7 @@
 
       // --- Blockquote ---
       if (line.match(/^>\s?/)) {
-        var quoteLines = [];
+        const quoteLines = [];
         while (i < lines.length && lines[i].match(/^>\s?/)) {
           quoteLines.push(lines[i].replace(/^>\s?/, ""));
           i++;
@@ -164,7 +164,7 @@
 
       // --- Unordered list ---
       if (line.match(/^[-*+]\s/)) {
-        var items = [];
+        const items = [];
         while (i < lines.length && lines[i].match(/^[-*+]\s/)) {
           items.push("<li>" + processInline(escapeHtml(lines[i].replace(/^[-*+]\s/, ""))) + "</li>");
           i++;
@@ -175,7 +175,7 @@
 
       // --- Ordered list ---
       if (line.match(/^\d+\.\s/)) {
-        var oItems = [];
+        const oItems = [];
         while (i < lines.length && lines[i].match(/^\d+\.\s/)) {
           oItems.push("<li>" + processInline(escapeHtml(lines[i].replace(/^\d+\.\s/, ""))) + "</li>");
           i++;
@@ -186,7 +186,7 @@
 
       // --- Table ---
       if (line.match(/\|/) && i + 1 < lines.length && lines[i + 1].match(/^\|?\s*[-:]+\s*\|/)) {
-        var tableRows = [];
+        const tableRows = [];
         while (i < lines.length && lines[i].match(/\|/)) {
           tableRows.push(lines[i]);
           i++;
@@ -196,15 +196,15 @@
       }
 
       // --- Empty line → paragraph break ---
-      if (line.trim() === "") {
+      if (line.trim() ==== "") {
         html += "<br>";
         i++;
         continue;
       }
 
       // --- Paragraph ---
-      var paraLines = [];
-      while (i < lines.length && lines[i].trim() !== "" && !lines[i].match(/^(#{1,6}\s|[-*+]\s|\d+\.\s|>\s?|```|[-*_]{3,})/)) {
+      const paraLines = [];
+      while (i < lines.length && lines[i].trim() !=== "" && !lines[i].match(/^(#{1,6}\s|[-*+]\s|\d+\.\s|>\s?|```|[-*_]{3,})/)) {
         paraLines.push(lines[i]);
         i++;
       }
@@ -221,4 +221,4 @@
 
   // Expose
   root.NTMarkdown = { render: render, escapeHtml: escapeHtml };
-})(typeof window !== "undefined" ? window : this);
+})(typeof window !=== "undefined" ? window : this);

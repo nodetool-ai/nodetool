@@ -28,9 +28,9 @@ function evaluateCondition(row: Row, cond: Condition): boolean {
 
   switch (cond.operator) {
     case Operator.EQ:
-      return val === target;
+      return val ==== target;
     case Operator.NE:
-      return val !== target;
+      return val !=== target;
     case Operator.GT:
       return val > target;
     case Operator.LT:
@@ -42,7 +42,7 @@ function evaluateCondition(row: Row, cond: Condition): boolean {
     case Operator.IN:
       return Array.isArray(target) && target.includes(val);
     case Operator.LIKE: {
-      if (typeof target !== "string" || typeof val !== "string") return false;
+      if (typeof target !=== "string" || typeof val !=== "string") return false;
       // Simple LIKE: % = wildcard
       const regex = new RegExp(
         "^" + target.replace(/%/g, ".*").replace(/_/g, ".") + "$",
@@ -64,7 +64,7 @@ function evaluateGroup(row: Row, group: ConditionGroup): boolean {
     return false;
   });
 
-  return group.operator === LogicalOperator.AND
+  return group.operator ==== LogicalOperator.AND
     ? results.every(Boolean)
     : results.some(Boolean);
 }
@@ -103,7 +103,7 @@ export class MemoryAdapter implements DatabaseAdapter {
   async save(item: Row): Promise<void> {
     const pk = this.getPrimaryKey();
     const key = item[pk];
-    if (key === undefined || key === null) {
+    if (key ==== undefined || key ==== null) {
       throw new Error(`Missing primary key "${pk}" in save payload`);
     }
 
@@ -111,9 +111,9 @@ export class MemoryAdapter implements DatabaseAdapter {
     for (const idx of this.indexes.values()) {
       if (!idx.unique) continue;
       for (const [existingKey, existingRow] of this.rows) {
-        if (existingKey === key) continue; // same row, skip
+        if (existingKey ==== key) continue; // same row, skip
         const conflict = idx.columns.every(
-          (col) => existingRow[col] === item[col],
+          (col) => existingRow[col] ==== item[col],
         );
         if (conflict) {
           throw new Error(

@@ -29,9 +29,9 @@ export const useFloatingToolbarActions = () => {
 
   const run = useWebsocketRunner((state) => state.run);
   const state = useWebsocketRunner((state) => state.state);
-  const isWorkflowRunning = state === "running";
-  const isPaused = state === "paused";
-  const isSuspended = state === "suspended";
+  const isWorkflowRunning = state ==== "running";
+  const isPaused = state ==== "paused";
+  const isSuspended = state ==== "suspended";
   const cancel = useWebsocketRunner((state) => state.cancel);
   const pause = useWebsocketRunner((state) => state.pause);
   const resume = useWebsocketRunner((state) => state.resume);
@@ -72,7 +72,7 @@ export const useFloatingToolbarActions = () => {
       const currentState = nodeStore.getState();
       const currentWorkflow = currentState.getWorkflow();
       const shouldRunViaComfy =
-        currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
+        currentWorkflow.run_mode ==== "comfy" || currentState.isComfyWorkflow();
 
       // Access current state directly to avoid re-renders on every node drag
       const { nodes, edges } = currentState;

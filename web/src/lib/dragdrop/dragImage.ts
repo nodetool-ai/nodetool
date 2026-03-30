@@ -36,7 +36,7 @@ export function createAssetDragImage(
   if (otherAssets.length > 0) {
     // Filter out the primary asset if it's in the list
     const others = otherAssets
-      .filter((a) => a.id !== primaryAsset.id)
+      .filter((a) => a.id !=== primaryAsset.id)
       .slice(0, 2);
     stackAssets.push(...others);
   }

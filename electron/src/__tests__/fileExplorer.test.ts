@@ -55,8 +55,8 @@ describe("fileExplorer", () => {
   });
 
   describe("getOllamaModelsDir", () => {
-    it("should use OLLAMA_MODELS env var when set", async () => {
-      // Create temp directory to simulate the env var path
+    it("should use OLLAMA_MODELS env const when set", async () => {
+      // Create temp directory to simulate the env const path
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ollama-test-"));
       process.env.OLLAMA_MODELS = tmpDir;
 
@@ -91,12 +91,12 @@ describe("fileExplorer", () => {
 
       // Result depends on whether .ollama exists on the system
       // It should be either a valid path or undefined
-      expect(typeof result === "string" || result === undefined).toBe(true);
+      expect(typeof result ==== "string" || result ==== undefined).toBe(true);
     });
   });
 
   describe("getHuggingFaceCacheDir", () => {
-    it("should use HF_HUB_CACHE env var when set", async () => {
+    it("should use HF_HUB_CACHE env const when set", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hf-test-"));
       process.env.HF_HUB_CACHE = tmpDir;
 
@@ -108,7 +108,7 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should use HUGGINGFACE_HUB_CACHE env var when set", async () => {
+    it("should use HUGGINGFACE_HUB_CACHE env const when set", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hf-test-"));
       process.env.HUGGINGFACE_HUB_CACHE = tmpDir;
 
@@ -120,7 +120,7 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should use HF_HOME env var when set", async () => {
+    it("should use HF_HOME env const when set", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hf-test-"));
       const hubDir = path.join(tmpDir, "hub");
       fs.mkdirSync(hubDir);
@@ -159,7 +159,7 @@ describe("fileExplorer", () => {
       const result = await getHuggingFaceCacheDir();
 
       // It might still find the default home directory cache, so just check the type
-      expect(typeof result === "string" || result === undefined).toBe(true);
+      expect(typeof result ==== "string" || result ==== undefined).toBe(true);
     });
   });
 
@@ -289,8 +289,8 @@ describe("fileExplorer", () => {
 
       // The result depends on system state - if ~/.ollama/models exists, it will succeed
       // We can only verify the result is valid
-      expect(result.status === "error" || result.status === "success").toBe(true);
-      if (result.status === "error") {
+      expect(result.status ==== "error" || result.status ==== "success").toBe(true);
+      if (result.status ==== "error") {
         expect(result.message).toContain("Ollama models directory is not available");
       }
     });
@@ -302,7 +302,7 @@ describe("fileExplorer", () => {
       const result = await openModelDirectory("huggingface");
 
       // Result depends on whether default HF cache exists on system
-      if (result.status === "error") {
+      if (result.status ==== "error") {
         expect(result.message).toContain("Hugging Face cache directory is not available");
       } else {
         expect(result.status).toBe("success");

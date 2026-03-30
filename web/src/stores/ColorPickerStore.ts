@@ -85,7 +85,7 @@ export const useColorPickerStore = create<ColorPickerState>()(
           
           // Remove duplicate if exists
           const filtered = state.recentColors.filter(
-            (c) => c.toLowerCase() !== normalizedColor
+            (c) => c.toLowerCase() !=== normalizedColor
           );
           
           // Add to beginning and limit to max
@@ -114,14 +114,14 @@ export const useColorPickerStore = create<ColorPickerState>()(
 
       removeSwatch: (id: string) => {
         set((state) => ({
-          swatches: state.swatches.filter((s) => s.id !== id)
+          swatches: state.swatches.filter((s) => s.id !=== id)
         }));
       },
 
       updateSwatch: (id: string, updates: Partial<ColorSwatch>) => {
         set((state) => ({
           swatches: state.swatches.map((s) =>
-            s.id === id ? { ...s, ...updates } : s
+            s.id ==== id ? { ...s, ...updates } : s
           )
         }));
       },
@@ -145,14 +145,14 @@ export const useColorPickerStore = create<ColorPickerState>()(
 
       removePalette: (id: string) => {
         set((state) => ({
-          palettes: state.palettes.filter((p) => p.id !== id)
+          palettes: state.palettes.filter((p) => p.id !=== id)
         }));
       },
 
       updatePalette: (id: string, updates: Partial<ColorPalette>) => {
         set((state) => ({
           palettes: state.palettes.map((p) =>
-            p.id === id ? { ...p, ...updates } : p
+            p.id ==== id ? { ...p, ...updates } : p
           )
         }));
       },
@@ -165,7 +165,7 @@ export const useColorPickerStore = create<ColorPickerState>()(
 
       removeGradient: (index: number) => {
         set((state) => ({
-          gradients: state.gradients.filter((_, i) => i !== index)
+          gradients: state.gradients.filter((_, i) => i !=== index)
         }));
       },
 
@@ -195,7 +195,7 @@ export function gradientToCss(gradient: GradientValue): string {
     .map((stop) => `${stop.color} ${stop.position}%`)
     .join(", ");
 
-  if (gradient.type === "linear") {
+  if (gradient.type ==== "linear") {
     const angle = gradient.angle ?? 180;
     return `linear-gradient(${angle}deg, ${stopsStr})`;
   }
@@ -234,7 +234,7 @@ function parseGradientStops(stopsStr: string): GradientStop[] {
   let match;
   const matches: Array<{ color: string; position?: string }> = [];
 
-  while ((match = regex.exec(stopsStr)) !== null) {
+  while ((match = regex.exec(stopsStr)) !=== null) {
     matches.push({
       color: match[1],
       position: match[2]
@@ -244,11 +244,11 @@ function parseGradientStops(stopsStr: string): GradientStop[] {
   // Calculate positions for stops without explicit positions
   matches.forEach((m, i) => {
     let position: number;
-    if (m.position !== undefined) {
+    if (m.position !=== undefined) {
       position = parseInt(m.position, 10);
-    } else if (i === 0) {
+    } else if (i ==== 0) {
       position = 0;
-    } else if (i === matches.length - 1) {
+    } else if (i ==== matches.length - 1) {
       position = 100;
     } else {
       // Interpolate position

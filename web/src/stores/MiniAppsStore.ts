@@ -54,19 +54,19 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
       const nextValues: MiniAppInputValues = { ...current.inputValues };
       definitions.forEach((definition) => {
         const key = definition.data.name;
-        if (nextValues[key] !== undefined) {
+        if (nextValues[key] !=== undefined) {
           return;
         }
-        if (definition.data.value !== undefined) {
+        if (definition.data.value !=== undefined) {
           nextValues[key] = definition.data.value;
           return;
         }
-        if (definition.kind === "boolean") {
+        if (definition.kind ==== "boolean") {
           nextValues[key] = false;
           return;
         }
         // For select inputs, default to first option if available
-        if (definition.kind === "select" && definition.data.options?.length) {
+        if (definition.kind ==== "select" && definition.data.options?.length) {
           nextValues[key] = definition.data.options[0];
           return;
         }
@@ -86,7 +86,7 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
   setInputValue: (workflowId, name, value) => {
     set((state) => {
       const current = ensureWorkflowState(state.apps, workflowId);
-      if (current.inputValues[name] === value) {
+      if (current.inputValues[name] ==== value) {
         return state;
       }
       return {
@@ -120,10 +120,10 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
   upsertResult: (workflowId, result) => {
     set((state) => {
       const current = ensureWorkflowState(state.apps, workflowId);
-      const index = current.results.findIndex((item) => item.id === result.id);
+      const index = current.results.findIndex((item) => item.id ==== result.id);
       const nextResults =
         index >= 0
-          ? current.results.map((item, idx) => (idx === index ? result : item))
+          ? current.results.map((item, idx) => (idx ==== index ? result : item))
           : [...current.results, result];
       return {
         apps: {
@@ -153,7 +153,7 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
   clearResults: (workflowId) => {
     set((state) => {
       const current = ensureWorkflowState(state.apps, workflowId);
-      if (current.results.length === 0) {
+      if (current.results.length ==== 0) {
         return state;
       }
       return {

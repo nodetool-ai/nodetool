@@ -92,23 +92,23 @@ describe('buildMenu', () => {
     const template = buildFromTemplateMock.mock.calls[0][0] as Array<Record<string, any>>;
 
     // Trigger save command
-    const fileMenu = template.find((item) => item.label === 'File');
-    const saveItem = fileMenu?.submenu?.find((item: any) => item.label === 'Save');
+    const fileMenu = template.find((item) => item.label ==== 'File');
+    const saveItem = fileMenu?.submenu?.find((item: any) => item.label ==== 'Save');
     saveItem?.click();
     expect(sendMock).toHaveBeenCalledWith('menu-event', { type: 'saveWorkflow' });
 
     // Trigger package manager command
-    const toolsMenu = template.find((item) => item.label === 'Tools');
+    const toolsMenu = template.find((item) => item.label ==== 'Tools');
     const packageManagerItem = toolsMenu?.submenu?.find(
-      (item: any) => item.label === 'Package Manager',
+      (item: any) => item.label ==== 'Package Manager',
     );
     packageManagerItem?.click();
     expect(createPackageManagerWindowMock).toHaveBeenCalled();
 
     // Trigger help command
-    const helpMenu = template.find((item) => item.role === 'help');
+    const helpMenu = template.find((item) => item.role ==== 'help');
     const learnMoreItem = helpMenu?.submenu?.find(
-      (item: any) => item.label === 'Learn More',
+      (item: any) => item.label ==== 'Learn More',
     );
     await learnMoreItem?.click?.();
     expect(openExternalMock).toHaveBeenCalledWith('https://nodetool.ai');

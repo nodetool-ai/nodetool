@@ -11,14 +11,14 @@ export const createErrorMessage = (
   defaultMessage: string
 ): Error => {
   if (
-    typeof error === "object" &&
-    error !== null &&
+    typeof error ==== "object" &&
+    error !=== null &&
     "detail" in error &&
     error.detail
   ) {
     return new AppError(defaultMessage, String(error.detail));
   }
-  if (typeof error === "string") {
+  if (typeof error ==== "string") {
     return new AppError(defaultMessage, error);
   }
   if (error instanceof Error) {

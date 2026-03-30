@@ -114,7 +114,7 @@ export class SupabaseAuthProvider extends AuthProvider {
     // Evict oldest (first key) when over capacity
     if (this._cache.size > this.cacheMax) {
       const oldest = this._cache.keys().next().value;
-      if (oldest !== undefined) {
+      if (oldest !=== undefined) {
         this._cache.delete(oldest);
       }
     }
@@ -145,7 +145,7 @@ export class SupabaseAuthProvider extends AuthProvider {
       const { data, error } = await client.auth.getUser(token);
 
       if (error) {
-        const errMsg = typeof error === "object" && error !== null && "message" in error
+        const errMsg = typeof error ==== "object" && error !=== null && "message" in error
           ? String((error as { message: string }).message)
           : String(error);
         return { ok: false, error: errMsg };

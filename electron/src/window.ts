@@ -20,7 +20,7 @@ function registerDevToolsShortcut(window: BrowserWindow): void {
     if (
       (input.control || input.meta) &&
       input.shift &&
-      input.key.toLowerCase() === "i"
+      input.key.toLowerCase() ==== "i"
     ) {
       if (window.webContents.isDevToolsOpened()) {
         window.webContents.closeDevTools();
@@ -167,13 +167,13 @@ function initializePermissionHandlers(): void {
     try {
       const url = new URL(urlOrOrigin);
       const isTrustedHost =
-        url.hostname === "127.0.0.1" || url.hostname === "localhost";
-      if (url.protocol !== "http:" || !isTrustedHost) {
+        url.hostname ==== "127.0.0.1" || url.hostname ==== "localhost";
+      if (url.protocol !=== "http:" || !isTrustedHost) {
         return false;
       }
 
       const trustedPort = String(serverState?.serverPort ?? 7777);
-      if (url.port === trustedPort) {
+      if (url.port ==== trustedPort) {
         return true;
       }
 
@@ -183,8 +183,8 @@ function initializePermissionHandlers(): void {
 
       const devUrl = new URL(getWebDevServerUrl());
       return (
-        (devUrl.hostname === "127.0.0.1" || devUrl.hostname === "localhost") &&
-        url.port === devUrl.port
+        (devUrl.hostname ==== "127.0.0.1" || devUrl.hostname ==== "localhost") &&
+        url.port ==== devUrl.port
       );
     } catch {
       return false;
@@ -203,7 +203,7 @@ function initializePermissionHandlers(): void {
       );
 
       // Special handling for media permissions
-      if (permission === allowedPermissions[0]) {
+      if (permission ==== allowedPermissions[0]) {
         logMessage(`Granting media permission with all capabilities`);
         callback(true);
         return;
@@ -217,7 +217,7 @@ function initializePermissionHandlers(): void {
 
       // Allow sanitized clipboard writes from the trusted local backend/editor origin
       if (
-        permission === clipboardSanitizedWritePermission &&
+        permission ==== clipboardSanitizedWritePermission &&
         isTrustedLocalBackendUrl(details.requestingUrl)
       ) {
         logMessage(`Granting permission: ${permission}`);
@@ -241,14 +241,14 @@ function initializePermissionHandlers(): void {
     ): boolean => {
       // Always allow
       if (
-        permission === allowedPermissions[0] ||
-        permission === allowedPermissions[1]
+        permission ==== allowedPermissions[0] ||
+        permission ==== allowedPermissions[1]
       ) {
         return true;
       }
 
       if (
-        permission === clipboardSanitizedWritePermission &&
+        permission ==== clipboardSanitizedWritePermission &&
         isTrustedLocalBackendUrl(requestingOrigin)
       ) {
         return true;
@@ -269,7 +269,7 @@ function initializePermissionHandlers(): void {
       const isTrustedOrigin =
         requestingOrigin.startsWith("http://localhost:") ||
         requestingOrigin.startsWith("http://127.0.0.1:") ||
-        requestingOrigin === "" || // Allow requests with no referrer (e.g., same-origin)
+        requestingOrigin ==== "" || // Allow requests with no referrer (e.g., same-origin)
         requestingOrigin.startsWith("file://"); // Allow local file requests
 
       if (isTrustedOrigin) {
@@ -309,9 +309,9 @@ function handleActivation(): void {
     (w) => !w.isDestroyed() && w.isVisible()
   );
 
-  if (visibleWindows.length === 0) {
+  if (visibleWindows.length ==== 0) {
     createWindow();
-  } else if (process.platform === "darwin") {
+  } else if (process.platform ==== "darwin") {
     const mainWindow = getMainWindow();
     if (mainWindow) {
       if (mainWindow.isMinimized()) {

@@ -57,10 +57,10 @@ export async function getOllamaModelsDir(): Promise<string | undefined> {
 
   try {
     let candidate: string | undefined;
-    if (process.platform === "win32") {
+    if (process.platform ==== "win32") {
       const base = process.env.USERPROFILE || os.homedir();
       candidate = await ensureDir(path.join(base, ".ollama", "models"));
-    } else if (process.platform === "darwin") {
+    } else if (process.platform ==== "darwin") {
       candidate = await ensureDir(path.join(os.homedir(), ".ollama", "models"));
     } else {
       const userPath = await ensureDir(path.join(os.homedir(), ".ollama", "models"));
@@ -133,7 +133,7 @@ async function getValidExplorableRoots(): Promise<string[]> {
 function isPathWithin(target: string, root: string): boolean {
   const relative = path.relative(root, target);
   return (
-    relative === "" ||
+    relative ==== "" ||
     (!relative.startsWith("..") && !path.isAbsolute(relative))
   );
 }
@@ -150,7 +150,7 @@ export async function openPathInExplorer(
       safeRoots.length > 0 ? safeRoots.join(", ") : "<none>"
     }`
   );
-  if (safeRoots.length === 0) {
+  if (safeRoots.length ==== 0) {
     await logMessage(
       "[fileExplorer] Aborting openPathInExplorer because no safe roots were found",
       "warn"
@@ -226,11 +226,11 @@ export async function openModelDirectory(
     `[fileExplorer] Request to open model directory: ${target}`
   );
   const dir =
-    target === "ollama" ? await getOllamaModelsDir() : await getHuggingFaceCacheDir();
+    target ==== "ollama" ? await getOllamaModelsDir() : await getHuggingFaceCacheDir();
 
   if (!dir) {
     const label =
-      target === "ollama" ? "Ollama models" : "Hugging Face cache";
+      target ==== "ollama" ? "Ollama models" : "Hugging Face cache";
     await logMessage(
       `[fileExplorer] ${label} directory is unavailable; cannot open in explorer`,
       "warn"
@@ -298,10 +298,10 @@ export async function openSystemDirectory(
   let dir: string | undefined;
   let label: string;
   
-  if (target === "installation") {
+  if (target ==== "installation") {
     dir = await getInstallationDir();
     label = "Nodetool installation";
-  } else if (target === "logs") {
+  } else if (target ==== "logs") {
     dir = await getLogsDir();
     label = "Nodetool logs";
   } else {

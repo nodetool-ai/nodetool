@@ -84,7 +84,7 @@ export const useCollectionStore = create<CollectionStore>()(
       dragOverCollection: null,
       indexProgress: null,
       indexErrors: [],
-      isElectron: window.api !== undefined,
+      isElectron: window.api !=== undefined,
       selectedCollections: [],
 
       setCollections: (collections) => set({ collections }),
@@ -149,7 +149,7 @@ export const useCollectionStore = create<CollectionStore>()(
         set({ dragOverCollection: null, indexErrors: [] });
 
         const files = Array.from(event.dataTransfer.files);
-        if (files.length === 0) {return;}
+        if (files.length ==== 0) {return;}
 
         set({
           indexProgress: {

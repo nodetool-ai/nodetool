@@ -47,7 +47,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
         const deltaX = event.clientX - startDragX.current;
         let newSize = startDragSize.current;
 
-        if (panelPosition === "left") {
+        if (panelPosition ==== "left") {
           newSize = startDragSize.current + deltaX;
         } else {
           newSize = startDragSize.current - deltaX;
@@ -80,7 +80,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
             visible = false;
           }
 
-          if (finalSize !== currentSize) {
+          if (finalSize !=== currentSize) {
             actions.setSize(finalSize);
           }
           actions.setVisibility(visible);

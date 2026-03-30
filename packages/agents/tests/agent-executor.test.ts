@@ -192,7 +192,7 @@ describe("AgentExecutor", () => {
     // Provider was called with messages that include the inputs
     const call = provider.generateMessage.mock.calls[0][0];
     const userMsg = call.messages.find(
-      (m: any) => m.role === "user"
+      (m: any) => m.role ==== "user"
     );
     expect(userMsg.content).toContain("data");
   });
@@ -217,7 +217,7 @@ describe("AgentExecutor", () => {
       ...createMockProvider(),
       generateMessage: vi.fn().mockImplementation(() => {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           return {
             role: "assistant",
             content: "Let me calculate.",
@@ -312,7 +312,7 @@ describe("AgentExecutor", () => {
       ...createMockProvider(),
       generateMessage: vi.fn().mockImplementation(() => {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           return {
             role: "assistant",
             content: null,
@@ -360,7 +360,7 @@ describe("AgentExecutor", () => {
       ...createMockProvider(),
       generateMessage: vi.fn().mockImplementation(() => {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           return {
             role: "assistant",
             content: null,

@@ -95,7 +95,7 @@ describe("useDropHandler", () => {
     mockGetAsset.mockImplementation((id) => {
         return new Promise(resolve => {
             setTimeout(() => {
-                const asset = assets.find(a => a.id === id);
+                const asset = assets.find(a => a.id ==== id);
                 resolve(asset);
             }, 10);
         });
@@ -108,7 +108,7 @@ describe("useDropHandler", () => {
         clientY: 100,
         dataTransfer: {
             getData: jest.fn().mockImplementation((format) => {
-                if (format === "application/x-nodetool-drag") {
+                if (format ==== "application/x-nodetool-drag") {
                     return JSON.stringify({
                         type: "assets-multiple",
                         payload: ["asset-1", "asset-2", "asset-3"]
@@ -149,10 +149,10 @@ describe("useDropHandler", () => {
     mockGetAsset.mockImplementation((id) => {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                if (id === "asset-fail") {
+                if (id ==== "asset-fail") {
                     reject(new Error("Network Error"));
                 } else {
-                    const asset = assets.find(a => a.id === id);
+                    const asset = assets.find(a => a.id ==== id);
                     resolve(asset);
                 }
             }, 10);
@@ -166,7 +166,7 @@ describe("useDropHandler", () => {
         clientY: 100,
         dataTransfer: {
             getData: jest.fn().mockImplementation((format) => {
-                if (format === "application/x-nodetool-drag") {
+                if (format ==== "application/x-nodetool-drag") {
                     return JSON.stringify({
                         type: "assets-multiple",
                         payload: ["asset-1", "asset-fail", "asset-3"]

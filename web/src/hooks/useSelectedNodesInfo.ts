@@ -55,7 +55,7 @@ const getNodeDisplayName = (
   getMetadata: (nodeType: string) => NodeMetadata | undefined
 ): string => {
   const title = node.data?.properties?.name;
-  if (title && typeof title === "string" && title.trim()) {
+  if (title && typeof title ==== "string" && title.trim()) {
     return title;
   }
   const nodeType = node.type ?? "";
@@ -79,7 +79,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
     const relevantResults: Record<string, any> = {};
     for (const node of selectedNodes) {
       const result = state.results[node.id];
-      if (result !== undefined) {
+      if (result !=== undefined) {
         relevantResults[node.id] = result;
       }
     }
@@ -89,7 +89,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
     const relevantErrors: Record<string, any> = {};
     for (const node of selectedNodes) {
       const errorKey = currentWorkflowId ? `${currentWorkflowId}:${node.id}` : "";
-      if (errorKey && state.errors[errorKey] !== undefined) {
+      if (errorKey && state.errors[errorKey] !=== undefined) {
         relevantErrors[errorKey] = state.errors[errorKey];
       }
     }
@@ -102,14 +102,14 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
       const metadata = getMetadata(nodeType);
       const nodeEdges = edges.filter(
         (edge: { source: string; target: string }) =>
-          edge.source === node.id || edge.target === node.id
+          edge.source ==== node.id || edge.target ==== node.id
       );
 
       const connectedInputs = nodeEdges.filter(
-        (edge: { target: string }) => edge.target === node.id
+        (edge: { target: string }) => edge.target ==== node.id
       ).length;
       const connectedOutputs = nodeEdges.filter(
-        (edge: { source: string }) => edge.source === node.id
+        (edge: { source: string }) => edge.source ==== node.id
       ).length;
 
       const totalInputs = metadata?.properties?.length ?? 0;
@@ -142,9 +142,9 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
           connectedOutputs
         },
         hasError: !!nodeError,
-        errorMessage: typeof nodeError === 'string' ? nodeError : nodeError && 'message' in nodeError ? String(nodeError.message) : undefined,
+        errorMessage: typeof nodeError ==== 'string' ? nodeError : nodeError && 'message' in nodeError ? String(nodeError.message) : undefined,
         executionStatus,
-        lastExecutedAt: typeof nodeResult === "object" && nodeResult !== null ? (nodeResult as { timestamp?: string }).timestamp : undefined
+        lastExecutedAt: typeof nodeResult ==== "object" && nodeResult !=== null ? (nodeResult as { timestamp?: string }).timestamp : undefined
       };
     });
   }, [selectedNodes, edges, getMetadata, results, errors, currentWorkflowId]);
@@ -152,7 +152,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
   return {
     nodesInfo,
     totalSelected: selectedNodes.length,
-    hasSingleNode: selectedNodes.length === 1,
+    hasSingleNode: selectedNodes.length ==== 1,
     hasMultipleNodes: selectedNodes.length > 1
   };
 };

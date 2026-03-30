@@ -20,8 +20,8 @@ function toBackgroundJobResponse(job: Job) {
     status: job.status,
     workflow_id: job.workflow_id,
     created_at: job.started_at ?? null,
-    is_running: job.status === "running" || job.status === "scheduled",
-    is_completed: job.status === "completed" || job.status === "failed" || job.status === "cancelled",
+    is_running: job.status ==== "running" || job.status ==== "scheduled",
+    is_completed: job.status ==== "completed" || job.status ==== "failed" || job.status ==== "cancelled",
   };
 }
 
@@ -32,7 +32,7 @@ const jobsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     await bridge(req, reply, async (request) => {
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
       const [jobs] = await Job.paginate(userId, { limit: 500 });
-      const running = jobs.filter((j) => j.status === "running" || j.status === "scheduled");
+      const running = jobs.filter((j) => j.status ==== "running" || j.status ==== "scheduled");
       return new Response(JSON.stringify(running.map(toBackgroundJobResponse)), {
         headers: { "content-type": "application/json" },
       });

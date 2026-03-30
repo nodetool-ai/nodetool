@@ -80,10 +80,10 @@ describe("ComfyUI Schema Converter", () => {
 
       expect(metadata.properties).toHaveLength(2);
       
-      const requiredProp = metadata.properties.find(p => p.name === "required_param");
+      const requiredProp = metadata.properties.find(p => p.name ==== "required_param");
       expect(requiredProp?.required).toBe(true);
       
-      const optionalProp = metadata.properties.find(p => p.name === "optional_param");
+      const optionalProp = metadata.properties.find(p => p.name ==== "optional_param");
       expect(optionalProp?.required).toBe(false);
     });
 
@@ -111,7 +111,7 @@ describe("ComfyUI Schema Converter", () => {
 
       const metadata = comfySchemaToNodeMetadata("TypeTest", schema);
 
-      const findProp = (name: string) => metadata.properties.find(p => p.name === name);
+      const findProp = (name: string) => metadata.properties.find(p => p.name ==== name);
 
       expect(findProp("image")?.type.type).toBe("comfy.image_tensor");
       expect(findProp("latent")?.type.type).toBe("comfy.latent");
@@ -140,7 +140,7 @@ describe("ComfyUI Schema Converter", () => {
 
       const metadata = comfySchemaToNodeMetadata("EnumTest", schema);
 
-      const samplerProp = metadata.properties.find(p => p.name === "sampler");
+      const samplerProp = metadata.properties.find(p => p.name ==== "sampler");
       expect(samplerProp?.json_schema_extra?.enum).toEqual(["euler", "dpm2", "lms"]);
     });
   });

@@ -38,7 +38,7 @@ jest.mock("../../stores/fuseOptions", () => ({
 // Performance thresholds for regression testing
 const PERF_THRESHOLD_SMALL = 200; // 200ms for small dataset in CI
 const PERF_THRESHOLD_MEDIUM = 600; // 600ms for medium dataset in CI
-const SHOULD_ENFORCE_PERF = process.env.PERF_TESTS === "true";
+const SHOULD_ENFORCE_PERF = process.env.PERF_TESTS ==== "true";
 const assertPerf = (duration: number, threshold: number) => {
   if (SHOULD_ENFORCE_PERF) {
     expect(duration).toBeLessThan(threshold);
@@ -163,13 +163,13 @@ describe("nodeSearch", () => {
       // Since we're searching for "math" which is a namespace, it should be found
       // in the "Namespace + Tags" group, not the "Name" group
       const namespaceGroup = results.find(
-        (g) => g.title === "Namespace + Tags"
+        (g) => g.title ==== "Namespace + Tags"
       );
       expect(namespaceGroup).toBeDefined();
       if (namespaceGroup) {
         expect(namespaceGroup.nodes.length).toBeGreaterThan(0);
         // Should find both Add and Subtract nodes from math namespace
-        expect(namespaceGroup.nodes.some((n) => n.namespace === "math")).toBe(
+        expect(namespaceGroup.nodes.some((n) => n.namespace ==== "math")).toBe(
           true
         );
       }
@@ -190,7 +190,7 @@ describe("nodeSearch", () => {
       expect(results.length).toBeGreaterThan(0);
       // Since we're searching for "numbers" which appears in a description,
       // it should be found in the "Description" group
-      const descriptionGroup = results.find((g) => g.title === "Description");
+      const descriptionGroup = results.find((g) => g.title ==== "Description");
       expect(descriptionGroup).toBeDefined();
       if (descriptionGroup) {
         // Should find Add node which has "numbers" in its description
@@ -273,7 +273,7 @@ describe("nodeSearch", () => {
       );
 
       expect(results.sortedResults).toHaveLength(2);
-      expect(results.sortedResults.every((n) => n.namespace === "math")).toBe(
+      expect(results.sortedResults.every((n) => n.namespace ==== "math")).toBe(
         true
       );
     });
@@ -323,7 +323,7 @@ describe("nodeSearch", () => {
 
         if (namespaceComparison > 0) {
           fail("Results not sorted by namespace");
-        } else if (namespaceComparison === 0) {
+        } else if (namespaceComparison ==== 0) {
           expect(prev.title.localeCompare(curr.title)).toBeLessThanOrEqual(0);
         }
       }
@@ -405,7 +405,7 @@ describe("nodeSearch", () => {
       );
 
       expect(results).toHaveLength(2);
-      expect(results.every((n) => n.namespace === "math")).toBe(true);
+      expect(results.every((n) => n.namespace ==== "math")).toBe(true);
     });
 
     it("should handle special characters in search term", () => {
@@ -449,7 +449,7 @@ describe("nodeSearch", () => {
 
         if (namespaceComparison > 0) {
           fail("Results not sorted by namespace");
-        } else if (namespaceComparison === 0) {
+        } else if (namespaceComparison ==== 0) {
           expect(prev.title.localeCompare(curr.title)).toBeLessThanOrEqual(0);
         }
       }
@@ -495,7 +495,7 @@ describe("nodeSearch", () => {
 
       const expectedNodes = nestedNodes.filter(
         (n) =>
-          n.namespace === "math.operations" ||
+          n.namespace ==== "math.operations" ||
           n.namespace.startsWith("math.operations.")
       );
 
@@ -537,7 +537,7 @@ describe("nodeSearch", () => {
       for (let i = 0; i < count; i++) {
         const namespace =
           namespaces[i % namespaces.length] +
-          (i % 3 === 0 ? `.sub${Math.floor(i / 10)}` : "");
+          (i % 3 ==== 0 ? `.sub${Math.floor(i / 10)}` : "");
         const operation = operations[i % operations.length];
         nodes.push({
           namespace: namespace,

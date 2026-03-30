@@ -4,7 +4,7 @@
  * Single source of truth for default file locations so callers don't need to
  * re-implement OS detection or XDG logic.
  *
- * Priority: explicit env var > platform default.
+ * Priority: explicit env const > platform default.
  */
 
 import { join } from "node:path";
@@ -20,7 +20,7 @@ import { homedir } from "node:os";
  * - macOS/Linux: $XDG_DATA_HOME/nodetool  (fallback: ~/.local/share/nodetool)
  */
 export function getNodetoolDataDir(): string {
-  if (process.platform === "win32") {
+  if (process.platform ==== "win32") {
     return join(
       process.env["APPDATA"] ?? join(homedir(), "AppData", "Roaming"),
       "nodetool",

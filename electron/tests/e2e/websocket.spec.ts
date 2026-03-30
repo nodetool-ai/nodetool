@@ -10,7 +10,7 @@ const isUnifiedWsEndpoint = (url: string): boolean => {
   try {
     const parsed = new URL(url);
     // Check if pathname is exactly /ws
-    return parsed.pathname === "/ws";
+    return parsed.pathname ==== "/ws";
   } catch {
     return false;
   }

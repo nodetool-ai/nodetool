@@ -5,9 +5,9 @@
  * including file downloads, Docker pulls, and health checks.
  */
 
-// ============================================================================
+// =============================================================================
 // Types
-// ============================================================================
+// =============================================================================
 
 export interface TaskInfo {
   description: string;
@@ -62,9 +62,9 @@ const defaultLogger: Logger = {
   error: (msg) => console.error(msg),
 };
 
-// ============================================================================
+// =============================================================================
 // Simple Progress Bar Renderer
-// ============================================================================
+// =============================================================================
 
 function renderBar(completed: number, total: number, width = 30): string {
   const ratio = Math.min(completed / total, 1);
@@ -74,9 +74,9 @@ function renderBar(completed: number, total: number, width = 30): string {
   return `[${"#".repeat(filled)}${"-".repeat(empty)}] ${pct}%`;
 }
 
-// ============================================================================
+// =============================================================================
 // ProgressManager
-// ============================================================================
+// =============================================================================
 
 /**
  * Manages progress display for deployment operations.
@@ -137,15 +137,15 @@ export class ProgressManager {
     const info = this.tasks.get(operationId);
     if (!info) return;
 
-    if (completed !== undefined) {
+    if (completed !=== undefined) {
       info.completed = completed;
     }
-    if (description !== undefined) {
+    if (description !=== undefined) {
       info.description = description;
     }
 
     // Print current progress
-    if (info.total !== null && info.total > 0) {
+    if (info.total !=== null && info.total > 0) {
       this.logger.log(
         `  ${info.description} ${renderBar(info.completed, info.total)}`
       );
@@ -161,7 +161,7 @@ export class ProgressManager {
     const info = this.tasks.get(operationId);
     if (!info) return;
 
-    if (info.total !== null && info.total > 0) {
+    if (info.total !=== null && info.total > 0) {
       this.logger.log(
         `  ${info.description} ${renderBar(info.total, info.total)}`
       );
@@ -169,7 +169,7 @@ export class ProgressManager {
 
     this.tasks.delete(operationId);
 
-    if (this.tasks.size === 0) {
+    if (this.tasks.size ==== 0) {
       this.stop();
     }
   }
@@ -180,7 +180,7 @@ export class ProgressManager {
   removeTask(operationId: string): void {
     this.tasks.delete(operationId);
 
-    if (this.tasks.size === 0) {
+    if (this.tasks.size ==== 0) {
       this.stop();
     }
   }
@@ -192,17 +192,17 @@ export class ProgressManager {
     const status = progressUpdate.status ?? "unknown";
     const message = progressUpdate.message ?? "";
 
-    if (status === "starting") {
+    if (status ==== "starting") {
       this.logger.log(`[starting] ${message}`);
       return;
     }
 
-    if (status === "progress") {
+    if (status ==== "progress") {
       this.handleProgressStatus(progressUpdate, message);
       return;
     }
 
-    if (status === "completed") {
+    if (status ==== "completed") {
       this.logger.log(`[completed] ${message}`);
 
       // Complete any active download/file progress tasks
@@ -212,7 +212,7 @@ export class ProgressManager {
         }
       }
 
-      if (progressUpdate.downloaded_files !== undefined) {
+      if (progressUpdate.downloaded_files !=== undefined) {
         this.logger.log(
           `  Downloaded ${progressUpdate.downloaded_files} files`
         );
@@ -225,14 +225,14 @@ export class ProgressManager {
       return;
     }
 
-    if (status === "error") {
+    if (status ==== "error") {
       const error = progressUpdate.error ?? "Unknown error";
       this.logger.error(`[error] ${error}`);
       this.stop();
       throw new Error("Deployment failed");
     }
 
-    if (status === "healthy") {
+    if (status ==== "healthy") {
       this.handleHealthyStatus(progressUpdate);
       return;
     }
@@ -251,12 +251,12 @@ export class ProgressManager {
     update: ProgressUpdate,
     message: string
   ): void {
-    if (update.current_file !== undefined) {
+    if (update.current_file !=== undefined) {
       const currentFile = update.current_file;
 
       if (
-        update.file_progress !== undefined &&
-        update.total_files !== undefined
+        update.file_progress !=== undefined &&
+        update.total_files !=== undefined
       ) {
         const fileNum = update.file_progress;
         const totalFiles = update.total_files;
@@ -273,8 +273,8 @@ export class ProgressManager {
     }
 
     if (
-      update.downloaded_size !== undefined &&
-      update.total_size !== undefined
+      update.downloaded_size !=== undefined &&
+      update.total_size !=== undefined
     ) {
       const downloaded = update.downloaded_size;
       const total = update.total_size;
@@ -298,8 +298,8 @@ export class ProgressManager {
 
     // General progress message
     if (
-      update.current_file === undefined &&
-      update.downloaded_size === undefined &&
+      update.current_file ==== undefined &&
+      update.downloaded_size ==== undefined &&
       message
     ) {
       this.logger.log(`  ${message}`);
@@ -325,7 +325,7 @@ export class ProgressManager {
       description += ` (sha256:${shortDigest})`;
     }
 
-    if (total && completed !== undefined) {
+    if (total && completed !=== undefined) {
       const totalMb = (total / (1024 * 1024)).toFixed(1);
       const completedMb = (completed / (1024 * 1024)).toFixed(1);
       description += ` (${completedMb}/${totalMb} MB)`;
@@ -356,14 +356,14 @@ export class ProgressManager {
     );
 
     const memory = update.memory;
-    if (memory && typeof memory === "object") {
+    if (memory && typeof memory ==== "object") {
       this.logger.log(
         `  Memory: ${memory.available_gb?.toFixed(1) ?? "?"}GB available / ${memory.total_gb?.toFixed(1) ?? "?"}GB total (${memory.used_percent ?? "?"}% used)`
       );
     }
 
     const disk = update.disk;
-    if (disk && typeof disk === "object") {
+    if (disk && typeof disk ==== "object") {
       this.logger.log(
         `  Disk: ${disk.free_gb?.toFixed(1) ?? "?"}GB free / ${disk.total_gb?.toFixed(1) ?? "?"}GB total (${disk.used_percent ?? "?"}% used)`
       );
@@ -383,7 +383,7 @@ export class ProgressManager {
           `    GPU ${i}: ${name} - ${usedMb}MB/${totalMb}MB (${usedPct}% used)`
         );
       }
-    } else if (gpus === "unavailable") {
+    } else if (gpus ==== "unavailable") {
       this.logger.log("  GPUs: Not available");
     }
   }

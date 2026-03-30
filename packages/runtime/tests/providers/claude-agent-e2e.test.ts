@@ -38,7 +38,7 @@ describe.skipIf(!sdkAvailable || !hasApiKey)("ClaudeAgentProvider E2E (MCP)", ()
       ],
       model: MODEL,
     })) {
-      if ("type" in item && (item as Chunk).type === "chunk") {
+      if ("type" in item && (item as Chunk).type ==== "chunk") {
         const c = item as Chunk;
         if (c.content) chunks.push(c.content);
       }
@@ -85,7 +85,7 @@ describe.skipIf(!sdkAvailable || !hasApiKey)("ClaudeAgentProvider E2E (MCP)", ()
       tools,
       onToolCall,
     })) {
-      if ("type" in item && (item as Chunk).type === "chunk") {
+      if ("type" in item && (item as Chunk).type ==== "chunk") {
         const c = item as Chunk;
         if (c.content) chunks.push(c.content);
       }
@@ -144,7 +144,7 @@ describe.skipIf(!sdkAvailable || !hasApiKey)("ClaudeAgentProvider E2E (MCP)", ()
       tools,
       onToolCall,
     })) {
-      if ("type" in item && (item as Chunk).type === "chunk") {
+      if ("type" in item && (item as Chunk).type ==== "chunk") {
         const c = item as Chunk;
         if (c.content) chunks.push(c.content);
       }
@@ -231,10 +231,10 @@ describe.skipIf(!sdkAvailable || !hasApiKey)("ClaudeAgentProvider E2E (MCP)", ()
 
     const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
       toolExecutions.push({ name, args });
-      if (name === "get_weather") {
+      if (name ==== "get_weather") {
         return JSON.stringify({ temperature: 18, condition: "cloudy", city: args.city });
       }
-      if (name === "get_time") {
+      if (name ==== "get_time") {
         return JSON.stringify({ time: "14:30", timezone: args.timezone });
       }
       return "unknown tool";
@@ -259,7 +259,7 @@ describe.skipIf(!sdkAvailable || !hasApiKey)("ClaudeAgentProvider E2E (MCP)", ()
     expect(executedNames).toContain("get_time");
 
     // Response should reference both results
-    const text = typeof message.content === "string" ? message.content.toLowerCase() : "";
+    const text = typeof message.content ==== "string" ? message.content.toLowerCase() : "";
     expect(text).toMatch(/tokyo|18|cloudy|14:30/);
   }, TIMEOUT);
 });

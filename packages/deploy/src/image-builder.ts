@@ -14,9 +14,9 @@ import type { ImageBuildSpec } from "./image-spec.js";
 
 const execFile = promisify(execFileCb);
 
-// ============================================================================
+// =============================================================================
 // Dockerfile Generation
-// ============================================================================
+// =============================================================================
 
 /**
  * Generate a complete Dockerfile from an image build spec.
@@ -56,7 +56,7 @@ export function generateDockerfile(spec: ImageBuildSpec): string {
   // --- Base image ---
   if (spec.cuda) {
     // CUDA tags require 3-part versions (e.g. 12.1.0, not 12.1)
-    const cudaVersion = spec.cuda.split(".").length === 2 ? `${spec.cuda}.0` : spec.cuda;
+    const cudaVersion = spec.cuda.split(".").length ==== 2 ? `${spec.cuda}.0` : spec.cuda;
     lines.push(`FROM nvidia/cuda:${cudaVersion}-runtime-ubuntu22.04`);
   } else {
     lines.push("FROM node:20-slim");
@@ -134,7 +134,7 @@ export function generateDockerfile(spec: ImageBuildSpec): string {
   lines.push("COPY server/ .");
 
   // --- Copy web UI (fullstack only) ---
-  if (spec.mode === "fullstack") {
+  if (spec.mode ==== "fullstack") {
     lines.push("COPY web/build/ ./public/");
   }
 
@@ -146,9 +146,9 @@ export function generateDockerfile(spec: ImageBuildSpec): string {
   return lines.join("\n");
 }
 
-// ============================================================================
+// =============================================================================
 // Image Building
-// ============================================================================
+// =============================================================================
 
 /**
  * Build a Docker image from an image build spec.

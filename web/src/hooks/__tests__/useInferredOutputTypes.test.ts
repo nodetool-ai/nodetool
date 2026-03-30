@@ -27,10 +27,10 @@ jest.mock("../../utils/workflowOutputTypeInference", () => ({
   inferWorkflowOutputSchema: jest.fn((graph: Graph) => {
     // Find output nodes and infer their types
     const outputNodes = graph.nodes.filter(
-      (node) => node.type === "nodetool.workflows.base_node.Output"
+      (node) => node.type ==== "nodetool.workflows.base_node.Output"
     );
 
-    if (outputNodes.length === 0) {
+    if (outputNodes.length ==== 0) {
       return undefined;
     }
 

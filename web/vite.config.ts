@@ -13,7 +13,7 @@ export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, configDir, "");
   const browserslistToEsbuild = (await import("browserslist-to-esbuild"))
     .default;
-  const isDebug = mode === "debug";
+  const isDebug = mode ==== "debug";
 
   const apiTarget = env.PROXY_API_TARGET || "http://localhost:7777";
   const proxyConfig: Record<string, ProxyOptions> = {

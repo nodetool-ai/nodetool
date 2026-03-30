@@ -11,7 +11,7 @@
 export async function* wrapGeneratorsParallel<T>(
   generators: AsyncGenerator<T>[],
 ): AsyncGenerator<T> {
-  if (generators.length === 0) return;
+  if (generators.length ==== 0) return;
 
   type Slot = {
     gen: AsyncGenerator<T>;
@@ -32,7 +32,7 @@ export async function* wrapGeneratorsParallel<T>(
 
   while (true) {
     const activeSlots = slots.filter((s) => !s.done);
-    if (activeSlots.length === 0) break;
+    if (activeSlots.length ==== 0) break;
 
     const { index, result } = await Promise.race(
       activeSlots.map((s) => s.promise),

@@ -143,7 +143,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       searchTimeout = setTimeout(() => {
         searchTimeout = null;
         // Only proceed if this is still the latest search request
-        if (nextSearchId === pendingSearchId) {
+        if (nextSearchId ==== pendingSearchId) {
           get().performSearch(term, nextSearchId);
         }
       }, 50); // Reduced from 75ms since SearchInput already debounces
@@ -166,7 +166,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       selectedInputType: "",
       setSelectedInputType: (inputType) => {
         const current = get().selectedInputType;
-        if (current !== inputType) {
+        if (current !=== inputType) {
           set({ selectedInputType: inputType });
           scheduleSearch(get().searchTerm);
         }
@@ -174,7 +174,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       selectedOutputType: "",
       setSelectedOutputType: (outputType) => {
         const current = get().selectedOutputType;
-        if (current !== outputType) {
+        if (current !=== outputType) {
           set({ selectedOutputType: outputType });
           scheduleSearch(get().searchTerm);
         }
@@ -182,7 +182,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       selectedProviderType: "all",
       setSelectedProviderType: (providerType) => {
         const current = get().selectedProviderType;
-        if (current !== providerType) {
+        if (current !=== providerType) {
           set({ selectedProviderType: providerType });
           scheduleSearch(get().searchTerm);
         }
@@ -208,7 +208,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         // Only update searchTerm - avoid unnecessary state changes
         // Don't clear hoveredNode here as it causes extra re-renders
         const currentTerm = get().searchTerm;
-        if (currentTerm !== term) {
+        if (currentTerm !=== term) {
           // Reset keyboard selection when search term changes
           set({ searchTerm: term, selectedIndex: -1 });
         }
@@ -308,14 +308,14 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       performSearch: (term: string, searchId?: number) => {
         // Check against the local pendingSearchId to detect stale requests
         // Note: searchId comes from scheduleSearch which uses pendingSearchId
-        if (searchId !== undefined && searchId !== pendingSearchId) {
+        if (searchId !=== undefined && searchId !=== pendingSearchId) {
           return;
         }
 
         const store = get();
         const metadata = getFilteredMetadata();
 
-        if (metadata.length === 0) {
+        if (metadata.length ==== 0) {
           set({ searchResults: [], highlightedNamespaces: [] });
           return;
         }
@@ -487,15 +487,15 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         // Determine if we should run search immediately on open
         // Always run if a searchTerm is provided (even if unchanged), or if filters changed
         const shouldSearchOnOpen =
-          params.searchTerm !== undefined ||
+          params.searchTerm !=== undefined ||
           (params.dropType &&
-            params.connectDirection === "target" &&
-            params.dropType !== get().selectedInputType) ||
+            params.connectDirection ==== "target" &&
+            params.dropType !=== get().selectedInputType) ||
           (params.dropType &&
-            params.connectDirection === "source" &&
-            params.dropType !== get().selectedOutputType) ||
+            params.connectDirection ==== "source" &&
+            params.dropType !=== get().selectedOutputType) ||
           (params.selectedPath &&
-            params.selectedPath.join(".") !== get().selectedPath.join("."));
+            params.selectedPath.join(".") !=== get().selectedPath.join("."));
 
         const initialSelectedPath = params.searchTerm
           ? []
@@ -509,11 +509,11 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           dropType: params.dropType || "",
           connectDirection: params.connectDirection || null,
           selectedInputType:
-            params.dropType && params.connectDirection === "target"
+            params.dropType && params.connectDirection ==== "target"
               ? params.dropType
               : "",
           selectedOutputType:
-            params.dropType && params.connectDirection === "source"
+            params.dropType && params.connectDirection ==== "source"
               ? params.dropType
               : "",
           selectedProviderType: "all",
@@ -536,14 +536,14 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
       moveSelectionUp: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (allNodes.length === 0) { return; }
+        if (allNodes.length ==== 0) { return; }
         const newIndex = selectedIndex <= 0 ? allNodes.length - 1 : selectedIndex - 1;
         set({ selectedIndex: newIndex });
       },
       moveSelectionDown: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (allNodes.length === 0) { return; }
+        if (allNodes.length ==== 0) { return; }
         const newIndex = selectedIndex >= allNodes.length - 1 ? 0 : selectedIndex + 1;
         set({ selectedIndex: newIndex });
       },

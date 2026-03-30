@@ -149,7 +149,7 @@ export class SchemaParser {
    */
   private _isQueueStatusSchema(schema: AnyRecord): boolean {
     const title = ((schema["title"] as string | undefined) ?? "").toLowerCase();
-    if (title === "queuestatus") return true;
+    if (title ==== "queuestatus") return true;
     const properties = (schema["properties"] as AnyRecord | undefined) ?? {};
     return "status" in properties && "request_id" in properties;
   }
@@ -158,7 +158,7 @@ export class SchemaParser {
    * Resolve $ref references in schema, merging allOf.
    */
   private _resolveRef(schema: AnyRecord, schemaObj: AnyRecord): AnyRecord {
-    if (typeof schemaObj !== "object" || schemaObj === null) return {};
+    if (typeof schemaObj !=== "object" || schemaObj ==== null) return {};
 
     if ("$ref" in schemaObj) {
       const refPath = schemaObj["$ref"] as string;
@@ -334,7 +334,7 @@ export class SchemaParser {
 
     const jsonType = (prop["type"] as string | undefined) ?? "string";
 
-    if (jsonType === "string") {
+    if (jsonType ==== "string") {
       const nameLower = propName.toLowerCase();
 
       if (
@@ -363,22 +363,22 @@ export class SchemaParser {
         ) {
           return { tsType: "audio", propType: "audio" };
         }
-      } else if (nameLower === "image" || nameLower === "mask") {
+      } else if (nameLower ==== "image" || nameLower ==== "mask") {
         return { tsType: "image", propType: "image" };
-      } else if (nameLower === "video") {
+      } else if (nameLower ==== "video") {
         return { tsType: "video", propType: "video" };
-      } else if (nameLower === "audio") {
+      } else if (nameLower ==== "audio") {
         return { tsType: "audio", propType: "audio" };
       }
 
       return { tsType: "string", propType: "str" };
-    } else if (jsonType === "integer") {
+    } else if (jsonType ==== "integer") {
       return { tsType: "number", propType: "int" };
-    } else if (jsonType === "number") {
+    } else if (jsonType ==== "number") {
       return { tsType: "number", propType: "float" };
-    } else if (jsonType === "boolean") {
+    } else if (jsonType ==== "boolean") {
       return { tsType: "boolean", propType: "bool" };
-    } else if (jsonType === "array") {
+    } else if (jsonType ==== "array") {
       const items = (prop["items"] as AnyRecord | undefined) ?? {};
 
       // Handle $ref in array items (complex object types)
@@ -397,7 +397,7 @@ export class SchemaParser {
         tsType: `${inner.tsType}[]`,
         propType: `list[${inner.propType}]`,
       };
-    } else if (jsonType === "object") {
+    } else if (jsonType ==== "object") {
       return { tsType: "object", propType: "dict[str, any]" };
     }
 
@@ -456,15 +456,15 @@ export class SchemaParser {
         let propType: string;
         let defaultVal: unknown;
 
-        if (subType === "integer") {
+        if (subType ==== "integer") {
           tsType = "number";
           propType = "int";
           defaultVal = 0;
-        } else if (subType === "number") {
+        } else if (subType ==== "number") {
           tsType = "number";
           propType = "float";
           defaultVal = 0.0;
-        } else if (subType === "boolean") {
+        } else if (subType ==== "boolean") {
           tsType = "boolean";
           propType = "bool";
           defaultVal = false;
@@ -497,32 +497,32 @@ export class SchemaParser {
     enumName?: string,
   ): unknown {
     // Asset refs should always default to empty objects
-    if (propType === "image") return null;
-    if (propType === "video") return null;
-    if (propType === "audio") return null;
+    if (propType ==== "image") return null;
+    if (propType ==== "video") return null;
+    if (propType ==== "audio") return null;
 
     if ("default" in prop) {
       const defaultVal = prop["default"];
-      if (typeof defaultVal === "string") {
+      if (typeof defaultVal ==== "string") {
         // Return raw string value — FAL API expects plain enum values like "none", not "Acceleration.NONE"
         return defaultVal;
-      } else if (typeof defaultVal === "boolean") {
+      } else if (typeof defaultVal ==== "boolean") {
         return defaultVal;
-      } else if (typeof defaultVal === "number") {
+      } else if (typeof defaultVal ==== "number") {
         return defaultVal;
       }
       // null default
-      if (defaultVal === null) return null;
+      if (defaultVal ==== null) return null;
     }
 
     // Generate sensible defaults based on type
-    if (propType === "str") return "";
-    if (propType === "int") {
+    if (propType ==== "str") return "";
+    if (propType ==== "int") {
       const desc = ((prop["description"] as string | undefined) ?? "").toLowerCase();
       return desc.includes("seed") ? -1 : 0;
     }
-    if (propType === "float") return 0.0;
-    if (propType === "bool") return false;
+    if (propType ==== "float") return 0.0;
+    if (propType ==== "bool") return false;
     if (propType.startsWith("list")) return [];
     if (required) return "";
 
@@ -540,15 +540,15 @@ export class SchemaParser {
     const keys = Object.keys(properties);
 
     // Single output patterns
-    if (keys.length === 1) {
+    if (keys.length ==== 1) {
       const propName = keys[0].toLowerCase();
       if (propName.includes("video")) return "video";
       if (propName.includes("image")) return "image";
       if (propName.includes("audio")) return "audio";
       const propSchema = properties[keys[0]] as AnyRecord | undefined;
-      if (propSchema?.["type"] === "string") return "str";
+      if (propSchema?.["type"] ==== "string") return "str";
       // Single array field (e.g. { values: array }) → dict with one field
-      if (propSchema?.["type"] === "array") return "dict";
+      if (propSchema?.["type"] ==== "array") return "dict";
     }
 
     // Check for 3D model output fields
@@ -580,7 +580,7 @@ export class SchemaParser {
     let parts = endpointId.split("/");
 
     // Skip 'fal-ai' prefix
-    if (parts.length > 0 && parts[0] === "fal-ai") {
+    if (parts.length > 0 && parts[0] ==== "fal-ai") {
       parts = parts.slice(1);
     }
 

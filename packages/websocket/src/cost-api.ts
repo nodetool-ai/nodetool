@@ -54,12 +54,12 @@ export async function handleCostRequest(
 
   const userId = getUserId(request, options.userIdHeader);
 
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
 
   // GET /api/costs
-  if (pathname === "/api/costs") {
+  if (pathname ==== "/api/costs") {
     const provider = url.searchParams.get("provider") ?? undefined;
     const model = url.searchParams.get("model") ?? undefined;
     const limitRaw = url.searchParams.get("limit");
@@ -80,7 +80,7 @@ export async function handleCostRequest(
   }
 
   // GET /api/costs/aggregate
-  if (pathname === "/api/costs/aggregate") {
+  if (pathname ==== "/api/costs/aggregate") {
     const provider = url.searchParams.get("provider") ?? undefined;
     const model = url.searchParams.get("model") ?? undefined;
     const result = await Prediction.aggregateByUser(userId, { provider, model });
@@ -88,20 +88,20 @@ export async function handleCostRequest(
   }
 
   // GET /api/costs/aggregate/by-provider
-  if (pathname === "/api/costs/aggregate/by-provider") {
+  if (pathname ==== "/api/costs/aggregate/by-provider") {
     const result = await Prediction.aggregateByProvider(userId);
     return jsonResponse(result);
   }
 
   // GET /api/costs/aggregate/by-model
-  if (pathname === "/api/costs/aggregate/by-model") {
+  if (pathname ==== "/api/costs/aggregate/by-model") {
     const provider = url.searchParams.get("provider") ?? undefined;
     const result = await Prediction.aggregateByModel(userId, { provider });
     return jsonResponse(result);
   }
 
   // GET /api/costs/summary
-  if (pathname === "/api/costs/summary") {
+  if (pathname ==== "/api/costs/summary") {
     const [overall, byProvider, byModel] = await Promise.all([
       Prediction.aggregateByUser(userId),
       Prediction.aggregateByProvider(userId),

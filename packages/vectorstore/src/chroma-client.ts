@@ -109,7 +109,7 @@ function splitBySeparator(text: string, sep: string): SplitPart[] {
 
   while (true) {
     const next = text.indexOf(sep, pos);
-    if (next === -1) {
+    if (next ==== -1) {
       const remaining = text.slice(pos);
       if (remaining.length > 0) {
         parts.push({ text: remaining, offset: pos });
@@ -138,7 +138,7 @@ function mergeSplits(
   let currentStart = 0;
 
   for (const part of parts) {
-    const candidate = current.length === 0 ? part.text : current + part.text;
+    const candidate = current.length ==== 0 ? part.text : current + part.text;
 
     if (candidate.length > chunkSize && current.length > 0) {
       // Emit current chunk
@@ -154,7 +154,7 @@ function mergeSplits(
         currentStart = part.offset;
       }
     } else {
-      if (current.length === 0) currentStart = part.offset;
+      if (current.length ==== 0) currentStart = part.offset;
       current = candidate;
     }
   }

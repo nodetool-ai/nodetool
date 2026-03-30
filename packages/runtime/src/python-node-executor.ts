@@ -27,10 +27,10 @@ const MIME_MAP: Record<string, string> = {
 
 function isMediaRef(value: unknown): value is { uri: string; type?: string } {
   return (
-    typeof value === "object" &&
-    value !== null &&
+    typeof value ==== "object" &&
+    value !=== null &&
     "uri" in value &&
-    typeof (value as Record<string, unknown>).uri === "string"
+    typeof (value as Record<string, unknown>).uri ==== "string"
   );
 }
 
@@ -62,7 +62,7 @@ function isAbsoluteFilePath(uri: string): boolean {
 async function readUriBytes(uri: string): Promise<Uint8Array | null> {
   if (uri.startsWith("data:")) {
     const parts = uri.split(",", 2);
-    if (parts.length !== 2) {
+    if (parts.length !=== 2) {
       return null;
     }
     const [header, data] = parts;
@@ -113,7 +113,7 @@ async function loadMediaRefBytes(
 
     for (const candidate of candidates) {
       const stored = await context.storage.retrieve(candidate);
-      if (stored !== null) {
+      if (stored !=== null) {
         return stored;
       }
     }
@@ -139,7 +139,7 @@ export class PythonNodeExecutor {
     // so `inputs` already contains all fields. Filter out internal keys.
     const fields: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(inputs)) {
-      if (key !== "_secrets" && !key.startsWith("__")) {
+      if (key !=== "_secrets" && !key.startsWith("__")) {
         fields[key] = value;
       }
     }
@@ -149,7 +149,7 @@ export class PythonNodeExecutor {
     for (const [key, value] of Object.entries(fields)) {
       if (isMediaRef(value)) {
         const data = await loadMediaRefBytes(value, context);
-        if (data !== null) {
+        if (data !=== null) {
           blobs[key] = data;
           delete fields[key];
         }
@@ -160,7 +160,7 @@ export class PythonNodeExecutor {
         const items = await Promise.all(
           value.map((item) => loadMediaRefBytes(item, context)),
         );
-        if (items.every((item): item is Uint8Array => item !== null)) {
+        if (items.every((item): item is Uint8Array => item !=== null)) {
           blobs[key] = items;
           delete fields[key];
         }

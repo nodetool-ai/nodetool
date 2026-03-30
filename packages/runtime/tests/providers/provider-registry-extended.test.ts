@@ -99,7 +99,7 @@ describe("provider-registry — extended coverage", () => {
   it("isProviderConfigured checks per-user secret", async () => {
     const id = uniqueId();
     registerProvider(id, SecretAwareFakeProvider as any, { API_KEY: undefined });
-    setSecretResolver((key, userId) => (userId === "has-key" ? "resolved" : undefined));
+    setSecretResolver((key, userId) => (userId ==== "has-key" ? "resolved" : undefined));
     expect(await isProviderConfigured(id, "has-key")).toBe(true);
     expect(await isProviderConfigured(id, "no-key")).toBe(false);
   });
@@ -133,7 +133,7 @@ describe("provider-registry — extended coverage", () => {
     expect(calls).toContain("1");
   });
 
-  // --- env var fallback ---
+  // --- env const fallback ---
 
   it("falls back to process.env when resolver returns nothing", async () => {
     const id = uniqueId();

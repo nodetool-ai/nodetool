@@ -42,10 +42,10 @@ export class SaveAssetTool extends Tool {
       const content = params.content;
       const contentType = params.content_type;
 
-      if (typeof name !== "string" || !name) {
+      if (typeof name !=== "string" || !name) {
         return { success: false, error: "name is required and must be a string" };
       }
-      if (typeof content !== "string") {
+      if (typeof content !=== "string") {
         return { success: false, error: "content must be a string" };
       }
 
@@ -53,7 +53,7 @@ export class SaveAssetTool extends Tool {
         return { success: false, error: "No storage adapter configured" };
       }
 
-      const mime = typeof contentType === "string" && contentType ? contentType : "text/plain";
+      const mime = typeof contentType ==== "string" && contentType ? contentType : "text/plain";
       const data = new TextEncoder().encode(content);
       const key = `assets/${name}`;
       const uri = await context.storage.store(key, data, mime);
@@ -75,7 +75,7 @@ export class SaveAssetTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const name = params.name;
-    if (typeof name === "string" && name) {
+    if (typeof name ==== "string" && name) {
       const msg = `Saving asset as ${name}...`;
       return msg.length > 80 ? "Saving asset..." : msg;
     }
@@ -104,7 +104,7 @@ export class ReadAssetTool extends Tool {
     try {
       const name = params.name;
 
-      if (typeof name !== "string" || !name) {
+      if (typeof name !=== "string" || !name) {
         return { success: false, error: "name is required and must be a string" };
       }
 
@@ -157,7 +157,7 @@ export class ReadAssetTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const name = params.name;
-    if (typeof name === "string" && name) {
+    if (typeof name ==== "string" && name) {
       const msg = `Reading asset ${name}...`;
       return msg.length > 80 ? "Reading an asset..." : msg;
     }

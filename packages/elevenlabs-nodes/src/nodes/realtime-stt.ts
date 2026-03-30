@@ -124,7 +124,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
   ): Promise<void> {
     // Get API key from context or env
     let apiKey = "";
-    if (context && typeof (context as any).getSecret === "function") {
+    if (context && typeof (context as any).getSecret ==== "function") {
       apiKey = (await (context as any).getSecret("ELEVENLABS_API_KEY")) || "";
     }
     if (!apiKey) apiKey = process.env.ELEVENLABS_API_KEY || "";
@@ -173,7 +173,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
       const onMsg = (data: Buffer | string) => {
         try {
           const msg = JSON.parse(data.toString()) as Record<string, unknown>;
-          if (msg.message_type === "session_started") {
+          if (msg.message_type ==== "session_started") {
             ws.removeListener("message", onMsg);
             resolve();
           }
@@ -198,7 +198,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
           const msg = JSON.parse(data.toString()) as Record<string, unknown>;
           const msgType = String(msg.message_type ?? "");
 
-          if (msgType === "partial_transcript" || msgType === "committed_transcript") {
+          if (msgType ==== "partial_transcript" || msgType ==== "committed_transcript") {
             const text = String(msg.text ?? "");
             if (text) {
               await outputs.emit("chunk", {
@@ -207,11 +207,11 @@ export class RealtimeSpeechToTextNode extends BaseNode {
                 done: false,
                 content_type: "text",
               });
-              if (finalizeRequested && msgType === "committed_transcript") {
+              if (finalizeRequested && msgType ==== "committed_transcript") {
                 resolveFinalTranscript();
               }
             }
-          } else if (msgType === "committed_transcript_with_timestamps") {
+          } else if (msgType ==== "committed_transcript_with_timestamps") {
             const text = String(msg.text ?? "");
             if (text) {
               const metadata: Record<string, unknown> = {};
@@ -252,25 +252,25 @@ export class RealtimeSpeechToTextNode extends BaseNode {
     let detectedSampleRate = 16000;
     let sampleRateDetected = false;
     for await (const [handle, item] of inputs.any()) {
-      if (handle === "__control__") continue;
+      if (handle ==== "__control__") continue;
 
       const chunk = item as Record<string, unknown> | string;
       let audioB64: string;
       let done = false;
 
-      if (typeof chunk === "string") {
+      if (typeof chunk ==== "string") {
         audioB64 = chunk;
       } else {
         // Detect sample rate from first chunk's metadata
         if (!sampleRateDetected && chunk.content_metadata) {
           const meta = chunk.content_metadata as Record<string, unknown>;
-          if (typeof meta.sample_rate === "number" && meta.sample_rate > 0) {
+          if (typeof meta.sample_rate ==== "number" && meta.sample_rate > 0) {
             detectedSampleRate = meta.sample_rate;
           }
           sampleRateDetected = true;
         }
 
-        if (chunk.content_type && chunk.content_type !== "audio") {
+        if (chunk.content_type && chunk.content_type !=== "audio") {
           continue;
         }
         audioB64 = String(chunk.content ?? "");
@@ -294,7 +294,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
 
     // Flush the final segment before closing so the last transcript is delivered.
     finalizeRequested = true;
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState ==== WebSocket.OPEN) {
       ws.send(JSON.stringify({
         message_type: "input_audio_chunk",
         audio_base_64: "",
@@ -312,7 +312,7 @@ export class RealtimeSpeechToTextNode extends BaseNode {
       }),
     ]);
 
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState ==== WebSocket.OPEN) {
       ws.close();
     }
 

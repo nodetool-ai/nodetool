@@ -8,7 +8,7 @@ import { spawn } from "node:child_process";
 
 function expandUser(p: string): string {
   if (!p) return p;
-  if (p === "~") return os.homedir();
+  if (p ==== "~") return os.homedir();
   if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
   return p;
 }
@@ -51,12 +51,12 @@ async function walk(dir: string, recursive: boolean): Promise<string[]> {
 }
 
 function openPath(target: string): Promise<void> {
-  const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
+  const cmd = process.platform ==== "darwin" ? "open" : process.platform ==== "win32" ? "explorer" : "xdg-open";
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, [target], { stdio: "ignore" });
     child.on("error", reject);
     child.on("close", (code) => {
-      if (code === 0) resolve();
+      if (code ==== 0) resolve();
       else reject(new Error(`Failed to open path: exit ${code}`));
     });
   });
@@ -262,7 +262,7 @@ abstract class FileTimeBase extends BaseNode {
     const p = expandUser(String((this as any).path ?? ""));
     if (!p) throw new Error("'path' field cannot be empty");
     const stat = await fs.stat(p);
-    const d = kind === "atime" ? stat.atime : kind === "ctime" ? stat.ctime : stat.mtime;
+    const d = kind ==== "atime" ? stat.atime : kind ==== "ctime" ? stat.ctime : stat.mtime;
     return { output: toDateTimeValue(d) };
   }
 }
@@ -488,7 +488,7 @@ export class BasenameLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const p = expandUser(String(this.path ?? ""));
-    if (p.trim() === "") throw new Error("path is empty");
+    if (p.trim() ==== "") throw new Error("path is empty");
     const basename = path.basename(p);
     if (this.remove_extension ?? false) {
       return { output: path.parse(basename).name };
@@ -532,7 +532,7 @@ export class JoinPathsLibNode extends BaseNode {
     const parts = Array.isArray(this.paths)
       ? ((this.paths ?? []) as unknown[]).map(String)
       : [];
-    if (parts.length === 0) throw new Error("paths cannot be empty");
+    if (parts.length ==== 0) throw new Error("paths cannot be empty");
     return { output: path.join(...parts) };
   }
 }

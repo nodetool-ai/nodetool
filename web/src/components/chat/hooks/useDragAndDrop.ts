@@ -41,7 +41,7 @@ export const useDragAndDrop = (
           const droppedFiles: DroppedFile[] = [];
           
           // Handle multiple assets
-          if (dragData.type === "assets-multiple") {
+          if (dragData.type ==== "assets-multiple") {
             const selectedIds = dragData.payload as string[];
             const { filteredAssets, globalSearchResults } = useAssetGridStore.getState();
             // Combine sources to find assets. 
@@ -67,7 +67,7 @@ export const useDragAndDrop = (
           }
 
           // Handle single asset (direct asset drop or fallback from assets-multiple)
-          if (droppedFiles.length === 0 && dragData.type === "asset") {
+          if (droppedFiles.length ==== 0 && dragData.type ==== "asset") {
             const asset = dragData.payload as Asset;
             if (asset.get_url) {
               droppedFiles.push({
@@ -81,7 +81,7 @@ export const useDragAndDrop = (
 
           // Fallback: if assets-multiple lookup failed, try the legacy "asset" key directly
           // This handles the case where asset IDs couldn't be found in stores
-          if (droppedFiles.length === 0 && dragData.type === "assets-multiple") {
+          if (droppedFiles.length ==== 0 && dragData.type ==== "assets-multiple") {
             const assetJson = e.dataTransfer.getData("asset");
             if (assetJson) {
               try {

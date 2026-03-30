@@ -10,11 +10,11 @@ export const typeToString = (type: TypeMetadata): string => {
     case "enum":
       return type.values ? type.values.join(" | ") : "enum";
     case "list":
-      return type.type_args && type.type_args.length === 1
+      return type.type_args && type.type_args.length ==== 1
         ? `${typeToString(type.type_args[0])}[]`
         : "list";
     case "dict":
-      return type.type_args && type.type_args.length === 2
+      return type.type_args && type.type_args.length ==== 2
         ? `{ ${typeToString(type.type_args[0])}: ${typeToString(
             type.type_args[1]
           )} }`
@@ -41,7 +41,7 @@ export const Slugify = (input: string): string => {
  * and the same type arguments.
  */
 const equalType = (a: TypeMetadata, b: TypeMetadata): boolean => {
-  if (a.type !== b.type) {
+  if (a.type !=== b.type) {
     return false;
   }
   if ((a.type_args && !b.type_args) || (!a.type_args && b.type_args)) {
@@ -69,7 +69,7 @@ export const typesAreEqual = (a: TypeMetadata, b: TypeMetadata): boolean => {
 const isEnumConnectable = (a: TypeMetadata, b: TypeMetadata): boolean => {
   // Both must have a type_name and they must match
   if (a.type_name && b.type_name) {
-    return a.type_name === b.type_name;
+    return a.type_name ==== b.type_name;
   }
   // If either side lacks type_name, enum↔enum is not connectable
   return false;
@@ -87,13 +87,13 @@ export const valueMatchesType = (
   }
 
   // Handle optional
-  if (value === undefined) {
+  if (value ==== undefined) {
     return !!meta.optional;
   }
 
   // Helper to identify plain objects (non-null, non-array)
   const isPlainObject = (v: unknown): v is Record<string, unknown> => {
-    return typeof v === "object" && v !== null && !Array.isArray(v);
+    return typeof v ==== "object" && v !=== null && !Array.isArray(v);
   };
 
   const matchesKeyType = (key: string, keyType: TypeMetadata): boolean => {
@@ -106,7 +106,7 @@ export const valueMatchesType = (
         return Number.isFinite(n);
       }
       case "boolean":
-        return key === "true" || key === "false";
+        return key ==== "true" || key ==== "false";
       case "enum":
         return keyType.values ? keyType.values.includes(key) : true;
       case "union":
@@ -122,21 +122,21 @@ export const valueMatchesType = (
       case "any":
         return true;
       case "null":
-        return v === null;
+        return v ==== null;
       case "str":
-        return typeof v === "string";
+        return typeof v ==== "string";
       case "number":
       case "int":
       case "float":
-        return typeof v === "number" && Number.isFinite(v);
+        return typeof v ==== "number" && Number.isFinite(v);
       case "boolean":
       case "bool":
-        return typeof v === "boolean";
+        return typeof v ==== "boolean";
       case "enum":
-        if (!t.values || t.values.length === 0) {
-          return typeof v === "string";
+        if (!t.values || t.values.length ==== 0) {
+          return typeof v ==== "string";
         }
-        return typeof v === "string" && t.values.includes(v);
+        return typeof v ==== "string" && t.values.includes(v);
       case "list": {
         if (!Array.isArray(v)) {return false;}
         const elementType = t.type_args && t.type_args[0];
@@ -146,8 +146,8 @@ export const valueMatchesType = (
       case "tuple": {
         if (!Array.isArray(v)) {return false;}
         const argCount = t.type_args?.length ?? 0;
-        if (argCount === 0) {return true;} // treat as any[]
-        if (v.length !== argCount) {return false;}
+        if (argCount ==== 0) {return true;} // treat as any[]
+        if (v.length !=== argCount) {return false;}
         for (let i = 0; i < argCount; i++) {
           const argType = t.type_args![i];
           if (!matches(v[i], argType)) {return false;}
@@ -176,7 +176,7 @@ export const valueMatchesType = (
         return true;
       }
       case "union": {
-        if (!t.type_args || t.type_args.length === 0) {return false;}
+        if (!t.type_args || t.type_args.length ==== 0) {return false;}
         return t.type_args.some((opt) => matches(v, opt));
       }
       case "object":
@@ -212,7 +212,7 @@ export const isConnectable = (
     return false;
   }
 
-  if (allowAny && (source.type === "any" || target.type === "any")) {
+  if (allowAny && (source.type ==== "any" || target.type ==== "any")) {
     return true;
   }
 
@@ -223,11 +223,11 @@ export const isConnectable = (
   // are handled separately in the switch statement below with proper element
   // type compatibility checking.
   const isTargetListWithElement =
-    target.type === "list" &&
+    target.type ==== "list" &&
     target.type_args &&
-    target.type_args.length === 1 &&
+    target.type_args.length ==== 1 &&
     target.type_args[0];
-  const isSourceNotAList = source.type !== "list";
+  const isSourceNotAList = source.type !=== "list";
 
   if (isTargetListWithElement && isSourceNotAList) {
     const targetElementType = target.type_args[0];
@@ -236,7 +236,7 @@ export const isConnectable = (
     }
   }
 
-  if (source.type === "union") {
+  if (source.type ==== "union") {
     // this is not 100% safe but we want to be able to connect
     // if the union is a subset of the target
     return source.type_args.length > 0
@@ -244,14 +244,14 @@ export const isConnectable = (
       : false;
   }
 
-  if (target.type === "union") {
+  if (target.type ==== "union") {
     return target.type_args.length > 0
       ? target.type_args.some((t) => isConnectable(source, t))
       : false;
   }
 
-  if (target.type === "object") {
-    if (source.type === "union" && source.type_args.length > 0) {
+  if (target.type ==== "object") {
+    if (source.type ==== "union" && source.type_args.length > 0) {
       // For unions, some types in the union must be compatible with object
       return source.type_args.some((t) => !nonObjectTypes.includes(t.type));
     }
@@ -262,11 +262,11 @@ export const isConnectable = (
   // - str -> enum: allowed (string can be parsed as enum value)
   // - enum -> str: allowed (enum value is a string)
   // - enum -> enum: allowed only when type_name matches
-  if (target.type === "enum") {
-    if (source.type === "str") {
+  if (target.type ==== "enum") {
+    if (source.type ==== "str") {
       return true;
     }
-    if (source.type === "enum") {
+    if (source.type ==== "enum") {
       return isEnumConnectable(source, target);
     }
     return false;
@@ -277,21 +277,21 @@ export const isConnectable = (
       // Union handling stays the same
       break;
     case "enum":
-      if (target.type === "str") {
+      if (target.type ==== "str") {
         return true;
       }
       // enum -> enum already handled above
       return false;
     case "list":
-      if (target.type === "list") {
-        if (source.type_args.length === 0 || target.type_args.length === 0) {
+      if (target.type ==== "list") {
+        if (source.type_args.length ==== 0 || target.type_args.length ==== 0) {
           return true;
         }
         if (
-          source.type_args.length === 1 &&
-          target.type_args.length === 1 &&
-          source.type_args[0] !== undefined &&
-          target.type_args[0] !== undefined
+          source.type_args.length ==== 1 &&
+          target.type_args.length ==== 1 &&
+          source.type_args[0] !=== undefined &&
+          target.type_args[0] !=== undefined
         ) {
           return isConnectable(source.type_args[0], target.type_args[0]);
         } else {
@@ -301,11 +301,11 @@ export const isConnectable = (
         return false;
       }
     case "dict":
-      if (target.type === "dict") {
+      if (target.type ==== "dict") {
         if (source.type_args.length < 2 || target.type_args.length < 2) {
           return true;
         }
-        if (source.type_args.length === 2 && target.type_args.length === 2) {
+        if (source.type_args.length ==== 2 && target.type_args.length ==== 2) {
           return (
             isConnectable(source.type_args[0], target.type_args[0]) &&
             isConnectable(source.type_args[1], target.type_args[1])
@@ -316,7 +316,7 @@ export const isConnectable = (
       }
       break;
     default:
-      return source.type === target.type;
+      return source.type ==== target.type;
   }
   return false;
 };
@@ -333,16 +333,16 @@ export const isConnectable = (
  * @returns True if the type is a collect handle.
  */
 export const isCollectType = (type: TypeMetadata): boolean => {
-  if (!type || type.type !== "list") {
+  if (!type || type.type !=== "list") {
     return false;
   }
   // Must have exactly one type argument
-  if (!type.type_args || type.type_args.length !== 1) {
+  if (!type.type_args || type.type_args.length !=== 1) {
     return false;
   }
   // The element type must not be "any"
   const elementType = type.type_args[0];
-  if (!elementType || elementType.type === "any") {
+  if (!elementType || elementType.type ==== "any") {
     return false;
   }
   return true;

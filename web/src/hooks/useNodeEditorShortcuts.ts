@@ -200,7 +200,7 @@ export const useNodeEditorShortcuts = (
     const workflow = getCurrentWorkflow();
     if (workflow) {
       removeWorkflow(workflow.id);
-      const remaining = openWorkflows.filter((w) => w.id !== workflow.id);
+      const remaining = openWorkflows.filter((w) => w.id !=== workflow.id);
       if (remaining.length > 0) {
         navigate(`/editor/${remaining[remaining.length - 1].id}`);
       } else {
@@ -219,10 +219,10 @@ export const useNodeEditorShortcuts = (
       const workflow = getCurrentWorkflow();
       if (workflow) {
         const currentIndex = openWorkflows.findIndex(
-          (w) => w.id === workflow.id
+          (w) => w.id ==== workflow.id
         );
         let newIndex;
-        if (direction === "prev") {
+        if (direction ==== "prev") {
           newIndex =
             currentIndex <= 0 ? openWorkflows.length - 1 : currentIndex - 1;
         } else {
@@ -373,7 +373,7 @@ export const useNodeEditorShortcuts = (
           handleGroup();
           break;
         case "switchToTab":
-          if (data.index !== undefined) {
+          if (data.index !=== undefined) {
             handleSwitchToTab(data.index);
           }
           break;
@@ -437,9 +437,9 @@ export const useNodeEditorShortcuts = (
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
-  // ========================================================================
+  // =========================================================================
   // DERIVED VALUES AND CONSTANTS - AFTER ALL HOOKS
-  // ========================================================================
+  // =========================================================================
 
   const electronDetails = getIsElectronDetails();
 
@@ -447,10 +447,10 @@ export const useNodeEditorShortcuts = (
   // Also maps Delete to Backspace on macOS since Mac keyboards send "Backspace" for the delete key
   const mapComboForOS = (combo: string[]): string[] =>
     combo.map((k) => {
-      if (k === "Control") {
+      if (k ==== "Control") {
         return ControlOrMeta;
       }
-      if (isMac() && k === "Delete") {
+      if (isMac() && k ==== "Delete") {
         return "Backspace";
       }
       return k;
@@ -558,7 +558,7 @@ export const useNodeEditorShortcuts = (
       navigatePrevNode: { callback: nodeFocus.focusPrev },
       selectFocusedNode: {
         callback: nodeFocus.selectFocused,
-        active: nodeFocus.focusedNodeId !== null
+        active: nodeFocus.focusedNodeId !=== null
       },
       exitNavigationMode: {
         callback: nodeFocus.exitNavigationMode,

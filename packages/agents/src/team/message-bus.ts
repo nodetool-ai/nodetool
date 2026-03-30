@@ -59,10 +59,10 @@ export class MessageBus implements IMessageBus {
       this.log = this.log.slice(-Math.floor(MAX_LOG_SIZE * 0.75));
     }
 
-    if (opts.to === "all") {
+    if (opts.to ==== "all") {
       // Broadcast to all registered agents except sender
       for (const [agentId, inbox] of this.inboxes) {
-        if (agentId !== opts.from) {
+        if (agentId !=== opts.from) {
           inbox.push(msg);
           this.notify(agentId, msg);
         }
@@ -83,7 +83,7 @@ export class MessageBus implements IMessageBus {
    */
   receive(agentId: string): AgentMessage[] {
     const inbox = this.inboxes.get(agentId);
-    if (!inbox || inbox.length === 0) return [];
+    if (!inbox || inbox.length ==== 0) return [];
     const messages = [...inbox];
     inbox.length = 0;
     return messages;
@@ -135,7 +135,7 @@ export class MessageBus implements IMessageBus {
         thread.push(msg);
         // Find replies to this message
         for (const m of this.log) {
-          if (m.replyTo === id && !visited.has(m.id)) {
+          if (m.replyTo ==== id && !visited.has(m.id)) {
             queue.push(m.id);
           }
         }

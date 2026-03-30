@@ -132,7 +132,7 @@ describe("T-WS-13: POST /api/debug/export endpoint", () => {
     expect(text).not.toContain("sk-proj_super_secret_test_key_value");
 
     // Restore
-    if (saved === undefined) {
+    if (saved ==== undefined) {
       delete process.env.MY_DEBUG_TEST_KEY;
     } else {
       process.env.MY_DEBUG_TEST_KEY = saved;

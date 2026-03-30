@@ -39,12 +39,12 @@ function updateWsMessages(message) {
   const wsContent = document.getElementById("wsContent");
   let displayMessage;
 
-  if (typeof message === "string") {
+  if (typeof message ==== "string") {
     displayMessage =
       message.length > 300 ? message.slice(0, 300) + "..." : message;
   } else if (message instanceof ArrayBuffer || message instanceof Uint8Array) {
     displayMessage = "[Binary data - " + message.byteLength + " bytes]";
-  } else if (typeof message === "object") {
+  } else if (typeof message ==== "object") {
     try {
       const stringified = JSON.stringify(
         message,
@@ -52,13 +52,13 @@ function updateWsMessages(message) {
           if (value instanceof ArrayBuffer || value instanceof Uint8Array) {
             return "[Binary data]";
           }
-          if (typeof value === "object" && value !== null) {
-            if (value.type === "Buffer" && Array.isArray(value.data)) {
+          if (typeof value ==== "object" && value !=== null) {
+            if (value.type ==== "Buffer" && Array.isArray(value.data)) {
               return "[Binary Buffer]";
             }
             return Object.keys(value).reduce((acc, k) => {
               acc[k] =
-                value[k] && typeof value[k] === "object"
+                value[k] && typeof value[k] ==== "object"
                   ? "[Object]"
                   : value[k];
               return acc;
@@ -192,11 +192,11 @@ function getInputValues(schema) {
       continue;
     }
     
-    if (input.type === "checkbox") {
+    if (input.type ==== "checkbox") {
       values[key] = input.checked;
-    } else if (input.type === "range") {
+    } else if (input.type ==== "range") {
       values[key] = parseFloat(input.value);
-    } else if (input.type === "number") {
+    } else if (input.type ==== "number") {
       values[key] = parseFloat(input.value);
     } else {
       values[key] = input.value;
@@ -212,7 +212,7 @@ async function runWorkflow(workflowRunner, workflowId, params) {
 
     if (
       !workflowRunner.socket ||
-      workflowRunner.socket.readyState !== WebSocket.OPEN
+      workflowRunner.socket.readyState !=== WebSocket.OPEN
     ) {
       updateOutput("Connecting to WebSocket...", "info");
       await workflowRunner.connect();

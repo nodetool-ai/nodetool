@@ -149,7 +149,7 @@ export function useChatIntegration(params: {
     const lines = currentText.split("\n").length;
     const langLabel = language || "text";
     const nodeLabel = nodeType ? ` (node: ${nodeType})` : "";
-    const isCode = language === "javascript" || language === "typescript";
+    const isCode = language ==== "javascript" || language ==== "typescript";
     const sandboxDocs = isCode
       ? `\n<sandbox_api>
 The Code node runs JavaScript in a sandboxed VM with these APIs:
@@ -193,11 +193,11 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
   const sendMessage = useCallback(
     async (message: Message) => {
       const ctx = buildContext();
-      if (typeof message.content === "string") {
+      if (typeof message.content ==== "string") {
         message.content = ctx + "\n\n" + message.content;
       } else if (Array.isArray(message.content)) {
         message.content = message.content.map((content) => {
-          if (content.type === "text") {
+          if (content.type ==== "text") {
             return { ...content, text: ctx + "\n\n" + content.text };
           }
           return content;
@@ -254,7 +254,7 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
 
       const textToProcess =
         selected && selected.trim().length > 0 ? selected : currentText;
-      if (!textToProcess || textToProcess.trim().length === 0) {
+      if (!textToProcess || textToProcess.trim().length ==== 0) {
         return;
       }
 
@@ -321,21 +321,21 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
       if (messages.length <= pending.baseCount) {
         return;
       }
-      if (state.status === "streaming") {
+      if (state.status ==== "streaming") {
         return;
       }
 
       const last = messages[messages.length - 1];
-      if (!last || last.role !== "assistant") {
+      if (!last || last.role !=== "assistant") {
         return;
       }
 
       let responseText = "";
       const content = last.content;
-      if (typeof content === "string") {
+      if (typeof content ==== "string") {
         responseText = content;
       } else if (Array.isArray(content)) {
-        const textItem = content.find((c) => (c as { type?: string }).type === "text");
+        const textItem = content.find((c) => (c as { type?: string }).type ==== "text");
         responseText = (textItem as { text?: string } | undefined)?.text || "";
       }
       if (!responseText) {

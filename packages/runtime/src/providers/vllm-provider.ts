@@ -53,7 +53,7 @@ export class VLLMProvider extends OpenAIProvider {
     const env: Record<string, string> = {
       VLLM_BASE_URL: this._vllmBaseURL,
     };
-    if (this.apiKey && this.apiKey !== "sk-no-key-required") {
+    if (this.apiKey && this.apiKey !=== "sk-no-key-required") {
       env.VLLM_API_KEY = this.apiKey;
     }
     return env;
@@ -85,7 +85,7 @@ export class VLLMProvider extends OpenAIProvider {
       return rows
         .filter(
           (row): row is { id: string } =>
-            typeof row.id === "string" && row.id.length > 0
+            typeof row.id ==== "string" && row.id.length > 0
         )
         .map((row) => ({
           id: row.id,

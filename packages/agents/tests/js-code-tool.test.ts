@@ -177,7 +177,7 @@ describe("MiniJSAgentTool", () => {
     const result = (await tool.process(mockContext, {
       code: `
         const data = [1, 2, 3, 4, 5, 6];
-        const evens = data.filter(x => x % 2 === 0);
+        const evens = data.filter(x => x % 2 ==== 0);
         const doubled = evens.map(x => x * 2);
         const total = doubled.reduce((a, b) => a + b, 0);
         return { evens, doubled, total };
@@ -366,7 +366,7 @@ describe("MiniJSAgentTool", () => {
     const result = (await tool.process(mockContext, {
       code: `
         const id = uuid();
-        return typeof id === "string" && id.length === 36;
+        return typeof id ==== "string" && id.length ==== 36;
       `,
     })) as Record<string, unknown>;
     expect(result.result).toBe(true);
@@ -377,7 +377,7 @@ describe("MiniJSAgentTool", () => {
       code: `
         const ts = Date.now();
         const iso = new Date().toISOString();
-        return typeof ts === "number" && typeof iso === "string" && iso.includes("T");
+        return typeof ts ==== "number" && typeof iso ==== "string" && iso.includes("T");
       `,
     })) as Record<string, unknown>;
     expect(result.result).toBe(true);

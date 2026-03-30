@@ -85,7 +85,7 @@ export function useDropZone<T extends DragDataType = DragDataType>(
     event.preventDefault();
     dragCounter.current++;
 
-    if (dragCounter.current === 1) {
+    if (dragCounter.current ==== 1) {
       setIsOver(true);
     }
   }, []);
@@ -110,7 +110,7 @@ export function useDropZone<T extends DragDataType = DragDataType>(
     event.preventDefault();
     dragCounter.current--;
 
-    if (dragCounter.current === 0) {
+    if (dragCounter.current ==== 0) {
       setIsOver(false);
       setCanDrop(false);
     }

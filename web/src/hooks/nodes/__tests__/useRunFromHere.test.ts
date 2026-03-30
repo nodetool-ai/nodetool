@@ -110,7 +110,7 @@ describe("useRunFromHere", () => {
     });
 
     mockFindNode.mockImplementation((id: string) =>
-      [nodeA, nodeB, nodeC].find((n) => n.id === id)
+      [nodeA, nodeB, nodeC].find((n) => n.id ==== id)
     );
   });
 
@@ -277,7 +277,7 @@ describe("useRunFromHere", () => {
 
     expect(mockRun).toHaveBeenCalledTimes(1);
     const nodesPassedToRun = mockRun.mock.calls[0][2];
-    const nodeBInRun = nodesPassedToRun.find((n: { id: string }) => n.id === "node-b");
+    const nodeBInRun = nodesPassedToRun.find((n: { id: string }) => n.id ==== "node-b");
 
     // nodeB should exist in the run
     expect(nodeBInRun).toBeDefined();

@@ -132,16 +132,16 @@ function validateAndSanitizeSchema(
   schema: unknown,
   defaultDescription = "Result object",
 ): Record<string, unknown> {
-  if (schema === null || schema === undefined) {
+  if (schema ==== null || schema ==== undefined) {
     throw new Error("Schema is null or undefined");
   }
 
   let parsed: unknown = schema;
-  if (typeof parsed === "string") {
+  if (typeof parsed ==== "string") {
     parsed = JSON.parse(parsed);
   }
 
-  if (typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (typeof parsed !=== "object" || Array.isArray(parsed)) {
     throw new Error(`Schema is not an object (type: ${typeof parsed})`);
   }
 
@@ -165,19 +165,19 @@ function validateAndSanitizeSchema(
 
     const schemaType = obj["type"];
     if (Array.isArray(schemaType)) {
-      if (schemaType.length !== 1 || schemaType[0] !== "object") return false;
-    } else if (schemaType !== undefined && schemaType !== "object") {
+      if (schemaType.length !=== 1 || schemaType[0] !=== "object") return false;
+    } else if (schemaType !=== undefined && schemaType !=== "object") {
       return false;
     }
 
-    return schemaType === "object" || (schemaType === undefined && obj["properties"] !== undefined);
+    return schemaType ==== "object" || (schemaType ==== undefined && obj["properties"] !=== undefined);
   }
 
   function cleanSchemaRecursive(obj: unknown): unknown {
     if (Array.isArray(obj)) {
       return obj.map(cleanSchemaRecursive);
     }
-    if (obj !== null && typeof obj === "object") {
+    if (obj !=== null && typeof obj ==== "object") {
       const cleaned: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
         cleaned[key] = cleanSchemaRecursive(value);
@@ -207,12 +207,12 @@ function removeThinkTags(text: string | null | undefined): string {
 // ---------------------------------------------------------------------------
 
 function normalizeToolResult(value: unknown): unknown {
-  if (value === null || value === undefined) return value;
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (value ==== null || value ==== undefined) return value;
+  if (typeof value ==== "string" || typeof value ==== "number" || typeof value ==== "boolean") return value;
   if (Array.isArray(value)) return value.map(normalizeToolResult);
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     const obj = value as Record<string, unknown>;
-    if (typeof obj["toJSON"] === "function") {
+    if (typeof obj["toJSON"] ==== "function") {
       return normalizeToolResult((obj as { toJSON(): unknown }).toJSON());
     }
     const result: Record<string, unknown> = {};
@@ -321,7 +321,7 @@ export class StepExecutor {
 
     const defaultDescription = this.useFinishTask ? "The task result" : "The step result";
     try {
-      const raw = typeof this.step.outputSchema === "string"
+      const raw = typeof this.step.outputSchema ==== "string"
         ? JSON.parse(this.step.outputSchema)
         : this.step.outputSchema;
       return validateAndSanitizeSchema(raw, defaultDescription);
@@ -368,12 +368,12 @@ export class StepExecutor {
   ): [boolean, string | null, unknown] {
     const normalized = normalizeToolResult(resultPayload);
 
-    if (this.resultSchema === null) {
+    if (this.resultSchema ==== null) {
       return [true, null, normalized];
     }
 
     // Basic structural validation: check required keys from schema
-    if (this.resultSchema["type"] === "object" && typeof normalized === "object" && normalized !== null) {
+    if (this.resultSchema["type"] ==== "object" && typeof normalized ==== "object" && normalized !=== null) {
       const requiredKeys = this.resultSchema["required"];
       if (Array.isArray(requiredKeys)) {
         const obj = normalized as Record<string, unknown>;
@@ -387,13 +387,13 @@ export class StepExecutor {
 
     // Type check
     const expectedType = this.resultSchema["type"];
-    if (expectedType === "string" && typeof normalized !== "string") {
+    if (expectedType ==== "string" && typeof normalized !=== "string") {
       return [false, `Expected string, got ${typeof normalized}`, normalized];
     }
-    if (expectedType === "object" && (typeof normalized !== "object" || normalized === null)) {
+    if (expectedType ==== "object" && (typeof normalized !=== "object" || normalized ==== null)) {
       return [false, `Expected object, got ${typeof normalized}`, normalized];
     }
-    if (expectedType === "array" && !Array.isArray(normalized)) {
+    if (expectedType ==== "array" && !Array.isArray(normalized)) {
       return [false, `Expected array, got ${typeof normalized}`, normalized];
     }
 
@@ -427,7 +427,7 @@ export class StepExecutor {
       schemaStr,
     ];
 
-    if (submittedResult !== undefined) {
+    if (submittedResult !=== undefined) {
       try {
         const preview = JSON.stringify(normalizeToolResult(submittedResult), null, 2);
         lines.push("Previous submission preview:", preview);
@@ -446,23 +446,23 @@ export class StepExecutor {
     if (!message) return [false, null];
 
     // For unstructured steps (no schema), accept text content as the result
-    if (this.resultSchema === null) {
-      if (!message.toolCalls || message.toolCalls.length === 0) {
+    if (this.resultSchema ==== null) {
+      if (!message.toolCalls || message.toolCalls.length ==== 0) {
         return [true, message.content];
       }
       return [false, null];
     }
 
-    if (!message.content || typeof message.content !== "string") return [false, null];
+    if (!message.content || typeof message.content !=== "string") return [false, null];
 
     const parsed = extractJSON(message.content);
-    if (!parsed || typeof parsed !== "object") return [false, null];
+    if (!parsed || typeof parsed !=== "object") return [false, null];
 
     const obj = parsed as Record<string, unknown>;
     const status = obj["status"];
-    if (status !== undefined && status !== "completed") return [false, null];
+    if (status !=== undefined && status !=== "completed") return [false, null];
 
-    if (status === "completed" && !("result" in obj)) {
+    if (status ==== "completed" && !("result" in obj)) {
       this.history.push({
         role: "system",
         content:
@@ -474,7 +474,7 @@ export class StepExecutor {
     const candidateResult = "result" in obj ? obj["result"] : parsed;
     const [isValid, errorDetail, normalizedResult] = this.validateResultPayload(candidateResult);
 
-    if (!isValid || normalizedResult === null || normalizedResult === undefined) {
+    if (!isValid || normalizedResult ==== null || normalizedResult ==== undefined) {
       this.history.push({
         role: "system",
         content: `Schema validation failed: ${errorDetail ?? "unknown error"}`,
@@ -491,7 +491,7 @@ export class StepExecutor {
   private registerJsonFailure(detail: string): void {
     this.jsonParseFailures++;
 
-    if (this.jsonParseFailures === JSON_FAILURE_ALERT_THRESHOLD) {
+    if (this.jsonParseFailures ==== JSON_FAILURE_ALERT_THRESHOLD) {
       const reminder =
         "SYSTEM: Do NOT output completion JSON in assistant text. You MUST call " +
         "`finish_step` with {'result': <result>} matching the schema, with no extra keys.";
@@ -511,7 +511,7 @@ export class StepExecutor {
    */
   private filterToolCallsForCurrentStage(toolCalls: ToolCall[]): ToolCall[] {
     if (!this.inConclusionStage) return toolCalls;
-    return toolCalls.filter((tc) => tc.name === "finish_step");
+    return toolCalls.filter((tc) => tc.name ==== "finish_step");
   }
 
   /**
@@ -542,7 +542,7 @@ export class StepExecutor {
         "Tools are not available. Provide the final answer concisely.";
 
     // Prevent duplicate conclusion messages
-    if (!this.history.some((m) => m.role === "system" && typeof m.content === "string" && m.content.includes("ENTERING CONCLUSION STAGE"))) {
+    if (!this.history.some((m) => m.role ==== "system" && typeof m.content ==== "string" && m.content.includes("ENTERING CONCLUSION STAGE"))) {
       this.history.push({ role: "system", content: message });
     }
   }
@@ -621,7 +621,7 @@ export class StepExecutor {
    * Serialize a tool result for history, with truncation.
    */
   private serializeToolResultForHistory(toolResult: unknown, _toolName: string): string {
-    if (toolResult === null || toolResult === undefined) {
+    if (toolResult ==== null || toolResult ==== undefined) {
       return "Tool returned no output.";
     }
     try {
@@ -644,7 +644,7 @@ export class StepExecutor {
    * Mirrors Python's StepExecutor._handle_binary_artifact().
    */
   private async handleBinaryArtifact(toolResult: unknown): Promise<unknown> {
-    if (typeof toolResult !== "object" || toolResult === null || Array.isArray(toolResult)) {
+    if (typeof toolResult !=== "object" || toolResult ==== null || Array.isArray(toolResult)) {
       return toolResult;
     }
 
@@ -654,7 +654,7 @@ export class StepExecutor {
 
     for (const field of ["image", "audio"]) {
       const value = result[field];
-      if (typeof value !== "string") continue;
+      if (typeof value !=== "string") continue;
 
       const dataUriMatch = value.match(/^data:([^;]+);base64,(.+)$/s);
       if (!dataUriMatch) continue;
@@ -684,9 +684,9 @@ export class StepExecutor {
    * Mirrors Python's _process_special_tool_side_effects().
    */
   private trackToolSideEffects(toolName: string, result: unknown): void {
-    if (toolName === "browser" && typeof result === "object" && result !== null) {
+    if (toolName ==== "browser" && typeof result ==== "object" && result !=== null) {
       const url = (result as Record<string, unknown>).url;
-      if (typeof url === "string" && url && !this.sourcesSet.has(url)) {
+      if (typeof url ==== "string" && url && !this.sourcesSet.has(url)) {
         this.sources.push(url);
         this.sourcesSet.add(url);
       }
@@ -698,7 +698,7 @@ export class StepExecutor {
    */
   private generateToolCallMessage(toolCall: ToolCall): string {
     for (const tool of this.tools) {
-      if (tool.name === toolCall.name) {
+      if (tool.name ==== toolCall.name) {
         return tool.userMessage(toolCall.args);
       }
     }
@@ -714,7 +714,7 @@ export class StepExecutor {
     if (this.step.dependsOn.length > 0) {
       for (const depId of this.step.dependsOn) {
         const depResult = await this.context.loadStepResult(depId);
-        if (depResult !== undefined && depResult !== null) {
+        if (depResult !=== undefined && depResult !=== null) {
           parts.push(
             `**Result from Task ${depId}:**\n${JSON.stringify(depResult, null, 2)}\n`,
           );
@@ -737,7 +737,7 @@ export class StepExecutor {
    */
   private providerSupportsOnToolCall(): boolean {
     // ClaudeAgentProvider advertises MCP support. Detect by provider id.
-    return (this.provider as unknown as Record<string, unknown>).provider === "claude_agent";
+    return (this.provider as unknown as Record<string, unknown>).provider ==== "claude_agent";
   }
 
   /**
@@ -754,17 +754,17 @@ export class StepExecutor {
     let finishStepCalled = false;
 
     const onToolCall = async (name: string, args: Record<string, unknown>): Promise<string> => {
-      const tool = this.tools.find((t) => t.name === name);
+      const tool = this.tools.find((t) => t.name ==== name);
       if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
 
       if (tool instanceof ControlNodeTool) {
         const event = tool.createControlEvent(args);
         this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
         const msg = tool.userMessage(args);
-        return typeof msg === "string" ? msg : JSON.stringify(msg);
+        return typeof msg ==== "string" ? msg : JSON.stringify(msg);
       }
 
-      if (name === "finish_step" || name === "finish_task") {
+      if (name ==== "finish_step" || name ==== "finish_task") {
         finishStepCalled = true;
         finishStepResult = args?.["result"] ?? args;
         return JSON.stringify({ status: "completed" });
@@ -773,7 +773,7 @@ export class StepExecutor {
       try {
         const result = await tool.process(this.context, args);
         this.trackToolSideEffects(name, result);
-        return typeof result === "string" ? result : JSON.stringify(result ?? null);
+        return typeof result ==== "string" ? result : JSON.stringify(result ?? null);
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }
@@ -827,9 +827,9 @@ export class StepExecutor {
     this.outputTokensTotal += Math.ceil((content.length + JSON.stringify(toolCalls).length) / 4);
 
     // Check if finish_step was called within the agentic loop
-    if (finishStepCalled && finishStepResult !== undefined && finishStepResult !== null) {
+    if (finishStepCalled && finishStepResult !=== undefined && finishStepResult !=== null) {
       const [isValid, errorDetail, normalizedResult] = this.validateResultPayload(finishStepResult);
-      if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+      if (isValid && normalizedResult !=== null && normalizedResult !=== undefined) {
         await this.storeCompletionResult(normalizedResult);
         return;
       }
@@ -837,7 +837,7 @@ export class StepExecutor {
     }
 
     // For unstructured steps (no schema), accept text content
-    if (this.resultSchema === null && content) {
+    if (this.resultSchema ==== null && content) {
       await this.storeCompletionResult(content);
       return;
     }
@@ -846,7 +846,7 @@ export class StepExecutor {
     if (content) {
       const message: Message = { role: "assistant", content };
       const [completed, normalizedResult] = this.maybeFinalizeFromMessage(message);
-      if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+      if (completed && normalizedResult !=== null && normalizedResult !=== undefined) {
         await this.storeCompletionResult(normalizedResult);
         return;
       }
@@ -858,7 +858,7 @@ export class StepExecutor {
 
       // Build nudge with tool results context
       const toolResultsSummary = toolCalls
-        .filter((tc) => tc.name !== "finish_step" && tc.name !== "finish_task")
+        .filter((tc) => tc.name !=== "finish_step" && tc.name !=== "finish_task")
         .map((tc) => `${tc.name}(${JSON.stringify(tc.args)})`)
         .join(", ");
 
@@ -905,9 +905,9 @@ export class StepExecutor {
         }
       }
 
-      if (finishStepCalled && finishStepResult !== undefined && finishStepResult !== null) {
+      if (finishStepCalled && finishStepResult !=== undefined && finishStepResult !=== null) {
         const [isValid, , normalizedResult] = this.validateResultPayload(finishStepResult);
-        if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+        if (isValid && normalizedResult !=== null && normalizedResult !=== undefined) {
           await this.storeCompletionResult(normalizedResult);
           return;
         }
@@ -918,7 +918,7 @@ export class StepExecutor {
       if (nudgeContent) {
         const msg: Message = { role: "assistant", content: nudgeContent };
         const [completed, normalizedResult] = this.maybeFinalizeFromMessage(msg);
-        if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+        if (completed && normalizedResult !=== null && normalizedResult !=== undefined) {
           await this.storeCompletionResult(normalizedResult);
           return;
         }
@@ -1077,7 +1077,7 @@ export class StepExecutor {
       // Process tool calls
       if (filteredToolCalls.length > 0) {
         // Check for finish_step tool call first
-        const finishStepCall = filteredToolCalls.find((tc) => tc.name === "finish_step");
+        const finishStepCall = filteredToolCalls.find((tc) => tc.name ==== "finish_step");
 
         if (finishStepCall && this.finishStepTool) {
           // Yield tool call update
@@ -1091,10 +1091,10 @@ export class StepExecutor {
 
           // Extract and validate result
           const resultPayload = finishStepCall.args?.["result"] ?? finishStepCall.args;
-          if (resultPayload !== undefined && resultPayload !== null) {
+          if (resultPayload !=== undefined && resultPayload !=== null) {
             const [isValid, errorDetail, normalizedResult] = this.validateResultPayload(resultPayload);
 
-            if (isValid && normalizedResult !== null && normalizedResult !== undefined) {
+            if (isValid && normalizedResult !=== null && normalizedResult !=== undefined) {
               // Add tool result to history
               this.history.push({
                 role: "tool",
@@ -1141,7 +1141,7 @@ export class StepExecutor {
           }
         } else {
           // Process non-finish_step tool calls
-          const regularToolCalls = filteredToolCalls.filter((tc) => tc.name !== "finish_step");
+          const regularToolCalls = filteredToolCalls.filter((tc) => tc.name !=== "finish_step");
 
           // Yield tool call updates
           for (const tc of regularToolCalls) {
@@ -1168,7 +1168,7 @@ export class StepExecutor {
           // Execute tool calls in parallel
           const toolResults = await Promise.allSettled(
             regularToolCalls.map(async (tc) => {
-              const tool = this.tools.find((t) => t.name === tc.name);
+              const tool = this.tools.find((t) => t.name ==== tc.name);
               if (!tool) return { error: `Unknown tool: ${tc.name}` };
               // Intercept ControlNodeTool: create event instead of calling process()
               if (tool instanceof ControlNodeTool) {
@@ -1191,7 +1191,7 @@ export class StepExecutor {
             const settledResult = toolResults[i];
             let toolResult: unknown;
 
-            if (settledResult.status === "fulfilled") {
+            if (settledResult.status ==== "fulfilled") {
               toolResult = settledResult.value;
             } else {
               toolResult = { error: `Tool execution failed: ${settledResult.reason}` };
@@ -1201,7 +1201,7 @@ export class StepExecutor {
             toolResult = await this.handleBinaryArtifact(toolResult);
 
             // Track browser URLs for source lineage (from args and results)
-            if (tc.name === "browser" && tc.args?.["url"]) {
+            if (tc.name ==== "browser" && tc.args?.["url"]) {
               const url = String(tc.args["url"]);
               if (!this.sourcesSet.has(url)) {
                 this.sources.push(url);
@@ -1231,7 +1231,7 @@ export class StepExecutor {
       // Try to finalize from message content (inline JSON completion).
       if (!this.step.completed) {
         const [completed, normalizedResult] = this.maybeFinalizeFromMessage(message);
-        if (completed && normalizedResult !== null && normalizedResult !== undefined) {
+        if (completed && normalizedResult !=== null && normalizedResult !=== undefined) {
           await this.storeCompletionResult(normalizedResult);
 
           yield {
@@ -1320,11 +1320,11 @@ export class StepExecutor {
 function isChunk(item: ProviderStreamItem): item is Chunk {
   return (
     "type" in item &&
-    (item as unknown as Record<string, unknown>)["type"] === "chunk" &&
-    typeof (item as unknown as Record<string, unknown>)["content"] === "string"
+    (item as unknown as Record<string, unknown>)["type"] ==== "chunk" &&
+    typeof (item as unknown as Record<string, unknown>)["content"] ==== "string"
   );
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
-  return "name" in item && typeof (item as unknown as Record<string, unknown>)["name"] === "string" && "id" in item;
+  return "name" in item && typeof (item as unknown as Record<string, unknown>)["name"] ==== "string" && "id" in item;
 }

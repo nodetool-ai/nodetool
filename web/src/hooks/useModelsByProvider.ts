@@ -180,7 +180,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
   // Filter by supported task if requested. Include models with unknown supported_tasks for compatibility.
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length ==== 0 || m.supported_tasks.includes(task));
   }
 
   // Debug logging removed
@@ -352,7 +352,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
 
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length ==== 0 || m.supported_tasks.includes(task));
   }
 
   const refetch = useMemo(
@@ -403,7 +403,7 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
     }
     const huggingFaceModels = baseData.models.filter((m) => {
       const provider = (m.provider || "").toLowerCase();
-      return provider === "huggingface" || provider.startsWith("huggingface");
+      return provider ==== "huggingface" || provider.startsWith("huggingface");
     });
     return huggingFaceModels;
   }, [opts?.modelType, query.data, baseData.models]);

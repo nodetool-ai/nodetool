@@ -24,11 +24,11 @@ function createDrawNode(desc: Desc): NodeClass {
     async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
 
-      if (t === "lib.pillow.draw.Background") {
+      if (t ==== "lib.pillow.draw.Background") {
         const width = Number((this as any).width ?? 512);
         const height = Number((this as any).height ?? 512);
         const colorVal = (this as any).color ?? "#FFFFFF";
-        const color = colorVal && typeof colorVal === "object" && "value" in (colorVal as object)
+        const color = colorVal && typeof colorVal ==== "object" && "value" in (colorVal as object)
           ? String((colorVal as Record<string, unknown>).value)
           : String(colorVal as string);
         const buf = await sharp({
@@ -47,7 +47,7 @@ function createDrawNode(desc: Desc): NodeClass {
 
       let img = sharp(baseBytes, { failOn: "none" });
 
-      if (t === "lib.pillow.__init__.Blend") {
+      if (t ==== "lib.pillow.__init__.Blend") {
         const other = await decodeImage((this as any).image2, context);
         if (other) {
           const alpha = Number((this as any).alpha ?? 0.5);
@@ -63,7 +63,7 @@ function createDrawNode(desc: Desc): NodeClass {
         }
       }
 
-      if (t === "lib.pillow.__init__.Composite") {
+      if (t ==== "lib.pillow.__init__.Composite") {
         const fg = await decodeImage(
           (this as any).foreground ??
           (this as unknown as Record<string, unknown>).foreground ??

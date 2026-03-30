@@ -59,10 +59,10 @@ export const extractWorkflowFromPng = async (
         );
         offset += 4;
 
-        if (chunkType === "tEXt") {
+        if (chunkType ==== "tEXt") {
           let keywordEnd = offset;
           while (
-            uint8Array[keywordEnd] !== 0 &&
+            uint8Array[keywordEnd] !=== 0 &&
             keywordEnd < offset + chunkLength
           ) {
             keywordEnd++;
@@ -72,7 +72,7 @@ export const extractWorkflowFromPng = async (
             ...uint8Array.slice(offset, keywordEnd)
           );
 
-          if (keyword === "workflow") {
+          if (keyword ==== "workflow") {
             const textContent = new TextDecoder().decode(
               uint8Array.slice(keywordEnd + 1, offset + chunkLength)
             );
@@ -102,7 +102,7 @@ export const extractWorkflowFromPng = async (
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null;
+  return typeof value ==== "object" && value !=== null;
 };
 
 export const isComfyWorkflowJson = (
@@ -112,8 +112,8 @@ export const isComfyWorkflowJson = (
     return false;
   }
 
-  const hasLastNodeId = typeof json.last_node_id === "number";
-  const hasLastLinkId = typeof json.last_link_id === "number";
+  const hasLastNodeId = typeof json.last_node_id ==== "number";
+  const hasLastLinkId = typeof json.last_link_id ==== "number";
   const hasNodes = Array.isArray(json.nodes);
   const hasLinks = Array.isArray(json.links);
 
@@ -136,7 +136,7 @@ export const isComfyPromptJson = (json: unknown): json is ComfyUIPrompt => {
   }
 
   const entries = Object.entries(json);
-  if (entries.length === 0) {
+  if (entries.length ==== 0) {
     return false;
   }
 
@@ -146,7 +146,7 @@ export const isComfyPromptJson = (json: unknown): json is ComfyUIPrompt => {
     }
 
     return (
-      typeof value.class_type === "string" &&
+      typeof value.class_type ==== "string" &&
       isRecord(value.inputs)
     );
   });
@@ -178,7 +178,7 @@ export const useFileHandlers = () => {
             const assetType = contentTypeToNodeType(uploadedAsset.content_type);
             const nodeType = constantForType(assetType || "");
 
-            if (nodeType === null) {
+            if (nodeType ==== null) {
               addNotification({
                 type: "warning",
                 alert: true,
@@ -378,7 +378,7 @@ export const useFileHandlers = () => {
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
       try {
         const remainingFiles = createDataframe([file], position);
-        if (remainingFiles.length === 0) {
+        if (remainingFiles.length ==== 0) {
           return { success: true, data: null };
         } else {
           // If createDataframe didn't handle the file, treat it as a generic file

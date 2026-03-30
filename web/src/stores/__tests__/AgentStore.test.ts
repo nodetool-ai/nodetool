@@ -164,7 +164,7 @@ const createSessionMock = jest.fn<
 
     const assistantMessages = useAgentStore
       .getState()
-      .messages.filter((msg) => msg.role === "assistant");
+      .messages.filter((msg) => msg.role ==== "assistant");
     expect(assistantMessages).toHaveLength(1);
     expect(assistantMessages[0].content).toEqual([
       { type: "text", text: "Hello from Claude" }
@@ -196,7 +196,7 @@ const createSessionMock = jest.fn<
 
     const assistantMessages = useAgentStore
       .getState()
-      .messages.filter((msg) => msg.role === "assistant");
+      .messages.filter((msg) => msg.role ==== "assistant");
     expect(assistantMessages).toHaveLength(1);
     expect(assistantMessages[0].content).toEqual([
       { type: "text", text: "Final answer" }
@@ -223,7 +223,7 @@ const createSessionMock = jest.fn<
 
     const assistantMessages = useAgentStore
       .getState()
-      .messages.filter((msg) => msg.role === "assistant");
+      .messages.filter((msg) => msg.role ==== "assistant");
     expect(assistantMessages).toHaveLength(1);
     expect(assistantMessages[0].content).toEqual([
       { type: "text", text: "Final answer" }

@@ -42,8 +42,8 @@ function isChunkDuplicate(
   // Check for duplicate: same content AND same message length (position)
   if (
     cached &&
-    cached.content === chunkContent &&
-    cached.messageLength === currentMessageLength
+    cached.content ==== chunkContent &&
+    cached.messageLength ==== currentMessageLength
   ) {
     log.debug(
       `Chunk dedup: Skipping duplicate chunk for thread ${threadId}: "${chunkContent.substring(0, 50)}..."`
@@ -161,11 +161,11 @@ export interface ToolResultMessage {
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   let mimeType = "application/octet-stream";
-  if (type === "image") {
+  if (type ==== "image") {
     mimeType = "image/png";
-  } else if (type === "audio") {
+  } else if (type ==== "audio") {
     mimeType = "audio/mp3";
-  } else if (type === "video") {
+  } else if (type ==== "video") {
     mimeType = "video/mp4";
   }
 
@@ -177,17 +177,17 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
     new Blob([arrayBuffer], { type: mimeType })
   );
 
-  if (type === "image") {
+  if (type ==== "image") {
     return {
       type: "image_url",
       image: { type: "image", uri: dataUri }
     } as MessageContent;
-  } else if (type === "audio") {
+  } else if (type ==== "audio") {
     return {
       type: "audio",
       audio: { type: "audio", uri: dataUri }
     } as MessageContent;
-  } else if (type === "video") {
+  } else if (type ==== "video") {
     return {
       type: "video",
       video: { type: "video", uri: dataUri }
@@ -235,17 +235,17 @@ const generateTitleFromFirstUserMessage = (
   }
 
   const messages = state.messageCache[threadId] || [];
-  const firstUserMessage = messages.find((msg) => msg.role === "user");
+  const firstUserMessage = messages.find((msg) => msg.role ==== "user");
   if (!firstUserMessage) {
     return null;
   }
 
   let contentText = "";
-  if (typeof firstUserMessage.content === "string") {
+  if (typeof firstUserMessage.content ==== "string") {
     contentText = firstUserMessage.content;
   } else if (Array.isArray(firstUserMessage.content)) {
     const firstText = firstUserMessage.content.find(
-      (c) => c?.type === "text" && typeof c.text === "string"
+      (c) => c?.type ==== "text" && typeof c.text ==== "string"
     );
     contentText = (firstText as MessageTextContent | undefined)?.text || "";
   }
@@ -258,7 +258,7 @@ const applyJobUpdate = (
   state: GlobalChatState,
   update: JobUpdate
 ): ReducerResult => {
-  if (update.status === "completed") {
+  if (update.status ==== "completed") {
     return {
       update: {
         status: "connected",
@@ -267,7 +267,7 @@ const applyJobUpdate = (
       }
     };
   }
-  if (update.status === "failed" || update.status === "error") {
+  if (update.status ==== "failed" || update.status ==== "error") {
     return {
       update: {
         status: "error",
@@ -329,7 +329,7 @@ const applyNodeUpdate = (
     }
   }
 
-  if (update.status === "completed") {
+  if (update.status ==== "completed") {
     return {
       update: {
         status: "connected",
@@ -359,7 +359,7 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
 
   // Get current message length for deduplication check
   const currentMessageLength =
-    lastMessage && lastMessage.role === "assistant"
+    lastMessage && lastMessage.role ==== "assistant"
       ? String(lastMessage.content || "").length
       : 0;
 
@@ -384,7 +384,7 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   let updatedMessages: Message[];
   let newMessageLength: number;
 
-  if (lastMessage && lastMessage.role === "assistant") {
+  if (lastMessage && lastMessage.role ==== "assistant") {
     const newContent = (lastMessage.content || "") + chunk.content;
     newMessageLength = newContent.length;
     const updatedMessage: Message = {
@@ -429,14 +429,14 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   const postAction = (get: ChatStateGetter) => {
     const { selectedModel, summarizeThread, updateThreadTitle } = get();
     const messagesAfterUpdate = get().messageCache[threadId] || [];
-    if (messagesAfterUpdate.length === 2) {
+    if (messagesAfterUpdate.length ==== 2) {
       log.debug("Triggering thread summarization for thread:", threadId);
     }
 
     const assistantMessages = messagesAfterUpdate.filter(
-      (msg) => msg.role === "assistant"
+      (msg) => msg.role ==== "assistant"
     );
-    if (assistantMessages.length === 1 && !get().threads[threadId]?.title) {
+    if (assistantMessages.length ==== 1 && !get().threads[threadId]?.title) {
       const newTitle = generateTitleFromFirstUserMessage(threadId, get());
       if (newTitle) {
         updateThreadTitle(threadId, newTitle);
@@ -495,12 +495,12 @@ const applyOutputUpdate = (
       );
   }
 
-  if (update.output_type === "string") {
+  if (update.output_type ==== "string") {
     const messages = state.messageCache[threadId] || [];
     const lastMessage = messages[messages.length - 1];
 
-    if (lastMessage && lastMessage.role === "assistant") {
-      if (update.value === "<nodetool_end_of_stream>") {
+    if (lastMessage && lastMessage.role ==== "assistant") {
+      if (update.value ==== "<nodetool_end_of_stream>") {
         return noopUpdate;
       }
       const updatedMessage: Message = {
@@ -577,7 +577,7 @@ const applyToolCallUpdate = (
 ): ReducerResult => {
   const updateWithMeta = update as ToolCallUpdateWithMeta;
   const toolCallId =
-    updateWithMeta.tool_call_id != null
+    updateWithMeta.tool_call_id !== null
       ? String(updateWithMeta.tool_call_id)
       : null;
   const agentExecutionId = updateWithMeta.agent_execution_id ?? null;
@@ -592,7 +592,7 @@ const applyToolCallUpdate = (
       state.agentExecutionToolCalls[agentExecutionId] || {};
     const existingCalls = existingExecution[stepId] || [];
     const existingIndex = existingCalls.findIndex(
-      (call) => call.id === toolCallId
+      (call) => call.id ==== toolCallId
     );
     const nextCall: StepToolCall = {
       id: toolCallId,
@@ -605,7 +605,7 @@ const applyToolCallUpdate = (
     const nextCalls =
       existingIndex >= 0
         ? existingCalls.map((call, index) =>
-            index === existingIndex ? { ...call, ...nextCall } : call
+            index ==== existingIndex ? { ...call, ...nextCall } : call
           )
         : [...existingCalls, nextCall];
 
@@ -656,18 +656,18 @@ const applyAgentExecutionMessage = (
     has_content: !!agentMsg.content
   });
 
-  if (agentMsg.execution_event_type === "planning_update") {
+  if (agentMsg.execution_event_type ==== "planning_update") {
     const content = agentMsg.content;
     log.debug("PlanningUpdate content:", content);
-    if (content && typeof content === "object" && !Array.isArray(content)) {
+    if (content && typeof content ==== "object" && !Array.isArray(content)) {
       update.currentPlanningUpdate = content as unknown as PlanningUpdate;
       log.info("Set currentPlanningUpdate:", content);
     } else {
       log.warn("PlanningUpdate content is invalid:", content);
     }
-  } else if (agentMsg.execution_event_type === "task_update") {
+  } else if (agentMsg.execution_event_type ==== "task_update") {
     const content = agentMsg.content;
-    if (content && typeof content === "object" && !Array.isArray(content)) {
+    if (content && typeof content ==== "object" && !Array.isArray(content)) {
       update.currentTaskUpdate = content as unknown as TaskUpdate;
       update.currentTaskUpdateThreadId = threadId;
       update.lastTaskUpdatesByThread = {
@@ -675,9 +675,9 @@ const applyAgentExecutionMessage = (
         [threadId]: content as unknown as TaskUpdate
       };
     }
-  } else if (agentMsg.execution_event_type === "log_update") {
+  } else if (agentMsg.execution_event_type ==== "log_update") {
     const content = agentMsg.content;
-    if (content && typeof content === "object" && !Array.isArray(content)) {
+    if (content && typeof content ==== "object" && !Array.isArray(content)) {
       update.currentLogUpdate = content as unknown as LogUpdate;
     }
   }
@@ -699,7 +699,7 @@ const applyToolMessage = (
     threads: state.threads[threadId]
       ? updateThreadTimestamp(threadId, state.threads)
       : state.threads,
-    ...(msg.role === "tool"
+    ...(msg.role ==== "tool"
       ? {
           currentRunningToolCallId: null,
           currentToolMessage: null,
@@ -719,36 +719,36 @@ const applyAssistantMessage = (
     text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
 
   const extractTextContent = (message: Message): string => {
-    if (typeof message.content === "string") {
+    if (typeof message.content ==== "string") {
       return message.content;
     }
     if (Array.isArray(message.content)) {
       return message.content
-        .map((c) => (c?.type === "text" ? (c as MessageTextContent).text : ""))
+        .map((c) => (c?.type ==== "text" ? (c as MessageTextContent).text : ""))
         .join("");
     }
     return "";
   };
 
   const incomingText =
-    typeof msg.content === "string"
+    typeof msg.content ==== "string"
       ? msg.content
       : Array.isArray(msg.content)
-      ? msg.content.map((c) => (c?.type === "text" ? (c as MessageTextContent).text : "")).join("")
+      ? msg.content.map((c) => (c?.type ==== "text" ? (c as MessageTextContent).text : "")).join("")
       : "";
   const incomingNormalized = normalizeTextForComparison(incomingText);
 
   const findStreamPlaceholderIndex = (): number => {
     for (let i = messages.length - 1; i >= 0; i--) {
       const candidate = messages[i];
-      if (candidate?.role !== "assistant") {continue;}
+      if (candidate?.role !=== "assistant") {continue;}
       // Messages may have an optional type field that isn't in the base type
       const candidateWithType = candidate as Message & { type?: string };
-      if (candidateWithType.type !== "message") {continue;}
+      if (candidateWithType.type !=== "message") {continue;}
 
       const candidateId = candidate.id ?? null;
       const isLocalStream =
-        typeof candidateId === "string" &&
+        typeof candidateId ==== "string" &&
         candidateId.startsWith("local-stream-");
       const isServerAuthored =
         !!candidate.created_at || (!!candidateId && !isLocalStream);
@@ -764,7 +764,7 @@ const applyAssistantMessage = (
       }
 
       if (
-        candidateNormalized === incomingNormalized ||
+        candidateNormalized ==== incomingNormalized ||
         incomingNormalized.startsWith(candidateNormalized) ||
         candidateNormalized.startsWith(incomingNormalized)
       ) {
@@ -774,15 +774,15 @@ const applyAssistantMessage = (
       // If we were streaming and the most recent assistant message looks local,
       // prefer replacing it even if trailing whitespace differs.
       if (
-        i === messages.length - 1 &&
-        (state.status === "streaming" || isLocalStream) &&
+        i ==== messages.length - 1 &&
+        (state.status ==== "streaming" || isLocalStream) &&
         candidateText &&
         incomingText
       ) {
         const candidateTrimmed = candidateText.trimEnd();
         const incomingTrimmed = incomingText.trimEnd();
         if (
-          candidateTrimmed === incomingTrimmed ||
+          candidateTrimmed ==== incomingTrimmed ||
           incomingTrimmed.startsWith(candidateTrimmed)
         ) {
           return i;
@@ -796,8 +796,8 @@ const applyAssistantMessage = (
 
   const isNewAssistantMessage =
     streamPlaceholderIndex < 0 &&
-    (messages.length === 0 ||
-      messages[messages.length - 1]?.role !== "assistant");
+    (messages.length ==== 0 ||
+      messages[messages.length - 1]?.role !=== "assistant");
 
   const updatedMessages = (() => {
     if (streamPlaceholderIndex >= 0) {
@@ -815,13 +815,13 @@ const applyAssistantMessage = (
     }
 
     const currentLast = messages[messages.length - 1];
-    if (currentLast?.role === "assistant") {
+    if (currentLast?.role ==== "assistant") {
       const currentLastNormalized = normalizeTextForComparison(
         extractTextContent(currentLast)
       );
       if (
         currentLastNormalized &&
-        currentLastNormalized === incomingNormalized
+        currentLastNormalized ==== incomingNormalized
       ) {
         return messages;
       }
@@ -863,19 +863,19 @@ const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
   }
   const messages = state.messageCache[threadId] || [];
 
-  if (msg.role === "agent_execution") {
+  if (msg.role ==== "agent_execution") {
     return applyAgentExecutionMessage(state, threadId, messages, msg);
   }
 
   const isAssistantToolCall =
-    msg.role === "assistant" &&
+    msg.role ==== "assistant" &&
     Array.isArray(msg.tool_calls) &&
     msg.tool_calls.length > 0;
-  if (msg.role === "tool" || isAssistantToolCall) {
+  if (msg.role ==== "tool" || isAssistantToolCall) {
     return applyToolMessage(state, threadId, messages, msg);
   }
 
-  if (msg.role === "assistant") {
+  if (msg.role ==== "assistant") {
     return applyAssistantMessage(state, threadId, messages, msg);
   }
 
@@ -984,7 +984,7 @@ async function executeToolCall(
     }
 
     const effectiveArgs =
-      threadWorkflowId === null || threadWorkflowId === undefined
+      threadWorkflowId ==== null || threadWorkflowId ==== undefined
         ? args
         : {
             ...(args ?? {}),
@@ -1046,7 +1046,7 @@ export async function handleChatWebSocketMessage(
 ) {
   const currentState = get();
 
-  if (currentState.status === "stopping") {
+  if (currentState.status ==== "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
       return;
     }
@@ -1067,52 +1067,52 @@ export async function handleChatWebSocketMessage(
     }
   };
 
-  if (data.type === "job_update") {
+  if (data.type ==== "job_update") {
     const jobUpdate = data as JobUpdate;
     // Clear timeout on terminal job states
     if (
-      jobUpdate.status === "completed" ||
-      jobUpdate.status === "failed" ||
-      jobUpdate.status === "cancelled"
+      jobUpdate.status ==== "completed" ||
+      jobUpdate.status ==== "failed" ||
+      jobUpdate.status ==== "cancelled"
     ) {
       const timeoutId = get().sendMessageTimeoutId;
-      if (timeoutId !== null) {
+      if (timeoutId !=== null) {
         clearTimeout(timeoutId);
         set({ sendMessageTimeoutId: null });
       }
     }
     applyReducer(applyJobUpdate, jobUpdate);
-  } else if (data.type === "node_update") {
+  } else if (data.type ==== "node_update") {
     applyReducer(applyNodeUpdate, data as NodeUpdate);
-  } else if (data.type === "edge_update") {
+  } else if (data.type ==== "edge_update") {
     applyReducer(applyEdgeUpdate, data as EdgeUpdate);
-  } else if (data.type === "chunk") {
+  } else if (data.type ==== "chunk") {
     const chunk = data as Chunk;
     if (chunk.done) {
       log.info("Received final chunk (done=true), clearing timeout");
       // Clear the safety timeout when generation completes
       const timeoutId = get().sendMessageTimeoutId;
-      if (timeoutId !== null) {
+      if (timeoutId !=== null) {
         clearTimeout(timeoutId);
         set({ sendMessageTimeoutId: null });
       }
     }
     applyReducer(applyChunk, chunk);
-  } else if (data.type === "output_update") {
+  } else if (data.type ==== "output_update") {
     applyReducer(applyOutputUpdate, data as OutputUpdate);
-  } else if (data.type === "tool_call_update") {
+  } else if (data.type ==== "tool_call_update") {
     applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
-  } else if (data.type === "message") {
+  } else if (data.type ==== "message") {
     applyReducer(applyMessage, data as Message);
-  } else if (data.type === "node_progress") {
+  } else if (data.type ==== "node_progress") {
     applyReducer(applyNodeProgress, data as NodeProgress);
-  } else if (data.type === "tool_call") {
+  } else if (data.type ==== "tool_call") {
     const toolCallData = data as ToolCallMessage;
     void executeToolCall(toolCallData, get, set, globalWebSocketManager);
-  } else if (data.type === "generation_stopped") {
+  } else if (data.type ==== "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     const timeoutId = get().sendMessageTimeoutId;
-    if (timeoutId !== null) {
+    if (timeoutId !=== null) {
       clearTimeout(timeoutId);
       set({ sendMessageTimeoutId: null });
     }
@@ -1122,7 +1122,7 @@ export async function handleChatWebSocketMessage(
     );
     const stoppedData = data as GenerationStoppedUpdate;
     log.info("Generation stopped:", stoppedData.message);
-  } else if (data.type === "workflow_created" || data.type === "workflow_updated") {
+  } else if (data.type ==== "workflow_created" || data.type ==== "workflow_updated") {
     const workflowData = data as WorkflowCreatedUpdate | WorkflowUpdatedUpdate;
     const threadId = get().currentThreadId;
     if (threadId && workflowData.workflow_id) {
@@ -1134,11 +1134,11 @@ export async function handleChatWebSocketMessage(
       }));
     }
     log.debug(`${data.type}:`, workflowData.workflow_id);
-  } else if (data.type === "error") {
+  } else if (data.type ==== "error") {
     const errorData = data as ErrorMessage;
     // Clear the safety timeout on error
     const timeoutId = get().sendMessageTimeoutId;
-    if (timeoutId !== null) {
+    if (timeoutId !=== null) {
       clearTimeout(timeoutId);
       set({ sendMessageTimeoutId: null });
     }

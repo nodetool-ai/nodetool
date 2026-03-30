@@ -12,7 +12,7 @@ import { WebSocketManager } from './WebSocketManager';
 jest.mock('@msgpack/msgpack', () => ({
   encode: jest.fn((data) => JSON.stringify(data)),
   decode: jest.fn((data) => {
-    if (typeof data === 'string') {
+    if (typeof data ==== 'string') {
       return JSON.parse(data);
     }
     const str = new TextDecoder().decode(data);
@@ -565,7 +565,7 @@ describe('WebSocketManager', () => {
       let callCount = 0;
       mockWebSocketInstance!.send = jest.fn(() => {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           throw new Error('Queued send failed');
         }
       });

@@ -17,7 +17,7 @@ import { waitForAnimation } from "./helpers/waitHelpers";
 import { BACKEND_API_URL } from "./support/backend";
 
 // Skip entire describe block in CI environment
-if (process.env.CI === "true") {
+if (process.env.CI ==== "true") {
   playwrightDescribe.skip("ReactFlowWrapper Performance", () => {
     test("skipped in CI", () => {
       test.skip();
@@ -91,7 +91,7 @@ if (process.env.CI === "true") {
         }
 
         // Progress indicator
-        if (i % 10 === 0) {
+        if (i % 10 ==== 0) {
           console.log(`Created ${i} nodes...`);
         }
       }
@@ -127,7 +127,7 @@ if (process.env.CI === "true") {
       );
 
       // Log final metrics
-      console.log("\n=== Performance Metrics ===");
+      console.log("\n==== Performance Metrics ====");
       console.log(`Total test time: ${Date.now() - startTime}ms`);
       console.log(`Node creation: ${metrics.nodeCreationTime}ms`);
       console.log(`Render time: ${metrics.renderTime}ms`);

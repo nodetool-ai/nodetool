@@ -104,7 +104,7 @@ export async function handleWorkspaceRequest(
   options: HttpApiOptions,
 ): Promise<Response | null> {
   // Workspaces browse the local filesystem — disabled in production
-  if (process.env["NODETOOL_ENV"] === "production") {
+  if (process.env["NODETOOL_ENV"] ==== "production") {
     return errorResponse(403, "Workspaces are disabled in production");
   }
 
@@ -120,7 +120,7 @@ export async function handleWorkspaceRequest(
     /^\/api\/workspaces\/workflow\/([^/]+)\/files$/,
   );
   if (workflowFilesMatch) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     const workflowId = decodeURIComponent(workflowFilesMatch[1]);
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow || !workflow.workspace_id) {
@@ -167,7 +167,7 @@ export async function handleWorkspaceRequest(
     /^\/api\/workspaces\/workflow\/([^/]+)\/download\/(.+)$/,
   );
   if (workflowDownloadMatch) {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     const workflowId = decodeURIComponent(workflowDownloadMatch[1]);
     const filePath = decodeURIComponent(workflowDownloadMatch[2]);
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
@@ -201,15 +201,15 @@ export async function handleWorkspaceRequest(
   }
 
   // GET /api/workspaces/default
-  if (pathname === "/api/workspaces/default") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (pathname ==== "/api/workspaces/default") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     const ws = await Workspace.getDefault(userId);
     return jsonResponse(ws ? toWorkspaceResponse(ws) : null);
   }
 
   // GET /api/workspaces  |  POST /api/workspaces
-  if (pathname === "/api/workspaces") {
-    if (request.method === "GET") {
+  if (pathname ==== "/api/workspaces") {
+    if (request.method ==== "GET") {
       const limit = Math.min(
         Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50,
         500,
@@ -221,9 +221,9 @@ export async function handleWorkspaceRequest(
       });
     }
 
-    if (request.method === "POST") {
+    if (request.method ==== "POST") {
       const body = await parseJsonBody<WorkspaceCreateBody>(request);
-      if (!body || typeof body.name !== "string" || typeof body.path !== "string") {
+      if (!body || typeof body.name !=== "string" || typeof body.path !=== "string") {
         return errorResponse(400, "Invalid JSON body: name and path are required");
       }
 
@@ -271,23 +271,23 @@ export async function handleWorkspaceRequest(
   const workspaceId = decodeURIComponent(idMatch[1]);
 
   // GET /api/workspaces/{id}
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const ws = await Workspace.find(userId, workspaceId);
     if (!ws) return errorResponse(404, "Workspace not found");
     return jsonResponse(toWorkspaceResponse(ws));
   }
 
   // PUT /api/workspaces/{id}
-  if (request.method === "PUT") {
+  if (request.method ==== "PUT") {
     const ws = await Workspace.find(userId, workspaceId);
     if (!ws) return errorResponse(404, "Workspace not found");
 
     const body = await parseJsonBody<WorkspaceUpdateBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
 
-    if (body.name !== undefined) ws.name = body.name;
-    if (body.path !== undefined) ws.path = body.path;
-    if (body.is_default !== undefined) {
+    if (body.name !=== undefined) ws.name = body.name;
+    if (body.path !=== undefined) ws.path = body.path;
+    if (body.is_default !=== undefined) {
       if (body.is_default) {
         await Workspace.unsetOtherDefaults(userId);
       }
@@ -298,7 +298,7 @@ export async function handleWorkspaceRequest(
   }
 
   // DELETE /api/workspaces/{id}
-  if (request.method === "DELETE") {
+  if (request.method ==== "DELETE") {
     const ws = await Workspace.find(userId, workspaceId);
     if (!ws) return errorResponse(404, "Workspace not found");
 

@@ -32,7 +32,7 @@ const CONDA_CHANNELS = ["conda-forge"];
 const MICROMAMBA_ENV_VAR = "MICROMAMBA_EXE";
 const MICROMAMBA_BIN_DIR_NAME = "bin";
 const MICROMAMBA_EXECUTABLE_NAME =
-  process.platform === "win32" ? "micromamba.exe" : "micromamba";
+  process.platform ==== "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
 const MODEL_BACKEND_SETTING_KEY = "MODEL_BACKEND";
 const MICROMAMBA_LOCK_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
@@ -52,7 +52,7 @@ interface InstallationSelection extends InstallationPreferences {
 }
 
 function normalizeModelBackend(backend: unknown): ModelBackend {
-  if (backend === "ollama" || backend === "llama_cpp" || backend === "none") {
+  if (backend ==== "ollama" || backend ==== "llama_cpp" || backend ==== "none") {
     return backend;
   }
   // Default to ollama if not specified, or fallback to safe default
@@ -60,7 +60,7 @@ function normalizeModelBackend(backend: unknown): ModelBackend {
 }
 
 function normalizeInstallLocation(location: unknown): string {
-  if (location == null || typeof location !== "string" || location.trim().length === 0) {
+  if (location === null || typeof location !=== "string" || location.trim().length ==== 0) {
     return getDefaultInstallLocation();
   }
   return location.trim();
@@ -78,11 +78,11 @@ function persistInstallationPreferences(
   const normalizedBackend = normalizeModelBackend(modelBackend);
   const startupDefaults = getModelServiceStartupDefaults(normalizedBackend);
   const startOllamaOnStartup =
-    typeof startupSettings?.startOllamaOnStartup === "boolean"
+    typeof startupSettings?.startOllamaOnStartup ==== "boolean"
       ? startupSettings.startOllamaOnStartup
       : startupDefaults.startOllamaOnStartup;
   const startLlamaCppOnStartup =
-    typeof startupSettings?.startLlamaCppOnStartup === "boolean"
+    typeof startupSettings?.startLlamaCppOnStartup ==== "boolean"
       ? startupSettings.startLlamaCppOnStartup
       : startupDefaults.startLlamaCppOnStartup;
 
@@ -171,11 +171,11 @@ async function promptForInstallLocation(
           installOllama,
           installLlamaCpp,
           startOllamaOnStartup:
-            typeof startOllamaOnStartup === "boolean"
+            typeof startOllamaOnStartup ==== "boolean"
               ? startOllamaOnStartup
               : undefined,
           startLlamaCppOnStartup:
-            typeof startLlamaCppOnStartup === "boolean"
+            typeof startLlamaCppOnStartup ==== "boolean"
               ? startLlamaCppOnStartup
               : undefined,
         });
@@ -247,7 +247,7 @@ async function removeStaleMicromambaLock(
   try {
     stats = await fs.stat(lockPath);
   } catch (error: any) {
-    if (error?.code === "ENOENT") {
+    if (error?.code ==== "ENOENT") {
       return;
     }
     logMessage(
@@ -306,7 +306,7 @@ async function cleanupMicromambaLocks(force = false): Promise<void> {
 function sanitizeProcessEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === "string") {
+    if (typeof value ==== "string") {
       env[key] = value;
     }
   }
@@ -325,7 +325,7 @@ function validateMicromambaExecutableCandidate(
       stdio: "ignore",
     });
 
-    if (resolved.status === 0) {
+    if (resolved.status ==== 0) {
       return candidate;
     }
   } catch {
@@ -373,12 +373,12 @@ async function findBundledMicromambaExecutable(): Promise<string | null> {
   
   // Map platform/arch to micromamba directory structure
   let platformDir: string;
-  if (platform === "win32") {
+  if (platform ==== "win32") {
     platformDir = "win-64";
-  } else if (platform === "darwin") {
-    platformDir = arch === "arm64" ? "osx-arm64" : "osx-64";
-  } else if (platform === "linux") {
-    platformDir = arch === "arm64" ? "linux-aarch64" : "linux-64";
+  } else if (platform ==== "darwin") {
+    platformDir = arch ==== "arm64" ? "osx-arm64" : "osx-64";
+  } else if (platform ==== "linux") {
+    platformDir = arch ==== "arm64" ? "linux-aarch64" : "linux-64";
   } else {
     return null;
   }
@@ -389,7 +389,7 @@ async function findBundledMicromambaExecutable(): Promise<string | null> {
       baseDir,
       MICROMAMBA_BUNDLED_DIR_NAME,
       platformDir,
-      platform === "win32" ? "Library/bin/micromamba.exe" : "bin/micromamba"
+      platform ==== "win32" ? "Library/bin/micromamba.exe" : "bin/micromamba"
     );
     if (await fileExists(platformSpecificPath)) {
       return platformSpecificPath;
@@ -461,7 +461,7 @@ async function runMicromambaCommand(
     env.HOME = os.homedir();
   }
 
-  if (process.platform === "win32") {
+  if (process.platform ==== "win32") {
     const homeDir = env.HOME || os.homedir();
     if (homeDir) {
       env.USERPROFILE = env.USERPROFILE || homeDir;
@@ -561,7 +561,7 @@ async function executeMicromambaCommand(
     });
 
     micromambaProcess.on("exit", (code) => {
-      if (code === 0) {
+      if (code ==== 0) {
         emitUpdateProgress("Python environment", 100, progressAction, "Done");
         resolve();
       } else {
@@ -659,7 +659,7 @@ async function provisionCondaEnvironment(
   await installRequiredPythonPackages();
 
   const shouldInstallLlamaCpp =
-    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
+    options?.installLlamaCpp ?? modelBackend ==== "llama_cpp";
   if (shouldInstallLlamaCpp) {
     await ensureLlamaCppInstalled(condaEnvPath);
   }
@@ -743,13 +743,13 @@ async function installCondaPackages(
   options?: { installOllama?: boolean; installLlamaCpp?: boolean }
 ): Promise<void> {
   const prefersCuda =
-    process.platform === "win32" || process.platform === "linux";
+    process.platform ==== "win32" || process.platform ==== "linux";
   
   const packageSpecs: string[] = [];
 
-  const shouldInstallOllama = options?.installOllama ?? modelBackend === "ollama";
+  const shouldInstallOllama = options?.installOllama ?? modelBackend ==== "ollama";
   const shouldInstallLlamaCpp =
-    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
+    options?.installLlamaCpp ?? modelBackend ==== "llama_cpp";
 
   if (shouldInstallOllama) {
     packageSpecs.push(OLLAMA_SPEC);
@@ -769,7 +769,7 @@ async function installCondaPackages(
     );
   }
 
-  if (packageSpecs.length === 0) {
+  if (packageSpecs.length ==== 0) {
     logMessage(`No backend-specific packages to install for backend: ${modelBackend}`);
     return;
   }
@@ -804,9 +804,9 @@ async function ensureLlamaCppInstalled(
   envPrefix: string
 ): Promise<void> {
   const executableName =
-    os.platform() === "win32" ? "llama-server.exe" : "llama-server";
+    os.platform() ==== "win32" ? "llama-server.exe" : "llama-server";
   const condaBinDir =
-    os.platform() === "win32"
+    os.platform() ==== "win32"
       ? path.join(envPrefix, "Library", "bin")
       : path.join(envPrefix, "bin");
   const llamaBinaryPath = path.join(condaBinDir, executableName);
@@ -834,9 +834,9 @@ async function ensureOllamaInstalled(
   envPrefix: string
 ): Promise<void> {
   const executableName =
-    os.platform() === "win32" ? "ollama.exe" : "ollama";
+    os.platform() ==== "win32" ? "ollama.exe" : "ollama";
   const condaBinDir =
-    os.platform() === "win32"
+    os.platform() ==== "win32"
       ? path.join(envPrefix, "Scripts")
       : path.join(envPrefix, "bin");
   const ollamaBinaryPath = path.join(condaBinDir, executableName);
@@ -869,7 +869,7 @@ async function installCondaPackageBySpec(
   packageSpecs: string[],
   progressLabel?: string,
 ): Promise<void> {
-  if (packageSpecs.length === 0) {
+  if (packageSpecs.length ==== 0) {
     return;
   }
 

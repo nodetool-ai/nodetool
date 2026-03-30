@@ -20,15 +20,15 @@ function toBytes(data: Uint8Array | string | undefined): Uint8Array {
 }
 
 function imageBytes(image: unknown): Uint8Array {
-  if (!image || typeof image !== "object") return new Uint8Array();
+  if (!image || typeof image !=== "object") return new Uint8Array();
   return toBytes((image as ImageRefLike).data);
 }
 
 async function imageBytesAsync(image: unknown): Promise<Uint8Array> {
-  if (!image || typeof image !== "object") return new Uint8Array();
+  if (!image || typeof image !=== "object") return new Uint8Array();
   const ref = image as ImageRefLike;
   if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
+  if (typeof ref.uri ==== "string" && ref.uri) {
     if (ref.uri.startsWith("file://")) {
       return new Uint8Array(await fs.readFile(filePath(ref.uri)));
     }
@@ -70,15 +70,15 @@ function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
   if (lower.endsWith(".gif")) return "image/gif";
   if (lower.endsWith(".bmp")) return "image/bmp";
   if (bytes.length < 4) return "image/unknown";
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
-  if (bytes[0] === 0x47 && bytes[1] === 0x49) return "image/gif";
-  if (bytes[0] === 0x42 && bytes[1] === 0x4d) return "image/bmp";
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57) return "image/webp";
+  if (bytes[0] ==== 0xff && bytes[1] ==== 0xd8) return "image/jpeg";
+  if (bytes[0] ==== 0x47 && bytes[1] ==== 0x49) return "image/gif";
+  if (bytes[0] ==== 0x42 && bytes[1] ==== 0x4d) return "image/bmp";
+  if (bytes[0] ==== 0x52 && bytes[1] ==== 0x49 && bytes[8] ==== 0x57) return "image/webp";
   if (
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
+    bytes[0] ==== 0x89 &&
+    bytes[1] ==== 0x50 &&
+    bytes[2] ==== 0x4e &&
+    bytes[3] ==== 0x47
   ) {
     return "image/png";
   }
@@ -90,8 +90,8 @@ function getModelConfig(
 ): { providerId: string; modelId: string } {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : "",
+    providerId: typeof model.provider ==== "string" ? model.provider : "",
+    modelId: typeof model.id ==== "string" ? model.id : "",
   };
 }
 
@@ -100,7 +100,7 @@ function hasProviderSupport(
   providerId: string,
   modelId: string
 ): context is ProcessingContext & { runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown> } {
-  return !!context && typeof context.runProviderPrediction === "function" && !!providerId && !!modelId;
+  return !!context && typeof context.runProviderPrediction ==== "function" && !!providerId && !!modelId;
 }
 
 async function metadataFor(bytes: Uint8Array): Promise<{ width: number | undefined; height: number | undefined }> {
@@ -120,7 +120,7 @@ async function transformImage(
   operation: (instance: sharp.Sharp, bytes: Uint8Array) => sharp.Sharp
 ): Promise<Record<string, unknown>> {
   const bytes = await imageBytesAsync(image);
-  if (bytes.length === 0) {
+  if (bytes.length ==== 0) {
     return imageRef(bytes, {
       uri: image.uri ?? "",
       width: image.width ?? undefined,
@@ -495,7 +495,7 @@ export class PasteNode extends TransformImageNode {
     const baseBytes = await imageBytesAsync(image);
     const overlayBytes = await imageBytesAsync(paste);
 
-    if (baseBytes.length === 0 || overlayBytes.length === 0) {
+    if (baseBytes.length ==== 0 || overlayBytes.length ==== 0) {
       return {
         output: imageRef(baseBytes, {
           uri: image.uri ?? "",
@@ -572,13 +572,13 @@ export class ScaleNode extends TransformImageNode {
     const fallbackWidth =
       targetWidth > 0
         ? targetWidth
-        : image.width != null
+        : image.width !== null
           ? Math.max(1, Math.round(Number(image.width) * scale))
           : null;
     const fallbackHeight =
       targetHeight > 0
         ? targetHeight
-        : image.height != null
+        : image.height !== null
           ? Math.max(1, Math.round(Number(image.height) * scale))
           : null;
     return {

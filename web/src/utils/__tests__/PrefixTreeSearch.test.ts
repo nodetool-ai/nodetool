@@ -7,7 +7,7 @@ import {
 } from "../PrefixTreeSearch";
 import { NodeMetadata } from "../../stores/ApiTypes";
 
-const SHOULD_ENFORCE_PERF = process.env.PERF_TESTS === "true";
+const SHOULD_ENFORCE_PERF = process.env.PERF_TESTS ==== "true";
 const assertPerf = (duration: number, threshold: number) => {
   if (SHOULD_ENFORCE_PERF) {
     expect(duration).toBeLessThan(threshold);
@@ -259,11 +259,11 @@ describe("PrefixTreeSearch", () => {
 
     it("should give bonus to prefix matches", () => {
       const results = search.fuzzySearch("add");
-      const exactMatch = results.find((r) => r.node.title === "Add");
+      const exactMatch = results.find((r) => r.node.title ==== "Add");
       expect(exactMatch).toBeDefined();
       // Prefix matches should have higher scores
       if (exactMatch) {
-        const otherMatches = results.filter((r) => r.node.title !== "Add");
+        const otherMatches = results.filter((r) => r.node.title !=== "Add");
         if (otherMatches.length > 0) {
           expect(exactMatch.score).toBeGreaterThan(otherMatches[0].score);
         }
@@ -323,7 +323,7 @@ describe("PrefixTreeSearch", () => {
       for (let i = 0; i < count; i++) {
         const namespace =
           namespaces[i % namespaces.length] +
-          (i % 3 === 0 ? `.sub${Math.floor(i / 10)}` : "");
+          (i % 3 ==== 0 ? `.sub${Math.floor(i / 10)}` : "");
         const operation = operations[i % operations.length];
         nodes.push(
           createMockNode(

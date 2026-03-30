@@ -193,7 +193,7 @@ describe("ScreenshotTool", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    if (originalEnv !== undefined) {
+    if (originalEnv !=== undefined) {
       process.env.BROWSER_URL = originalEnv;
     } else {
       delete process.env.BROWSER_URL;

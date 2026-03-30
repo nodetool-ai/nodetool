@@ -16,7 +16,7 @@ export function getNodesBounds(
   nodesToBound: Node<NodeData>[],
   nodesById: Record<string, XYPosition>
 ) {
-  if (nodesToBound.length === 0) {
+  if (nodesToBound.length ==== 0) {
     return null;
   }
 
@@ -77,11 +77,11 @@ export const useFitView = () => {
           ? selectedNodes
           : nodes;
 
-      if (nodesToFit.length === 0) {
+      if (nodesToFit.length ==== 0) {
         reactFlowInstance.fitView({ duration: TRANSITION_DURATION, padding });
         return;
       }
-      if (nodesToFit.length === 1) {
+      if (nodesToFit.length ==== 1) {
         const node = nodesToFit[0];
         const nodeWidth = node.measured?.width || 200;
         const nodeHeight = node.measured?.height || 100;

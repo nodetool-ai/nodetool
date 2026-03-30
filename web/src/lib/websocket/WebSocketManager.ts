@@ -128,7 +128,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   public isConnected(): boolean {
-    return this.state === "connected" && this.ws?.readyState === WebSocket.OPEN;
+    return this.state ==== "connected" && this.ws?.readyState ==== WebSocket.OPEN;
   }
 
   public getWebSocket(): WebSocket | null {
@@ -141,7 +141,7 @@ export class WebSocketManager extends EventEmitter {
     }
 
     if (!this.transitionTo("connect")) {
-      if (this.state === "connected") {
+      if (this.state ==== "connected") {
         return Promise.resolve();
       }
       throw new Error(`Cannot connect from state: ${this.state}`);
@@ -171,7 +171,7 @@ export class WebSocketManager extends EventEmitter {
     if (!this.isConnected()) {
       if (
         this.config.reconnect &&
-        (this.state === "connecting" || this.state === "reconnecting")
+        (this.state ==== "connecting" || this.state ==== "reconnecting")
       ) {
         log.debug("Queueing message while connecting");
         this.messageQueue.push(message);
@@ -243,22 +243,22 @@ export class WebSocketManager extends EventEmitter {
     try {
       let data: unknown;
 
-      if (this.config.binaryType === "arraybuffer") {
+      if (this.config.binaryType ==== "arraybuffer") {
         if (event.data instanceof ArrayBuffer) {
           const decoded = decode(new Uint8Array(event.data));
           data = decoded;
         } else if (
           event.data instanceof Blob ||
-          (event.data && typeof (event.data as any).arrayBuffer === "function")
+          (event.data && typeof (event.data as any).arrayBuffer ==== "function")
         ) {
           const buf = await (event.data as Blob).arrayBuffer();
           data = decode(new Uint8Array(buf));
-        } else if (typeof event.data === "string") {
+        } else if (typeof event.data ==== "string") {
           data = JSON.parse(event.data);
         } else {
           data = event.data;
         }
-      } else if (typeof event.data === "string") {
+      } else if (typeof event.data ==== "string") {
         data = JSON.parse(event.data);
       } else {
         data = event.data;
@@ -285,7 +285,7 @@ export class WebSocketManager extends EventEmitter {
     this.clearConnectionTimeout();
 
     const wasConnecting =
-      this.state === "connecting" || this.state === "reconnecting";
+      this.state ==== "connecting" || this.state ==== "reconnecting";
 
     if (!this.transitionTo("disconnected")) {
       return;
@@ -337,7 +337,7 @@ export class WebSocketManager extends EventEmitter {
     ];
 
     // Special case: if it was an intentional disconnect via close(1000), don't reconnect
-    if (this.intentionalDisconnect && event.code === 1000) {
+    if (this.intentionalDisconnect && event.code ==== 1000) {
       return false;
     }
 
@@ -423,7 +423,7 @@ export class WebSocketManager extends EventEmitter {
 
   private startConnectionTimeout(): void {
     this.connectionTimer = setTimeout(() => {
-      if (this.state === "connecting" || this.state === "reconnecting") {
+      if (this.state ==== "connecting" || this.state ==== "reconnecting") {
         log.error("Connection timeout");
         this.handleConnectionError(new Error("Connection timeout"));
         if (this.ws) {
@@ -461,7 +461,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private processMessageQueue(): void {
-    if (this.messageQueue.length === 0) {return;}
+    if (this.messageQueue.length ==== 0) {return;}
 
     log.info(`Processing ${this.messageQueue.length} queued messages`);
     const queue = [...this.messageQueue];

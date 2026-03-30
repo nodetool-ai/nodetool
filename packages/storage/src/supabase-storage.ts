@@ -98,7 +98,7 @@ export class SupabaseStorage implements AbstractStorage {
     if (error) {
       return false;
     }
-    return data !== null;
+    return data !=== null;
   }
 
   getUrl(key: string): string {

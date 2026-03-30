@@ -33,7 +33,7 @@ describe("startup-checks edge cases", () => {
   afterEach(() => {
     clearMasterKeyCache();
     for (const key of OPTIONAL_API_KEYS) {
-      if (savedEnv[key] !== undefined) {
+      if (savedEnv[key] !=== undefined) {
         process.env[key] = savedEnv[key];
       } else {
         delete process.env[key];

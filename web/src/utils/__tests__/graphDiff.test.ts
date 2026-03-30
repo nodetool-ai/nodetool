@@ -205,7 +205,7 @@ describe("graphDiff", () => {
       const diff = computeGraphDiff(oldGraph, newGraph);
 
       expect(diff.modifiedNodes).toHaveLength(1);
-      expect(diff.modifiedNodes[0].changes.some(c => c.key === "ui_properties")).toBe(true);
+      expect(diff.modifiedNodes[0].changes.some(c => c.key ==== "ui_properties")).toBe(true);
     });
   });
 

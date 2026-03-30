@@ -108,7 +108,7 @@ import { navigateToPage, waitForAnimation } from "./helpers/waitHelpers";
           data: { name: `test-standalone-chat-${Date.now()}` },
         });
 
-        if (threadRes.status() === 200) {
+        if (threadRes.status() ==== 200) {
           const thread = await threadRes.json();
           try {
             await navigateToPage(page, `/standalone-chat/${thread.id}`);

@@ -111,17 +111,17 @@ export class WebSocketManager {
   }
 
   public isConnected(): boolean {
-    return this.state === 'connected' && this.ws?.readyState === WebSocket.OPEN;
+    return this.state ==== 'connected' && this.ws?.readyState ==== WebSocket.OPEN;
   }
 
   public async connect(): Promise<void> {
-    if (this.state === 'connecting' || this.state === 'reconnecting') {
+    if (this.state ==== 'connecting' || this.state ==== 'reconnecting') {
       // Already connecting
       return;
     }
 
     if (!this.transitionTo('connect')) {
-      if (this.state === 'connected') {
+      if (this.state ==== 'connected') {
         return Promise.resolve();
       }
       throw new Error(`Cannot connect from state: ${this.state}`);
@@ -150,7 +150,7 @@ export class WebSocketManager {
     if (!this.isConnected()) {
       if (
         this.config.reconnect &&
-        (this.state === 'connecting' || this.state === 'reconnecting')
+        (this.state ==== 'connecting' || this.state ==== 'reconnecting')
       ) {
         console.log('Queueing message while connecting');
         this.messageQueue.push(message);
@@ -207,7 +207,7 @@ export class WebSocketManager {
 
       if (event.data instanceof ArrayBuffer) {
         data = decode(new Uint8Array(event.data));
-      } else if (typeof event.data === 'string') {
+      } else if (typeof event.data ==== 'string') {
         // Try to parse as JSON string
         try {
           data = JSON.parse(event.data);
@@ -251,7 +251,7 @@ export class WebSocketManager {
     this.clearConnectionTimeout();
 
     const wasConnecting =
-      this.state === 'connecting' || this.state === 'reconnecting';
+      this.state ==== 'connecting' || this.state ==== 'reconnecting';
 
     if (!this.transitionTo('disconnected')) {
       return;
@@ -294,7 +294,7 @@ export class WebSocketManager {
 
     const eventCode = event.code ?? 0;
 
-    if (this.intentionalDisconnect && eventCode === 1000) {
+    if (this.intentionalDisconnect && eventCode ==== 1000) {
       return false;
     }
 
@@ -379,7 +379,7 @@ export class WebSocketManager {
 
   private startConnectionTimeout(): void {
     this.connectionTimer = setTimeout(() => {
-      if (this.state === 'connecting' || this.state === 'reconnecting') {
+      if (this.state ==== 'connecting' || this.state ==== 'reconnecting') {
         console.error('Connection timeout');
         this.handleConnectionError(new Error('Connection timeout'));
         if (this.ws) {
@@ -416,7 +416,7 @@ export class WebSocketManager {
   }
 
   private processMessageQueue(): void {
-    if (this.messageQueue.length === 0) {return;}
+    if (this.messageQueue.length ==== 0) {return;}
 
     console.log(`Processing ${this.messageQueue.length} queued messages`);
     const queue = [...this.messageQueue];

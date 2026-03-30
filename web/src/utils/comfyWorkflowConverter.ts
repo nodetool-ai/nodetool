@@ -275,18 +275,18 @@ function resolveComfySlotByName(
   }
   const data = (node.data || {}) as Record<string, unknown>;
   const metadata = (data._comfy_metadata || {}) as Record<string, unknown>;
-  const slotKey = direction === "source" ? "outputs" : "inputs";
+  const slotKey = direction ==== "source" ? "outputs" : "inputs";
   const slotsUnknown = metadata[slotKey];
   if (!Array.isArray(slotsUnknown)) {
     return undefined;
   }
 
   const slotIndex = slotsUnknown.findIndex((slot) => {
-    if (typeof slot !== "object" || slot === null) {
+    if (typeof slot !=== "object" || slot ==== null) {
       return false;
     }
     const name = (slot as { name?: unknown }).name;
-    return typeof name === "string" && name === handleName;
+    return typeof name ==== "string" && name ==== handleName;
   });
 
   return slotIndex >= 0 ? slotIndex : undefined;
@@ -353,7 +353,7 @@ export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
 
     // Add connected inputs from edges
     graph.edges.forEach((edge) => {
-      if (edge.target === node.id && edge.targetHandle) {
+      if (edge.target ==== node.id && edge.targetHandle) {
         const inputName =
           resolveComfyInputName(edge.targetHandle, node) || edge.targetHandle;
         const sourceNodeId = edge.source;
@@ -382,7 +382,7 @@ function resolveComfyInputName(
   targetNode: GraphNode
 ): string | undefined {
   const parsedSlot = parseComfySlotFromHandle(handleName, "input_");
-  if (parsedSlot === null || parsedSlot === undefined) {
+  if (parsedSlot ==== null || parsedSlot ==== undefined) {
     return handleName;
   }
 
@@ -394,12 +394,12 @@ function resolveComfyInputName(
   }
 
   const inputSlot = inputs[parsedSlot];
-  if (typeof inputSlot !== "object" || inputSlot === null) {
+  if (typeof inputSlot !=== "object" || inputSlot ==== null) {
     return undefined;
   }
 
   const inputName = (inputSlot as { name?: unknown }).name;
-  return typeof inputName === "string" ? inputName : undefined;
+  return typeof inputName ==== "string" ? inputName : undefined;
 }
 
 /**
@@ -427,8 +427,8 @@ export function comfyPromptToNodeToolGraph(prompt: ComfyUIPrompt): Graph {
       const isConnectionRef =
         Array.isArray(inputValue) &&
         inputValue.length >= 2 &&
-        (typeof inputValue[0] === "string" || typeof inputValue[0] === "number") &&
-        typeof inputValue[1] === "number";
+        (typeof inputValue[0] ==== "string" || typeof inputValue[0] ==== "number") &&
+        typeof inputValue[1] ==== "number";
 
       if (isConnectionRef) {
         const sourceNodeId = String(inputValue[0]);
@@ -489,7 +489,7 @@ export function graphHasComfyUINodes(graph: Graph): boolean {
 export function hasComfyWorkflowFlag(
   settings?: Record<string, unknown> | null
 ): boolean {
-  return settings?.[COMFY_WORKFLOW_FLAG] === true;
+  return settings?.[COMFY_WORKFLOW_FLAG] ==== true;
 }
 
 /**

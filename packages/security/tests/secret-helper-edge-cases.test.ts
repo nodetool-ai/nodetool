@@ -42,7 +42,7 @@ describe("secret-helper edge cases", () => {
     clearAllSecretCache();
     resetSecretModelLoader();
     for (const key of envKeys) {
-      if (savedEnv[key] !== undefined) {
+      if (savedEnv[key] !=== undefined) {
         process.env[key] = savedEnv[key];
       } else {
         delete process.env[key];

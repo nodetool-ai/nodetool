@@ -32,7 +32,7 @@ vi.mock("../src/ssh.js", () => ({
 
 vi.mock("../src/docker.js", () => ({
   shellEscape: (s: string) => {
-    if (s === "") return "''";
+    if (s ==== "") return "''";
     if (/[^\w@%+=:,./-]/i.test(s)) {
       return "'" + s.replace(/'/g, "'\"'\"'") + "'";
     }

@@ -23,7 +23,7 @@ const addNodeParametersSchema = z
       if (data.node) {
         return true;
       }
-      return data.id !== undefined && data.position !== undefined;
+      return data.id !=== undefined && data.position !=== undefined;
     },
     {
       message:
@@ -45,14 +45,14 @@ FrontendToolRegistry.register({
       input: unknown,
       fallbackIndex: number
     ): { x: number; y: number } => {
-      if (typeof input === "object" && input !== null) {
+      if (typeof input ==== "object" && input !=== null) {
         const maybe = input as { x?: unknown; y?: unknown };
-        if (typeof maybe.x === "number" && typeof maybe.y === "number") {
+        if (typeof maybe.x ==== "number" && typeof maybe.y ==== "number") {
           return { x: maybe.x, y: maybe.y };
         }
       }
 
-      if (typeof input === "string") {
+      if (typeof input ==== "string") {
         const trimmed = input.trim();
 
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
@@ -91,29 +91,29 @@ FrontendToolRegistry.register({
     if (!nodeStore) {throw new Error(`No node store for workflow ${workflowId}`);}
 
     const nodeType =
-      typeof nodeInput.type === "string" ? nodeInput.type : nodeInput.node_type;
+      typeof nodeInput.type ==== "string" ? nodeInput.type : nodeInput.node_type;
     if (!nodeType) {
       throw new Error("Node is missing type");
     }
 
     const metadata = state.nodeMetadata[nodeType];
     if (!metadata) {throw new Error(`Node type not found: ${nodeType}`);}
-    if (nodeInput.id === undefined) {
+    if (nodeInput.id ==== undefined) {
       throw new Error("Node is missing id");
     }
-    if (nodeInput.position === undefined) {
+    if (nodeInput.position ==== undefined) {
       throw new Error("Node is missing position");
     }
     const normalizedPosition = normalizePosition(
       nodeInput.position,
       nodeStore.nodes.length
     );
-    if (nodeInput.properties === undefined) {
+    if (nodeInput.properties ==== undefined) {
       nodeInput.properties = {};
     }
     for (const property of metadata.properties) {
       const value = nodeInput.properties[property.name];
-      if (value === undefined) {
+      if (value ==== undefined) {
         nodeInput.properties[property.name] = property.default;
       } else {
         const matches = valueMatchesType(value, property.type);
@@ -155,18 +155,18 @@ FrontendToolRegistry.register({
     for (const property of metadata.properties) {
       if (!property.required) {continue;}
       const wasExplicitlyProvided =
-        providedProps !== undefined && property.name in providedProps;
+        providedProps !=== undefined && property.name in providedProps;
       if (wasExplicitlyProvided) {continue;}
 
       const value = nodeInput.properties![property.name];
       if (
-        value === null ||
-        value === undefined ||
-        value === "" ||
-        (typeof value === "object" &&
+        value ==== null ||
+        value ==== undefined ||
+        value ==== "" ||
+        (typeof value ==== "object" &&
           !Array.isArray(value) &&
-          value !== null &&
-          Object.keys(value).length === 0)
+          value !=== null &&
+          Object.keys(value).length ==== 0)
       ) {
         warnings.push(
           `Required property '${property.name}' is not set. Use ui_update_node_data to set it.`

@@ -18,9 +18,9 @@ import {
   luaLiteral,
 } from "../src/lua-runner.js";
 
-// ============================================================================
+// =============================================================================
 // BashDockerRunner – edge cases
-// ============================================================================
+// =============================================================================
 
 describe("BashDockerRunner – edge cases", () => {
   const runner = new BashDockerRunner();
@@ -91,9 +91,9 @@ describe("BashDockerRunner – edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // PythonDockerRunner – edge cases
-// ============================================================================
+// =============================================================================
 
 describe("PythonDockerRunner – edge cases", () => {
   const runner = new PythonDockerRunner();
@@ -146,9 +146,9 @@ describe("PythonDockerRunner – edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // JavaScriptDockerRunner – edge cases
-// ============================================================================
+// =============================================================================
 
 describe("JavaScriptDockerRunner – edge cases", () => {
   const runner = new JavaScriptDockerRunner();
@@ -189,9 +189,9 @@ describe("JavaScriptDockerRunner – edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // RubyDockerRunner – edge cases
-// ============================================================================
+// =============================================================================
 
 describe("RubyDockerRunner – edge cases", () => {
   const runner = new RubyDockerRunner();
@@ -231,9 +231,9 @@ describe("RubyDockerRunner – edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // CommandDockerRunner – edge cases
-// ============================================================================
+// =============================================================================
 
 describe("CommandDockerRunner – edge cases", () => {
   const runner = new CommandDockerRunner();
@@ -256,9 +256,9 @@ describe("CommandDockerRunner – edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // LuaRunner – edge cases
-// ============================================================================
+// =============================================================================
 
 describe("LuaRunner – edge cases", () => {
   const runner = new LuaRunner();
@@ -270,14 +270,14 @@ describe("LuaRunner – edge cases", () => {
 
   it("handles multiple locals separated by semicolons", () => {
     const cmd = runner.buildContainerCommand("print(1)", { a: 1, b: 2 });
-    expect(cmd[2]).toContain("_ENV[[===[a]===]] = 1");
-    expect(cmd[2]).toContain("_ENV[[===[b]===]] = 2");
+    expect(cmd[2]).toContain("_ENV[[====[a]====]] = 1");
+    expect(cmd[2]).toContain("_ENV[[====[b]====]] = 2");
     expect(cmd[2]).toContain("; ");
   });
 
   it("handles nil values in envLocals", () => {
     const cmd = runner.buildContainerCommand("print(1)", { x: null });
-    expect(cmd[2]).toContain("_ENV[[===[x]===]] = nil");
+    expect(cmd[2]).toContain("_ENV[[====[x]====]] = nil");
   });
 
   it("handles array values in envLocals", () => {
@@ -298,9 +298,9 @@ describe("LuaRunner – edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // LuaSubprocessRunner – edge cases
-// ============================================================================
+// =============================================================================
 
 describe("LuaSubprocessRunner – edge cases", () => {
   it("can override mode option (subprocess is default)", () => {
@@ -315,26 +315,26 @@ describe("LuaSubprocessRunner – edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // luaEscapeString – additional edge cases
-// ============================================================================
+// =============================================================================
 
 describe("luaEscapeString – additional edge cases", () => {
   it("handles string with tabs", () => {
     const s = "col1\tcol2";
     const result = luaEscapeString(s);
-    // Normal string without ]===] uses long-bracket syntax
-    expect(result).toBe("[===[col1\tcol2]===]");
+    // Normal string without ]====] uses long-bracket syntax
+    expect(result).toBe("[====[col1\tcol2]====]");
   });
 
   it("handles string with backslashes", () => {
     const s = "path\\to\\file";
     const result = luaEscapeString(s);
-    expect(result).toBe("[===[path\\to\\file]===]");
+    expect(result).toBe("[====[path\\to\\file]====]");
   });
 
   it("fallback escapes tabs and carriage returns", () => {
-    const s = "a]===]b\tc\rd";
+    const s = "a]====]b\tc\rd";
     const result = luaEscapeString(s);
     expect(result.startsWith('"')).toBe(true);
     expect(result).toContain("\\t");
@@ -342,21 +342,21 @@ describe("luaEscapeString – additional edge cases", () => {
   });
 
   it("fallback escapes embedded double quotes", () => {
-    const s = 'say]===]"hello"';
+    const s = 'say]====]"hello"';
     const result = luaEscapeString(s);
     expect(result).toContain('\\"hello\\"');
   });
 
   it("fallback escapes backslashes", () => {
-    const s = "path]===]\\to\\file";
+    const s = "path]====]\\to\\file";
     const result = luaEscapeString(s);
     expect(result).toContain("\\\\to\\\\file");
   });
 });
 
-// ============================================================================
+// =============================================================================
 // luaLiteral – additional edge cases
-// ============================================================================
+// =============================================================================
 
 describe("luaLiteral – additional edge cases", () => {
   it("handles negative numbers", () => {
@@ -376,19 +376,19 @@ describe("luaLiteral – additional edge cases", () => {
   });
 
   it("handles empty string", () => {
-    expect(luaLiteral("")).toBe("[===[" + "" + "]===]");
+    expect(luaLiteral("")).toBe("[====[" + "" + "]====]");
   });
 
   it("handles deeply nested structure at depth boundary", () => {
     // depth 10 is the max, at depth 11 it returns nil
-    expect(luaLiteral("ok", 10)).toBe("[===[ok]===]");
+    expect(luaLiteral("ok", 10)).toBe("[====[ok]====]");
     expect(luaLiteral("ok", 11)).toBe("nil");
   });
 
   it("handles object with mixed identifier and non-identifier keys", () => {
     const result = luaLiteral({ valid: 1, "not-valid": 2 });
     expect(result).toContain("valid = 1");
-    expect(result).toContain("[[===[not-valid]===]]");
+    expect(result).toContain("[[====[not-valid]====]]");
   });
 
   it("handles nested objects and arrays together", () => {
@@ -398,9 +398,9 @@ describe("luaLiteral – additional edge cases", () => {
   });
 });
 
-// ============================================================================
+// =============================================================================
 // ContainerFailureError
-// ============================================================================
+// =============================================================================
 
 describe("ContainerFailureError", () => {
   it("stores exit code", () => {

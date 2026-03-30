@@ -72,7 +72,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     setSelectedNodes: state.setSelectedNodes
   }));
 
-  const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
+  const rawNode = nodeId ? nodes.find((n) => n.id ==== nodeId) : undefined;
   const node = rawNode as Node<NodeData> | null;
   const nodeData = node?.data;
   const { writeClipboard } = useClipboard();
@@ -214,7 +214,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     }
     // Select the current node if it's not already selected
     const selectedNodes = getSelectedNodes();
-    if (!selectedNodes.some((n) => n.id === node.id)) {
+    if (!selectedNodes.some((n) => n.id ==== node.id)) {
       setSelectedNodes([node]);
     }
     duplicateNode();
@@ -227,7 +227,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     }
     // Select the current node if it's not already selected
     const selectedNodes = getSelectedNodes();
-    if (!selectedNodes.some((n) => n.id === node.id)) {
+    if (!selectedNodes.some((n) => n.id ==== node.id)) {
       setSelectedNodes([node]);
     }
     duplicateNodeVertical();

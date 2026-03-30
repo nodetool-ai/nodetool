@@ -17,9 +17,9 @@ import type {
   DockerDeployment,
 } from "./deployment-config.js";
 
-// ============================================================================
+// =============================================================================
 // UserInfo type (mirrors Python's multi_user.UserInfo)
-// ============================================================================
+// =============================================================================
 
 export interface UserInfo {
   user_id: string;
@@ -34,9 +34,9 @@ interface UsersFileData {
   version: string;
 }
 
-// ============================================================================
+// =============================================================================
 // SSH execution helper types
-// ============================================================================
+// =============================================================================
 
 export interface SSHConnectionHandle {
   /**
@@ -92,7 +92,7 @@ export class SimpleSSHConnection implements SSHConnectionHandle {
           stderr += data.toString("utf-8");
         });
         stream.on("close", (code: number) => {
-          if (check && code !== 0) {
+          if (check && code !=== 0) {
             reject(
               new Error(
                 `Command failed (exit ${code}): ${command}\nSTDERR: ${stderr}`
@@ -107,9 +107,9 @@ export class SimpleSSHConnection implements SSHConnectionHandle {
   }
 }
 
-// ============================================================================
+// =============================================================================
 // RemoteUserManager
-// ============================================================================
+// =============================================================================
 
 /**
  * Manages users on remote deployments via SSH.
@@ -148,7 +148,7 @@ export class RemoteUserManager {
         { check: false }
       );
 
-      if (exitCode !== 0) {
+      if (exitCode !=== 0) {
         return {};
       }
 

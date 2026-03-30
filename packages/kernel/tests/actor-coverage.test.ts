@@ -165,9 +165,9 @@ describe("NodeActor – error handling edge cases", () => {
     expect(result.outputs).toEqual({});
 
     const statusMsgs = messages.filter(
-      (m) => (m as NodeUpdate).type === "node_update"
+      (m) => (m as NodeUpdate).type ==== "node_update"
     ) as NodeUpdate[];
-    expect(statusMsgs.some((m) => m.status === "error")).toBe(true);
+    expect(statusMsgs.some((m) => m.status ==== "error")).toBe(true);
   });
 });
 
@@ -186,7 +186,7 @@ describe("NodeActor – node status emission", () => {
     await actor.run();
 
     const statusMsgs = messages.filter(
-      (m) => (m as NodeUpdate).type === "node_update"
+      (m) => (m as NodeUpdate).type ==== "node_update"
     ) as NodeUpdate[];
     expect(statusMsgs.length).toBeGreaterThanOrEqual(2);
     expect(statusMsgs[0].properties).toBeNull();
@@ -206,7 +206,7 @@ describe("NodeActor – node status emission", () => {
     await actor.run();
 
     const statusMsgs = messages.filter(
-      (m) => (m as NodeUpdate).type === "node_update"
+      (m) => (m as NodeUpdate).type ==== "node_update"
     ) as NodeUpdate[];
     expect(statusMsgs[0].node_name).toBe("test.Node");
   });
@@ -355,7 +355,7 @@ describe("NodeActor – zip_all: inbox closed while waiting (lines 324-326)", ()
       async process(inputs) {
         calls.push({ ...inputs });
         // After first call, close the inbox to trigger the EOS+sticky path
-        if (calls.length === 1) {
+        if (calls.length ==== 1) {
           // Closing inbox causes iterInput to return done on next iteration
           await inbox.closeAll();
         }

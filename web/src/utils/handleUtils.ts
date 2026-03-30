@@ -80,12 +80,12 @@ export function findOutputHandle(
 
   // First check static outputs
   const staticOutput = metadata.outputs.find(
-    (output: OutputSlot) => output.name === handleName
+    (output: OutputSlot) => output.name ==== handleName
   );
 
   if (staticOutput) {
     // For Select nodes, return an effective enum type instead of the static "str" type
-    if (handleName === "output" && isSelectNodeType(metadata.node_type)) {
+    if (handleName ==== "output" && isSelectNodeType(metadata.node_type)) {
       return {
         name: staticOutput.name,
         type: getSelectNodeEffectiveOutputType(node),
@@ -153,7 +153,7 @@ export function findInputHandle(
 
   // First check static properties
   const staticProperty = metadata.properties.find(
-    (property: Property) => property.name === handleName
+    (property: Property) => property.name ==== handleName
   );
 
   if (staticProperty) {
@@ -166,7 +166,7 @@ export function findInputHandle(
 
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
-    if (dynamicProperties[handleName] !== undefined) {
+    if (dynamicProperties[handleName] !=== undefined) {
       const inputMeta = node.data.dynamic_inputs?.[handleName];
       const type = inputMeta
         ? {
@@ -229,7 +229,7 @@ export function getAllOutputHandles(
   metadata.outputs.forEach((output: OutputSlot) => {
     // For Select nodes, return an effective enum type for the "output" handle
     const effectiveType =
-      isSelectNode && output.name === "output"
+      isSelectNode && output.name ==== "output"
         ? getSelectNodeEffectiveOutputType(node)
         : output.type;
 
@@ -313,7 +313,7 @@ export function hasOutputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): boolean {
-  return findOutputHandle(node, handleName, metadata) !== undefined;
+  return findOutputHandle(node, handleName, metadata) !=== undefined;
 }
 
 /**
@@ -324,5 +324,5 @@ export function hasInputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): boolean {
-  return findInputHandle(node, handleName, metadata) !== undefined;
+  return findInputHandle(node, handleName, metadata) !=== undefined;
 }

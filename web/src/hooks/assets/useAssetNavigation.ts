@@ -27,11 +27,11 @@ export function useAssetNavigation(params: {
 
   const changeAsset = useCallback(
     (direction: "left" | "right", controlKeyPressed: boolean) => {
-      if (currentIndex === null) {return;}
-      if (direction === "left" && currentIndex > 0) {
+      if (currentIndex ==== null) {return;}
+      if (direction ==== "left" && currentIndex > 0) {
         const delta = controlKeyPressed ? prevNextAmount : 1;
         handleChangeAsset(Math.max(0, currentIndex - delta));
-      } else if (direction === "right" && currentIndex < assets.length - 1) {
+      } else if (direction ==== "right" && currentIndex < assets.length - 1) {
         const delta = controlKeyPressed ? prevNextAmount : 1;
         handleChangeAsset(Math.min(assets.length - 1, currentIndex + delta));
       }
@@ -42,9 +42,9 @@ export function useAssetNavigation(params: {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!open) {return;}
-      if (e.key === "ArrowLeft") {
+      if (e.key ==== "ArrowLeft") {
         changeAsset("left", e.ctrlKey);
-      } else if (e.key === "ArrowRight") {
+      } else if (e.key ==== "ArrowRight") {
         changeAsset("right", e.ctrlKey);
       }
     };

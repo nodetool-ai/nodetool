@@ -291,9 +291,9 @@ describe("RUNNER-019: Streaming output node propagates streaming flag downstream
     // 4 items emitted → 4 active edge_update on e1
     const active = result.messages.filter(
       (m) =>
-        m.type === "edge_update" &&
-        (m as EdgeUpdate).edge_id === "e1" &&
-        (m as EdgeUpdate).status === "active"
+        m.type ==== "edge_update" &&
+        (m as EdgeUpdate).edge_id ==== "e1" &&
+        (m as EdgeUpdate).status ==== "active"
     );
     expect(active.length).toBe(4);
   });
@@ -321,9 +321,9 @@ describe("RUNNER-032: Node error captured in messages", () => {
 
     const errorMsgs = result.messages.filter(
       (m) =>
-        m.type === "node_update" &&
-        (m as NodeUpdate).status === "error" &&
-        (m as NodeUpdate).node_id === "err"
+        m.type ==== "node_update" &&
+        (m as NodeUpdate).status ==== "error" &&
+        (m as NodeUpdate).node_id ==== "err"
     );
     expect(errorMsgs.length).toBeGreaterThanOrEqual(1);
   });
@@ -380,7 +380,7 @@ describe("RUNNER-038: ExecutionContext.emit receives all messages", () => {
     await runner.run({ job_id: "runner-038" }, { nodes, edges: [] });
 
     expect(ctx.emit).toHaveBeenCalled();
-    const jobUpdates = emitted.filter((m) => (m as { type: string }).type === "job_update");
+    const jobUpdates = emitted.filter((m) => (m as { type: string }).type ==== "job_update");
     expect(jobUpdates.length).toBeGreaterThanOrEqual(2); // running + completed
   });
 });

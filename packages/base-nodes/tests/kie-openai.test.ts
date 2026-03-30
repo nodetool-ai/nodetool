@@ -31,7 +31,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
-    statusText: status === 200 ? "OK" : "Error",
+    statusText: status ==== 200 ? "OK" : "Error",
     json: async () => body,
     text: async () => JSON.stringify(body),
     arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
@@ -137,7 +137,7 @@ describe("EmbeddingNode", () => {
     );
   });
 
-  it("uses env var API key", async () => {
+  it("uses env const API key", async () => {
     process.env.OPENAI_API_KEY = "env-key";
     const node = new EmbeddingNode();
     mockFetch.mockResolvedValueOnce(

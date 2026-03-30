@@ -70,15 +70,15 @@ function detectFileType(file: File): string {
 }
 
 const isAssetResult = (value: unknown): value is Asset => {
-  if (typeof value !== "object" || value === null) {
+  if (typeof value !=== "object" || value ==== null) {
     return false;
   }
 
   const record = value as Record<string, unknown>;
   return (
-    typeof record.id === "string" &&
-    typeof record.name === "string" &&
-    typeof record.content_type === "string"
+    typeof record.id ==== "string" &&
+    typeof record.name ==== "string" &&
+    typeof record.content_type ==== "string"
   );
 };
 
@@ -136,7 +136,7 @@ export const useDropHandler = () => {
       const dragData = deserializeDragData(event.dataTransfer);
 
       // Handle create-node drop
-      if (dragData?.type === "create-node") {
+      if (dragData?.type ==== "create-node") {
         const node = dragData.payload as NodeMetadata;
         const newNode = createNode(node, position);
         addNode(newNode);
@@ -147,7 +147,7 @@ export const useDropHandler = () => {
 
       // Handle asset drops on pane
       if (targetIsPane && dragData) {
-        if (dragData.type === "assets-multiple") {
+        if (dragData.type ==== "assets-multiple") {
           const selectedAssetIds = dragData.payload as string[];
           // If multiple assets are selected, create nodes for all of them
           if (selectedAssetIds.length > 1) {
@@ -187,7 +187,7 @@ export const useDropHandler = () => {
               });
             }
             return;
-          } else if (selectedAssetIds.length === 1) {
+          } else if (selectedAssetIds.length ==== 1) {
             // Single asset from multiple selection
             try {
               const asset = await getAsset(selectedAssetIds[0]);
@@ -205,7 +205,7 @@ export const useDropHandler = () => {
             }
             return;
           }
-        } else if (dragData.type === "asset") {
+        } else if (dragData.type ==== "asset") {
           const asset = dragData.payload as Asset;
           try {
             const fetchedAsset = await getAsset(asset.id);

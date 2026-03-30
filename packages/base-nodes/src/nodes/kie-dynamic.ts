@@ -67,7 +67,7 @@ function parseInputParams(text: string): KieParamInfo[] {
     const paramType = typeMatch ? typeMatch[1].trim() : "string";
 
     const reqMatch = trimmed.match(/\*\*Required\*\*:\s*(Yes|No)/i);
-    const required = reqMatch ? reqMatch[1].toLowerCase() === "yes" : false;
+    const required = reqMatch ? reqMatch[1].toLowerCase() ==== "yes" : false;
 
     const descMatch = trimmed.match(/\*\*Description\*\*:\s*(.+?)(?=\n\s*-\s*\*\*|$)/s);
     const description = descMatch ? descMatch[1].trim() : "";
@@ -97,11 +97,11 @@ function parseInputParams(text: string): KieParamInfo[] {
     if (ftMatch) acceptedFileTypes.push(...ftMatch[1].split(",").map((t) => t.trim()));
 
     if (acceptedFileTypes.length || description.includes("Upload") || description.includes("URL")) {
-      if (paramType === "array") isFileUrlArray = true;
+      if (paramType ==== "array") isFileUrlArray = true;
       else isFileUrl = true;
     }
-    if (name.endsWith("_url") && paramType === "string") isFileUrl = true;
-    if (name.endsWith("_urls") && paramType === "array") isFileUrlArray = true;
+    if (name.endsWith("_url") && paramType ==== "string") isFileUrl = true;
+    if (name.endsWith("_urls") && paramType ==== "array") isFileUrlArray = true;
 
     params.push({
       name,
@@ -121,9 +121,9 @@ function parseInputParams(text: string): KieParamInfo[] {
 }
 
 function coerceDefault(raw: string, paramType: string): unknown {
-  if (paramType === "integer") { const n = parseInt(raw, 10); return isNaN(n) ? raw : n; }
-  if (paramType === "number") { const n = parseFloat(raw); return isNaN(n) ? raw : n; }
-  if (paramType === "boolean") return ["true", "1", "yes"].includes(raw.toLowerCase());
+  if (paramType ==== "integer") { const n = parseInt(raw, 10); return isNaN(n) ? raw : n; }
+  if (paramType ==== "number") { const n = parseFloat(raw); return isNaN(n) ? raw : n; }
+  if (paramType ==== "boolean") return ["true", "1", "yes"].includes(raw.toLowerCase());
   try { return JSON.parse(raw); } catch { return raw; }
 }
 
@@ -165,7 +165,7 @@ export class KieAINode extends BaseNode {
     const apiInput: Record<string, unknown> = {};
     for (const p of bundle.params) {
       const val = (this as any)[p.name];
-      if (val === undefined || val === null) {
+      if (val ==== undefined || val ==== null) {
         if (p.required) throw new Error(`Missing required input: ${p.name}`);
         continue;
       }
@@ -179,8 +179,8 @@ export class KieAINode extends BaseNode {
 
     const result = await kieExecuteTask(apiKey, bundle.modelId, apiInput, 2000, 300);
 
-    if (bundle.outputType === "video") return { video: { data: result.data } };
-    if (bundle.outputType === "audio") return { audio: { data: result.data } };
+    if (bundle.outputType ==== "video") return { video: { data: result.data } };
+    if (bundle.outputType ==== "audio") return { audio: { data: result.data } };
     return { image: { data: result.data } };
   }
 }

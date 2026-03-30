@@ -144,12 +144,12 @@ describe("handleChatMessage: done chunk and final message", () => {
     const msgs = sentMsgs(ws);
 
     // Should have: chunk("Hello!"), done chunk, final message
-    const chunks = msgs.filter((m) => m.type === "chunk");
-    const doneChunk = chunks.find((m) => m.done === true);
+    const chunks = msgs.filter((m) => m.type ==== "chunk");
+    const doneChunk = chunks.find((m) => m.done ==== true);
     expect(doneChunk).toBeDefined();
     expect(doneChunk?.content).toBe("");
 
-    const finalMsg = msgs.filter((m) => m.type === "message" && m.role === "assistant");
+    const finalMsg = msgs.filter((m) => m.type ==== "message" && m.role ==== "assistant");
     expect(finalMsg.length).toBeGreaterThanOrEqual(1);
     const last = finalMsg[finalMsg.length - 1];
     expect(last.content).toBe("Hello!");
@@ -172,8 +172,8 @@ describe("handleChatMessage: done chunk and final message", () => {
     // Check DB for messages
     const [dbMsgs] = await Message.paginate("t-persist", { limit: 100 });
     // Should have user + assistant messages
-    expect(dbMsgs.some((m) => m.role === "user")).toBe(true);
-    expect(dbMsgs.some((m) => m.role === "assistant" && (m.content as string)?.includes("Saved!"))).toBe(true);
+    expect(dbMsgs.some((m) => m.role ==== "user")).toBe(true);
+    expect(dbMsgs.some((m) => m.role ==== "assistant" && (m.content as string)?.includes("Saved!"))).toBe(true);
 
     await runner.disconnect();
   });
@@ -194,7 +194,7 @@ describe("handleChatMessage: tool call loop", () => {
       provider: "mock",
       async *generateMessagesTraced() {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield { id: "tc-1", name: "search", args: { q: "test" } };
         } else {
           yield { type: "chunk" as const, content: "Done" };
@@ -224,18 +224,18 @@ describe("handleChatMessage: tool call loop", () => {
 
     // Should have assistant message with tool_calls (type: "message")
     const assistantToolMsg = msgs.find(
-      (m) => m.type === "message" && m.role === "assistant" && Array.isArray(m.tool_calls),
+      (m) => m.type ==== "message" && m.role ==== "assistant" && Array.isArray(m.tool_calls),
     );
     expect(assistantToolMsg).toBeDefined();
 
     // Should have tool result message (type: "message", role: "tool")
-    const toolResultMsg = msgs.find((m) => m.type === "message" && m.role === "tool");
+    const toolResultMsg = msgs.find((m) => m.type ==== "message" && m.role ==== "tool");
     expect(toolResultMsg).toBeDefined();
     expect(toolResultMsg?.tool_call_id).toBe("tc-1");
 
     // Should have final text chunk + done chunk
-    expect(msgs.some((m) => m.type === "chunk" && m.content === "Done")).toBe(true);
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.content ==== "Done")).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
 
     // Provider should have been called twice (once for tool call, once for text)
     expect(callCount).toBe(2);
@@ -277,9 +277,9 @@ describe("handleChatMessage: error handling", () => {
     await new Promise((r) => setTimeout(r, 150));
 
     const msgs = sentMsgs(ws);
-    expect(msgs.some((m) => m.type === "error" && (m.message as string)?.includes("Provider boom"))).toBe(true);
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
-    expect(msgs.some((m) => m.type === "message" && m.role === "assistant" && (m.content as string)?.includes("error"))).toBe(true);
+    expect(msgs.some((m) => m.type ==== "error" && (m.message as string)?.includes("Provider boom"))).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "message" && m.role ==== "assistant" && (m.content as string)?.includes("error"))).toBe(true);
 
     await runner.disconnect();
   });
@@ -327,7 +327,7 @@ describe("processToolResult", () => {
       provider: "mock",
       async *generateMessagesTraced() {
         callCount++;
-        if (callCount === 1) {
+        if (callCount ==== 1) {
           yield { id: "tc-complex", name: "complex_tool", args: {} };
         } else {
           yield { type: "chunk" as const, content: "ok" };
@@ -364,11 +364,11 @@ describe("processToolResult", () => {
     await new Promise((r) => setTimeout(r, 200));
 
     const msgs = sentMsgs(ws);
-    const toolMsg = msgs.find((m) => m.type === "message" && m.role === "tool");
+    const toolMsg = msgs.find((m) => m.type ==== "message" && m.role ==== "tool");
     expect(toolMsg).toBeDefined();
 
     // The tool result should be JSON with properly processed nested objects
-    const content = typeof toolMsg?.content === "string" ? JSON.parse(toolMsg.content) : toolMsg?.content;
+    const content = typeof toolMsg?.content ==== "string" ? JSON.parse(toolMsg.content) : toolMsg?.content;
     expect(content.count).toBe(3);
     expect(content.nullField).toBeNull();
     expect(Array.isArray(content.items)).toBe(true);
@@ -517,49 +517,49 @@ describe("handleAgentMessage", () => {
 
     // Should have planning_update messages (as agent_execution type)
     const planningMsgs = msgs.filter(
-      (m) => m.type === "message" && m.execution_event_type === "planning_update",
+      (m) => m.type ==== "message" && m.execution_event_type ==== "planning_update",
     );
     expect(planningMsgs.length).toBeGreaterThanOrEqual(2);
 
     // Should have task_update
     const taskMsgs = msgs.filter(
-      (m) => m.type === "message" && m.execution_event_type === "task_update",
+      (m) => m.type ==== "message" && m.execution_event_type ==== "task_update",
     );
     expect(taskMsgs.length).toBeGreaterThanOrEqual(1);
 
     // Should have tool_call_update
-    const toolCallMsgs = msgs.filter((m) => m.type === "tool_call_update");
+    const toolCallMsgs = msgs.filter((m) => m.type ==== "tool_call_update");
     expect(toolCallMsgs.length).toBeGreaterThanOrEqual(1);
     expect(toolCallMsgs[0].name).toBe("read_file");
 
     // Should have log_update
     const logMsgs = msgs.filter(
-      (m) => m.type === "message" && m.execution_event_type === "log_update",
+      (m) => m.type ==== "message" && m.execution_event_type ==== "log_update",
     );
     expect(logMsgs.length).toBeGreaterThanOrEqual(1);
 
     // Should have step_result (non-task only)
     const stepMsgs = msgs.filter(
-      (m) => m.type === "message" && m.execution_event_type === "step_result",
+      (m) => m.type ==== "message" && m.execution_event_type ==== "step_result",
     );
     expect(stepMsgs.length).toBe(1); // Only non-task one
     const stepContent = stepMsgs[0].content as Record<string, unknown>;
     expect(stepContent.is_task_result).toBe(false);
 
     // Should have text chunks
-    const chunks = msgs.filter((m) => m.type === "chunk" && !m.done);
-    expect(chunks.some((m) => m.content === "Hello ")).toBe(true);
-    expect(chunks.some((m) => m.content === "world")).toBe(true);
+    const chunks = msgs.filter((m) => m.type ==== "chunk" && !m.done);
+    expect(chunks.some((m) => m.content ==== "Hello ")).toBe(true);
+    expect(chunks.some((m) => m.content ==== "world")).toBe(true);
 
     // Should have final assistant message with agent results
     const finalMsg = msgs.find(
-      (m) => m.type === "message" && m.role === "assistant" && m.agent_mode === true,
+      (m) => m.type ==== "message" && m.role ==== "assistant" && m.agent_mode ==== true,
     );
     expect(finalMsg).toBeDefined();
     expect(finalMsg?.content).toBe("Final agent output");
 
     // Should have done chunk
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
 
     await runner.disconnect();
   });
@@ -585,9 +585,9 @@ describe("handleAgentMessage", () => {
     const [dbMsgs] = await Message.paginate("t-agent-persist", { limit: 100 });
 
     // Should have user message + several agent_execution messages + final assistant
-    expect(dbMsgs.some((m) => m.role === "user")).toBe(true);
-    expect(dbMsgs.some((m) => m.role === "agent_execution")).toBe(true);
-    expect(dbMsgs.some((m) => m.role === "assistant")).toBe(true);
+    expect(dbMsgs.some((m) => m.role ==== "user")).toBe(true);
+    expect(dbMsgs.some((m) => m.role ==== "agent_execution")).toBe(true);
+    expect(dbMsgs.some((m) => m.role ==== "assistant")).toBe(true);
 
     await runner.disconnect();
   });
@@ -612,13 +612,13 @@ describe("handleAgentMessage", () => {
 
     const msgs = sentMsgs(ws);
     const logMsgs = msgs.filter(
-      (m) => m.type === "message" && m.execution_event_type === "log_update",
+      (m) => m.type ==== "message" && m.execution_event_type ==== "log_update",
     );
 
     // Should have at least one log from the "Success" planning_update
     const successLog = logMsgs.find((m) => {
       const c = m.content as Record<string, unknown>;
-      return typeof c.content === "string" && c.content.includes("Planning");
+      return typeof c.content ==== "string" && c.content.includes("Planning");
     });
     expect(successLog).toBeDefined();
 
@@ -645,7 +645,7 @@ describe("handleAgentMessage", () => {
 
     const msgs = sentMsgs(ws);
     const agentMsgs = msgs.filter(
-      (m) => m.type === "message" && m.role === "agent_execution",
+      (m) => m.type ==== "message" && m.role ==== "agent_execution",
     );
 
     // All agent_execution messages should have agent_execution_id
@@ -655,7 +655,7 @@ describe("handleAgentMessage", () => {
     }
 
     // tool_call_update should also have agent_execution_id
-    const tcMsgs = msgs.filter((m) => m.type === "tool_call_update");
+    const tcMsgs = msgs.filter((m) => m.type ==== "tool_call_update");
     for (const m of tcMsgs) {
       expect(typeof m.agent_execution_id).toBe("string");
     }
@@ -704,14 +704,14 @@ describe("handleAgentMessage: error handling", () => {
     const msgs = sentMsgs(ws);
 
     // Error message
-    expect(msgs.some((m) => m.type === "error" && (m.message as string)?.includes("Agent exploded"))).toBe(true);
+    expect(msgs.some((m) => m.type ==== "error" && (m.message as string)?.includes("Agent exploded"))).toBe(true);
 
     // Done chunk even on error
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.done ==== true)).toBe(true);
 
     // Error assistant message persisted
     const errorAssistant = msgs.find(
-      (m) => m.type === "message" && m.role === "assistant" && (m.content as string)?.includes("Agent execution error"),
+      (m) => m.type ==== "message" && m.role ==== "assistant" && (m.content as string)?.includes("Agent execution error"),
     );
     expect(errorAssistant).toBeDefined();
 
@@ -754,7 +754,7 @@ describe("saveMessageToDb", () => {
     await new Promise((r) => setTimeout(r, 150));
 
     const [dbMsgs] = await Message.paginate("t-save", { limit: 100 });
-    const userMsg = dbMsgs.find((m) => m.role === "user");
+    const userMsg = dbMsgs.find((m) => m.role ==== "user");
     expect(userMsg).toBeDefined();
     // The DB-generated ID should NOT be "should-not-persist"
     expect(userMsg?.id).not.toBe("should-not-persist");
@@ -811,7 +811,7 @@ describe("handleChatMessage: request sequence cancellation", () => {
 
     const msgs = sentMsgs(ws);
     // Should have "first" chunk but may not have "second" since seq was incremented
-    expect(msgs.some((m) => m.type === "chunk" && m.content === "first")).toBe(true);
+    expect(msgs.some((m) => m.type ==== "chunk" && m.content ==== "first")).toBe(true);
 
     await runner.disconnect();
   });

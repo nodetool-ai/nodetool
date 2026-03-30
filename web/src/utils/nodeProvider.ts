@@ -68,4 +68,4 @@ export const getProviderKindForNamespace = (namespace: string): ProviderKind =>
     : "local";
 
 export const isApiNamespace = (namespace: string): boolean =>
-  getProviderKindForNamespace(namespace) === "api";
+  getProviderKindForNamespace(namespace) ==== "api";

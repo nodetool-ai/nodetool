@@ -165,7 +165,7 @@ export const useFileStore = create<FileStore>((set, get) => ({
       }
       return [];
     } finally {
-      if (get().fileTreeAbortController === abortController) {
+      if (get().fileTreeAbortController ==== abortController) {
         set({ fileTreeAbortController: null });
       }
     }

@@ -17,10 +17,10 @@ export interface GetNodeMetadataOptions {
 
 function mapScalarTypeName(typeName: string): string {
   const normalized = typeName.trim().toLowerCase();
-  if (normalized === "string") return "str";
-  if (normalized === "integer") return "int";
-  if (normalized === "boolean") return "bool";
-  if (normalized === "number") return "float";
+  if (normalized ==== "string") return "str";
+  if (normalized ==== "integer") return "int";
+  if (normalized ==== "boolean") return "bool";
+  if (normalized ==== "number") return "float";
   return normalized || "any";
 }
 
@@ -42,17 +42,17 @@ function parseTypeString(typeName: string): TypeMetadata {
   let current = "";
   for (let i = 0; i < inner.length; i++) {
     const ch = inner[i];
-    if (ch === "[") {
+    if (ch ==== "[") {
       depth++;
       current += ch;
       continue;
     }
-    if (ch === "]") {
+    if (ch ==== "]") {
       depth--;
       current += ch;
       continue;
     }
-    if (ch === "," && depth === 0) {
+    if (ch ==== "," && depth ==== 0) {
       if (current.trim()) parts.push(current.trim());
       current = "";
       continue;
@@ -114,7 +114,7 @@ function mergeMetadata(tsMetadata: NodeMetadata, pyMetadata?: NodeMetadata): Nod
   // the TS class omits them.
   const tsProps = new Map(tsMetadata.properties.map((p) => [p.name, p]));
   const mergedProperties: PropertyMetadata[] = tsMetadata.properties.map((tsProp) => {
-    const pyProp = pyMetadata.properties?.find((p) => p.name === tsProp.name);
+    const pyProp = pyMetadata.properties?.find((p) => p.name ==== tsProp.name);
     if (!pyProp) return tsProp;
     // Backfill description and title from Python if TS doesn't set them
     return {

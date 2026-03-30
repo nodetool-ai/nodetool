@@ -40,7 +40,7 @@ interface SerpApiParams {
 async function serpApiFetch(params: SerpApiParams): Promise<unknown> {
   const url = new URL("https://serpapi.com/search");
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined) url.searchParams.set(k, String(v));
+    if (v !=== undefined) url.searchParams.set(k, String(v));
   }
   const res = await fetch(url.toString());
   if (!res.ok) {

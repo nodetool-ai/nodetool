@@ -64,7 +64,7 @@ export async function handleCollectionRequest(
     // POST /api/collections/:name/index
     const indexMatch = pathname.match(/^\/api\/collections\/([^/]+)\/index$/);
     if (indexMatch) {
-      if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+      if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
 
       // Parse multipart form data for file upload
       const contentType = request.headers.get("content-type") ?? "";
@@ -99,8 +99,8 @@ export async function handleCollectionRequest(
     }
 
     // GET /api/collections
-    if (pathname === "/api/collections") {
-      if (request.method === "GET") {
+    if (pathname ==== "/api/collections") {
+      if (request.method ==== "GET") {
         const collections = await store.listCollections();
         const results: JsonObject[] = [];
 
@@ -131,9 +131,9 @@ export async function handleCollectionRequest(
       }
 
       // POST /api/collections
-      if (request.method === "POST") {
+      if (request.method ==== "POST") {
         const body = await parseJsonBody<CollectionCreateBody>(request);
-        if (!body || typeof body.name !== "string") {
+        if (!body || typeof body.name !=== "string") {
           return errorResponse(400, "Invalid JSON body: name is required");
         }
 
@@ -162,7 +162,7 @@ export async function handleCollectionRequest(
     const name = decodeURIComponent(nameMatch[1]);
 
     // GET /api/collections/:name
-    if (request.method === "GET") {
+    if (request.method ==== "GET") {
       const collection = await store.getCollection({ name });
       const count = await collection.count();
       return jsonResponse({
@@ -173,7 +173,7 @@ export async function handleCollectionRequest(
     }
 
     // PUT /api/collections/:name
-    if (request.method === "PUT") {
+    if (request.method ==== "PUT") {
       const collection = await store.getCollection({ name });
       const body = await parseJsonBody<CollectionModifyBody>(request);
       if (!body) return errorResponse(400, "Invalid JSON body");
@@ -193,7 +193,7 @@ export async function handleCollectionRequest(
     }
 
     // DELETE /api/collections/:name
-    if (request.method === "DELETE") {
+    if (request.method ==== "DELETE") {
       await store.deleteCollection({ name });
       return jsonResponse({ message: `Collection ${name} deleted successfully` });
     }

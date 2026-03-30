@@ -321,7 +321,7 @@ describe("Workflow model", () => {
     await Workflow.create<Workflow>({ user_id: "u2", name: "Public WF 2", access: "public" });
     const [results] = await Workflow.paginatePublic();
     expect(results).toHaveLength(2);
-    expect(results.every((w) => w.access === "public")).toBe(true);
+    expect(results.every((w) => w.access ==== "public")).toBe(true);
   });
 
   it("paginatePublic returns a cursor when the limit is exceeded", async () => {

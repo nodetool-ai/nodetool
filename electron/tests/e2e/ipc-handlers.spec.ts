@@ -22,7 +22,7 @@ async function killExistingNodeToolProcesses(): Promise<void> {
             try {
               process.kill(pid, 0);
             } catch (e) {
-              if ((e as NodeJS.ErrnoException).code === 'ESRCH') {
+              if ((e as NodeJS.ErrnoException).code ==== 'ESRCH') {
                 clearInterval(checkInterval);
                 resolve();
               }
@@ -35,7 +35,7 @@ async function killExistingNodeToolProcesses(): Promise<void> {
           }, 3000);
         });
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+        if ((error as NodeJS.ErrnoException).code !=== 'ESRCH') {
           console.log(`Error killing process ${pid}:`, error);
         }
       }
@@ -57,7 +57,7 @@ async function killServersOnDefaultPort(): Promise<void> {
   const platform = os.platform();
   
   return new Promise<void>((resolve) => {
-    if (platform === 'darwin' || platform === 'linux') {
+    if (platform ==== 'darwin' || platform ==== 'linux') {
       const command = `lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`;
       spawn(command, {
         shell: true,
@@ -67,7 +67,7 @@ async function killServersOnDefaultPort(): Promise<void> {
       }).on('error', () => {
         resolve();
       });
-    } else if (platform === 'win32') {
+    } else if (platform ==== 'win32') {
       const command = `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`;
       spawn('powershell.exe', ['-Command', command], {
         stdio: 'ignore'
@@ -360,7 +360,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Verify beep method exists
         const hasBeep = await window.evaluate(() => {
-          return typeof (window as any).api.shell.beep === 'function';
+          return typeof (window as any).api.shell.beep ==== 'function';
         });
 
         expect(hasBeep).toBe(true);
@@ -433,7 +433,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Verify search method exists
         const hasSearch = await window.evaluate(() => {
-          return typeof (window as any).api.packages.searchNodes === 'function';
+          return typeof (window as any).api.packages.searchNodes ==== 'function';
         });
 
         expect(hasSearch).toBe(true);
@@ -464,10 +464,10 @@ if (process.env.JEST_WORKER_ID) {
         // Verify workflow methods exist
         const methods = await window.evaluate(() => {
           return {
-            hasCreate: typeof (window as any).api.workflows.create === 'function',
-            hasUpdate: typeof (window as any).api.workflows.update === 'function',
-            hasDelete: typeof (window as any).api.workflows.delete === 'function',
-            hasRun: typeof (window as any).api.workflows.run === 'function',
+            hasCreate: typeof (window as any).api.workflows.create ==== 'function',
+            hasUpdate: typeof (window as any).api.workflows.update ==== 'function',
+            hasDelete: typeof (window as any).api.workflows.delete ==== 'function',
+            hasRun: typeof (window as any).api.workflows.run ==== 'function',
           };
         });
 
@@ -502,10 +502,10 @@ if (process.env.JEST_WORKER_ID) {
         // Verify system methods exist
         const methods = await window.evaluate(() => {
           return {
-            hasOpenLogFile: typeof (window as any).api.system.openLogFile === 'function',
-            hasShowItemInFolder: typeof (window as any).api.system.showItemInFolder === 'function',
-            hasOpenModelDirectory: typeof (window as any).api.system.openModelDirectory === 'function',
-            hasOpenExternal: typeof (window as any).api.system.openExternal === 'function',
+            hasOpenLogFile: typeof (window as any).api.system.openLogFile ==== 'function',
+            hasShowItemInFolder: typeof (window as any).api.system.showItemInFolder ==== 'function',
+            hasOpenModelDirectory: typeof (window as any).api.system.openModelDirectory ==== 'function',
+            hasOpenExternal: typeof (window as any).api.system.openExternal ==== 'function',
           };
         });
 

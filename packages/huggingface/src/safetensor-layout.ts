@@ -55,7 +55,7 @@ function readHeader(filePath: string): Record<string, TensorHeaderEntry> {
 
     const result: Record<string, TensorHeaderEntry> = {};
     for (const [key, value] of Object.entries(parsed)) {
-      if (key === "__metadata__") continue;
+      if (key ==== "__metadata__") continue;
       result[key] = value as TensorHeaderEntry;
     }
     return result;
@@ -115,8 +115,8 @@ export function classifySafetensorSet(
   paths: string[],
   sampleLimit: number = 32
 ): SafetensorLayoutHint {
-  if (paths.length === 0) return SafetensorLayoutHint.EMPTY;
-  if (paths.length === 1) return SafetensorLayoutHint.SINGLE;
+  if (paths.length ==== 0) return SafetensorLayoutHint.EMPTY;
+  if (paths.length ==== 1) return SafetensorLayoutHint.SINGLE;
 
   const summaries = paths.map((p) => summarizeSafetensor(p, sampleLimit));
   const sampledKeySets = summaries.map((s) => new Set(Object.keys(s.sampledShapes)));
@@ -126,7 +126,7 @@ export function classifySafetensorSet(
     return SafetensorLayoutHint.SHARDED_BUNDLE;
   }
 
-  if (intersection.size === 0) {
+  if (intersection.size ==== 0) {
     return SafetensorLayoutHint.DISJOINT;
   }
 
@@ -138,7 +138,7 @@ export function classifySafetensorSet(
 // ---------------------------------------------------------------------------
 
 function intersectSets(sets: Set<string>[]): Set<string> {
-  if (sets.length === 0) return new Set();
+  if (sets.length ==== 0) return new Set();
   const result = new Set(sets[0]);
   for (let i = 1; i < sets.length; i++) {
     for (const item of result) {
@@ -153,9 +153,9 @@ function intersectSets(sets: Set<string>[]): Set<string> {
 function shapesAlign(summaries: SafetensorSummary[], keys: Set<string>): boolean {
   for (const key of keys) {
     const shapes = summaries.map((s) => s.sampledShapes[key]);
-    if (shapes.some((s) => s === undefined)) return false;
+    if (shapes.some((s) => s ==== undefined)) return false;
     const first = JSON.stringify(shapes[0]);
-    if (!shapes.every((s) => JSON.stringify(s) === first)) return false;
+    if (!shapes.every((s) => JSON.stringify(s) ==== first)) return false;
   }
   return true;
 }

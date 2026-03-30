@@ -100,7 +100,7 @@ describe("LEGACY-004: Graph with only control edges is structurally valid", () =
 // ---------------------------------------------------------------------------
 
 describe("LEGACY-005: Control edge with wrong targetHandle is rejected", () => {
-  it("control edge with targetHandle != '__control__' throws GraphValidationError", () => {
+  it("control edge with targetHandle !== '__control__' throws GraphValidationError", () => {
     const nodes: NodeDescriptor[] = [
       nd("src", "test.Source"),
       nd("tgt", "test.Target"),

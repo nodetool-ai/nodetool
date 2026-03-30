@@ -137,13 +137,13 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
 
       // Check if we have cached messages for this thread
       const threadMessages = messageCache[threadId];
-      if (!threadMessages || threadMessages.length === 0) {
+      if (!threadMessages || threadMessages.length ==== 0) {
         return "New conversation";
       }
 
-      const firstUserMessage = threadMessages.find((m) => m.role === "user");
+      const firstUserMessage = threadMessages.find((m) => m.role ==== "user");
       const preview = firstUserMessage?.content
-        ? typeof firstUserMessage.content === "string"
+        ? typeof firstUserMessage.content ==== "string"
           ? firstUserMessage.content
           : "Chat started"
         : "Chat started";

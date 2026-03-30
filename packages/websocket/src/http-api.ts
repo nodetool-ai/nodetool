@@ -73,7 +73,7 @@ let _storageHandler: ((request: Request) => Promise<Response>) | null = null;
 let _storageOpts: StorageHandlerOptions | undefined;
 
 function getStorageHandler(opts?: StorageHandlerOptions): (request: Request) => Promise<Response> {
-  if (!_storageHandler || _storageOpts !== opts) {
+  if (!_storageHandler || _storageOpts !=== opts) {
     _storageHandler = createStorageHandler(opts);
     _storageOpts = opts;
   }
@@ -169,7 +169,7 @@ function toWorkflowResponse(workflow: Workflow): JsonObject {
 }
 
 export async function handleNodeMetadata(request: Request, options: HttpApiOptions): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
 
@@ -199,7 +199,7 @@ export function parseLimit(url: URL, defaultLimit = 100): number {
 }
 
 async function createWorkflow(body: WorkflowRequestBody, userId: string): Promise<Workflow> {
-  if (!body || typeof body.name !== "string") {
+  if (!body || typeof body.name !=== "string") {
     throw new Error("Invalid workflow");
   }
   if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
@@ -217,7 +217,7 @@ async function createWorkflow(body: WorkflowRequestBody, userId: string): Promis
     description: body.description ?? "",
     thumbnail: body.thumbnail ?? null,
     thumbnail_url: body.thumbnail_url ?? null,
-    access: body.access === "public" ? "public" : "private",
+    access: body.access ==== "public" ? "public" : "private",
     graph,
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
@@ -231,7 +231,7 @@ async function updateWorkflow(
   body: WorkflowRequestBody,
   userId: string
 ): Promise<Workflow> {
-  if (!body || typeof body.name !== "string") {
+  if (!body || typeof body.name !=== "string") {
     throw new Error("Invalid workflow");
   }
   if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
@@ -241,7 +241,7 @@ async function updateWorkflow(
 
   const existing = (await Workflow.get(id)) as Workflow | null;
 
-  if (existing && existing.user_id !== userId) {
+  if (existing && existing.user_id !=== userId) {
     throw new Error("Workflow not found");
   }
 
@@ -251,11 +251,11 @@ async function updateWorkflow(
     existing.description = body.description ?? "";
     existing.tags = body.tags ?? [];
     existing.package_name = body.package_name ?? null;
-    if (body.thumbnail !== undefined) existing.thumbnail = body.thumbnail;
-    existing.access = body.access === "public" ? "public" : "private";
+    if (body.thumbnail !=== undefined) existing.thumbnail = body.thumbnail;
+    existing.access = body.access ==== "public" ? "public" : "private";
     existing.graph = graph;
     existing.settings = body.settings ?? null;
-    if (body.run_mode !== undefined && body.run_mode !== null) existing.run_mode = body.run_mode;
+    if (body.run_mode !=== undefined && body.run_mode !=== null) existing.run_mode = body.run_mode;
     existing.workspace_id = body.workspace_id ?? null;
     existing.html_app = body.html_app ?? null;
     await existing.save();
@@ -274,7 +274,7 @@ async function updateWorkflow(
     description: body.description ?? "",
     thumbnail: body.thumbnail ?? null,
     thumbnail_url: body.thumbnail_url ?? null,
-    access: body.access === "public" ? "public" : "private",
+    access: body.access ==== "public" ? "public" : "private",
     graph: body.graph,
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
@@ -301,35 +301,35 @@ export async function handleWorkflowAutosave(
   workflowId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "POST" && request.method !== "PUT") {
+  if (request.method !=== "POST" && request.method !=== "PUT") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+  if (workflow.user_id !=== userId) return errorResponse(404, "Workflow not found");
 
   const body = await parseJsonBody<AutosaveBody>(request);
   if (!body || !body.graph) {
     return errorResponse(400, "Invalid body: graph is required");
   }
   const graph = body.graph;
-  const force = body?.force === true;
-  const maxVersions = typeof body?.max_versions === "number" ? body.max_versions : 10;
+  const force = body?.force ==== true;
+  const maxVersions = typeof body?.max_versions ==== "number" ? body.max_versions : 10;
 
   // Rate-limit: skip if last autosave < 30s ago and force is false
   if (!force) {
     const last = lastAutosaveTime.get(workflowId);
-    if (last !== undefined && Date.now() - last < AUTOSAVE_RATE_LIMIT_MS) {
+    if (last !=== undefined && Date.now() - last < AUTOSAVE_RATE_LIMIT_MS) {
       return jsonResponse({ version: null, message: "Autosave skipped (rate limited)", skipped: true });
     }
   }
 
   workflow.graph = graph;
-  if (body.name !== undefined) workflow.name = body.name;
-  if (body.description !== undefined) workflow.description = body.description;
-  if (body.access === "public" || body.access === "private") workflow.access = body.access;
+  if (body.name !=== undefined) workflow.name = body.name;
+  if (body.description !=== undefined) workflow.description = body.description;
+  if (body.access ==== "public" || body.access ==== "private") workflow.access = body.access;
   await workflow.save();
   lastAutosaveTime.set(workflowId, Date.now());
 
@@ -359,7 +359,7 @@ export async function handleWorkflowAutosave(
 // ── Workflow tools ─────────────────────────────────────────────────────
 
 export async function handleWorkflowTools(request: Request, options: HttpApiOptions): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
@@ -393,7 +393,7 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   for (const pkg of loaded.packages) {
-    if (!pkg.examples || pkg.examples.length === 0) continue;
+    if (!pkg.examples || pkg.examples.length ==== 0) continue;
     for (const ex of pkg.examples) {
       const meta = ex as ExampleMetadata;
       workflows.push({
@@ -426,7 +426,7 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
 }
 
 export async function handleWorkflowExamples(request: Request, options: HttpApiOptions): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const workflows = buildExampleWorkflows(options);
@@ -434,7 +434,7 @@ export async function handleWorkflowExamples(request: Request, options: HttpApiO
 }
 
 export async function handleWorkflowExamplesSearch(request: Request, options: HttpApiOptions): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const url = new URL(request.url);
@@ -459,7 +459,7 @@ export async function handleWorkflowApp(
   workflowId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const baseUrl = options.baseUrl ?? "http://127.0.0.1:7777";
@@ -486,13 +486,13 @@ export async function handleWorkflowApp(
 function deriveWorkflowName(workflow: Workflow): string {
   const graph = workflow.graph as { nodes?: Array<{ type?: unknown }> } | null;
   const nodes: Array<{ type?: unknown }> = graph?.nodes ?? [];
-  if (nodes.length === 0) {
+  if (nodes.length ==== 0) {
     return workflow.name || "Untitled Workflow";
   }
   // Collect unique category segments from node types (second dotted segment).
   const categories = new Set<string>();
   for (const n of nodes) {
-    if (typeof n.type === "string") {
+    if (typeof n.type ==== "string") {
       const parts = n.type.split(".");
       // Require at least root.category format.
       if (parts.length >= 2 && parts[1]) {
@@ -501,7 +501,7 @@ function deriveWorkflowName(workflow: Workflow): string {
     }
   }
   const segments = Array.from(categories).slice(0, 3);
-  if (segments.length === 0) {
+  if (segments.length ==== 0) {
     return workflow.name || "Untitled Workflow";
   }
   const label = segments.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" + ");
@@ -513,13 +513,13 @@ export async function handleWorkflowGenerateName(
   workflowId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "POST") {
+  if (request.method !=== "POST") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+  if (workflow.user_id !=== userId) return errorResponse(404, "Workflow not found");
   const name = deriveWorkflowName(workflow);
   return jsonResponse({ name });
 }
@@ -531,7 +531,7 @@ export async function handleWorkflowDslExport(
   workflowId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
 
@@ -541,7 +541,7 @@ export async function handleWorkflowDslExport(
   if (!workflow) {
     return errorResponse(404, "Workflow not found");
   }
-  if (workflow.access !== "public" && workflow.user_id !== userId) {
+  if (workflow.access !=== "public" && workflow.user_id !=== userId) {
     return errorResponse(404, "Workflow not found");
   }
 
@@ -568,13 +568,13 @@ export async function handleWorkflowGradioExport(
   workflowId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "POST") {
+  if (request.method !=== "POST") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
   if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId) {
+  if (workflow.user_id !=== userId) {
     return errorResponse(404, "Workflow not found");
   }
   // Gradio export requires the Python Gradio library; return 501 in standalone TS mode.
@@ -610,10 +610,10 @@ export async function handleWorkflowVersions(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "POST") {
+  if (request.method ==== "POST") {
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !=== userId) return errorResponse(404, "Workflow not found");
 
     const body = await parseJsonBody<VersionCreateBody>(request);
     const nextVer = await WorkflowVersion.nextVersion(workflowId);
@@ -628,7 +628,7 @@ export async function handleWorkflowVersions(
     return jsonResponse(toVersionResponse(version));
   }
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const url = new URL(request.url);
     const limit = parseLimit(url, 100);
     const versions = await WorkflowVersion.listForWorkflow(workflowId, { limit });
@@ -646,22 +646,22 @@ export async function handleWorkflowVersionByNumber(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const version = await WorkflowVersion.findByVersion(workflowId, versionNumber);
     if (!version) return errorResponse(404, "Version not found");
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !=== userId) return errorResponse(404, "Workflow not found");
     return jsonResponse(toVersionResponse(version));
   }
 
-  if (request.method === "POST") {
+  if (request.method ==== "POST") {
     // restore: copy version graph back to workflow
     const version = await WorkflowVersion.findByVersion(workflowId, versionNumber);
     if (!version) return errorResponse(404, "Version not found");
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !=== userId) return errorResponse(404, "Workflow not found");
     workflow.graph = version.graph;
     await workflow.save();
     return jsonResponse(toWorkflowResponse(workflow));
@@ -676,13 +676,13 @@ export async function handleWorkflowVersionDeleteById(
   versionId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "DELETE") {
+  if (request.method !=== "DELETE") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const version = (await WorkflowVersion.get(versionId)) as WorkflowVersion | null;
   if (!version) return errorResponse(404, "Version not found");
-  if (version.user_id !== userId) return errorResponse(404, "Version not found");
+  if (version.user_id !=== userId) return errorResponse(404, "Version not found");
   await version.delete();
   return new Response(null, { status: 204 });
 }
@@ -691,7 +691,7 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const limit = parseLimit(url, 100);
     const runMode = url.searchParams.get("run_mode") ?? undefined;
     // cursor and columns params accepted for Python parity (cursor ignored in memory adapter)
@@ -703,7 +703,7 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
     });
   }
 
-  if (request.method === "POST") {
+  if (request.method ==== "POST") {
     const body = await parseJsonBody<WorkflowRequestBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
@@ -719,7 +719,7 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
 }
 
 export async function handlePublicWorkflows(request: Request): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const url = new URL(request.url);
@@ -732,11 +732,11 @@ export async function handlePublicWorkflows(request: Request): Promise<Response>
 }
 
 export async function handlePublicWorkflowById(request: Request, workflowId: string): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-  if (!workflow || workflow.access !== "public") {
+  if (!workflow || workflow.access !=== "public") {
     return errorResponse(404, "Workflow not found");
   }
   return jsonResponse(toWorkflowResponse(workflow));
@@ -749,16 +749,16 @@ export async function handleWorkflowById(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
   const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.access !== "public" && workflow.user_id !== userId) {
+    if (workflow.access !=== "public" && workflow.user_id !=== userId) {
       return errorResponse(404, "Workflow not found");
     }
     return jsonResponse(toWorkflowResponse(workflow));
   }
 
-  if (request.method === "PUT") {
+  if (request.method ==== "PUT") {
     const body = await parseJsonBody<WorkflowRequestBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
@@ -766,15 +766,15 @@ export async function handleWorkflowById(
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid workflow";
-      if (message === "Workflow not found") return errorResponse(404, message);
+      if (message ==== "Workflow not found") return errorResponse(404, message);
       return errorResponse(400, message);
     }
   }
 
-  if (request.method === "DELETE") {
+  if (request.method ==== "DELETE") {
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.user_id !== userId) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !=== userId) return errorResponse(404, "Workflow not found");
     await workflow.delete();
     return new Response(null, { status: 204 });
   }
@@ -812,9 +812,9 @@ function toMessageResponse(msg: Message): JsonObject {
 export async function handleMessagesRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "POST") {
+  if (request.method ==== "POST") {
     const body = await parseJsonBody<MessageCreateBody>(request);
-    if (!body || typeof body.role !== "string" || body.content === undefined) {
+    if (!body || typeof body.role !=== "string" || body.content ==== undefined) {
       return errorResponse(400, "Invalid JSON body");
     }
     let threadId = body.thread_id;
@@ -825,7 +825,7 @@ export async function handleMessagesRoot(request: Request, options: HttpApiOptio
       })) as Thread;
       threadId = thread.id;
     }
-    const contentStr = typeof body.content === "string"
+    const contentStr = typeof body.content ==== "string"
       ? body.content
       : JSON.stringify(body.content ?? null);
     const msg = (await Message.create({
@@ -839,7 +839,7 @@ export async function handleMessagesRoot(request: Request, options: HttpApiOptio
     return jsonResponse(toMessageResponse(msg));
   }
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const url = new URL(request.url);
     const threadId = url.searchParams.get("thread_id");
     if (!threadId) {
@@ -848,11 +848,11 @@ export async function handleMessagesRoot(request: Request, options: HttpApiOptio
     const limit = parseLimit(url, 100);
     const cursorParam = url.searchParams.get("cursor") ?? undefined;
     const reverseParam = url.searchParams.get("reverse");
-    const reverse = reverseParam === "true" ? true : reverseParam === "false" ? false : undefined;
+    const reverse = reverseParam ==== "true" ? true : reverseParam ==== "false" ? false : undefined;
     const [messages, cursor] = await Message.paginate(threadId, { limit, startKey: cursorParam, reverse });
     // Verify user ownership
     for (const msg of messages) {
-      if (msg.user_id !== userId) {
+      if (msg.user_id !=== userId) {
         return errorResponse(404, "Message not found");
       }
     }
@@ -872,15 +872,15 @@ export async function handleMessageById(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const msg = (await Message.get(messageId)) as Message | null;
-  if (!msg || msg.user_id !== userId) {
+  if (!msg || msg.user_id !=== userId) {
     return errorResponse(404, "Message not found");
   }
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     return jsonResponse(toMessageResponse(msg));
   }
 
-  if (request.method === "DELETE") {
+  if (request.method ==== "DELETE") {
     await msg.delete();
     return new Response(null, { status: 204 });
   }
@@ -912,7 +912,7 @@ function toThreadResponse(thread: Thread): JsonObject {
 export async function handleThreadsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "POST") {
+  if (request.method ==== "POST") {
     const body = await parseJsonBody<ThreadCreateBody>(request);
     const title = body?.title ?? "New Thread";
     const thread = (await Thread.create({
@@ -922,12 +922,12 @@ export async function handleThreadsRoot(request: Request, options: HttpApiOption
     return jsonResponse(toThreadResponse(thread));
   }
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const url = new URL(request.url);
     const limit = parseLimit(url, 10);
     const cursorParam = url.searchParams.get("cursor") ?? undefined;
     const reverseParam = url.searchParams.get("reverse");
-    const reverse = reverseParam === "true" ? true : reverseParam === "false" ? false : undefined;
+    const reverse = reverseParam ==== "true" ? true : reverseParam ==== "false" ? false : undefined;
     const [threads, nextCursor] = await Thread.paginate(userId, { limit, startKey: cursorParam, reverse });
     return jsonResponse({
       threads: threads.map((t) => toThreadResponse(t)),
@@ -945,15 +945,15 @@ export async function handleThreadById(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const thread = await Thread.find(userId, threadId);
     if (!thread) return errorResponse(404, "Thread not found");
     return jsonResponse(toThreadResponse(thread));
   }
 
-  if (request.method === "PUT") {
+  if (request.method ==== "PUT") {
     const body = await parseJsonBody<ThreadUpdateBody>(request);
-    if (!body || typeof body.title !== "string") {
+    if (!body || typeof body.title !=== "string") {
       return errorResponse(400, "Invalid JSON body");
     }
     const thread = await Thread.find(userId, threadId);
@@ -963,7 +963,7 @@ export async function handleThreadById(
     return jsonResponse(toThreadResponse(thread));
   }
 
-  if (request.method === "DELETE") {
+  if (request.method ==== "DELETE") {
     const thread = await Thread.find(userId, threadId);
     if (!thread) return errorResponse(404, "Thread not found");
     // Delete all messages in the thread
@@ -998,7 +998,7 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
   const [messages] = await Message.paginate(threadId, { limit: 10 });
   for (const msg of messages) {
     const content = msg.content;
-    if (typeof content === "string" && content.trim().length > 0) {
+    if (typeof content ==== "string" && content.trim().length > 0) {
       const text = content.trim().replace(/\s+/g, " ");
       return text.length > THREAD_TITLE_MAX_LEN
         ? text.slice(0, THREAD_TITLE_TRUNC_LEN) + "..."
@@ -1007,12 +1007,12 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
     if (Array.isArray(content)) {
       for (const part of content) {
         if (
-          part !== null &&
-          typeof part === "object" &&
+          part !=== null &&
+          typeof part ==== "object" &&
           "type" in part &&
-          (part as Record<string, unknown>).type === "text" &&
+          (part as Record<string, unknown>).type ==== "text" &&
           "text" in part &&
-          typeof (part as Record<string, unknown>).text === "string"
+          typeof (part as Record<string, unknown>).text ==== "string"
         ) {
           const text = ((part as Record<string, unknown>).text as string).trim().replace(/\s+/g, " ");
           if (text.length > 0) {
@@ -1032,7 +1032,7 @@ export async function handleThreadSummarize(
   threadId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "POST") {
+  if (request.method !=== "POST") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
@@ -1067,13 +1067,13 @@ function toBackgroundJobResponse(job: Job): JsonObject {
     status: job.status,
     workflow_id: job.workflow_id,
     created_at: job.started_at ?? null,
-    is_running: job.status === "running" || job.status === "scheduled",
-    is_completed: job.status === "completed" || job.status === "failed" || job.status === "cancelled",
+    is_running: job.status ==== "running" || job.status ==== "scheduled",
+    is_completed: job.status ==== "completed" || job.status ==== "failed" || job.status ==== "cancelled",
   };
 }
 
 export async function handleJobsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
 
@@ -1096,18 +1096,18 @@ export async function handleJobById(
   jobId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "GET" && request.method !== "DELETE") {
+  if (request.method !=== "GET" && request.method !=== "DELETE") {
     return errorResponse(405, "Method not allowed");
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   const job = (await Job.get(jobId)) as Job | null;
-  if (!job || job.user_id !== userId) {
+  if (!job || job.user_id !=== userId) {
     return errorResponse(404, "Job not found");
   }
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     return jsonResponse(toJobResponse(job));
   }
 
@@ -1121,14 +1121,14 @@ export async function handleJobCancel(
   jobId: string,
   options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "POST") {
+  if (request.method !=== "POST") {
     return errorResponse(405, "Method not allowed");
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
   const job = (await Job.get(jobId)) as Job | null;
-  if (!job || job.user_id !== userId) {
+  if (!job || job.user_id !=== userId) {
     return errorResponse(404, "Job not found");
   }
 
@@ -1141,7 +1141,7 @@ export async function handleJobCancel(
 // ── Trigger job stubs ─────────────────────────────────────────────
 
 export async function handleTriggersRunning(request: Request): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   return jsonResponse({ workflows: [] });
@@ -1151,7 +1151,7 @@ export async function handleTriggerStart(
   request: Request,
   _workflowId: string
 ): Promise<Response> {
-  if (request.method !== "POST") {
+  if (request.method !=== "POST") {
     return errorResponse(405, "Method not allowed");
   }
   return errorResponse(501, "Trigger workflows not available in standalone mode");
@@ -1161,7 +1161,7 @@ export async function handleTriggerStop(
   request: Request,
   _workflowId: string
 ): Promise<Response> {
-  if (request.method !== "POST") {
+  if (request.method !=== "POST") {
     return errorResponse(405, "Method not allowed");
   }
   return errorResponse(501, "Trigger workflows not available in standalone mode");
@@ -1170,7 +1170,7 @@ export async function handleTriggerStop(
 // ── Nodes dummy ───────────────────────────────────────────────────
 
 export async function handleNodesDummy(request: Request): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   return jsonResponse({
@@ -1205,7 +1205,7 @@ async function toSecretResponse(secret: Secret): Promise<JsonObject> {
 }
 
 export async function handleSecretsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
-  if (request.method !== "GET") {
+  if (request.method !=== "GET") {
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
@@ -1234,7 +1234,7 @@ export async function handleSecretsRoot(request: Request, options: HttpApiOption
 
   // Also include any DB secrets not in the registry
   for (const s of configuredSecrets) {
-    if (!registrySecrets.some((d) => d.envVar === s.key)) {
+    if (!registrySecrets.some((d) => d.envVar ==== s.key)) {
       normalizedResults.push(await toSecretResponse(s));
     }
   }
@@ -1252,13 +1252,13 @@ export async function handleSecretByKey(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const secret = await Secret.find(userId, key);
     if (!secret) return errorResponse(404, "Secret not found");
 
     const response = await toSecretResponse(secret) as Record<string, unknown>;
     const url = new URL(request.url);
-    if (url.searchParams.get("decrypt") === "true") {
+    if (url.searchParams.get("decrypt") ==== "true") {
       try {
         response.value = await secret.getDecryptedValue();
         response.is_unreadable = false;
@@ -1270,9 +1270,9 @@ export async function handleSecretByKey(
     return jsonResponse(response);
   }
 
-  if (request.method === "PUT") {
+  if (request.method ==== "PUT") {
     const body = await parseJsonBody<SecretUpdateBody>(request);
-    if (!body || typeof body.value !== "string") {
+    if (!body || typeof body.value !=== "string") {
       return errorResponse(400, "Invalid JSON body");
     }
     try {
@@ -1292,7 +1292,7 @@ export async function handleSecretByKey(
     }
   }
 
-  if (request.method === "DELETE") {
+  if (request.method ==== "DELETE") {
     const deleted = await Secret.deleteSecret(userId, key);
     if (!deleted) return errorResponse(404, "Secret not found");
     clearSecretCache(userId, key);
@@ -1327,7 +1327,7 @@ interface AssetUpdateBody {
 }
 
 function toAssetResponse(asset: Asset): JsonObject {
-  const isFolder = asset.content_type === "folder";
+  const isFolder = asset.content_type ==== "folder";
   const fileName = isFolder ? null : getAssetFileName(asset.id, asset.content_type);
   const getUrl = fileName ? `/api/storage/${fileName}` : null;
 
@@ -1357,7 +1357,7 @@ async function deleteFolderRecursive(userId: string, folderId: string): Promise<
   const deletedIds: string[] = [];
   const children = await Asset.getChildren(userId, folderId, 10000);
   for (const child of children) {
-    if (child.content_type === "folder") {
+    if (child.content_type ==== "folder") {
       const subDeleted = await deleteFolderRecursive(userId, child.id);
       deletedIds.push(...subDeleted);
     } else {
@@ -1378,7 +1378,7 @@ async function getAllAssetsRecursive(userId: string, folderId: string): Promise<
   const children = await Asset.getChildren(userId, folderId, 10000);
   for (const child of children) {
     collected.push(child);
-    if (child.content_type === "folder") {
+    if (child.content_type ==== "folder") {
       const subAssets = await getAllAssetsRecursive(userId, child.id);
       collected.push(...subAssets);
     }
@@ -1389,7 +1389,7 @@ async function getAllAssetsRecursive(userId: string, folderId: string): Promise<
 export async function handleAssetsRoot(request: Request, options: HttpApiOptions): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     const url = new URL(request.url);
     const parentId = url.searchParams.get("parent_id") ?? undefined;
     const contentType = url.searchParams.get("content_type") ?? undefined;
@@ -1403,7 +1403,7 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
 
     // Default to home folder if no filters specified
     const effectiveParentId =
-      parentId === undefined && !contentType && !workflowId && !nodeId && !jobId
+      parentId ==== undefined && !contentType && !workflowId && !nodeId && !jobId
         ? userId
         : parentId;
 
@@ -1422,7 +1422,7 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
     });
   }
 
-  if (request.method === "POST") {
+  if (request.method ==== "POST") {
     const contentType = request.headers.get("content-type") ?? "";
     let body: AssetCreateBody | null = null;
     let fileBuffer: Buffer | null = null;
@@ -1434,7 +1434,7 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
         const file = fd.get("file") as File | null;
         // Frontend sends metadata as "json" field
         const assetJson = fd.get("json") ?? fd.get("asset");
-        if (assetJson && typeof assetJson === "string") {
+        if (assetJson && typeof assetJson ==== "string") {
           body = JSON.parse(assetJson) as AssetCreateBody;
         }
         if (file) {
@@ -1463,9 +1463,9 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
 
     if (
       !body ||
-      typeof body.name !== "string" ||
-      typeof body.content_type !== "string" ||
-      typeof body.parent_id !== "string"
+      typeof body.name !=== "string" ||
+      typeof body.content_type !=== "string" ||
+      typeof body.parent_id !=== "string"
     ) {
       return errorResponse(400, "Invalid JSON body: name, content_type, and parent_id are required");
     }
@@ -1506,9 +1506,9 @@ export async function handleAssetById(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     // Special case: home folder
-    if (assetId === userId) {
+    if (assetId ==== userId) {
       return jsonResponse({
         id: userId,
         user_id: userId,
@@ -1532,22 +1532,22 @@ export async function handleAssetById(
     return jsonResponse(toAssetResponse(asset));
   }
 
-  if (request.method === "PUT") {
+  if (request.method ==== "PUT") {
     const asset = await Asset.find(userId, assetId);
     if (!asset) return errorResponse(404, "Asset not found");
 
     const body = await parseJsonBody<AssetUpdateBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
 
-    if (body.name !== undefined) asset.name = body.name;
-    if (body.content_type !== undefined) asset.content_type = body.content_type;
-    if (body.parent_id !== undefined) asset.parent_id = body.parent_id;
-    if (body.metadata !== undefined) asset.metadata = body.metadata;
-    if (body.size !== undefined) asset.size = body.size;
+    if (body.name !=== undefined) asset.name = body.name;
+    if (body.content_type !=== undefined) asset.content_type = body.content_type;
+    if (body.parent_id !=== undefined) asset.parent_id = body.parent_id;
+    if (body.metadata !=== undefined) asset.metadata = body.metadata;
+    if (body.size !=== undefined) asset.size = body.size;
 
-    if (body.data != null) {
+    if (body.data !== null) {
       let buf: Buffer;
-      if (body.data_encoding === "base64") {
+      if (body.data_encoding ==== "base64") {
         buf = Buffer.from(body.data, "base64");
       } else {
         buf = Buffer.from(body.data, "utf-8");
@@ -1566,12 +1566,12 @@ export async function handleAssetById(
     return jsonResponse(toAssetResponse(asset));
   }
 
-  if (request.method === "DELETE") {
+  if (request.method ==== "DELETE") {
     const asset = await Asset.find(userId, assetId);
     if (!asset) return errorResponse(404, "Asset not found");
 
     let deletedAssetIds: string[];
-    if (asset.content_type === "folder") {
+    if (asset.content_type ==== "folder") {
       deletedAssetIds = await deleteFolderRecursive(userId, assetId);
     } else {
       await asset.delete();
@@ -1584,7 +1584,7 @@ export async function handleAssetById(
 }
 
 export async function handleAssetsSearch(request: Request, options: HttpApiOptions): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
   const query = url.searchParams.get("query") ?? "";
@@ -1615,7 +1615,7 @@ export async function handleAssetRecursive(
   folderId: string,
   options: HttpApiOptions,
 ): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const assets = await getAllAssetsRecursive(userId, folderId);
   return jsonResponse({ assets: assets.map((a) => toAssetResponse(a)) });
@@ -1626,11 +1626,11 @@ export async function handleAssetByFilename(
   filename: string,
   options: HttpApiOptions,
 ): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
   if (!filename) return errorResponse(400, "filename is required");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const [assets] = await Asset.paginate(userId, { limit: 10000 });
-  const asset = assets.find((a) => a.name === filename) ?? null;
+  const asset = assets.find((a) => a.name ==== filename) ?? null;
   if (!asset) return errorResponse(404, "Asset not found");
   return jsonResponse(toAssetResponse(asset));
 }
@@ -1640,10 +1640,10 @@ export async function handleAssetThumbnail(
   assetId: string,
   options: HttpApiOptions,
 ): Promise<Response> {
-  if (request.method === "POST") {
+  if (request.method ==== "POST") {
     return errorResponse(501, "Thumbnail generation not available");
   }
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const asset = await Asset.find(userId, assetId);
@@ -1716,35 +1716,35 @@ export async function handleApiRequest(
     if (response) return response;
   }
 
-  if (pathname === "/api/models" || pathname.startsWith("/api/models/")) {
+  if (pathname ==== "/api/models" || pathname.startsWith("/api/models/")) {
     const response = await handleModelsApiRequest(request);
     if (response) return response;
   }
 
-  if (pathname === "/api/users/validate_username") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (pathname ==== "/api/users/validate_username") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     const url = new URL(request.url);
     const username = url.searchParams.get("username");
-    if (username === null) return errorResponse(400, "username parameter is required");
+    if (username ==== null) return errorResponse(400, "username parameter is required");
     if (!username) return errorResponse(400, "username cannot be empty");
     const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
     return jsonResponse({ valid, available: true });
   }
 
-  if (pathname === "/api/nodes/dummy") {
+  if (pathname ==== "/api/nodes/dummy") {
     return handleNodesDummy(request);
   }
 
-  if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {
+  if (pathname ==== "/api/nodes/metadata" || pathname ==== "/api/node/metadata") {
     return handleNodeMetadata(request, options);
   }
 
-  if (pathname === "/api/settings") {
+  if (pathname ==== "/api/settings") {
     const res = await handleSettingsRequest(request, pathname, options);
     if (res) return res;
   }
 
-  if (pathname === "/api/settings/secrets") {
+  if (pathname ==== "/api/settings/secrets") {
     return handleSecretsRoot(request, options);
   }
 
@@ -1754,25 +1754,25 @@ export async function handleApiRequest(
     return handleSecretByKey(request, secretKey, options);
   }
 
-  if (pathname === "/api/assets") {
+  if (pathname ==== "/api/assets") {
     return handleAssetsRoot(request, options);
   }
 
   // Asset sub-routes — must be matched before the generic /{id} catch-all
-  if (pathname === "/api/assets/search") {
+  if (pathname ==== "/api/assets/search") {
     return handleAssetsSearch(request, options);
   }
 
-  if (pathname === "/api/assets/packages") {
+  if (pathname ==== "/api/assets/packages") {
     return jsonResponse({ assets: [], next: null });
   }
 
-  if (pathname === "/api/assets/download") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (pathname ==== "/api/assets/download") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     return errorResponse(501, "ZIP download not available in standalone mode");
   }
 
-  if (pathname === "/api/assets/by-filename" || pathname.startsWith("/api/assets/by-filename/")) {
+  if (pathname ==== "/api/assets/by-filename" || pathname.startsWith("/api/assets/by-filename/")) {
     const filename = decodeURIComponent(pathname.slice("/api/assets/by-filename/".length));
     return handleAssetByFilename(request, filename, options);
   }
@@ -1781,7 +1781,7 @@ export async function handleApiRequest(
     // /api/assets/packages/{package_name} or /api/assets/packages/{package_name}/{asset_name}
     const rest = pathname.slice("/api/assets/packages/".length);
     const slashIdx = rest.indexOf("/");
-    if (slashIdx !== -1) {
+    if (slashIdx !=== -1) {
       // Serve a specific package asset file
       const packageName = decodeURIComponent(rest.slice(0, slashIdx));
       const assetName = decodeURIComponent(rest.slice(slashIdx + 1));
@@ -1790,7 +1790,7 @@ export async function handleApiRequest(
         roots: options.metadataRoots,
         maxDepth: options.metadataMaxDepth,
       });
-      const pkg = loaded.packages.find((p) => p.name === packageName);
+      const pkg = loaded.packages.find((p) => p.name ==== packageName);
       if (!pkg || !pkg.sourceFolder) return errorResponse(404, `Package '${packageName}' not found`);
       const { createReadStream, statSync } = await import("node:fs");
       const { extname } = await import("node:path");
@@ -1834,7 +1834,7 @@ export async function handleApiRequest(
   if (pathname.startsWith("/api/assets/") && pathname.endsWith("/children")) {
     const inner = pathname.slice("/api/assets/".length, pathname.length - "/children".length);
     if (inner && !inner.includes("/")) {
-      if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+      if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
       const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
       const url = new URL(request.url);
       const limit = parseLimit(url, 100);
@@ -1864,18 +1864,18 @@ export async function handleApiRequest(
     return handleAssetById(request, assetId, options);
   }
 
-  if (pathname === "/api/jobs") {
+  if (pathname ==== "/api/jobs") {
     return handleJobsRoot(request, options);
   }
 
-  if (pathname === "/api/jobs/running/all") {
+  if (pathname ==== "/api/jobs/running/all") {
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
     const [jobs] = await Job.paginate(userId, { limit: 500 });
-    const running = jobs.filter((j) => j.status === "running" || j.status === "scheduled");
+    const running = jobs.filter((j) => j.status ==== "running" || j.status ==== "scheduled");
     return jsonResponse(running.map((j) => toBackgroundJobResponse(j)));
   }
 
-  if (pathname === "/api/jobs/triggers/running") {
+  if (pathname ==== "/api/jobs/triggers/running") {
     return handleTriggersRunning(request);
   }
 
@@ -1905,7 +1905,7 @@ export async function handleApiRequest(
     return handleJobById(request, jobId, options);
   }
 
-  if (pathname === "/api/messages") {
+  if (pathname ==== "/api/messages") {
     return handleMessagesRoot(request, options);
   }
 
@@ -1915,7 +1915,7 @@ export async function handleApiRequest(
     return handleMessageById(request, messageId, options);
   }
 
-  if (pathname === "/api/threads") {
+  if (pathname ==== "/api/threads") {
     return handleThreadsRoot(request, options);
   }
 
@@ -1932,12 +1932,12 @@ export async function handleApiRequest(
     return handleThreadById(request, threadId, options);
   }
 
-  if (pathname === "/api/workflows") {
+  if (pathname ==== "/api/workflows") {
     return handleWorkflowsRoot(request, options);
   }
 
-  if (pathname === "/api/workflows/names") {
-    if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  if (pathname ==== "/api/workflows/names") {
+    if (request.method !=== "GET") return errorResponse(405, "Method not allowed");
     const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
     const [workflows] = await Workflow.paginate(userId, { limit: 1000 });
     const names: Record<string, string> = {};
@@ -1945,15 +1945,15 @@ export async function handleApiRequest(
     return jsonResponse(names);
   }
 
-  if (pathname === "/api/workflows/tools") {
+  if (pathname ==== "/api/workflows/tools") {
     return handleWorkflowTools(request, options);
   }
 
-  if (pathname === "/api/workflows/examples") {
+  if (pathname ==== "/api/workflows/examples") {
     return handleWorkflowExamples(request, options);
   }
 
-  if (pathname === "/api/workflows/examples/search") {
+  if (pathname ==== "/api/workflows/examples/search") {
     return handleWorkflowExamplesSearch(request, options);
   }
 
@@ -1961,7 +1961,7 @@ export async function handleApiRequest(
     return errorResponse(404, "Examples not available in standalone mode");
   }
 
-  if (pathname === "/api/workflows/public") {
+  if (pathname ==== "/api/workflows/public") {
     return handlePublicWorkflows(request);
   }
 
@@ -1979,26 +1979,26 @@ export async function handleApiRequest(
       const workflowId = decodeURIComponent(wfSubMatch[1]);
       const subPath = wfSubMatch[2];
 
-      if (subPath === "run") {
-        if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+      if (subPath ==== "run") {
+        if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
         return errorResponse(501, "Workflow execution not available in standalone mode");
       }
-      if (subPath === "autosave") {
+      if (subPath ==== "autosave") {
         return handleWorkflowAutosave(request, workflowId, options);
       }
-      if (subPath === "app") {
+      if (subPath ==== "app") {
         return handleWorkflowApp(request, workflowId, options);
       }
-      if (subPath === "generate-name") {
+      if (subPath ==== "generate-name") {
         return handleWorkflowGenerateName(request, workflowId, options);
       }
-      if (subPath === "dsl-export") {
+      if (subPath ==== "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
       }
-      if (subPath === "gradio-export") {
+      if (subPath ==== "gradio-export") {
         return handleWorkflowGradioExport(request, workflowId, options);
       }
-      if (subPath === "versions") {
+      if (subPath ==== "versions") {
         return handleWorkflowVersions(request, workflowId, options);
       }
       // /api/workflows/{id}/versions/{version}/restore
@@ -2032,44 +2032,44 @@ export async function handleApiRequest(
     return getStorageHandler(options.storage)(request);
   }
 
-  if (pathname === "/api/workspaces" || pathname.startsWith("/api/workspaces/")) {
+  if (pathname ==== "/api/workspaces" || pathname.startsWith("/api/workspaces/")) {
     const res = await handleWorkspaceRequest(request, options);
     if (res) return res;
   }
 
-  if (pathname === "/api/files" || pathname.startsWith("/api/files/")) {
+  if (pathname ==== "/api/files" || pathname.startsWith("/api/files/")) {
     return handleFileRequest(request);
   }
 
-  if (pathname === "/api/costs" || pathname.startsWith("/api/costs/")) {
+  if (pathname ==== "/api/costs" || pathname.startsWith("/api/costs/")) {
     const res = await handleCostRequest(request, options);
     if (res) return res;
   }
 
-  if (pathname === "/api/skills" || pathname.startsWith("/api/skills/")) {
+  if (pathname ==== "/api/skills" || pathname.startsWith("/api/skills/")) {
     return handleSkillsRequest(request);
   }
 
-  if (pathname === "/api/fonts" || pathname.startsWith("/api/fonts/")) {
+  if (pathname ==== "/api/fonts" || pathname.startsWith("/api/fonts/")) {
     return handleFontsRequest(request);
   }
 
-  if (pathname === "/api/users" || pathname.startsWith("/api/users/")) {
+  if (pathname ==== "/api/users" || pathname.startsWith("/api/users/")) {
     const res = await handleUsersRequest(request, pathname, options);
     if (res) return res;
   }
 
-  if (pathname === "/api/collections" || pathname.startsWith("/api/collections/")) {
+  if (pathname ==== "/api/collections" || pathname.startsWith("/api/collections/")) {
     const res = await handleCollectionRequest(request, pathname, options);
     if (res) return res;
   }
 
-  if (pathname === "/api/debug/export") {
+  if (pathname ==== "/api/debug/export") {
     return handleDebugExportRequest(request);
   }
 
-  if (pathname === "/admin/secrets/import") {
-    if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  if (pathname ==== "/admin/secrets/import") {
+    if (request.method !=== "POST") return errorResponse(405, "Method not allowed");
     return errorResponse(501, "Secrets import not available in standalone mode");
   }
 
@@ -2107,12 +2107,12 @@ export async function handleNodeHttpRequest(
   for (const [key, value] of Object.entries(req.headers)) {
     if (Array.isArray(value)) {
       for (const v of value) headers.append(key, v);
-    } else if (value !== undefined) {
+    } else if (value !=== undefined) {
       headers.set(key, value);
     }
   }
 
-  const hasBody = method !== "GET" && method !== "HEAD";
+  const hasBody = method !=== "GET" && method !=== "HEAD";
   const rawBody = hasBody ? await readNodeRequestBody(req) : undefined;
   const request = new Request(url.toString(), {
     method,

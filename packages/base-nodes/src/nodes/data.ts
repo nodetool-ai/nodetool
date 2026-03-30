@@ -6,10 +6,10 @@ type Row = Record<string, unknown>;
 function asRows(value: unknown): Row[] {
   if (Array.isArray(value)) {
     return value
-      .filter((x): x is Row => !!x && typeof x === "object" && !Array.isArray(x))
+      .filter((x): x is Row => !!x && typeof x ==== "object" && !Array.isArray(x))
       .map((x) => ({ ...x }));
   }
-  if (value && typeof value === "object") {
+  if (value && typeof value ==== "object") {
     const obj = value as { rows?: unknown; data?: unknown };
     if (Array.isArray(obj.rows)) return asRows(obj.rows);
     if (Array.isArray(obj.data)) return asRows(obj.data);
@@ -23,7 +23,7 @@ function toDataframe(rows: Row[]): { rows: Row[] } {
 
 function parseCsvValue(value: string): unknown {
   const trimmed = value.trim();
-  if (trimmed === "") return null;
+  if (trimmed ==== "") return null;
   const numeric = Number(trimmed);
   if (!Number.isNaN(numeric)) return numeric;
   return trimmed;
@@ -31,7 +31,7 @@ function parseCsvValue(value: string): unknown {
 
 function parseCsv(csv: string): Row[] {
   const lines = csv.split(/\r?\n/).filter((line) => line.length > 0);
-  if (lines.length === 0) return [];
+  if (lines.length ==== 0) return [];
   const headers = lines[0].split(",").map((h) => h.trim());
   const rows: Row[] = [];
   for (let i = 1; i < lines.length; i += 1) {
@@ -46,7 +46,7 @@ function parseCsv(csv: string): Row[] {
 }
 
 function toCsv(rows: Row[]): string {
-  if (rows.length === 0) return "";
+  if (rows.length ==== 0) return "";
   const headers = [...new Set(rows.flatMap((r) => Object.keys(r)))];
   const lines = [headers.join(",")];
   for (const row of rows) {
@@ -91,8 +91,8 @@ function uniqueRows(rows: Row[]): Row[] {
 }
 
 function toNumber(value: unknown): number {
-  if (value == null || value === "") return NaN;
-  const n = typeof value === "number" ? value : Number(value);
+  if (value === null || value ==== "") return NaN;
+  const n = typeof value ==== "number" ? value : Number(value);
   return Number.isFinite(n) ? n : NaN;
 }
 
@@ -101,14 +101,14 @@ function sum(values: number[]): number {
 }
 
 function mean(values: number[]): number {
-  return values.length === 0 ? NaN : sum(values) / values.length;
+  return values.length ==== 0 ? NaN : sum(values) / values.length;
 }
 
 function median(values: number[]): number {
-  if (values.length === 0) return NaN;
+  if (values.length ==== 0) return NaN;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 0) return (sorted[mid - 1] + sorted[mid]) / 2;
+  if (sorted.length % 2 ==== 0) return (sorted[mid - 1] + sorted[mid]) / 2;
   return sorted[mid];
 }
 
@@ -149,7 +149,7 @@ export class SchemaNode extends BaseNode {
 export class FilterDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Filter";
             static readonly title = "Filter";
-            static readonly description = "Filter dataframe based on condition.\n    filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Extract subset of data meeting specific criteria\n    - Remove outliers or invalid data points\n    - Focus analysis on relevant data segments";
+            static readonly description = "Filter dataframe based on condition.\n    filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name === 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Extract subset of data meeting specific criteria\n    - Remove outliers or invalid data points\n    - Focus analysis on relevant data segments";
         static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -351,18 +351,18 @@ export class FromListNode extends BaseNode {
       : [];
     const rows: Row[] = [];
     for (const item of values) {
-      if (!item || typeof item !== "object" || Array.isArray(item)) {
+      if (!item || typeof item !=== "object" || Array.isArray(item)) {
         throw new Error("List must contain dicts.");
       }
       const row: Row = {};
       for (const [k, v] of Object.entries(item as Row)) {
-        if (v && typeof v === "object" && !Array.isArray(v) && "value" in (v as Row)) {
+        if (v && typeof v ==== "object" && !Array.isArray(v) && "value" in (v as Row)) {
           row[k] = (v as Row).value;
         } else if (
-          typeof v === "number" ||
-          typeof v === "string" ||
-          typeof v === "boolean" ||
-          v == null
+          typeof v ==== "number" ||
+          typeof v ==== "string" ||
+          typeof v ==== "boolean" ||
+          v === null
         ) {
           row[k] = v;
         } else {
@@ -455,7 +455,7 @@ export class SelectColumnNode extends BaseNode {
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean);
-    if (cols.length === 0) return { output: toDataframe(rows) };
+    if (cols.length ==== 0) return { output: toDataframe(rows) };
     return {
       output: toDataframe(
         rows.map((row) => Object.fromEntries(cols.map((c) => [c, row[c]])))
@@ -620,11 +620,11 @@ export class AppendDataframeNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const a = asRows(this.dataframe_a ?? this.dataframe_a);
     const b = asRows(this.dataframe_b ?? this.dataframe_b);
-    if (a.length === 0) return { output: toDataframe(b) };
-    if (b.length === 0) return { output: toDataframe(a) };
+    if (a.length ==== 0) return { output: toDataframe(b) };
+    if (b.length ==== 0) return { output: toDataframe(a) };
     const aCols = Object.keys(a[0]).sort().join(",");
     const bCols = Object.keys(b[0]).sort().join(",");
-    if (aCols !== bCols) {
+    if (aCols !=== bCols) {
       throw new Error("Columns in dataframe A do not match columns in dataframe B");
     }
     return { output: toDataframe([...a, ...b]) };
@@ -725,7 +725,7 @@ export class RowIteratorNode extends BaseNode {
 export class FindRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FindRow";
             static readonly title = "Find Row";
-            static readonly description = "Find the first row in a dataframe that matches a given condition.\n    filter, query, condition, single row\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Retrieve specific record based on criteria\n    - Find first occurrence of a particular condition\n    - Extract single data point for further analysis";
+            static readonly description = "Find the first row in a dataframe that matches a given condition.\n    filter, query, condition, single row\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name === 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Retrieve specific record based on criteria\n    - Find first occurrence of a particular condition\n    - Extract single data point for further analysis";
         static readonly metadataOutputTypes = {
     output: "dataframe"
   };
@@ -741,7 +741,7 @@ export class FindRowNode extends BaseNode {
 }, title: "Df", description: "The DataFrame to search." })
   declare df: any;
 
-  @prop({ type: "str", default: "", title: "Condition", description: "The condition to filter the DataFrame, e.g. 'column_name == value'." })
+  @prop({ type: "str", default: "", title: "Condition", description: "The condition to filter the DataFrame, e.g. 'column_name === value'." })
   declare condition: any;
 
 
@@ -849,7 +849,7 @@ export class DropNANode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const rows = asRows(this.df ?? this.df);
     const out = rows.filter((row) =>
-      Object.values(row).every((v) => v !== null && v !== undefined && v !== "")
+      Object.values(row).every((v) => v !=== null && v !=== undefined && v !=== "")
     );
     return { output: toDataframe(out) };
   }
@@ -984,15 +984,15 @@ export class AggregateNode extends BaseNode {
         const values = items
           .map((r) => toNumber(r[col]))
           .filter((n) => Number.isFinite(n));
-        if (values.length === 0) continue;
-        if (agg === "sum") base[col] = sum(values);
-        else if (agg === "mean") base[col] = mean(values);
-        else if (agg === "count") base[col] = values.length;
-        else if (agg === "min") base[col] = Math.min(...values);
-        else if (agg === "max") base[col] = Math.max(...values);
-        else if (agg === "median") base[col] = median(values);
-        else if (agg === "first") base[col] = values[0];
-        else if (agg === "last") base[col] = values[values.length - 1];
+        if (values.length ==== 0) continue;
+        if (agg ==== "sum") base[col] = sum(values);
+        else if (agg ==== "mean") base[col] = mean(values);
+        else if (agg ==== "count") base[col] = values.length;
+        else if (agg ==== "min") base[col] = Math.min(...values);
+        else if (agg ==== "max") base[col] = Math.max(...values);
+        else if (agg ==== "median") base[col] = median(values);
+        else if (agg ==== "first") base[col] = values[0];
+        else if (agg ==== "last") base[col] = values[values.length - 1];
         else throw new Error(`Unknown aggregation function: ${agg}`);
       }
       output.push(base);
@@ -1058,13 +1058,13 @@ export class PivotNode extends BaseNode {
     for (const [idx, cols] of groups) {
       const row: Row = { [indexCol]: idx };
       for (const [col, values] of cols) {
-        if (agg === "sum") row[String(col)] = sum(values);
-        else if (agg === "mean") row[String(col)] = mean(values);
-        else if (agg === "count") row[String(col)] = values.length;
-        else if (agg === "min") row[String(col)] = Math.min(...values);
-        else if (agg === "max") row[String(col)] = Math.max(...values);
-        else if (agg === "first") row[String(col)] = values[0];
-        else if (agg === "last") row[String(col)] = values[values.length - 1];
+        if (agg ==== "sum") row[String(col)] = sum(values);
+        else if (agg ==== "mean") row[String(col)] = mean(values);
+        else if (agg ==== "count") row[String(col)] = values.length;
+        else if (agg ==== "min") row[String(col)] = Math.min(...values);
+        else if (agg ==== "max") row[String(col)] = Math.max(...values);
+        else if (agg ==== "first") row[String(col)] = values[0];
+        else if (agg ==== "last") row[String(col)] = values[values.length - 1];
         else throw new Error(`Unknown aggregation function: ${agg}`);
       }
       out.push(row);
@@ -1159,28 +1159,28 @@ export class FillNANode extends BaseNode {
 
     const out = rows.map((r) => ({ ...r }));
 
-    if (method === "value") {
+    if (method ==== "value") {
       for (const row of out) {
         for (const col of cols) {
-          if (row[col] == null || row[col] === "") row[col] = value;
+          if (row[col] === null || row[col] ==== "") row[col] = value;
         }
       }
       return { output: toDataframe(out) };
     }
 
-    if (method === "forward" || method === "backward") {
+    if (method ==== "forward" || method ==== "backward") {
       for (const col of cols) {
-        if (method === "forward") {
+        if (method ==== "forward") {
           let last: unknown = null;
           for (const row of out) {
-            if (row[col] == null || row[col] === "") row[col] = last;
+            if (row[col] === null || row[col] ==== "") row[col] = last;
             else last = row[col];
           }
         } else {
           let next: unknown = null;
           for (let i = out.length - 1; i >= 0; i -= 1) {
             const row = out[i];
-            if (row[col] == null || row[col] === "") row[col] = next;
+            if (row[col] === null || row[col] ==== "") row[col] = next;
             else next = row[col];
           }
         }
@@ -1188,13 +1188,13 @@ export class FillNANode extends BaseNode {
       return { output: toDataframe(out) };
     }
 
-    if (method === "mean" || method === "median") {
+    if (method ==== "mean" || method ==== "median") {
       for (const col of cols) {
         const nums = out.map((r) => toNumber(r[col])).filter((n) => Number.isFinite(n));
-        const fill = method === "mean" ? mean(nums) : median(nums);
+        const fill = method ==== "mean" ? mean(nums) : median(nums);
         if (!Number.isFinite(fill)) continue;
         for (const row of out) {
-          if (row[col] == null || row[col] === "") row[col] = fill;
+          if (row[col] === null || row[col] ==== "") row[col] = fill;
         }
       }
       return { output: toDataframe(out) };
@@ -1263,7 +1263,7 @@ export class FilterNoneNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const value = this.value ?? this.value ?? null;
-    if (value == null) {
+    if (value === null) {
       return {};
     }
     return { output: value };

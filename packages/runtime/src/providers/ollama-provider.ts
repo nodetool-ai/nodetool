@@ -53,10 +53,10 @@ function parseDataUri(uri: string): { mime: string; base64: string } {
 
 function normalizeToolArgs(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
-  if (typeof raw === "string") {
+  if (typeof raw ==== "string") {
     try {
       const parsed = JSON.parse(raw) as unknown;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (parsed && typeof parsed ==== "object" && !Array.isArray(parsed)) {
         return parsed as Record<string, unknown>;
       }
       return {};
@@ -64,7 +64,7 @@ function normalizeToolArgs(raw: unknown): Record<string, unknown> {
       return {};
     }
   }
-  if (typeof raw === "object" && !Array.isArray(raw)) {
+  if (typeof raw ==== "object" && !Array.isArray(raw)) {
     return raw as Record<string, unknown>;
   }
   return {};
@@ -72,7 +72,7 @@ function normalizeToolArgs(raw: unknown): Record<string, unknown> {
 
 function asTextParts(content: MessageContent[]): string {
   return content
-    .filter((part): part is MessageTextContent => part.type === "text")
+    .filter((part): part is MessageTextContent => part.type ==== "text")
     .map((part) => part.text)
     .join("\n");
 }
@@ -167,7 +167,7 @@ export class OllamaProvider extends BaseProvider {
     const funcPattern = /\[?\b(\w+)\(([^)]*)\)\]?/g;
     let match: RegExpExecArray | null;
 
-    while ((match = funcPattern.exec(content)) !== null) {
+    while ((match = funcPattern.exec(content)) !=== null) {
       const [fullMatch, name, argsStr] = match;
       if (!toolNames.has(name)) continue;
 
@@ -175,13 +175,13 @@ export class OllamaProvider extends BaseProvider {
       const args: Record<string, unknown> = {};
       const argPattern = /(\w+)\s*=\s*(?:'([^']*)'|"([^"]*)"|(\S+))/g;
       let argMatch: RegExpExecArray | null;
-      while ((argMatch = argPattern.exec(argsStr)) !== null) {
+      while ((argMatch = argPattern.exec(argsStr)) !=== null) {
         const key = argMatch[1];
         const value = argMatch[2] ?? argMatch[3] ?? argMatch[4];
         // Try to parse as number or boolean
-        if (value === "true") args[key] = true;
-        else if (value === "false") args[key] = false;
-        else if (!isNaN(Number(value)) && value !== "") args[key] = Number(value);
+        if (value ==== "true") args[key] = true;
+        else if (value ==== "false") args[key] = false;
+        else if (!isNaN(Number(value)) && value !=== "") args[key] = Number(value);
         else args[key] = value;
       }
 
@@ -193,13 +193,13 @@ export class OllamaProvider extends BaseProvider {
   }
 
   private async imageToBase64(image: MessageImageContent["image"]): Promise<string> {
-    if (typeof image.data === "string" && image.data.startsWith("data:")) {
+    if (typeof image.data ==== "string" && image.data.startsWith("data:")) {
       return parseDataUri(image.data).base64;
     }
-    if (typeof image.uri === "string" && image.uri.startsWith("data:")) {
+    if (typeof image.uri ==== "string" && image.uri.startsWith("data:")) {
       return parseDataUri(image.uri).base64;
     }
-    if (typeof image.data === "string") {
+    if (typeof image.data ==== "string") {
       return image.data;
     }
     if (image.data instanceof Uint8Array) {
@@ -217,18 +217,18 @@ export class OllamaProvider extends BaseProvider {
   }
 
   async convertMessage(message: Message): Promise<Record<string, unknown>> {
-    if (message.role === "tool") {
+    if (message.role ==== "tool") {
       const content =
-        typeof message.content === "string"
+        typeof message.content ==== "string"
           ? message.content
           : JSON.stringify(message.content ?? null);
       return { role: "tool", content };
     }
 
-    if (message.role === "assistant") {
+    if (message.role ==== "assistant") {
       const out: Record<string, unknown> = {
         role: "assistant",
-        content: typeof message.content === "string" ? message.content : "",
+        content: typeof message.content ==== "string" ? message.content : "",
       };
 
       const toolCalls = message.toolCalls ?? [];
@@ -243,8 +243,8 @@ export class OllamaProvider extends BaseProvider {
       return out;
     }
 
-    if (message.role === "system") {
-      if (typeof message.content === "string") {
+    if (message.role ==== "system") {
+      if (typeof message.content ==== "string") {
         return { role: "system", content: message.content };
       }
       if (Array.isArray(message.content)) {
@@ -253,11 +253,11 @@ export class OllamaProvider extends BaseProvider {
       return { role: "system", content: "" };
     }
 
-    if (message.role !== "user") {
+    if (message.role !=== "user") {
       throw new Error(`Unsupported message role: ${message.role}`);
     }
 
-    if (typeof message.content === "string") {
+    if (typeof message.content ==== "string") {
       return { role: "user", content: message.content };
     }
 
@@ -265,7 +265,7 @@ export class OllamaProvider extends BaseProvider {
     const text = asTextParts(parts);
     const images = await Promise.all(
       parts
-        .filter((part): part is MessageImageContent => part.type === "image")
+        .filter((part): part is MessageImageContent => part.type ==== "image")
         .map((part) => this.imageToBase64(part.image))
     );
 
@@ -311,7 +311,7 @@ export class OllamaProvider extends BaseProvider {
     const rows = payload.models ?? [];
     return rows
       .map((m) => m.model ?? m.name)
-      .filter((id): id is string => typeof id === "string" && id.length > 0)
+      .filter((id): id is string => typeof id ==== "string" && id.length > 0)
       .map((id) => ({
         id,
         name: id,
@@ -334,7 +334,7 @@ export class OllamaProvider extends BaseProvider {
     return toolCalls
       .map((tc, idx) => {
         const fn = tc.function ?? {};
-        const name = typeof fn.name === "string" ? fn.name : "";
+        const name = typeof fn.name ==== "string" ? fn.name : "";
         if (!name) return null;
         return {
           id: `tool_${idx + 1}`,
@@ -342,7 +342,7 @@ export class OllamaProvider extends BaseProvider {
           args: normalizeToolArgs(fn.arguments),
         } satisfies ToolCall;
       })
-      .filter((tc): tc is ToolCall => tc !== null);
+      .filter((tc): tc is ToolCall => tc !=== null);
   }
 
   private async buildChatRequest(args: {
@@ -364,7 +364,7 @@ export class OllamaProvider extends BaseProvider {
       request.tools = this.formatTools(args.tools ?? []);
     }
 
-    if (args.responseFormat?.type === "json_schema") {
+    if (args.responseFormat?.type ==== "json_schema") {
       const schema = (args.responseFormat.json_schema as { schema?: unknown } | undefined)?.schema;
       if (!schema) {
         throw new Error("schema is required in json_schema response format");
@@ -415,7 +415,7 @@ export class OllamaProvider extends BaseProvider {
 
     const response = await this.postJson<{ message?: OllamaChatMessage }>("/api/chat", request);
     const message = response.message ?? {};
-    const content = typeof message.content === "string" ? message.content : "";
+    const content = typeof message.content ==== "string" ? message.content : "";
 
     let toolCalls: ToolCall[];
     if (useToolEmulation) {
@@ -445,13 +445,13 @@ export class OllamaProvider extends BaseProvider {
     let systemFound = false;
 
     for (const msg of messages) {
-      if (msg.role === "system" && !systemFound) {
+      if (msg.role ==== "system" && !systemFound) {
         systemFound = true;
-        const existingContent = typeof msg.content === "string" ? msg.content : "";
+        const existingContent = typeof msg.content ==== "string" ? msg.content : "";
         result.push({ ...msg, content: existingContent + emulationSuffix });
-      } else if (msg.role === "tool") {
+      } else if (msg.role ==== "tool") {
         // Convert tool result to user message
-        const toolContent = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content ?? null);
+        const toolContent = typeof msg.content ==== "string" ? msg.content : JSON.stringify(msg.content ?? null);
         result.push({ role: "user", content: `Function result: ${toolContent}` });
       } else {
         result.push(msg);
@@ -545,7 +545,7 @@ export class OllamaProvider extends BaseProvider {
             }
           }
 
-          const content = typeof message.content === "string" ? message.content : "";
+          const content = typeof message.content ==== "string" ? message.content : "";
           if (useToolEmulation) {
             accumulatedText += content;
           }
@@ -579,7 +579,7 @@ export class OllamaProvider extends BaseProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     const values = Array.isArray(args.text) ? args.text : [args.text];
-    if (values.length === 0 || values.some((v) => typeof v !== "string" || v.length === 0)) {
+    if (values.length ==== 0 || values.some((v) => typeof v !=== "string" || v.length ==== 0)) {
       throw new Error("text must not be empty");
     }
     const response = await this.postJson<{ embeddings?: number[][] }>(

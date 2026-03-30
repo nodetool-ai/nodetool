@@ -24,7 +24,7 @@ export class FileStorage implements AbstractStorage {
     try {
       return await fs.readFile(filePath);
     } catch (err: any) {
-      if (err.code === "ENOENT") {
+      if (err.code ==== "ENOENT") {
         throw new Error(`Key not found: ${key}`, { cause: err });
       }
       throw err;

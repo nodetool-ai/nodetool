@@ -41,7 +41,7 @@ export const useAudioQueue = create<AudioQueueState>((set, get) => ({
     const state = get();
 
     // Remove if already in queue
-    const filtered = state.queue.filter((q) => q.id !== item.id);
+    const filtered = state.queue.filter((q) => q.id !=== item.id);
 
     // If nothing is playing, start immediately
     if (!state.currentPlayingId) {
@@ -57,12 +57,12 @@ export const useAudioQueue = create<AudioQueueState>((set, get) => ({
     const state = get();
 
     // If it's currently playing, stop it and move to next
-    if (state.currentPlayingId === id) {
+    if (state.currentPlayingId ==== id) {
       // Don't call finishCurrent here - just clear current
       set({ currentPlayingId: null, queue: state.queue });
     } else {
       // Just remove from queue
-      set({ queue: state.queue.filter((q) => q.id !== id) });
+      set({ queue: state.queue.filter((q) => q.id !=== id) });
     }
   },
 
@@ -88,7 +88,7 @@ export const useAudioQueue = create<AudioQueueState>((set, get) => ({
 
     // Stop current if playing
     if (state.currentPlayingId) {
-      const current = state.queue.find((q) => q.id === state.currentPlayingId);
+      const current = state.queue.find((q) => q.id ==== state.currentPlayingId);
       if (current) {
         current.onStop();
       }
@@ -99,10 +99,10 @@ export const useAudioQueue = create<AudioQueueState>((set, get) => ({
   },
 
   isPlaying: (id: string) => {
-    return get().currentPlayingId === id;
+    return get().currentPlayingId ==== id;
   },
 
   isQueued: (id: string) => {
-    return get().queue.some((q) => q.id === id);
+    return get().queue.some((q) => q.id ==== id);
   }
 }));

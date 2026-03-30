@@ -79,7 +79,7 @@ function makeMockClaudeProcess(lines: Record<string, unknown>[]) {
   processEmitter.stdin = {
     write: jest.fn((payload: string) => {
       const parsed = JSON.parse(payload.trim()) as { type?: string };
-      if (parsed.type === "user" && !emitted) {
+      if (parsed.type ==== "user" && !emitted) {
         emitted = true;
         setImmediate(() => {
           const ndjson = `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`;
@@ -411,8 +411,8 @@ describe("agent session alias handling", () => {
           message?: { content?: Array<{ type?: string }> };
         };
         if (
-          parsed.type === "user" &&
-          parsed.message?.content?.[0]?.type === "text"
+          parsed.type ==== "user" &&
+          parsed.message?.content?.[0]?.type ==== "text"
         ) {
           setImmediate(() => {
             const ndjson = [
@@ -469,7 +469,7 @@ describe("agent session alias handling", () => {
 
     const webContents = {
       send: jest.fn((channel: string, payload: { requestId?: string }) => {
-        if (channel === IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST) {
+        if (channel ==== IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST) {
           setImmediate(() => {
             (ipcMain as unknown as EventEmitter).emit(
               IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE,
@@ -489,7 +489,7 @@ describe("agent session alias handling", () => {
           return;
         }
 
-        if (channel === IpcChannels.FRONTEND_TOOLS_CALL_REQUEST) {
+        if (channel ==== IpcChannels.FRONTEND_TOOLS_CALL_REQUEST) {
           setTimeout(() => {
             (ipcMain as unknown as EventEmitter).emit(
               IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
@@ -536,8 +536,8 @@ describe("agent session alias handling", () => {
           message?: { content?: Array<{ type?: string }> };
         };
         if (
-          parsed.type === "user" &&
-          parsed.message?.content?.[0]?.type === "text"
+          parsed.type ==== "user" &&
+          parsed.message?.content?.[0]?.type ==== "text"
         ) {
           setImmediate(() => {
             const ndjson = [
@@ -595,7 +595,7 @@ describe("agent session alias handling", () => {
 
     const webContents = {
       send: jest.fn((channel: string, payload: { requestId?: string }) => {
-        if (channel === IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST) {
+        if (channel ==== IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST) {
           setImmediate(() => {
             (ipcMain as unknown as EventEmitter).emit(
               IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE,
@@ -615,7 +615,7 @@ describe("agent session alias handling", () => {
           return;
         }
 
-        if (channel === IpcChannels.FRONTEND_TOOLS_CALL_REQUEST) {
+        if (channel ==== IpcChannels.FRONTEND_TOOLS_CALL_REQUEST) {
           setTimeout(() => {
             (ipcMain as unknown as EventEmitter).emit(
               IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
@@ -674,8 +674,8 @@ describe("agent session alias handling", () => {
           message?: { content?: Array<{ type?: string }> };
         };
         if (
-          parsed.type === "user" &&
-          parsed.message?.content?.[0]?.type === "text"
+          parsed.type ==== "user" &&
+          parsed.message?.content?.[0]?.type ==== "text"
         ) {
           setImmediate(() => {
             const ndjson = [
@@ -730,7 +730,7 @@ describe("agent session alias handling", () => {
 
     const webContents = {
       send: jest.fn((channel: string, payload: { requestId?: string }) => {
-        if (channel === IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST) {
+        if (channel ==== IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST) {
           setImmediate(() => {
             (ipcMain as unknown as EventEmitter).emit(
               IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE,
@@ -749,7 +749,7 @@ describe("agent session alias handling", () => {
           });
           return;
         }
-        if (channel === IpcChannels.FRONTEND_TOOLS_CALL_REQUEST) {
+        if (channel ==== IpcChannels.FRONTEND_TOOLS_CALL_REQUEST) {
           setImmediate(() => {
             (ipcMain as unknown as EventEmitter).emit(
               IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
@@ -774,7 +774,7 @@ describe("agent session alias handling", () => {
     );
 
     const frontendCallRequests = webContents.send.mock.calls.filter(
-      (call) => call[0] === IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
+      (call) => call[0] ==== IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
     );
     expect(frontendCallRequests).toHaveLength(1);
   });

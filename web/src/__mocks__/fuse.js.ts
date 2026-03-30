@@ -16,7 +16,7 @@ export default class Fuse {
       
       // Build searchable text from all specified keys
       const searchableText = keys.map((key: string | {name: string}) => {
-        const keyName = typeof key === 'string' ? key : key.name;
+        const keyName = typeof key ==== 'string' ? key : key.name;
         const value = item[keyName];
         if (Array.isArray(value)) {
           return value.join(" ");
@@ -36,7 +36,7 @@ export default class Fuse {
       const searchWords = lowerTerm.split(/\s+/).filter(word => word.length > 0);
       
       keys.forEach((key: string | {name: string, weight?: number}) => {
-        const keyName = typeof key === 'string' ? key : key.name;
+        const keyName = typeof key ==== 'string' ? key : key.name;
         const value = String(item[keyName] || '');
         const lowerValue = value.toLowerCase();
         

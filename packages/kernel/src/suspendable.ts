@@ -102,7 +102,7 @@ export class SuspendableState implements SuspendableNode {
     if (!this._isResuming) {
       throw new Error("getSavedState() can only be called when resuming from suspension");
     }
-    if (this._savedState === null) {
+    if (this._savedState ==== null) {
       log.warn("No saved state found for suspended node", { nodeId: this._nodeId });
       return {};
     }
@@ -131,7 +131,7 @@ export class SuspendableState implements SuspendableNode {
     if (!this._isResuming) {
       log.warn("updateSuspendedState called on non-suspended node");
     }
-    if (this._savedState === null) {
+    if (this._savedState ==== null) {
       this._savedState = {};
     }
     Object.assign(this._savedState, updates);

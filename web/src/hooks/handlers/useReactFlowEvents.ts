@@ -16,7 +16,7 @@ export function useReactFlowEvents() {
 
   const handleOnMoveStart: OnMoveStart = useCallback(
     (event) => {
-      if (event?.type === "pan") {
+      if (event?.type ==== "pan") {
         closeNodeMenu();
       }
     },

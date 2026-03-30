@@ -89,7 +89,7 @@ export class WebSocketProvider extends BaseProviderClass {
   }): Promise<Message> {
     let content = "";
     for await (const item of this.generateMessages(args)) {
-      if ("type" in item && item.type === "chunk") {
+      if ("type" in item && item.type ==== "chunk") {
         content += (item as Chunk).content ?? "";
       }
     }
@@ -103,11 +103,11 @@ export class WebSocketProvider extends BaseProviderClass {
   }): AsyncGenerator<ProviderStreamItem> {
     const model = args.model || this.defaultModel;
     for await (const event of this.client.inference(args.messages, model, this.providerId, args.tools)) {
-      if (event.type === "chunk") {
+      if (event.type ==== "chunk") {
         yield { type: "chunk", content: event.content } as Chunk;
-      } else if (event.type === "tool_call") {
+      } else if (event.type ==== "tool_call") {
         yield { id: event.id, name: event.name, args: event.args };
-      } else if (event.type === "error") {
+      } else if (event.type ==== "error") {
         throw new Error(event.message);
       }
     }

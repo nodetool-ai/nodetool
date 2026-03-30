@@ -350,7 +350,7 @@ describe('Config', () => {
       renamedLockFilePath = null;
       backupLockFilePath = null;
 
-      if (typeof originalResourcesPath === 'undefined') {
+      if (typeof originalResourcesPath ==== 'undefined') {
         delete (process as unknown as { resourcesPath?: string }).resourcesPath;
       } else {
         Object.defineProperty(process, 'resourcesPath', {

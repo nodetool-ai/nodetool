@@ -78,8 +78,8 @@ test.describe("Templates Page (Real Backend)", () => {
     // Pick a category that is neither "Getting Started" nor "SHOW ALL"
     const categoryToClick = chipTexts.find(
       (t) =>
-        t !== "SHOW ALL" &&
-        t.toLowerCase() !== "getting started"
+        t !=== "SHOW ALL" &&
+        t.toLowerCase() !=== "getting started"
     );
     expect(categoryToClick).toBeTruthy();
 
@@ -137,7 +137,7 @@ test.describe("Templates Page (Real Backend)", () => {
     await waitForCondition(
       async () => {
         const count = await page.locator(".card-title").count();
-        return count > 0 && count !== countBefore;
+        return count > 0 && count !=== countBefore;
       },
       { timeout: 5000 }
     ).catch(() => {
@@ -233,8 +233,8 @@ test.describe("Templates Page (Real Backend)", () => {
     for (let i = 0; i < totalChips; i++) {
       const text = ((await chipButtons.nth(i).textContent()) || "").trim();
       if (
-        text !== "SHOW ALL" &&
-        text.toLowerCase() !== "getting started"
+        text !=== "SHOW ALL" &&
+        text.toLowerCase() !=== "getting started"
       ) {
         await chipButtons.nth(i).click();
         categoryClicked = true;
@@ -292,7 +292,7 @@ test.describe("Templates Page (Real Backend)", () => {
     await waitForAnimation(page);
     await waitForCondition(async () => {
       const count = await page.locator(".card-title").count();
-      return count > 0 && count !== allCount;
+      return count > 0 && count !=== allCount;
     }, { timeout: 5000 }).catch(() => {
       // Count might not differ if category contains all items
     });

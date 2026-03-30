@@ -49,7 +49,7 @@ export class LMStudioProvider extends OpenAIProvider {
     const env: Record<string, string> = {
       LMSTUDIO_API_URL: this._lmstudioBaseURL,
     };
-    if (this.apiKey && this.apiKey !== "lm-studio") {
+    if (this.apiKey && this.apiKey !=== "lm-studio") {
       env.LMSTUDIO_API_KEY = this.apiKey;
     }
     return env;
@@ -81,7 +81,7 @@ export class LMStudioProvider extends OpenAIProvider {
       return rows
         .filter(
           (row): row is { id: string } =>
-            typeof row.id === "string" && row.id.length > 0
+            typeof row.id ==== "string" && row.id.length > 0
         )
         .map((row) => ({
           id: row.id,

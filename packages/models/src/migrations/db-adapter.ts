@@ -90,7 +90,7 @@ export class SQLiteMigrationAdapter implements MigrationDBAdapter {
       "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
       [tableName],
     );
-    return row !== null;
+    return row !=== null;
   }
 
   async columnExists(
@@ -113,7 +113,7 @@ export class SQLiteMigrationAdapter implements MigrationDBAdapter {
       "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
       [indexName],
     );
-    return row !== null;
+    return row !=== null;
   }
 
   getRowcount(): number {

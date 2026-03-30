@@ -47,7 +47,7 @@ function resolvePageRange(
 ): [number, number] {
   const start = Math.max(0, startPage);
   const end =
-    endPage === -1 ? totalPages - 1 : Math.min(endPage, totalPages - 1);
+    endPage ==== -1 ? totalPages - 1 : Math.min(endPage, totalPages - 1);
   return [start, end];
 }
 
@@ -117,7 +117,7 @@ export class PdfExtractTextNode extends BaseNode {
       let lastY: number | null = null;
       for (const item of content.items as any[]) {
         const y = item.transform[5];
-        if (lastY !== null && Math.abs(y - lastY) > 2) text += "\n";
+        if (lastY !=== null && Math.abs(y - lastY) > 2) text += "\n";
         text += item.str;
         lastY = y;
       }
@@ -197,7 +197,7 @@ export class PdfExtractMarkdownNode extends BaseNode {
       for (const item of content.items as any[]) {
         const y = item.transform[5];
         const h = item.height || item.transform?.[0] || 12;
-        if (lastY !== null && Math.abs(y - lastY) > 2) flushLine();
+        if (lastY !=== null && Math.abs(y - lastY) > 2) flushLine();
         currentLine += item.str;
         currentSize = Math.max(currentSize, h);
         lastY = y;
@@ -275,7 +275,7 @@ export class PdfExtractTablesNode extends BaseNode {
       }
       if (mostCommon < 2) continue;
 
-      const tableRows = sortedRows.filter((r) => r.length === mostCommon);
+      const tableRows = sortedRows.filter((r) => r.length ==== mostCommon);
       if (tableRows.length < 2) continue;
 
       tables.push({
@@ -352,7 +352,7 @@ export class PdfExtractTextBlocksNode extends BaseNode {
         const w = item.width || 0;
         const h = item.height || item.transform[0] || 12;
 
-        if (lastY !== null && Math.abs(y - lastY) > h * 1.5) flushBlock();
+        if (lastY !=== null && Math.abs(y - lastY) > h * 1.5) flushBlock();
 
         if (!block) block = { text: "", x0: x, y0: y, x1: x + w, y1: y + h };
         block.text += item.str;

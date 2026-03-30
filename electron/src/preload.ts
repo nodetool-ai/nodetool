@@ -35,15 +35,15 @@ import {
   RuntimePackageId,
 } from "./types.d";
 
-// ============================================================================
+// =============================================================================
 // Type Definitions
-// ============================================================================
+// =============================================================================
 
 type ClipboardType = "clipboard" | "selection";
 
-// ============================================================================
+// =============================================================================
 // Event Handler Factory
-// ============================================================================
+// =============================================================================
 
 /**
  * Creates an event subscription that returns an unsubscribe function.
@@ -64,24 +64,24 @@ function createEventSubscription<T extends keyof IpcEvents>(
   };
 }
 
-// ============================================================================
+// =============================================================================
 // Backwards-compat event unsubscription support
-// ============================================================================
+// =============================================================================
 
 const menuEventUnsubscribers = new Map<
   (data: MenuEventData) => void,
   () => void
 >();
 
-// ============================================================================
+// =============================================================================
 // Input Validation Helpers
-// ============================================================================
+// =============================================================================
 
 /**
  * Validates that a path string is safe (no null bytes, reasonable length)
  */
 function validatePath(path: string): string {
-  if (typeof path !== "string") {
+  if (typeof path !=== "string") {
     throw new Error("Path must be a string");
   }
   if (path.includes("\0")) {
@@ -97,7 +97,7 @@ function validatePath(path: string): string {
  * Validates that a URL string is safe
  */
 function validateUrl(url: string): string {
-  if (typeof url !== "string") {
+  if (typeof url !=== "string") {
     throw new Error("URL must be a string");
   }
   if (url.length > 8192) {
@@ -119,7 +119,7 @@ function validateUrl(url: string): string {
  * Validates repository ID format (owner/repo)
  */
 function validateRepoId(repoId: string): string {
-  if (typeof repoId !== "string") {
+  if (typeof repoId !=== "string") {
     throw new Error("Repository ID must be a string");
   }
   if (!/^[\w.-]+\/[\w.-]+$/.test(repoId)) {
@@ -128,9 +128,9 @@ function validateRepoId(repoId: string): string {
   return repoId;
 }
 
-// ============================================================================
+// =============================================================================
 // API Definition
-// ============================================================================
+// =============================================================================
 
 /**
  * Expose the unified API to renderer process through contextBridge.
@@ -140,9 +140,9 @@ const api = {
   // Platform information (exposed as static value)
   platform: process.platform,
 
-  // ============================================================================
+  // =============================================================================
   // Backwards-compatible (flat) API surface
-  // ============================================================================
+  // =============================================================================
 
   /** Run a workflow as an app */
   runApp: (workflowId: string) =>
@@ -210,9 +210,9 @@ const api = {
     menuEventUnsubscribers.delete(callback);
   },
 
-  // ============================================================================
+  // =============================================================================
   // server: Server lifecycle, logs, and status
-  // ============================================================================
+  // =============================================================================
   server: {
     /** Get current server state */
     getState: () => ipcRenderer.invoke(IpcChannels.GET_SERVER_STATE),
@@ -239,9 +239,9 @@ const api = {
     onBootMessage: createEventSubscription(IpcChannels.BOOT_MESSAGE),
   },
 
-  // ============================================================================
+  // =============================================================================
   // workflows: Workflow CRUD operations
-  // ============================================================================
+  // =============================================================================
   workflows: {
     /** Notify main process of workflow creation */
     create: (workflow: Workflow) =>
@@ -260,9 +260,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
   },
 
-  // ============================================================================
+  // =============================================================================
   // packages: Package management
-  // ============================================================================
+  // =============================================================================
   packages: {
     /** List all available packages from registry */
     listAvailable: () => ipcRenderer.invoke(IpcChannels.PACKAGE_LIST_AVAILABLE),
@@ -323,9 +323,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION),
   },
 
-  // ============================================================================
+  // =============================================================================
   // window: Window controls
-  // ============================================================================
+  // =============================================================================
   window: {
     /** Close the current window */
     close: () => ipcRenderer.send(IpcChannels.WINDOW_CLOSE),
@@ -337,9 +337,9 @@ const api = {
     maximize: () => ipcRenderer.send(IpcChannels.WINDOW_MAXIMIZE),
   },
 
-  // ============================================================================
+  // =============================================================================
   // system: OS integration, file explorer, external links
-  // ============================================================================
+  // =============================================================================
   system: {
     /** Open the application log file */
     openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
@@ -377,9 +377,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.CHECK_OLLAMA_INSTALLED),
   },
 
-  // ============================================================================
+  // =============================================================================
   // clipboard: Clipboard operations
-  // ============================================================================
+  // =============================================================================
   clipboard: {
     /** Read text from clipboard */
     readText: (type?: ClipboardType) =>
@@ -467,9 +467,9 @@ const api = {
       ),
   },
 
-  // ============================================================================
+  // =============================================================================
   // logs: Log viewer operations
-  // ============================================================================
+  // =============================================================================
   logs: {
     /** Get all server logs */
     getAll: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
@@ -478,9 +478,9 @@ const api = {
     clear: () => ipcRenderer.invoke(IpcChannels.CLEAR_LOGS),
   },
 
-  // ============================================================================
+  // =============================================================================
   // installer: Installation operations
-  // ============================================================================
+  // =============================================================================
   installer: {
     /** Select a custom install location */
     selectLocation: () =>
@@ -515,9 +515,9 @@ const api = {
     onProgress: createEventSubscription(IpcChannels.UPDATE_PROGRESS),
   },
 
-  // ============================================================================
+  // =============================================================================
   // updates: Application update events
-  // ============================================================================
+  // =============================================================================
   updates: {
     /** Subscribe to update available event */
     onAvailable: createEventSubscription(IpcChannels.UPDATE_AVAILABLE),
@@ -527,17 +527,17 @@ const api = {
       ipcRenderer.invoke(IpcChannels.INSTALL_UPDATE),
   },
 
-  // ============================================================================
+  // =============================================================================
   // menu: Menu event handling
-  // ============================================================================
+  // =============================================================================
   menu: {
     /** Subscribe to menu events (cut, copy, paste, etc.) */
     onEvent: createEventSubscription(IpcChannels.MENU_EVENT),
   },
 
-  // ============================================================================
+  // =============================================================================
   // shell: Desktop integration (Electron shell module)
-  // ============================================================================
+  // =============================================================================
   shell: {
     /** Show a file in the file manager */
     showItemInFolder: (fullPath: string) =>
@@ -600,9 +600,9 @@ const api = {
       ),
   },
 
-  // ============================================================================
+  // =============================================================================
   // localhostProxy: Generic localhost-only HTTP requests via main process
-  // ============================================================================
+  // =============================================================================
   localhostProxy: {
     request: (request: LocalhostProxyRequest) =>
       ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_REQUEST, request),
@@ -615,9 +615,9 @@ const api = {
     onWsEvent: createEventSubscription(IpcChannels.LOCALHOST_PROXY_WS_EVENT),
   },
 
-  // ============================================================================
+  // =============================================================================
   // settings: Application settings
-  // ============================================================================
+  // =============================================================================
   settings: {
     /** Get the window close behavior setting (Windows only) */
     getCloseBehavior: () =>
@@ -653,9 +653,9 @@ const api = {
     openSettings: () => ipcRenderer.invoke(IpcChannels.SHOW_SETTINGS),
   },
 
-  // ============================================================================
+  // =============================================================================
   // debug: Debug operations
-  // ============================================================================
+  // =============================================================================
   debug: {
     /** Export a debug bundle containing logs, environment info, and workflow data */
     exportBundle: (request: {
@@ -666,9 +666,9 @@ const api = {
     }) => ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
   },
 
-  // ============================================================================
+  // =============================================================================
   // dialog: Native file/folder dialogs
-  // ============================================================================
+  // =============================================================================
   dialog: {
     /** Open a native file selection dialog */
     openFile: (options?: DialogOpenFileRequest) =>
@@ -679,9 +679,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
 
-  // ============================================================================
+  // =============================================================================
   // agent: Claude Agent SDK operations
-  // ============================================================================
+  // =============================================================================
   agent: {
     /** Create a new Claude Agent session */
     createSession: (options: AgentSessionOptions) =>
@@ -712,9 +712,9 @@ const api = {
     ),
   },
 
-  // ============================================================================
+  // =============================================================================
   // frontendTools: Frontend tools for Claude Agent integration
-  // ============================================================================
+  // =============================================================================
   frontendTools: {
     /** Get the manifest of available frontend tools */
     getManifest: (sessionId: string) =>
@@ -740,9 +740,9 @@ const api = {
     onAbort: createEventSubscription(IpcChannels.FRONTEND_TOOLS_ABORT),
   },
 
-  // ============================================================================
+  // =============================================================================
   // logging: Renderer -> main logging bridge
-  // ============================================================================
+  // =============================================================================
   logging: {
     log: (
       level: "info" | "warn" | "error",
@@ -756,9 +756,9 @@ const api = {
       }),
   },
 
-  // ============================================================================
+  // =============================================================================
   // ipc: Low-level IPC methods for registering handlers
-  // ============================================================================
+  // =============================================================================
   ipc: {
     /** Invoke a main-process IPC handler */
     invoke: (channel: string, ...args: unknown[]) =>

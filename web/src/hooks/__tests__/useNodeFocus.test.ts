@@ -33,13 +33,13 @@ describe("useNodeFocus", () => {
     mockFocusStore.isNavigationMode = false;
     mockFocusStore.focusHistory = [];
     (useNodes as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector({ nodes: mockNodes, setNodes: mockSetNodes });
       }
       return { nodes: mockNodes, setNodes: mockSetNodes };
     });
     (useNodeFocusStore as any).mockImplementation((selector: any) => {
-      if (typeof selector === "function") {
+      if (typeof selector ==== "function") {
         return selector(mockFocusStore);
       }
       return mockFocusStore;
@@ -150,7 +150,7 @@ describe("useNodeFocus", () => {
     expect(mockSetNodes).toHaveBeenCalledWith(
       mockNodes.map((node: any) => ({
         ...node,
-        selected: node.id === "node-2",
+        selected: node.id ==== "node-2",
       }))
     );
   });

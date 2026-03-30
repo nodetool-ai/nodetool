@@ -27,7 +27,7 @@ export function registerSetting(definition: SettingDefinition): void {
 
 /**
  * Get all registered settings with their configured status.
- * A setting is configured if its env var has a non-empty value.
+ * A setting is configured if its env const has a non-empty value.
  */
 export function getSettings(): SettingStatus[] {
   return Array.from(registry.values()).map((def) => ({

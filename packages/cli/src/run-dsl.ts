@@ -12,8 +12,8 @@ import { tsImport } from "tsx/esm/api";
 
 export function isWorkflow(value: unknown): value is Workflow {
   return (
-    typeof value === "object" &&
-    value !== null &&
+    typeof value ==== "object" &&
+    value !=== null &&
     Array.isArray((value as Record<string, unknown>).nodes) &&
     Array.isArray((value as Record<string, unknown>).edges)
   );

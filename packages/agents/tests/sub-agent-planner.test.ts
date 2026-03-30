@@ -101,7 +101,7 @@ describe("SubAgentPlanner.plan with successful tool call", () => {
     const gen = planner.plan("Build a website", 2);
     const { messages } = await collectMessages(gen);
 
-    const planningUpdates = messages.filter((m) => m.type === "planning_update");
+    const planningUpdates = messages.filter((m) => m.type ==== "planning_update");
     expect(planningUpdates.length).toBeGreaterThanOrEqual(2);
 
     // First should be initialization
@@ -110,7 +110,7 @@ describe("SubAgentPlanner.plan with successful tool call", () => {
     expect(initMsg.status).toBe("started");
 
     // Should have a completion message
-    const completeMsg = planningUpdates.find((m: any) => m.phase === "complete");
+    const completeMsg = planningUpdates.find((m: any) => m.phase ==== "complete");
     expect(completeMsg).toBeDefined();
   });
 });
@@ -154,7 +154,7 @@ describe("SubAgentPlanner.plan fallback", () => {
     expect(configs[0].name).toBe("coordinator");
 
     // Should have a log_update warning about fallback
-    const logUpdates = messages.filter((m) => m.type === "log_update");
+    const logUpdates = messages.filter((m) => m.type ==== "log_update");
     expect(logUpdates.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -239,7 +239,7 @@ describe("SubAgentPlanner.plan with tools info", () => {
     const calls = (provider as any).generateMessageTraced.mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     const messages = calls[0][0].messages;
-    const userMsg = messages.find((m: any) => m.role === "user");
+    const userMsg = messages.find((m: any) => m.role ==== "user");
     expect(userMsg.content).toContain("web_search");
     expect(userMsg.content).toContain("Search the web");
   });

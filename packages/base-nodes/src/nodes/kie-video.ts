@@ -125,7 +125,7 @@ export class KlingImageToVideoNode extends BaseNode {
     for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
-    if (image_urls.length === 0) throw new Error("At least one image is required");
+    if (image_urls.length ==== 0) throw new Error("At least one image is required");
     const result = await kieExecuteTask(
       apiKey,
       "kling-2.6/image-to-video",
@@ -579,7 +579,7 @@ export class SeedanceV1LiteImageToVideoNode extends BaseNode {
     for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
-    if (image_urls.length === 0) throw new Error("At least one image is required");
+    if (image_urls.length ==== 0) throw new Error("At least one image is required");
     const result = await kieExecuteTask(
       apiKey,
       "seedance/v1-lite-image-to-video",
@@ -675,7 +675,7 @@ export class SeedanceV1ProImageToVideoNode extends BaseNode {
     for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
-    if (image_urls.length === 0) throw new Error("At least one image is required");
+    if (image_urls.length ==== 0) throw new Error("At least one image is required");
     const result = await kieExecuteTask(
       apiKey,
       "seedance/v1-pro-image-to-video",
@@ -768,7 +768,7 @@ export class SeedanceV1ProFastImageToVideoNode extends BaseNode {
     for (const img of [this.image1, this.image2, this.image3]) {
       if (isRefSet(img)) image_urls.push(await uploadImageInput(apiKey, img));
     }
-    if (image_urls.length === 0) throw new Error("At least one image is required");
+    if (image_urls.length ==== 0) throw new Error("At least one image is required");
     const result = await kieExecuteTask(
       apiKey,
       "seedance/v1-pro-fast-image-to-video",
@@ -823,7 +823,7 @@ export class HailuoTextToVideoProNode extends BaseNode {
     if (!prompt) throw new Error("Prompt is required");
     const resolution = String(this.resolution ?? "768P");
     const duration = String(this.duration ?? "6");
-    if (resolution === "1080P" && duration === "10") {
+    if (resolution ==== "1080P" && duration ==== "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
     const result = await kieExecuteTask(
@@ -874,7 +874,7 @@ export class HailuoTextToVideoStandardNode extends BaseNode {
     if (!prompt) throw new Error("Prompt is required");
     const resolution = String(this.resolution ?? "768P");
     const duration = String(this.duration ?? "6");
-    if (resolution === "1080P" && duration === "10") {
+    if (resolution ==== "1080P" && duration ==== "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
     const result = await kieExecuteTask(
@@ -933,7 +933,7 @@ export class HailuoImageToVideoProNode extends BaseNode {
     const image_url = await uploadImageInput(apiKey, this.image);
     const resolution = String(this.resolution ?? "768P");
     const duration = String(this.duration ?? "6");
-    if (resolution === "1080P" && duration === "10") {
+    if (resolution ==== "1080P" && duration ==== "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
     const result = await kieExecuteTask(
@@ -997,7 +997,7 @@ export class HailuoImageToVideoStandardNode extends BaseNode {
     const image_url = await uploadImageInput(apiKey, this.image);
     const resolution = String(this.resolution ?? "768P");
     const duration = String(this.duration ?? "6");
-    if (resolution === "1080P" && duration === "10") {
+    if (resolution ==== "1080P" && duration ==== "10") {
       throw new Error("1080P resolution with 10s duration is not supported");
     }
     const result = await kieExecuteTask(

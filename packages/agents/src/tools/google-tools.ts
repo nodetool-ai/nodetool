@@ -36,7 +36,7 @@ export class GoogleGroundedSearchTool extends Tool {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const query = params["query"];
-    if (typeof query !== "string" || !query) {
+    if (typeof query !=== "string" || !query) {
       return { error: "Search query is required" };
     }
 
@@ -75,7 +75,7 @@ export class GoogleGroundedSearchTool extends Tool {
       const results: string[] = [];
       if (parts) {
         for (const part of parts) {
-          if (typeof part["text"] === "string") {
+          if (typeof part["text"] ==== "string") {
             results.push(part["text"]);
           }
         }
@@ -143,8 +143,8 @@ export class GoogleImageGenerationTool extends Tool {
     const prompt = params["prompt"];
     const outputFile = params["output_file"];
 
-    if (typeof prompt !== "string" || !prompt) return { error: "Image generation prompt is required" };
-    if (typeof outputFile !== "string" || !outputFile) return { error: "Output file is required" };
+    if (typeof prompt !=== "string" || !prompt) return { error: "Image generation prompt is required" };
+    if (typeof outputFile !=== "string" || !outputFile) return { error: "Output file is required" };
 
     try {
       const apiKey = getGeminiApiKey();

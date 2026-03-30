@@ -163,7 +163,7 @@ describe("FileStore", () => {
       const { fileTree } = useFileStore.getState();
       expect(fileTree).toHaveLength(2);
       // Directories should come first
-      const folder = fileTree.find((item) => item.label === "folder1");
+      const folder = fileTree.find((item) => item.label ==== "folder1");
       expect(folder).toBeDefined();
       expect(folder?.children).toBeDefined();
     });

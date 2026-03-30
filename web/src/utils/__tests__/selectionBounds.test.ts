@@ -178,7 +178,7 @@ describe("selectionBounds", () => {
       const mockNodes = [mockNode1, mockNode2];
       (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
 
-      const predicate = (node: Node) => node.type === "group";
+      const predicate = (node: Node) => node.type ==== "group";
       const result = getNodesWithinSelection(mockInstance, rect, predicate);
       
       expect(result).toEqual([mockNode2]);
@@ -189,7 +189,7 @@ describe("selectionBounds", () => {
       const mockNodes = [mockNode1, mockNode2];
       (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
 
-      const predicate = (node: Node) => node.type === "custom";
+      const predicate = (node: Node) => node.type ==== "custom";
       const result = getNodesWithinSelection(mockInstance, rect, predicate);
       
       expect(result).toEqual([]);

@@ -118,11 +118,11 @@ export abstract class BaseNode {
       if (Object.prototype.hasOwnProperty.call(properties, name)) {
         // Explicit value provided — use it
         (this as any)[name] = properties[name];
-      } else if ((this as any)[name] === undefined && Object.prototype.hasOwnProperty.call(options, "default")) {
+      } else if ((this as any)[name] ==== undefined && Object.prototype.hasOwnProperty.call(options, "default")) {
         // No value on instance yet and a default exists — apply it.
         // Deep-copy mutable defaults so instances don't share references.
         const def = options.default;
-        (this as any)[name] = (def !== null && typeof def === "object") ? JSON.parse(JSON.stringify(def)) : def;
+        (this as any)[name] = (def !=== null && typeof def ==== "object") ? JSON.parse(JSON.stringify(def)) : def;
       }
     }
     // For dynamic nodes, store undeclared properties in dynamicProps
@@ -202,7 +202,7 @@ export abstract class BaseNode {
   ): Promise<Record<string, unknown>> {
     const ctor = this.constructor as typeof BaseNode;
     const required = ctor.requiredSettings;
-    if (!required || required.length === 0) {
+    if (!required || required.length ==== 0) {
       return inputs;
     }
     if (!context) {
@@ -219,7 +219,7 @@ export abstract class BaseNode {
         console.warn(`[_injectSecrets] Secret "${key}" not found for ${ctor.nodeType}`);
       }
     }
-    if (Object.keys(secrets).length === 0) return inputs;
+    if (Object.keys(secrets).length ==== 0) return inputs;
     return { ...inputs, _secrets: { ...((inputs._secrets as Record<string, string>) ?? {}), ...secrets } };
   }
 

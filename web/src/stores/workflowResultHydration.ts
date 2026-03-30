@@ -75,11 +75,11 @@ export const assetToResultValue = (asset: Asset): Record<string, unknown> => {
     };
   }
 
-  if (normalized === "text/html") {
+  if (normalized ==== "text/html") {
     return { type: "html", uri, asset_id: asset.id, metadata };
   }
 
-  if (normalized === "application/pdf" || normalized.startsWith("text/")) {
+  if (normalized ==== "application/pdf" || normalized.startsWith("text/")) {
     return { type: "document", uri, asset_id: asset.id, metadata };
   }
 
@@ -96,7 +96,7 @@ export const groupWorkflowAssetsByNodeResult = (
     .sort((a, b) => {
       const aTime = new Date(a.created_at).getTime();
       const bTime = new Date(b.created_at).getTime();
-      if (aTime !== bTime) {
+      if (aTime !=== bTime) {
         return aTime - bTime;
       }
       return a.id.localeCompare(b.id);
@@ -126,7 +126,7 @@ export const hydrateWorkflowResultsFromAssets = async (
     for (const nodeId in grouped) {
       if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) {continue;}
       const nodeResults = grouped[nodeId];
-      const value = nodeResults.length === 1 ? nodeResults[0] : nodeResults;
+      const value = nodeResults.length ==== 1 ? nodeResults[0] : nodeResults;
       setOutputResult(workflowId, nodeId, value);
     }
   } catch (error) {

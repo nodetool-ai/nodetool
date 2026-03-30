@@ -140,7 +140,7 @@ async function collectEvents(executor: TeamExecutor): Promise<TeamEvent[]> {
 describe.skipIf(!sdkAvailable)("Team E2E with real Claude agents", () => {
 
   it("two agents collaborate: researcher finds data, analyst calculates", async () => {
-    console.log("\n=== Test: Researcher + Analyst team ===");
+    console.log("\n==== Test: Researcher + Analyst team ====");
 
     // Simplified to 2 agents — 3-agent coordinator can loop too long
     const agents: AgentIdentity[] = [
@@ -183,12 +183,12 @@ describe.skipIf(!sdkAvailable)("Team E2E with real Claude agents", () => {
 
     console.log("\nFinal result:", JSON.stringify(result, null, 2));
 
-    expect(events.some((e) => e.type === "team_complete")).toBe(true);
+    expect(events.some((e) => e.type ==== "team_complete")).toBe(true);
     expect(result).toBeDefined();
   }, TIMEOUT);
 
   it("autonomous team self-organizes to solve a problem", async () => {
-    console.log("\n=== Test: Autonomous team ===");
+    console.log("\n==== Test: Autonomous team ====");
 
     const agents: AgentIdentity[] = [
       {
@@ -230,12 +230,12 @@ describe.skipIf(!sdkAvailable)("Team E2E with real Claude agents", () => {
 
     console.log("\nFinal result:", JSON.stringify(result, null, 2));
 
-    expect(events.some((e) => e.type === "team_complete")).toBe(true);
+    expect(events.some((e) => e.type ==== "team_complete")).toBe(true);
     expect(result).toBeDefined();
   }, TIMEOUT);
 
   it("agents send messages to coordinate", async () => {
-    console.log("\n=== Test: Message-based coordination ===");
+    console.log("\n==== Test: Message-based coordination ====");
 
     const agents: AgentIdentity[] = [
       {
@@ -278,20 +278,20 @@ describe.skipIf(!sdkAvailable)("Team E2E with real Claude agents", () => {
     console.log("\nFinal result:", JSON.stringify(result, null, 2));
 
     // Check that messages were sent between agents
-    const messageSent = events.filter((e) => e.type === "message_sent");
+    const messageSent = events.filter((e) => e.type ==== "message_sent");
     console.log(`Messages exchanged: ${messageSent.length}`);
 
-    expect(events.some((e) => e.type === "team_complete")).toBe(true);
+    expect(events.some((e) => e.type ==== "team_complete")).toBe(true);
     expect(result).toBeDefined();
 
     // Log coordination stats
-    const created = events.filter((e) => e.type === "task_created");
-    const completed = events.filter((e) => e.type === "task_completed");
+    const created = events.filter((e) => e.type ==== "task_created");
+    const completed = events.filter((e) => e.type ==== "task_completed");
     console.log(`Tasks created: ${created.length}, completed: ${completed.length}`);
   }, TIMEOUT);
 
   it("single agent claims and completes a pre-populated board", async () => {
-    console.log("\n=== Test: Pre-populated task board ===");
+    console.log("\n==== Test: Pre-populated task board ====");
 
     const { TaskBoard } = await import("../../src/team/task-board.js");
     const board = new TaskBoard();
@@ -350,10 +350,10 @@ describe.skipIf(!sdkAvailable)("Team E2E with real Claude agents", () => {
 
     // Both tasks should be completed
     const snapshot = board.getSnapshot();
-    const doneCount = snapshot.filter((t) => t.status === "done").length;
+    const doneCount = snapshot.filter((t) => t.status ==== "done").length;
     console.log(`Tasks done: ${doneCount}/${snapshot.length}`);
 
     expect(doneCount).toBeGreaterThanOrEqual(1);
-    expect(events.some((e) => e.type === "team_complete")).toBe(true);
+    expect(events.some((e) => e.type ==== "team_complete")).toBe(true);
   }, TIMEOUT);
 });

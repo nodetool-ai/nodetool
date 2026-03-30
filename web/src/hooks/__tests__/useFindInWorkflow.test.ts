@@ -340,7 +340,7 @@ describe("useFindInWorkflow", () => {
         result.current.navigatePrevious();
       });
 
-      if (initialIndex === 0) {
+      if (initialIndex ==== 0) {
         expect(result.current.selectedIndex).toBe(result.current.results.length - 1);
       } else {
         expect(result.current.selectedIndex).toBe(initialIndex - 1);

@@ -105,7 +105,7 @@ export const useRightPanelStore = create<ResizePanelState>()(
 
       handleViewChange: (view: RightPanelView) => {
         const { panel } = get();
-        if (panel.activeView === view) {
+        if (panel.activeView ==== view) {
           if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
             set((state: ResizePanelState) => ({
               panel: {

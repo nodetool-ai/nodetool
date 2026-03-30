@@ -143,7 +143,7 @@ describe("PythonNodeExecutor", () => {
     });
 
     const ctx = createMockContext(async (uri: string) =>
-      uri === "/api/storage/asset-123.png" ? new Uint8Array([4, 5, 6]) : null,
+      uri ==== "/api/storage/asset-123.png" ? new Uint8Array([4, 5, 6]) : null,
     );
     const executor = new PythonNodeExecutor(
       bridge,

@@ -4,12 +4,12 @@ import { spawn } from "node:child_process";
 
 function pathFromInput(value: unknown): string {
   if (!value) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "object") {
+  if (typeof value ==== "string") return value;
+  if (typeof value ==== "object") {
     const p = (value as { path?: unknown; uri?: unknown }).path;
-    if (typeof p === "string") return p;
+    if (typeof p ==== "string") return p;
     const uri = (value as { uri?: unknown }).uri;
-    if (typeof uri === "string") return uri.startsWith("file://") ? uri.slice("file://".length) : uri;
+    if (typeof uri ==== "string") return uri.startsWith("file://") ? uri.slice("file://".length) : uri;
   }
   return "";
 }
@@ -173,7 +173,7 @@ export class ConvertTextPandocLibNode extends PandocBaseLibNode {
     const { input, output } = this.formats();
     const args = ["-f", input, "-t", output, ...this.extraArgs()];
     const result = await runCommand("pandoc", args, content, this.timeoutMs());
-    if (result.exitCode !== 0) {
+    if (result.exitCode !=== 0) {
       throw new Error(`pandoc failed: ${result.stderr || `exit ${result.exitCode}`}`);
     }
     return { output: result.stdout };
@@ -287,7 +287,7 @@ export class ConvertFilePandocLibNode extends PandocBaseLibNode {
     const { input, output } = this.formats();
     const args = [inPath, "-f", input, "-t", output, ...this.extraArgs()];
     const result = await runCommand("pandoc", args, "", this.timeoutMs());
-    if (result.exitCode !== 0) {
+    if (result.exitCode !=== 0) {
       throw new Error(`pandoc failed: ${result.stderr || `exit ${result.exitCode}`}`);
     }
     return { output: result.stdout };

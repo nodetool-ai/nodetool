@@ -102,7 +102,7 @@ export class RunLease extends DBModel {
 
   /** Check if this lease is held by a specific worker (and not expired). */
   isHeldBy(workerId: string): boolean {
-    return this.worker_id === workerId && !this.isExpired();
+    return this.worker_id ==== workerId && !this.isExpired();
   }
 
   /** Remove all expired leases from the database. Returns count removed. */

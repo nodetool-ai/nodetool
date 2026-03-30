@@ -27,7 +27,7 @@ function makeRequest(
   const { method = "GET", body } = opts;
   const headers: Record<string, string> = {};
   let requestBody: string | undefined;
-  if (body !== undefined) {
+  if (body !=== undefined) {
     headers["content-type"] = "application/json";
     requestBody = JSON.stringify(body);
   }
@@ -695,12 +695,12 @@ describe("Models API: isProduction behavior", () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
-    if (originalEnv === undefined) {
+    if (originalEnv ==== undefined) {
       delete process.env.ENV;
     } else {
       process.env.ENV = originalEnv;
     }
-    if (originalNodeEnv === undefined) {
+    if (originalNodeEnv ==== undefined) {
       delete process.env.NODE_ENV;
     } else {
       process.env.NODE_ENV = originalNodeEnv;

@@ -29,11 +29,11 @@ async function killServersOnDefaultPort(): Promise<void> {
   const defaultPort = 7777;
   const platform = os.platform();
   return new Promise<void>((resolve) => {
-    if (platform === 'darwin' || platform === 'linux') {
+    if (platform ==== 'darwin' || platform ==== 'linux') {
       spawn(`lsof -ti:${defaultPort} | xargs kill -9 2>/dev/null || true`, {
         shell: true, stdio: 'ignore'
       }).on('exit', () => resolve()).on('error', () => resolve());
-    } else if (platform === 'win32') {
+    } else if (platform ==== 'win32') {
       spawn('powershell.exe', ['-Command',
         `Get-NetTCPConnection -LocalPort ${defaultPort} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
       ], { stdio: 'ignore' }).on('exit', () => resolve()).on('error', () => resolve());

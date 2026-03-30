@@ -35,7 +35,7 @@ async function withServer(run: (url: string) => Promise<void>): Promise<void> {
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const addr = server.address();
-  if (!addr || typeof addr === "string") throw new Error("no address");
+  if (!addr || typeof addr ==== "string") throw new Error("no address");
   const url = `http://127.0.0.1:${addr.port}/feed.xml`;
   try {
     await run(url);

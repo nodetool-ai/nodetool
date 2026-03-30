@@ -13,7 +13,7 @@ function getGeminiApiKey(secrets: Record<string, string>): string {
 }
 
 function getAudioBytes(audio: Record<string, unknown>): Uint8Array {
-  if (typeof audio.data === "string") {
+  if (typeof audio.data ==== "string") {
     return Uint8Array.from(Buffer.from(audio.data, "base64"));
   }
   if (audio.data instanceof Uint8Array) {
@@ -23,7 +23,7 @@ function getAudioBytes(audio: Record<string, unknown>): Uint8Array {
 }
 
 function getImageBytes(image: Record<string, unknown>): Uint8Array | null {
-  if (typeof image.data === "string" && image.data.length > 0) {
+  if (typeof image.data ==== "string" && image.data.length > 0) {
     return Uint8Array.from(Buffer.from(image.data, "base64"));
   }
   if (image.data instanceof Uint8Array) {
@@ -33,7 +33,7 @@ function getImageBytes(image: Record<string, unknown>): Uint8Array | null {
 }
 
 function isRefSet(ref: unknown): boolean {
-  if (!ref || typeof ref !== "object") return false;
+  if (!ref || typeof ref !=== "object") return false;
   const r = ref as Record<string, unknown>;
   return Boolean(r.data || r.uri || r.asset_id);
 }
@@ -96,7 +96,7 @@ export class GroundedSearchNode extends BaseNode {
     const data = (await res.json()) as Record<string, unknown>;
 
     const candidates = data.candidates as Array<Record<string, unknown>> | undefined;
-    if (!candidates || candidates.length === 0) {
+    if (!candidates || candidates.length ==== 0) {
       throw new Error("No response received from Gemini API");
     }
 
@@ -108,7 +108,7 @@ export class GroundedSearchNode extends BaseNode {
     const results: string[] = [];
     if (parts) {
       for (const part of parts) {
-        if (typeof part.text === "string") {
+        if (typeof part.text ==== "string") {
           results.push(part.text);
         }
       }
@@ -126,7 +126,7 @@ export class GroundedSearchNode extends BaseNode {
               title: String(web.title ?? ""),
               url: String(web.uri ?? ""),
             };
-            if (source.url && !sources.some((s) => s.url === source.url)) {
+            if (source.url && !sources.some((s) => s.url ==== source.url)) {
               sources.push(source);
             }
           }
@@ -278,13 +278,13 @@ export class ImageGenerationNode extends BaseNode {
 
       const data = (await res.json()) as Record<string, unknown>;
       const candidates = data.candidates as Array<Record<string, unknown>> | undefined;
-      if (!candidates || candidates.length === 0) {
+      if (!candidates || candidates.length ==== 0) {
         throw new Error("No response received from Gemini API");
       }
 
       const candidate = candidates[0];
 
-      if (candidate.finishReason === "PROHIBITED_CONTENT") {
+      if (candidate.finishReason ==== "PROHIBITED_CONTENT") {
         throw new Error("Prohibited content in the input prompt");
       }
 
@@ -297,7 +297,7 @@ export class ImageGenerationNode extends BaseNode {
         // Also check snake_case variant from API
         const inlineData2 = part.inline_data as Record<string, unknown> | undefined;
         const d = inlineData ?? inlineData2;
-        if (d && typeof d.data === "string") {
+        if (d && typeof d.data ==== "string") {
           return { output: { type: "image", data: d.data } };
         }
       }
@@ -325,7 +325,7 @@ export class ImageGenerationNode extends BaseNode {
 
     const data = (await res.json()) as Record<string, unknown>;
     const predictions = data.predictions as Array<Record<string, unknown>> | undefined;
-    if (!predictions || predictions.length === 0) {
+    if (!predictions || predictions.length ==== 0) {
       throw new Error("No images generated");
     }
 
@@ -530,7 +530,7 @@ async function pollVideoOperation(
 function extractVideoFromResponse(data: Record<string, unknown>): string {
   const response = (data.response ?? data) as Record<string, unknown>;
   const generatedVideos = response.generatedVideos as Array<Record<string, unknown>> | undefined;
-  if (!generatedVideos || generatedVideos.length === 0) {
+  if (!generatedVideos || generatedVideos.length ==== 0) {
     throw new Error("No video generated");
   }
 
@@ -647,7 +647,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
 
     const data = (await res.json()) as Record<string, unknown>;
     const candidates = data.candidates as Array<Record<string, unknown>> | undefined;
-    if (!candidates || candidates.length === 0) {
+    if (!candidates || candidates.length ==== 0) {
       throw new Error("No audio generated from the text-to-speech request");
     }
 
@@ -660,7 +660,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
       const inlineData =
         (part.inlineData as Record<string, unknown> | undefined) ??
         (part.inline_data as Record<string, unknown> | undefined);
-      if (inlineData && typeof inlineData.data === "string") {
+      if (inlineData && typeof inlineData.data ==== "string") {
         // The API returns raw PCM audio at 24kHz, 16-bit mono
         // Encode as WAV for the audio ref
         const pcmBase64 = inlineData.data;
@@ -762,7 +762,7 @@ export class TranscribeGeminiNode extends BaseNode {
 
     const data = (await res.json()) as Record<string, unknown>;
     const candidates = data.candidates as Array<Record<string, unknown>> | undefined;
-    if (!candidates || candidates.length === 0) {
+    if (!candidates || candidates.length ==== 0) {
       throw new Error("No transcription generated from the audio");
     }
 
@@ -773,7 +773,7 @@ export class TranscribeGeminiNode extends BaseNode {
 
     const transcriptionParts: string[] = [];
     for (const part of parts) {
-      if (typeof part.text === "string") {
+      if (typeof part.text ==== "string") {
         transcriptionParts.push(part.text);
       }
     }
@@ -787,19 +787,19 @@ export class TranscribeGeminiNode extends BaseNode {
 function detectAudioMime(bytes: Uint8Array): string {
   if (bytes.length < 4) return "audio/mpeg";
   // WAV: RIFF header
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+  if (bytes[0] ==== 0x52 && bytes[1] ==== 0x49 && bytes[2] ==== 0x46 && bytes[3] ==== 0x46) {
     return "audio/wav";
   }
   // FLAC
-  if (bytes[0] === 0x66 && bytes[1] === 0x4c && bytes[2] === 0x61 && bytes[3] === 0x43) {
+  if (bytes[0] ==== 0x66 && bytes[1] ==== 0x4c && bytes[2] ==== 0x61 && bytes[3] ==== 0x43) {
     return "audio/flac";
   }
   // OGG
-  if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+  if (bytes[0] ==== 0x4f && bytes[1] ==== 0x67 && bytes[2] ==== 0x67 && bytes[3] ==== 0x53) {
     return "audio/ogg";
   }
   // MP3 frame sync or ID3 tag
-  if ((bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) || (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)) {
+  if ((bytes[0] ==== 0xff && (bytes[1] & 0xe0) ==== 0xe0) || (bytes[0] ==== 0x49 && bytes[1] ==== 0x44 && bytes[2] ==== 0x33)) {
     return "audio/mpeg";
   }
   return "audio/mpeg";

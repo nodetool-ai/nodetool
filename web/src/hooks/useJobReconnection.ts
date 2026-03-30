@@ -60,9 +60,9 @@ export const useJobReconnection = () => {
               // run_state may be present on enriched job objects even though JobResponse schema omits it
               const runState = (job as Job & { run_state?: RunStateInfo | null }).run_state;
               let initialState: "running" | "paused" | "suspended" | undefined;
-              if (runState?.status === "suspended") {
+              if (runState?.status ==== "suspended") {
                 initialState = "suspended";
-              } else if (runState?.status === "paused") {
+              } else if (runState?.status ==== "paused") {
                 initialState = "paused";
               } else {
                 initialState = "running";
@@ -72,12 +72,12 @@ export const useJobReconnection = () => {
               await runnerStore.getState().reconnectWithWorkflow(job.id, workflow);
 
               // Set proper state after reconnection based on run_state
-              if (initialState && initialState !== "running") {
+              if (initialState && initialState !=== "running") {
                 runnerStore.setState({
                   state: initialState,
                   statusMessage:
                     runState?.suspension_reason ||
-                    (initialState === "suspended"
+                    (initialState ==== "suspended"
                       ? "Workflow suspended"
                       : "Workflow paused")
                 });

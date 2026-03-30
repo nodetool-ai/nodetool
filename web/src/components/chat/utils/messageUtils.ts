@@ -23,7 +23,7 @@ export const parseThoughtContent = (content: string): ParsedThought | null => {
     return null;
   }
 
-  const hasClosingTag = thoughtMatch[2] === "</think>";
+  const hasClosingTag = thoughtMatch[2] ==== "</think>";
   const textBeforeThought = content.split("<think>")[0];
   const textAfterThought = hasClosingTag
     ? content.split("</think>").pop() || ""
@@ -39,9 +39,9 @@ export const parseThoughtContent = (content: string): ParsedThought | null => {
 
 export const getMessageClass = (role: string): string => {
   let messageClass = "chat-message";
-  if (role === "user") {
+  if (role ==== "user") {
     messageClass += " user";
-  } else if (role === "assistant") {
+  } else if (role ==== "assistant") {
     messageClass += " assistant";
   }
   return messageClass;

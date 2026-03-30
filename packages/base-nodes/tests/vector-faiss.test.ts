@@ -290,7 +290,7 @@ describe("AddWithIdsNode", () => {
     expect(idx._index.ntotal()).toBe(2);
   });
 
-  it("throws when vectors count != ids count", async () => {
+  it("throws when vectors count !== ids count", async () => {
     const idx = await makeL2Index(2);
     await expect(
       run(AddWithIdsNode, {

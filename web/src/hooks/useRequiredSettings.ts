@@ -19,20 +19,20 @@ export const useRequiredSettings = (nodeType: string): string[] => {
 
     const requiredSettings = metadata.required_settings;
     
-    if (!requiredSettings || requiredSettings.length === 0) {
+    if (!requiredSettings || requiredSettings.length ==== 0) {
       return []; // No required settings for this node
     }
 
     // Check which required settings are missing or empty
     const missingSettings = requiredSettings.filter((envVar) => {
-      const setting = settings.find((s) => s.env_var === envVar);
+      const setting = settings.find((s) => s.env_var ==== envVar);
       const value = setting?.value;
       // Check if value is missing, null, undefined, or empty string
       return (
         !setting ||
-        value === null ||
-        value === undefined ||
-        (typeof value === "string" && value.trim() === "")
+        value ==== null ||
+        value ==== undefined ||
+        (typeof value ==== "string" && value.trim() ==== "")
       );
     });
 

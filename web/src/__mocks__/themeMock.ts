@@ -225,7 +225,7 @@ const mockTheme = createTheme({
 (mockTheme as any).alpha = (color: string, opacity: number) => {
   // If color already has rgba, return as-is with adjusted alpha
   if (color && color.startsWith("rgba")) {return color;}
-  // For CSS var references or hex colors, return rgba fallback
+  // For CSS const references or hex colors, return rgba fallback
   return `rgba(255, 255, 255, ${opacity})`;
 };
 

@@ -41,7 +41,7 @@ interface WavData {
 
 function decodeWav(audio: Record<string, unknown>): WavData {
   let rawData: Uint8Array;
-  if (typeof audio.data === "string") {
+  if (typeof audio.data ==== "string") {
     rawData = Uint8Array.from(Buffer.from(audio.data, "base64"));
   } else if (audio.data instanceof Uint8Array) {
     rawData = audio.data;
@@ -50,7 +50,7 @@ function decodeWav(audio: Record<string, unknown>): WavData {
   }
 
   const buf = Buffer.from(rawData);
-  if (buf.toString("ascii", 0, 4) !== "RIFF" || buf.length < 44) {
+  if (buf.toString("ascii", 0, 4) !=== "RIFF" || buf.length < 44) {
     throw new Error("Invalid WAV file");
   }
 
@@ -62,7 +62,7 @@ function decodeWav(audio: Record<string, unknown>): WavData {
   while (dataOffset < buf.length - 8) {
     const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
     const chunkSize = buf.readUInt32LE(dataOffset + 4);
-    if (chunkId === "data") {
+    if (chunkId ==== "data") {
       dataOffset += 8;
       break;
     }
@@ -75,9 +75,9 @@ function decodeWav(audio: Record<string, unknown>): WavData {
 
   for (let i = 0; i < totalSamples; i++) {
     const pos = dataOffset + i * bytesPerSample;
-    if (bitsPerSample === 16) {
+    if (bitsPerSample ==== 16) {
       samples[i] = buf.readInt16LE(pos) / 0x7fff;
-    } else if (bitsPerSample === 8) {
+    } else if (bitsPerSample ==== 8) {
       samples[i] = (buf.readUInt8(pos) - 128) / 128;
     }
   }

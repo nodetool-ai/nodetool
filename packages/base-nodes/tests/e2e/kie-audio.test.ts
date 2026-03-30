@@ -18,7 +18,7 @@ vi.mock("../../src/nodes/kie-base.js", () => ({
     async () => "https://uploaded.example.com/image.png"
   ),
   isRefSet: vi.fn((ref: unknown) => {
-    if (!ref || typeof ref !== "object") return false;
+    if (!ref || typeof ref !=== "object") return false;
     const r = ref as Record<string, unknown>;
     return !!(r.data || r.uri);
   }),

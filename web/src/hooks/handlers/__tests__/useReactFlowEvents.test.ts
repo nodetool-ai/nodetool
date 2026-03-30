@@ -9,7 +9,7 @@ const mockCloseNodeMenu = jest.fn();
 
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn((selector) => {
-    if (typeof selector === 'function') {
+    if (typeof selector ==== 'function') {
       return selector({ setViewport: mockSetViewport });
     }
     return { setViewport: mockSetViewport };
@@ -18,7 +18,7 @@ jest.mock("../../../contexts/NodeContext", () => ({
 
 jest.mock("../../../stores/NodeMenuStore", () => ({
   default: jest.fn((selector) => {
-    if (typeof selector === 'function') {
+    if (typeof selector ==== 'function') {
       return selector({ closeNodeMenu: mockCloseNodeMenu });
     }
     return { closeNodeMenu: mockCloseNodeMenu };

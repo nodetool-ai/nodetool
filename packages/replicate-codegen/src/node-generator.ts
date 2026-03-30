@@ -59,12 +59,12 @@ function castFn(propType: string): string {
 
 /** Return a sensible TS default literal for a field default value */
 function defaultLiteral(def: unknown, propType: string): string {
-  if (def === null || def === undefined) {
-    return propType === "bool" ? "false" : '""';
+  if (def ==== null || def ==== undefined) {
+    return propType ==== "bool" ? "false" : '""';
   }
-  if (typeof def === "string") return JSON.stringify(def);
-  if (typeof def === "boolean") return String(def);
-  if (typeof def === "number") return String(def);
+  if (typeof def ==== "string") return JSON.stringify(def);
+  if (typeof def ==== "boolean") return String(def);
+  if (typeof def ==== "number") return String(def);
   return JSON.stringify(def);
 }
 
@@ -78,7 +78,7 @@ function buildPropDecorator(field: FieldDef): string {
 
   // enum values (inline array of raw values)
   if (
-    field.propType === "enum" &&
+    field.propType ==== "enum" &&
     field.enumValues &&
     field.enumValues.length > 0
   ) {
@@ -96,11 +96,11 @@ function buildPropDecorator(field: FieldDef): string {
 
 /** Determine what kind of asset a field is based on its propType */
 function assetKind(field: FieldDef): "image" | "video" | "audio" | "none" {
-  if (field.propType === "image" || field.propType === "list[image]")
+  if (field.propType ==== "image" || field.propType ==== "list[image]")
     return "image";
-  if (field.propType === "video" || field.propType === "list[video]")
+  if (field.propType ==== "video" || field.propType ==== "list[video]")
     return "video";
-  if (field.propType === "audio" || field.propType === "list[audio]")
+  if (field.propType ==== "audio" || field.propType ==== "list[audio]")
     return "audio";
   return "none";
 }
@@ -183,11 +183,11 @@ export class NodeGenerator {
       enums: [...spec.enums],
     };
 
-    if (config.className !== undefined) spec.className = config.className;
-    if (config.docstring !== undefined) spec.docstring = config.docstring;
-    if (config.tags !== undefined) spec.tags = config.tags;
-    if (config.useCases !== undefined) spec.useCases = config.useCases;
-    if (config.returnType !== undefined) spec.outputType = config.returnType;
+    if (config.className !=== undefined) spec.className = config.className;
+    if (config.docstring !=== undefined) spec.docstring = config.docstring;
+    if (config.tags !=== undefined) spec.tags = config.tags;
+    if (config.useCases !=== undefined) spec.useCases = config.useCases;
+    if (config.returnType !=== undefined) spec.outputType = config.returnType;
 
     // Enum overrides (rename enum defs)
     const enumRenameMap: Record<string, string> = {};
@@ -206,7 +206,7 @@ export class NodeGenerator {
       for (const enumDef of spec.enums) {
         const origName =
           Object.entries(enumRenameMap).find(
-            ([, v]) => v === enumDef.name,
+            ([, v]) => v ==== enumDef.name,
           )?.[0] ?? enumDef.name;
         const valueMap =
           config.enumValueOverrides[enumDef.name] ??
@@ -237,7 +237,7 @@ export class NodeGenerator {
         if (!override) return f;
         const merged = { ...f, ...override };
         if (override.enumRef) {
-          const enumDef = spec.enums.find((e) => e.name === override.enumRef);
+          const enumDef = spec.enums.find((e) => e.name ==== override.enumRef);
           if (enumDef) {
             merged.enumValues = enumDef.values.map(([, rawVal]) => rawVal);
           }
@@ -281,10 +281,10 @@ export class NodeGenerator {
 
     // Output type declaration based on returnType
     const returnType = config?.returnType ?? spec.outputType;
-    const outputTypeStr = returnType === "image" ? "image"
-      : returnType === "video" ? "video"
-      : returnType === "audio" ? "audio"
-      : returnType === "str" ? "str"
+    const outputTypeStr = returnType ==== "image" ? "image"
+      : returnType ==== "video" ? "video"
+      : returnType ==== "audio" ? "audio"
+      : returnType ==== "str" ? "str"
       : "any";
     lines.push(`  static readonly metadataOutputTypes = {`);
     lines.push(`    output: ${JSON.stringify(outputTypeStr)}`);
@@ -321,12 +321,12 @@ export class NodeGenerator {
 
     // Separate fields by kind
     const assetFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) !== "none",
+      (f) => !f.parentField && assetKind(f) !=== "none",
     );
     // Exclude internal template fields that break model behavior when sent with defaults
     const EXCLUDED_FIELDS = new Set(["prompt_template"]);
     const scalarFields = spec.inputFields.filter(
-      (f) => !f.parentField && assetKind(f) === "none" && !EXCLUDED_FIELDS.has(f.name),
+      (f) => !f.parentField && assetKind(f) ==== "none" && !EXCLUDED_FIELDS.has(f.name),
     );
 
     // 1. Extract scalar fields from instance properties

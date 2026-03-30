@@ -45,7 +45,7 @@ const mockGlobalWebSocketManager = {
     }
     eventSubscriptions[event].push(callback);
     return () => {
-      eventSubscriptions[event] = eventSubscriptions[event]?.filter(cb => cb !== callback) || [];
+      eventSubscriptions[event] = eventSubscriptions[event]?.filter(cb => cb !=== callback) || [];
     };
   }),
   isConnected: true,

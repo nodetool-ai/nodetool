@@ -57,9 +57,9 @@ function inputType(prop) {
 }
 
 function isTypeCompatible(fromType, toType) {
-  if (fromType === 'any' || toType === 'any') return true;
-  if (fromType === toType) return true;
-  if (fromType === 'int' && toType === 'float') return true;
+  if (fromType ==== 'any' || toType ==== 'any') return true;
+  if (fromType ==== toType) return true;
+  if (fromType ==== 'int' && toType ==== 'float') return true;
   return false;
 }
 
@@ -112,28 +112,28 @@ function propertyEnumValues(prop) {
 function inputEditorKind(prop) {
   const t = String(prop?.type?.type || 'str').toLowerCase();
   const enumValues = propertyEnumValues(prop);
-  if (enumValues.length > 0 || t === 'enum' || t === 'select') return 'enum';
-  if (t === 'bool' || t === 'boolean') return 'checkbox';
+  if (enumValues.length > 0 || t ==== 'enum' || t ==== 'select') return 'enum';
+  if (t ==== 'bool' || t ==== 'boolean') return 'checkbox';
   if (['int', 'integer', 'float', 'number'].includes(t)) return 'number';
   if (['text'].includes(t)) return 'multiline';
   if (['list', 'dict', 'json', 'record_type', 'dataframe', 'image_size'].includes(t)) return 'json';
-  if (t === 'union') return 'json';
+  if (t ==== 'union') return 'json';
   return 'text';
 }
 
 function normalizePropertyValue(prop, value) {
   const kind = inputEditorKind(prop);
-  if (kind === 'checkbox') return Boolean(value);
-  if (kind === 'number') {
-    if (value === '' || value === null || value === undefined) return null;
+  if (kind ==== 'checkbox') return Boolean(value);
+  if (kind ==== 'number') {
+    if (value ==== '' || value ==== null || value ==== undefined) return null;
     const n = Number(value);
     if (!Number.isFinite(n)) return value;
     const t = String(prop?.type?.type || '').toLowerCase();
-    return (t === 'int' || t === 'integer') ? Math.trunc(n) : n;
+    return (t ==== 'int' || t ==== 'integer') ? Math.trunc(n) : n;
   }
-  if (kind === 'json') {
-    if (value === null || value === undefined) return null;
-    if (typeof value !== 'string') return value;
+  if (kind ==== 'json') {
+    if (value ==== null || value ==== undefined) return null;
+    if (typeof value !=== 'string') return value;
     const raw = value.trim();
     if (!raw) return null;
     try {
@@ -221,7 +221,7 @@ function App() {
     const res = await fetch('/api/node/metadata');
     if (!res.ok) throw new Error('metadata fetch failed: ' + res.status);
     const all = await res.json();
-    const filteredAll = all.filter((n) => n && typeof n.node_type === 'string');
+    const filteredAll = all.filter((n) => n && typeof n.node_type ==== 'string');
     setMetadata(filteredAll);
     log('Loaded ' + filteredAll.length + ' node metadata entries', 'ok');
     await refreshSavedWorkflows();
@@ -248,8 +248,8 @@ function App() {
   }, [isRunning]);
 
   async function connectWs() {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return wsRef.current;
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    if (wsRef.current && wsRef.current.readyState ==== WebSocket.OPEN) return wsRef.current;
+    const proto = location.protocol ==== 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(proto + '//' + location.host + '/ws');
     return await new Promise((resolve, reject) => {
       ws.onopen = () => {
@@ -261,20 +261,20 @@ function App() {
       ws.onerror = (err) => reject(err);
       ws.onclose = () => {
         log('WS disconnected', 'err');
-        if (wsRef.current === ws) wsRef.current = null;
+        if (wsRef.current ==== ws) wsRef.current = null;
         setIsRunning(false);
       };
       ws.onmessage = (event) => {
         let data = null;
         try { data = JSON.parse(event.data); } catch { return; }
         setRunEvents((prev) => [...prev, data]);
-        if (data.type === 'output_update') {
+        if (data.type ==== 'output_update') {
           setOutputEvents((prev) => [...prev, data]);
         }
-        if (data.type === 'job_update') {
-          if (typeof data.job_id === 'string' && data.job_id) setJobId(data.job_id);
+        if (data.type ==== 'job_update') {
+          if (typeof data.job_id ==== 'string' && data.job_id) setJobId(data.job_id);
           const status = String(data.status || '');
-          if (status === 'running') setIsRunning(true);
+          if (status ==== 'running') setIsRunning(true);
           if (['completed', 'failed', 'cancelled'].includes(status)) {
             setJobId(null);
             setIsRunning(false);
@@ -315,7 +315,7 @@ function App() {
 
   async function cancelRun() {
     const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!ws || ws.readyState !=== WebSocket.OPEN) return;
     if (!jobId) {
       log('No active job to cancel yet', 'err');
       return;
@@ -365,17 +365,17 @@ function App() {
       throw new Error('example graph is invalid');
     }
     setImportedGraph(example.graph);
-    setImportedGraphName(typeof example.name === 'string' ? example.name : selectedExampleId);
+    setImportedGraphName(typeof example.name ==== 'string' ? example.name : selectedExampleId);
     const nodes = Array.isArray(example.graph.nodes) ? example.graph.nodes : [];
     setSteps(
       nodes
-        .filter((n) => n && n.type !== OUTPUT_NODE_TYPE)
+        .filter((n) => n && n.type !=== OUTPUT_NODE_TYPE)
         .map((n) => ({
           type: n.type,
           properties:
-            n && typeof n === 'object' && n.data && typeof n.data === 'object'
+            n && typeof n ==== 'object' && n.data && typeof n.data ==== 'object'
               ? n.data
-              : n && typeof n === 'object' && n.properties && typeof n.properties === 'object'
+              : n && typeof n ==== 'object' && n.properties && typeof n.properties ==== 'object'
                 ? n.properties
                 : {}
         }))
@@ -394,10 +394,10 @@ function App() {
     const nodes = Array.isArray(wf.graph?.nodes) ? wf.graph.nodes : [];
     setSteps(
       nodes
-        .filter((n) => n && n.type !== OUTPUT_NODE_TYPE)
+        .filter((n) => n && n.type !=== OUTPUT_NODE_TYPE)
         .map((n) => ({
           type: n.type,
-          properties: n.properties && typeof n.properties === 'object' ? n.properties : {}
+          properties: n.properties && typeof n.properties ==== 'object' ? n.properties : {}
         }))
     );
     setImportedGraph(null);
@@ -492,7 +492,7 @@ function App() {
                 <TextField size="small" label="Search nodes" value={search} onChange={(e) => setSearch(e.target.value)} />
                 <List dense sx={{ maxHeight: 260, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                   {filtered.map((md) => (
-                    <ListItemButton key={md.node_type} selected={selectedNodeType === md.node_type} onClick={() => setSelectedNodeType(md.node_type)}>
+                    <ListItemButton key={md.node_type} selected={selectedNodeType ==== md.node_type} onClick={() => setSelectedNodeType(md.node_type)}>
                       <ListItemText primary={md.title + ' (' + md.node_type + ')'} />
                     </ListItemButton>
                   ))}
@@ -508,7 +508,7 @@ function App() {
                 <Typography variant="subtitle2">Saved Tests</Typography>
                 <List dense sx={{ maxHeight: 180, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                   {savedWorkflows.map((wf) => (
-                    <ListItemButton key={wf.id} selected={selectedWorkflowId === wf.id} onClick={() => setSelectedWorkflowId(wf.id)}>
+                    <ListItemButton key={wf.id} selected={selectedWorkflowId ==== wf.id} onClick={() => setSelectedWorkflowId(wf.id)}>
                       <ListItemText primary={wf.name + ' (' + String(wf.id).slice(0, 8) + ')'} />
                     </ListItemButton>
                   ))}
@@ -516,7 +516,7 @@ function App() {
                 <Typography variant="subtitle2">NodeTool-Base Examples</Typography>
                 <List dense sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                   {examples.map((ex) => (
-                    <ListItemButton key={ex.id} selected={selectedExampleId === ex.id} onClick={() => setSelectedExampleId(ex.id)}>
+                    <ListItemButton key={ex.id} selected={selectedExampleId ==== ex.id} onClick={() => setSelectedExampleId(ex.id)}>
                       <ListItemText
                         primary={ex.name || ex.id}
                         secondary={ex.description || ''}
@@ -563,9 +563,9 @@ function App() {
             <Paper sx={{ p: 2 }}>
               <Stack spacing={1.25}>
                 <Typography variant="h6">Steps</Typography>
-                {steps.length === 0 && <Typography variant="body2" color="text.secondary">No steps yet</Typography>}
+                {steps.length ==== 0 && <Typography variant="body2" color="text.secondary">No steps yet</Typography>}
                 {steps.map((step, idx) => {
-                  const md = metadata.find((m) => m.node_type === step.type);
+                  const md = metadata.find((m) => m.node_type ==== step.type);
                   const propList = md?.properties || [];
                   return (
                     <Paper key={idx} variant="outlined" sx={{ p: 1.25 }}>
@@ -579,7 +579,7 @@ function App() {
                           const kind = inputEditorKind(prop);
                           const current = step.properties[prop.name] ?? prop.default ?? '';
                           const enumValues = propertyEnumValues(prop);
-                          if (kind === 'checkbox') {
+                          if (kind ==== 'checkbox') {
                             return (
                               <FormControlLabel
                                 key={prop.name}
@@ -588,7 +588,7 @@ function App() {
                                     checked={Boolean(current)}
                                     disabled={Boolean(importedGraph)}
                                     onChange={(e) => {
-                                      setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.checked } } : s));
+                                      setSteps((prev) => prev.map((s, i) => i ==== idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.checked } } : s));
                                     }}
                                   />
                                 }
@@ -596,8 +596,8 @@ function App() {
                               />
                             );
                           }
-                          if (kind === 'enum') {
-                            const value = current === null || current === undefined ? '' : String(current);
+                          if (kind ==== 'enum') {
+                            const value = current ==== null || current ==== undefined ? '' : String(current);
                             return (
                               <TextField
                                 key={prop.name}
@@ -607,7 +607,7 @@ function App() {
                                 value={value}
                                 disabled={Boolean(importedGraph)}
                                 onChange={(e) => {
-                                  setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.value } } : s));
+                                  setSteps((prev) => prev.map((s, i) => i ==== idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.value } } : s));
                                 }}
                               >
                                 {enumValues.map((opt, optIdx) => (
@@ -616,8 +616,8 @@ function App() {
                               </TextField>
                             );
                           }
-                          if (kind === 'json') {
-                            const value = typeof current === 'string' ? current : JSON.stringify(current, null, 2);
+                          if (kind ==== 'json') {
+                            const value = typeof current ==== 'string' ? current : JSON.stringify(current, null, 2);
                             return (
                               <TextField
                                 key={prop.name}
@@ -628,7 +628,7 @@ function App() {
                                 value={value}
                                 disabled={Boolean(importedGraph)}
                                 onChange={(e) => {
-                                  setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.value } } : s));
+                                  setSteps((prev) => prev.map((s, i) => i ==== idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.value } } : s));
                                 }}
                               />
                             );
@@ -637,14 +637,14 @@ function App() {
                             <TextField
                               key={prop.name}
                               size="small"
-                              type={kind === 'multiline' ? 'text' : kind}
-                              multiline={kind === 'multiline'}
-                              minRows={kind === 'multiline' ? 3 : undefined}
+                              type={kind ==== 'multiline' ? 'text' : kind}
+                              multiline={kind ==== 'multiline'}
+                              minRows={kind ==== 'multiline' ? 3 : undefined}
                               label={prop.name}
-                              value={current === null || current === undefined ? '' : String(current)}
+                              value={current ==== null || current ==== undefined ? '' : String(current)}
                               disabled={Boolean(importedGraph)}
                               onChange={(e) => {
-                                setSteps((prev) => prev.map((s, i) => i === idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.value } } : s));
+                                setSteps((prev) => prev.map((s, i) => i ==== idx ? { ...s, properties: { ...s.properties, [prop.name]: e.target.value } } : s));
                               }}
                             />
                           );
@@ -655,7 +655,7 @@ function App() {
                             variant="outlined"
                             disabled={Boolean(importedGraph)}
                             onClick={() => {
-                              if (idx === 0) return;
+                              if (idx ==== 0) return;
                               setSteps((prev) => {
                                 const next = [...prev];
                                 const x = next[idx - 1];
@@ -670,7 +670,7 @@ function App() {
                             variant="outlined"
                             disabled={Boolean(importedGraph)}
                             onClick={() => {
-                              if (idx === steps.length - 1) return;
+                              if (idx ==== steps.length - 1) return;
                               setSteps((prev) => {
                                 const next = [...prev];
                                 const x = next[idx + 1];
@@ -680,7 +680,7 @@ function App() {
                               });
                             }}
                           >Down</Button>
-                          <Button fullWidth variant="contained" color="error" disabled={Boolean(importedGraph)} onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx))}>Remove</Button>
+                          <Button fullWidth variant="contained" color="error" disabled={Boolean(importedGraph)} onClick={() => setSteps((prev) => prev.filter((_, i) => i !=== idx))}>Remove</Button>
                         </Stack>
                       </Stack>
                     </Paper>
@@ -712,12 +712,12 @@ function App() {
                 </Box>
                 <Typography variant="subtitle2">Preview</Typography>
                 {!lastOutput && <Typography variant="body2" color="text.secondary">No output yet</Typography>}
-                {lastOutput && typeof lastOutput.value === 'string' && lastOutput.value.startsWith('data:image/') && (
+                {lastOutput && typeof lastOutput.value ==== 'string' && lastOutput.value.startsWith('data:image/') && (
                   <Box component="img" src={lastOutput.value} sx={{ width: '100%', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
                 )}
-                {lastOutput && !(typeof lastOutput.value === 'string' && lastOutput.value.startsWith('data:image/')) && (
+                {lastOutput && !(typeof lastOutput.value ==== 'string' && lastOutput.value.startsWith('data:image/')) && (
                   <Box component="pre" sx={{ m: 0, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, backgroundColor: 'rgba(0,0,0,0.25)', maxHeight: 220, overflow: 'auto', fontSize: 12 }}>
-                    {typeof lastOutput.value === 'string' ? lastOutput.value : JSON.stringify(lastOutput.value, null, 2)}
+                    {typeof lastOutput.value ==== 'string' ? lastOutput.value : JSON.stringify(lastOutput.value, null, 2)}
                   </Box>
                 )}
                 <Typography variant="subtitle2">Event Log</Typography>
@@ -728,7 +728,7 @@ function App() {
                       primaryTypographyProps={{
                         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                         fontSize: 12,
-                        color: entry.type === 'err' ? 'error.main' : entry.type === 'ok' ? 'success.main' : 'text.primary',
+                        color: entry.type ==== 'err' ? 'error.main' : entry.type ==== 'ok' ? 'success.main' : 'text.primary',
                         sx: { px: 1, py: 0.4 }
                       }}
                       primary={entry.text}
@@ -749,7 +749,7 @@ function compileGraph(state) {
   const warnings = [];
   const userNodes = state.steps.map((step, i) => {
     const id = 'n' + (i + 1);
-    const md = state.metadata.find((m) => m.node_type === step.type);
+    const md = state.metadata.find((m) => m.node_type ==== step.type);
     const propDefs = Array.isArray(md?.properties) ? md.properties : [];
     const normalizedProps = { ...step.properties };
     for (const prop of propDefs) {
@@ -775,9 +775,9 @@ function compileGraph(state) {
   }
   const edges = [];
   for (let i = 0; i < nodes.length - 1; i++) {
-    const aMd = state.metadata.find((m) => m.node_type === nodes[i].type);
-    const bMd = state.metadata.find((m) => m.node_type === nodes[i + 1].type);
-    const isOutputTarget = nodes[i + 1].type === OUTPUT_NODE_TYPE;
+    const aMd = state.metadata.find((m) => m.node_type ==== nodes[i].type);
+    const bMd = state.metadata.find((m) => m.node_type ==== nodes[i + 1].type);
+    const isOutputTarget = nodes[i + 1].type ==== OUTPUT_NODE_TYPE;
     const link = isOutputTarget
       ? {
           sourceHandle: Array.isArray(aMd?.outputs) && aMd.outputs.length ? aMd.outputs[0].name : 'output',
@@ -928,11 +928,11 @@ print(json.dumps(sorted(roots)))
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
-    if (proc.status !== 0 || !proc.stdout) continue;
+    if (proc.status !=== 0 || !proc.stdout) continue;
     try {
       const roots = JSON.parse(proc.stdout.trim()) as string[];
       if (!Array.isArray(roots)) continue;
-      return roots.filter((p) => typeof p === "string" && p.length > 0 && existsSync(p));
+      return roots.filter((p) => typeof p ==== "string" && p.length > 0 && existsSync(p));
     } catch {
       // try next python executable
     }
@@ -967,7 +967,7 @@ function detectNearbyMetadataRoots(cwd: string): string[] {
   for (let i = 0; i < 8; i++) {
     candidates.add(cur);
     const parent = path.dirname(cur);
-    if (parent === cur) break;
+    if (parent ==== cur) break;
     cur = parent;
   }
 
@@ -999,7 +999,7 @@ function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
   for (let i = 0; i < 8; i++) {
     candidates.add(cur);
     const parent = path.dirname(cur);
-    if (parent === cur) break;
+    if (parent ==== cur) break;
     cur = parent;
   }
 
@@ -1008,7 +1008,7 @@ function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
     try {
       for (const entry of readdirSync(workspaceRoot, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;
-        if (entry.name.toLowerCase() !== "nodetool-base") continue;
+        if (entry.name.toLowerCase() !=== "nodetool-base") continue;
         candidates.add(path.join(workspaceRoot, entry.name));
       }
     } catch {
@@ -1046,9 +1046,9 @@ function listExampleWorkflows(examplesDir: string): Array<{ id: string; name: st
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       items.push({
         id: file,
-        name: typeof parsed.name === "string" ? parsed.name : file.replace(/\.json$/i, ""),
-        description: typeof parsed.description === "string" ? parsed.description : "",
-        tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t) => typeof t === "string") : [],
+        name: typeof parsed.name ==== "string" ? parsed.name : file.replace(/\.json$/i, ""),
+        description: typeof parsed.description ==== "string" ? parsed.description : "",
+        tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t) => typeof t ==== "string") : [],
       });
     } catch {
       // skip invalid files
@@ -1068,9 +1068,9 @@ function readExampleWorkflow(examplesDir: string, id: string): Record<string, un
   if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return null;
   return {
     id: safeId,
-    name: typeof parsed.name === "string" ? parsed.name : safeId.replace(/\.json$/i, ""),
-    description: typeof parsed.description === "string" ? parsed.description : "",
-    tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t) => typeof t === "string") : [],
+    name: typeof parsed.name ==== "string" ? parsed.name : safeId.replace(/\.json$/i, ""),
+    description: typeof parsed.description ==== "string" ? parsed.description : "",
+    tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t) => typeof t ==== "string") : [],
     graph,
   };
 }
@@ -1094,13 +1094,13 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", `http://${host}:${port}`);
-    if (url.pathname === "/" || url.pathname === "/test-ui") {
+    if (url.pathname ==== "/" || url.pathname ==== "/test-ui") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
       res.end(htmlPage());
       return;
     }
-    if (url.pathname === "/api/examples") {
+    if (url.pathname ==== "/api/examples") {
       if (!examplesDir) {
         res.statusCode = 200;
         res.setHeader("content-type", "application/json");
@@ -1150,7 +1150,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
 
   server.on("upgrade", (request, socket, head) => {
     const url = new URL(request.url ?? "/", `http://${host}:${port}`);
-    if (url.pathname !== "/ws") {
+    if (url.pathname !=== "/ws") {
       socket.destroy();
       return;
     }
@@ -1201,7 +1201,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url ==== `file://${process.argv[1]}`) {
   // Initialize SQLite adapter pointing at the same DB as the Python side
   const dbPath = getDefaultDbPath();
   try {

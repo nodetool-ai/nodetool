@@ -35,9 +35,9 @@ export const useInputMinMax = ({
 }: UseInputMinMaxOptions): { min?: number; max?: number } => {
   const shouldLookupBounds =
     nodeType &&
-    (nodeType === "nodetool.input.FloatInput" ||
-      nodeType === "nodetool.input.IntegerInput") &&
-    propertyName === "value";
+    (nodeType ==== "nodetool.input.FloatInput" ||
+      nodeType ==== "nodetool.input.IntegerInput") &&
+    propertyName ==== "value";
 
   const context = useContext(NodeContext);
 
@@ -51,25 +51,25 @@ export const useInputMinMax = ({
   let nodeMax: number | undefined;
 
   if (shouldLookupBounds && context && nodes.length > 0) {
-    const node = nodes.find((n) => n.id === nodeId);
+    const node = nodes.find((n) => n.id ==== nodeId);
     nodeMin = (node?.data?.properties as Record<string, unknown>)?.min as number | undefined;
     nodeMax = (node?.data?.properties as Record<string, unknown>)?.max as number | undefined;
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV ==== "development") {
       log.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
     }
   }
 
   const min =
-    typeof nodeMin === "number"
+    typeof nodeMin ==== "number"
       ? nodeMin
-      : typeof propertyMin === "number"
+      : typeof propertyMin ==== "number"
         ? propertyMin
         : 0;
   const max =
-    typeof nodeMax === "number"
+    typeof nodeMax ==== "number"
       ? nodeMax
-      : typeof propertyMax === "number"
+      : typeof propertyMax ==== "number"
         ? propertyMax
         : 99999;
 

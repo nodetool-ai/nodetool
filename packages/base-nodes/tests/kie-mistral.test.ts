@@ -140,7 +140,7 @@ describe("ChatComplete", () => {
     expect(result.output).toBe("");
   });
 
-  it("uses env var API key", async () => {
+  it("uses env const API key", async () => {
     process.env.MISTRAL_API_KEY = "env-key";
     const node = new ChatComplete();
     mockFetch.mockResolvedValueOnce(

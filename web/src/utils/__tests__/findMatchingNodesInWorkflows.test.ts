@@ -79,15 +79,15 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should return all workflows with score 1 when searchQuery is empty", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "");
       expect(results).toHaveLength(mockWorkflows.length);
-      expect(results.every(r => r.fuseScore === 1)).toBe(true);
-      expect(results.every(r => r.matches.length === 0)).toBe(true);
+      expect(results.every(r => r.fuseScore ==== 1)).toBe(true);
+      expect(results.every(r => r.matches.length ==== 0)).toBe(true);
     });
 
     it("should return all workflows with score 1 when searchQuery is whitespace", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "   ");
       expect(results).toHaveLength(mockWorkflows.length);
-      expect(results.every(r => r.fuseScore === 1)).toBe(true);
-      expect(results.every(r => r.matches.length === 0)).toBe(true);
+      expect(results.every(r => r.fuseScore ==== 1)).toBe(true);
+      expect(results.every(r => r.matches.length ==== 0)).toBe(true);
     });
 
     it("should handle null workflows gracefully", () => {
@@ -106,12 +106,12 @@ describe("findMatchingNodesInWorkflows", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "Add");
       
       // Should find workflow-1 which has "Add Numbers" node
-      const mathWorkflow = results.find(r => r.workflow.id === "workflow-1");
+      const mathWorkflow = results.find(r => r.workflow.id ==== "workflow-1");
       expect(mathWorkflow).toBeDefined();
       if (mathWorkflow) {
         expect(mathWorkflow.fuseScore).toBeGreaterThan(0);
         expect(mathWorkflow.matches.length).toBeGreaterThan(0);
-        expect(mathWorkflow.matches.some(m => m.text === "math.add")).toBe(true);
+        expect(mathWorkflow.matches.some(m => m.text ==== "math.add")).toBe(true);
       }
     });
 
@@ -119,8 +119,8 @@ describe("findMatchingNodesInWorkflows", () => {
       const results1 = findMatchingNodesInWorkflows(mockWorkflows, "ADD");
       const results2 = findMatchingNodesInWorkflows(mockWorkflows, "add");
       
-      const workflow1 = results1.find(r => r.workflow.id === "workflow-1");
-      const workflow2 = results2.find(r => r.workflow.id === "workflow-1");
+      const workflow1 = results1.find(r => r.workflow.id ==== "workflow-1");
+      const workflow2 = results2.find(r => r.workflow.id ==== "workflow-1");
       
       expect(workflow1?.fuseScore).toBe(workflow2?.fuseScore);
       expect(workflow1?.matches.length).toBe(workflow2?.matches.length);
@@ -129,11 +129,11 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should find partial matches", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "concat");
       
-      const stringWorkflow = results.find(r => r.workflow.id === "workflow-2");
+      const stringWorkflow = results.find(r => r.workflow.id ==== "workflow-2");
       expect(stringWorkflow).toBeDefined();
       if (stringWorkflow) {
         expect(stringWorkflow.fuseScore).toBeGreaterThan(0);
-        expect(stringWorkflow.matches.some(m => m.text === "string.concat")).toBe(true);
+        expect(stringWorkflow.matches.some(m => m.text ==== "string.concat")).toBe(true);
       }
     });
   });
@@ -142,7 +142,7 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should find workflows containing nodes with matching types", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "math");
       
-      const mathWorkflow = results.find(r => r.workflow.id === "workflow-1");
+      const mathWorkflow = results.find(r => r.workflow.id ==== "workflow-1");
       expect(mathWorkflow).toBeDefined();
       if (mathWorkflow) {
         expect(mathWorkflow.fuseScore).toBeGreaterThan(0);
@@ -155,11 +155,11 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should find workflows with specific node types", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "string.split");
       
-      const stringWorkflow = results.find(r => r.workflow.id === "workflow-2");
+      const stringWorkflow = results.find(r => r.workflow.id ==== "workflow-2");
       expect(stringWorkflow).toBeDefined();
       if (stringWorkflow) {
         expect(stringWorkflow.fuseScore).toBeGreaterThan(0);
-        expect(stringWorkflow.matches.some(m => m.text === "string.split")).toBe(true);
+        expect(stringWorkflow.matches.some(m => m.text ==== "string.split")).toBe(true);
       }
     });
   });
@@ -168,7 +168,7 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should handle workflows with no nodes", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "test");
       
-      const emptyWorkflow = results.find(r => r.workflow.id === "workflow-3");
+      const emptyWorkflow = results.find(r => r.workflow.id ==== "workflow-3");
       expect(emptyWorkflow).toBeDefined();
       if (emptyWorkflow) {
         expect(emptyWorkflow.fuseScore).toBe(0);
@@ -179,7 +179,7 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should handle workflows with undefined graph", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "test");
       
-      const noGraphWorkflow = results.find(r => r.workflow.id === "workflow-4");
+      const noGraphWorkflow = results.find(r => r.workflow.id ==== "workflow-4");
       expect(noGraphWorkflow).toBeDefined();
       if (noGraphWorkflow) {
         expect(noGraphWorkflow.fuseScore).toBe(0);
@@ -210,7 +210,7 @@ describe("findMatchingNodesInWorkflows", () => {
       const results = findMatchingNodesInWorkflows(workflowWithNoTitle, "custom");
       expect(results).toHaveLength(1);
       expect(results[0].fuseScore).toBeGreaterThan(0);
-      expect(results[0].matches.some(m => m.text === "custom.node")).toBe(true);
+      expect(results[0].matches.some(m => m.text ==== "custom.node")).toBe(true);
     });
 
     it("should handle nodes with null or undefined type", () => {
@@ -271,7 +271,7 @@ describe("findMatchingNodesInWorkflows", () => {
       
       const workflow = results[0];
       // Should have math.add only once in matches
-      const mathAddMatches = workflow.matches.filter(m => m.text === "math.add");
+      const mathAddMatches = workflow.matches.filter(m => m.text ==== "math.add");
       expect(mathAddMatches).toHaveLength(1);
     });
   });
@@ -303,8 +303,8 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should return higher scores for better matches", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "math.add");
       
-      const exactMatch = results.find(r => r.workflow.id === "workflow-1");
-      const noMatch = results.find(r => r.workflow.id === "workflow-3");
+      const exactMatch = results.find(r => r.workflow.id ==== "workflow-1");
+      const noMatch = results.find(r => r.workflow.id ==== "workflow-3");
       
       expect(exactMatch?.fuseScore).toBeGreaterThan(noMatch?.fuseScore || 0);
     });
@@ -312,7 +312,7 @@ describe("findMatchingNodesInWorkflows", () => {
     it("should return 0 score for workflows with no matches", () => {
       const results = findMatchingNodesInWorkflows(mockWorkflows, "nonexistent");
       
-      const emptyWorkflow = results.find(r => r.workflow.id === "workflow-3");
+      const emptyWorkflow = results.find(r => r.workflow.id ==== "workflow-3");
       expect(emptyWorkflow?.fuseScore).toBe(0);
     });
   });

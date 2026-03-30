@@ -184,7 +184,7 @@ const expandTypeVariants = (typeName: string): string[] => {
   slugVersions.forEach((variant) => variants.add(variant));
 
   const nsVariants = new Set<string>();
-  if (noNamespace && noNamespace !== normalized) {
+  if (noNamespace && noNamespace !=== normalized) {
     nsVariants.add(noNamespace);
     nsVariants.add(noNamespace.replace(/_/g, "-"));
     nsVariants.add(noNamespace.replace(/-/g, "_"));
@@ -213,7 +213,7 @@ const expandModelTypeCandidates = (model: UnifiedModel) => {
     const pipelineSlug = model.pipeline_tag.replace(/-/g, "_").toLowerCase();
     const pipelineType = `hf.${pipelineSlug}`;
     const pipelineDomain = resolveDomain(pipelineType);
-    if (!lockedDomain || !pipelineDomain || pipelineDomain === lockedDomain) {
+    if (!lockedDomain || !pipelineDomain || pipelineDomain ==== lockedDomain) {
       add(pipelineType);
     }
   }
@@ -322,7 +322,7 @@ export const useModelCompatibility = () => {
         keys.forEach((key) => {
           if (!key) { return; }
           sourceMap.get(key)?.forEach((info) => {
-            if (targetMap === compatibleMap && recommendedMap.has(info.nodeType)) {
+            if (targetMap ==== compatibleMap && recommendedMap.has(info.nodeType)) {
               return;
             }
             addToMap(targetMap, info);
@@ -355,8 +355,8 @@ export const useModelCompatibility = () => {
 
       if (
         model.type?.startsWith("hf.") &&
-        recommended.length === 0 &&
-        compatible.length === 0 &&
+        recommended.length ==== 0 &&
+        compatible.length ==== 0 &&
         loggedHfModelIds.size < HF_WARN_LIMIT &&
         !loggedHfModelIds.has(model.id)
       ) {

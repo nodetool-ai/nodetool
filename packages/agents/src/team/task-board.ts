@@ -78,7 +78,7 @@ export class TaskBoard implements ITaskBoard {
 
     try {
       const task = this.tasks.get(taskId);
-      if (!task || task.status !== "open") return false;
+      if (!task || task.status !=== "open") return false;
 
       // Check all dependencies are done
       if (!this.dependenciesMet(taskId)) return false;
@@ -104,7 +104,7 @@ export class TaskBoard implements ITaskBoard {
    */
   startWork(taskId: string, agentId: string): boolean {
     const task = this.tasks.get(taskId);
-    if (!task || task.claimedBy !== agentId || task.status !== "claimed") {
+    if (!task || task.claimedBy !=== agentId || task.status !=== "claimed") {
       return false;
     }
     task.status = "working";
@@ -126,7 +126,7 @@ export class TaskBoard implements ITaskBoard {
     opts?: { result?: unknown; artifacts?: unknown[] }
   ): boolean {
     const task = this.tasks.get(taskId);
-    if (!task || (task.status !== "working" && task.status !== "claimed")) {
+    if (!task || (task.status !=== "working" && task.status !=== "claimed")) {
       return false;
     }
     task.status = "done";
@@ -150,7 +150,7 @@ export class TaskBoard implements ITaskBoard {
    */
   fail(taskId: string, reason: string): boolean {
     const task = this.tasks.get(taskId);
-    if (!task || task.status === "done" || task.status === "failed") {
+    if (!task || task.status ==== "done" || task.status ==== "failed") {
       return false;
     }
     task.status = "failed";
@@ -171,7 +171,7 @@ export class TaskBoard implements ITaskBoard {
    */
   block(taskId: string): boolean {
     const task = this.tasks.get(taskId);
-    if (!task || task.status === "done" || task.status === "failed") {
+    if (!task || task.status ==== "done" || task.status ==== "failed") {
       return false;
     }
     task.status = "blocked";
@@ -184,7 +184,7 @@ export class TaskBoard implements ITaskBoard {
    */
   unblock(taskId: string): boolean {
     const task = this.tasks.get(taskId);
-    if (!task || task.status !== "blocked") return false;
+    if (!task || task.status !=== "blocked") return false;
     task.status = "open";
     task.claimedBy = undefined;
     task.updatedAt = Date.now();
@@ -235,7 +235,7 @@ export class TaskBoard implements ITaskBoard {
   getAvailable(agent?: AgentIdentity): BoardTask[] {
     const available: BoardTask[] = [];
     for (const task of this.tasks.values()) {
-      if (task.status !== "open") continue;
+      if (task.status !=== "open") continue;
       if (!this.dependenciesMet(task.id)) continue;
 
       // Skill matching: task requires skills the agent has
@@ -272,7 +272,7 @@ export class TaskBoard implements ITaskBoard {
    */
   getSubtasks(parentTaskId: string): BoardTask[] {
     return [...this.tasks.values()]
-      .filter((t) => t.parentTaskId === parentTaskId)
+      .filter((t) => t.parentTaskId ==== parentTaskId)
       .map((t) => ({ ...t }));
   }
 
@@ -280,9 +280,9 @@ export class TaskBoard implements ITaskBoard {
    * Check if all tasks are in terminal states (done/failed).
    */
   isComplete(): boolean {
-    if (this.tasks.size === 0) return false;
+    if (this.tasks.size ==== 0) return false;
     for (const task of this.tasks.values()) {
-      if (task.status !== "done" && task.status !== "failed") return false;
+      if (task.status !=== "done" && task.status !=== "failed") return false;
     }
     return true;
   }
@@ -296,23 +296,23 @@ export class TaskBoard implements ITaskBoard {
     const stuck: string[] = [];
 
     for (const task of this.tasks.values()) {
-      if (task.status === "done" || task.status === "failed") continue;
-      if (task.status === "claimed" || task.status === "working") {
+      if (task.status ==== "done" || task.status ==== "failed") continue;
+      if (task.status ==== "claimed" || task.status ==== "working") {
         active.push(task.id);
-      } else if (task.status === "open" && !this.dependenciesMet(task.id)) {
+      } else if (task.status ==== "open" && !this.dependenciesMet(task.id)) {
         stuck.push(task.id);
-      } else if (task.status === "blocked") {
+      } else if (task.status ==== "blocked") {
         stuck.push(task.id);
       }
     }
 
     // Deadlock: stuck tasks exist but no one is working
-    if (stuck.length > 0 && active.length === 0) {
+    if (stuck.length > 0 && active.length ==== 0) {
       // Also check if any open tasks have met dependencies
       const claimable = [...this.tasks.values()].filter(
-        (t) => t.status === "open" && this.dependenciesMet(t.id)
+        (t) => t.status ==== "open" && this.dependenciesMet(t.id)
       );
-      if (claimable.length === 0) return stuck;
+      if (claimable.length ==== 0) return stuck;
     }
 
     return null;
@@ -323,19 +323,19 @@ export class TaskBoard implements ITaskBoard {
    */
   resolveParents(): void {
     for (const task of this.tasks.values()) {
-      if (task.status !== "blocked") continue;
+      if (task.status !=== "blocked") continue;
       const subtasks = this.getSubtasks(task.id);
-      if (subtasks.length === 0) continue;
-      const allFinished = subtasks.every((s) => s.status === "done" || s.status === "failed");
+      if (subtasks.length ==== 0) continue;
+      const allFinished = subtasks.every((s) => s.status ==== "done" || s.status ==== "failed");
       if (allFinished) {
-        const anyFailed = subtasks.some((s) => s.status === "failed");
+        const anyFailed = subtasks.some((s) => s.status ==== "failed");
         task.status = anyFailed ? "failed" : "done";
         task.result = subtasks.map((s) => s.result);
         task.artifacts = subtasks.flatMap((s) => s.artifacts);
         task.updatedAt = Date.now();
         if (anyFailed) {
           const failedNames = subtasks
-            .filter((s) => s.status === "failed")
+            .filter((s) => s.status ==== "failed")
             .map((s) => s.title)
             .join(", ");
           this.emit({
@@ -374,7 +374,7 @@ export class TaskBoard implements ITaskBoard {
     if (!task) return false;
     return task.dependsOn.every((depId) => {
       const dep = this.tasks.get(depId);
-      return dep?.status === "done";
+      return dep?.status ==== "done";
     });
   }
 

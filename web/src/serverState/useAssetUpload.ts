@@ -65,12 +65,12 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
       return {
         files: updatedFiles,
         isUploading: updatedFiles.some(
-          (file) => file.status === "uploading" || file.status === undefined
+          (file) => file.status ==== "uploading" || file.status ==== undefined
         ),
         overallProgress:
           updatedFiles.reduce((acc, file) => acc + (file.progress || 0), 0) /
           updatedFiles.length,
-        completed: updatedFiles.filter((file) => file.status === "completed")
+        completed: updatedFiles.filter((file) => file.status ==== "completed")
           .length,
       };
     }),
@@ -78,9 +78,9 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
   handleUpload: () => {
     const { files, updateStatus } = get();
     const nextUploadIndex = files.findIndex(
-      (file) => file.status === undefined
+      (file) => file.status ==== undefined
     );
-    if (nextUploadIndex === -1) {
+    if (nextUploadIndex ==== -1) {
       set({
         files: [],
         isUploading: false,

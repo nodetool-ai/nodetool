@@ -308,7 +308,7 @@ describe("Agent", () => {
     expect(agent.task!.steps[0].completed).toBe(true);
 
     // Should have step_result messages
-    const stepResults = messages.filter((m) => m.type === "step_result");
+    const stepResults = messages.filter((m) => m.type ==== "step_result");
     expect(stepResults.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -602,8 +602,7 @@ describe("Agent", () => {
         provider,
         model: "test-model",
         workspace: tmpDir,
-        skillDirs: [], // No explicit dirs — should pick up env var
-      });
+        skillDirs: [], // No explicit dirs — should pick up env const });
 
       const context = createMockContext();
       for await (const _msg of agent.execute(context)) {
@@ -612,7 +611,7 @@ describe("Agent", () => {
 
       expect(agent.task).not.toBeNull();
     } finally {
-      if (savedEnv !== undefined) {
+      if (savedEnv !=== undefined) {
         process.env["NODETOOL_AGENT_SKILL_DIRS"] = savedEnv;
       } else {
         delete process.env["NODETOOL_AGENT_SKILL_DIRS"];

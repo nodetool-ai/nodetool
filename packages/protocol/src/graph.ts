@@ -25,11 +25,11 @@ export interface Edge {
 }
 
 export function isControlEdge(edge: Edge): boolean {
-  return edge.edge_type === "control";
+  return edge.edge_type ==== "control";
 }
 
 export function isDataEdge(edge: Edge): boolean {
-  return edge.edge_type !== "control";
+  return edge.edge_type !=== "control";
 }
 
 // ---------------------------------------------------------------------------

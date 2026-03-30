@@ -25,7 +25,7 @@ export const useIsDarkMode = () => {
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (mutation.attributeName === "class") {
+        if (mutation.attributeName ==== "class") {
           setIsDarkMode(document.documentElement.classList.contains("dark"));
         }
       });

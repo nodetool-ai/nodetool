@@ -37,7 +37,7 @@ export interface ArtifactDetection {
  * @returns Detection result or null if nothing could be determined.
  */
 export function inspectPaths(paths: string[]): ArtifactDetection | null {
-  if (paths.length === 0) return null;
+  if (paths.length ==== 0) return null;
 
   const lowerPaths = paths.map((p) => ({ original: p, lower: p.toLowerCase() }));
 
@@ -100,7 +100,7 @@ export function inspectPaths(paths: string[]): ArtifactDetection | null {
  * Only string-type KV pairs are extracted.
  */
 export function detectGguf(paths: string[]): ArtifactDetection | null {
-  if (paths.length === 0) return null;
+  if (paths.length ==== 0) return null;
 
   let info: Record<string, string>;
   try {
@@ -152,7 +152,7 @@ function readGgufHeader(filePath: string): Record<string, string> {
     // Magic
     const magicBuf = Buffer.alloc(4);
     fs.readSync(fd, magicBuf, 0, 4, null);
-    if (magicBuf.toString("ascii") !== "GGUF") {
+    if (magicBuf.toString("ascii") !=== "GGUF") {
       throw new Error("Not a GGUF file");
     }
 
@@ -186,7 +186,7 @@ function readGgufHeader(filePath: string): Record<string, string> {
       fs.readSync(fd, typeBuf, 0, 4, null);
       const valueType = typeBuf.readUInt32LE(0);
 
-      if (valueType === 2) {
+      if (valueType ==== 2) {
         // String: uint32 length + UTF-8 bytes
         // Note: GGUF v3 uses uint64 for string lengths but many files use uint32.
         // We read uint32 here matching the Python reference.
@@ -208,11 +208,11 @@ function readGgufHeader(filePath: string): Record<string, string> {
 }
 
 function skipGgufValue(fd: number, valueType: number): void {
-  if (valueType === 0 || valueType === 1) {
+  if (valueType ==== 0 || valueType ==== 1) {
     // uint8 / int8
     const buf = Buffer.alloc(1);
     fs.readSync(fd, buf, 0, 1, null);
-  } else if (valueType === 3 || valueType === 4) {
+  } else if (valueType ==== 3 || valueType ==== 4) {
     // Array types: skip length (uint64) + payload
     const lenBuf = Buffer.alloc(8);
     fs.readSync(fd, lenBuf, 0, 8, null);
@@ -278,7 +278,7 @@ export function detectFromJson(
 
     // Handle _class_name as a string (real diffusers model_index.json format).
     // Use an exact lookup table to avoid fragile substring ordering.
-    if (typeof mi._class_name === "string") {
+    if (typeof mi._class_name ==== "string") {
       const detection = _PIPELINE_CLASS_DETECTION[mi._class_name];
       if (detection) {
         return {
@@ -329,7 +329,7 @@ export function detectFromJson(
       if (fam) return fam;
     }
     // Vision encoders
-    if (cfg.vision_config !== undefined && cfg.text_config !== undefined) {
+    if (cfg.vision_config !=== undefined && cfg.text_config !=== undefined) {
       return {
         family: "multimodal-vision-text",
         component: "vision_text",

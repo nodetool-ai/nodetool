@@ -401,9 +401,9 @@ describe("MessageContent discriminated union", () => {
       { type: "thought", text: "thinking" },
     ];
     for (const c of contents) {
-      if (c.type === "text") {
+      if (c.type ==== "text") {
         expect(c.text).toBe("hello");
-      } else if (c.type === "thought") {
+      } else if (c.type ==== "thought") {
         expect(c.text).toBe("thinking");
       }
     }

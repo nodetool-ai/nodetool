@@ -118,7 +118,7 @@ describe("GlobalChatStore tool_call handling", () => {
     });
 
     const resultMsg = fakeWsManager.sent.find(
-      (m: any) => m.type === "tool_result" && m.tool_call_id === tool_call_id
+      (m: any) => m.type ==== "tool_result" && m.tool_call_id ==== tool_call_id
     );
     expect(resultMsg).toBeTruthy();
     expect(resultMsg.ok).toBe(true);

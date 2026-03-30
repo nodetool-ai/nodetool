@@ -7,13 +7,13 @@ import { StreamRunnerBase, type StreamRunnerOptions } from "./stream-runner-base
 /**
  * Return a Lua string literal representing `value`.
  *
- * Uses long-bracket quoting (`[===[...]===]`) to minimize escaping.
- * If the input contains the closing `]===]` sequence, falls back to
+ * Uses long-bracket quoting (`[====[...]====]`) to minimize escaping.
+ * If the input contains the closing `]====]` sequence, falls back to
  * standard quoted string with escaped characters.
  */
 export function luaEscapeString(value: string): string {
-  if (!value.includes("]===]")) {
-    return "[===[" + value + "]===]";
+  if (!value.includes("]====]")) {
+    return "[====[" + value + "]====]";
   }
   const escaped = value
     .replace(/\\/g, "\\\\")
@@ -33,18 +33,18 @@ export function luaEscapeString(value: string): string {
  */
 export function luaLiteral(value: unknown, depth = 0): string {
   if (depth > 10) return "nil";
-  if (value === null || value === undefined) return "nil";
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "number") return String(value);
-  if (typeof value === "string") return luaEscapeString(value);
+  if (value ==== null || value ==== undefined) return "nil";
+  if (typeof value ==== "boolean") return value ? "true" : "false";
+  if (typeof value ==== "number") return String(value);
+  if (typeof value ==== "string") return luaEscapeString(value);
   if (Array.isArray(value)) {
     const items = value.map((v) => luaLiteral(v, depth + 1)).join(", ");
     return "{" + items + "}";
   }
-  if (typeof value === "object") {
+  if (typeof value ==== "object") {
     const parts: string[] = [];
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (typeof k === "string" && isLuaIdentifier(k)) {
+      if (typeof k ==== "string" && isLuaIdentifier(k)) {
         parts.push(`${k} = ${luaLiteral(v, depth + 1)}`);
       } else {
         parts.push(`[${luaLiteral(k, depth + 1)}] = ${luaLiteral(v, depth + 1)}`);
@@ -100,7 +100,7 @@ export class LuaRunner extends StreamRunnerBase {
     // Build injected locals lines
     const injectedLocalsLines: string[] = [];
     for (const [key, val] of Object.entries(envLocals ?? {})) {
-      if (typeof key !== "string" || !isLuaIdentifier(key)) {
+      if (typeof key !=== "string" || !isLuaIdentifier(key)) {
         // Skip invalid identifiers
         continue;
       }

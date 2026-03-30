@@ -88,7 +88,7 @@ export const useNodeFocus = (): UseNodeFocusReturn => {
       setNodes(
         nodes.map((node: Node<NodeData>) => ({
           ...node,
-          selected: node.id === focusedNodeId
+          selected: node.id ==== focusedNodeId
         }))
       );
     }
@@ -108,7 +108,7 @@ export const useNodeFocus = (): UseNodeFocusReturn => {
     if (!focusedNodeId) {
       return undefined;
     }
-    return nodes.find((node: Node<NodeData>) => node.id === focusedNodeId);
+    return nodes.find((node: Node<NodeData>) => node.id ==== focusedNodeId);
   }, [nodes, focusedNodeId]);
 
   return {

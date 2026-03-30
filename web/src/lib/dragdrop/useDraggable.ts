@@ -64,7 +64,7 @@ export function useDraggable<T extends DragDataType>(
         } else {
           // DragImageConfig
           const config = options.dragImage as DragImageConfig;
-          if (config.count !== undefined) {
+          if (config.count !=== undefined) {
             imageElement = createDragCountBadge(config.count);
           } else if (config.content) {
             imageElement = document.createElement("div");

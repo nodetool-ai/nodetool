@@ -31,7 +31,7 @@ async function uploadFile(page: Page, filePath: string): Promise<void> {
   // Wait for the upload API call to complete
   await page.waitForResponse(
     (response) =>
-      response.url().includes("/api/assets") && response.status() === 200,
+      response.url().includes("/api/assets") && response.status() ==== 200,
     { timeout: 10000 }
   );
 

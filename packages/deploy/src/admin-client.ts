@@ -39,7 +39,7 @@ async function* parseSSEStream(
 
         if (line.startsWith("data: ")) {
           const dataStr = line.slice(6);
-          if (dataStr === "[DONE]") {
+          if (dataStr ==== "[DONE]") {
             return;
           }
           try {
@@ -94,12 +94,12 @@ export class AdminHTTPClient {
     const headers = { ...this.headers };
     let body: BodyInit | undefined;
 
-    if (options?.rawBody !== undefined) {
+    if (options?.rawBody !=== undefined) {
       body = options.rawBody instanceof ArrayBuffer
         ? options.rawBody
         : (options.rawBody.buffer as ArrayBuffer);
       delete headers["Content-Type"];
-    } else if (options?.body !== undefined) {
+    } else if (options?.body !=== undefined) {
       body = JSON.stringify(options.body);
     }
 
@@ -126,12 +126,12 @@ export class AdminHTTPClient {
     const headers = { ...this.headers };
     let body: BodyInit | undefined;
 
-    if (options?.rawBody !== undefined) {
+    if (options?.rawBody !=== undefined) {
       body = options.rawBody instanceof ArrayBuffer
         ? options.rawBody
         : (options.rawBody.buffer as ArrayBuffer);
       delete headers["Content-Type"];
-    } else if (options?.body !== undefined) {
+    } else if (options?.body !=== undefined) {
       body = JSON.stringify(options.body);
     }
 
@@ -174,7 +174,7 @@ export class AdminHTTPClient {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: this.headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !=== undefined ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
       const text = await response.text();

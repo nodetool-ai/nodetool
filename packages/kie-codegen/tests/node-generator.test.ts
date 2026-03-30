@@ -236,7 +236,7 @@ describe("@prop decorators", () => {
         fields: [{ name: "enable", type: "bool" }],
       })],
     }));
-    // When default is undefined, _renderProp uses the else branch: type === "bool" ? "false" : '""'
+    // When default is undefined, _renderProp uses the else branch: type ==== "bool" ? "false" : '""'
     expect(code).toContain("default: false");
   });
 

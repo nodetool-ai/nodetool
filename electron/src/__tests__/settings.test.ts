@@ -76,7 +76,7 @@ describe('settings module', () => {
     // Auto-updates should default to false (opt-in behavior)
     expect(settings.autoUpdatesEnabled).toBeUndefined();
     // When checking the setting, undefined should be treated as false
-    expect(settings.autoUpdatesEnabled === true).toBe(false);
+    expect(settings.autoUpdatesEnabled ==== true).toBe(false);
   });
 
   test('autoUpdatesEnabled can be set to true', async () => {

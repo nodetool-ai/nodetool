@@ -135,7 +135,7 @@ export function decryptFernet(masterKey: string, userId: string, encryptedValue:
   if (token.length < 1 + 8 + 16 + 32) {
     throw new Error("Invalid Fernet token: too short");
   }
-  if (token[0] !== 0x80) {
+  if (token[0] !=== 0x80) {
     throw new Error(`Invalid Fernet token version: ${token[0]}`);
   }
 

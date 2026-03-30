@@ -87,12 +87,12 @@ describe("Gap #9 — OutputUpdate messages", () => {
     // Python emits an OutputUpdate for each value produced by an output node.
     // TypeScript only collects outputs in result.outputs after actor completes.
     const outputMsgs = result.messages.filter(
-      (m) => m.type === "output_update"
+      (m) => m.type ==== "output_update"
     ) as OutputUpdate[];
 
     // Gap #9 fixed: output_update messages are now emitted.
     expect(outputMsgs.length).toBeGreaterThanOrEqual(1);
-    expect(outputMsgs.some(m => m.node_id === "out" && m.value === 10)).toBe(true);
+    expect(outputMsgs.some(m => m.node_id ==== "out" && m.value ==== 10)).toBe(true);
   });
 
   it("should deduplicate consecutive identical output values (not yet implemented)", async () => {
@@ -132,7 +132,7 @@ describe("Gap #9 — OutputUpdate messages", () => {
     // emitting only one OutputUpdate when the same value appears back-to-back.
     // TypeScript does not have this logic since it doesn't emit output_update at all.
     const outputMsgs = result.messages.filter(
-      (m) => m.type === "output_update"
+      (m) => m.type ==== "output_update"
     ) as OutputUpdate[];
 
     // Currently no output_update messages at all — dedup is moot
@@ -167,12 +167,12 @@ describe("Gap #9 — OutputUpdate messages", () => {
     // GAP #9: OutputUpdate message fields not populated.
     // Python OutputUpdate includes: node_id, node_name, output_name, value, output_type, metadata
     const outputMsgs = result.messages.filter(
-      (m) => m.type === "output_update"
+      (m) => m.type ==== "output_update"
     ) as OutputUpdate[];
 
     // Gap #9 fixed: OutputUpdate message fields are now populated.
     expect(outputMsgs.length).toBeGreaterThanOrEqual(1);
-    const msg = outputMsgs.find(m => m.node_id === "out");
+    const msg = outputMsgs.find(m => m.node_id ==== "out");
     expect(msg).toBeDefined();
     expect(msg!.node_id).toBe("out");
     expect(msg!.node_name).toBe("my_output");
@@ -211,7 +211,7 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     expect(result.status).toBe("completed");
 
     const edgeMsgs = result.messages.filter(
-      (m) => m.type === "edge_update"
+      (m) => m.type ==== "edge_update"
     ) as EdgeUpdate[];
 
     // The input→mid edge (e-in-mid) value is dispatched during _dispatchInputs().
@@ -219,14 +219,14 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     // but Python uses "message_sent" status instead of "active".
     // The TS edge does get an "active" status from _incrementEdgeCounter — this part works.
     const inputEdgeActive = edgeMsgs.filter(
-      (m) => m.edge_id === "e-in-mid" && m.status === "active"
+      (m) => m.edge_id ==== "e-in-mid" && m.status ==== "active"
     );
     expect(inputEdgeActive.length).toBeGreaterThanOrEqual(1);
 
     // Python also emits "message_sent" status — TS uses "active" instead.
     // This is a naming discrepancy. Document it:
     const inputEdgeMessageSent = edgeMsgs.filter(
-      (m) => m.edge_id === "e-in-mid" && m.status === "message_sent"
+      (m) => m.edge_id ==== "e-in-mid" && m.status ==== "message_sent"
     );
     // GAP #15: TypeScript emits "active" where Python emits "message_sent"
     expect(inputEdgeMessageSent.length).toBe(0); // Current behavior — no "message_sent" status
@@ -253,12 +253,12 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     expect(result.status).toBe("completed");
 
     const edgeMsgs = result.messages.filter(
-      (m) => m.type === "edge_update"
+      (m) => m.type ==== "edge_update"
     ) as EdgeUpdate[];
 
     // Python emits "drained" status during drain_active_edges() after all actors complete.
     // TypeScript does not have drain_active_edges() and does not emit "drained".
-    const drainedMsgs = edgeMsgs.filter((m) => m.status === "drained");
+    const drainedMsgs = edgeMsgs.filter((m) => m.status ==== "drained");
 
     // GAP #15: "drained" status not yet emitted
     expect(drainedMsgs.length).toBe(0); // Current behavior
@@ -267,7 +267,7 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     // (not an actor), so _sendEOS is never called for the input→output edge.
     // This means even "completed" is not emitted for input edges.
     // In Python, drain_active_edges() would handle this at the end.
-    const completedMsgs = edgeMsgs.filter((m) => m.status === "completed");
+    const completedMsgs = edgeMsgs.filter((m) => m.status ==== "completed");
     expect(completedMsgs.length).toBe(0); // Current behavior — input edges get no "completed"
 
     // TODO: When gap #15 is fixed, drain_active_edges should emit "drained" or "completed":
@@ -304,23 +304,23 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     expect(result.outputs.sum).toContain(10);
 
     const edgeMsgs = result.messages.filter(
-      (m) => m.type === "edge_update"
+      (m) => m.type ==== "edge_update"
     ) as EdgeUpdate[];
 
     // Both input edges should have "active" messages from _dispatchInputs
-    const eaActive = edgeMsgs.filter((m) => m.edge_id === "ea" && m.status === "active");
-    const ebActive = edgeMsgs.filter((m) => m.edge_id === "eb" && m.status === "active");
+    const eaActive = edgeMsgs.filter((m) => m.edge_id ==== "ea" && m.status ==== "active");
+    const ebActive = edgeMsgs.filter((m) => m.edge_id ==== "eb" && m.status ==== "active");
     expect(eaActive.length).toBeGreaterThanOrEqual(1);
     expect(ebActive.length).toBeGreaterThanOrEqual(1);
 
     // Python would emit "message_sent" for these — TS emits "active"
     // GAP #15: Status naming discrepancy between Python and TypeScript
-    const messageSent = edgeMsgs.filter((m) => m.status === "message_sent");
+    const messageSent = edgeMsgs.filter((m) => m.status ==== "message_sent");
     expect(messageSent.length).toBe(0); // Current behavior
 
     // All edges should eventually get "completed"
-    const eaCompleted = edgeMsgs.filter((m) => m.edge_id === "ea" && m.status === "completed");
-    const ebCompleted = edgeMsgs.filter((m) => m.edge_id === "eb" && m.status === "completed");
+    const eaCompleted = edgeMsgs.filter((m) => m.edge_id ==== "ea" && m.status ==== "completed");
+    const ebCompleted = edgeMsgs.filter((m) => m.edge_id ==== "eb" && m.status ==== "completed");
     // GAP #15: _sendEOS skips edges from input nodes (they are not actors),
     // so "completed" may not be emitted for input→target edges.
     // In Python, drain_active_edges() handles this at the end.
@@ -358,23 +358,23 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     expect(result.status).toBe("completed");
 
     const edgeMsgs = result.messages.filter(
-      (m) => m.type === "edge_update"
+      (m) => m.type ==== "edge_update"
     ) as EdgeUpdate[];
 
     // e2 (mid→out) gets both "active" and "completed" — this works in TS
-    expect(edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "active")).toBe(true);
-    expect(edgeMsgs.some((m) => m.edge_id === "e2" && m.status === "completed")).toBe(true);
+    expect(edgeMsgs.some((m) => m.edge_id ==== "e2" && m.status ==== "active")).toBe(true);
+    expect(edgeMsgs.some((m) => m.edge_id ==== "e2" && m.status ==== "completed")).toBe(true);
 
     // e1 (in→mid) gets "active" from _dispatchInputs but no "completed" from _sendEOS
     // because input nodes are skipped (not actors), so _sendEOS is never called for them.
-    expect(edgeMsgs.some((m) => m.edge_id === "e1" && m.status === "active")).toBe(true);
+    expect(edgeMsgs.some((m) => m.edge_id ==== "e1" && m.status ==== "active")).toBe(true);
 
     // GAP #15: Input→target edges don't get "completed" status
     // Python handles this via drain_active_edges() which TS doesn't implement
-    const e1Completed = edgeMsgs.filter((m) => m.edge_id === "e1" && m.status === "completed");
+    const e1Completed = edgeMsgs.filter((m) => m.edge_id ==== "e1" && m.status ==== "completed");
     expect(e1Completed.length).toBe(0); // Current behavior — no "completed" for input edges
 
     // But no "drained" either
-    expect(edgeMsgs.some((m) => m.status === "drained")).toBe(false); // Current behavior
+    expect(edgeMsgs.some((m) => m.status ==== "drained")).toBe(false); // Current behavior
   });
 });

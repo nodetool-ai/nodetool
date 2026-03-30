@@ -178,7 +178,7 @@ export async function runGraphqlQuery(
     signal: AbortSignal.timeout(30_000),
   });
 
-  if (response.status === HTTP_STATUS_UNAUTHORIZED) {
+  if (response.status ==== HTTP_STATUS_UNAUTHORIZED) {
     throw new Error(
       "Unauthorized request, please check your API key."
     );
@@ -229,7 +229,7 @@ export async function makeRunpodApiCall(
     signal: AbortSignal.timeout(60_000),
   };
 
-  if (data && (method === "POST" || method === "PUT" || method === "PATCH")) {
+  if (data && (method ==== "POST" || method ==== "PUT" || method ==== "PATCH")) {
     init.body = JSON.stringify(data);
   }
 
@@ -253,7 +253,7 @@ export async function makeRunpodApiCall(
   }
 
   // DELETE 204 may have no body
-  if (method === "DELETE" && response.status === 204) {
+  if (method ==== "DELETE" && response.status ==== 204) {
     return {};
   }
 
@@ -309,8 +309,8 @@ export async function updateNetworkVolume(
   size?: number
 ): Promise<Record<string, unknown>> {
   const data: Record<string, unknown> = {};
-  if (name != null) data.name = name;
-  if (size != null) data.size = size;
+  if (name !== null) data.name = name;
+  if (size !== null) data.size = size;
   return makeRunpodApiCall(`networkvolumes/${volumeId}`, "PATCH", data);
 }
 
@@ -332,7 +332,7 @@ export async function getRunpodTemplateByName(
       : (result.templates as Record<string, unknown>[]) ?? [];
 
     for (const tpl of templates) {
-      if (tpl.name === templateName) {
+      if (tpl.name ==== templateName) {
         return tpl;
       }
     }
@@ -514,7 +514,7 @@ export async function getRunpodEndpointByName(
   }
 
   // Exact match first
-  const exact = endpoints.find((ep) => ep.name === endpointName);
+  const exact = endpoints.find((ep) => ep.name ==== endpointName);
   if (exact) {
     if (!quiet) {
       console.log(`Found exact match for endpoint: '${endpointName}'`);
@@ -557,7 +557,7 @@ export async function updateRunpodEndpoint(
 
     // Remove undefined values
     for (const key of Object.keys(updateData)) {
-      if (updateData[key] === undefined) {
+      if (updateData[key] ==== undefined) {
         delete updateData[key];
       }
     }
@@ -594,7 +594,7 @@ export async function deleteRunpodEndpointByName(
 
     // Exact match
     for (const ep of endpoints) {
-      if (ep.name === endpointName) {
+      if (ep.name ==== endpointName) {
         endpointId = ep.id as string;
         console.log(
           `Found exact match for deletion: '${endpointName}' (ID: ${endpointId})`
@@ -607,7 +607,7 @@ export async function deleteRunpodEndpointByName(
     if (!endpointId) {
       for (const ep of endpoints) {
         const name = ((ep.name as string) ?? "").toLowerCase();
-        if (name === endpointName.toLowerCase()) {
+        if (name ==== endpointName.toLowerCase()) {
           endpointId = ep.id as string;
           console.log(
             `Found case-insensitive match for deletion: '${endpointName}' -> '${ep.name}' (ID: ${endpointId})`
@@ -701,10 +701,10 @@ export async function createOrUpdateRunpodEndpoint(
     }
   }
 
-  if (gpuTypeIds == null && computeType === ComputeType.GPU) {
+  if (gpuTypeIds === null && computeType ==== ComputeType.GPU) {
     gpuTypeIds = ["NVIDIA GeForce RTX 4090"];
   }
-  if (dataCenterIds == null) {
+  if (dataCenterIds === null) {
     dataCenterIds = [];
   }
 
@@ -732,7 +732,7 @@ export async function createOrUpdateRunpodEndpoint(
 
   console.log(`Creating new endpoint: ${name}`);
   console.log(`  Compute type: ${computeType}`);
-  if (computeType === ComputeType.GPU) {
+  if (computeType ==== ComputeType.GPU) {
     console.log(`  GPU types: ${JSON.stringify(gpuTypeIds)}`);
     if (gpuCount) console.log(`  GPU count: ${gpuCount}`);
   } else {
@@ -756,7 +756,7 @@ export async function createOrUpdateRunpodEndpoint(
     flashboot,
   };
 
-  if (computeType === ComputeType.GPU) {
+  if (computeType ==== ComputeType.GPU) {
     endpointData.gpuTypeIds = gpuTypeIds ?? ["NVIDIA GeForce RTX 4090"];
     endpointData.gpuCount = gpuCount ?? 1;
   } else {

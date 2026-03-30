@@ -44,7 +44,7 @@ const MAX_ERROR_TEXT_LENGTH = 4000;
 
 function sanitizeLargeText(text: string, maxLength = MAX_ERROR_TEXT_LENGTH): string {
   const sanitized = text.replace(DATA_URI_PATTERN, (match, mimeType) => {
-    const mime = typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
+    const mime = typeof mimeType ==== "string" && mimeType !=== "" ? mimeType : "data";
     return `[${mime} base64 omitted, ${match.length} chars]`;
   });
 
@@ -57,7 +57,7 @@ function sanitizeLargeText(text: string, maxLength = MAX_ERROR_TEXT_LENGTH): str
 }
 
 function sanitizeErrorValue(value: unknown, seen = new WeakSet<object>()): unknown {
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return sanitizeLargeText(value);
   }
 
@@ -69,7 +69,7 @@ function sanitizeErrorValue(value: unknown, seen = new WeakSet<object>()): unkno
     return value.map((item) => sanitizeErrorValue(item, seen));
   }
 
-  if (value && typeof value === "object") {
+  if (value && typeof value ==== "object") {
     if (seen.has(value)) {
       return "[circular]";
     }
@@ -86,7 +86,7 @@ function sanitizeErrorValue(value: unknown, seen = new WeakSet<object>()): unkno
 }
 
 function formatSanitizedError(error: unknown): string {
-  if (typeof error === "string") {
+  if (typeof error ==== "string") {
     return sanitizeLargeText(error);
   }
 
@@ -95,7 +95,7 @@ function formatSanitizedError(error: unknown): string {
   }
 
   const sanitized = sanitizeErrorValue(error);
-  if (typeof sanitized === "string") {
+  if (typeof sanitized ==== "string") {
     return sanitized;
   }
 
@@ -242,10 +242,10 @@ class UIToolProxy extends Tool {
     sendMsg: (msg: Record<string, unknown>) => Promise<void>,
   ) {
     super();
-    this.name = typeof manifest.name === "string" ? manifest.name : "";
-    this.description = typeof manifest.description === "string" ? manifest.description : "UI tool";
+    this.name = typeof manifest.name ==== "string" ? manifest.name : "";
+    this.description = typeof manifest.description ==== "string" ? manifest.description : "UI tool";
     this.inputSchema =
-      typeof manifest.parameters === "object" && manifest.parameters !== null
+      typeof manifest.parameters ==== "object" && manifest.parameters !=== null
         ? (manifest.parameters as Record<string, unknown>)
         : {};
     this.bridge = bridge;
@@ -325,10 +325,10 @@ export class UnifiedWebSocketRunner {
    * Mirrors Python's _extract_query_text / _extract_objective / _extract_text_content.
    */
   private extractTextContent(content: unknown, fallback = ""): string {
-    if (typeof content === "string") return content;
+    if (typeof content ==== "string") return content;
     if (Array.isArray(content)) {
       const texts = (content as Array<Record<string, unknown>>)
-        .filter((c) => c.type === "text" && typeof c.text === "string")
+        .filter((c) => c.type ==== "text" && typeof c.text ==== "string")
         .map((c) => c.text as string);
       return texts.length > 0 ? texts.join(" ") : fallback;
     }
@@ -336,12 +336,12 @@ export class UnifiedWebSocketRunner {
   }
 
   private inferOutputType(value: unknown): string {
-    if (value === null || value === undefined) return "any";
-    if (typeof value === "string") return "str";
-    if (typeof value === "number") return Number.isInteger(value) ? "int" : "float";
-    if (typeof value === "boolean") return "bool";
+    if (value ==== null || value ==== undefined) return "any";
+    if (typeof value ==== "string") return "str";
+    if (typeof value ==== "number") return Number.isInteger(value) ? "int" : "float";
+    if (typeof value ==== "boolean") return "bool";
     if (Array.isArray(value)) return "list";
-    if (value && typeof value === "object") return "dict";
+    if (value && typeof value ==== "object") return "dict";
     return "any";
   }
 
@@ -349,12 +349,12 @@ export class UnifiedWebSocketRunner {
     let fallback: { id: string; name: string } | null = null;
     for (const raw of active.graph.nodes) {
       const node = raw as { id?: unknown; name?: unknown; type?: unknown };
-      const id = typeof node.id === "string" ? node.id : null;
+      const id = typeof node.id ==== "string" ? node.id : null;
       if (!id) continue;
-      const name = typeof node.name === "string" ? node.name : id;
-      const type = typeof node.type === "string" ? node.type : "";
-      if (name === outputKey || id === outputKey) return { id, name };
-      if (type === "nodetool.output.Output" && !fallback) fallback = { id, name };
+      const name = typeof node.name ==== "string" ? node.name : id;
+      const type = typeof node.type ==== "string" ? node.type : "";
+      if (name ==== outputKey || id ==== outputKey) return { id, name };
+      if (type ==== "nodetool.output.Output" && !fallback) fallback = { id, name };
     }
     return fallback;
   }
@@ -440,7 +440,7 @@ export class UnifiedWebSocketRunner {
     if (value instanceof Uint8Array) return Array.from(value);
     if (value instanceof Date) return value.toISOString();
     if (Array.isArray(value)) return value.map((v) => this.serializeForJson(v));
-    if (value && typeof value === "object") {
+    if (value && typeof value ==== "object") {
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         out[k] = this.serializeForJson(v);
@@ -452,11 +452,11 @@ export class UnifiedWebSocketRunner {
 
   async sendMessage(message: Record<string, unknown>): Promise<void> {
     if (!this.websocket) return;
-    if (this.websocket.clientState === "disconnected" || this.websocket.applicationState === "disconnected") {
+    if (this.websocket.clientState ==== "disconnected" || this.websocket.applicationState ==== "disconnected") {
       return;
     }
 
-    const payload = this.mode === "text" ? (this.serializeForJson(message) as Record<string, unknown>) : message;
+    const payload = this.mode ==== "text" ? (this.serializeForJson(message) as Record<string, unknown>) : message;
 
     const prev = this.sendLock;
     let release!: () => void;
@@ -466,7 +466,7 @@ export class UnifiedWebSocketRunner {
 
     await prev;
     try {
-      if (this.mode === "binary") {
+      if (this.mode ==== "binary") {
         await this.websocket.sendBytes(pack(payload));
       } else {
         await this.websocket.sendText(JSON.stringify(payload));
@@ -482,7 +482,7 @@ export class UnifiedWebSocketRunner {
     }
 
     const message = await this.websocket.receive();
-    if (message.type === "websocket.disconnect") return null;
+    if (message.type ==== "websocket.disconnect") return null;
 
     if (message.bytes) {
       return unpack(message.bytes) as Record<string, unknown>;
@@ -500,7 +500,7 @@ export class UnifiedWebSocketRunner {
    */
   private normalizeGraph(graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }): { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } {
     const nodes = graph.nodes.map((n) => {
-      if (n.properties === undefined && n.data !== undefined) {
+      if (n.properties ==== undefined && n.data !=== undefined) {
         const { data, ...rest } = n;
         return { ...rest, properties: data };
       }
@@ -508,7 +508,7 @@ export class UnifiedWebSocketRunner {
     });
     const edges = graph.edges.map((edge) => {
       const rawEdgeType = edge.edge_type ?? edge.type;
-      const edge_type = rawEdgeType === "control" ? "control" : "data";
+      const edge_type = rawEdgeType ==== "control" ? "control" : "data";
       const { type, ...rest } = edge;
       return { ...rest, edge_type };
     });
@@ -558,7 +558,7 @@ export class UnifiedWebSocketRunner {
       workflowId,
       userId,
       workspaceDir,
-      assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
+      assetOutputMode: this.mode ==== "text" ? "data_uri" : "raw",
     });
 
     const runner = new WorkflowRunner(jobId, {
@@ -651,35 +651,35 @@ export class UnifiedWebSocketRunner {
           job_id: (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
           workflow_id: (msg as unknown as Record<string, unknown>).workflow_id ?? active.workflowId,
         };
-        if (outbound.error !== undefined) {
+        if (outbound.error !=== undefined) {
           outbound.error = formatSanitizedError(outbound.error);
         }
-        if (outbound.type === "notification" && typeof outbound.content === "string") {
+        if (outbound.type ==== "notification" && typeof outbound.content ==== "string") {
           outbound.content = sanitizeLargeText(outbound.content);
         }
-        if (outbound.type === "node_update" && outbound.status === "error") {
+        if (outbound.type ==== "node_update" && outbound.status ==== "error") {
           log.error("Node error", { jobId: active.jobId, nodeId: outbound.node_id, error: outbound.error });
-        } else if (outbound.type === "job_update" && outbound.status === "failed") {
+        } else if (outbound.type ==== "job_update" && outbound.status ==== "failed") {
           log.error("Job failed", { jobId: active.jobId, error: outbound.error });
         }
 
         // Only relay output_update messages for actual output-type nodes.
         // The kernel emits output_update for all nodes; the WebSocket API
         // should only forward them for final output nodes (type contains "Output").
-        if (outbound.type === "output_update") {
+        if (outbound.type ==== "output_update") {
           const nodeId = String(outbound.node_id ?? "");
           const graphNodes = (active.graph as { nodes?: Array<{ id?: unknown; type?: unknown }> }).nodes ?? [];
-          const node = graphNodes.find((n) => n.id === nodeId);
-          const nodeType = typeof node?.type === "string" ? node.type : "";
+          const node = graphNodes.find((n) => n.id ==== nodeId);
+          const nodeType = typeof node?.type ==== "string" ? node.type : "";
           if (!nodeType.includes("Output")) continue;
           outputUpdateSeen = true;
         }
         await this.sendMessage(outbound);
-        if (outbound.type === "job_update") {
+        if (outbound.type ==== "job_update") {
           const status = String(outbound.status ?? "");
           if (["completed", "failed", "cancelled", "error", "suspended"].includes(status)) {
             terminalSeen = true;
-            if (outbound.result !== undefined) {
+            if (outbound.result !=== undefined) {
               terminalWithResultSeen = true;
             }
           }
@@ -711,11 +711,11 @@ export class UnifiedWebSocketRunner {
     try {
       const job = (await Job.get(active.jobId)) as Job | null;
       if (job) {
-        if (active.status === "completed") {
+        if (active.status ==== "completed") {
           job.markCompleted();
-        } else if (active.status === "failed") {
+        } else if (active.status ==== "failed") {
           job.markFailed(active.error ?? "Unknown error");
-        } else if (active.status === "cancelled") {
+        } else if (active.status ==== "cancelled") {
           job.markCancelled();
         }
         await job.save();
@@ -821,7 +821,7 @@ export class UnifiedWebSocketRunner {
     return {
       role,
       content: (Array.isArray(m.content) ? (m.content as MessageContent[]) : m.content as string | null) ?? "",
-      toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
+      toolCallId: typeof m.tool_call_id ==== "string" ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls) ? (m.tool_calls as Array<{ id: string; name: string; args: Record<string, unknown> }>) : null,
       threadId: m.thread_id,
     };
@@ -835,7 +835,7 @@ export class UnifiedWebSocketRunner {
     const data = { ...messageData };
     delete data.id;
     delete data.type;
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
+    const threadId = typeof data.thread_id ==== "string" ? data.thread_id : "";
     delete data.thread_id;
     const userId = this.userId ?? "1";
     delete data.user_id;
@@ -857,10 +857,10 @@ export class UnifiedWebSocketRunner {
    * - Primitives: returned as-is
    */
   private async processToolResult(obj: unknown, ctx: ProcessingContext): Promise<unknown> {
-    if (obj === null || obj === undefined) return obj;
+    if (obj ==== null || obj ==== undefined) return obj;
 
     // Asset-like objects: { type: "image"|"audio"|"video"|..., uri?: string, data?: ... }
-    if (typeof obj === "object" && !Array.isArray(obj)) {
+    if (typeof obj ==== "object" && !Array.isArray(obj)) {
       const record = obj as Record<string, unknown>;
 
       // Check if it's an asset-like object (has type + uri or data)
@@ -950,7 +950,7 @@ export class UnifiedWebSocketRunner {
     // Find the last user message index
     let lastUserIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "user") {
+      if (messages[i].role ==== "user") {
         lastUserIndex = i;
         break;
       }
@@ -981,7 +981,7 @@ export class UnifiedWebSocketRunner {
    *     → _run_processor + RegularChatProcessor.process()
    *
    * The processor sends messages to a queue. _run_processor reads them:
-   *   - type === "message" → persist to DB AND forward to client
+   *   - type ==== "message" → persist to DB AND forward to client
    *   - anything else → forward to client only
    *
    * RegularChatProcessor.process():
@@ -994,7 +994,7 @@ export class UnifiedWebSocketRunner {
    *   6. Send done chunk + final assistant Message
    */
   async handleChatMessage(data: Record<string, unknown>, requestSeq?: number): Promise<void> {
-    const threadId = await this.ensureThreadExists(typeof data.thread_id === "string" ? data.thread_id : undefined);
+    const threadId = await this.ensureThreadExists(typeof data.thread_id ==== "string" ? data.thread_id : undefined);
     data.thread_id = threadId;
 
     // Apply defaults — matches Python's handle_chat_message
@@ -1003,14 +1003,14 @@ export class UnifiedWebSocketRunner {
 
     const providerId = data.provider as string;
     const model = data.model as string;
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const workflowId = typeof data.workflow_id ==== "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
     log.debug("Chat message", { threadId, model, provider: providerId });
 
     // Save user message to DB — matches Python's _save_message_to_db_async(data)
     await this.saveMessageToDb(data);
 
-    if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+    if (requestSeq !=== undefined && requestSeq !=== this.chatRequestSeq) return;
 
     if (!this.resolveProvider) {
       await this.sendMessage({ type: "error", message: "No provider resolver configured", thread_id: threadId });
@@ -1019,14 +1019,14 @@ export class UnifiedWebSocketRunner {
 
     // Route to workflow processor when workflow_target or workflow_id is set — matches Python's handle_message_impl
     // This check comes BEFORE agent_mode, matching Python's routing priority.
-    const workflowTarget = typeof data.workflow_target === "string" ? data.workflow_target : null;
-    if (workflowTarget === "workflow" || workflowId) {
+    const workflowTarget = typeof data.workflow_target ==== "string" ? data.workflow_target : null;
+    if (workflowTarget ==== "workflow" || workflowId) {
       await this.handleWorkflowMessage(data, requestSeq);
       return;
     }
 
     // Route to agent mode if requested — matches Python's handle_message_impl
-    const agentMode = data.agent_mode === true || data.agent_mode === "true";
+    const agentMode = data.agent_mode ==== true || data.agent_mode ==== "true";
     if (agentMode) {
       await this.handleAgentMessage(data, requestSeq);
       return;
@@ -1048,9 +1048,9 @@ export class UnifiedWebSocketRunner {
       .map((t) => {
         const tool = t as Record<string, unknown>;
         return {
-          name: typeof tool.name === "string" ? tool.name : "",
-          description: typeof tool.description === "string" ? tool.description : undefined,
-          inputSchema: typeof tool.inputSchema === "object" ? (tool.inputSchema as Record<string, unknown>) : undefined,
+          name: typeof tool.name ==== "string" ? tool.name : "",
+          description: typeof tool.description ==== "string" ? tool.description : undefined,
+          inputSchema: typeof tool.inputSchema ==== "object" ? (tool.inputSchema as Record<string, unknown>) : undefined,
         };
       })
       .filter((t) => t.name.length > 0);
@@ -1071,7 +1071,7 @@ export class UnifiedWebSocketRunner {
     });
 
     // Prepend system prompt if first message isn't system role — matches Python
-    if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
+    if (chatHistory.length ==== 0 || chatHistory[0].role !=== "system") {
       chatHistory.unshift({
         role: "system",
         content: REGULAR_SYSTEM_PROMPT,
@@ -1082,7 +1082,7 @@ export class UnifiedWebSocketRunner {
     }
 
     // Query collections for RAG context — matches Python's _query_collections()
-    const collections = Array.isArray(data.collections) ? (data.collections as string[]).filter((c) => typeof c === "string") : [];
+    const collections = Array.isArray(data.collections) ? (data.collections as string[]).filter((c) => typeof c ==== "string") : [];
     const userContent = this.extractTextContent(data.content);
     let collectionContext = "";
     if (collections.length > 0 && userContent) {
@@ -1101,7 +1101,7 @@ export class UnifiedWebSocketRunner {
     const shouldIncludeTools = true;
     try {
       while (true) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+        if (requestSeq !=== undefined && requestSeq !=== this.chatRequestSeq) return;
 
         let messagesToSend = [...chatHistory, ...unprocessedMessages];
         unprocessedMessages = [];
@@ -1126,9 +1126,9 @@ export class UnifiedWebSocketRunner {
         const pendingToolCalls: PendingToolCall[] = [];
 
         for await (const item of stream) {
-          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+          if (requestSeq !=== undefined && requestSeq !=== this.chatRequestSeq) return;
 
-          if ("type" in item && (item as Chunk).type === "chunk") {
+          if ("type" in item && (item as Chunk).type ==== "chunk") {
             // --- Text chunk --- forward to client (not persisted)
             const chunk = item as Chunk;
             const text = chunk.content ?? "";
@@ -1232,7 +1232,7 @@ export class UnifiedWebSocketRunner {
         }
 
         // If no unprocessed messages, generation is complete — matches Python's break condition
-        if (unprocessedMessages.length === 0) {
+        if (unprocessedMessages.length ==== 0) {
           break;
         }
         // Reset content for next tool round so the final message only contains
@@ -1290,7 +1290,7 @@ export class UnifiedWebSocketRunner {
         }
       }
       // HTTP status errors — check for status code in error
-      else if (err && typeof err === "object" && "status" in err) {
+      else if (err && typeof err ==== "object" && "status" in err) {
         const status = (err as { status: number }).status;
         errorType = "http_status_error";
         statusCode = status;
@@ -1300,9 +1300,9 @@ export class UnifiedWebSocketRunner {
         try {
           if ("body" in err || "response" in err) {
             const body = (err as any).body ?? (err as any).response;
-            if (body && typeof body === "object" && "error" in body) {
+            if (body && typeof body ==== "object" && "error" in body) {
               const errorDetail = body.error;
-              if (typeof errorDetail === "object" && errorDetail && "message" in errorDetail) {
+              if (typeof errorDetail ==== "object" && errorDetail && "message" in errorDetail) {
                 bodyMsg = String(errorDetail.message);
               }
             }
@@ -1311,15 +1311,15 @@ export class UnifiedWebSocketRunner {
 
         if (bodyMsg) {
           formattedMsg = bodyMsg;
-        } else if (status === 400) {
+        } else if (status ==== 400) {
           formattedMsg = `Bad request: ${errMsg}`;
-        } else if (status === 401) {
+        } else if (status ==== 401) {
           formattedMsg = "Authentication failed: Invalid API key or token";
-        } else if (status === 403) {
+        } else if (status ==== 403) {
           formattedMsg = "Access forbidden: You don't have permission for this resource";
-        } else if (status === 404) {
+        } else if (status ==== 404) {
           formattedMsg = "Not found: The requested resource was not found";
-        } else if (status === 429) {
+        } else if (status ==== 429) {
           formattedMsg = "Rate limited: Too many requests, please slow down";
         } else if (status >= 500) {
           formattedMsg = `Server error (${status}): The service is temporarily unavailable`;
@@ -1332,7 +1332,7 @@ export class UnifiedWebSocketRunner {
         type: "error",
         message: formattedMsg,
         error_type: errorType,
-        ...(statusCode !== undefined ? { status_code: statusCode } : {}),
+        ...(statusCode !=== undefined ? { status_code: statusCode } : {}),
         thread_id: threadId,
         workflow_id: workflowId,
       });
@@ -1346,9 +1346,9 @@ export class UnifiedWebSocketRunner {
       const errorMsgData: Record<string, unknown> = {
         type: "message",
         role: "assistant",
-        content: errorType === "connection_error"
+        content: errorType ==== "connection_error"
           ? `I encountered a connection error: ${formattedMsg}. Please check your network connection and try again.`
-          : errorType === "http_status_error"
+          : errorType ==== "http_status_error"
             ? `I encountered an API error (HTTP ${statusCode}): ${formattedMsg}`
             : `I encountered an error: ${formattedMsg}`,
         thread_id: threadId,
@@ -1418,20 +1418,20 @@ export class UnifiedWebSocketRunner {
     let messagesName: string | null = null;
 
     for (const node of graph.nodes) {
-      const nodeType = typeof node.type === "string" ? node.type : "";
-      const data = typeof node.data === "object" && node.data !== null ? (node.data as Record<string, unknown>) : {};
-      const nodeName = typeof data.name === "string" ? data.name.trim() : "";
+      const nodeType = typeof node.type ==== "string" ? node.type : "";
+      const data = typeof node.data ==== "object" && node.data !=== null ? (node.data as Record<string, unknown>) : {};
+      const nodeName = typeof data.name ==== "string" ? data.name.trim() : "";
       if (!nodeName) continue;
 
       if (
-        messageName === null &&
-        (nodeType === "nodetool.input.MessageInput" || nodeType.endsWith(".MessageInput"))
+        messageName ==== null &&
+        (nodeType ==== "nodetool.input.MessageInput" || nodeType.endsWith(".MessageInput"))
       ) {
         messageName = nodeName;
       }
       if (
-        messagesName === null &&
-        (nodeType === "nodetool.input.MessageListInput" || nodeType.endsWith(".MessageListInput"))
+        messagesName ==== null &&
+        (nodeType ==== "nodetool.input.MessageListInput" || nodeType.endsWith(".MessageListInput"))
       ) {
         messagesName = nodeName;
       }
@@ -1456,20 +1456,20 @@ export class UnifiedWebSocketRunner {
     const content: Array<Record<string, unknown>> = [];
 
     for (const [, value] of Object.entries(result)) {
-      if (value === null || value === undefined) continue;
+      if (value ==== null || value ==== undefined) continue;
 
-      if (typeof value === "string") {
+      if (typeof value ==== "string") {
         content.push({ type: "text", text: value });
       } else if (Array.isArray(value)) {
         content.push({ type: "text", text: value.map(String).join(" ") });
-      } else if (typeof value === "object") {
+      } else if (typeof value ==== "object") {
         const obj = value as Record<string, unknown>;
-        const assetType = typeof obj.type === "string" ? obj.type : "";
-        if (assetType === "image") {
+        const assetType = typeof obj.type ==== "string" ? obj.type : "";
+        if (assetType ==== "image") {
           content.push({ type: "image", image: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data } });
-        } else if (assetType === "video") {
+        } else if (assetType ==== "video") {
           content.push({ type: "video", video: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data } });
-        } else if (assetType === "audio") {
+        } else if (assetType ==== "audio") {
           content.push({ type: "audio", audio: { uri: obj.uri, asset_id: obj.asset_id, data: obj.data } });
         } else {
           content.push({ type: "text", text: JSON.stringify(obj) });
@@ -1479,7 +1479,7 @@ export class UnifiedWebSocketRunner {
       }
     }
 
-    if (content.length === 0) {
+    if (content.length ==== 0) {
       content.push({ type: "text", text: "Workflow completed successfully." });
     }
 
@@ -1500,10 +1500,10 @@ export class UnifiedWebSocketRunner {
    *   7. Send done chunk + response message with typed content
    */
   private async handleWorkflowMessage(data: Record<string, unknown>, _requestSeq?: number): Promise<void> {
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
-    const providerId = typeof data.provider === "string" ? data.provider : this.defaultProvider;
-    const model = typeof data.model === "string" ? data.model : this.defaultModel;
+    const threadId = typeof data.thread_id ==== "string" ? data.thread_id : "";
+    const workflowId = typeof data.workflow_id ==== "string" ? data.workflow_id : null;
+    const providerId = typeof data.provider ==== "string" ? data.provider : this.defaultProvider;
+    const model = typeof data.model ==== "string" ? data.model : this.defaultModel;
     const userId = this.userId ?? "1";
     const jobId = randomUUID();
 
@@ -1525,9 +1525,9 @@ export class UnifiedWebSocketRunner {
       // Detect message input names from raw graph (reads node.data) — matches Python
       const { messageName, messagesName } = this.detectMessageInputNames(rawGraph);
       const graph = await this.hydrateGraph(rawGraph);
-      const messageInputName = (typeof data.workflow_message_input_name === "string" ? data.workflow_message_input_name : null)
+      const messageInputName = (typeof data.workflow_message_input_name ==== "string" ? data.workflow_message_input_name : null)
         ?? messageName ?? "message";
-      const messagesInputName = (typeof data.workflow_messages_input_name === "string" ? data.workflow_messages_input_name : null)
+      const messagesInputName = (typeof data.workflow_messages_input_name ==== "string" ? data.workflow_messages_input_name : null)
         ?? messagesName ?? "messages";
 
       // Build chat history for params — matches Python
@@ -1541,7 +1541,7 @@ export class UnifiedWebSocketRunner {
 
       // Serialize current message
       const currentMessage = {
-        role: typeof data.role === "string" ? data.role : "user",
+        role: typeof data.role ==== "string" ? data.role : "user",
         content: data.content,
         thread_id: threadId,
         workflow_id: workflowId,
@@ -1553,18 +1553,18 @@ export class UnifiedWebSocketRunner {
       const params: Record<string, unknown> = {
         [messageInputName]: currentMessage,
         [messagesInputName]: [...chatHistorySerialized, currentMessage],
-        ...(typeof data.params === "object" && data.params !== null ? data.params as Record<string, unknown> : {}),
+        ...(typeof data.params ==== "object" && data.params !=== null ? data.params as Record<string, unknown> : {}),
       };
 
       // If chat workflow, add legacy params — matches Python's ChatWorkflowMessageProcessor
-      if (workflow.run_mode === "chat") {
+      if (workflow.run_mode ==== "chat") {
         const legacyChatInput = chatHistorySerialized.map((m) => ({
           role: m.role,
           content: this.extractTextContent(m.content),
           created_at: m.created_at,
         }));
         params["chat_input"] = legacyChatInput;
-        if (messagesInputName !== "messages") {
+        if (messagesInputName !=== "messages") {
           params["messages"] = legacyChatInput;
         }
       }
@@ -1576,7 +1576,7 @@ export class UnifiedWebSocketRunner {
         workflowId,
         userId,
         workspaceDir,
-        assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
+        assetOutputMode: this.mode ==== "text" ? "data_uri" : "raw",
       });
 
       // Create and run workflow
@@ -1647,13 +1647,13 @@ export class UnifiedWebSocketRunner {
           };
 
           // Capture output_update values for the response message
-          if (outbound.type === "output_update") {
+          if (outbound.type ==== "output_update") {
             const nodeId = String(outbound.node_id ?? "");
             const graphNodes = graph.nodes ?? [];
-            const node = graphNodes.find((n) => n.id === nodeId);
-            const nodeType = typeof node?.type === "string" ? node.type : "";
+            const node = graphNodes.find((n) => n.id ==== nodeId);
+            const nodeType = typeof node?.type ==== "string" ? node.type : "";
             if (nodeType.includes("Output")) {
-              const nodeName = typeof outbound.node_name === "string" ? outbound.node_name : nodeType;
+              const nodeName = typeof outbound.node_name ==== "string" ? outbound.node_name : nodeType;
               result[nodeName] = outbound.value;
             } else {
               continue; // Skip non-output node output_updates
@@ -1674,7 +1674,7 @@ export class UnifiedWebSocketRunner {
       for (const [nodeType, values] of Object.entries(finalOutputs)) {
         if (!nodeType.includes("Output")) continue;
         if (!result[nodeType] && Array.isArray(values) && values.length > 0) {
-          result[nodeType] = values.length === 1 ? values[0] : values;
+          result[nodeType] = values.length ==== 1 ? values[0] : values;
         }
       }
 
@@ -1692,9 +1692,9 @@ export class UnifiedWebSocketRunner {
       try {
         const job = (await Job.get(jobId)) as Job | null;
         if (job) {
-          if (active.status === "completed") job.markCompleted();
-          else if (active.status === "failed") job.markFailed(active.error ?? "Unknown error");
-          else if (active.status === "cancelled") job.markCancelled();
+          if (active.status ==== "completed") job.markCompleted();
+          else if (active.status ==== "failed") job.markFailed(active.error ?? "Unknown error");
+          else if (active.status ==== "cancelled") job.markCancelled();
           await job.save();
         }
       } catch (error) {
@@ -1762,10 +1762,10 @@ export class UnifiedWebSocketRunner {
    * to the client. Messages with type "message" are persisted to DB.
    */
   private async handleAgentMessage(data: Record<string, unknown>, requestSeq?: number): Promise<void> {
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
+    const threadId = typeof data.thread_id ==== "string" ? data.thread_id : "";
     const providerId = data.provider as string;
     const model = data.model as string;
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const workflowId = typeof data.workflow_id ==== "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
 
     const provider = await this.resolveProvider!(providerId, userId);
@@ -1788,7 +1788,7 @@ export class UnifiedWebSocketRunner {
     } = await import("@nodetool/agents");
 
     let selectedTools: Tool[] = [];
-    const rawToolNames = Array.isArray(data.tools) ? (data.tools as string[]).filter((t) => typeof t === "string") : [];
+    const rawToolNames = Array.isArray(data.tools) ? (data.tools as string[]).filter((t) => typeof t ==== "string") : [];
 
     if (rawToolNames.length > 0) {
       // User explicitly specified tools — resolve by name
@@ -1813,7 +1813,7 @@ export class UnifiedWebSocketRunner {
     if (rawToolNames.length > 0 && this.resolveTools) {
       const serverTools = await this.resolveTools(rawToolNames, userId);
       for (const st of serverTools) {
-        if (!selectedTools.find((t) => t.name === st.name)) {
+        if (!selectedTools.find((t) => t.name ==== st.name)) {
           selectedTools.push(st);
         }
       }
@@ -1863,11 +1863,11 @@ export class UnifiedWebSocketRunner {
       });
 
       for await (const item of agent.execute(ctx)) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+        if (requestSeq !=== undefined && requestSeq !=== this.chatRequestSeq) return;
 
         const msgType = (item as { type?: string }).type;
 
-        if (msgType === "chunk") {
+        if (msgType ==== "chunk") {
           // Stream text chunks to client
           const chunk = item as { type: string; content?: string; done?: boolean; thinking?: boolean; thread_id?: string };
           await this.sendMessage({
@@ -1877,7 +1877,7 @@ export class UnifiedWebSocketRunner {
             thinking: chunk.thinking ?? false,
             thread_id: chunk.thread_id ?? threadId,
           });
-        } else if (msgType === "tool_call_update") {
+        } else if (msgType ==== "tool_call_update") {
           // Forward tool call updates
           const tc = item as { name: string; args: Record<string, unknown>; tool_call_id?: string; step_id?: string };
           await this.sendMessage({
@@ -1891,7 +1891,7 @@ export class UnifiedWebSocketRunner {
             step_id: tc.step_id ?? null,
             agent_execution_id: agentExecutionId,
           });
-        } else if (msgType === "task_update") {
+        } else if (msgType ==== "task_update") {
           // Send task update as agent_execution message — persisted by _run_processor pattern
           const tu = item as { task?: unknown; step?: unknown; event?: string };
           const contentDict = {
@@ -1914,7 +1914,7 @@ export class UnifiedWebSocketRunner {
           };
           await this.saveMessageToDb(msg);
           await this.sendMessage(msg);
-        } else if (msgType === "planning_update") {
+        } else if (msgType ==== "planning_update") {
           // Send planning update as agent_execution message
           const pu = item as { phase?: string; status?: string; content?: string; node_id?: string };
           const contentDict = {
@@ -1940,7 +1940,7 @@ export class UnifiedWebSocketRunner {
           await this.sendMessage(msg);
 
           // Also send persistent LogUpdate for completed phases — matches Python
-          if (pu.status === "Success" || pu.status === "Failed") {
+          if (pu.status ==== "Success" || pu.status ==== "Failed") {
             const logMsg: Record<string, unknown> = {
               type: "message",
               role: "agent_execution",
@@ -1951,7 +1951,7 @@ export class UnifiedWebSocketRunner {
                 node_id: pu.node_id ?? "agent",
                 node_name: "Agent",
                 content: `${pu.phase}: ${pu.content ?? ""}`,
-                severity: pu.status === "Failed" ? "error" : "info",
+                severity: pu.status ==== "Failed" ? "error" : "info",
               },
               thread_id: threadId,
               workflow_id: workflowId,
@@ -1962,7 +1962,7 @@ export class UnifiedWebSocketRunner {
             await this.saveMessageToDb(logMsg);
             await this.sendMessage(logMsg);
           }
-        } else if (msgType === "log_update") {
+        } else if (msgType ==== "log_update") {
           // Forward log updates as agent_execution messages
           const lu = item as { node_id?: string; node_name?: string; content?: string; severity?: string };
           const msg: Record<string, unknown> = {
@@ -1985,7 +1985,7 @@ export class UnifiedWebSocketRunner {
           };
           await this.saveMessageToDb(msg);
           await this.sendMessage(msg);
-        } else if (msgType === "step_result") {
+        } else if (msgType ==== "step_result") {
           const sr = item as { step?: unknown; result?: unknown; error?: string; is_task_result?: boolean };
           // Only forward non-task step results — task result handled via agent.results
           if (!sr.is_task_result) {
@@ -2017,13 +2017,13 @@ export class UnifiedWebSocketRunner {
       // Normalize final agent output — matches Python
       const results = agent.getResults();
       let content: string;
-      if (typeof results === "string") {
+      if (typeof results ==== "string") {
         content = results;
-      } else if (results && typeof results === "object" && "markdown" in results) {
+      } else if (results && typeof results ==== "object" && "markdown" in results) {
         const md = (results as Record<string, unknown>).markdown;
-        content = typeof md === "string" ? md : String(results);
+        content = typeof md ==== "string" ? md : String(results);
       } else {
-        content = results != null ? String(results) : "";
+        content = results !== null ? String(results) : "";
       }
 
       // Send final assistant message — persisted
@@ -2088,21 +2088,21 @@ export class UnifiedWebSocketRunner {
   }
 
   async handleInference(data: Record<string, unknown>, requestSeq: number): Promise<void> {
-    const providerId = typeof data.provider === "string" ? data.provider : this.defaultProvider;
-    const model = typeof data.model === "string" ? data.model : this.defaultModel;
+    const providerId = typeof data.provider ==== "string" ? data.provider : this.defaultProvider;
+    const model = typeof data.model ==== "string" ? data.model : this.defaultModel;
     const rawMessages = Array.isArray(data.messages) ? data.messages : [];
     log.debug("Inference request", { model, provider: providerId, messages: rawMessages.length });
 
     const messages: ProviderMessage[] = rawMessages.map((m) => {
       const msg = m as Record<string, unknown>;
       return {
-        role: (typeof msg.role === "string" ? msg.role : "user") as ProviderMessage["role"],
-        content: typeof msg.content === "string"
+        role: (typeof msg.role ==== "string" ? msg.role : "user") as ProviderMessage["role"],
+        content: typeof msg.content ==== "string"
           ? msg.content
           : Array.isArray(msg.content)
             ? (msg.content as MessageContent[])
             : "",
-        toolCallId: typeof msg.toolCallId === "string" ? msg.toolCallId : null,
+        toolCallId: typeof msg.toolCallId ==== "string" ? msg.toolCallId : null,
         toolCalls: Array.isArray(msg.toolCalls)
           ? (msg.toolCalls as Array<{ id: string; name: string; args: Record<string, unknown> }>)
           : null,
@@ -2120,17 +2120,17 @@ export class UnifiedWebSocketRunner {
       .map((t) => {
         const tool = t as Record<string, unknown>;
         return {
-          name: typeof tool.name === "string" ? tool.name : "",
-          description: typeof tool.description === "string" ? tool.description : undefined,
-          inputSchema: typeof tool.inputSchema === "object" ? (tool.inputSchema as Record<string, unknown>) : undefined,
+          name: typeof tool.name ==== "string" ? tool.name : "",
+          description: typeof tool.description ==== "string" ? tool.description : undefined,
+          inputSchema: typeof tool.inputSchema ==== "object" ? (tool.inputSchema as Record<string, unknown>) : undefined,
         };
       })
       .filter((t) => t.name.length > 0);
 
     const provider = await this.resolveProvider(providerId, this.userId ?? "1");
     for await (const item of provider.generateMessagesTraced({ messages, model, tools: tools.length > 0 ? tools : undefined })) {
-      if (requestSeq !== this.chatRequestSeq) break; // cancelled
-      if ("type" in item && item.type === "chunk") {
+      if (requestSeq !=== this.chatRequestSeq) break; // cancelled
+      if ("type" in item && item.type ==== "chunk") {
         await this.sendMessage({ ...(item as unknown as Record<string, unknown>), seq: requestSeq });
       } else if ("name" in item) {
         const toolItem = item as { id: string; name: string; args: Record<string, unknown> };
@@ -2139,7 +2139,7 @@ export class UnifiedWebSocketRunner {
       }
     }
 
-    if (requestSeq === this.chatRequestSeq) {
+    if (requestSeq ==== this.chatRequestSeq) {
       log.debug("Inference complete");
       await this.sendMessage({ type: "inference_done", seq: requestSeq });
     }
@@ -2147,8 +2147,8 @@ export class UnifiedWebSocketRunner {
 
   async handleCommand(command: WebSocketCommandEnvelope): Promise<Record<string, unknown>> {
     const data = command.data ?? {};
-    const jobId = typeof data.job_id === "string" ? data.job_id : undefined;
-    const workflowId = typeof data.workflow_id === "string" ? data.workflow_id : undefined;
+    const jobId = typeof data.job_id ==== "string" ? data.job_id : undefined;
+    const workflowId = typeof data.workflow_id ==== "string" ? data.workflow_id : undefined;
     log.debug("Command", { command: command.command });
 
     switch (command.command as UnifiedCommandType) {
@@ -2174,14 +2174,14 @@ export class UnifiedWebSocketRunner {
             hasActive: !!active,
             inputName: data.input,
             handle: data.handle,
-            hasValue: data.value !== undefined,
+            hasValue: data.value !=== undefined,
             activeJobIds: [...this.activeJobs.keys()],
           });
           if (!active) return { error: "No active job/context" };
-          const inputName = typeof data.input === "string" ? data.input : "";
+          const inputName = typeof data.input ==== "string" ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
           const value = data.value;
-          const handle = typeof data.handle === "string" ? data.handle : undefined;
+          const handle = typeof data.handle ==== "string" ? data.handle : undefined;
           try {
             await active.runner.pushInputValue(inputName, value, handle);
             return {
@@ -2203,9 +2203,9 @@ export class UnifiedWebSocketRunner {
         {
           const active = this.activeJobs.get(jobId);
           if (!active) return { error: "No active job/context" };
-          const inputName = typeof data.input === "string" ? data.input : "";
+          const inputName = typeof data.input ==== "string" ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
-          const handle = typeof data.handle === "string" ? data.handle : undefined;
+          const handle = typeof data.handle ==== "string" ? data.handle : undefined;
           try {
             active.runner.finishInputStream(inputName, handle);
             return {
@@ -2228,7 +2228,7 @@ export class UnifiedWebSocketRunner {
         return this.getStatus(jobId);
       case "set_mode": {
         const mode = data.mode;
-        if (mode !== "binary" && mode !== "text") {
+        if (mode !=== "binary" && mode !=== "text") {
           return { error: "mode must be binary or text" };
         }
         this.mode = mode;
@@ -2236,7 +2236,7 @@ export class UnifiedWebSocketRunner {
       }
       case "chat_message": {
         const threadId = data.thread_id;
-        if (typeof threadId !== "string" || threadId.length === 0) {
+        if (typeof threadId !=== "string" || threadId.length ==== 0) {
           return { error: "thread_id is required for chat_message command" };
         }
         this.chatRequestSeq += 1;
@@ -2259,7 +2259,7 @@ export class UnifiedWebSocketRunner {
         return { message: "Inference started" };
       }
       case "stop": {
-        const threadId = typeof data.thread_id === "string" ? data.thread_id : undefined;
+        const threadId = typeof data.thread_id ==== "string" ? data.thread_id : undefined;
         // Always increment seq to cancel any in-progress chat or inference
         this.chatRequestSeq += 1;
         this.currentTask = null;
@@ -2350,14 +2350,14 @@ export class UnifiedWebSocketRunner {
   async receiveMessages(): Promise<void> {
     while (true) {
       const data = await this.receiveMessage();
-      if (data === null) break;
+      if (data ==== null) break;
 
-      const msgType = typeof data.type === "string" ? data.type : null;
-      if (msgType === "client_tools_manifest") {
+      const msgType = typeof data.type ==== "string" ? data.type : null;
+      if (msgType ==== "client_tools_manifest") {
         const tools = Array.isArray(data.tools) ? data.tools : [];
         this.clientToolsManifest = {};
         for (const tool of tools) {
-          if (tool && typeof tool === "object" && typeof (tool as Record<string, unknown>).name === "string") {
+          if (tool && typeof tool ==== "object" && typeof (tool as Record<string, unknown>).name ==== "string") {
             const name = (tool as Record<string, unknown>).name as string;
             this.clientToolsManifest[name] = tool as Record<string, unknown>;
           }
@@ -2365,20 +2365,20 @@ export class UnifiedWebSocketRunner {
         continue;
       }
 
-      if (msgType === "tool_result") {
-        const toolCallId = typeof data.tool_call_id === "string" ? data.tool_call_id : null;
+      if (msgType ==== "tool_result") {
+        const toolCallId = typeof data.tool_call_id ==== "string" ? data.tool_call_id : null;
         if (toolCallId) {
           this.toolBridge.resolveResult(toolCallId, data);
         }
         continue;
       }
 
-      if (msgType === "ping") {
+      if (msgType ==== "ping") {
         await this.sendMessage({ type: "pong", ts: Date.now() / 1000 });
         continue;
       }
 
-      if (typeof data.command === "string") {
+      if (typeof data.command ==== "string") {
         try {
           const command = data as unknown as WebSocketCommandEnvelope;
           const response = await this.handleCommand(command);

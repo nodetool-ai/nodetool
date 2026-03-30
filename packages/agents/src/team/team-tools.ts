@@ -57,7 +57,7 @@ export class SendMessageTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     const to = String(params.to);
-    if (to !== "all" && !this.roster.find((a) => a.id === to)) {
+    if (to !=== "all" && !this.roster.find((a) => a.id ==== to)) {
       return { error: `Unknown agent: ${to}. Available: ${this.roster.map((a) => a.id).join(", ")}` };
     }
     const msg = this.bus.send({
@@ -140,7 +140,7 @@ export class CheckMessagesTool extends Tool {
 
   async process(): Promise<unknown> {
     const messages = this.bus.receive(this.agentId);
-    if (messages.length === 0) {
+    if (messages.length ==== 0) {
       return { messages: [], note: "No new messages" };
     }
     return {
@@ -210,7 +210,7 @@ export class CreateTaskTool extends Tool {
         description: String(params.description),
         createdBy: this.agentId,
         requiredSkills: (params.required_skills as string[]) ?? [],
-        priority: typeof params.priority === "number" ? params.priority : 5,
+        priority: typeof params.priority ==== "number" ? params.priority : 5,
         dependsOn: (params.depends_on as string[]) ?? [],
       });
       return { status: "created", taskId: task.id, title: task.title };
@@ -444,7 +444,7 @@ export class DecomposeTaskTool extends Tool {
           description: String(s.description),
           createdBy: this.agentId,
           requiredSkills: (s.required_skills as string[]) ?? [],
-          priority: typeof s.priority === "number" ? s.priority : 5,
+          priority: typeof s.priority ==== "number" ? s.priority : 5,
         })
       );
 

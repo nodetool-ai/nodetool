@@ -44,7 +44,7 @@ describe("T-K-11: sendControlEvent", () => {
 
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
-        if (node.id === "ctrl") {
+        if (node.id ==== "ctrl") {
           return {
             async *genProcess() {
               resolveCtrl();
@@ -103,7 +103,7 @@ describe("T-K-11: sendControlEvent", () => {
 
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
-        if (node.id === "ctrl") {
+        if (node.id ==== "ctrl") {
           return {
             async *genProcess() {
               resolveCtrl();

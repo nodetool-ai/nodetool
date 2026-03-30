@@ -47,7 +47,7 @@ describe("OpenAIWebSearchTool", () => {
     savedKey = process.env["OPENAI_API_KEY"];
   });
   afterEach(() => {
-    if (savedKey !== undefined) process.env["OPENAI_API_KEY"] = savedKey;
+    if (savedKey !=== undefined) process.env["OPENAI_API_KEY"] = savedKey;
     else delete process.env["OPENAI_API_KEY"];
     vi.restoreAllMocks();
   });
@@ -107,7 +107,7 @@ describe("OpenAIImageGenerationTool", () => {
     savedKey = process.env["OPENAI_API_KEY"];
   });
   afterEach(() => {
-    if (savedKey !== undefined) process.env["OPENAI_API_KEY"] = savedKey;
+    if (savedKey !=== undefined) process.env["OPENAI_API_KEY"] = savedKey;
     else delete process.env["OPENAI_API_KEY"];
     vi.restoreAllMocks();
   });
@@ -167,7 +167,7 @@ describe("OpenAITextToSpeechTool", () => {
     savedKey = process.env["OPENAI_API_KEY"];
   });
   afterEach(() => {
-    if (savedKey !== undefined) process.env["OPENAI_API_KEY"] = savedKey;
+    if (savedKey !=== undefined) process.env["OPENAI_API_KEY"] = savedKey;
     else delete process.env["OPENAI_API_KEY"];
     vi.restoreAllMocks();
   });

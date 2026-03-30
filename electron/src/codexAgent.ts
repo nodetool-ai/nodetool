@@ -55,12 +55,12 @@ interface AgentMessageStreamState {
 const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
 
 function getCodexExecutablePath(): string {
-  const whichCommand = process.platform === "win32" ? "where" : "which";
+  const whichCommand = process.platform ==== "win32" ? "where" : "which";
   const result = spawnSync(whichCommand, ["codex"], {
     encoding: "utf8",
   });
 
-  if (result.status === 0 && result.stdout.trim().length > 0) {
+  if (result.status ==== 0 && result.stdout.trim().length > 0) {
     const [firstPath] = result.stdout.trim().split(/\r?\n/);
     if (firstPath && firstPath.trim().length > 0) {
       return firstPath.trim();
@@ -71,15 +71,15 @@ function getCodexExecutablePath(): string {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value ==== "object" && value !=== null;
 }
 
 function asString(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
+  return typeof value ==== "string" ? value : null;
 }
 
 function asRpcResponse(value: Record<string, unknown>): RpcResponse | null {
-  if (typeof value.id !== "number") {
+  if (typeof value.id !=== "number") {
     return null;
   }
   return {
@@ -87,8 +87,8 @@ function asRpcResponse(value: Record<string, unknown>): RpcResponse | null {
     result: value.result,
     error:
       isRecord(value.error) &&
-      typeof value.error.code === "number" &&
-      typeof value.error.message === "string"
+      typeof value.error.code ==== "number" &&
+      typeof value.error.message ==== "string"
         ? {
             code: value.error.code,
             message: value.error.message,
@@ -100,7 +100,7 @@ function asRpcResponse(value: Record<string, unknown>): RpcResponse | null {
 function asRpcServerRequest(
   value: Record<string, unknown>,
 ): RpcServerRequest | null {
-  if (typeof value.id !== "number" || typeof value.method !== "string") {
+  if (typeof value.id !=== "number" || typeof value.method !=== "string") {
     return null;
   }
   return {
@@ -111,7 +111,7 @@ function asRpcServerRequest(
 }
 
 function asRpcNotification(value: Record<string, unknown>): RpcNotification | null {
-  if (typeof value.method !== "string") {
+  if (typeof value.method !=== "string") {
     return null;
   }
   return {
@@ -136,7 +136,7 @@ function normalizeDynamicToolSchema(schema: unknown): Record<string, unknown> {
   };
 
   let candidate: unknown = schema;
-  if (typeof candidate === "string") {
+  if (typeof candidate ==== "string") {
     try {
       candidate = JSON.parse(candidate);
     } catch {
@@ -149,14 +149,14 @@ function normalizeDynamicToolSchema(schema: unknown): Record<string, unknown> {
   }
 
   const type = candidate.type;
-  if (type === undefined) {
+  if (type ==== undefined) {
     return {
       ...candidate,
       type: "object",
     };
   }
 
-  if (type === "object") {
+  if (type ==== "object") {
     return candidate;
   }
 
@@ -184,10 +184,10 @@ async function requestRendererToolsEvent<T>(
       responseEvent: Electron.IpcMainEvent,
       response: { requestId?: string; error?: string; manifest?: T; result?: T },
     ): void => {
-      if (responseEvent.sender !== webContents) {
+      if (responseEvent.sender !=== webContents) {
         return;
       }
-      if (!response || response.requestId !== requestId) {
+      if (!response || response.requestId !=== requestId) {
         return;
       }
 
@@ -199,11 +199,11 @@ async function requestRendererToolsEvent<T>(
         return;
       }
 
-      if ("manifest" in response && response.manifest !== undefined) {
+      if ("manifest" in response && response.manifest !=== undefined) {
         resolve(response.manifest);
         return;
       }
-      if ("result" in response && response.result !== undefined) {
+      if ("result" in response && response.result !=== undefined) {
         resolve(response.result);
         return;
       }
@@ -281,12 +281,12 @@ export async function listCodexModels(
           if (!isRecord(parsed)) {
             continue;
           }
-          if (parsed.id !== id) {
+          if (parsed.id !=== id) {
             continue;
           }
           processHandle.stdout.removeListener("data", onData);
           clearTimeout(timeout);
-          if (isRecord(parsed.error) && typeof parsed.error.message === "string") {
+          if (isRecord(parsed.error) && typeof parsed.error.message ==== "string") {
             reject(new Error(parsed.error.message));
             return;
           }
@@ -325,7 +325,7 @@ export async function listCodexModels(
       models.push({
         id,
         label: asString(item.displayName) ?? id,
-        isDefault: item.isDefault === true,
+        isDefault: item.isDefault ==== true,
       });
     }
     return models;
@@ -447,14 +447,14 @@ export class CodexQuerySession {
     };
 
     if (
-      request.method === "item/commandExecution/requestApproval" ||
-      request.method === "item/fileChange/requestApproval"
+      request.method ==== "item/commandExecution/requestApproval" ||
+      request.method ==== "item/fileChange/requestApproval"
     ) {
       this.writeRpc({ ...responseBase, result: { decision: "accept" } });
       return;
     }
 
-    if (request.method === "item/tool/requestUserInput") {
+    if (request.method ==== "item/tool/requestUserInput") {
       const answers: Record<string, { answers: string[] }> = {};
       const questions = isRecord(request.params)
         ? request.params.questions
@@ -473,7 +473,7 @@ export class CodexQuerySession {
           const options = question.options;
           if (Array.isArray(options) && options.length > 0) {
             const firstOption = options[0];
-            if (typeof firstOption === "string") {
+            if (typeof firstOption ==== "string") {
               selectedAnswer = firstOption;
             } else if (isRecord(firstOption)) {
               selectedAnswer =
@@ -488,7 +488,7 @@ export class CodexQuerySession {
       return;
     }
 
-    if (request.method === "item/tool/call") {
+    if (request.method ==== "item/tool/call") {
       const params = request.params;
       const toolCallId = isRecord(params) ? asString(params.callId) : null;
       const toolName = isRecord(params) ? asString(params.tool) : null;
@@ -533,7 +533,7 @@ export class CodexQuerySession {
           args,
         );
         const text =
-          typeof result === "string" ? result : JSON.stringify(result ?? null);
+          typeof result ==== "string" ? result : JSON.stringify(result ?? null);
         this.writeRpc({
           ...responseBase,
           result: {
@@ -560,7 +560,7 @@ export class CodexQuerySession {
   private handleNotification(notification: RpcNotification): void {
     const { method, params } = notification;
 
-    if (method === "thread/started" && isRecord(params) && isRecord(params.thread)) {
+    if (method ==== "thread/started" && isRecord(params) && isRecord(params.thread)) {
       const threadId = asString(params.thread.id);
       if (threadId) {
         this.resolvedThreadId = threadId;
@@ -569,7 +569,7 @@ export class CodexQuerySession {
       return;
     }
 
-    if (method === "item/agentMessage/delta" && isRecord(params)) {
+    if (method ==== "item/agentMessage/delta" && isRecord(params)) {
       const turnId = asString(params.turnId);
       const delta = asString(params.delta);
       const itemId = asString(params.itemId);
@@ -601,14 +601,14 @@ export class CodexQuerySession {
       return;
     }
 
-    if (method === "item/started" && isRecord(params) && isRecord(params.item)) {
+    if (method ==== "item/started" && isRecord(params) && isRecord(params.item)) {
       const itemType = asString(params.item.type);
       const itemId = asString(params.item.id);
       if (!itemType || !itemId) {
         return;
       }
 
-      if (itemType === "agentMessage") {
+      if (itemType ==== "agentMessage") {
         const turnId = asString(params.turnId);
         if (turnId) {
           this.agentMessageStreams.set(itemId, { turnId, text: "" });
@@ -616,12 +616,12 @@ export class CodexQuerySession {
         return;
       }
 
-      if (itemType === "commandExecution") {
+      if (itemType ==== "commandExecution") {
         this.emitAssistantToolCall(itemId, "commandExecution", {
           command: params.item.command,
           cwd: params.item.cwd,
         });
-      } else if (itemType === "mcpToolCall") {
+      } else if (itemType ==== "mcpToolCall") {
         const toolName =
           asString(params.item.toolName) ??
           asString(params.item.name) ??
@@ -630,16 +630,16 @@ export class CodexQuerySession {
           server: params.item.server,
           arguments: params.item.arguments,
         });
-      } else if (itemType === "webSearch") {
+      } else if (itemType ==== "webSearch") {
         this.emitAssistantToolCall(itemId, "webSearch", {
           query: params.item.query,
         });
-      } else if (itemType === "fileChange") {
+      } else if (itemType ==== "fileChange") {
         this.emitAssistantToolCall(itemId, "fileChange", {
           changes: params.item.changes,
           summary: params.item.summary,
         });
-      } else if (itemType === "collabAgentToolCall") {
+      } else if (itemType ==== "collabAgentToolCall") {
         const toolName =
           asString(params.item.toolName) ??
           asString(params.item.name) ??
@@ -652,12 +652,12 @@ export class CodexQuerySession {
       return;
     }
 
-    if (method === "item/completed" && isRecord(params) && isRecord(params.item)) {
+    if (method ==== "item/completed" && isRecord(params) && isRecord(params.item)) {
       const turnId = asString(params.turnId);
       const itemType = asString(params.item.type);
       const itemText = asString(params.item.text);
       const itemId = asString(params.item.id);
-      if (!turnId || itemType !== "agentMessage") {
+      if (!turnId || itemType !=== "agentMessage") {
         return;
       }
 
@@ -692,7 +692,7 @@ export class CodexQuerySession {
       return;
     }
 
-    if (method === "turn/completed" && isRecord(params) && isRecord(params.turn)) {
+    if (method ==== "turn/completed" && isRecord(params) && isRecord(params.turn)) {
       const turnId = asString(params.turn.id);
       const status = asString(params.turn.status);
       if (!turnId || !status) {
@@ -707,15 +707,15 @@ export class CodexQuerySession {
       this.turnTrackers.delete(turnId);
       clearTimeout(tracker.timeout);
       for (const [itemId, stream] of this.agentMessageStreams.entries()) {
-        if (stream.turnId === turnId) {
+        if (stream.turnId ==== turnId) {
           this.agentMessageStreams.delete(itemId);
         }
       }
-      if (this.currentTurnId === turnId) {
+      if (this.currentTurnId ==== turnId) {
         this.currentTurnId = null;
       }
 
-      if (status === "completed" || status === "interrupted" || status === "cancelled") {
+      if (status ==== "completed" || status ==== "interrupted" || status ==== "cancelled") {
         tracker.resolve(tracker.text.trim());
         return;
       }
@@ -727,7 +727,7 @@ export class CodexQuerySession {
       return;
     }
 
-    if (method === "error") {
+    if (method ==== "error") {
       logMessage(`Codex notification error: ${JSON.stringify(params)}`, "warn");
     }
   }
@@ -750,8 +750,8 @@ export class CodexQuerySession {
       return;
     }
 
-    const hasId = typeof parsed.id === "number";
-    const hasMethod = typeof parsed.method === "string";
+    const hasId = typeof parsed.id ==== "number";
+    const hasMethod = typeof parsed.method ==== "string";
 
     if (hasId && ("result" in parsed || "error" in parsed) && !hasMethod) {
       const response = asRpcResponse(parsed);
@@ -935,7 +935,7 @@ export class CodexQuerySession {
       const timeout = setTimeout(() => {
         this.turnTrackers.delete(turnId);
         for (const [itemId, stream] of this.agentMessageStreams.entries()) {
-          if (stream.turnId === turnId) {
+          if (stream.turnId ==== turnId) {
             this.agentMessageStreams.delete(itemId);
           }
         }

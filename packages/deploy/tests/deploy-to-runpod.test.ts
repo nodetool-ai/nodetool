@@ -10,7 +10,7 @@ vi.mock("../src/docker.js", () => ({
   buildDockerImage: vi.fn().mockReturnValue(false),
   formatImageName: vi.fn(
     (name: string, user: string, registry: string) =>
-      registry === "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
+      registry ==== "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
   ),
   generateImageTag: vi.fn().mockReturnValue("auto-tag-abc123"),
   pushToRegistry: vi.fn(),
@@ -70,7 +70,7 @@ beforeEach(() => {
   mockedBuild.mockReturnValue(false);
   mockedFormat.mockImplementation(
     (name: string, user: string, registry: string) =>
-      registry === "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
+      registry ==== "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
   );
   mockedGenTag.mockReturnValue("auto-tag-abc123");
   mockedRunCmd.mockReturnValue("Docker version 24.0.0");

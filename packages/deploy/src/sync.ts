@@ -55,14 +55,14 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
 
     // Check for model field containing HuggingFace or Ollama models
     const model = nodeData["model"];
-    if (model && typeof model === "object" && !Array.isArray(model)) {
+    if (model && typeof model ==== "object" && !Array.isArray(model)) {
       const m = model as Record<string, unknown>;
 
       // HuggingFace models
       if (
-        typeof m["type"] === "string" &&
+        typeof m["type"] ==== "string" &&
         m["type"].startsWith("hf.") &&
-        typeof m["repo_id"] === "string" &&
+        typeof m["repo_id"] ==== "string" &&
         m["repo_id"]
       ) {
         const modelKey = `hf|${m["type"]}|${m["repo_id"]}|${m["path"] ?? ""}|${m["variant"] ?? ""}`;
@@ -81,8 +81,8 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
       }
       // Ollama language models
       else if (
-        m["type"] === "language_model" &&
-        m["provider"] === "ollama" &&
+        m["type"] ==== "language_model" &&
+        m["provider"] ==== "ollama" &&
         m["id"]
       ) {
         const modelKey = `ollama|${m["id"]}`;
@@ -98,9 +98,9 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
       }
       // llama_cpp language models (HuggingFace GGUF models)
       else if (
-        m["type"] === "language_model" &&
-        m["provider"] === "llama_cpp" &&
-        typeof m["id"] === "string"
+        m["type"] ==== "language_model" &&
+        m["provider"] ==== "llama_cpp" &&
+        typeof m["id"] ==== "string"
       ) {
         const modelId = m["id"] as string;
         if (modelId.includes(":")) {
@@ -124,8 +124,8 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
 
     // Check for language models at the root level
     if (
-      nodeData["type"] === "language_model" &&
-      nodeData["provider"] === "ollama" &&
+      nodeData["type"] ==== "language_model" &&
+      nodeData["provider"] ==== "ollama" &&
       nodeData["id"]
     ) {
       const modelKey = `ollama|${nodeData["id"]}`;
@@ -144,12 +144,12 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
     for (const [, value] of Object.entries(nodeData)) {
       if (Array.isArray(value)) {
         for (const item of value) {
-          if (item && typeof item === "object" && !Array.isArray(item)) {
+          if (item && typeof item ==== "object" && !Array.isArray(item)) {
             const it = item as Record<string, unknown>;
             if (
-              typeof it["type"] === "string" &&
+              typeof it["type"] ==== "string" &&
               it["type"].startsWith("hf.") &&
-              typeof it["repo_id"] === "string" &&
+              typeof it["repo_id"] ==== "string" &&
               it["repo_id"]
             ) {
               const modelKey = `hf|${it["type"]}|${it["repo_id"]}|${it["path"] ?? ""}|${it["variant"] ?? ""}`;

@@ -109,9 +109,9 @@ export class SchemaParser {
     const jsonType = (prop.type as string | undefined) ?? "string";
     const format = prop.format as string | undefined;
 
-    if (jsonType === "string") {
+    if (jsonType ==== "string") {
       // URI format fields are media inputs (image/video/audio)
-      if (format === "uri") {
+      if (format ==== "uri") {
         // Infer media type from field name
         const lower = propName.toLowerCase();
         if (lower.includes("video")) {
@@ -126,19 +126,19 @@ export class SchemaParser {
       return { tsType: "string", propType: "str" };
     }
 
-    if (jsonType === "integer") {
+    if (jsonType ==== "integer") {
       return { tsType: "number", propType: "int" };
     }
 
-    if (jsonType === "number") {
+    if (jsonType ==== "number") {
       return { tsType: "number", propType: "float" };
     }
 
-    if (jsonType === "boolean") {
+    if (jsonType ==== "boolean") {
       return { tsType: "boolean", propType: "bool" };
     }
 
-    if (jsonType === "array") {
+    if (jsonType ==== "array") {
       const items = (prop.items as AnyRecord | undefined) ?? {};
       const inner = this._jsonTypeToTs(items, undefined, propName);
       return {
@@ -147,7 +147,7 @@ export class SchemaParser {
       };
     }
 
-    if (jsonType === "object") {
+    if (jsonType ==== "object") {
       return { tsType: "object", propType: "dict[str, any]" };
     }
 
@@ -163,30 +163,30 @@ export class SchemaParser {
     required: boolean,
   ): unknown {
     // Asset refs default to null
-    if (propType === "image" || propType === "video" || propType === "audio") {
+    if (propType ==== "image" || propType ==== "video" || propType ==== "audio") {
       return null;
     }
 
     if ("default" in prop) {
       const defaultVal = prop.default;
       if (
-        typeof defaultVal === "string" ||
-        typeof defaultVal === "boolean" ||
-        typeof defaultVal === "number"
+        typeof defaultVal ==== "string" ||
+        typeof defaultVal ==== "boolean" ||
+        typeof defaultVal ==== "number"
       ) {
         return defaultVal;
       }
-      if (defaultVal === null) return null;
+      if (defaultVal ==== null) return null;
     }
 
     // Sensible defaults based on type
-    if (propType === "str") return "";
-    if (propType === "int") {
+    if (propType ==== "str") return "";
+    if (propType ==== "int") {
       const desc = ((prop.description as string | undefined) ?? "").toLowerCase();
       return desc.includes("seed") ? -1 : 0;
     }
-    if (propType === "float") return 0.0;
-    if (propType === "bool") return false;
+    if (propType ==== "float") return 0.0;
+    if (propType ==== "bool") return false;
     if (propType.startsWith("list")) return [];
     if (required) return "";
 

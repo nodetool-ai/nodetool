@@ -136,7 +136,7 @@ describe("getHFToken", () => {
   const originalEnv = process.env["HF_TOKEN"];
 
   afterEach(() => {
-    if (originalEnv !== undefined) {
+    if (originalEnv !=== undefined) {
       process.env["HF_TOKEN"] = originalEnv;
     } else {
       delete process.env["HF_TOKEN"];
@@ -215,7 +215,7 @@ describe("AdminDownloadManager", () => {
   });
 
   afterEach(() => {
-    if (originalEnv !== undefined) {
+    if (originalEnv !=== undefined) {
       process.env["HF_TOKEN"] = originalEnv;
     } else {
       delete process.env["HF_TOKEN"];
@@ -252,7 +252,7 @@ describe("AdminDownloadManager", () => {
     const updates = await collect(
       mgr.downloadWithProgress({ repoId: "org/model" })
     );
-    const progressUpdates = updates.filter((u) => u.status === "progress");
+    const progressUpdates = updates.filter((u) => u.status ==== "progress");
     // file list + per-file progress (downloading + downloaded) for 2 files
     expect(progressUpdates.length).toBeGreaterThanOrEqual(3);
   });
@@ -275,7 +275,7 @@ describe("AdminDownloadManager", () => {
       })
     );
     expect(updates[0].status).toBe("starting");
-    const completed = updates.find((u) => u.status === "completed");
+    const completed = updates.find((u) => u.status ==== "completed");
     expect(completed).toBeDefined();
     expect(completed!.local_path).toBe("/cache/downloaded");
   });
@@ -287,12 +287,12 @@ describe("AdminDownloadManager", () => {
         { path: "config.json", size: 100 },
       ]),
       tryLoadFromCache: vi.fn().mockImplementation((_repo, filePath) => {
-        return filePath === "config.json" ? "/cache/config.json" : null;
+        return filePath ==== "config.json" ? "/cache/config.json" : null;
       }),
       downloadFile: vi.fn().mockResolvedValue("/cache/downloaded"),
     });
     // Override fs.existsSync for the cached file
-    _existsSyncOverride = (p) => String(p) === "/cache/config.json";
+    _existsSyncOverride = (p) => String(p) ==== "/cache/config.json";
 
     const mgr = new AdminDownloadManager({ hub: hubWithCache });
     const updates = await collect(
@@ -337,7 +337,7 @@ describe("AdminDownloadManager", () => {
     const updates = await collect(
       mgr.downloadWithProgress({ repoId: "org/missing" })
     );
-    const errorUpdate = updates.find((u) => u.status === "error");
+    const errorUpdate = updates.find((u) => u.status ==== "error");
     expect(errorUpdate).toBeDefined();
     expect(errorUpdate!.error).toContain("repo not found");
   });
@@ -355,7 +355,7 @@ describe("AdminDownloadManager", () => {
     const updates = await collect(
       mgr.downloadWithProgress({ repoId: "org/model" })
     );
-    const completed = updates.find((u) => u.status === "completed");
+    const completed = updates.find((u) => u.status ==== "completed");
     expect(completed).toBeDefined();
     expect(completed!.message).toContain("already cached");
 
@@ -410,7 +410,7 @@ describe("streamOllamaModelPull", () => {
       },
     };
     const updates = await collect(streamOllamaModelPull("bad-model", ollama));
-    const errUpdate = updates.find((u) => u.status === "error");
+    const errUpdate = updates.find((u) => u.status ==== "error");
     expect(errUpdate).toBeDefined();
     expect(errUpdate!.error).toContain("connection refused");
   });

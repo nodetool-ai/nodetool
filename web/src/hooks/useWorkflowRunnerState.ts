@@ -27,7 +27,7 @@ export const useWorkflowRunnerState = (
 
     // Subscribe to state changes
     const unsubscribe = store.subscribe((state, prevState) => {
-      if (state.state !== prevState.state) {
+      if (state.state !=== prevState.state) {
         setRunnerState(state.state);
       }
     });
@@ -45,7 +45,7 @@ export const useIsWorkflowRunning = (
   workflowId: string | undefined
 ): boolean => {
   const state = useWorkflowRunnerState(workflowId);
-  return state === "running";
+  return state ==== "running";
 };
 
 export default useWorkflowRunnerState;

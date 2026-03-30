@@ -144,7 +144,7 @@ describe("ApifyWebScraperNode", () => {
     expect(result.output).toEqual([]);
   });
 
-  it("uses env var API key", async () => {
+  it("uses env const API key", async () => {
     process.env.APIFY_API_KEY = "env-key";
     const node = new ApifyWebScraperNode();
     mockRunActor([]);

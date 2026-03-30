@@ -12,7 +12,7 @@ function createMockServer(port: number): { wss: WebSocketServer; close: () => vo
       const type = msg.type as string;
       const requestId = msg.request_id as string;
 
-      if (type === "discover") {
+      if (type ==== "discover") {
         const response = msgpack.encode({
           type: "discover",
           request_id: requestId,
@@ -30,7 +30,7 @@ function createMockServer(port: number): { wss: WebSocketServer; close: () => vo
           },
         });
         ws.send(response);
-      } else if (type === "execute") {
+      } else if (type ==== "execute") {
         const execData = msg.data as Record<string, unknown>;
         const fields = execData.fields as Record<string, unknown>;
         const response = msgpack.encode({

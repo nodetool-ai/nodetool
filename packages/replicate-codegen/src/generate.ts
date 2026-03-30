@@ -59,7 +59,7 @@ async function generateModule(
     }
   }
 
-  if (specs.length === 0) return 0;
+  if (specs.length ==== 0) return 0;
 
   const moduleCode = generator.generateModule(
     moduleName,
@@ -120,7 +120,7 @@ async function generateFromMetadata(
       continue;
     }
 
-    console.log(`\n=== ${dashName} ===`);
+    console.log(`\n==== ${dashName} ====`);
 
     // For each spec, match to a config entry by className or modelId,
     // then set endpointId to the config's modelId key.
@@ -154,13 +154,13 @@ async function generateFromMetadata(
       // Deduplicate by className (Python metadata can have multiple entries
       // for the same model, e.g. Kandinsky and Kandinsky_2_2 both map to
       // ai-forever/kandinsky-2.2 with className "Kandinsky")
-      if (finalSpecs.some((s) => s.className === applied.className)) continue;
+      if (finalSpecs.some((s) => s.className ==== applied.className)) continue;
 
       console.log(`  ${applied.className} (${modelId})`);
       finalSpecs.push(applied);
     }
 
-    if (finalSpecs.length === 0) continue;
+    if (finalSpecs.length ==== 0) continue;
 
     const moduleCode = generator.generateModule(
       dashName,
@@ -192,7 +192,7 @@ async function main(): Promise<void> {
     let total = 0;
     for (const [name, config] of Object.entries(allConfigs)) {
       const dashName = name.replace(/\./g, "-");
-      console.log(`\n=== ${dashName} ===`);
+      console.log(`\n==== ${dashName} ====`);
       total += await generateModule(dashName, config, outputDir, useCache);
     }
     console.log(`\nTotal: ${total} nodes generated`);

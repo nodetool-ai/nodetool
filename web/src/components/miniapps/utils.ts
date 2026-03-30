@@ -71,10 +71,10 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
 
 export const clampNumber = (value: number, min?: number, max?: number) => {
   let result = value;
-  if (typeof min === "number") {
+  if (typeof min ==== "number") {
     result = Math.max(result, min);
   }
-  if (typeof max === "number") {
+  if (typeof max ==== "number") {
     result = Math.min(result, max);
   }
   return result;

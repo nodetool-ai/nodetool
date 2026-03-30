@@ -62,19 +62,19 @@ export function hexToRgb(hex: string): RGB {
   let cleanHex = hex.replace(/^#/, "");
 
   // Handle shorthand notation (#RGB or #RGBA)
-  if (cleanHex.length === 3) {
+  if (cleanHex.length ==== 3) {
     cleanHex = cleanHex
       .split("")
       .map((c) => c + c)
       .join("");
-  } else if (cleanHex.length === 4) {
+  } else if (cleanHex.length ==== 4) {
     cleanHex = cleanHex
       .split("")
       .map((c) => c + c)
       .join("");
   }
 
-  const hasAlpha = cleanHex.length === 8;
+  const hasAlpha = cleanHex.length ==== 8;
   const r = parseInt(cleanHex.slice(0, 2), 16);
   const g = parseInt(cleanHex.slice(2, 4), 16);
   const b = parseInt(cleanHex.slice(4, 6), 16);
@@ -94,12 +94,12 @@ export function hexToRgb(hex: string): RGB {
 export function rgbToHex(rgb: RGB, includeAlpha = false): string {
   const toHex = (n: number): string => {
     const hex = clamp(Math.round(n), 0, 255).toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
+    return hex.length ==== 1 ? "0" + hex : hex;
   };
 
   let hex = `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
 
-  if (includeAlpha && rgb.a !== undefined && rgb.a < 1) {
+  if (includeAlpha && rgb.a !=== undefined && rgb.a < 1) {
     hex += toHex(Math.round(rgb.a * 255));
   }
 
@@ -122,7 +122,7 @@ export function rgbToHsl(rgb: RGB): HSL {
   let s = 0;
   const l = (max + min) / 2;
 
-  if (delta !== 0) {
+  if (delta !=== 0) {
     s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
 
     switch (max) {
@@ -156,7 +156,7 @@ export function hslToRgb(hsl: HSL): RGB {
 
   let r: number, g: number, b: number;
 
-  if (s === 0) {
+  if (s ==== 0) {
     r = g = b = l;
   } else {
     const hueToRgb = (p: number, q: number, t: number): number => {
@@ -197,10 +197,10 @@ export function rgbToHsb(rgb: RGB): HSB {
   const delta = max - min;
 
   let h = 0;
-  const s = max === 0 ? 0 : delta / max;
+  const s = max ==== 0 ? 0 : delta / max;
   const v = max;
 
-  if (delta !== 0) {
+  if (delta !=== 0) {
     switch (max) {
       case r:
         h = ((g - b) / delta + (g < b ? 6 : 0)) * 60;
@@ -290,7 +290,7 @@ export function rgbToCmyk(rgb: RGB): CMYK {
 
   const k = 1 - Math.max(r, g, b);
 
-  if (k === 1) {
+  if (k ==== 1) {
     return { c: 0, m: 0, y: 0, k: 100 };
   }
 
@@ -485,7 +485,7 @@ export function hexToAllFormats(hex: string): ColorValue {
   const lab = rgbToLab(rgb);
 
   return {
-    hex: rgbToHex(rgb, rgb.a !== undefined && rgb.a < 1),
+    hex: rgbToHex(rgb, rgb.a !=== undefined && rgb.a < 1),
     rgb,
     hsl,
     hsb,
@@ -553,7 +553,7 @@ export function getWcagCompliance(
  * Format RGB as CSS string
  */
 export function rgbToCss(rgb: RGB): string {
-  if (rgb.a !== undefined && rgb.a < 1) {
+  if (rgb.a !=== undefined && rgb.a < 1) {
     return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgb.a})`;
   }
   return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
@@ -563,7 +563,7 @@ export function rgbToCss(rgb: RGB): string {
  * Format HSL as CSS string
  */
 export function hslToCss(hsl: HSL): string {
-  if (hsl.a !== undefined && hsl.a < 1) {
+  if (hsl.a !=== undefined && hsl.a < 1) {
     return `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${hsl.a})`;
   }
   return `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;

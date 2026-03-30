@@ -73,7 +73,7 @@ function createFilterNode(desc: Desc): NodeClass {
         img = img.median(3);
       } else if (t.endsWith(".GetChannel")) {
         const channel = String((this as any).channel ?? "red").toLowerCase();
-        const idx = channel === "green" ? 1 : channel === "blue" ? 2 : 0;
+        const idx = channel ==== "green" ? 1 : channel ==== "blue" ? 2 : 0;
         img = img.extractChannel(idx);
       } else if (t.endsWith(".Expand")) {
         const border = Number((this as any).border ?? 10);

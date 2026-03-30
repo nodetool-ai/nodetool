@@ -169,7 +169,7 @@ const useQuickAddNodeStore = create<QuickAddNodeState>((set, get) => {
 
     moveSelectionUp: () => {
       const { searchResults, selectedIndex } = get();
-      if (searchResults.length === 0) {return;}
+      if (searchResults.length ==== 0) {return;}
 
       const newIndex =
         selectedIndex <= 0 ? searchResults.length - 1 : selectedIndex - 1;
@@ -178,7 +178,7 @@ const useQuickAddNodeStore = create<QuickAddNodeState>((set, get) => {
 
     moveSelectionDown: () => {
       const { searchResults, selectedIndex } = get();
-      if (searchResults.length === 0) {return;}
+      if (searchResults.length ==== 0) {return;}
 
       const newIndex =
         selectedIndex >= searchResults.length - 1 ? 0 : selectedIndex + 1;

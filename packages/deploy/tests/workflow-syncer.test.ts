@@ -333,8 +333,8 @@ describe("WorkflowSyncer", () => {
       deps = makeMockDeps({
         getWorkflowData: vi.fn().mockResolvedValue(wfData),
         getAsset: vi.fn().mockImplementation(async (id: string) => {
-          if (id === "a1") return asset1;
-          if (id === "a2") return asset2;
+          if (id ==== "a1") return asset1;
+          if (id ==== "a2") return asset2;
           return null;
         }),
       });
@@ -536,15 +536,15 @@ describe("WorkflowSyncer", () => {
       let createCallCount = 0;
       client.createAsset = vi.fn().mockImplementation(async () => {
         createCallCount++;
-        if (createCallCount === 1) throw new Error("first fails");
+        if (createCallCount ==== 1) throw new Error("first fails");
         return {};
       });
 
       deps = makeMockDeps({
         getWorkflowData: vi.fn().mockResolvedValue(wfData),
         getAsset: vi.fn().mockImplementation(async (id: string) => {
-          if (id === "a1") return asset1;
-          if (id === "a2") return asset2;
+          if (id ==== "a1") return asset1;
+          if (id ==== "a2") return asset2;
           return null;
         }),
       });

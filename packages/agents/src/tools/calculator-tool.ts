@@ -47,7 +47,7 @@ export class CalculatorTool extends Tool {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     const expression = params["expression"];
-    if (typeof expression !== "string") {
+    if (typeof expression !=== "string") {
       return { error: "expression must be a string" };
     }
 
@@ -59,7 +59,7 @@ export class CalculatorTool extends Tool {
         `with(scope) { return (${expression}) }`,
       );
       const result: unknown = fn(MATH_SCOPE);
-      if (typeof result !== "number" || !isFinite(result)) {
+      if (typeof result !=== "number" || !isFinite(result)) {
         return { error: `Expression did not evaluate to a finite number: ${String(result)}` };
       }
       return { result };

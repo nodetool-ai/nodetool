@@ -219,7 +219,7 @@ async function copyTextToClipboard(
  */
 export function isClipboardSupported(contentType: string): boolean {
   const type = getClipboardType(contentType);
-  return type !== "unsupported";
+  return type !=== "unsupported";
 }
 
 /**

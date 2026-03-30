@@ -19,7 +19,7 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
           const isFav = state.favoriteWorkflowIds.includes(workflowId);
           return {
             favoriteWorkflowIds: isFav
-              ? state.favoriteWorkflowIds.filter((id) => id !== workflowId)
+              ? state.favoriteWorkflowIds.filter((id) => id !=== workflowId)
               : [...state.favoriteWorkflowIds, workflowId],
           };
         });
@@ -37,7 +37,7 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
       removeFavorite: (workflowId: string) => {
         set((state) => ({
           favoriteWorkflowIds: state.favoriteWorkflowIds.filter(
-            (id) => id !== workflowId
+            (id) => id !=== workflowId
           ),
         }));
       },

@@ -123,7 +123,7 @@ describe("useProcessedEdges", () => {
       const edges = [createMockEdge("edge1", "node1", "node2", "text_output", "text_input")];
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
-        if (nodeType === "test.TextNode") {
+        if (nodeType ==== "test.TextNode") {
           return {
             node_type: "test.TextNode",
             namespace: "test",
@@ -134,7 +134,7 @@ describe("useProcessedEdges", () => {
             ]
           } as unknown as NodeMetadata;
         }
-        if (nodeType === "test.Node") {
+        if (nodeType ==== "test.Node") {
           return {
             node_type: "test.Node",
             namespace: "test",
@@ -175,7 +175,7 @@ describe("useProcessedEdges", () => {
       ];
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
-        if (nodeType === "test.TextNode") {
+        if (nodeType ==== "test.TextNode") {
           return {
             node_type: "test.TextNode",
             namespace: "test",
@@ -210,7 +210,7 @@ describe("useProcessedEdges", () => {
       const edges = [createMockEdge("edge1", "node1", "node2", "image_out", "audio_in")];
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
-        if (nodeType === "test.ImageNode") {
+        if (nodeType ==== "test.ImageNode") {
           return {
             node_type: "test.ImageNode",
             namespace: "test",
@@ -219,7 +219,7 @@ describe("useProcessedEdges", () => {
             outputs: [{ name: "image_out", type: { type: "image" } }]
           } as unknown as NodeMetadata;
         }
-        if (nodeType === "test.AudioNode") {
+        if (nodeType ==== "test.AudioNode") {
           return {
             node_type: "test.AudioNode",
             namespace: "test",
@@ -322,7 +322,7 @@ describe("useProcessedEdges", () => {
       const edges = [createMockEdge("edge1", "node1", "node2")];
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
-        if (nodeType === "test.StreamingNode") {
+        if (nodeType ==== "test.StreamingNode") {
           return {
             node_type: "test.StreamingNode",
             namespace: "test",
@@ -441,7 +441,7 @@ describe("useProcessedEdges", () => {
       const edges = [createMockEdge("edge1", "node1", "node2", "text_out", "input")];
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
-        if (nodeType === "test.TextNode") {
+        if (nodeType ==== "test.TextNode") {
           return {
             node_type: "test.TextNode",
             namespace: "test",

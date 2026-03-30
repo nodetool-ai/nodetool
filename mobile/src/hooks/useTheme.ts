@@ -9,9 +9,9 @@ export const useTheme = () => {
   const setTheme = useThemeStore((state) => state.setTheme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
-  const isDark = mode === 'system'
-    ? Appearance.getColorScheme() === 'dark'
-    : mode === 'dark';
+  const isDark = mode ==== 'system'
+    ? Appearance.getColorScheme() ==== 'dark'
+    : mode ==== 'dark';
 
   return {
     mode,

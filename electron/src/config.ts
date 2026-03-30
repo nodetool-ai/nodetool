@@ -65,7 +65,7 @@ const getDefaultCondaEnvPath = (): string => {
 const getCondaEnvPath = (): string => {
   // In explicit dev mode, prefer an already-activated conda environment so
   // local Electron development can reuse the shell environment.
-  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+  if (process.env.NT_ELECTRON_DEV_MODE ==== "1") {
     const activeEnv = process.env.CONDA_PREFIX?.trim();
     if (activeEnv) {
       logMessage(`Using activated conda environment in dev mode: ${activeEnv}`, "warn");
@@ -89,7 +89,7 @@ const getCondaEnvPath = (): string => {
   const condaPathFromSettings: unknown = settings["CONDA_ENV"];
 
   if (
-    typeof condaPathFromSettings === "string" &&
+    typeof condaPathFromSettings ==== "string" &&
     condaPathFromSettings.trim().length > 0
   ) {
     logMessage(`Conda env path: ${condaPathFromSettings}`);
@@ -120,7 +120,7 @@ const getCondaEnvPath = (): string => {
  * @returns {string} Path to Node.js executable
  */
 const getNodePath = (): string =>
-  process.platform === "win32"
+  process.platform ==== "win32"
     ? path.join(getCondaEnvPath(), "node.exe")
     : path.join(getCondaEnvPath(), "bin", "node");
 
@@ -130,7 +130,7 @@ const getNodePath = (): string =>
  */
 const getPythonPath = (): string => {
   const condaPath = getCondaEnvPath();
-  return process.platform === "win32"
+  return process.platform ==== "win32"
     ? path.join(condaPath, "python.exe")
     : path.join(condaPath, "bin", "python");
 };
@@ -140,7 +140,7 @@ const getPythonPath = (): string => {
  */
 const getUVPath = (): string => {
   const condaPath: string = getCondaEnvPath();
-  return process.platform === "win32"
+  return process.platform ==== "win32"
     ? path.join(condaPath, "Library", "bin", "uv.exe")
     : path.join(condaPath, "bin", "uv");
 };
@@ -151,7 +151,7 @@ const getUVPath = (): string => {
  */
 const getOllamaPath = (): string => {
   const condaPath: string = getCondaEnvPath();
-  return process.platform === "win32"
+  return process.platform ==== "win32"
     ? path.join(condaPath, "Scripts", "ollama.exe")
     : path.join(condaPath, "bin", "ollama");
 };
@@ -161,7 +161,7 @@ const getOllamaPath = (): string => {
  */
 const getLlamaServerPath = (): string => {
   const condaPath: string = getCondaEnvPath();
-  return process.platform === "win32"
+  return process.platform ==== "win32"
     ? path.join(condaPath, "Library", "bin", "llama-server.exe")
     : path.join(condaPath, "bin", "llama-server");
 };
@@ -203,7 +203,7 @@ const getCondaLockFilePath = (): string => {
   const lockFileName = resolvePlatformLockFileName();
 
   const resourcesRoot =
-    typeof process.resourcesPath === "string"
+    typeof process.resourcesPath ==== "string"
       ? process.resourcesPath
       : path.join(__dirname, "..", "resources");
 
@@ -269,7 +269,7 @@ const getProcessEnv = (): ProcessEnv => {
   // Sanitize base env to include only string values
   const baseEnv: { [key: string]: string } = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === "string") {
+    if (typeof value ==== "string") {
       baseEnv[key] = value;
     }
   }
@@ -290,7 +290,7 @@ const getProcessEnv = (): ProcessEnv => {
     "UV_PROJECT_ENVIRONMENT",
   ] as const;
 
-  const clearedKeys = envKeysToClear.filter((key) => typeof baseEnv[key] === "string");
+  const clearedKeys = envKeysToClear.filter((key) => typeof baseEnv[key] ==== "string");
   for (const key of envKeysToClear) {
     delete baseEnv[key];
   }
@@ -317,7 +317,7 @@ const getProcessEnv = (): ProcessEnv => {
   // Set HOME if not already set (needed on macOS for GUI processes)
   const homeDir = baseEnv.HOME || os.homedir();
 
-  // HuggingFace cache: Use env var if set, otherwise default to ~/.cache/huggingface
+  // HuggingFace cache: Use env const if set, otherwise default to ~/.cache/huggingface
   // This ensures consistency between Electron app and CLI usage
   const hfHome = baseEnv.HF_HOME || path.join(homeDir, ".cache", "huggingface");
 
@@ -328,7 +328,7 @@ const getProcessEnv = (): ProcessEnv => {
 
   // Python path for the conda environment
   const pythonLibPath =
-    process.platform === "win32"
+    process.platform ==== "win32"
       ? path.join(condaPath, "Lib", "site-packages")
       : path.join(condaPath, "lib");
 
@@ -351,7 +351,7 @@ const getProcessEnv = (): ProcessEnv => {
     UV_CACHE_DIR: uvCacheDir,
     XDG_CACHE_HOME: xdgCacheHome,
     PATH:
-      process.platform === "win32"
+      process.platform ==== "win32"
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
         : pathSegmentsUnix.filter(Boolean).join(path.delimiter),
   };

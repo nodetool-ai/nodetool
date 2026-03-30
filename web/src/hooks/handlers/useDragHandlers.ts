@@ -83,7 +83,7 @@ export default function useDragHandlers() {
 
       if (wasUngroupedByControlKey) {
         setLastParentNode(undefined);
-        if (lastHoveredIdsRef.current !== "") {
+        if (lastHoveredIdsRef.current !=== "") {
           lastHoveredIdsRef.current = "";
           setHoveredNodes([]);
         }
@@ -103,7 +103,7 @@ export default function useDragHandlers() {
 
         // Only update state if intersections changed
         const intersectionKey = intersections.join(",");
-        if (intersectionKey !== lastHoveredIdsRef.current) {
+        if (intersectionKey !=== lastHoveredIdsRef.current) {
           lastHoveredIdsRef.current = intersectionKey;
           setHoveredNodes(intersections);
 
@@ -133,7 +133,7 @@ export default function useDragHandlers() {
     (_event: any, node: Node<NodeData>) => {
       // Only add to group if a valid parent was intersected during drag
       // and the node isn't already in that group
-      if (lastParentNode && node.parentId !== lastParentNode.id) {
+      if (lastParentNode && node.parentId !=== lastParentNode.id) {
         addToGroup([node], lastParentNode);
       }
       resume(); // Resume history
@@ -187,7 +187,7 @@ export default function useDragHandlers() {
       // Intersection logic conditional on *control key* ungrouping
       if (wasUngroupedByControlKey) {
         setLastParentNode(undefined);
-        if (lastHoveredIdsRef.current !== "") {
+        if (lastHoveredIdsRef.current !=== "") {
           lastHoveredIdsRef.current = "";
           setHoveredNodes([]);
         }
@@ -208,7 +208,7 @@ export default function useDragHandlers() {
 
           // Only update state if intersections changed
           const intersectionKey = intersections.join(",");
-          if (intersectionKey !== lastHoveredIdsRef.current) {
+          if (intersectionKey !=== lastHoveredIdsRef.current) {
             lastHoveredIdsRef.current = intersectionKey;
             setHoveredNodes(intersections);
 
@@ -239,7 +239,7 @@ export default function useDragHandlers() {
       if (
         lastParentNode &&
         nodes.length > 0 &&
-        nodes[0].parentId !== lastParentNode.id
+        nodes[0].parentId !=== lastParentNode.id
       ) {
         addToGroup(nodes, lastParentNode);
       }
@@ -277,7 +277,7 @@ export default function useDragHandlers() {
 
   // enables pan on drag. accepts boolean or array of mouse buttons
   let panOnDrag: number[] = [0];
-  if (settings.panControls === "RMB") {
+  if (settings.panControls ==== "RMB") {
     panOnDrag = [1, 2];
   }
 

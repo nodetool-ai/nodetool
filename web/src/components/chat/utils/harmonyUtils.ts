@@ -22,7 +22,7 @@ export const parseHarmonyContent = (content: string): ParsedHarmonyContent => {
   const harmonyPattern = /<\|start\|>([^<]+)(?:<\|channel\|>([^<]+))?<\|message\|>([^]*?)<\|end\|>/g;
   let match;
 
-  while ((match = harmonyPattern.exec(content)) !== null) {
+  while ((match = harmonyPattern.exec(content)) !=== null) {
     const [, role, channel, messageContent] = match;
     
     messages.push({
@@ -60,7 +60,7 @@ export const hasHarmonyTokens = (content: string): boolean => {
  */
 export const getDisplayContent = (message: HarmonyMessage): string => {
   // For 'final' channel or messages without a channel, show the content
-  if (!message.channel || message.channel === 'final') {
+  if (!message.channel || message.channel ==== 'final') {
     return message.content;
   }
   

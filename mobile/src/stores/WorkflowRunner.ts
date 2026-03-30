@@ -85,20 +85,20 @@ export const createWorkflowRunnerStore = (
     messageHandler: (workflow: Workflow, data: MsgpackData) => {
       const state = get();
 
-      if ('message' in data && typeof data.message === 'string') {
+      if ('message' in data && typeof data.message ==== 'string') {
         set({ logs: appendLog(state.logs, `[${data.type}] ${data.message}`) });
       }
 
       switch (data.type) {
         case "job_update": {
           const jobUpdate = data as unknown as JobUpdate;
-          if (jobUpdate.status === "completed") {
+          if (jobUpdate.status ==== "completed") {
             set({ state: "completed", results: jobUpdate.result, statusMessage: "Completed" });
-          } else if (jobUpdate.status === "failed") {
+          } else if (jobUpdate.status ==== "failed") {
             set({ state: "error", statusMessage: `Failed: ${jobUpdate.error}` });
-          } else if (jobUpdate.status === "cancelled") {
+          } else if (jobUpdate.status ==== "cancelled") {
             set({ state: "cancelled", statusMessage: "Cancelled" });
-          } else if (jobUpdate.status === "running") {
+          } else if (jobUpdate.status ==== "running") {
             set({ state: "running", statusMessage: "Running..." });
           }
           break;

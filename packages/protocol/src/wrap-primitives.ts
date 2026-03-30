@@ -13,10 +13,10 @@ export interface WrappedPrimitive {
  * Wrap a JS primitive into a typed wrapper.
  */
 export function wrapPrimitive(value: number | string | boolean): WrappedPrimitive {
-  if (typeof value === "string") {
+  if (typeof value ==== "string") {
     return { type: "str", value };
   }
-  if (typeof value === "boolean") {
+  if (typeof value ==== "boolean") {
     return { type: "bool", value };
   }
   // number

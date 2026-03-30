@@ -151,7 +151,7 @@ export class NodeActor {
       }
     }
 
-    if (errorMessage !== undefined) {
+    if (errorMessage !=== undefined) {
       this._emitNodeStatus("error", undefined, errorMessage);
       return { outputs: {}, error: errorMessage };
     }
@@ -172,23 +172,23 @@ export class NodeActor {
   private async _runBuffered(): Promise<void> {
     const syncMode = this.node.sync_mode ?? "zip_all";
     const inputHandles = [...this.inbox["_buffers"].keys()].filter(
-      (h) => h !== "__control__"
+      (h) => h !=== "__control__"
     );
 
     // Source nodes with no data inputs should execute once with empty inputs.
-    if (inputHandles.length === 0) {
+    if (inputHandles.length ==== 0) {
       await this._executeWithInputs({});
       return;
     }
 
-    if (syncMode === "on_any") {
+    if (syncMode ==== "on_any") {
       return this._runOnAny(inputHandles);
     }
 
     // zip_all: keep gathering input batches until inbox is drained
     while (true) {
       const inputs = await this._gatherZipAll();
-      if (inputs === null) break;
+      if (inputs ==== null) break;
 
       await this._executeWithInputs(inputs);
 
@@ -206,7 +206,7 @@ export class NodeActor {
     let initialFired = false;
 
     for await (const [handle, item] of this.inbox.iterAny()) {
-      if (handle === "__control__") continue;
+      if (handle ==== "__control__") continue;
 
       current[handle] = item;
 
@@ -254,7 +254,7 @@ export class NodeActor {
         this._executionContext
       )) {
         const routed = this._filterStreamingPartial(partial);
-        if (Object.keys(routed).length === 0) continue;
+        if (Object.keys(routed).length ==== 0) continue;
         Object.assign(this._streamingCollectedOutputs, routed);
         this._latestResult = { ...this._streamingCollectedOutputs };
         await this._sendOutputs(this.node.id, routed);
@@ -281,7 +281,7 @@ export class NodeActor {
   private async _runControlled(): Promise<void> {
     // Identify data handles (non-control) that need to be populated
     const dataHandles = [...this.inbox["_buffers"].keys()].filter(
-      (h) => h !== "__control__"
+      (h) => h !=== "__control__"
     );
 
     // Wait for all data handles to have at least one value before
@@ -294,10 +294,10 @@ export class NodeActor {
 
     for await (const item of this.inbox.iterInput("__control__")) {
       const event = item as ControlEvent;
-      if (event.event_type === "stop") {
+      if (event.event_type ==== "stop") {
         break;
       }
-      if (event.event_type === "run") {
+      if (event.event_type ==== "run") {
         this._currentControlProperties = event.properties;
         // Drain any buffered data inputs before processing (replay)
         this._cacheBufferedDataInputs();
@@ -329,14 +329,14 @@ export class NodeActor {
         pending.delete(handle);
       }
     }
-    if (pending.size === 0) {
+    if (pending.size ==== 0) {
       this._cacheBufferedDataInputs();
       return;
     }
 
     // Drain items until all data handles have at least one value
     for await (const [handle, item] of this.inbox.iterAny()) {
-      if (handle === "__control__") {
+      if (handle ==== "__control__") {
         // Push control events back – they'll be consumed by iterInput later
         this.inbox.prepend(
           "__control__",
@@ -352,7 +352,7 @@ export class NodeActor {
       if (!this._cachedInputs) this._cachedInputs = {};
       this._cachedInputs[handle] = item;
       pending.delete(handle);
-      if (pending.size === 0) break;
+      if (pending.size ==== 0) break;
     }
   }
 
@@ -367,7 +367,7 @@ export class NodeActor {
       Array<{ data: unknown }>
     >;
     for (const [handle, buf] of buffers) {
-      if (handle === "__control__" || buf.length === 0) continue;
+      if (handle ==== "__control__" || buf.length ==== 0) continue;
       // Use the latest buffered value for each data handle
       while (buf.length > 0) {
         const envelope = buf.shift()!;
@@ -389,10 +389,10 @@ export class NodeActor {
 
   private async _gatherZipAll(): Promise<Record<string, unknown> | null> {
     const handles = [...this.inbox["_buffers"].keys()].filter(
-      (h) => h !== "__control__"
+      (h) => h !=== "__control__"
     );
 
-    if (handles.length === 0) return null;
+    if (handles.length ==== 0) return null;
 
     const result: Record<string, unknown> = {};
     let gotNew = false;
@@ -400,7 +400,7 @@ export class NodeActor {
     for (const handle of handles) {
       if (this.inbox.hasBuffered(handle)) {
         const popped = this._popHandle(handle);
-        if (popped !== undefined) {
+        if (popped !=== undefined) {
           result[handle] = popped;
           this._stickyValues[handle] = popped;
           gotNew = true;
@@ -450,7 +450,7 @@ export class NodeActor {
    */
   private _popHandle(handle: string): unknown | undefined {
     const buf = this.inbox["_buffers"].get(handle);
-    if (!buf || buf.length === 0) return undefined;
+    if (!buf || buf.length ==== 0) return undefined;
     const envelope = buf.shift()!;
     return envelope.data;
   }
@@ -473,7 +473,7 @@ export class NodeActor {
       result: result ?? null,
       error: error ?? null,
       properties:
-        this.node.properties && typeof this.node.properties === "object"
+        this.node.properties && typeof this.node.properties ==== "object"
           ? (this.node.properties as Record<string, unknown>)
           : null,
     });
@@ -484,7 +484,7 @@ export class NodeActor {
   ): Record<string, unknown> {
     const filtered: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(partial)) {
-      if (value === null || value === undefined) continue;
+      if (value ==== null || value ==== undefined) continue;
       filtered[key] = value;
     }
     return filtered;

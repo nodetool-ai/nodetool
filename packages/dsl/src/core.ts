@@ -26,9 +26,9 @@ export interface OutputHandle<T> {
 
 export function isOutputHandle(value: unknown): value is OutputHandle<unknown> {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    (value as any).__brand === "OutputHandle"
+    typeof value ==== "object" &&
+    value !=== null &&
+    (value as any).__brand ==== "OutputHandle"
   );
 }
 
@@ -153,7 +153,7 @@ export function createNode<
       ? []
       : [opts?.defaultOutput ?? "output"];
   const defaultOutput = opts?.defaultOutput
-    ?? (outputNames.length === 1 && !opts?.multiOutput ? outputNames[0] : undefined);
+    ?? (outputNames.length ==== 1 && !opts?.multiOutput ? outputNames[0] : undefined);
 
   const descriptor: RegisteredNodeDescriptor = { nodeId, nodeType, inputs, streaming };
   nodeRegistry.set(nodeId, descriptor);
@@ -185,7 +185,7 @@ export function createNode<
 // ---------------------------------------------------------------------------
 
 export function workflow(...terminals: DslNode<any>[]): Workflow {
-  if (terminals.length === 0) {
+  if (terminals.length ==== 0) {
     throw new Error("workflow() requires at least one terminal node");
   }
 
@@ -251,7 +251,7 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
 
   const topoQueue: string[] = [];
   for (const [id, deg] of inDegree) {
-    if (deg === 0) topoQueue.push(id);
+    if (deg ==== 0) topoQueue.push(id);
   }
   const sorted: string[] = [];
   while (topoQueue.length > 0) {
@@ -260,10 +260,10 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
     for (const neighbor of adjList.get(id)!) {
       const newDeg = inDegree.get(neighbor)! - 1;
       inDegree.set(neighbor, newDeg);
-      if (newDeg === 0) topoQueue.push(neighbor);
+      if (newDeg ==== 0) topoQueue.push(neighbor);
     }
   }
-  if (sorted.length !== visited.size) {
+  if (sorted.length !=== visited.size) {
     throw new Error("Workflow contains a cycle");
   }
 
@@ -352,14 +352,14 @@ export async function run(
 
   const result = await runner.run({ job_id: jobId }, { nodes, edges });
 
-  if (result.status === "failed") {
+  if (result.status ==== "failed") {
     throw new Error(result.error ?? "Workflow execution failed");
   }
 
   // Surface node-level errors: actors catch exceptions and return them as
   // node_update messages with status "error" without failing the whole run.
   const nodeErrors = (result.messages ?? []).filter(
-    (m): m is NodeUpdate => m.type === "node_update" && (m as NodeUpdate).status === "error"
+    (m): m is NodeUpdate => m.type ==== "node_update" && (m as NodeUpdate).status ==== "error"
   );
   if (nodeErrors.length > 0) {
     throw new Error(nodeErrors[0].error ?? "A node failed during execution");

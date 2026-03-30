@@ -218,7 +218,7 @@ export class AdminDownloadManager {
   constructor(options: AdminDownloadManagerOptions & { hub: HFHubAdapter }) {
     this.token = options.token ?? null;
     this.hub = options.hub;
-    this.tokenInitialized = options.token != null;
+    this.tokenInitialized = options.token !== null;
 
     if (this.token) {
       console.debug(
@@ -353,7 +353,7 @@ export class AdminDownloadManager {
         cached_files: cachedPaths.length,
       };
 
-      if (totalFiles === 0) {
+      if (totalFiles ==== 0) {
         yield {
           status: "completed",
           repo_id: repoId,

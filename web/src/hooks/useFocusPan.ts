@@ -31,13 +31,13 @@ export const useFocusPan = (nodeId: string) => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
+      if (e.key ==== "Tab") {
         wasTabPressedRef.current = true;
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
+      if (e.key ==== "Tab") {
         wasTabPressedRef.current = false;
       }
     };

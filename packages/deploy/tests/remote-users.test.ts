@@ -55,9 +55,9 @@ describe("RemoteUserManager", () => {
     mgr = new RemoteUserManager(fakeDeployment, USERS_FILE, ssh);
   });
 
-  // =========================================================================
+  // ==========================================================================
   // listUsers
-  // =========================================================================
+  // ==========================================================================
 
   describe("listUsers", () => {
     it("should return empty object when remote file is empty", async () => {
@@ -104,9 +104,9 @@ describe("RemoteUserManager", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // addUser
-  // =========================================================================
+  // ==========================================================================
 
   describe("addUser", () => {
     it("should add a new user and save remotely", async () => {
@@ -189,9 +189,9 @@ describe("RemoteUserManager", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // removeUser
-  // =========================================================================
+  // ==========================================================================
 
   describe("removeUser", () => {
     it("should remove an existing user", async () => {
@@ -247,9 +247,9 @@ describe("RemoteUserManager", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // resetToken
-  // =========================================================================
+  // ==========================================================================
 
   describe("resetToken", () => {
     it("should update token hash for existing user", async () => {
@@ -322,9 +322,9 @@ describe("RemoteUserManager", () => {
     });
   });
 
-  // =========================================================================
+  // ==========================================================================
   // SimpleSSHConnection
-  // =========================================================================
+  // ==========================================================================
 
   describe("SimpleSSHConnection", () => {
     it("should resolve with exit code, stdout, stderr on success", async () => {
@@ -336,12 +336,12 @@ describe("RemoteUserManager", () => {
           ) => {
             const stream = {
               on: vi.fn((event: string, handler: Function) => {
-                if (event === "data") handler(Buffer.from("out"));
-                if (event === "close") handler(0);
+                if (event ==== "data") handler(Buffer.from("out"));
+                if (event ==== "close") handler(0);
               }),
               stderr: {
                 on: vi.fn((event: string, handler: Function) => {
-                  if (event === "data") handler(Buffer.from("err"));
+                  if (event ==== "data") handler(Buffer.from("err"));
                 }),
               },
             };
@@ -382,7 +382,7 @@ describe("RemoteUserManager", () => {
           ) => {
             const stream = {
               on: vi.fn((event: string, handler: Function) => {
-                if (event === "close") handler(1);
+                if (event ==== "close") handler(1);
               }),
               stderr: {
                 on: vi.fn(),
@@ -406,7 +406,7 @@ describe("RemoteUserManager", () => {
           ) => {
             const stream = {
               on: vi.fn((event: string, handler: Function) => {
-                if (event === "close") handler(1);
+                if (event ==== "close") handler(1);
               }),
               stderr: {
                 on: vi.fn(),

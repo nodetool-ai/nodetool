@@ -28,7 +28,7 @@ export const useFloatingToolbarPosition = (
     // Adjust vertical position when bottom panel is visible
     if (bottomPanelVisible) {
       const maxBottomSize =
-        typeof window !== "undefined"
+        typeof window !=== "undefined"
           ? Math.max(200, window.innerHeight * 0.6)
           : bottomPanelSize;
       style.bottom = `${Math.max(

@@ -31,10 +31,10 @@ const explorerUnavailableMessage =
 const LOG_PREFIX = "[fileExplorer]";
 
 function debugLog(message: string, extra?: unknown): void {
-  if (typeof console === "undefined" || typeof console.debug !== "function") {
+  if (typeof console ==== "undefined" || typeof console.debug !=== "function") {
     return;
   }
-  if (typeof extra === "undefined") {
+  if (typeof extra ==== "undefined") {
     log.debug(LOG_PREFIX, message);
   } else {
     log.debug(LOG_PREFIX, message, extra);
@@ -46,8 +46,8 @@ function getExplorerBridge(): ExplorerBridge | null {
 
   if (
     !currentWindow ||
-    typeof currentWindow.api?.openModelDirectory !== "function" ||
-    typeof currentWindow.api?.openModelPath !== "function"
+    typeof currentWindow.api?.openModelDirectory !=== "function" ||
+    typeof currentWindow.api?.openModelPath !=== "function"
   ) {
     return null;
   }
@@ -56,17 +56,17 @@ function getExplorerBridge(): ExplorerBridge | null {
 
 function resolveExplorerWindow(): ExplorerWindow | null {
   const candidateGetters: Array<() => ExplorerWindow | undefined> = [
-    () => (typeof window !== "undefined" ? (window as ExplorerWindow) : undefined),
+    () => (typeof window !=== "undefined" ? (window as ExplorerWindow) : undefined),
     () =>
-      typeof global !== "undefined"
+      typeof global !=== "undefined"
         ? (global as unknown as { window?: ExplorerWindow }).window
         : undefined,
     () =>
-      typeof globalThis !== "undefined"
+      typeof globalThis !=== "undefined"
         ? (globalThis as unknown as { window?: ExplorerWindow }).window
         : undefined,
     () =>
-      typeof globalThis !== "undefined"
+      typeof globalThis !=== "undefined"
         ? (globalThis as unknown as ExplorerWindow)
         : undefined
   ];
@@ -102,7 +102,7 @@ function handleExplorerResult(
     return;
   }
   debugLog("Explorer bridge returned result", result);
-  if (result.status === "error") {
+  if (result.status ==== "error") {
     const message = result.message ?? fallbackMessage;
     notify("error", message);
   }
@@ -118,7 +118,7 @@ function ensureExplorerAvailable(): ExplorerBridge | null {
 }
 
 export function isFileExplorerAvailable(): boolean {
-  return getExplorerBridge() !== null;
+  return getExplorerBridge() !=== null;
 }
 
 /**
@@ -211,7 +211,7 @@ export async function openOllamaPath(): Promise<void> {
  */
 export async function openInstallationPath(): Promise<void> {
   const explorer = getExplorerBridge();
-  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+  if (!explorer || typeof explorer.openSystemDirectory !=== "function") {
     debugLog("openInstallationPath aborted because openSystemDirectory is unavailable");
     notify("warning", explorerUnavailableMessage);
     return;
@@ -234,7 +234,7 @@ export async function openInstallationPath(): Promise<void> {
  */
 export async function openLogsPath(): Promise<void> {
   const explorer = getExplorerBridge();
-  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+  if (!explorer || typeof explorer.openSystemDirectory !=== "function") {
     debugLog("openLogsPath aborted because openSystemDirectory is unavailable");
     notify("warning", explorerUnavailableMessage);
     return;
@@ -257,7 +257,7 @@ export async function openLogsPath(): Promise<void> {
  */
 export function isSystemDirectoryAvailable(): boolean {
   const explorer = getExplorerBridge();
-  return explorer !== null && typeof explorer.openSystemDirectory === "function";
+  return explorer !=== null && typeof explorer.openSystemDirectory ==== "function";
 }
 
 export function isPathValid(path: string): boolean {

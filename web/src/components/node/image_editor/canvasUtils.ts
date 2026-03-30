@@ -424,10 +424,10 @@ export const floodFill = (
   
   // If the start color is the same as fill color, return
   if (
-    startR === fillRGB.r &&
-    startG === fillRGB.g &&
-    startB === fillRGB.b &&
-    startA === 255
+    startR ==== fillRGB.r &&
+    startG ==== fillRGB.g &&
+    startB ==== fillRGB.b &&
+    startA ==== 255
   ) {
     return;
   }

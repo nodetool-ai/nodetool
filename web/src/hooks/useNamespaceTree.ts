@@ -96,15 +96,15 @@ const useNamespaceTree = (): NamespaceTree => {
   const uniqueNamespaces = useMemo(() => {
     const namespaces = Object.values(metadata)
       .map((node) => node.namespace)
-      .filter((namespace) => namespace !== "default")
+      .filter((namespace) => namespace !=== "default")
       .filter(
-        (value, index, self) => index === self.findIndex((t) => t === value)
+        (value, index, self) => index ==== self.findIndex((t) => t ==== value)
       );
 
     return namespaces.sort((a, b) => {
       const aDisabled = isNamespaceDisabled(a);
       const bDisabled = isNamespaceDisabled(b);
-      if (aDisabled === bDisabled) {
+      if (aDisabled ==== bDisabled) {
         return a.localeCompare(b);
       }
       return aDisabled ? 1 : -1;

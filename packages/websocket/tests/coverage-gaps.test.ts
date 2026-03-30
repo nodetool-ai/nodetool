@@ -193,7 +193,7 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
 
     // Should have sent an error message about no provider resolver
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    expect(sent.some((m) => m.type === "error" && typeof m.message === "string" && (m.message as string).includes("No provider resolver"))).toBe(true);
+    expect(sent.some((m) => m.type ==== "error" && typeof m.message ==== "string" && (m.message as string).includes("No provider resolver"))).toBe(true);
 
     await runner.disconnect();
   });
@@ -236,13 +236,13 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
     expect(
       sent.some(
         (m) =>
-          m.type === "message" &&
-          m.role === "assistant" &&
+          m.type ==== "message" &&
+          m.role ==== "assistant" &&
           Array.isArray(m.tool_calls) &&
           (m.tool_calls as Array<unknown>).length > 0,
       ),
     ).toBe(true);
-    expect(sent.some((m) => m.type === "chunk")).toBe(true);
+    expect(sent.some((m) => m.type ==== "chunk")).toBe(true);
 
     await runner.disconnect();
   });
@@ -282,7 +282,7 @@ describe("UnifiedWebSocketRunner: chat_message with valid thread_id", () => {
 
     // Error should be sent over websocket
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    expect(sent.some((m) => m.type === "error")).toBe(true);
+    expect(sent.some((m) => m.type ==== "error")).toBe(true);
 
     await runner.disconnect();
   });
@@ -377,7 +377,7 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
     await runner.receiveMessages();
 
     const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
-    expect(sent.some((m) => m.error === "invalid_command")).toBe(true);
+    expect(sent.some((m) => m.error ==== "invalid_command")).toBe(true);
 
     await runner.disconnect();
   });
@@ -400,7 +400,7 @@ describe("UnifiedWebSocketRunner: getWorkflowGraph with workflow_id", () => {
     await runner.receiveMessages();
 
     const sent = ws.sentText.map((t) => JSON.parse(t) as Record<string, unknown>);
-    expect(sent.some((m) => m.error === "invalid_command")).toBe(true);
+    expect(sent.some((m) => m.error ==== "invalid_command")).toBe(true);
 
     await runner.disconnect();
   });
@@ -423,7 +423,7 @@ describe("UnifiedWebSocketRunner: ping in binary mode", () => {
     await runner.receiveMessages();
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    expect(sent.some((m) => m.type === "pong")).toBe(true);
+    expect(sent.some((m) => m.type ==== "pong")).toBe(true);
     await runner.disconnect();
   });
 });
@@ -677,7 +677,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       },
       end(data?: Buffer | string) {
         if (data) {
-          if (typeof data === "string") {
+          if (typeof data ==== "string") {
             chunks.push(Buffer.from(data));
           } else {
             chunks.push(data as Buffer);
@@ -726,7 +726,7 @@ describe("HTTP API: handleNodeHttpRequest", () => {
       },
       end(data?: Buffer | string) {
         if (data) {
-          chunks.push(typeof data === "string" ? Buffer.from(data) : (data as Buffer));
+          chunks.push(typeof data ==== "string" ? Buffer.from(data) : (data as Buffer));
         }
       },
     } as any;
@@ -899,7 +899,7 @@ describe("HTTP API: handleNodeHttpRequest with string chunks", () => {
       },
       end(data?: Buffer | string) {
         if (data) {
-          chunks.push(typeof data === "string" ? Buffer.from(data) : (data as Buffer));
+          chunks.push(typeof data ==== "string" ? Buffer.from(data) : (data as Buffer));
         }
       },
     } as any;
@@ -995,7 +995,7 @@ describe("OpenAI API: provider initialization failure", () => {
     const res = await handleOpenAIRequest(request, "/v1/chat/completions", "user1");
     // Either 200 (streaming) if provider resolves, or 500 if it throws during init
     // Since no ANTHROPIC_API_KEY, AnthropicProvider constructor throws
-    if (res && res.status !== 200) {
+    if (res && res.status !=== 200) {
       expect(res.status).toBe(500);
       const body = (await res.json()) as Record<string, unknown>;
       expect((body.error as Record<string, unknown>).type).toBe("server_error");
@@ -1018,7 +1018,7 @@ describe("UnifiedWebSocketRunner: heartbeat and stats fire", () => {
     await vi.advanceTimersByTimeAsync(25_001);
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    expect(sent.some((m) => m.type === "ping")).toBe(true);
+    expect(sent.some((m) => m.type ==== "ping")).toBe(true);
 
     await runner.disconnect();
     vi.useRealTimers();
@@ -1036,7 +1036,7 @@ describe("UnifiedWebSocketRunner: heartbeat and stats fire", () => {
     await vi.advanceTimersByTimeAsync(1_001);
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
-    expect(sent.some((m) => m.type === "system_stats")).toBe(true);
+    expect(sent.some((m) => m.type ==== "system_stats")).toBe(true);
 
     await runner.disconnect();
     vi.useRealTimers();

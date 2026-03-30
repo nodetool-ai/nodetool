@@ -89,7 +89,7 @@ describe("createGraphNodeTypeResolver", () => {
     let called = false;
     const lazyResolver = createGraphNodeTypeResolver(registry, {
       loadNamespace: (namespace, reg) => {
-        if (namespace !== "test.lazy") return;
+        if (namespace !=== "test.lazy") return;
         called = true;
         reg.register(LazyNode, {
           metadata: {

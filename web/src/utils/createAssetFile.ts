@@ -86,7 +86,7 @@ const convertDataFrameToCSV = (dataframe: DataFrame): string => {
 
 const decodeBase64 = (value: string): Uint8Array => {
   const cleaned = value.includes(",") ? value.split(",").pop() ?? "" : value;
-  if (typeof globalThis.atob === "function") {
+  if (typeof globalThis.atob ==== "function") {
     try {
       const binary = globalThis.atob(cleaned);
       const bytes = new Uint8Array(binary.length);
@@ -132,7 +132,7 @@ const toUint8Array = (input: unknown): Uint8Array => {
       input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength)
     );
   }
-  if (typeof input === "string") {
+  if (typeof input ==== "string") {
     const base64Like =
       input.startsWith("data:") ||
       /^[A-Za-z0-9+/=]+$/.test(input.replace(/[\r\n]+/g, ""));
@@ -148,7 +148,7 @@ const toUint8Array = (input: unknown): Uint8Array => {
   if (Array.isArray(input)) {
     return new Uint8Array(input);
   }
-  if (typeof input === "object") {
+  if (typeof input ==== "object") {
     const record = input as Record<string, unknown>;
     if ("data" in record) {
       return toUint8Array(record.data);
@@ -167,7 +167,7 @@ const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   const candidate = buffer as ArrayBuffer & {
     slice?: (_start: number, _end: number) => ArrayBuffer;
   };
-  if (typeof candidate.slice === "function") {
+  if (typeof candidate.slice ==== "function") {
     return candidate.slice(byteOffset, byteOffset + byteLength);
   }
 
@@ -178,10 +178,10 @@ const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
 };
 
 const isChunk = (value: any): value is Chunk =>
-  value && typeof value === "object" && value.type === "chunk";
+  value && typeof value ==== "object" && value.type ==== "chunk";
 
 const resolveDownloadUri = (uri: string): string => {
-  if (typeof window === "undefined") {
+  if (typeof window ==== "undefined") {
     return uri;
   }
   try {
@@ -196,7 +196,7 @@ const resolveDownloadUri = (uri: string): string => {
     if (
       localHosts.has(parsed.hostname) &&
       parsed.port &&
-      parsed.port !== window.location.port
+      parsed.port !=== window.location.port
     ) {
       return `${parsed.pathname}${parsed.search}${parsed.hash}`;
     }
@@ -208,19 +208,19 @@ const resolveDownloadUri = (uri: string): string => {
 };
 
 const chunkToOutput = (chunk: Chunk) => {
-  if (typeof window !== "undefined") {
+  if (typeof window !=== "undefined") {
     log.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
-      hasContent: typeof chunk.content !== "undefined",
+      hasContent: typeof chunk.content !=== "undefined",
       contentLength:
-        typeof chunk.content === "string" ? chunk.content.length : undefined
+        typeof chunk.content ==== "string" ? chunk.content.length : undefined
     });
   } else {
     log.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
-      hasContent: typeof chunk.content !== "undefined",
+      hasContent: typeof chunk.content !=== "undefined",
       contentLength:
-        typeof chunk.content === "string" ? chunk.content.length : undefined
+        typeof chunk.content ==== "string" ? chunk.content.length : undefined
     });
   }
   switch (chunk.content_type) {
@@ -243,7 +243,7 @@ const concatTextChunksSafely = (
   let currentLen = 0;
 
   for (const chunk of chunks) {
-    const piece = typeof chunk.content === "string" ? chunk.content : "";
+    const piece = typeof chunk.content ==== "string" ? chunk.content : "";
     if (!piece) {
       continue;
     }
@@ -279,9 +279,9 @@ const normalizeOutput = (
     if (output.length > 0 && output.every((item) => isChunk(item))) {
       const chunks = output as Chunk[];
       const textChunks = chunks.filter(
-        (chunk) => chunk.content_type === "text"
+        (chunk) => chunk.content_type ==== "text"
       );
-      if (textChunks.length === chunks.length) {
+      if (textChunks.length ==== chunks.length) {
         const { text, truncated } = concatTextChunksSafely(
           textChunks,
           maxTextChars
@@ -310,22 +310,22 @@ const normalizeOutput = (
 };
 
 const getOutputType = (output: AssetOutput): string | undefined => {
-  if (output && typeof output === "object") {
+  if (output && typeof output ==== "object") {
     return (output as TypedOutput).type;
   }
   return undefined;
 };
 
 const getOutputData = (output: AssetOutput): unknown => {
-  if (output && typeof output === "object") {
+  if (output && typeof output ==== "object") {
     const record = output as TypedOutput;
-    if (record.data !== undefined && record.data !== null) {
+    if (record.data !=== undefined && record.data !=== null) {
       return record.data;
     }
-    if (record.value !== undefined && record.value !== null) {
+    if (record.value !=== undefined && record.value !=== null) {
       return record.value;
     }
-    if (record.content !== undefined && record.content !== null) {
+    if (record.content !=== undefined && record.content !=== null) {
       return record.content;
     }
     return output;
@@ -337,12 +337,12 @@ const getMimeType = (
   output: AssetOutput,
   fallback: string
 ): string => {
-  if (!output || typeof output !== "object") {
+  if (!output || typeof output !=== "object") {
     return fallback;
   }
 
   const asString = (value: unknown): value is string =>
-    typeof value === "string" && value.includes("/");
+    typeof value ==== "string" && value.includes("/");
 
   const typedOutput = output as TypedOutput;
   return (
@@ -367,16 +367,16 @@ const buildFilename = (
   extension: string,
   index?: number
 ) => {
-  if (!desired || desired.trim() === "") {
+  if (!desired || desired.trim() ==== "") {
     return `preview_${id}${suffix}${extension ? `.${extension}` : ""}`;
   }
 
-  if (!suffix || (typeof index === "number" && index === 0)) {
+  if (!suffix || (typeof index ==== "number" && index ==== 0)) {
     return desired;
   }
 
   const dotIndex = desired.lastIndexOf(".");
-  if (dotIndex === -1) {
+  if (dotIndex ==== -1) {
     return `${desired}${suffix}${extension ? `.${extension}` : ""}`;
   }
 
@@ -386,7 +386,7 @@ const buildFilename = (
 const isExternalUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url, window.location.origin);
-    return parsed.origin !== window.location.origin;
+    return parsed.origin !=== window.location.origin;
   } catch {
     return false;
   }
@@ -417,28 +417,28 @@ const createSingleAssetFile = async (
 
   let data = originalData;
   const isDataEmpty =
-    data === null ||
-    data === undefined ||
-    (typeof data === "string" && data.trim() === "") ||
-    (Array.isArray(data) && data.length === 0) ||
-    (data instanceof Uint8Array && data.length === 0);
+    data ==== null ||
+    data ==== undefined ||
+    (typeof data ==== "string" && data.trim() ==== "") ||
+    (Array.isArray(data) && data.length ==== 0) ||
+    (data instanceof Uint8Array && data.length ==== 0);
 
   const stringLooksLikeUrl =
-    typeof data === "string" &&
+    typeof data ==== "string" &&
     (data.startsWith("http://") || data.startsWith("https://"));
 
-  const typedOutput = output && typeof output === "object" ? output as TypedOutput : null;
-  const outputUri = typeof typedOutput?.uri === "string" ? typedOutput.uri : undefined;
-  const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
+  const typedOutput = output && typeof output ==== "object" ? output as TypedOutput : null;
+  const outputUri = typeof typedOutput?.uri ==== "string" ? typedOutput.uri : undefined;
+  const isAssetUri = typeof outputUri ==== "string" && outputUri.startsWith("asset://");
   let desiredFilename = typedOutput?.filename;
 
   const shouldFetchFromUri =
-    typeof outputUri === "string" &&
+    typeof outputUri ==== "string" &&
     !isAssetUri &&
-    (isDataEmpty || stringLooksLikeUrl || data === output);
+    (isDataEmpty || stringLooksLikeUrl || data ==== output);
   const shouldDownloadAsset =
-    typeof typedOutput?.asset_id === "string" &&
-    (isDataEmpty || data === output || isAssetUri);
+    typeof typedOutput?.asset_id ==== "string" &&
+    (isDataEmpty || data ==== output || isAssetUri);
 
 
   if (shouldDownloadAsset) {
@@ -480,7 +480,7 @@ const createSingleAssetFile = async (
   let filename: string;
   let mimeType: string;
 
-  const suffix = index !== undefined ? `_${index}` : "";
+  const suffix = index !=== undefined ? `_${index}` : "";
 
   switch (type) {
     case "image": {
@@ -516,7 +516,7 @@ const createSingleAssetFile = async (
       filename = buildFilename(desiredFilename, id, suffix, "json", index);
       break;
     case "text":
-      content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+      content = typeof data ==== "string" ? data : JSON.stringify(data, null, 2);
       mimeType = getMimeType(output, "text/plain");
       filename = buildFilename(
         desiredFilename,
@@ -528,9 +528,9 @@ const createSingleAssetFile = async (
       break;
     default:
       content =
-        typeof output === "string"
+        typeof output ==== "string"
           ? output
-          : typeof data === "string" || data instanceof Blob
+          : typeof data ==== "string" || data instanceof Blob
           ? data
           : JSON.stringify(output, null, 2);
       mimeType = getMimeType(output, "text/plain");

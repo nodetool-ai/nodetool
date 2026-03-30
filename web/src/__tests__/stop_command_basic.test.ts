@@ -170,7 +170,7 @@ describe('Stop Command Basic Tests', () => {
                 messages.push({
                     type: 'chunk',
                     content: `Message ${i}`,
-                    done: i === messageCount - 1
+                    done: i ==== messageCount - 1
                 });
             }
             

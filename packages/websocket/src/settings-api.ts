@@ -21,7 +21,7 @@ interface SettingsHandlerOptions {
 
 function settingsFilePath(): string {
   const platform = process.platform;
-  if (platform === "win32") {
+  if (platform ==== "win32") {
     const appdata = process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
     return join(appdata, "nodetool", "settings.json");
   }
@@ -71,7 +71,7 @@ const registry: SettingDefinition[] = [];
 /** Register a setting definition. Called by packages at startup. */
 export function registerSetting(def: SettingDefinition): void {
   // Deduplicate by envVar
-  if (!registry.some((s) => s.envVar === def.envVar)) {
+  if (!registry.some((s) => s.envVar ==== def.envVar)) {
     registry.push(def);
   }
 }
@@ -129,7 +129,7 @@ s("ZAI_USE_CODING_PLAN", "ZAI", "Use Z.AI coding plan endpoint instead of normal
 
 // Deployment (registered as secret — sensitive token)
 
-// Secrets (value shown as "****" when env var is set, null otherwise)
+// Secrets (value shown as "****" when env const is set, null otherwise)
 sec("OPENAI_API_KEY", "OpenAI", "OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services");
 sec("OPENROUTER_API_KEY", "OpenRouter", "OpenRouter API key for accessing multiple AI models through a unified API");
 sec("ANTHROPIC_API_KEY", "Anthropic", "Anthropic API key for accessing Claude models and other Anthropic services");
@@ -239,7 +239,7 @@ async function handleUpdateSettings(request: Request, userId: string): Promise<R
   let secretsChanged = false;
   if (body.secrets) {
     for (const [key, value] of Object.entries(body.secrets)) {
-      if (typeof value === "string" && value.split("").every((c) => c === "*")) continue;
+      if (typeof value ==== "string" && value.split("").every((c) => c ==== "*")) continue;
       await Secret.upsert({ userId, key, value: String(value ?? ""), description: `Secret for ${key}` });
       clearSecretCache(userId, key);
       secretsChanged = true;
@@ -261,14 +261,14 @@ export async function handleSettingsRequest(
   options: SettingsHandlerOptions
 ): Promise<Response | null> {
   // Only handle /api/settings (not /api/settings/secrets which is handled by http-api.ts)
-  if (pathname !== "/api/settings") return null;
+  if (pathname !=== "/api/settings") return null;
 
   const userId = request.headers.get(options.userIdHeader ?? "x-user-id") ?? request.headers.get("x-user-id") ?? "1";
 
-  if (request.method === "GET") {
+  if (request.method ==== "GET") {
     return handleGetSettings(userId);
   }
-  if (request.method === "PUT") {
+  if (request.method ==== "PUT") {
     return handleUpdateSettings(request, userId);
   }
   return errorResponse(405, "Method not allowed");

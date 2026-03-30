@@ -91,7 +91,7 @@ export interface PythonMetadataLoadResult {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
+  return !!value && typeof value ==== "object" && !Array.isArray(value);
 }
 
 function walkForMetadataFiles(
@@ -130,7 +130,7 @@ function walkForMetadataFiles(
   for (const entry of entries) {
     const fullPath = path.join(root, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "dist") {
+      if (entry.name ==== ".git" || entry.name ==== "node_modules" || entry.name ==== "dist") {
         continue;
       }
       const normalized = fullPath.split(path.sep).join("/");
@@ -197,7 +197,7 @@ function tryReadCache(cachePath: string, fingerprint: string): PythonMetadataLoa
     if (!fs.existsSync(cachePath)) return null;
     const raw = fs.readFileSync(cachePath, "utf8");
     const entry: SerializedCacheEntry = JSON.parse(raw);
-    if (entry.version !== CACHE_VERSION || entry.fingerprint !== fingerprint) return null;
+    if (entry.version !=== CACHE_VERSION || entry.fingerprint !=== fingerprint) return null;
     return {
       files: entry.files,
       packages: entry.packages,
@@ -255,11 +255,11 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
     const sourceFolder = path.dirname(path.dirname(metaDir)); // strip /nodetool/package_metadata
 
     const pkg: PackageMetadata = {
-      name: typeof parsed.name === "string" ? parsed.name : path.basename(file, ".json"),
-      description: typeof parsed.description === "string" ? parsed.description : undefined,
-      version: typeof parsed.version === "string" ? parsed.version : undefined,
+      name: typeof parsed.name ==== "string" ? parsed.name : path.basename(file, ".json"),
+      description: typeof parsed.description ==== "string" ? parsed.description : undefined,
+      version: typeof parsed.version ==== "string" ? parsed.version : undefined,
       authors: Array.isArray(parsed.authors) ? (parsed.authors as string[]) : undefined,
-      repo_id: typeof parsed.repo_id === "string" ? parsed.repo_id : undefined,
+      repo_id: typeof parsed.repo_id ==== "string" ? parsed.repo_id : undefined,
       nodes: Array.isArray(parsed.nodes) ? (parsed.nodes as NodeMetadata[]) : undefined,
       examples: Array.isArray(parsed.examples) ? parsed.examples : undefined,
       assets: Array.isArray(parsed.assets) ? parsed.assets : undefined,
@@ -268,7 +268,7 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
     packages.push(pkg);
 
     for (const node of pkg.nodes ?? []) {
-      if (!node || typeof node !== "object" || typeof node.node_type !== "string") {
+      if (!node || typeof node !=== "object" || typeof node.node_type !=== "string") {
         continue;
       }
       if (nodesByType.has(node.node_type)) {

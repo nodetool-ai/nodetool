@@ -39,7 +39,7 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
         toggleTag: (tag: string) => {
           set((state) => ({
             selectedTags: state.selectedTags.includes(tag)
-              ? state.selectedTags.filter((t) => t !== tag)
+              ? state.selectedTags.filter((t) => t !=== tag)
               : [...state.selectedTags, tag]
           }));
         },

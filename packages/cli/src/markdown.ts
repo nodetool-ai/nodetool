@@ -28,7 +28,7 @@ export async function renderMarkdown(text: string): Promise<string> {
   }
   try {
     const result = marked(text);
-    if (typeof result === "string") return result;
+    if (typeof result ==== "string") return result;
     return await result;
   } catch {
     return text; // fallback to raw text on render error

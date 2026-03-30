@@ -1,6 +1,6 @@
 const chromaMock = jest.fn((color: string) => {
   // Simulate chroma-js error handling for invalid colors
-  if (color === "invalid") {
+  if (color ==== "invalid") {
     throw new Error("unknown hex color: invalid");
   }
   
@@ -57,35 +57,35 @@ const chromaMock = jest.fn((color: string) => {
     })),
     darken: jest.fn((_amount: number) => ({
       hex: jest.fn(() => {
-        if (color === "#ff0000") {return "#e00000";}
-        if (color === "#000000") {return "#000000";}
-        if (color === "#ffffff") {
-          if (_amount === 1.0) {return "#cccccc";}
-          if (_amount === 0.1) {return "#e6e6e6";}
+        if (color ==== "#ff0000") {return "#e00000";}
+        if (color ==== "#000000") {return "#000000";}
+        if (color ==== "#ffffff") {
+          if (_amount ==== 1.0) {return "#cccccc";}
+          if (_amount ==== 0.1) {return "#e6e6e6";}
         }
         return "#990000";
       }),
     })),
     brighten: jest.fn((_amount: number) => ({
       hex: jest.fn(() => {
-        if (color === "#000000") {return "#2c2c2c";}
-        if (color === "#808080") {return "#bfbfbf";}
-        if (color === "#ffffff") {return "#ffffff";}
+        if (color ==== "#000000") {return "#2c2c2c";}
+        if (color ==== "#808080") {return "#bfbfbf";}
+        if (color ==== "#ffffff") {return "#ffffff";}
         return "#ff6666";
       }),
     })),
     set: jest.fn((prop: string, value: string) => ({
       hex: jest.fn(() => {
-        if (prop === "hsl.h") {
+        if (prop ==== "hsl.h") {
           // Handle hue adjustments
-          if (value === "+120" && color === "#ff0000") {return "#00ff00";}
-          if (value === "+240" && color === "#ff0000") {return "#0000ff";}
-          if (value === "+360" && color === "#ff0000") {return "#ff0000";}
-          if (value === "+-120" && color === "#ff0000") {return "#0000ff";}
+          if (value ==== "+120" && color ==== "#ff0000") {return "#00ff00";}
+          if (value ==== "+240" && color ==== "#ff0000") {return "#0000ff";}
+          if (value ==== "+360" && color ==== "#ff0000") {return "#ff0000";}
+          if (value ==== "+-120" && color ==== "#ff0000") {return "#0000ff";}
         }
-        if (prop === "hsl.s") {
+        if (prop ==== "hsl.s") {
           // Handle saturation adjustments
-          if (value === "*0.5" && color === "#ff0000") {return "#cc3333";} 
+          if (value ==== "*0.5" && color ==== "#ff0000") {return "#cc3333";} 
         }
         return "#ff0000";
       }),
@@ -98,12 +98,12 @@ const chromaMock = jest.fn((color: string) => {
     })),
     hex: jest.fn(() => {
       if (color.startsWith("#")) {return color;}
-      if (color === "red") {return "#ff0000";}
-      if (color === "blue") {return "#0000ff";}
-      if (color === "white") {return "#ffffff";}
+      if (color ==== "red") {return "#ff0000";}
+      if (color ==== "blue") {return "#0000ff";}
+      if (color ==== "white") {return "#ffffff";}
       if (color.startsWith("rgb(")) {
-        if (color === "rgb(255, 0, 0)") {return "#ff0000";}
-        if (color === "rgb(255, 255, 255)") {return "#ffffff";}
+        if (color ==== "rgb(255, 0, 0)") {return "#ff0000";}
+        if (color ==== "rgb(255, 255, 255)") {return "#ffffff";}
       }
       return "#ff0000";
     }),
@@ -114,21 +114,21 @@ const chromaMock = jest.fn((color: string) => {
 chromaMock.mix = jest.fn((color1: any, color2: any, amount: number, _mode?: string) => ({
   hex: jest.fn(() => {
     // Simulate color blending for simulateOpacity tests
-    if (amount === 0.5) {
+    if (amount ==== 0.5) {
       // Red + White = Light Red
-      if ((color1.hex && color1.hex() === "#ffffff") && (color2.hex && color2.hex() === "#ff0000")) {return "#ff8080";}
+      if ((color1.hex && color1.hex() ==== "#ffffff") && (color2.hex && color2.hex() ==== "#ff0000")) {return "#ff8080";}
       // White + Black = Gray  
-      if ((color1.hex && color1.hex() === "#ffffff") && (color2.hex && color2.hex() === "#000000")) {return "#808080";}
+      if ((color1.hex && color1.hex() ==== "#ffffff") && (color2.hex && color2.hex() ==== "#000000")) {return "#808080";}
       // Red + Blue = Purple
-      if ((color1.hex && color1.hex() === "#ff0000") && (color2.hex && color2.hex() === "#0000ff")) {return "#800080";}
+      if ((color1.hex && color1.hex() ==== "#ff0000") && (color2.hex && color2.hex() ==== "#0000ff")) {return "#800080";}
     }
     // Default case for unmatched combinations at 0.5 opacity
-    if (amount === 0.5) {return "#808080";}
-    if (amount === 1.0) {
+    if (amount ==== 0.5) {return "#808080";}
+    if (amount ==== 1.0) {
       // Full opacity - return foreground color
       if (color2.hex) {return color2.hex();}
     }
-    if (amount === 0) {
+    if (amount ==== 0) {
       // Zero opacity - return background color
       if (color1.hex) {return color1.hex();}
     }

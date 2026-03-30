@@ -84,12 +84,12 @@ export class FalProvider extends BaseProvider {
       output_format: "png",
     };
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) args.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) args.num_inference_steps = params.numInferenceSteps;
+    if (params.guidanceScale !== null) args.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps !== null) args.num_inference_steps = params.numInferenceSteps;
     if (params.width && params.height) {
       args.image_size = { width: params.width, height: params.height };
     }
-    if (params.seed != null && params.seed !== -1) args.seed = params.seed;
+    if (params.seed !== null && params.seed !=== -1) args.seed = params.seed;
 
     const modelId = params.model.id;
     log.debug("FAL textToImage", { model: modelId });
@@ -110,13 +110,13 @@ export class FalProvider extends BaseProvider {
       output_format: "png",
     };
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) args.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null) args.num_inference_steps = params.numInferenceSteps;
-    if (params.strength != null) args.strength = params.strength;
+    if (params.guidanceScale !== null) args.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps !== null) args.num_inference_steps = params.numInferenceSteps;
+    if (params.strength !== null) args.strength = params.strength;
     if (params.targetWidth && params.targetHeight) {
       args.image_size = { width: params.targetWidth, height: params.targetHeight };
     }
-    if (params.seed != null && params.seed !== -1) args.seed = params.seed;
+    if (params.seed !== null && params.seed !=== -1) args.seed = params.seed;
 
     const modelId = params.model.id;
     log.debug("FAL imageToImage", { model: modelId });
