@@ -15,6 +15,7 @@
     "devserver": "npm run test-ui",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.config.integration.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
