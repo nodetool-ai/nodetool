@@ -279,6 +279,7 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
+    // @ts-expect-error zundo temporal middleware type augmentation not recognized by zustand 4.x
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
