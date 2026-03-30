@@ -244,7 +244,8 @@ const useDraggableScroll = () => {
 
   // Set up global listeners once
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
+    const handleGlobalMouseMove = (e: MouseEvent) =>
+      handleMouseMoveRef.current(e);
     const handleGlobalMouseUp = () => handleMouseUpRef.current();
 
     document.addEventListener("mousemove", handleGlobalMouseMove);
@@ -336,8 +337,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       bytes[2] === 0x44 &&
       bytes[3] === 0x46;
     const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
-    const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    const url = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
+    const arrayBuffer = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    ) as ArrayBuffer;
+    const url = URL.createObjectURL(
+      new Blob([arrayBuffer], { type: mimeType })
+    );
     return { url, isPdf };
   }, [type, value]);
 
@@ -389,7 +395,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           ));
         } else {
           let imageSource: string | Uint8Array;
-          if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
+          if (
+            value?.uri &&
+            value.uri !== "" &&
+            !value.uri.startsWith("memory://")
+          ) {
             imageSource = resolveAssetUri(value.uri);
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
@@ -406,7 +416,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         // Handle different audio data formats
         let audioSource: string | Uint8Array;
 
-        if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
+        if (
+          value?.uri &&
+          value.uri !== "" &&
+          !value.uri.startsWith("memory://")
+        ) {
           // Use URI if available (resolve asset:// to /api/storage/)
           audioSource = resolveAssetUri(value.uri);
         } else if (Array.isArray(value?.data)) {
@@ -416,14 +430,35 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           // Already a Uint8Array
           audioSource = value.data;
         } else if (typeof value?.data === "string") {
-          // Data URI or base64 string
-          audioSource = value.data;
+          const d = value.data as string;
+          if (
+            d.startsWith("data:") ||
+            d.startsWith("http://") ||
+            d.startsWith("https://") ||
+            d.startsWith("/") ||
+            d.startsWith("blob:")
+          ) {
+            audioSource = d;
+          } else {
+            // Raw base64 string — convert to Uint8Array so AudioPlayer creates a valid blob URL
+            try {
+              const binary = atob(d);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+              }
+              audioSource = bytes;
+            } catch {
+              audioSource = d;
+            }
+          }
         } else {
           // Fallback
           audioSource = "";
         }
 
-        const metadata = (value as { metadata?: { format?: string } }).metadata || {};
+        const metadata =
+          (value as { metadata?: { format?: string } }).metadata || {};
         let mimeType = getMimeTypeFromUri(value?.uri);
         if (!mimeType) {
           mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
@@ -442,7 +477,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       }
       case "html": {
         const uri =
-          value?.uri && typeof value.uri === "string" && !value.uri.startsWith("memory://")
+          value?.uri &&
+          typeof value.uri === "string" &&
+          !value.uri.startsWith("memory://")
             ? resolveAssetUri(value.uri)
             : "";
         if (uri) {
@@ -450,7 +487,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <iframe
               src={uri}
               sandbox=""
-              style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+              style={{
+                width: "100%",
+                height: "100%",
+                minHeight: 320,
+                border: "none"
+              }}
               title="HTML output"
             />
           );
@@ -473,7 +515,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <iframe
             srcDoc={html}
             sandbox=""
-            style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              minHeight: 320,
+              border: "none"
+            }}
             title="HTML output"
           />
         );
@@ -482,9 +529,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         const rawUri =
           value?.uri && typeof value.uri === "string" ? value.uri : "";
         const uriFromRef =
-          rawUri && !rawUri.startsWith("memory://") ? resolveAssetUri(rawUri) : "";
+          rawUri && !rawUri.startsWith("memory://")
+            ? resolveAssetUri(rawUri)
+            : "";
         const uri = uriFromRef || documentDataPreview.url;
-        const mimeType = uriFromRef ? getMimeTypeFromUri(uriFromRef) : undefined;
+        const mimeType = uriFromRef
+          ? getMimeTypeFromUri(uriFromRef)
+          : undefined;
         const isPdf =
           documentDataPreview.isPdf ||
           mimeType === "application/pdf" ||
@@ -495,7 +546,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (
             <iframe
               src={uri}
-              style={{ width: "100%", height: "100%", minHeight: 360, border: "none" }}
+              style={{
+                width: "100%",
+                height: "100%",
+                minHeight: 360,
+                border: "none"
+              }}
               title="PDF output"
             />
           );
@@ -533,10 +589,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         const url = resolveAssetUri(rawUri);
         const format =
-          value && typeof value === "object" && typeof (value as Record<string, unknown>).format === "string"
+          value &&
+          typeof value === "object" &&
+          typeof (value as Record<string, unknown>).format === "string"
             ? ((value as Record<string, unknown>).format as string)
             : undefined;
-        const contentType = getMimeTypeFromUri(url) ||
+        const contentType =
+          getMimeTypeFromUri(url) ||
           (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
 
         return (
@@ -596,7 +655,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           }
           // For objects/arrays, recurse
           return (
-            <OutputRenderer value={singleValue} showTextActions={showTextActions} />
+            <OutputRenderer
+              value={singleValue}
+              showTextActions={showTextActions}
+            />
           );
         }
 
@@ -621,7 +683,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (value[0] === undefined || value[0] === null) {
             return null;
           }
-          if (typeof value[0] === "string" && value.every((v: any) => typeof v === "string")) {
+          if (
+            typeof value[0] === "string" &&
+            value.every((v: any) => typeof v === "string")
+          ) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -705,7 +770,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
+                    sampleRate={
+                      (firstMeta?.sample_rate as number | undefined) ?? 22000
+                    }
                     channels={(firstMeta?.channels as number | undefined) ?? 1}
                   />
                 );
@@ -717,11 +784,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   {chunks.map((c) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
-                        `chunk:${c.content_type ?? ""}:${c.done ? 1 : 0
+                        `chunk:${c.content_type ?? ""}:${
+                          c.done ? 1 : 0
                         }:${hashStringBounded(
-                          typeof c.content === "string"
-                            ? c.content
-                            : ""
+                          typeof c.content === "string" ? c.content : ""
                         )}`,
                         seen
                       )}
