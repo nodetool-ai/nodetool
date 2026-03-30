@@ -233,15 +233,32 @@ export async function kiePollSuno(
 
 export async function kieDownloadSunoResult(
   apiKey: string,
-  taskId: string
+  taskId: string,
+  pollData?: Record<string, unknown>
 ): Promise<{ data: string; taskId: string }> {
-  const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey) });
-  const data = (await res.json()) as Record<string, unknown>;
-  const clips = ((data.data as Record<string, unknown>)?.response as Record<string, unknown>)?.clips as Array<Record<string, unknown>>;
-  if (!clips?.length) throw new Error("No clips in Suno response");
+  let data: Record<string, unknown>;
+  if (pollData) {
+    data = pollData;
+  } else {
+    const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
+    const res = await fetch(url, { headers: headers(apiKey) });
+    data = (await res.json()) as Record<string, unknown>;
+  }
+  const dataField = data.data as Record<string, unknown>;
+  const responseField = dataField?.response as Record<string, unknown> | undefined;
+  // Try all known response shapes (API has used clips, sunoData over time)
+  const clips = (
+    responseField?.clips ??
+    responseField?.sunoData ??
+    dataField?.clips ??
+    dataField?.sunoData
+  ) as Array<Record<string, unknown>> | undefined;
+  if (!clips?.length) {
+    console.error("Suno response data:", JSON.stringify(data, null, 2));
+    throw new Error(`No clips in Suno response. Keys: ${Object.keys(dataField ?? {}).join(", ")}`);
+  }
   const audioUrl = clips[0].audioUrl as string;
-  if (!audioUrl) throw new Error("No audioUrl in Suno clip");
+  if (!audioUrl) throw new Error(`No audioUrl in Suno clip. Clip keys: ${Object.keys(clips[0]).join(", ")}`);
   const dlRes = await fetch(audioUrl);
   if (!dlRes.ok) throw new Error(`Failed to download audio`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
@@ -255,6 +272,6 @@ export async function kieExecuteSunoTask(
   maxAttempts = 120
 ): Promise<{ data: string; taskId: string }> {
   const taskId = await kieSubmitSuno(apiKey, input);
-  await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
-  return kieDownloadSunoResult(apiKey, taskId);
+  const pollData = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+  return kieDownloadSunoResult(apiKey, taskId, pollData);
 }
