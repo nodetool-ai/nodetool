@@ -38,7 +38,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
 
   // Main workflow/chat WebSocket
   app.get("/ws", { websocket: true }, (socket, req) => {
-    (socket as any).on("error", (error: Error) => {
+    socket.on("error", (error: Error) => {
       log.error("WebSocket client error", error);
     });
     const runner = new UnifiedWebSocketRunner({
@@ -80,16 +80,16 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
   if (!isProduction) {
     // Terminal WebSocket
     app.get("/ws/terminal", { websocket: true }, (socket, _req) => {
-      (socket as any).on("error", (error: Error) => {
+      socket.on("error", (error: Error) => {
         log.error("Terminal WebSocket error", error);
       });
       log.info("Terminal WebSocket client connected");
-      (socket as any).send(JSON.stringify({ type: "output", data: "Terminal connected.\r\n" }));
-      (socket as any).on("message", (raw: any) => {
+      socket.send(JSON.stringify({ type: "output", data: "Terminal connected.\r\n" }));
+      socket.on("message", (raw: Buffer | ArrayBuffer | Buffer[]) => {
         try {
           const msg = JSON.parse(raw.toString());
           if (msg.type === "input") {
-            (socket as any).send(JSON.stringify({ type: "output", data: msg.data }));
+            socket.send(JSON.stringify({ type: "output", data: msg.data }));
           }
         } catch {
           // ignore
@@ -99,13 +99,13 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
 
     // Download WebSocket (HuggingFace model downloads)
     app.get("/ws/download", { websocket: true }, (socket, _req) => {
-      (socket as any).on("error", (error: Error) => {
+      socket.on("error", (error: Error) => {
         log.error("Download WebSocket error", error);
       });
       log.info("Download WebSocket client connected");
 
       import("@nodetool/huggingface").then(({ getDownloadManager }) => {
-        (socket as any).on("message", async (raw: any) => {
+        socket.on("message", async (raw: Buffer | ArrayBuffer | Buffer[]) => {
           try {
             const msg = JSON.parse(raw.toString());
             if (msg.command === "start_download") {
@@ -117,7 +117,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
                 cacheDir: msg.cache_dir ?? null,
                 modelType: msg.model_type ?? null,
                 onProgress: (update) => {
-                  try { (socket as any).send(JSON.stringify(update)); } catch { /* gone */ }
+                  try { socket.send(JSON.stringify(update)); } catch { /* gone */ }
                 },
               });
             } else if (msg.command === "cancel_download") {
@@ -126,14 +126,14 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
             }
           } catch (err) {
             const error = err instanceof Error ? err.message : String(err);
-            try { (socket as any).send(JSON.stringify({ status: "error", error })); } catch { /* gone */ }
+            try { socket.send(JSON.stringify({ status: "error", error })); } catch { /* gone */ }
           }
         });
       }).catch((err: unknown) => {
         log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
         try {
-          (socket as any).send(JSON.stringify({ status: "error", error: "Download module unavailable" }));
-          (socket as any).close();
+          socket.send(JSON.stringify({ status: "error", error: "Download module unavailable" }));
+          socket.close();
         } catch { /* socket already gone */ }
       });
     });
