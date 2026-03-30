@@ -334,6 +334,10 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         setCopiedFormat(format);
       } catch (error) {
         console.error("Failed to copy to clipboard:", error);
+        window.alert(
+          "Failed to copy the color to the clipboard. Please check your browser permissions and try again."
+        );
+        return;
       }
 
       // Clear previous timeout if exists
