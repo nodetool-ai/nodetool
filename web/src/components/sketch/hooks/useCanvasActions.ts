@@ -32,6 +32,8 @@ export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   activeTool: SketchTool;
+  /** Effective gesture tool (spring-loaded move uses "move" while activeTool may stay "brush"). */
+  interactionTool: SketchTool;
   zoom: number;
   pushHistory: (
     label: string,
@@ -58,6 +60,7 @@ export function useCanvasActions({
   canvasRef,
   document,
   activeTool,
+  interactionTool,
   zoom,
   pushHistory,
   updateLayerData,
@@ -270,7 +273,7 @@ export function useCanvasActions({
   const handleStrokeStart = useCallback(() => {
     canvasRef.current?.drainPendingStrokeCommit();
     const activeLayerId = document.activeLayerId;
-    const isTransformOnlyGesture = isTransformOnlyTool(activeTool);
+    const isTransformOnlyGesture = isTransformOnlyTool(interactionTool);
     const activeLayerSnapshot =
       !isTransformOnlyGesture && activeLayerId && canvasRef.current
         ? canvasRef.current.snapshotLayerCanvas(activeLayerId)
@@ -293,7 +296,7 @@ export function useCanvasActions({
         isTransformOnlyGesture ? { restoreMode: "structure-only" } : undefined
       );
     });
-  }, [document.activeLayerId, canvasRef, pushHistory, activeTool]);
+  }, [document.activeLayerId, canvasRef, pushHistory, activeTool, interactionTool]);
 
   const handleStrokeEnd = useCallback(
     (

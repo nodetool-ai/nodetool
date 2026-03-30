@@ -682,6 +682,9 @@ export function usePointerHandlers({
         clearLayerTransformPreview?.(moveTargetLayer.id);
         isDrawingRef.current = true;
         onStrokeStart();
+        // Synchronous composite: deferred rAF can skip the first move preview on a
+        // cold canvas/WebGPU path; brush strokes implicitly force a present first.
+        redraw();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         return;
       }
@@ -1179,10 +1182,8 @@ export function usePointerHandlers({
           movePreviewTransformRef.current = previewTransform;
           movePreviewLayerIdRef.current = layer.id;
           setLayerTransformPreview?.(layer.id, previewTransform);
-          // Schedule a redraw so the preview is visible in the next frame.
-          // The React-effect path in useCompositing is deferred and can be
-          // missed before any paint stroke has occurred.
-          requestRedraw();
+          // Same frame as pointer events — matches cold WebGPU / before first paint.
+          redraw();
         }
         return;
       }
@@ -1435,6 +1436,7 @@ export function usePointerHandlers({
       drawOverlayGradient,
       drawOverlayCrop,
       redrawDirty,
+      redraw,
       requestRedraw,
       clipSelectionForOffset,
       drawOverlaySelection,
@@ -1497,11 +1499,7 @@ export function usePointerHandlers({
             syncDocumentFromCanvas: false
           });
         }
-        // Explicitly schedule a redraw so the committed transform is visible
-        // immediately. The React-effect-based redraw in useCompositing is
-        // asynchronous and can be missed in some batching scenarios (e.g. the
-        // first move on a locked layer before any paint stroke has occurred).
-        requestRedraw();
+        redraw();
         return;
       }
       if (interactionTool === "clone_stamp") {
@@ -1707,6 +1705,14 @@ export function usePointerHandlers({
           clearOverlay();
           drawSelectionOverlay();
         }
+        const rBrushUp = containerRef.current?.getBoundingClientRect();
+        if (rBrushUp) {
+          mousePositionRef.current = {
+            x: e.clientX - rBrushUp.left,
+            y: e.clientY - rBrushUp.top
+          };
+        }
+        drawCursor(e.clientX, e.clientY);
         return;
       }
 
@@ -1787,6 +1793,7 @@ export function usePointerHandlers({
       drawActiveStrokePreview,
       activeStrokeRef,
       redraw,
+      drawCursor,
       screenToCanvas,
       onSelectionChange,
       containerRef,

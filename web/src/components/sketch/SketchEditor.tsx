@@ -158,6 +158,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
     canvasRef,
     document: store.document,
     activeTool: store.activeTool,
+    interactionTool,
     zoom: store.zoom,
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,

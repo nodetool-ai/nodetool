@@ -29,16 +29,6 @@ export interface UseCompositingParams {
   isolatedLayerId?: string | null;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   transformPreviewByLayerId?: Record<string, LayerTransform>;
-  /**
-   * Synchronously-updated preview map (e.g. move-tool drag). rAF compositing
-   * reads `.current` so it matches pointer events before React commits `transformPreviewByLayerId` state.
-   */
-  transformPreviewByLayerIdRef?: React.MutableRefObject<Record<string, LayerTransform>>;
-  /**
-   * Latest document for compositing (e.g. `() => useSketchStore.getState().document`)
-   * so committed layer transforms paint immediately before the `doc` prop re-renders.
-   */
-  getDocumentForComposite?: () => SketchDocument;
 }
 
 export interface UseCompositingResult {
@@ -73,9 +63,7 @@ export function useCompositing({
   zoom: externalZoom = 1,
   isolatedLayerId,
   activeStrokeRef,
-  transformPreviewByLayerId = {},
-  transformPreviewByLayerIdRef,
-  getDocumentForComposite
+  transformPreviewByLayerId = {}
 }: UseCompositingParams): UseCompositingResult {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const bootstrapDisplayRef = useRef<HTMLCanvasElement>(null);
@@ -140,6 +128,11 @@ export function useCompositing({
         const oldRuntime = runtimeRef.current;
         runtimeRef.current = newRuntime;
         setBackend(newBackend);
+        // Cold WebGPU: layerTextures start empty; mark every CPU canvas dirty so the
+        // first present uploads all layers (avoids blank/move preview until a paint).
+        for (const layerId of layerCanvasesRef.current.keys()) {
+          newRuntime.invalidateLayer(layerId);
+        }
         // Don't dispose old runtime — it shares the same layerCanvases map.
         void oldRuntime;
         // Defer one frame so React has committed (bootstrap off, display canvas
@@ -234,19 +227,16 @@ export function useCompositing({
       if (!rt) {
         return;
       }
-      const previewSource =
-        transformPreviewByLayerIdRef?.current ?? transformPreviewByLayerId;
-      const hasTransformPreview = Object.keys(previewSource).length > 0;
-      const baseDoc = getDocumentForComposite?.() ?? doc;
+      const hasTransformPreview = Object.keys(transformPreviewByLayerId).length > 0;
       const compositeDoc = hasTransformPreview
         ? {
-            ...baseDoc,
-            layers: baseDoc.layers.map((layer) => {
-              const previewTransform = previewSource[layer.id];
+            ...doc,
+            layers: doc.layers.map((layer) => {
+              const previewTransform = transformPreviewByLayerId[layer.id];
               return previewTransform ? { ...layer, transform: previewTransform } : layer;
             })
           }
-        : baseDoc;
+        : doc;
       const activeStroke = activeStrokeRef.current;
       rt.compositeToDisplay(
         targetCanvas,
@@ -266,9 +256,7 @@ export function useCompositing({
       activeStrokeRef,
       backend,
       bootstrapPhaseActive,
-      transformPreviewByLayerId,
-      transformPreviewByLayerIdRef,
-      getDocumentForComposite
+      transformPreviewByLayerId
     ]
   );
 

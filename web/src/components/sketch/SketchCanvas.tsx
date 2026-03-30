@@ -33,7 +33,6 @@ import {
 import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
-import { useSketchStore } from "./state/useSketchStore";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -241,50 +240,39 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       Record<string, LayerTransform>
     >({});
 
-    /** Same data as state, updated synchronously so compositing rAF sees move preview immediately. */
-    const transformPreviewByLayerIdRef = useRef<Record<string, LayerTransform>>({});
-
     const setLayerTransformPreview = useCallback((layerId: string, transform: LayerTransform) => {
-      const prev = transformPreviewByLayerIdRef.current;
-      const existing = prev[layerId];
-      if (
-        existing &&
-        existing.x === transform.x &&
-        existing.y === transform.y &&
-        (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
-        (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
-        Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
-      ) {
-        return;
-      }
-      const next = { ...prev, [layerId]: transform };
-      transformPreviewByLayerIdRef.current = next;
-      setTransformPreviewByLayerId(next);
+      setTransformPreviewByLayerId((current) => {
+        const existing = current[layerId];
+        if (
+          existing &&
+          existing.x === transform.x &&
+          existing.y === transform.y &&
+          (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
+          (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
+          Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
+        ) {
+          return current;
+        }
+        return { ...current, [layerId]: transform };
+      });
     }, []);
 
     const clearLayerTransformPreview = useCallback((layerId?: string) => {
-      const prev = transformPreviewByLayerIdRef.current;
-      if (layerId == null) {
-        if (Object.keys(prev).length === 0) {
-          return;
+      setTransformPreviewByLayerId((current) => {
+        if (layerId == null) {
+          if (Object.keys(current).length === 0) {
+            return current;
+          }
+          return {};
         }
-        transformPreviewByLayerIdRef.current = {};
-        setTransformPreviewByLayerId({});
-        return;
-      }
-      if (!(layerId in prev)) {
-        return;
-      }
-      const next = { ...prev };
-      delete next[layerId];
-      transformPreviewByLayerIdRef.current = next;
-      setTransformPreviewByLayerId(next);
+        if (!(layerId in current)) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[layerId];
+        return next;
+      });
     }, []);
-
-    const getDocumentForComposite = useCallback(
-      () => useSketchStore.getState().document,
-      []
-    );
 
     // ─── Shared refs (created here to avoid circular deps between hooks) ─
     const containerRef = useRef<HTMLDivElement>(null);
@@ -320,9 +308,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       zoom,
       isolatedLayerId,
       activeStrokeRef,
-      transformPreviewByLayerId,
-      transformPreviewByLayerIdRef,
-      getDocumentForComposite
+      transformPreviewByLayerId
     });
 
     // ─── Pointer handlers (provides shiftHeldRef, altHeldRef, selectStartRef) ─
