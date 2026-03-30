@@ -206,7 +206,9 @@ const AboutMenu: React.FC = memo(() => {
   }, [addNotification]);
 
   const handleCopyAll = useCallback(async () => {
-    if (!systemInfo) {return;}
+    if (!systemInfo) {
+      return;
+    }
 
     const text = `NodeTool System Information
 =============================
