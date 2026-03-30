@@ -1,1182 +1,361 @@
 /**
- * Comprehensive Screenshot Capture Script for NodeTool Documentation
- * 
- * This script captures screenshots of every thinkable screen in the NodeTool UI.
- * Run with: npx playwright test tests/e2e/screenshots.spec.ts --project=chromium
- * 
- * To capture all screenshots (even existing ones):
- * FORCE_SCREENSHOTS=true npx playwright test tests/e2e/screenshots.spec.ts --project=chromium
- * 
- * Note: Requires the web frontend to be running on localhost:3000
- * Full functionality requires the backend server on localhost:7777
+ * Documentation Screenshot Capture
+ *
+ * Takes screenshots of the real NodeTool UI. API calls are handled by a mock
+ * HTTP server (started in globalSetup.ts) so no real backend is needed.
+ *
+ * Usage:
+ *   npm run screenshots                    # Capture only missing screenshots
+ *   npm run screenshots:force              # Re-capture every screenshot
+ *   FORCE_SCREENSHOTS=true npx playwright test tests/benchmarks/screenshots.spec.ts
+ *
+ * playwright.config.ts auto-starts the Vite dev server pointed at the mock API.
  */
 
-import { test, Page } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
-import { fileURLToPath } from 'url';
-import {
-  waitForAnimation,
-} from "./helpers/waitHelpers";
+import { test, Page } from "@playwright/test";
+import * as path from "path";
+import * as fs from "fs";
+import { fileURLToPath } from "url";
+import { waitForAnimation } from "./helpers/waitHelpers";
 
 const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const SCREENSHOT_DIR = path.join(CURRENT_DIR, '../../../docs/assets/screenshots');
-const MANIFEST_PATH = path.join(SCREENSHOT_DIR, '.placeholder-manifest.json');
+const SCREENSHOT_DIR = path.join(
+  CURRENT_DIR,
+  "../../../docs/assets/screenshots"
+);
 
 // Ensure screenshot directory exists
 if (!fs.existsSync(SCREENSHOT_DIR)) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 }
 
-/** Read the placeholder manifest (written by generate-placeholders.ts) */
-function readManifest(): Record<string, { placeholder: boolean }> {
-  if (!fs.existsSync(MANIFEST_PATH)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
-  } catch {
-    return {};
-  }
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Mark a file as a real screenshot in the manifest */
-function markAsReal(filename: string): void {
-  try {
-    const manifest = readManifest();
-    if (manifest[filename]) {
-      manifest[filename].placeholder = false;
-      fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
-    }
-  } catch {
-    // Non-fatal: manifest update failure doesn't break screenshot capture
-  }
-}
-
-// Helper to save screenshot
-async function saveScreenshot(page: Page, filename: string, fullPage = false) {
+/** Save a full-viewport screenshot */
+async function saveScreenshot(
+  page: Page,
+  filename: string,
+  fullPage = false
+): Promise<void> {
   const filepath = path.join(SCREENSHOT_DIR, filename);
   await page.screenshot({ path: filepath, fullPage });
-  markAsReal(filename);
-  console.log(`Saved: ${filepath}`);
+  console.log(`  📸 ${filename}`);
 }
 
-// Helper to save element screenshot
-async function saveElementScreenshot(page: Page, selector: string, filename: string) {
-  const filepath = path.join(SCREENSHOT_DIR, filename);
+/** Save a screenshot cropped to a specific element */
+async function saveElementScreenshot(
+  page: Page,
+  selector: string,
+  filename: string,
+  timeout = 5000
+): Promise<boolean> {
   const element = page.locator(selector).first();
-  if (await element.count() > 0) {
-    await element.screenshot({ path: filepath });
-    markAsReal(filename);
-    console.log(`Saved: ${filepath}`);
-    return true;
-  }
-  return false;
-}
-
-// Check if screenshot already exists (skip if FORCE_SCREENSHOTS is set)
-function shouldSkip(filename: string): boolean {
-  if (process.env.FORCE_SCREENSHOTS === 'true') {
+  if ((await element.count()) === 0) {
+    console.warn(`  ⚠ Element not found: ${selector}`);
     return false;
   }
-  const filepath = path.join(SCREENSHOT_DIR, filename);
-  if (!fs.existsSync(filepath)) return false;
-  // Don't skip if the file is a generated placeholder (allow re-capture)
-  const manifest = readManifest();
-  const entry = manifest[filename];
-  if (entry?.placeholder === true) return false;
-  return true;
+  try {
+    const filepath = path.join(SCREENSHOT_DIR, filename);
+    await element.screenshot({ path: filepath, timeout });
+    console.log(`  📸 ${filename} (${selector})`);
+    return true;
+  } catch {
+    console.warn(`  ⚠ Element screenshot failed for ${selector}`);
+    return false;
+  }
 }
 
-// Skip when executed by Jest or in CI (this is a documentation tool, not a functional test)
-if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
-  test.skip("skipped in jest runner or CI", () => {});
+/** Skip a test if the screenshot already exists and FORCE_SCREENSHOTS is not set */
+function shouldSkip(filename: string): boolean {
+  if (process.env.FORCE_SCREENSHOTS === "true") return false;
+  return fs.existsSync(path.join(SCREENSHOT_DIR, filename));
+}
+
+/**
+ * Navigate to a page and wait for the app to finish loading.
+ * Uses a short network-idle timeout since some background retries (HMR, etc.)
+ * may never fully settle.
+ */
+async function gotoPage(page: Page, url: string): Promise<void> {
+  await page.goto(url);
+  // Wait for React to hydrate; cap networkidle so we don't hang on retries
+  await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
+  await waitForAnimation(page, 1000);
+}
+
+// ─── Test suite ───────────────────────────────────────────────────────────────
+
+// Skip when executed by Jest (only Playwright runner)
+if (process.env.JEST_WORKER_ID) {
+  test.skip("skipped in jest runner", () => {});
 } else {
-
-  // ============================================================================
-  // MAIN PAGES - Core application routes
-  // ============================================================================
-  test.describe('Main Pages', () => {
+  // ===========================================================================
+  // DASHBOARD / PORTAL
+  // ===========================================================================
+  test.describe("Dashboard", () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
     });
 
-    test('Login Page', async ({ page }) => {
-      test.skip(shouldSkip('login-page.png'), 'Screenshot already exists');
-      await page.goto('/login');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'login-page.png');
+    test("Dashboard overview", async ({ page }) => {
+      test.skip(shouldSkip("dashboard-overview.png"), "Already captured");
+      await gotoPage(page, "/");
+      await saveScreenshot(page, "dashboard-overview.png");
     });
 
-    test('Dashboard Overview', async ({ page }) => {
-      test.skip(shouldSkip('dashboard-overview.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'dashboard-overview.png');
-    });
-
-    test('Dashboard Workflows', async ({ page }) => {
-      test.skip(shouldSkip('dashboard-workflows.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'dashboard-workflows.png');
-    });
-
-    test('Templates Grid', async ({ page }) => {
-      test.skip(shouldSkip('templates-grid.png'), 'Screenshot already exists');
-      await page.goto('/templates');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'templates-grid.png');
-    });
-
-    test('Assets Explorer', async ({ page }) => {
-      test.skip(shouldSkip('asset-explorer.png'), 'Screenshot already exists');
-      await page.goto('/assets');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'asset-explorer.png');
-    });
-
-    test('Collections Explorer', async ({ page }) => {
-      test.skip(shouldSkip('collections-explorer.png'), 'Screenshot already exists');
-      await page.goto('/collections');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'collections-explorer.png');
-    });
-
-    test('Models List', async ({ page }) => {
-      test.skip(shouldSkip('models-list.png'), 'Screenshot already exists');
-      await page.goto('/models');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'models-list.png');
+    test("Dashboard – workflow list", async ({ page }) => {
+      test.skip(shouldSkip("dashboard-workflows.png"), "Already captured");
+      await gotoPage(page, "/");
+      await saveScreenshot(page, "dashboard-workflows.png");
     });
   });
 
-  // ============================================================================
-  // CHAT - Global chat interface and features
-  // ============================================================================
-  test.describe('Chat Interface', () => {
+  // ===========================================================================
+  // TEMPLATES
+  // ===========================================================================
+  test.describe("Templates", () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
     });
 
-    test('Global Chat Interface', async ({ page }) => {
-      test.skip(shouldSkip('global-chat-interface.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'global-chat-interface.png');
-    });
-
-    test('Chat Thread List', async ({ page }) => {
-      test.skip(shouldSkip('chat-thread-list.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'chat-thread-list.png');
-    });
-
-    test('Chat Empty State', async ({ page }) => {
-      test.skip(shouldSkip('chat-empty-state.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1500);
-      await saveScreenshot(page, 'chat-empty-state.png');
-    });
-
-    test('Standalone Chat', async ({ page }) => {
-      test.skip(shouldSkip('standalone-chat.png'), 'Screenshot already exists');
-      await page.goto('/standalone-chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'standalone-chat.png');
-    });
-
-    test('Chat Model Selector', async ({ page }) => {
-      test.skip(shouldSkip('chat-model-selector.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Click model selector if exists
-      const modelSelector = page.locator('[data-testid*="model"], .model-selector, button:has-text("Model")').first();
-      if (await modelSelector.count() > 0) {
-        await modelSelector.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'chat-model-selector.png');
-    });
-
-    test('Chat Tools Menu', async ({ page }) => {
-      test.skip(shouldSkip('chat-tools-menu.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Look for tools button/menu
-      const toolsButton = page.locator('[data-testid*="tools"], button:has-text("Tools"), [aria-label*="Tools"]').first();
-      if (await toolsButton.count() > 0) {
-        await toolsButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'chat-tools-menu.png');
-    });
-
-    test('Agent Mode Enabled', async ({ page }) => {
-      test.skip(shouldSkip('agent-mode-enabled.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Look for agent mode toggle
-      const agentToggle = page.locator('[data-testid*="agent"], .agent-mode, [aria-label*="Agent"]').first();
-      if (await agentToggle.count() > 0) {
-        await agentToggle.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'agent-mode-enabled.png');
+    test("Templates grid", async ({ page }) => {
+      test.skip(shouldSkip("templates-grid.png"), "Already captured");
+      await gotoPage(page, "/templates");
+      await saveScreenshot(page, "templates-grid.png");
     });
   });
 
-  // ============================================================================
-  // MINI-APPS - Mini application interface
-  // ============================================================================
-  test.describe('Mini-Apps', () => {
-    test.beforeEach(async ({ page }) => {
+  // ===========================================================================
+  // CHAT
+  // ===========================================================================
+  test.describe("Chat", () => {
+    test("Global chat interface", async ({ page }) => {
+      test.skip(shouldSkip("global-chat-interface.png"), "Already captured");
       await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/chat");
+      await saveScreenshot(page, "global-chat-interface.png");
     });
 
-    test('Mini-Apps Page', async ({ page }) => {
-      test.skip(shouldSkip('mini-apps-page.png'), 'Screenshot already exists');
-      await page.goto('/apps');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'mini-apps-page.png');
-    });
-
-    test('Mini-App Interface', async ({ page }) => {
-      test.skip(shouldSkip('mini-app-interface.png'), 'Screenshot already exists');
-      await page.goto('/apps');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'mini-app-interface.png');
-    });
-
-    test('Mini-App Builder', async ({ page }) => {
-      test.skip(shouldSkip('mini-app-builder.png'), 'Screenshot already exists');
-      await page.goto('/apps');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'mini-app-builder.png');
-    });
-  });
-
-  // ============================================================================
-  // WORKFLOW EDITOR - Canvas, nodes, and editing features
-  // ============================================================================
-  test.describe('Workflow Editor', () => {
-    test.beforeEach(async ({ page }) => {
+    test("Standalone chat", async ({ page }) => {
+      test.skip(shouldSkip("standalone-chat.png"), "Already captured");
       await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/standalone-chat");
+      await saveScreenshot(page, "standalone-chat.png");
     });
 
-    test('Editor Empty State', async ({ page }) => {
-      test.skip(shouldSkip('editor-empty-state.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'editor-empty-state.png');
-    });
-
-    test('Canvas Workflow', async ({ page }) => {
-      test.skip(shouldSkip('canvas-workflow.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'canvas-workflow.png');
-    });
-
-    test('Editor Workflow View', async ({ page }) => {
-      test.skip(shouldSkip('editor-workflow-view.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'editor-workflow-view.png');
-    });
-
-    test('Node Menu Open', async ({ page }) => {
-      test.skip(shouldSkip('node-menu-open.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Double-click to open node menu
-      await page.mouse.dblclick(600, 400);
-      await page.waitForTimeout(800);
-      await saveScreenshot(page, 'node-menu-open.png');
-    });
-
-    test('Node Menu with Search', async ({ page }) => {
-      test.skip(shouldSkip('node-menu-open-detailed.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Double-click to open node menu
-      await page.mouse.dblclick(600, 400);
-      await waitForAnimation(page);
-      // Type search query
-      await page.keyboard.type('image');
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'node-menu-open-detailed.png');
-    });
-
-    test('Properties Panel', async ({ page }) => {
-      test.skip(shouldSkip('properties-panel.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'properties-panel.png');
-    });
-
-    test('Inspector Panel', async ({ page }) => {
-      test.skip(shouldSkip('inspector-panel.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'inspector-panel.png');
-    });
-
-    test('Left Panel Assets View', async ({ page }) => {
-      test.skip(shouldSkip('left-panel-assets.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Look for assets tab in left panel
-      const assetsTab = page.locator('[data-testid*="assets"], button:has-text("Assets")').first();
-      if (await assetsTab.count() > 0) {
-        await assetsTab.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'left-panel-assets.png');
-    });
-
-    test('Context Menu on Node', async ({ page }) => {
-      test.skip(shouldSkip('context-menu-node.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Right-click to open context menu
-      await page.mouse.click(600, 400, { button: 'right' });
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'context-menu-node.png');
-    });
-
-    test('Context Menu on Canvas', async ({ page }) => {
-      test.skip(shouldSkip('context-menu-canvas.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      await page.mouse.click(800, 500, { button: 'right' });
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'context-menu-canvas.png');
-    });
-
-    test('Workflow Tabs', async ({ page }) => {
-      test.skip(shouldSkip('workflow-tabs.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'workflow-tabs.png');
-    });
-  });
-
-  // ============================================================================
-  // HEADER AND NAVIGATION
-  // ============================================================================
-  test.describe('Header and Navigation', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('App Header', async ({ page }) => {
-      test.skip(shouldSkip('app-header.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Try to screenshot header element
-      const saved = await saveElementScreenshot(page, 'header, [data-testid*="header"], .app-header', 'app-header.png');
-      if (!saved) {
-        // Fallback: take full page and user can crop
-        await saveScreenshot(page, 'app-header.png');
-      }
-    });
-
-    test('App Layout Annotated', async ({ page }) => {
-      test.skip(shouldSkip('app-layout-annotated.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'app-layout-annotated.png');
-    });
-
-    test('Notification Button/Panel', async ({ page }) => {
-      test.skip(shouldSkip('notification-panel.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const notifButton = page.locator('[data-testid*="notification"], [aria-label*="Notification"], button:has-text("Notifications")').first();
-      if (await notifButton.count() > 0) {
-        await notifButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'notification-panel.png');
-    });
-  });
-
-  // ============================================================================
-  // SETTINGS AND CONFIGURATION
-  // ============================================================================
-  test.describe('Settings and Configuration', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Settings Dialog', async ({ page }) => {
-      test.skip(shouldSkip('settings-dialog.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Open settings
-      const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
-      if (await settingsButton.count() > 0) {
-        await settingsButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'settings-dialog.png');
-    });
-
-    test('Settings General', async ({ page }) => {
-      test.skip(shouldSkip('settings-general.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
-      if (await settingsButton.count() > 0) {
-        await settingsButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'settings-general.png');
-    });
-
-    test('Settings API Keys', async ({ page }) => {
-      test.skip(shouldSkip('settings-api-keys.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
-      if (await settingsButton.count() > 0) {
-        await settingsButton.click();
-        await waitForAnimation(page);
-        // Look for API keys tab/section
-        const apiTab = page.locator('button:has-text("API"), button:has-text("Keys"), [data-testid*="api"]').first();
-        if (await apiTab.count() > 0) {
-          await apiTab.click();
-          await waitForAnimation(page);
-        }
-      }
-      await saveScreenshot(page, 'settings-api-keys.png');
-    });
-
-    test('Settings API Secrets', async ({ page }) => {
-      test.skip(shouldSkip('settings-api-secrets.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
-      if (await settingsButton.count() > 0) {
-        await settingsButton.click();
-        await waitForAnimation(page);
-        const secretsTab = page.locator('button:has-text("Secrets"), [data-testid*="secrets"]').first();
-        if (await secretsTab.count() > 0) {
-          await secretsTab.click();
-          await waitForAnimation(page);
-        }
-      }
-      await saveScreenshot(page, 'settings-api-secrets.png');
-    });
-
-    test('Settings Folders', async ({ page }) => {
-      test.skip(shouldSkip('settings-folders.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
-      if (await settingsButton.count() > 0) {
-        await settingsButton.click();
-        await waitForAnimation(page);
-        const foldersTab = page.locator('button:has-text("Folders"), [data-testid*="folders"]').first();
-        if (await foldersTab.count() > 0) {
-          await foldersTab.click();
-          await waitForAnimation(page);
-        }
-      }
-      await saveScreenshot(page, 'settings-folders.png');
-    });
-
-    test('Settings Auth', async ({ page }) => {
-      test.skip(shouldSkip('settings-auth.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
-      if (await settingsButton.count() > 0) {
-        await settingsButton.click();
-        await waitForAnimation(page);
-        const authTab = page.locator('button:has-text("Auth"), button:has-text("Authentication"), [data-testid*="auth"]').first();
-        if (await authTab.count() > 0) {
-          await authTab.click();
-          await waitForAnimation(page);
-        }
-      }
-      await saveScreenshot(page, 'settings-auth.png');
-    });
-
-    test('About Menu', async ({ page }) => {
-      test.skip(shouldSkip('about-menu.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
-      if (await settingsButton.count() > 0) {
-        await settingsButton.click();
-        await waitForAnimation(page);
-        const aboutTab = page.locator('button:has-text("About"), [data-testid*="about"]').first();
-        if (await aboutTab.count() > 0) {
-          await aboutTab.click();
-          await waitForAnimation(page);
-        }
-      }
-      await saveScreenshot(page, 'about-menu.png');
-    });
-  });
-
-  // ============================================================================
-  // COMMAND MENU AND KEYBOARD SHORTCUTS
-  // ============================================================================
-  test.describe('Command Menu', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Command Menu', async ({ page }) => {
-      test.skip(shouldSkip('command-menu.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      await page.keyboard.press('Control+k');
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'command-menu.png');
-    });
-
-    test('Command Menu with Search', async ({ page }) => {
-      test.skip(shouldSkip('command-menu-search.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      await page.keyboard.press('Control+k');
-      await waitForAnimation(page);
-      await page.keyboard.type('new workflow');
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'command-menu-search.png');
-    });
-  });
-
-  // ============================================================================
-  // DIALOGS AND MODALS
-  // ============================================================================
-  test.describe('Dialogs and Modals', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Open or Create Dialog', async ({ page }) => {
-      test.skip(shouldSkip('open-create-dialog.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Try to open "New Workflow" or similar dialog
-      const newButton = page.locator('button:has-text("New"), button:has-text("Create"), [aria-label*="New"]').first();
-      if (await newButton.count() > 0) {
-        await newButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'open-create-dialog.png');
-    });
-
-    test('Confirm Dialog', async ({ page }) => {
-      test.skip(shouldSkip('confirm-dialog.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      // This would need a specific action that triggers a confirm dialog
-      await saveScreenshot(page, 'confirm-dialog.png');
-    });
-
-    test('File Browser Dialog', async ({ page }) => {
-      test.skip(shouldSkip('file-browser-dialog.png'), 'Screenshot already exists');
-      await page.goto('/assets');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'file-browser-dialog.png');
-    });
-  });
-
-  // ============================================================================
-  // ASSETS - Asset management features
-  // ============================================================================
-  test.describe('Assets', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Asset Preview', async ({ page }) => {
-      test.skip(shouldSkip('asset-preview.png'), 'Screenshot already exists');
-      await page.goto('/assets');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      // Click on first asset if available
-      const assetItem = page.locator('.asset-item, [data-testid*="asset"]').first();
-      if (await assetItem.count() > 0) {
-        await assetItem.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'asset-preview.png');
-    });
-
-    test('Asset Grid Context Menu', async ({ page }) => {
-      test.skip(shouldSkip('asset-context-menu.png'), 'Screenshot already exists');
-      await page.goto('/assets');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      await page.mouse.click(600, 400, { button: 'right' });
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'asset-context-menu.png');
-    });
-
-    test('Asset Upload Area', async ({ page }) => {
-      test.skip(shouldSkip('asset-upload.png'), 'Screenshot already exists');
-      await page.goto('/assets');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'asset-upload.png');
-    });
-  });
-
-  // ============================================================================
-  // MODELS - Model management (Note: May require Ollama for full functionality)
-  // ============================================================================
-  test.describe('Models Manager', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Models Manager Full', async ({ page }) => {
-      test.skip(shouldSkip('models-manager-full.png'), 'Screenshot already exists');
-      await page.goto('/models');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'models-manager-full.png');
-    });
-
-    test('Models Filters', async ({ page }) => {
-      test.skip(shouldSkip('models-filters.png'), 'Screenshot already exists');
-      await page.goto('/models');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'models-filters.png');
-    });
-
-    test('Model Card Actions', async ({ page }) => {
-      test.skip(shouldSkip('model-card-actions.png'), 'Screenshot already exists');
-      await page.goto('/models');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      // Hover over first model card to show actions
-      const modelCard = page.locator('.model-card, [data-testid*="model"]').first();
-      if (await modelCard.count() > 0) {
-        await modelCard.hover();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'model-card-actions.png');
-    });
-
-    test('Model Manager Starter', async ({ page }) => {
-      test.skip(shouldSkip('model-manager-starter.png'), 'Screenshot already exists');
-      await page.goto('/models');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'model-manager-starter.png');
-    });
-  });
-
-  // ============================================================================
-  // WORKFLOW FEATURES - Advanced workflow editor features
-  // ============================================================================
-  test.describe('Workflow Features', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Smart Connect Menu', async ({ page }) => {
-      test.skip(shouldSkip('smart-connect.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'smart-connect.png');
-    });
-
-    test('Node Anatomy Annotated', async ({ page }) => {
-      test.skip(shouldSkip('node-anatomy-annotated.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'node-anatomy-annotated.png');
-    });
-
-    test('Connection Colors', async ({ page }) => {
-      test.skip(shouldSkip('connection-colors.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'connection-colors.png');
-    });
-
-    test('Workflow Progress', async ({ page }) => {
-      test.skip(shouldSkip('workflow-progress.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'workflow-progress.png');
-    });
-
-    test('Workflow Streaming Output', async ({ page }) => {
-      test.skip(shouldSkip('workflow-streaming-output.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'workflow-streaming-output.png');
-    });
-
-    test('Missing Model Indicator', async ({ page }) => {
-      test.skip(shouldSkip('missing-model.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'missing-model.png');
-    });
-
-    test('Auto Layout Comparison', async ({ page }) => {
-      test.skip(shouldSkip('auto-layout-comparison.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'auto-layout-comparison.png');
-    });
-
-    test('Node Groups', async ({ page }) => {
-      test.skip(shouldSkip('node-groups.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'node-groups.png');
-    });
-
-    test('Creative Story Workflow', async ({ page }) => {
-      test.skip(shouldSkip('creative-story-workflow.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'creative-story-workflow.png');
-    });
-  });
-
-  // ============================================================================
-  // CHAT FEATURES - Advanced chat features
-  // ============================================================================
-  test.describe('Chat Features', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Chat Workflow Attached', async ({ page }) => {
-      test.skip(shouldSkip('chat-workflow-attached.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'chat-workflow-attached.png');
-    });
-
-    test('Agent Planning', async ({ page }) => {
-      test.skip(shouldSkip('agent-planning.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'agent-planning.png');
-    });
-
-    test('Chat Rich Content', async ({ page }) => {
-      test.skip(shouldSkip('chat-rich-content.png'), 'Screenshot already exists');
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'chat-rich-content.png');
-    });
-  });
-
-  // ============================================================================
-  // KEY CONCEPTS - Educational screenshots
-  // ============================================================================
-  test.describe('Key Concepts', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Node Types Overview', async ({ page }) => {
-      test.skip(shouldSkip('node-types-overview.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'node-types-overview.png');
-    });
-
-    test('Data Flow Direction', async ({ page }) => {
-      test.skip(shouldSkip('data-flow-direction.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'data-flow-direction.png');
-    });
-  });
-
-  // ============================================================================
-  // COOKBOOK EXAMPLES - Example workflow screenshots
-  // ============================================================================
-  test.describe('Cookbook Examples', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('RAG Workflow', async ({ page }) => {
-      test.skip(shouldSkip('cookbook-rag-workflow.png'), 'Screenshot already exists');
-      await page.goto('/templates');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'cookbook-rag-workflow.png');
-    });
-
-    test('Image Enhancement Pipeline', async ({ page }) => {
-      test.skip(shouldSkip('cookbook-image-enhance.png'), 'Screenshot already exists');
-      await page.goto('/templates');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'cookbook-image-enhance.png');
-    });
-
-    test('Image to Story Workflow', async ({ page }) => {
-      test.skip(shouldSkip('cookbook-image-to-story.png'), 'Screenshot already exists');
-      await page.goto('/templates');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'cookbook-image-to-story.png');
-    });
-
-    test('Realtime Agent Workflow', async ({ page }) => {
-      test.skip(shouldSkip('cookbook-realtime-agent.png'), 'Screenshot already exists');
-      await page.goto('/templates');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'cookbook-realtime-agent.png');
-    });
-
-    test('Data Visualization Pipeline', async ({ page }) => {
-      test.skip(shouldSkip('cookbook-data-viz.png'), 'Screenshot already exists');
-      await page.goto('/templates');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'cookbook-data-viz.png');
-    });
-  });
-
-  // ============================================================================
-  // RESPONSIVE VIEWS - Different viewport sizes
-  // ============================================================================
-  test.describe('Responsive Views', () => {
-    test('Dashboard Mobile View', async ({ page }) => {
-      test.skip(shouldSkip('dashboard-mobile.png'), 'Screenshot already exists');
-      await page.setViewportSize({ width: 375, height: 812 }); // iPhone X
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'dashboard-mobile.png');
-    });
-
-    test('Dashboard Tablet View', async ({ page }) => {
-      test.skip(shouldSkip('dashboard-tablet.png'), 'Screenshot already exists');
-      await page.setViewportSize({ width: 768, height: 1024 }); // iPad
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'dashboard-tablet.png');
-    });
-
-    test('Chat Mobile View', async ({ page }) => {
-      test.skip(shouldSkip('chat-mobile.png'), 'Screenshot already exists');
+    test("Chat – mobile viewport", async ({ page }) => {
+      test.skip(shouldSkip("chat-mobile.png"), "Already captured");
       await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto('/chat');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'chat-mobile.png');
-    });
-
-    test('Editor Wide View', async ({ page }) => {
-      test.skip(shouldSkip('editor-wide.png'), 'Screenshot already exists');
-      await page.setViewportSize({ width: 2560, height: 1440 }); // 2K monitor
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'editor-wide.png');
+      await gotoPage(page, "/chat");
+      await saveScreenshot(page, "chat-mobile.png");
     });
   });
 
-  // ============================================================================
-  // PANELS - Different panel states
-  // ============================================================================
-  test.describe('Panel States', () => {
+  // ===========================================================================
+  // MINI-APPS
+  // ===========================================================================
+  test.describe("Mini-Apps", () => {
+    test("Mini-apps gallery", async ({ page }) => {
+      test.skip(shouldSkip("mini-apps-page.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/miniapps");
+      await saveScreenshot(page, "mini-apps-page.png");
+    });
+  });
+
+  // ===========================================================================
+  // WORKFLOW EDITOR
+  // ===========================================================================
+  test.describe("Workflow Editor", () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
     });
 
-    test('Panel Left Collapsed', async ({ page }) => {
-      test.skip(shouldSkip('panel-left-collapsed.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Look for panel collapse button
-      const collapseButton = page.locator('[data-testid*="collapse"], [aria-label*="Collapse"], .panel-toggle').first();
-      if (await collapseButton.count() > 0) {
-        await collapseButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'panel-left-collapsed.png');
+    test("Editor – empty canvas", async ({ page }) => {
+      test.skip(shouldSkip("editor-empty-state.png"), "Already captured");
+      await gotoPage(page, "/editor/wf-story-generator");
+      await saveScreenshot(page, "editor-empty-state.png");
     });
 
-    test('Panel Right Expanded', async ({ page }) => {
-      test.skip(shouldSkip('panel-right-expanded.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'panel-right-expanded.png');
+    test("Editor – workflow view (1280×720)", async ({ page }) => {
+      test.skip(shouldSkip("editor-workflow-view.png"), "Already captured");
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await gotoPage(page, "/editor/wf-story-generator");
+      await saveScreenshot(page, "editor-workflow-view.png");
     });
 
-    test('Log Panel', async ({ page }) => {
-      test.skip(shouldSkip('log-panel.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Look for log panel toggle
-      const logButton = page.locator('[data-testid*="log"], button:has-text("Logs"), [aria-label*="Log"]').first();
-      if (await logButton.count() > 0) {
-        await logButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'log-panel.png');
-    });
-
-    test('System Stats Panel', async ({ page }) => {
-      test.skip(shouldSkip('system-stats.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'system-stats.png');
+    test("Canvas workflow", async ({ page }) => {
+      test.skip(shouldSkip("canvas-workflow.png"), "Already captured");
+      await gotoPage(page, "/editor/wf-story-generator");
+      await saveScreenshot(page, "canvas-workflow.png");
     });
   });
 
-  // ============================================================================
-  // WORKFLOW ASSISTANT - AI-powered assistant
-  // ============================================================================
-  test.describe('Workflow Assistant', () => {
+  // ===========================================================================
+  // ASSETS
+  // ===========================================================================
+  test.describe("Asset Explorer", () => {
+    test("Asset explorer", async ({ page }) => {
+      test.skip(shouldSkip("asset-explorer.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/assets");
+      await saveScreenshot(page, "asset-explorer.png");
+    });
+  });
+
+  // ===========================================================================
+  // COLLECTIONS
+  // ===========================================================================
+  test.describe("Collections", () => {
+    test("Collections explorer", async ({ page }) => {
+      test.skip(shouldSkip("collections-explorer.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/collections");
+      await saveScreenshot(page, "collections-explorer.png");
+    });
+  });
+
+  // ===========================================================================
+  // MODELS
+  // ===========================================================================
+  test.describe("Models", () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
     });
 
-    test('Workflow Assistant Chat', async ({ page }) => {
-      test.skip(shouldSkip('workflow-assistant-chat.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      // Look for assistant button
-      const assistantButton = page.locator('[data-testid*="assistant"], button:has-text("Assistant"), [aria-label*="Assistant"]').first();
-      if (await assistantButton.count() > 0) {
-        await assistantButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'workflow-assistant-chat.png');
+    test("Models list", async ({ page }) => {
+      test.skip(shouldSkip("models-list.png"), "Already captured");
+      await gotoPage(page, "/models");
+      await saveScreenshot(page, "models-list.png");
+    });
+
+    test("Models manager – full view", async ({ page }) => {
+      test.skip(shouldSkip("models-manager-full.png"), "Already captured");
+      await gotoPage(page, "/models");
+      await saveScreenshot(page, "models-manager-full.png");
     });
   });
 
-  // ============================================================================
-  // HUGGING FACE - HuggingFace integration
-  // ============================================================================
-  test.describe('HuggingFace Integration', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('HuggingFace Browser', async ({ page }) => {
-      test.skip(shouldSkip('huggingface-browser.png'), 'Screenshot already exists');
-      await page.goto('/models');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      // Look for HuggingFace tab/button
-      const hfButton = page.locator('button:has-text("HuggingFace"), button:has-text("Hugging Face"), [data-testid*="hugging"]').first();
-      if (await hfButton.count() > 0) {
-        await hfButton.click();
-        await waitForAnimation(page);
-      }
-      await saveScreenshot(page, 'huggingface-browser.png');
-    });
-  });
-
-  // ============================================================================
-  // ERROR STATES - Various error conditions
-  // ============================================================================
-  test.describe('Error States', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('404 Page', async ({ page }) => {
-      test.skip(shouldSkip('error-404.png'), 'Screenshot already exists');
-      await page.goto('/nonexistent-page-12345');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'error-404.png');
-    });
-
-    test('Connection Error State', async ({ page }) => {
-      test.skip(shouldSkip('connection-error.png'), 'Screenshot already exists');
-      // This would need specific setup to capture
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'connection-error.png');
-    });
-  });
-
-  // ============================================================================
-  // LOADING STATES - Various loading conditions
-  // ============================================================================
-  test.describe('Loading States', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Dashboard Loading', async ({ page }) => {
-      test.skip(shouldSkip('dashboard-loading.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      // Capture early before network idle
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'dashboard-loading.png');
-    });
-
-    test('Editor Loading', async ({ page }) => {
-      test.skip(shouldSkip('editor-loading.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'editor-loading.png');
-    });
-  });
-
-  // ============================================================================
-  // THEME VARIATIONS - Light/Dark theme
-  // ============================================================================
-  test.describe('Theme Variations', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test('Dashboard Dark Theme', async ({ page }) => {
-      test.skip(shouldSkip('dashboard-dark-theme.png'), 'Screenshot already exists');
-      await page.goto('/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      // This captures the default theme (usually dark)
-      await saveScreenshot(page, 'dashboard-dark-theme.png');
-    });
-
-    test('Editor Dark Theme', async ({ page }) => {
-      test.skip(shouldSkip('editor-dark-theme.png'), 'Screenshot already exists');
-      await page.goto('/editor');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'editor-dark-theme.png');
-    });
-  });
-
-  // ============================================================================
-  // ISOLATED COMPONENT PREVIEWS - Zoomed-in screenshots via /preview routes
-  //
-  // These use the /preview/:component routes (localhost-only) to capture
-  // individual components in isolation. Useful for documentation sections that
-  // need a tight, focused screenshot rather than the full-page layout.
-  // ============================================================================
-  test.describe('Isolated Component Previews', () => {
-    test('App Header – zoomed', async ({ page }) => {
-      test.skip(shouldSkip('component-app-header.png'), 'Screenshot already exists');
-      // The header is narrow, so use a matching viewport
+  // ===========================================================================
+  // ISOLATED COMPONENT PREVIEWS (via /preview routes, bypasses metadata gate)
+  // ===========================================================================
+  test.describe("Isolated Component Previews", () => {
+    test("App Header – full width strip", async ({ page }) => {
+      test.skip(shouldSkip("app-header.png"), "Already captured");
+      // Use a narrow viewport height to get just the header
       await page.setViewportSize({ width: 1920, height: 80 });
-      await page.goto('/preview/app-header');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      const saved = await saveElementScreenshot(page, '[data-preview="app-header"]', 'component-app-header.png');
-      if (!saved) {
-        await saveScreenshot(page, 'component-app-header.png');
+      await gotoPage(page, "/preview/app-header");
+      await saveScreenshot(page, "app-header.png");
+    });
+
+    test("Preview index page", async ({ page }) => {
+      test.skip(shouldSkip("component-preview-index.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/preview");
+      await saveScreenshot(page, "component-preview-index.png");
+    });
+
+    test("Dashboard – isolated preview", async ({ page }) => {
+      test.skip(shouldSkip("component-dashboard.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/preview/dashboard");
+      await saveScreenshot(page, "component-dashboard.png");
+    });
+
+    test("Models – isolated preview", async ({ page }) => {
+      test.skip(shouldSkip("component-models.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/preview/models");
+      await saveScreenshot(page, "component-models.png");
+    });
+
+    test("Assets – isolated preview", async ({ page }) => {
+      test.skip(shouldSkip("component-assets.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await gotoPage(page, "/preview/assets");
+      await saveScreenshot(page, "component-assets.png");
+    });
+  });
+
+  // ===========================================================================
+  // RESPONSIVE VIEWS
+  // ===========================================================================
+  test.describe("Responsive Viewports", () => {
+    test("Dashboard – mobile (375×812)", async ({ page }) => {
+      test.skip(shouldSkip("dashboard-mobile.png"), "Already captured");
+      await page.setViewportSize({ width: 375, height: 812 });
+      await gotoPage(page, "/");
+      await saveScreenshot(page, "dashboard-mobile.png");
+    });
+
+    test("Dashboard – tablet (768×1024)", async ({ page }) => {
+      test.skip(shouldSkip("dashboard-tablet.png"), "Already captured");
+      await page.setViewportSize({ width: 768, height: 1024 });
+      await gotoPage(page, "/");
+      await saveScreenshot(page, "dashboard-tablet.png");
+    });
+
+    test("Editor – wide (2560×1440)", async ({ page }) => {
+      test.skip(shouldSkip("editor-wide.png"), "Already captured");
+      await page.setViewportSize({ width: 2560, height: 1440 });
+      await gotoPage(page, "/editor/wf-story-generator");
+      await saveScreenshot(page, "editor-wide.png");
+    });
+  });
+
+  // ===========================================================================
+  // SETTINGS
+  // ===========================================================================
+  test.describe("Settings", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width: 1920, height: 1080 });
+    });
+
+    test("Settings dialog", async ({ page }) => {
+      test.skip(shouldSkip("settings-dialog.png"), "Already captured");
+      await gotoPage(page, "/");
+      // Open settings via keyboard shortcut
+      await page.keyboard.press("Control+,");
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "settings-dialog.png");
+    });
+
+    test("Settings – general tab (1280×720)", async ({ page }) => {
+      test.skip(shouldSkip("settings-general.png"), "Already captured");
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await gotoPage(page, "/");
+      await page.keyboard.press("Control+,");
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "settings-general.png");
+    });
+
+    test("Settings – API keys tab", async ({ page }) => {
+      test.skip(shouldSkip("settings-api-keys.png"), "Already captured");
+      await gotoPage(page, "/");
+      await page.keyboard.press("Control+,");
+      await waitForAnimation(page, 600);
+      // Click the API Keys / Secrets tab if present
+      const apiKeysTab = page
+        .getByRole("tab")
+        .filter({ hasText: /api.*key|secret/i })
+        .first();
+      if ((await apiKeysTab.count()) > 0) {
+        await apiKeysTab.click();
+        await waitForAnimation(page, 400);
       }
+      await saveScreenshot(page, "settings-api-keys.png");
     });
+  });
 
-    test('Dashboard – isolated', async ({ page }) => {
-      test.skip(shouldSkip('component-dashboard.png'), 'Screenshot already exists');
+  // ===========================================================================
+  // CREATIVE STORY WORKFLOW
+  // ===========================================================================
+  test.describe("Workflow Thumbnails", () => {
+    test("Creative story workflow", async ({ page }) => {
+      test.skip(shouldSkip("creative-story-workflow.png"), "Already captured");
       await page.setViewportSize({ width: 1920, height: 1080 });
-      await page.goto('/preview/dashboard');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'component-dashboard.png');
-    });
-
-    test('Models Manager – isolated', async ({ page }) => {
-      test.skip(shouldSkip('component-models.png'), 'Screenshot already exists');
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await page.goto('/preview/models');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'component-models.png');
-    });
-
-    test('Asset Explorer – isolated', async ({ page }) => {
-      test.skip(shouldSkip('component-assets.png'), 'Screenshot already exists');
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await page.goto('/preview/assets');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
-      await saveScreenshot(page, 'component-assets.png');
-    });
-
-    test('Preview Index', async ({ page }) => {
-      test.skip(shouldSkip('component-preview-index.png'), 'Screenshot already exists');
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await page.goto('/preview');
-      await page.waitForLoadState('networkidle');
-      await waitForAnimation(page);
-      await saveScreenshot(page, 'component-preview-index.png');
+      await gotoPage(page, "/editor/wf-story-generator");
+      await saveScreenshot(page, "creative-story-workflow.png");
     });
   });
 }

@@ -137,9 +137,7 @@
     "prepare": "husky",
     "upload-stock-images": "node scripts/upload-stock-images.js",
     "screenshots": "playwright test tests/benchmarks/screenshots.spec.ts --project=chromium",
-    "screenshots:force": "FORCE_SCREENSHOTS=true playwright test tests/benchmarks/screenshots.spec.ts --project=chromium",
-    "generate-placeholders": "npx tsx scripts/generate-placeholders.ts",
-    "generate-placeholders:force": "npx tsx scripts/generate-placeholders.ts --force"
+    "screenshots:force": "FORCE_SCREENSHOTS=true playwright test tests/benchmarks/screenshots.spec.ts --project=chromium"
   },
   "browserslist": {
     "production": [
