@@ -26,8 +26,8 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
   const isRendererProcess =
     hasWindow &&
     typeof window.process === "object" &&
-    typeof (window.process as any).type === "string" &&
-    (window.process as any).type === "renderer";
+    typeof window.process.type === "string" &&
+    window.process.type === "renderer";
 
   const hasElectronVersionInWindowProcess =
     hasWindow &&
@@ -53,3 +53,20 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
 };
 
 export const isElectron = getIsElectronDetails().isElectron;
+
+/**
+ * Checks if the currently focused element is a text input.
+ * This includes <input>, <textarea>, and elements with contentEditable.
+ * Useful for determining whether to use native paste or custom paste behavior.
+ * 
+ * @returns true if the active element is a text input
+ */
+export const isTextInputActive = (): boolean => {
+  const activeElement = document.activeElement;
+  return (
+    activeElement instanceof HTMLInputElement ||
+    activeElement instanceof HTMLTextAreaElement ||
+    (activeElement as HTMLElement)?.isContentEditable === true
+  );
+};
+

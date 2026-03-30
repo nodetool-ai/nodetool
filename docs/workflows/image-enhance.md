@@ -28,7 +28,7 @@ A simple image enhancement pipeline using sharpening for crisp details and auto-
 
 **Input:** Load any image - portraits, landscapes, product photos, digital art.
 
-**Sharpen:** Applies intelligent sharpening to make details crisp. Good for:
+**Sharpen:** Sharpens edges and fine details. Good for:
 - Product photography
 - Portraits
 - Landscape photos

@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
-  StandardValidatorType
+  StandardValidatorType,
+  RowComponent
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -14,17 +15,24 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { tableStyles } from "../../../styles/TableStyles";
 import TableActions from "./TableActions";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import isEqual from "lodash/isEqual";
+import type { TableData } from "./TableActions";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
+
+/**
+ * Union type for all possible cell values in a list table
+ */
+export type ListCellValue = string | number | boolean | Date | null | undefined;
+
 export type ListTableProps = {
-  data: any[];
+  data: ListCellValue[];
   editable: boolean;
-  onDataChange?: (newData: any[]) => void;
+  onDataChange?: (newData: ListCellValue[]) => void;
   data_type: ListDataType;
 };
 
-const coerceValue = (value: any, type: ListDataType) => {
+const coerceValue = (value: unknown, type: ListDataType): ListCellValue => {
   let intValue: number;
   let floatValue: number;
 
@@ -35,21 +43,21 @@ const coerceValue = (value: any, type: ListDataType) => {
       case "float":
         return 0.0;
       default:
-        return value;
+        return value as ListCellValue;
     }
   }
 
   switch (type) {
     case "int":
-      intValue = parseInt(value);
+      intValue = parseInt(value as string);
       return isNaN(intValue) ? 0 : intValue;
     case "float":
-      floatValue = parseFloat(value);
+      floatValue = parseFloat(value as string);
       return isNaN(floatValue) ? 0.0 : floatValue;
     case "datetime":
-      return new Date(value);
+      return new Date(value as string);
     default:
-      return value;
+      return value as ListCellValue;
   }
 };
 
@@ -62,7 +70,7 @@ const ListTable: React.FC<ListTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
 
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
 
   const columns = useMemo(
@@ -80,7 +88,7 @@ const ListTable: React.FC<ListTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (e: any, cell: CellComponent) {
+              cellClick: function (_e: any, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -128,16 +136,22 @@ const ListTable: React.FC<ListTableProps> = ({
     [data_type, editable, showSelect]
   );
 
+  // Memoize the tabulator data transformation to prevent recreation on every render
+  const tabulatorData = useMemo(
+    () => data.map((value, index) => ({
+        rownum: index,
+        value: coerceValue(value, data_type)
+      })),
+    [data, data_type]
+  );
+
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
       const { rownum, value } = cell.getData();
-      const newData = data.map((row, index) => {
-        if (index === rownum) {
-          return value;
-        } else {
-          return row;
-        }
-      });
+      // Create new array only when necessary (on cell edit)
+      const newData = data.map((row, index) =>
+        index === rownum ? value : row
+      );
       if (onDataChange) {
         onDataChange(newData);
       }
@@ -146,9 +160,9 @@ const ListTable: React.FC<ListTableProps> = ({
   );
 
   const onChangeRows = useCallback(
-    (newData: any[] | Record<string, any>) => {
+    (newData: ListCellValue[]) => {
       if (onDataChange) {
-        onDataChange(Array.isArray(newData) ? newData : Object.values(newData));
+        onDataChange(newData);
       }
     },
     [onDataChange]
@@ -159,10 +173,7 @@ const ListTable: React.FC<ListTableProps> = ({
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "100%",
-      data: data.map((value, index) => ({
-        rownum: index,
-        value: coerceValue(value, data_type)
-      })),
+      data: tabulatorData,
       columns: columns,
       columnDefaults: {
         headerSort: true,
@@ -187,16 +198,16 @@ const ListTable: React.FC<ListTableProps> = ({
     return () => {
       tabulatorInstance.destroy();
     };
-  }, [data, columns, onCellEdited, data_type]);
+  }, [tabulatorData, columns, onCellEdited, data_type]);
 
   const theme = useTheme();
   return (
     <div className="listtable nowheel nodrag" css={tableStyles(theme)}>
       <TableActions
         tabulator={tabulator}
-        data={data}
+        data={data as unknown as TableData}
         selectedRows={selectedRows}
-        onChangeRows={onChangeRows}
+        onChangeRows={onChangeRows as unknown as (newData: TableData) => void}
         showSelect={showSelect}
         setShowSelect={setShowSelect}
         editable={editable}
@@ -207,4 +218,13 @@ const ListTable: React.FC<ListTableProps> = ({
   );
 };
 
-export default ListTable;
+ListTable.displayName = "ListTable";
+
+export default memo(ListTable, (prevProps, nextProps) => {
+  // Compare primitive props
+  return (
+    prevProps.data_type === nextProps.data_type &&
+    prevProps.editable === nextProps.editable &&
+    isEqual(prevProps.data, nextProps.data)
+  );
+});

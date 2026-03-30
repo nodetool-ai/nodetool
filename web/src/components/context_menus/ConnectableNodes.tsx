@@ -11,7 +11,7 @@ import {
   Tooltip
 } from "@mui/material";
 import { css } from "@emotion/react";
-import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
+import useConnectableNodesStore, { ConnectableNodesState } from "../../stores/ConnectableNodesStore";
 import { useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -155,6 +155,23 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
+
+  // Memoize store selector function to prevent re-renders
+  const storeSelector = useCallback(
+    (state: ConnectableNodesState) => ({
+      connectableNodes: state.getConnectableNodes(),
+      typeMetadata: state.typeMetadata,
+      filterType: state.filterType,
+      isVisible: state.isVisible,
+      menuPosition: state.menuPosition,
+      hideMenu: state.hideMenu,
+      sourceHandle: state.sourceHandle,
+      targetHandle: state.targetHandle,
+      nodeId: state.nodeId
+    }),
+    []
+  );
+
   const {
     connectableNodes,
     typeMetadata,
@@ -165,17 +182,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     sourceHandle,
     targetHandle,
     nodeId
-  } = useConnectableNodesStore((state) => ({
-    connectableNodes: state.getConnectableNodes(),
-    typeMetadata: state.typeMetadata,
-    filterType: state.filterType,
-    isVisible: state.isVisible,
-    menuPosition: state.menuPosition,
-    hideMenu: state.hideMenu,
-    sourceHandle: state.sourceHandle,
-    targetHandle: state.targetHandle,
-    nodeId: state.nodeId
-  }));
+  } = useConnectableNodesStore(storeSelector);
 
   const filteredNodes = useMemo(
     () =>
@@ -275,6 +282,33 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     ]
   );
 
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      hideMenu();
+    } else {
+      e.stopPropagation();
+    }
+  }, [hideMenu]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const handleNodeClick = useCallback((nodeMetadata: NodeMetadata) => {
+    createConnectableNode(nodeMetadata);
+    hideMenu();
+  }, [createConnectableNode, hideMenu]);
+
+  // Empty callback for onDragStart - prevents new function creation on each render
+  const handleDragStart = useCallback(
+    (_node: NodeMetadata, _event: React.DragEvent<HTMLDivElement>) => {},
+    []
+  );
+
   if (!menuPosition || !isVisible) {return null;}
 
   return (
@@ -319,24 +353,18 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             fullWidth
             placeholder="Search nodes..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                hideMenu();
-              } else {
-                e.stopPropagation();
-              }
-            }}
+            onKeyDown={handleSearchKeyDown}
             autoFocus={isVisible}
             aria-label="Search nodes"
             sx={{
                 "& .MuiOutlinedInput-root": {
                     backgroundColor: "action.disabledBackground",
                     borderRadius: "8px",
-                    "& fieldset": { borderColor: "action.selected" },
-                    "&:hover fieldset": { borderColor: "action.focus" },
-                    "&.Mui-focused fieldset": { borderColor: theme.vars.palette.primary.main },
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "action.selected" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "action.focus" },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: theme.vars.palette.primary.main },
                 }
             }}
             slotProps={{
@@ -353,7 +381,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                   <InputAdornment position="end">
                     <IconButton
                       aria-label="clear search"
-                      onClick={() => setSearchTerm("")}
+                      onClick={handleClearSearch}
                       edge="end"
                       size="small"
                     >
@@ -398,7 +426,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                   sx={{ padding: "0" }}
                   slotProps={{
                     popper: {
-                      sx: { zIndex: theme.zIndex.tooltip + 2 },
+                      sx: { zIndex: theme.zIndex.tooltip + 2, maxWidth: 320 },
                       modifiers: [
                         { name: "offset", options: { offset: [0, 8] } },
                         { name: "preventOverflow", options: { padding: 8 } },
@@ -413,6 +441,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                     <NodeInfo
                       nodeMetadata={nodeMetadata}
                       showConnections={false}
+                      menuWidth={240}
                     />
                   }
                 >
@@ -420,11 +449,8 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                     <NodeItem
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
-                      onDragStart={() => {}}
-                      onClick={() => {
-                        createConnectableNode(nodeMetadata);
-                        hideMenu();
-                      }}
+                      onDragStart={handleDragStart}
+                      onClick={handleNodeClick}
                     />
                   </div>
                 </Tooltip>

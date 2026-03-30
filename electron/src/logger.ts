@@ -4,9 +4,7 @@ import log from "electron-log";
 import { createWriteStream, existsSync, mkdirSync, WriteStream } from "fs";
 import { getSystemDataPath } from "./config";
 
-/**
- * The log level for the logger
- */
+/** The log level for the logger */
 export type LogLevel = "info" | "warn" | "error";
 
 /**
@@ -19,9 +17,7 @@ export const LOG_FILE: string = getSystemDataPath(path.join("logs", "nodetool.lo
 // Persistent write stream for logging
 let logStream: WriteStream | null = null;
 
-/**
- * Gets or creates the log file write stream
- */
+/** Gets or creates the log file write stream */
 function getLogStream(): WriteStream | null {
   if (logStream && !logStream.destroyed) {
     return logStream;
@@ -48,11 +44,7 @@ function getLogStream(): WriteStream | null {
   }
 }
 
-/**
- * Logs a message to the console and the log file
- * @param message - The message to log
- * @param level - The log level (default: "info")
- */
+/** Logs a message to the console and the log file */
 export function logMessage(
   message: string,
   level: LogLevel = "info"

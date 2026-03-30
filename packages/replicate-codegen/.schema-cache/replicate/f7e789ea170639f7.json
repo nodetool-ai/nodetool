@@ -1,0 +1,141 @@
+{
+  "modelId": "lightricks/ltx-video",
+  "owner": "lightricks",
+  "name": "ltx-video",
+  "version": "8c47da666861d081eeb4d1261853087de23923a268a69b63febdf5dc1dee08e4",
+  "description": "LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 24 FPS videos at a 768x512 resolution faster than they can be watched.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "3:2",
+        "description": "Aspect ratio of the output video. Ignored if an image is provided.",
+        "enum": [
+          "1:1",
+          "1:2",
+          "2:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "9:21",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 5
+      },
+      "cfg": {
+        "default": 3,
+        "description": "How strongly the video follows the prompt",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Cfg",
+        "type": "number",
+        "x-order": 6
+      },
+      "image": {
+        "description": "Optional input image to use as the starting frame",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 2
+      },
+      "image_noise_scale": {
+        "default": 0.15,
+        "description": "Lower numbers stick more closely to the input image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Image Noise Scale",
+        "type": "number",
+        "x-order": 3
+      },
+      "length": {
+        "default": 97,
+        "description": "Length of the output video in frames",
+        "enum": [
+          97,
+          129,
+          161,
+          193,
+          225,
+          257
+        ],
+        "title": "length",
+        "type": "integer",
+        "x-order": 8
+      },
+      "model": {
+        "default": "0.9.1",
+        "description": "Model version to use",
+        "enum": [
+          "0.9.1",
+          "0.9"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 9
+      },
+      "negative_prompt": {
+        "default": "low quality, worst quality, deformed, distorted",
+        "description": "Things you do not want to see in your video",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "default": "best quality, 4k, HDR, a tracking shot of a beautiful scene",
+        "description": "Text prompt for the video. This model needs long descriptive prompts, if the prompt is too short the quality won't be good.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Set a seed for reproducibility. Random by default.",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "steps": {
+        "default": 30,
+        "description": "Number of steps",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 7
+      },
+      "target_size": {
+        "default": 640,
+        "description": "Target size for the output video",
+        "enum": [
+          512,
+          576,
+          640,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "target_size",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

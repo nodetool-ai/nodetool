@@ -96,13 +96,13 @@ describe('formatDateAndTime utilities', () => {
       const now = new Date('2023-01-02T03:04:05Z');
       
       // Seconds
-      expect(relativeTime(new Date(now.getTime() - 1000))).toBe('1 second ago');
-      expect(relativeTime(new Date(now.getTime() - 30000))).toBe('30 seconds ago');
+      expect(relativeTime(new Date(now.getTime() - 1000))).toBe('1 sec ago');
+      expect(relativeTime(new Date(now.getTime() - 30000))).toBe('30 sec ago');
       
       // Minutes
-      expect(relativeTime(new Date(now.getTime() - 60000))).toBe('1 minute ago');
-      expect(relativeTime(new Date(now.getTime() - 120000))).toBe('2 minutes ago');
-      expect(relativeTime(new Date(now.getTime() - 59 * 60000))).toBe('59 minutes ago');
+      expect(relativeTime(new Date(now.getTime() - 60000))).toBe('1 min ago');
+      expect(relativeTime(new Date(now.getTime() - 120000))).toBe('2 min ago');
+      expect(relativeTime(new Date(now.getTime() - 59 * 60000))).toBe('59 min ago');
       
       // Hours
       expect(relativeTime(new Date(now.getTime() - 3600000))).toBe('1 hour ago');

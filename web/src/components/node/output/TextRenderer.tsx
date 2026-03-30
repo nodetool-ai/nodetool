@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
@@ -65,26 +65,32 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
   const handleToggle = useCallback(() => {
     setOpen((v) => !v);
   }, []);
+
+  // Memoize sx props to prevent recreation on every render
+  const containerBoxStyle = useMemo(() => ({
+    my: 1,
+    borderRadius: 1,
+    overflow: "hidden"
+  }), []);
+
+  const reasoningContentStyle = useMemo(() => ({
+    padding: "0 0.5em",
+    margin: 0,
+    lineHeight: 1.2,
+    fontSize: theme.vars.fontSizeSmaller,
+    fontFamily: theme.vars.fontFamily2,
+    color: theme.vars.palette.text.secondary
+  }), [theme.vars.fontSizeSmaller, theme.vars.fontFamily2, theme.vars.palette.text.secondary]);
+
   return (
     <Box
-      sx={{
-        my: 1,
-        borderRadius: 1,
-        overflow: "hidden"
-      }}
+      sx={containerBoxStyle}
     >
       <ReasoningToggle isOpen={open} onToggle={handleToggle} />
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box
           className="reasoning-content"
-          sx={{
-            padding: "0 0.5em",
-            margin: 0,
-            lineHeight: 1.2,
-            fontSize: theme.vars.fontSizeSmaller,
-            fontFamily: theme.vars.fontFamily2,
-            color: theme.vars.palette.text.secondary
-          }}
+          sx={reasoningContentStyle}
         >
           <MaybeMarkdown text={content} />
         </Box>
@@ -93,14 +99,14 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
+export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true }) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
   if (!text) {
     return null;
   }
   return (
-    <div className="output value noscroll" css={outputStyles(theme)}>
+    <div className="output value noscroll" css={outputStyles(theme, showActions)}>
       {showActions && <Actions copyValue={text} />}
       {sections.map((s) =>
         s.type === "think" ? (
@@ -111,10 +117,13 @@ export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
         ) : (
           <MaybeMarkdown
             key={`${s.type}-${s.start}-${s.end}`}
+            fillContainer={!showActions}
             text={s.content}
           />
         )
       )}
     </div>
   );
-};
+});
+
+TextRenderer.displayName = "TextRenderer";

@@ -3,12 +3,14 @@ import type {
   ImageModel,
   ASRModel,
   TTSModel,
-  VideoModel
+  VideoModel,
+  EmbeddingModel
 } from "../stores/ApiTypes";
 import type { TypeTag, SizeBucket } from "../stores/ModelFiltersStore";
 
 export type ModelSelectorModel =
   | LanguageModel
+  | EmbeddingModel
   | ImageModel
   | ASRModel
   | TTSModel
@@ -23,7 +25,7 @@ export type NormalizedModelMeta = {
 };
 
 const bucketSizeByB = (b?: number) => {
-  if (b == null) {return undefined;}
+  if (b === null || b === undefined) {return undefined;}
   if (b <= 2) {return "1-2B";}
   if (b <= 7) {return "3-7B";}
   if (b <= 15) {return "8-15B";}

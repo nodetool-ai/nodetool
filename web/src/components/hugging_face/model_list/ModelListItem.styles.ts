@@ -7,24 +7,12 @@ const modelListItemStyles = (theme: Theme) =>
       padding: "0.75em 1em",
       marginBottom: "0.35em",
       boxSizing: "border-box",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "16px",
-      background: theme.vars.palette.action.hover,
       wordBreak: "break-word",
-      transition: "all 0.2s ease",
-      marginRight: "0.5em", // Reduced margin
       maxHeight: "calc(100% - 0.75em)", // Ensure it fits within the react-window item size minus margin
       overflow: "hidden", // Prevent content from spilling out
-      
+
       "&.compact": {
         padding: ".5em .75em"
-      },
-
-      "&:hover": {
-        background: theme.vars.palette.action.selected,
-        borderColor: theme.vars.palette.primary.main,
-        transform: "translateY(-1px)",
-        boxShadow: theme.shadows[4]
       },
 
       "& .model-content": {
@@ -84,9 +72,9 @@ const modelListItemStyles = (theme: Theme) =>
         marginLeft: "0 !important",
         paddingBottom: "0.25em",
         transition: "color 0.2s",
-        "&:hover": { 
+        "&:hover": {
           color: theme.vars.palette.primary.main,
-          textDecoration: "none" 
+          textDecoration: "none"
         },
         "&.no-link": {
           color: theme.vars.palette.text.primary,
@@ -200,7 +188,6 @@ const modelListItemStyles = (theme: Theme) =>
         gap: 0,
         alignItems: "center"
       },
-
 
       "& .downloaded-icon": {
         marginBottom: "-0.25em",

@@ -1,0 +1,103 @@
+{
+  "modelId": "recraft-ai/recraft-v3",
+  "owner": "recraft-ai",
+  "name": "recraft-v3",
+  "version": "9507e61ddace8b3a238371b17a61be203747c5081ea6070fecd3c40d27318922",
+  "description": "Recraft V3 (code-named red_panda) is a text-to-image model with the ability to generate long texts, and images in a wide list of styles. As of today, it is SOTA in image generation, proven by the Text-to-Image Benchmark by Artificial Analysis",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "Not set",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "Not set",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "1:2",
+          "2:1",
+          "7:5",
+          "5:7",
+          "4:5",
+          "5:4",
+          "3:5",
+          "5:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "size": {
+        "default": "1024x1024",
+        "description": "Width and height of the generated image. Size is ignored if an aspect ratio is set.",
+        "enum": [
+          "1024x1024",
+          "1365x1024",
+          "1024x1365",
+          "1536x1024",
+          "1024x1536",
+          "1820x1024",
+          "1024x1820",
+          "1024x2048",
+          "2048x1024",
+          "1434x1024",
+          "1024x1434",
+          "1024x1280",
+          "1280x1024",
+          "1024x1707",
+          "1707x1024"
+        ],
+        "title": "size",
+        "type": "string",
+        "x-order": 2
+      },
+      "style": {
+        "default": "any",
+        "description": "Style of the generated image.",
+        "enum": [
+          "any",
+          "realistic_image",
+          "digital_illustration",
+          "digital_illustration/pixel_art",
+          "digital_illustration/hand_drawn",
+          "digital_illustration/grain",
+          "digital_illustration/infantile_sketch",
+          "digital_illustration/2d_art_poster",
+          "digital_illustration/handmade_3d",
+          "digital_illustration/hand_drawn_outline",
+          "digital_illustration/engraving_color",
+          "digital_illustration/2d_art_poster_2",
+          "realistic_image/b_and_w",
+          "realistic_image/hard_flash",
+          "realistic_image/hdr",
+          "realistic_image/natural_light",
+          "realistic_image/studio_portrait",
+          "realistic_image/enterprise",
+          "realistic_image/motion_blur"
+        ],
+        "title": "style",
+        "type": "string",
+        "x-order": 3
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

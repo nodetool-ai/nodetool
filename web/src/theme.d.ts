@@ -42,6 +42,21 @@ declare module "@mui/material/styles" {
       buttonSmall?: string;
       buttonLarge?: string;
     };
+    /**
+     * Minimal editor-specific values (kept small; expand only when needed).
+     * Used behind editor marker classes so styles don't leak globally.
+     */
+    editor?: {
+      heightNode?: string;
+      heightInspector?: string;
+      padXNode?: string;
+      padYNode?: string;
+      padXInspector?: string;
+      padYInspector?: string;
+      controlRadius?: string;
+      menuRadius?: string;
+      menuShadow?: string;
+    };
   }
 
   interface Theme {
@@ -56,12 +71,25 @@ declare module "@mui/material/styles" {
     fontFamily1: string;
     fontFamily2: string;
     // Ensure theme.vars is treated as always present in our codebase
+    // MUI's internal theme.vars structure is complex and cannot be easily typed
+     
     vars: any;
     rounded: {
       dialog: string;
       node: string;
       buttonSmall: string;
       buttonLarge: string;
+    };
+    editor: {
+      heightNode: string;
+      heightInspector: string;
+      padXNode: string;
+      padYNode: string;
+      padXInspector: string;
+      padYInspector: string;
+      controlRadius: string;
+      menuRadius: string;
+      menuShadow: string;
     };
   }
 
@@ -84,6 +112,17 @@ declare module "@mui/material/styles" {
       buttonSmall?: string;
       buttonLarge?: string;
     };
+    editor?: {
+      heightNode?: string;
+      heightInspector?: string;
+      padXNode?: string;
+      padYNode?: string;
+      padXInspector?: string;
+      padYInspector?: string;
+      controlRadius?: string;
+      menuRadius?: string;
+      menuShadow?: string;
+    };
   }
   interface CssVarsTheme {
     fontSizeGiant: string;
@@ -101,6 +140,17 @@ declare module "@mui/material/styles" {
       node: string;
       buttonSmall: string;
       buttonLarge: string;
+    };
+    editor: {
+      heightNode: string;
+      heightInspector: string;
+      padXNode: string;
+      padYNode: string;
+      padXInspector: string;
+      padYInspector: string;
+      controlRadius: string;
+      menuRadius: string;
+      menuShadow: string;
     };
   }
 

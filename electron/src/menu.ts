@@ -1,7 +1,7 @@
 import { Menu, shell, dialog, app, clipboard } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
-import { createPackageManagerWindow, createLogViewerWindow } from "./window";
+import { createPackageManagerWindow, createLogViewerWindow, createSettingsWindow } from "./window";
 import { getSystemInfo } from "./systemInfo";
 
 /**
@@ -229,6 +229,11 @@ const buildMenu = () => {
         {
           label: "Log Viewer",
           click: () => createLogViewerWindow(),
+        },
+        { type: "separator" },
+        {
+          label: "Settings",
+          click: () => createSettingsWindow(),
         },
       ],
     },

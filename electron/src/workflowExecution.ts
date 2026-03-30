@@ -1,17 +1,4 @@
-/**
- * Workflow Execution Module
- *
- * This module handles the execution of workflows in both headless and UI modes.
- * It provides functionality for:
- * - Reading inputs from system clipboard (images and text)
- * - Writing outputs back to system clipboard
- * - Managing workflow execution flow
- * - Handling input/output nodes
- *
- * The module supports two execution modes:
- * 1. Headless mode: Automatically reads from clipboard and executes without UI
- * 2. UI mode: Opens a workflow window for interactive execution
- */
+/** Workflow Execution Module */
 
 import { clipboard, nativeImage } from "electron";
 import { Workflow } from "./types";
@@ -19,34 +6,21 @@ import { logMessage } from "./logger";
 import { createWorkflowRunner } from "./WorkflowRunner";
 import { createWorkflowWindow } from "./workflowWindow";
 
-/**
- * Retrieves nodes of a specific input type from the workflow
- * @param {Workflow} workflow - The workflow to search through
- * @param {string} type - The input type to filter for (e.g., 'ImageInput', 'StringInput')
- * @returns {Array} Array of nodes matching the input type
- */
+/** Retrieves nodes of a specific input type from the workflow */
 function getInputNodes(workflow: Workflow, type: string) {
   return workflow.graph.nodes.filter((node) =>
     node.type.startsWith(`nodetool.input.${type}`)
   );
 }
 
-/**
- * Retrieves all output nodes from the workflow
- * @param {Workflow} workflow - The workflow to search through
- * @returns {Array} Array of output nodes
- */
+/** Retrieves all output nodes from the workflow */
 function getOutputNodes(workflow: Workflow) {
   return workflow.graph.nodes.filter((node) =>
     node.type.startsWith(`nodetool.output`)
   );
 }
 
-/**
- * Attempts to read an image from the clipboard and prepare it for workflow input
- * @param {Workflow} workflow - The workflow to process
- * @returns {Record<string, any>} Object containing image parameters if found, empty object otherwise
- */
+/** Attempts to read an image from the clipboard and prepare it for workflow input */
 function tryReadClipboardImage(workflow: Workflow): Record<string, any> {
   const params: Record<string, any> = {};
   const image = clipboard.readImage();

@@ -5,7 +5,7 @@ import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
 
-const detectTypeFromList = (list: any[]) => {
+const detectTypeFromList = (list: unknown[]) => {
   if (list.length === 0) {
     return "string";
   }
@@ -48,10 +48,12 @@ const ListProperty = (props: PropertyProps) => {
     [dataTypes]
   );
 
+  const containerStyle = useMemo(() => ({ marginBottom: "8px" }), []);
+
   if (props.nodeType === "nodetool.constant.List") {
     return (
       <>
-        <div style={{ marginBottom: "8px" }}>
+        <div style={containerStyle}>
           <PropertyLabel name="Data Type" id={id} />
           <Select
             value={dataType}

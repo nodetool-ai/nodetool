@@ -1,0 +1,41 @@
+{
+  "modelId": "mv-lab/instructir",
+  "owner": "mv-lab",
+  "name": "instructir",
+  "version": "e98baeb90b5cd143a86aa2a9deeffb2852c3bebbd428f3cdf5da1b31fb99d3a3",
+  "description": "High-Quality Image Restoration Following Human Instructions",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt": {
+        "description": "Input prompt.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image",
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

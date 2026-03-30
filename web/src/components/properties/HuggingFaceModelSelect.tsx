@@ -2,16 +2,16 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import HuggingFaceModelMenuDialog from "../model_menu/HuggingFaceModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
+import type { ImageModel, UnifiedModel, HuggingFaceModelValue, HuggingFaceModelValueInput } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface HuggingFaceModelSelectProps {
-  modelType: string;
-  onChange: (value: any) => void;
-  value: any;
+  modelType: "hf.text_to_image" | "hf.image_to_image";
+  onChange: (value: HuggingFaceModelValue) => void;
+  value: HuggingFaceModelValueInput;
 }
 
 type EndpointSuffix = "image/text-to-image" | "image/image-to-image" | null;
@@ -31,7 +31,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   onChange,
   value
 }) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
@@ -83,7 +83,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   // Sort models: recommended first, then alphabetically
   // Also deduplicate based on provider:id to avoid showing duplicates
   const sortedModels = useMemo(() => {
-    if (!fetchedModels) {return fetchedModels;}
+    if (!fetchedModels) { return fetchedModels; }
 
     // Deduplicate first using provider:id as key
     const uniqueModelsMap = new Map<string, (typeof fetchedModels)[0]>();
@@ -100,8 +100,8 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       const bIsRecommended = recommendedModelIds.has(b.id || "");
 
       // Recommended models come first
-      if (aIsRecommended && !bIsRecommended) {return -1;}
-      if (!aIsRecommended && bIsRecommended) {return 1;}
+      if (aIsRecommended && !bIsRecommended) { return -1; }
+      if (!aIsRecommended && bIsRecommended) { return 1; }
 
       // Within same category, sort alphabetically by name
       return (a.name || "").localeCompare(b.name || "");
@@ -111,12 +111,12 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   // Convert value format: value might be { repo_id, path, type } or { id, provider, name, path }
   // We need to find the matching model by repo_id/id and path
   const currentSelectedModelDetails = useMemo(() => {
-    if (!sortedModels || !value) {return null;}
+    if (!sortedModels || !value) { return null; }
 
     // Handle both old format (repo_id) and new format (id)
     const searchId = value?.repo_id || value?.id;
     const searchPath = value?.path;
-    if (!searchId) {return null;}
+    if (!searchId) { return null; }
 
     return sortedModels.find((m) => {
       // ImageModel.id might be in format "repo_id:path" or just "repo_id"
@@ -165,12 +165,12 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     };
   }, [currentSelectedModelDetails, value]);
 
-  const handleClick = useCallback(() => {
-    setDialogOpen(true);
+  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   }, []);
 
   const handleClose = useCallback(() => {
-    setDialogOpen(false);
+    setAnchorEl(null);
   }, []);
 
   const handleDialogModelSelect = useCallback(
@@ -180,7 +180,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       // Also check model.path property directly
       const [repo_id, pathFromId] = (model.id || "").split(":");
 
-      const modelToPass = {
+      const modelToPass: HuggingFaceModelValue = {
         type: modelType,
         repo_id: repo_id || model.id || "",
         path: pathFromId || model.path || undefined
@@ -195,7 +195,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
         name: model.name || ""
       });
 
-      setDialogOpen(false);
+      setAnchorEl(null);
     },
     [onChange, addRecent, modelType]
   );
@@ -204,7 +204,6 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     <>
       <ModelSelectButton
         ref={buttonRef}
-        className="huggingface-model-button"
         active={!!(value?.repo_id || value?.id)}
         label={displayInfo.repoId}
         secondaryLabel={displayInfo.path}
@@ -212,7 +211,8 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
         onClick={handleClick}
       />
       <HuggingFaceModelMenuDialog
-        open={dialogOpen}
+        open={!!anchorEl}
+        anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}

@@ -22,18 +22,18 @@ import { useTheme } from '../hooks/useTheme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export default function ChatScreen({ navigation }: Props) {
-  const {
-    status,
-    error,
-    statusMessage,
-    currentThreadId,
-    connect,
-    createNewThread,
-    getCurrentMessages,
-    selectedModel,
-    sendMessage,
-    stopGeneration,
-  } = useChatStore();
+  // Use individual selectors to prevent re-renders when unrelated state changes
+  const status = useChatStore(state => state.status);
+  const error = useChatStore(state => state.error);
+  const statusMessage = useChatStore(state => state.statusMessage);
+  const currentThreadId = useChatStore(state => state.currentThreadId);
+  const connect = useChatStore(state => state.connect);
+  const createNewThread = useChatStore(state => state.createNewThread);
+  const getCurrentMessages = useChatStore(state => state.getCurrentMessages);
+  const selectedModel = useChatStore(state => state.selectedModel);
+  const sendMessage = useChatStore(state => state.sendMessage);
+  const stopGeneration = useChatStore(state => state.stopGeneration);
+
   const { colors, mode } = useTheme();
 
   const messages = getCurrentMessages();
@@ -91,6 +91,14 @@ export default function ChatScreen({ navigation }: Props) {
     });
   }, [navigation, handleNewChat, selectedModel, colors.text]);
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      await connect();
+    } catch (err) {
+      console.error('Failed to reconnect:', err);
+    }
+  }, [connect]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
@@ -99,6 +107,7 @@ export default function ChatScreen({ navigation }: Props) {
         messages={messages}
         onSendMessage={sendMessage}
         onStop={stopGeneration}
+        onRefresh={handleRefresh}
         error={error}
         statusMessage={statusMessage}
       />

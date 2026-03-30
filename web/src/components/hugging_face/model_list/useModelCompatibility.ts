@@ -57,6 +57,7 @@ const IMAGE_TYPES = new Set([
   "hf.controlnet_flux",
   "hf.ip_adapter",
   "hf.lora",
+  "hf.lora_flux",
   "hf.vae",
   "hf.unet",
   "hf.clip",
@@ -249,7 +250,7 @@ export const useModelCompatibility = () => {
     const recommendedTypeMap: CompatibilityMap = new Map();
 
     Object.values(metadata).forEach((node) => {
-      node.recommended_models.forEach((model) => {
+      (node.recommended_models ?? []).forEach((model) => {
         const repoKeys = expandRepoKeys(model.repo_id, model.id, model.path);
         repoKeys.forEach((key) =>
           upsert(repoMap, key, toInfo(node, "recommendation"))
@@ -265,7 +266,7 @@ export const useModelCompatibility = () => {
         }
       });
 
-      node.properties.forEach((property) => {
+      (node.properties ?? []).forEach((property) => {
         const propertyType = isModelPropertyType(property);
         if (!propertyType) { return; }
         const variants = expandTypeVariants(propertyType);

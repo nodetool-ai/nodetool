@@ -1,22 +1,17 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Box, Tab, Tabs } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Theme } from "@mui/material/styles";
-import WorkflowsList from "./WorkflowsList";
+import WorkflowList from "../workflows/WorkflowList";
 import RecentChats from "./RecentChats";
-import { Workflow, Thread } from "../../stores/ApiTypes";
+import { Thread } from "../../stores/ApiTypes";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import ContextMenus from "../context_menus/ContextMenus";
+import { FlexColumn } from "../ui_primitives";
 
 interface ActivityPanelProps {
-  // Workflow props
-  sortedWorkflows: Workflow[];
-  isLoadingWorkflows: boolean;
-  settings: { workflowOrder: string };
-  handleOrderChange: (event: any, newOrder: any) => void;
-  handleCreateNewWorkflow: () => void;
-  handleWorkflowClick: (workflow: Workflow) => void;
-
   // Chat props
   threads: { [key: string]: Thread };
   currentThreadId: string | null;
@@ -29,9 +24,6 @@ interface ActivityPanelProps {
 const styles = (theme: Theme) =>
   css({
     height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
     borderRadius: theme.spacing(1),
     boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     background: theme.vars.palette.c_editor_bg_color,
@@ -69,12 +61,12 @@ const ActivityPanel: React.FC<ActivityPanelProps> = (props) => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
-  };
+  }, []);
 
   return (
-    <Box css={styles(theme)} className="activity-panel">
+    <FlexColumn gap={0} fullHeight css={styles(theme)} className="activity-panel">
       <Box className="panel-header">
         <Tabs
           value={activeTab}
@@ -97,14 +89,10 @@ const ActivityPanel: React.FC<ActivityPanelProps> = (props) => {
           style={{ height: "100%" }}
         >
           {activeTab === 0 && (
-            <WorkflowsList
-              sortedWorkflows={props.sortedWorkflows}
-              isLoadingWorkflows={props.isLoadingWorkflows}
-              settings={props.settings}
-              handleOrderChange={props.handleOrderChange}
-              handleCreateNewWorkflow={props.handleCreateNewWorkflow}
-              handleWorkflowClick={props.handleWorkflowClick}
-            />
+            <ContextMenuProvider>
+              <ContextMenus />
+              <WorkflowList />
+            </ContextMenuProvider>
           )}
         </div>
         <div
@@ -126,8 +114,8 @@ const ActivityPanel: React.FC<ActivityPanelProps> = (props) => {
           )}
         </div>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 
-export default ActivityPanel;
+export default React.memo(ActivityPanel);

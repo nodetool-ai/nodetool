@@ -1,4 +1,5 @@
 import useSecretsStore from "../../stores/SecretsStore";
+import { SecretResponse } from "../../stores/ApiTypes";
 
 /**
  * Generate sidebar sections for secrets management
@@ -18,15 +19,15 @@ export const getSecretsSidebarSections = () => {
   }
 
   // Group secrets by configured/unconfigured status
-  const configured = secrets.filter((s: any) => s.is_configured);
-  const unconfigured = secrets.filter((s: any) => !s.is_configured);
+  const configured = secrets.filter((s: SecretResponse) => s.is_configured);
+  const unconfigured = secrets.filter((s: SecretResponse) => !s.is_configured);
 
   const sections = [];
 
   if (configured.length > 0) {
     sections.push({
       category: "Configured Secrets",
-      items: configured.map((secret: any) => ({
+      items: configured.map((secret: SecretResponse) => ({
         id: `secret-${secret.key}`,
         label: secret.key
           .replace(/_/g, " ")
@@ -39,7 +40,7 @@ export const getSecretsSidebarSections = () => {
   if (unconfigured.length > 0) {
     sections.push({
       category: "Available Secrets",
-      items: unconfigured.map((secret: any) => ({
+      items: unconfigured.map((secret: SecretResponse) => ({
         id: `secret-${secret.key}`,
         label: secret.key
           .replace(/_/g, " ")

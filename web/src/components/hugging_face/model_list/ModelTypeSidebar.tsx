@@ -16,7 +16,8 @@ import { useTheme } from "@mui/material/styles";
 
 const ModelTypeSidebar: React.FC = () => {
   const { modelTypes, availableModelTypes } = useModels();
-  const { selectedModelType, setSelectedModelType } = useModelManagerStore();
+  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const setSelectedModelType = useModelManagerStore((state) => state.setSelectedModelType);
   const theme = useTheme();
 
   const onModelTypeChange = useCallback(
@@ -26,6 +27,10 @@ const ModelTypeSidebar: React.FC = () => {
     [setSelectedModelType]
   );
 
+  const createModelTypeChangeHandler = useCallback((type: string) => {
+    return () => onModelTypeChange(type);
+  }, [onModelTypeChange]);
+
   const getHuggingFaceLink = useCallback((type: string) => {
     if (!type.startsWith("hf.")) {
       return undefined;
@@ -33,6 +38,10 @@ const ModelTypeSidebar: React.FC = () => {
 
     const pipelineTag = type.slice(3).replace(/_/g, "-").toLowerCase();
     return `https://huggingface.co/models?pipeline_tag=${pipelineTag}`;
+  }, []);
+
+  const handleLinkClick = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
   }, []);
 
   return (
@@ -62,8 +71,9 @@ const ModelTypeSidebar: React.FC = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
-                      onClick={(event) => event.stopPropagation()}
-                      sx={{ 
+                      onClick={handleLinkClick}
+                      aria-label={`View ${prettifyModelType(type)} models on Hugging Face`}
+                      sx={{
                         color: isSelected ? theme.vars.palette.text.primary : "inherit",
                         opacity: 0.7,
                         "&:hover": { opacity: 1 }
@@ -75,11 +85,11 @@ const ModelTypeSidebar: React.FC = () => {
                 ) : undefined
               }
             >
-              <ListItemButton
-                className={`model-type-button`}
-                selected={isSelected}
-                onClick={() => onModelTypeChange(type)}
-                sx={{
+            <ListItemButton
+              className={`model-type-button`}
+              selected={isSelected}
+              onClick={createModelTypeChangeHandler(type)}
+              sx={{
                   borderRadius: "8px",
                   padding: "8px 12px",
                   transition: "all 0.2s ease",

@@ -2,7 +2,9 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Button, Typography } from "@mui/material";
+import { useCallback, memo } from "react";
+import { Box, Typography } from "@mui/material";
+import { EditorButton } from "./ui_primitives";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 
@@ -67,6 +69,30 @@ const styles = (theme: Theme) =>
     }
   });
 
+interface LinkButtonProps {
+  name: string;
+  url: string;
+  onClick: (url: string) => void;
+}
+
+const LinkButton = memo(({ name, url, onClick }: LinkButtonProps) => {
+  const handleClick = useCallback(() => {
+    onClick(url);
+  }, [url, onClick]);
+
+  return (
+    <EditorButton
+      onClick={handleClick}
+      className="list-button"
+      density="normal"
+    >
+      {name}
+    </EditorButton>
+  );
+});
+
+LinkButton.displayName = "LinkButton";
+
 function Login() {
   const theme = useTheme();
   const linkItems = [
@@ -76,9 +102,9 @@ function Login() {
     { name: "Replicate", url: "https://replicate.com" },
     { name: "StabilityAI", url: "https://stability.ai/" }
   ];
-  const handleClick = (url: string) => {
-    window.open(url, "_blank");
-  };
+  const handleClick = useCallback((url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
 
   return (
     <Box css={styles(theme)}>
@@ -98,17 +124,16 @@ function Login() {
       <GoogleAuthButton />
       <div className="button-group">
         {linkItems.map((item) => (
-          <Button
+          <LinkButton
             key={item.name}
-            onClick={() => handleClick(item.url)}
-            className="list-button"
-          >
-            {item.name}
-          </Button>
+            name={item.name}
+            url={item.url}
+            onClick={handleClick}
+          />
         ))}
       </div>
     </Box>
   );
 }
 
-export default Login;
+export default memo(Login);

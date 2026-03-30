@@ -1,7 +1,17 @@
 import { spawn } from "child_process";
+import { app } from "electron";
 import { logMessage } from "./logger";
-import { getProcessEnv, getUVPath } from "./config";
-import { emitServerLog } from "./events";
+import { getProcessEnv, getPythonPath, getCondaEnvPath } from "./config";
+import * as path from "path";
+
+// TODO: Package manager needs to be rewritten for npm packages.
+// This is a temporary stub — uv/pip is no longer installed in the conda env.
+function getUVPath(): string {
+  return process.platform === "win32"
+    ? path.join(getCondaEnvPath(), "Library", "bin", "uv.exe")
+    : path.join(getCondaEnvPath(), "bin", "uv");
+}
+import { emitServerLog, emitBootMessage } from "./events";
 import {
   PackageInfo,
   PackageModel,
@@ -12,6 +22,8 @@ import {
   PackageUpdateInfo,
 } from "./types";
 import * as https from "https";
+import { getTorchIndexUrl } from "./torchPlatformCache";
+import { fileExists } from "./utils";
 
 /**
  * Package Manager Module
@@ -30,6 +42,39 @@ const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 const REGISTRY_URL =
   "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
+
+// Get the app version dynamically from Electron's app.getVersion()
+function getAppVersion(): string {
+  try {
+    return app.getVersion();
+  } catch {
+    return "0.0.0";
+  }
+}
+
+// Get all installed nodetool-* pip packages (excluding torchruntime which has separate installation)
+async function getInstalledNodetoolPackages(): Promise<string[]> {
+  try {
+    const output = await runUvCommand(["pip", "list", "--format=json"]);
+    const allPackages = JSON.parse(output);
+    return allPackages
+      .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
+      .map((pkg: any) => pkg.name);
+  } catch (error: any) {
+    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+    return [];
+  }
+}
+
+// Export a function to get expected version for a specific package
+export function getExpectedVersion(packageName: string): string | null {
+  return getAppVersion();
+}
+
+// Export a function to get all packages that need version checking
+export async function getPackagesWithVersionRequirements(): Promise<string[]> {
+  return await getInstalledNodetoolPackages();
+}
 
 // Simple in-memory cache for nodes
 let nodeCache: PackageNode[] | null = null;
@@ -242,7 +287,6 @@ export async function fetchAllNodes(
         allNodes.push(...result.value);
       }
     }
-    console.log("allNodes", allNodes);
     nodeCache = allNodes;
     return allNodes;
   } catch (error: any) {
@@ -483,13 +527,30 @@ async function runUvCommand(
   options?: { stdin?: string }
 ): Promise<string> {
   const uvPath = getUVPath();
+  const pythonPath = getPythonPath();
   const command = [uvPath, ...args];
+
+  // Check if uv executable exists before attempting to spawn
+  const uvExists = await fileExists(uvPath);
+  if (!uvExists) {
+    const errorMsg = `Python environment not properly installed: uv executable not found at ${uvPath}. ` +
+      `Please use "Reinstall environment" to set up the Python environment correctly.`;
+    logMessage(errorMsg, "error");
+    throw new Error(errorMsg);
+  }
 
   return new Promise((resolve, reject) => {
     logMessage(`Running uv command: ${command.join(" ")}`);
 
+    const env = getProcessEnv();
+    // Set UV_PYTHON to explicitly tell uv which Python to use
+    env.UV_PYTHON = pythonPath;
+    // Clear any other Python environment variables
+    delete env.PYTHONHOME;
+    delete env.PYTHONPATH;
+
     const process = spawn(command[0], command.slice(1), {
-      env: getProcessEnv(),
+      env,
       stdio: "pipe",
     });
 
@@ -536,7 +597,15 @@ async function runUvCommand(
     });
 
     process.on("error", (error) => {
-      reject(new Error(`Failed to run command: ${error.message}`));
+      // Provide a more helpful error message for ENOENT
+      if (error.message.includes("ENOENT")) {
+        reject(new Error(
+          `Python environment not properly installed: could not run uv at ${uvPath}. ` +
+          `Please use "Reinstall environment" to fix this issue.`
+        ));
+      } else {
+        reject(new Error(`Failed to run command: ${error.message}`));
+      }
     });
   });
 }
@@ -625,7 +694,9 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Installing ${packageSpec} with Nodetool extra index`);
+    const message = `Installing ${packageName} v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
 
     const args = [
       "pip",
@@ -641,9 +712,11 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       packageSpec,
     ];
 
-    // Add extra index URL for CUDA packages on non-macOS platforms
-    if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
+    // Add PyTorch index URL based on detected platform
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package installation: ${torchIndexUrl}`);
+      args.push("--extra-index-url", torchIndexUrl);
     }
 
     await runUvCommand(args);
@@ -712,7 +785,10 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Updating to ${packageSpec} with Nodetool extra index (forcing reinstall)`);
+    const message = `Updating ${packageName} to v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
+    emitBootMessage(message);
 
     const args = [
       "pip",
@@ -731,9 +807,11 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       packageSpec,
     ];
 
-    // Add extra index URL for CUDA packages on non-macOS platforms
-    if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
+    // Add PyTorch index URL based on detected platform
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package update: ${torchIndexUrl}`);
+      args.push("--extra-index-url", torchIndexUrl);
     }
 
     await runUvCommand(args);
@@ -780,10 +858,181 @@ export function getInstallCommandForPackage(repoId: string): string {
   return `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`;
 }
 
-/**
- * Export package index URL for external use
- */
 export { PACKAGE_INDEX_URL };
+
+/**
+ * Check a single package version against expected version
+ * Returns { needsUpdate: true } if version doesn't match, { currentVersion: "x.y.z" } if ok
+ */
+export async function checkPackageVersion(
+  packageName: string
+): Promise<{ needsUpdate: boolean; currentVersion?: string; expectedVersion?: string }> {
+  const expectedVersion = getExpectedVersion(packageName);
+
+  if (!expectedVersion) {
+    return { needsUpdate: false };
+  }
+
+  try {
+    const output = await runUvCommand(["pip", "show", packageName]);
+    const versionMatch = output.match(/^Version: (.+)$/m);
+    const currentVersion = versionMatch ? versionMatch[1] : null;
+
+    if (!currentVersion) {
+      logMessage(`Package ${packageName} not installed, needs installation`);
+      return { needsUpdate: true, expectedVersion };
+    }
+
+    const versionsMatch = compareVersions(currentVersion, expectedVersion);
+    if (versionsMatch !== 0) {
+      logMessage(
+        `Package ${packageName} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
+      );
+      return { needsUpdate: true, currentVersion, expectedVersion };
+    }
+
+    return { needsUpdate: false, currentVersion };
+  } catch (error: any) {
+    if (error.message.includes("package not found")) {
+      logMessage(`Package ${packageName} not installed, needs installation`);
+      return { needsUpdate: true, expectedVersion };
+    }
+    logMessage(
+      `Failed to check version for ${packageName}: ${error.message}`,
+      "warn"
+    );
+    return { needsUpdate: false };
+  }
+}
+
+/**
+ * Check all expected package versions
+ * Returns list of packages that need to be installed/updated
+ */
+export async function checkExpectedPackageVersions(): Promise<
+  Array<{
+    packageName: string;
+    currentVersion?: string;
+    expectedVersion: string | null;
+  }>
+> {
+  const expectedVersion = getAppVersion();
+  const packagesNeedingUpdate: Array<{
+    packageName: string;
+    currentVersion?: string;
+    expectedVersion: string | null;
+  }> = [];
+
+  try {
+    // Optimization: fetch all installed packages in one go using pip list
+    // This avoids spawning a separate process for each package version check
+    const installedPackages = await listInstalledPackagesInternal();
+    const nodetoolPackages = installedPackages.filter((pkg) =>
+      pkg.name.startsWith("nodetool-")
+    );
+
+    for (const pkg of nodetoolPackages) {
+      const currentVersion = pkg.version;
+
+      if (!currentVersion) {
+        continue;
+      }
+
+      const versionsMatch = compareVersions(currentVersion, expectedVersion);
+      if (versionsMatch !== 0) {
+        logMessage(
+          `Package ${pkg.name} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
+        );
+        packagesNeedingUpdate.push({
+          packageName: pkg.name,
+          currentVersion,
+          expectedVersion,
+        });
+      }
+    }
+  } catch (error: any) {
+    logMessage(
+      `Failed to check expected package versions: ${error.message}`,
+      "error"
+    );
+  }
+
+  return packagesNeedingUpdate;
+}
+
+/**
+ * Install or update packages to their expected versions
+ * Returns summary of installation results
+ */
+export async function installExpectedPackages(): Promise<{
+  success: boolean;
+  packagesChecked: number;
+  packagesUpdated: number;
+  failures: Array<{ packageName: string; error: string }>;
+}> {
+  const packagesNeedingUpdate = await checkExpectedPackageVersions();
+  const failures: Array<{ packageName: string; error: string }> = [];
+  let packagesUpdated = 0;
+
+  if (packagesNeedingUpdate.length > 0) {
+    const packageNames = packagesNeedingUpdate.map((p) => p.packageName).join(", ");
+    logMessage(`Installing expected packages: ${packageNames}`);
+
+    const expectedVersion = getAppVersion();
+    const packageSpecs = packagesNeedingUpdate.map(
+      (p) => `${p.packageName}==${expectedVersion}`
+    );
+
+    try {
+      const message = `Installing ${packagesNeedingUpdate.length} packages (v${expectedVersion})...`;
+      logMessage(message);
+      emitServerLog(message);
+      emitBootMessage(message);
+
+      const args = [
+        "pip",
+        "install",
+        "--prerelease=allow",
+        "--index-url",
+        PYPI_SIMPLE_INDEX_URL,
+        "--extra-index-url",
+        PACKAGE_INDEX_URL,
+        "--index-strategy",
+        "unsafe-best-match",
+        "--system",
+        ...packageSpecs,
+      ];
+
+      const torchIndexUrl = getTorchIndexUrl();
+      if (torchIndexUrl) {
+        args.push("--extra-index-url", torchIndexUrl);
+      }
+
+      await runUvCommand(args);
+      const successMessage = `Successfully installed ${packageNames} (v${expectedVersion})`;
+      logMessage(successMessage);
+      emitServerLog(successMessage);
+      emitBootMessage(successMessage);
+
+      packagesUpdated = packagesNeedingUpdate.length;
+    } catch (error: any) {
+      logMessage(`Failed to install packages: ${error.message}`, "error");
+      for (const pkg of packagesNeedingUpdate) {
+        failures.push({
+          packageName: pkg.packageName,
+          error: error.message,
+        });
+      }
+    }
+  }
+
+  return {
+    success: failures.length === 0,
+    packagesChecked: packagesNeedingUpdate.length,
+    packagesUpdated,
+    failures,
+  };
+}
 
 /**
  * Validate repository ID format
@@ -805,4 +1054,247 @@ export function validateRepoId(repoId: string): {
   }
 
   return { valid: true };
+}
+
+// =============================================================================
+// Runtime Package Management
+// =============================================================================
+// These functions manage "system-level" runtime packages that were previously
+// handled by the install wizard. They are now exposed through the package
+// manager UI so users can install them on-demand without blocking the app.
+// =============================================================================
+
+import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
+
+/** All valid runtime package IDs, derived from a single source of truth. */
+export const RUNTIME_PACKAGE_IDS: readonly RuntimePackageId[] = [
+  "python", "nodejs", "bash", "ruby", "lua",
+  "ffmpeg", "pandoc", "yt-dlp", "ollama", "llama-cpp",
+] as const;
+
+/**
+ * Maps each runtime to the conda package specs needed to provide it,
+ * and the binary name used to verify installation.
+ */
+const RUNTIME_DEFINITIONS: Record<RuntimePackageId, {
+  name: string;
+  description: string;
+  condaPackages: string[];
+  /** Binary name to check in the conda env (without .exe suffix) */
+  verifyBinary: string;
+  /** Windows subdirectory under conda env where the binary lives (default: root for .exe) */
+  windowsBinSubdir?: string;
+}> = {
+  python: {
+    name: "Python",
+    description: "Python interpreter and uv package manager. Required for AI and data processing nodes.",
+    condaPackages: ["python=3.11", "uv"],
+    verifyBinary: "python",
+  },
+  nodejs: {
+    name: "Node.js",
+    description: "JavaScript runtime for Node.js-based nodes.",
+    condaPackages: ["nodejs>=24"],
+    verifyBinary: "node",
+  },
+  bash: {
+    name: "Bash",
+    description: "Bash shell for script execution nodes.",
+    condaPackages: ["bash"],
+    verifyBinary: "bash",
+  },
+  ruby: {
+    name: "Ruby",
+    description: "Ruby interpreter for Ruby-based nodes.",
+    condaPackages: ["ruby"],
+    verifyBinary: "ruby",
+  },
+  lua: {
+    name: "Lua",
+    description: "Lua interpreter for Lua-based nodes.",
+    condaPackages: ["lua"],
+    verifyBinary: "lua",
+  },
+  ffmpeg: {
+    name: "FFmpeg & Codecs",
+    description: "Audio/video processing toolkit. Required for video nodes and the FFmpeg Agent.",
+    condaPackages: [
+      "ffmpeg>=6,<7", "x264", "x265", "aom", "libopus",
+      "libvorbis", "libpng", "libjpeg-turbo", "libtiff",
+      "openjpeg", "libwebp", "giflib", "lame",
+    ],
+    verifyBinary: "ffmpeg",
+    windowsBinSubdir: "Library\\bin",
+  },
+  pandoc: {
+    name: "Pandoc",
+    description: "Universal document converter for text and file format conversion.",
+    condaPackages: ["pandoc"],
+    verifyBinary: "pandoc",
+  },
+  "yt-dlp": {
+    name: "yt-dlp",
+    description: "Video/audio downloader from YouTube and other sites.",
+    condaPackages: ["yt-dlp"],
+    verifyBinary: "yt-dlp",
+  },
+  ollama: {
+    name: "Ollama",
+    description: "Local LLM inference server. Easy to use, recommended for most users.",
+    condaPackages: ["ollama"],
+    verifyBinary: "ollama",
+    windowsBinSubdir: "Scripts",
+  },
+  "llama-cpp": {
+    name: "llama.cpp",
+    description: "High-performance GPU-accelerated LLM backend with GGUF model support.",
+    condaPackages: [], // Platform-dependent; handled in installRuntimePackage
+    verifyBinary: "llama-server",
+    windowsBinSubdir: "Library\\bin",
+  },
+};
+
+// Track which runtime packages are currently being installed
+const runtimeInstalling = new Set<RuntimePackageId>();
+
+/**
+ * Check if a runtime binary exists in the conda environment.
+ */
+async function checkRuntimeBinary(
+  condaEnvPath: string,
+  binaryName: string,
+  windowsBinSubdir?: string,
+): Promise<boolean> {
+  try {
+    const exeName = process.platform === "win32" ? `${binaryName}.exe` : binaryName;
+    const binDir = process.platform === "win32"
+      ? path.join(condaEnvPath, windowsBinSubdir || ".")
+      : path.join(condaEnvPath, "bin");
+    return await fileExists(path.join(binDir, exeName));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check whether the conda environment directory exists (has conda-meta).
+ */
+async function isCondaEnvPresent(condaEnvPath: string): Promise<boolean> {
+  return fileExists(path.join(condaEnvPath, "conda-meta"));
+}
+
+/**
+ * Check the installation status of all runtime packages.
+ */
+export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[]> {
+  const condaEnvPath = getCondaEnvPath();
+  const envExists = await isCondaEnvPresent(condaEnvPath);
+
+  const entries = Object.entries(RUNTIME_DEFINITIONS) as [RuntimePackageId, typeof RUNTIME_DEFINITIONS[RuntimePackageId]][];
+
+  const checks = entries.map(async ([id, def]) => {
+    let installed = false;
+    if (envExists) {
+      installed = await checkRuntimeBinary(condaEnvPath, def.verifyBinary, def.windowsBinSubdir);
+    }
+    // Special case: check if Ollama is running as a system service
+    if (id === "ollama" && !installed) {
+      installed = await checkSystemOllama();
+    }
+    return {
+      id,
+      name: def.name,
+      description: def.description,
+      installed,
+      installing: runtimeInstalling.has(id),
+    };
+  });
+
+  return Promise.all(checks);
+}
+
+async function checkSystemOllama(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 1000);
+    const res = await fetch("http://127.0.0.1:11434/api/tags", {
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get the current conda environment install location, or the default if not set.
+ */
+export function getCondaInstallLocation(): string {
+  return getCondaEnvPath();
+}
+
+/**
+ * Install a runtime package by creating the conda env if needed and
+ * installing the runtime's conda packages into it.
+ */
+export async function installRuntimePackage(
+  packageId: RuntimePackageId,
+  installLocation?: string,
+): Promise<{ success: boolean; message: string }> {
+  if (runtimeInstalling.has(packageId)) {
+    return { success: false, message: `${packageId} is already being installed` };
+  }
+
+  const def = RUNTIME_DEFINITIONS[packageId];
+  if (!def) {
+    return { success: false, message: `Unknown runtime: ${packageId}` };
+  }
+
+  runtimeInstalling.add(packageId);
+
+  try {
+    const {
+      ensureCondaEnvironment,
+      installCondaPackageBySpec,
+      setCondaInstallLocation,
+    } = await import("./installer");
+
+    // Allow setting a custom install location
+    if (installLocation) {
+      setCondaInstallLocation(installLocation);
+    }
+
+    // Auto-init conda env if not present (prompts user for folder)
+    emitBootMessage(`Installing ${def.name}...`);
+    logMessage(`Installing runtime: ${packageId}`);
+    const condaEnvPath = await ensureCondaEnvironment(installLocation);
+
+    // Determine packages to install
+    let packageSpecs = [...def.condaPackages];
+
+    // Special handling for llama-cpp (CUDA vs CPU)
+    if (packageId === "llama-cpp") {
+      const prefersCuda = process.platform === "win32" || process.platform === "linux";
+      packageSpecs = [prefersCuda ? "llama.cpp=*=cuda126*" : "llama.cpp"];
+    }
+
+    // Install conda packages
+    if (packageSpecs.length > 0) {
+      await installCondaPackageBySpec(condaEnvPath, packageSpecs, `Installing ${def.name}`);
+    }
+
+    // Post-install hook: Python needs pip packages
+    if (packageId === "python") {
+      const { installRequiredPythonPackages } = await import("./python");
+      await installRequiredPythonPackages();
+    }
+
+    return { success: true, message: `${def.name} installed successfully` };
+  } catch (error: any) {
+    logMessage(`Failed to install runtime package ${packageId}: ${error.message}`, "error");
+    return { success: false, message: `Failed to install: ${error.message}` };
+  } finally {
+    runtimeInstalling.delete(packageId);
+  }
 }

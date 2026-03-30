@@ -1,0 +1,270 @@
+{
+  "modelId": "philz1337x/clarity-upscaler",
+  "owner": "philz1337x",
+  "name": "clarity-upscaler",
+  "version": "dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e",
+  "description": "High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnific alternative. Twitter/X: @philz1337x",
+  "inputSchema": {
+    "properties": {
+      "creativity": {
+        "default": 0.35,
+        "description": "Creativity, try from 0.3 - 0.9",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Creativity",
+        "type": "number",
+        "x-order": 5
+      },
+      "custom_sd_model": {
+        "default": "",
+        "title": "Custom Sd Model",
+        "type": "string",
+        "x-order": 16
+      },
+      "downscaling": {
+        "default": false,
+        "description": "Downscale the image before upscaling. Can improve quality and speed for images with high resolution but lower quality",
+        "title": "Downscaling",
+        "type": "boolean",
+        "x-order": 13
+      },
+      "downscaling_resolution": {
+        "default": 768,
+        "description": "Downscaling resolution",
+        "title": "Downscaling Resolution",
+        "type": "integer",
+        "x-order": 14
+      },
+      "dynamic": {
+        "default": 6,
+        "description": "HDR, try from 3 - 9",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Dynamic",
+        "type": "number",
+        "x-order": 4
+      },
+      "handfix": {
+        "default": "disabled",
+        "description": "Use clarity to fix hands in the image",
+        "enum": [
+          "disabled",
+          "hands_only",
+          "image_and_hands"
+        ],
+        "title": "handfix",
+        "type": "string",
+        "x-order": 19
+      },
+      "image": {
+        "description": "input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "lora_links": {
+        "default": "",
+        "description": "Link to a lora file you want to use in your upscaling. Multiple links possible, seperated by comma",
+        "title": "Lora Links",
+        "type": "string",
+        "x-order": 15
+      },
+      "mask": {
+        "description": "Mask image to mark areas that should be preserved during upscaling",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 18
+      },
+      "negative_prompt": {
+        "default": "(worst quality, low quality, normal quality:2) JuggernautNegative-neg",
+        "description": "Negative Prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "num_inference_steps": {
+        "default": 18,
+        "description": "Number of denoising steps",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 11
+      },
+      "output_format": {
+        "default": "png",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 21
+      },
+      "pattern": {
+        "default": false,
+        "description": "Upscale a pattern with seamless tiling",
+        "title": "Pattern",
+        "type": "boolean",
+        "x-order": 20
+      },
+      "prompt": {
+        "default": "masterpiece, best quality, highres, <lora:more_details:0.5> <lora:SDXLrender_v2.0:1>",
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "resemblance": {
+        "default": 0.6,
+        "description": "Resemblance, try from 0.3 - 1.6",
+        "maximum": 3,
+        "minimum": 0,
+        "title": "Resemblance",
+        "type": "number",
+        "x-order": 6
+      },
+      "scale_factor": {
+        "default": 2,
+        "description": "Scale factor",
+        "title": "Scale Factor",
+        "type": "number",
+        "x-order": 3
+      },
+      "scheduler": {
+        "default": "DPM++ 3M SDE Karras",
+        "description": "scheduler",
+        "enum": [
+          "DPM++ 2M Karras",
+          "DPM++ SDE Karras",
+          "DPM++ 2M SDE Exponential",
+          "DPM++ 2M SDE Karras",
+          "Euler a",
+          "Euler",
+          "LMS",
+          "Heun",
+          "DPM2",
+          "DPM2 a",
+          "DPM++ 2S a",
+          "DPM++ 2M",
+          "DPM++ SDE",
+          "DPM++ 2M SDE",
+          "DPM++ 2M SDE Heun",
+          "DPM++ 2M SDE Heun Karras",
+          "DPM++ 2M SDE Heun Exponential",
+          "DPM++ 3M SDE",
+          "DPM++ 3M SDE Karras",
+          "DPM++ 3M SDE Exponential",
+          "DPM fast",
+          "DPM adaptive",
+          "LMS Karras",
+          "DPM2 Karras",
+          "DPM2 a Karras",
+          "DPM++ 2S a Karras",
+          "Restart",
+          "DDIM",
+          "PLMS",
+          "UniPC"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 10
+      },
+      "sd_model": {
+        "default": "juggernaut_reborn.safetensors [338b85bc4f]",
+        "description": "Stable Diffusion model checkpoint",
+        "enum": [
+          "epicrealism_naturalSinRC1VAE.safetensors [84d76a0328]",
+          "juggernaut_reborn.safetensors [338b85bc4f]",
+          "flat2DAnimerge_v45Sharp.safetensors"
+        ],
+        "title": "sd_model",
+        "type": "string",
+        "x-order": 9
+      },
+      "seed": {
+        "default": 1337,
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 12
+      },
+      "sharpen": {
+        "default": 0,
+        "description": "Sharpen the image after upscaling. The higher the value, the more sharpening is applied. 0 for no sharpening",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Sharpen",
+        "type": "number",
+        "x-order": 17
+      },
+      "tiling_height": {
+        "default": 144,
+        "description": "Fractality, set lower tile height for a high Fractality",
+        "enum": [
+          16,
+          32,
+          48,
+          64,
+          80,
+          96,
+          112,
+          128,
+          144,
+          160,
+          176,
+          192,
+          208,
+          224,
+          240,
+          256
+        ],
+        "title": "tiling_height",
+        "type": "integer",
+        "x-order": 8
+      },
+      "tiling_width": {
+        "default": 112,
+        "description": "Fractality, set lower tile width for a high Fractality",
+        "enum": [
+          16,
+          32,
+          48,
+          64,
+          80,
+          96,
+          112,
+          128,
+          144,
+          160,
+          176,
+          192,
+          208,
+          224,
+          240,
+          256
+        ],
+        "title": "tiling_width",
+        "type": "integer",
+        "x-order": 7
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

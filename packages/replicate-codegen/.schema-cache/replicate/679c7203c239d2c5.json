@@ -1,0 +1,126 @@
+{
+  "modelId": "black-forest-labs/flux-2-max",
+  "owner": "black-forest-labs",
+  "name": "flux-2-max",
+  "version": "c9a020854ba37d5fe801ab712570d7e437b17c148843fe96dbcb7cadd160a8f7",
+  "description": "The highest fidelity image model from Black Forest Labs",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for the generated image. Use 'match_input_image' to match the first input image's aspect ratio.",
+        "enum": [
+          "match_input_image",
+          "custom",
+          "1:1",
+          "16:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "3:4",
+          "4:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "height": {
+        "description": "Height of the generated image. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32).",
+        "maximum": 2048,
+        "minimum": 256,
+        "nullable": true,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 5
+      },
+      "input_images": {
+        "default": [],
+        "description": "List of input images for image-to-image generation. Maximum 8 images. Must be jpeg, png, gif, or webp.",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Input Images",
+        "type": "array",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images.",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 8
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 9
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "resolution": {
+        "default": "1 MP",
+        "description": "Resolution in megapixels. Up to 4 MP is possible, but 2 MP or below is recommended. The maximum image size is 2048x2048, which means that high-resolution images may not respect the resolution if aspect ratio is not 1:1.\n\nResolution is not used when aspect_ratio is 'custom'. When aspect_ratio is 'match_input_image', use 'match_input_image' to match the input image's resolution (clamped to 0.5-4 MP).",
+        "enum": [
+          "match_input_image",
+          "0.5 MP",
+          "1 MP",
+          "2 MP",
+          "4 MP"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 3
+      },
+      "safety_tolerance": {
+        "default": 2,
+        "description": "Safety tolerance, 1 is most strict and 5 is most permissive",
+        "maximum": 5,
+        "minimum": 1,
+        "title": "Safety Tolerance",
+        "type": "integer",
+        "x-order": 6
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "width": {
+        "description": "Width of the generated image. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32).",
+        "maximum": 2048,
+        "minimum": 256,
+        "nullable": true,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

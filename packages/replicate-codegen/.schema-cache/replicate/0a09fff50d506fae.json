@@ -1,0 +1,137 @@
+{
+  "modelId": "tencentarc/photomaker-style",
+  "owner": "tencentarc",
+  "name": "photomaker-style",
+  "version": "467d062309da518648ba89d226490e02b8ed09b5abc15026e54e31c5a8cd0769",
+  "description": "Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)",
+  "inputSchema": {
+    "properties": {
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "guidance_scale": {
+        "default": 5,
+        "description": "Guidance scale. A guidance scale of 1 corresponds to doing no classifier free guidance.",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "input_image": {
+        "description": "The input image, for example a photo of your face.",
+        "format": "uri",
+        "title": "Input Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "input_image2": {
+        "description": "Additional input image (optional)",
+        "format": "uri",
+        "title": "Input Image2",
+        "type": "string",
+        "x-order": 1
+      },
+      "input_image3": {
+        "description": "Additional input image (optional)",
+        "format": "uri",
+        "title": "Input Image3",
+        "type": "string",
+        "x-order": 2
+      },
+      "input_image4": {
+        "description": "Additional input image (optional)",
+        "format": "uri",
+        "title": "Input Image4",
+        "type": "string",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "default": "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+        "description": "Negative Prompt. The negative prompt should NOT contain the trigger word.",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 6
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of output images",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 9
+      },
+      "num_steps": {
+        "default": 20,
+        "description": "Number of sample steps",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Num Steps",
+        "type": "integer",
+        "x-order": 7
+      },
+      "prompt": {
+        "default": "A photo of a person img",
+        "description": "Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Seed. Leave blank to use a random number",
+        "maximum": 2147483647,
+        "minimum": 0,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 11
+      },
+      "style_name": {
+        "default": "(No style)",
+        "description": "Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.",
+        "enum": [
+          "(No style)",
+          "Cinematic",
+          "Disney Charactor",
+          "Digital Art",
+          "Photographic (Default)",
+          "Fantasy art",
+          "Neonpunk",
+          "Enhance",
+          "Comic book",
+          "Lowpoly",
+          "Line art"
+        ],
+        "title": "style_name",
+        "type": "string",
+        "x-order": 5
+      },
+      "style_strength_ratio": {
+        "default": 20,
+        "description": "Style strength (%)",
+        "maximum": 50,
+        "minimum": 15,
+        "title": "Style Strength Ratio",
+        "type": "number",
+        "x-order": 8
+      }
+    },
+    "required": [
+      "input_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

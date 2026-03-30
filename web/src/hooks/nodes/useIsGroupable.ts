@@ -1,10 +1,4 @@
-/**
- * This hook returns a callback function that checks if a given node
- * can be included in a group. Certain node types (Loop, Comment, and Group)
- * are not groupable.
- *
- * @returns {Function} A callback function that takes a Node<NodeData> and returns a boolean.
- */
+/** Hook to check if nodes can be included in a group (excludes Loop and Group types). */
 
 import { useCallback } from "react";
 import { Node } from "@xyflow/react";

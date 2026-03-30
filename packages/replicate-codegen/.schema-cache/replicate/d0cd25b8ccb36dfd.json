@@ -1,0 +1,68 @@
+{
+  "modelId": "runwayml/gen-4.5",
+  "owner": "runwayml",
+  "name": "gen-4.5",
+  "version": "2e10d5ae08888b39ed31c828003f4a5ddc89a7cdec3bc7a9926661e0d22cb034",
+  "description": "State-of-the-art video motion quality, prompt adherence and visual fidelity",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Video aspect ratio",
+        "enum": [
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "1:1",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "duration": {
+        "default": 5,
+        "description": "Duration of the output video in seconds",
+        "enum": [
+          5,
+          10
+        ],
+        "title": "duration",
+        "type": "integer",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Optional initial image for video generation (first frame). If not provided, video will be generated from text only.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

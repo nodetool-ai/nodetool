@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discord Community
+    url: https://discord.gg/WmQTWZRcYE
+    about: Get quick help, share workflows, and discuss ideas with the NodeTool community.
+  - name: 📖 Documentation
+    url: https://docs.nodetool.ai
+    about: Browse the NodeTool documentation for guides, node references, and tutorials.

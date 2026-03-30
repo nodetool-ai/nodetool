@@ -15,7 +15,7 @@ const FloatProperty: React.FC<PropertyProps> = ({ definition, value, onChange })
       if (value !== undefined && value !== parsedLocal) {
           setLocalValue(String(value));
       }
-  }, [value]);
+  }, [value, localValue]);
 
   const onTextChange = (text: string) => {
       setLocalValue(text);

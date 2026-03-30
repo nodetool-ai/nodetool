@@ -1,0 +1,64 @@
+{
+  "modelId": "google/imagen-4-fast",
+  "owner": "google",
+  "name": "imagen-4-fast",
+  "version": "f677c74739e4502130a6db1d02798e99ca80c27810e263a012535e69e1f56b74",
+  "description": "Use this fast version of Imagen 4 when speed and cost are more important than quality",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "3:4",
+          "4:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output image",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "safety_filter_level": {
+        "default": "block_only_high",
+        "description": "block_low_and_above is strictest, block_medium_and_above blocks some prompts, block_only_high is most permissive but some prompts will still be blocked",
+        "enum": [
+          "block_low_and_above",
+          "block_medium_and_above",
+          "block_only_high"
+        ],
+        "title": "safety_filter_level",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

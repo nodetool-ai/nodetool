@@ -2,10 +2,10 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback } from "react";
-import Dialog from "@mui/material/Dialog";
+import { memo, useCallback, useMemo } from "react";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
+import { Dialog } from "../ui_primitives";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 
@@ -14,7 +14,8 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
-  Typography
+  Typography,
+  ToggleButtonGroupProps
 } from "@mui/material";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
@@ -27,7 +28,8 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
-import { escapeHtml } from "../../utils/highlightText";
+import { addBreaks } from "../../utils/sanitize";
+import { sanitizeImageUrl } from "../../utils/urlValidation";
 const styles = (theme: Theme) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
@@ -188,9 +190,6 @@ const OpenOrCreateDialog = () => {
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
-  function addBreaks(text: string) {
-    return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
-  }
   const loadWorkflows = async (cursor?: string, limit?: number) => {
     cursor = cursor || "";
     const { data, error } = await client.GET("/api/workflows/", {
@@ -223,76 +222,88 @@ const OpenOrCreateDialog = () => {
     navigate("/examples");
   };
 
-  const onClickWorkflow = useCallback(
-    (workflow: Workflow) => {
-      // setShouldAutoLayout(true);
-      navigate("/editor/" + workflow.id);
+  // Use data attributes to avoid creating new function references on each render
+  // This is more efficient than curried handlers which create new closures
+  const handleWorkflowClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const workflowId = event.currentTarget.dataset.workflowId;
+      if (workflowId) {
+        navigate("/editor/" + workflowId);
+      }
     },
     [navigate]
   );
 
   // ORDER
-  const handleOrderChange = (_: any, newOrder: any) => {
+  const handleOrderChange: ToggleButtonGroupProps["onChange"] = (_event, newOrder) => {
     if (newOrder !== null) {
       setWorkflowOrder(newOrder);
     }
   };
 
-  const { handleOpenHelp } = useAppHeaderStore();
+  const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
 
-  const sortedWorkflows = data?.workflows.sort((a, b) => {
-    if (settings.workflowOrder === "name") {
-      return a.name.localeCompare(b.name);
-    }
-    return b.updated_at.localeCompare(a.updated_at);
-  });
-
-  // (a, b) =>
-  //   new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  // List view
-  const renderListView = (workflows: any) => (
-    <Box className="container list" css={listStyles(theme)}>
-      {workflows.map((workflow: Workflow, index: number) => (
-        <Box
-          key={`${workflow.id}-${index}`}
-          className="workflow list"
-          onClick={() => onClickWorkflow(workflow)}
-        >
-          <Box
-            className="image-wrapper"
-            sx={{
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundImage: workflow.thumbnail_url
-                ? `url(${workflow.thumbnail_url})`
-                : "none",
-              width: "50px",
-              height: "50px"
-            }}
-          >
-            {!workflow.thumbnail_url && <Box className="image-placeholder" />}
-          </Box>
-          <Box className="name-and-description">
-            <div
-              className="name"
-              dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-            ></div>
-            <Typography className="description">
-              {truncateString(workflow.description, 350)}
-            </Typography>
-          </Box>
-          <div className="right">
-            <Typography className="date">
-              {prettyDate(workflow.updated_at, "verbose", settings)}
-            </Typography>
-            <Typography className="date relative">
-              {relativeTime(workflow.updated_at)}
-            </Typography>
-          </div>
-        </Box>
-      ))}
-    </Box>
+  const sortedWorkflows = useMemo(() =>
+    [...(data?.workflows || [])].sort((a, b) => {
+      if (settings.workflowOrder === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      return b.updated_at.localeCompare(a.updated_at);
+    }),
+    [data?.workflows, settings.workflowOrder]
   );
+
+  // Memoize workflow list items to prevent unnecessary re-renders
+  const workflowListItems = useMemo(() =>
+    sortedWorkflows.map((workflow: Workflow, index: number) => (
+      <Box
+        key={`${workflow.id}-${index}`}
+        className="workflow list"
+        onClick={handleWorkflowClick}
+        data-workflow-id={workflow.id}
+      >
+        <Box
+          className="image-wrapper"
+          sx={{
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundImage: sanitizeImageUrl(workflow.thumbnail_url)
+              ? `url(${sanitizeImageUrl(workflow.thumbnail_url)})`
+              : "none",
+            width: "50px",
+            height: "50px"
+          }}
+        >
+          {!workflow.thumbnail_url && <Box className="image-placeholder" />}
+        </Box>
+        <Box className="name-and-description">
+          <div
+            className="name"
+            dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
+          ></div>
+          <Typography className="description">
+            {truncateString(workflow.description, 350)}
+          </Typography>
+        </Box>
+        <div className="right">
+          <Typography className="date">
+            {prettyDate(workflow.updated_at, "verbose", settings)}
+          </Typography>
+          <Typography className="date relative">
+            {relativeTime(workflow.updated_at)}
+          </Typography>
+        </div>
+      </Box>
+    )),
+    [sortedWorkflows, handleWorkflowClick, settings]
+  );
+
+  // List view
+  const renderListView = useCallback(() => (
+    <Box className="container list" css={listStyles(theme)}>
+      {workflowListItems}
+    </Box>
+  ), [workflowListItems, theme]);
   return (
     <Dialog
       css={styles(theme)}
@@ -358,7 +369,7 @@ const OpenOrCreateDialog = () => {
                 <Typography>{error?.message}</Typography>
               </ErrorOutlineRounded>
             )}
-            {data && renderListView(sortedWorkflows)}
+            {data && sortedWorkflows && renderListView()}
           </div>
         </div>
       </DialogContent>
@@ -376,4 +387,4 @@ const OpenOrCreateDialog = () => {
   );
 };
 
-export default OpenOrCreateDialog;
+export default memo(OpenOrCreateDialog);

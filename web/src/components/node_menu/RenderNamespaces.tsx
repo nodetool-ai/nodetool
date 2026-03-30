@@ -12,20 +12,21 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   tree,
   currentPath = []
 }) => {
-  const DEBUG_SEARCH = false;
   const {
     selectedPath,
     allSearchMatches,
     searchTerm,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    selectedProviderType
   } = useNodeMenuStore((state) => ({
     highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
     allSearchMatches: state.allSearchMatches,
     searchTerm: state.searchTerm,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    selectedProviderType: state.selectedProviderType
   }));
 
   const minSearchTermLength = useMemo(() => {
@@ -42,13 +43,37 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     searchTerm && searchTerm.length >= minSearchTermLength
   );
 
-  const hasActiveTypeFilter = Boolean(selectedInputType || selectedOutputType);
+  const hasActiveTypeFilter = Boolean(
+    selectedInputType || selectedOutputType || selectedProviderType !== "all"
+  );
 
   const shouldHighlightByFilter = hasEffectiveSearchTerm || hasActiveTypeFilter;
 
+  const matchingNamespaces = useMemo(() => {
+    const matching = new Set<string>();
+    allSearchMatches.forEach((result) => {
+      const resultPath = result.namespace.split(".");
+      const namespaceAtCurrentDepth = resultPath[currentPath.length];
+      if (namespaceAtCurrentDepth) {
+        matching.add(namespaceAtCurrentDepth);
+      }
+    });
+    return matching;
+  }, [allSearchMatches, currentPath.length]);
+
   const memoizedTree = useMemo(
     () =>
-      Object.keys(tree).map((namespace) => {
+      Object.keys(tree)
+        .sort((a, b) => {
+          const aKind = tree[a].providerKind;
+          const bKind = tree[b].providerKind;
+          if (aKind !== bKind) {
+            // Local namespaces first, API namespaces after
+            return aKind === "local" ? -1 : 1;
+          }
+          return a.localeCompare(b);
+        })
+        .map((namespace) => {
         const currentFullPath = [...currentPath, namespace].join(".");
         const isExpanded =
           currentPath.length > 0
@@ -58,24 +83,14 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         const path = [...currentPath, namespace];
         const hasChildren = Object.keys(tree[namespace].children).length > 0;
 
-        const searchResultCount = allSearchMatches.filter((result) => {
-          const resultPath = result.namespace.split(".");
-          return (
-            resultPath.slice(0, currentPath.length + 1).join(".") ===
-            currentFullPath
-          );
-        }).length;
-
-        const highlightDueToActiveSearch =
-          shouldHighlightByFilter && searchResultCount > 0;
-
-        const finalIsHighlightedPropForChild = highlightDueToActiveSearch;
+        const isHighlighted =
+          shouldHighlightByFilter && matchingNamespaces.has(namespace);
 
         return {
           path,
           namespace,
           currentFullPath,
-          isHighlighted: finalIsHighlightedPropForChild,
+          isHighlighted,
           isExpanded,
           isSelected,
           hasChildren
@@ -85,7 +100,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
       tree,
       currentPath,
       selectedPath,
-      allSearchMatches,
+      matchingNamespaces,
       shouldHighlightByFilter
     ]
   );

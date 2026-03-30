@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import { NodeMetadata, OutputSlot, Property, TypeMetadata } from "./ApiTypes";
+import { NodeMetadata, TypeMetadata } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { Node } from "@xyflow/react";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { CONTROL_HANDLE_ID } from "./graphEdgeToReactFlowEdge";
 export type ConnectDirection = "target" | "source" | "" | null;
 
 type ConnectionStore = {
@@ -11,6 +12,11 @@ type ConnectionStore = {
   connectDirection: ConnectDirection;
   connectNodeId: string | null;
   connectHandleId: string | null;
+  connectMin: number | null;
+  connectMax: number | null;
+  connectDefault: unknown;
+  /** True while an existing edge is being reconnected (redragged). */
+  isReconnecting: boolean;
   startConnecting: (
     node: Node<NodeData>,
     handleId: string,
@@ -18,6 +24,7 @@ type ConnectionStore = {
     metadata: NodeMetadata
   ) => void;
   endConnecting: () => void;
+  setIsReconnecting: (value: boolean) => void;
 };
 
 const useConnectionStore = create<ConnectionStore>((set) => ({
@@ -26,6 +33,10 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
   connectDirection: null,
   connectNodeId: null,
   connectHandleId: null,
+  connectMin: null,
+  connectMax: null,
+  connectDefault: undefined,
+  isReconnecting: false,
 
   /**
    * Handle the end event of a connection between two nodes.
@@ -37,8 +48,16 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       connectType: null,
       connectDirection: null,
       connectNodeId: null,
-      connectHandleId: null
+      connectHandleId: null,
+      connectMin: null,
+      connectMax: null,
+      connectDefault: undefined,
+      isReconnecting: false
     });
+  },
+
+  setIsReconnecting: (value: boolean) => {
+    set({ isReconnecting: value });
   },
 
   /**
@@ -56,6 +75,18 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     handleType: string,
     metadata: NodeMetadata
   ) => {
+    // Handle control edges specially - they don't have metadata
+    if (handleId === CONTROL_HANDLE_ID) {
+      set({
+        connecting: true,
+        connectType: { type: "control", optional: false, type_args: [], type_name: null },
+        connectNodeId: node.id,
+        connectDirection: handleType as "source" | "target",
+        connectHandleId: handleId
+      });
+      return;
+    }
+
     if (handleType === "source") {
       const outputHandle = findOutputHandle(node, handleId, metadata);
       const connectType = outputHandle?.type;
@@ -72,12 +103,21 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       const inputHandle = findInputHandle(node, handleId, metadata);
       const connectType = inputHandle?.type;
 
+      // Get min/max/default from the property metadata if available
+      const property = metadata.properties.find((p) => p.name === handleId);
+      const connectMin = property?.min ?? null;
+      const connectMax = property?.max ?? null;
+      const connectDefault = property?.default;
+
       set({
         connecting: true,
         connectType,
         connectNodeId: node.id,
         connectDirection: "target",
-        connectHandleId: handleId
+        connectHandleId: handleId,
+        connectMin,
+        connectMax,
+        connectDefault
       });
     }
   }

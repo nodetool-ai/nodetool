@@ -15,18 +15,19 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useLocation } from "react-router-dom";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
-// import { isMac } from "../../utils/platform";
+import { executeViaComfyUI } from "../../utils/comfyExecutor";
+import { shallow } from "zustand/shallow";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -340,13 +341,9 @@ const styles = (theme: Theme) =>
   });
 
 const NodeMenuButton = memo(function NodeMenuButton() {
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
-    (state) => ({
-      openNodeMenu: state.openNodeMenu,
-      closeNodeMenu: state.closeNodeMenu,
-      isMenuOpen: state.isMenuOpen
-    })
-  );
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
+  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
   const handleToggleNodeMenu = useCallback(() => {
     if (isMenuOpen) {
@@ -378,6 +375,8 @@ const NodeMenuButton = memo(function NodeMenuButton() {
 });
 
 const SaveWorkflowButton = memo(function SaveWorkflowButton() {
+  // Combine multiple useWorkflowManager subscriptions into a single selector with shallow equality
+  // to reduce unnecessary re-renders when other parts of the workflow manager state change
   const { saveWorkflow, getCurrentWorkflow } = useWorkflowManager((state) => ({
     saveWorkflow: state.saveWorkflow,
     getCurrentWorkflow: state.getCurrentWorkflow
@@ -428,12 +427,12 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
 });
 
 const WorkflowModeSelect = memo(function WorkflowModeSelect() {
-  const { workflow } = useNodes((state) => ({
-    workflow: state.getWorkflow()
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const workflow = useNodes((state) => state.getWorkflow());
 
   const workflowMode = (workflow?.run_mode || "workflow") as string;
 
+  // Combine selector with shallow equality (built into useWorkflowManager)
   const { saveWorkflow } = useWorkflowManager((state) => ({
     saveWorkflow: state.saveWorkflow
   }));
@@ -441,8 +440,8 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
   const [selectIsOpen, setSelectIsOpen] = useState(false);
 
   const handleModeChange = useCallback(
-    (event: React.ChangeEvent<{ value: unknown }>) => {
-      const newMode = event.target.value as string;
+    (_event: unknown, value: unknown) => {
+      const newMode = value as string;
 
       const updatedWorkflow = {
         ...workflow,
@@ -472,7 +471,7 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
           tabIndex={-1}
           inputProps={{ tabIndex: -1 }}
           value={workflowMode}
-          onChange={handleModeChange as any}
+          onChange={handleModeChange}
           onOpen={() => setSelectIsOpen(true)}
           onClose={() => setSelectIsOpen(false)}
           displayEmpty
@@ -482,6 +481,9 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
           </MenuItem>
           <MenuItem tabIndex={-1} value="chat">
             Chat
+          </MenuItem>
+          <MenuItem tabIndex={-1} value="comfy">
+            Comfy
           </MenuItem>
           <MenuItem tabIndex={-1} value="tool">
             Tool
@@ -493,51 +495,78 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
 });
 
 const RunWorkflowButton = memo(function RunWorkflowButton() {
-  const { workflow, nodes, edges } = useNodes((state) => ({
-    workflow: state.workflow,
-    nodes: state.nodes,
-    edges: state.edges
-  }));
+  // Subscribe to workflow only (stable reference), not nodes/edges arrays
+  // This prevents re-renders when nodes/edges change
+  const workflow = useNodes((state) => state.workflow);
+  // Get the store reference to access current state without subscribing
+  const nodeStore = useNodeStoreRef();
+  // Get the run function from websocket runner
+  const run = useWebsocketRunner((state) => state.run);
 
-  const { run, state, isWorkflowRunning } = useWebsocketRunner((state) => ({
-    run: state.run,
-    state: state.state,
-    isWorkflowRunning: state.state === "running"
-  }));
+  const state = useWebsocketRunner((state) => state.state);
+  const isWorkflowRunning = state === "running";
+  const isBusy =
+    state === "running" ||
+    state === "connecting" ||
+    state === "connected";
 
-  const { getWorkflow, saveWorkflow } = useWorkflowManager((state) => ({
-    getWorkflow: state.getWorkflow,
-    saveWorkflow: state.saveWorkflow
-  }));
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
-  const handleRun = useCallback(() => {
-    if (!isWorkflowRunning) {
-      run({}, workflow, nodes, edges);
+  // Store timeout ref for cleanup
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleRun = useCallback(async () => {
+    if (!isBusy) {
+      const currentState = nodeStore.getState();
+      const currentWorkflow = currentState.getWorkflow();
+      const shouldRunViaComfy =
+        currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
+
+      if (shouldRunViaComfy) {
+        await executeViaComfyUI(currentWorkflow.graph, undefined, currentWorkflow);
+      } else {
+        // Access current state directly when running, not in render
+        run({}, workflow, currentState.nodes, currentState.edges);
+      }
     }
-    setTimeout(() => {
+    // Clear previous timeout if exists
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    // Set new timeout and store reference for cleanup
+    saveTimeoutRef.current = setTimeout(() => {
       const w = getWorkflow(workflow.id);
       if (w) {
         saveWorkflow(w);
       }
     }, 100);
   }, [
-    isWorkflowRunning,
+    isBusy,
     run,
     workflow,
-    nodes,
-    edges,
+    nodeStore,
     getWorkflow,
     saveWorkflow
   ]);
 
   // Keyboard shortcuts for run (Ctrl+Enter / Cmd+Enter)
-  useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
-  useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
+  useCombo(["control", "enter"], handleRun, true, !isBusy);
+  useCombo(["meta", "enter"], handleRun, true, !isBusy);
 
   return (
     <Tooltip
       title={
-        isWorkflowRunning
+        isBusy
           ? "Workflow is currently running..."
           : getShortcutTooltip("runWorkflow")
       }
@@ -546,10 +575,10 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       <span>
         <Button
           className={`action-button run-stop-button run-workflow ${
-            isWorkflowRunning ? "running" : ""
+            isBusy ? "running" : ""
           }`}
           onClick={handleRun}
-          disabled={isWorkflowRunning}
+          disabled={isBusy}
           tabIndex={-1}
         >
           {state === "connecting" || state === "connected" ? (
@@ -575,13 +604,22 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 });
 
 const StopWorkflowButton = memo(function StopWorkflowButton() {
-  const { isWorkflowRunning, cancel } = useWebsocketRunner((state) => ({
-    isWorkflowRunning: state.state === "running",
+  const { canStop, cancel } = useWebsocketRunner((state) => ({
+    canStop:
+      state.state === "running" ||
+      state.state === "paused" ||
+      state.state === "suspended" ||
+      state.state === "connecting" ||
+      state.state === "connected",
     cancel: state.cancel
   }));
 
+  const handleCancel = useCallback(() => {
+    cancel();
+  }, [cancel]);
+
   // Keyboard shortcut for stop (Escape)
-  useCombo(["escape"], cancel, true, isWorkflowRunning);
+  useCombo(["escape"], handleCancel, true, canStop);
 
   return (
     <Tooltip
@@ -590,9 +628,9 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     >
       <Button
         className={`action-button run-stop-button stop-workflow ${
-          !isWorkflowRunning ? "disabled" : "running"
+          !canStop ? "disabled" : "running"
         }`}
-        onClick={() => cancel()}
+        onClick={handleCancel}
         tabIndex={-1}
       >
         <StopIcon />
@@ -607,15 +645,13 @@ const RunAsAppButton = memo(function RunAsAppButton() {
 
   const handleRunAsApp = useCallback(() => {
     if (workflowId) {
-      const api = (window as any)["api"] as
-        | { runApp: (workflowId: string) => void }
-        | undefined;
-      if (api) {
-        api.runApp(workflowId);
+      if (window.api?.runApp) {
+        window.api.runApp(workflowId);
       } else {
         window.open(
           "http://localhost:5173/index.html?workflow_id=" + workflowId,
-          "_blank"
+          "_blank",
+          "noopener,noreferrer"
         );
       }
     }
@@ -647,16 +683,19 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
 }: {
   setWorkflowToEdit: (workflow: Workflow) => void;
 }) {
-  const { getWorkflow } = useNodes((state) => ({
-    getWorkflow: state.getWorkflow
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const getWorkflow = useNodes((state) => state.getWorkflow);
+
+  const handleEditWorkflow = useCallback(() => {
+    setWorkflowToEdit(getWorkflow());
+  }, [getWorkflow, setWorkflowToEdit]);
 
   return (
     <>
       <Tooltip title="Edit Workflow Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
           className="action-button"
-          onClick={() => setWorkflowToEdit(getWorkflow())}
+          onClick={handleEditWorkflow}
           tabIndex={-1}
         >
           <EditIcon />
@@ -667,10 +706,14 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
 });
 
 const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
-  const { workflow, workflowJSON } = useNodes((state) => ({
-    workflow: state.workflow,
-    workflowJSON: state.workflowJSON
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const { workflow, workflowJSON } = useNodes(
+    (state) => ({
+      workflow: state.workflow,
+      workflowJSON: state.workflowJSON
+    }),
+    shallow
+  );
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([workflowJSON()], { type: "application/json" });
@@ -697,10 +740,14 @@ interface AppToolbarProps {
 const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   const theme = useTheme();
   const path = useLocation().pathname;
-  const { autoLayout, workflow } = useNodes((state) => ({
-    autoLayout: state.autoLayout,
-    workflow: state.workflow
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const { autoLayout, workflow } = useNodes(
+    (state) => ({
+      autoLayout: state.autoLayout,
+      workflow: state.workflow
+    }),
+    shallow
+  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -722,5 +769,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
     </Box>
   );
 };
+
+AppToolbar.displayName = "AppToolbar";
 
 export default memo(AppToolbar, isEqual);

@@ -111,7 +111,9 @@ Run the example client:
 nodetool chat-server
 
 # Test in another terminal
-python examples/chat_server_examples.py
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}'
 ```
 
 ## Configuration
@@ -194,7 +196,25 @@ Errors are propagated as:
 
 ## Deployment
 
-The chat server can be deployed standalone or integrated into existing FastAPI applications by importing and mounting
-the OpenAI-compatible router from `nodetool.api.openai.create_openai_compatible_router` or by invoking `run_chat_server`
-from `nodetool.chat.server`. For full workflow execution and storage, use the Worker API described in
+The chat server runs as a standalone Node.js HTTP server provided by the `@nodetool/websocket` package. The server
+exposes OpenAI-compatible endpoints under `/v1/` alongside WebSocket endpoints for workflow execution. You can start it
+directly:
+
+```bash
+# Default: listens on 127.0.0.1:7777
+node packages/websocket/src/server.ts
+
+# Custom host and port via environment variables
+HOST=0.0.0.0 PORT=8080 node packages/websocket/src/server.ts
+```
+
+To embed chat functionality in your own Node.js application, import the chat processing logic from
+`@nodetool/chat` and the HTTP request handler from `@nodetool/websocket`:
+
+```ts
+import { processChat } from "@nodetool/chat";
+import { handleNodeHttpRequest } from "@nodetool/websocket";
+```
+
+For full workflow execution and storage, use the Server API described in
 [Deployment Guide](deployment.md).

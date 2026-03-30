@@ -32,8 +32,10 @@ describe("DatetimeRenderer", () => {
   it("renders datetime correctly", () => {
     renderWithTheme(<DatetimeRenderer value={mockDatetime} />);
     
-    // The exact format depends on locale, but we should see parts of the date
-    expect(screen.getByText(/10\/15\/2023/)).toBeInTheDocument();
+    // Locale-independent: accept either MM/DD/YYYY or DD.MM.YYYY (with optional leading zeros)
+    expect(
+      screen.getByText(/(?:0?10\D+0?15|0?15\D+0?10)\D+2023/)
+    ).toBeInTheDocument();
   });
 
   it("renders different datetime values", () => {
@@ -52,6 +54,7 @@ describe("DatetimeRenderer", () => {
     
     renderWithTheme(<DatetimeRenderer value={newYear} />);
     
-    expect(screen.getByText(/1\/1\/2024/)).toBeInTheDocument();
+    // Locale-independent: accept either MM/DD/YYYY or DD.MM.YYYY (with optional leading zeros)
+    expect(screen.getByText(/0?1\D+0?1\D+2024/)).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import log from "loglevel";
 import React from "react";
 import { createPortal } from "react-dom";
 
@@ -13,7 +14,9 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
   isDragging
 }) => {
   // Hide entirely if not dragging or if slowdown is not active (speedFactor ~ 1)
-  if (!isDragging || speedFactor >= 0.999) {return null;}
+  if (!isDragging || speedFactor >= 0.999) {
+    return null;
+  }
 
   const speedDisplay = (
     <div
@@ -43,9 +46,10 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
     return createPortal(speedDisplay, document.body);
   } catch (error) {
     // Fallback: render normally if portal fails
-    console.warn("Failed to create portal for SpeedDisplay:", error);
+    log.warn("Failed to create portal for SpeedDisplay:", error);
     return speedDisplay;
   }
 };
 
 export default SpeedDisplay;
+export { SpeedDisplay };

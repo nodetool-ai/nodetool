@@ -3,12 +3,16 @@ import { memo } from "react";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 
 const StatusMessage = memo(function StatusMessage() {
-  const { statusMessage, isWorkflowRunning } = useWebsocketRunner((state) => ({
-    statusMessage: state.statusMessage,
-    isWorkflowRunning: state.state === "running"
-  }));
+  const statusMessage = useWebsocketRunner((state) => state.statusMessage);
+  const runnerState = useWebsocketRunner((state) => state.state);
+  const isActive =
+    runnerState === "running" ||
+    runnerState === "connecting" ||
+    runnerState === "connected" ||
+    runnerState === "paused" ||
+    runnerState === "suspended";
 
-  if (!isWorkflowRunning) {return null;}
+  if (!isActive) {return null;}
 
   return (
     <Typography
@@ -20,5 +24,7 @@ const StatusMessage = memo(function StatusMessage() {
     </Typography>
   );
 });
+
+StatusMessage.displayName = "StatusMessage";
 
 export default StatusMessage;

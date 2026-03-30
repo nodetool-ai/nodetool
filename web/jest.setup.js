@@ -1,6 +1,17 @@
 // Set timezone to UTC to ensure consistent test results
 process.env.TZ = 'UTC';
 
+// Note: In ESM mode, React is imported via standard ES imports in test files
+// The global.React assignment using CommonJS require causes issues with ESM modules
+// Tests should import React directly: import React from "react"
+
+// Mock import.meta for Vite compatibility
+global.import = {
+  meta: {
+    hot: undefined,
+  },
+};
+
 // Mock canvas before jsdom requires it
 const Module = require("module");
 const originalRequire = Module.prototype.require;

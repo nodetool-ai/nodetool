@@ -1,10 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo } from "react";
+import React, { memo, useMemo, useCallback } from "react";
+import { css } from "@emotion/react";
 import PropertyField from "./PropertyField";
-import { NodeMetadata, Property, TypeMetadata } from "../../stores/ApiTypes";
+import { Property, NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
+import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { Button } from "@mui/material";
@@ -12,6 +14,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Collapse } from "@mui/material";
+
 
 export interface NodeInputsProps {
   id: string;
@@ -31,6 +34,7 @@ export interface NodeInputsProps {
     newPropertyName: string
   ) => void;
   onDeleteProperty?: (propertyName: string) => void;
+  editableDynamicInputs?: boolean;
 }
 
 interface NodeInputProps {
@@ -51,6 +55,7 @@ interface NodeInputProps {
     oldPropertyName: string,
     newPropertyName: string
   ) => void;
+  isConnected: boolean;
 }
 
 const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
@@ -65,20 +70,9 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   tabIndex,
   showAdvancedFields,
   basicFields,
-  isDynamicProperty
+  isDynamicProperty,
+  isConnected
 }) {
-  const { edges, findNode } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode
-  }));
-
-  const isConstantNode = property.type.type.startsWith("nodetool.constant");
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) => edge.target === id && edge.targetHandle === property.name
-    );
-  }, [edges, id, property.name]);
-
   const isBasicField = useMemo(() => {
     return basicFields?.includes(property.name);
   }, [basicFields, property.name]);
@@ -104,7 +98,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
       property={property}
       propertyIndex={propertyIndex}
       showFields={showFields}
-      showHandle={showHandle && !isConstantNode}
+      showHandle={showHandle}
       tabIndex={tabIndex}
       isDynamicProperty={isDynamicProperty}
       data={data}
@@ -117,7 +111,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
   properties,
   data,
-  nodeMetadata,
   nodeType,
   showHandle = true,
   showFields = true,
@@ -125,29 +118,59 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showAdvancedFields,
   basicFields,
   hasAdvancedFields,
-  onToggleAdvancedFields
+  onToggleAdvancedFields,
+  editableDynamicInputs = true
 }) => {
-  const tabableProperties = properties.filter((property) => {
-    const type = property.type;
-    return !type.optional && type.type !== "readonly";
-  });
-  const dynamicProperties: { [key: string]: Property } =
-    data?.dynamic_properties || {};
+  const rootStyles = useMemo(
+    () =>
+      css({
+        marginTop: "1em",
+        marginBottom: "0.5em"
+      }),
+    []
+  );
 
-  const basicInputs: JSX.Element[] = [];
-  const advancedInputs: JSX.Element[] = [];
-  const { edges, findNode } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode
-  }));
+  const expandButtonContainerStyles = useMemo(
+    () =>
+      css({
+        display: "flex",
+        justifyContent: "center",
+        margin: "4px 0"
+      }),
+    []
+  );
+
+  const tabableProperties = useMemo(
+    () =>
+      properties.filter((property) => {
+        const type = property.type;
+        return !type.optional && type.type !== "readonly";
+      }),
+    [properties]
+  );
+
+  const dynamicProperties: { [key: string]: Property } = useMemo(
+    () => (data?.dynamic_properties || {}) as { [key: string]: Property },
+    [data?.dynamic_properties]
+  );
+
+  const basicInputs: React.JSX.Element[] = [];
+  const advancedInputs: React.JSX.Element[] = [];
+
+  const findNode = useNodes((state) => state.findNode);
+
+  // Use optimized stable selector for connected edges to prevent re-renders on unrelated edge changes
+  const connectedEdgesSelector = useConnectedEdgesSelector(id);
+  const connectedEdges = useNodes(connectedEdgesSelector);
+
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
   const isConnected = useCallback(
     (handle: string) => {
-      return edges.some(
-        (edge) => edge.target === id && edge.targetHandle === handle
-      );
+      // Edges are already filtered by target === id
+      return connectedEdges.some((edge) => edge.targetHandle === handle);
     },
-    [edges, id]
+    [connectedEdges]
   );
 
   properties.forEach((property, index) => {
@@ -156,6 +179,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     );
     const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
     const isBasicField = basicFields?.includes(property.name);
+
+    const connected = isConnected(property.name);
 
     const inputElement = (
       <NodeInput
@@ -171,43 +196,68 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         tabIndex={finalTabIndex}
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
+        isConnected={connected}
       />
     );
 
-    if (isBasicField || isConnected(property.name)) {
+    if (isBasicField || connected) {
       basicInputs.push(inputElement);
     } else {
       advancedInputs.push(inputElement);
     }
   });
 
-  const dynamicInputElements = Object.entries(dynamicProperties).map(
+  const dynamicInputs = useMemo(
+    () => data?.dynamic_inputs || {},
+    [data?.dynamic_inputs]
+  );
+
+  const dynamicInputElements = useMemo(() => Object.entries(dynamicProperties).map(
     ([name], index) => {
-      // Determine type from incoming edge's source handle
-      const incoming = edges.find(
-        (edge) => edge.target === id && edge.targetHandle === name
+      const incoming = connectedEdges.find(
+        (edge) => edge.targetHandle === name
       );
-      let resolvedType: TypeMetadata = {
-        type: "any",
-        type_args: [],
-        optional: false
-      } as any;
-      if (incoming) {
-        const sourceNode = findNode(incoming.source);
-        if (sourceNode) {
-          const sourceMeta = getMetadata(sourceNode.type || "");
-          const handle = sourceMeta
-            ? findOutputHandle(
-                sourceNode,
-                incoming.sourceHandle || "",
-                sourceMeta
-              )
-            : undefined;
-          if (handle?.type) {
-            resolvedType = handle.type;
+      const inputMeta = dynamicInputs[name];
+
+      let resolvedType: TypeMetadata;
+      let description: string | undefined;
+      if (inputMeta) {
+          type DynMeta = typeof inputMeta & { enum?: (string | number)[] };
+          type DynTypeArg = TypeMetadata & { enum?: (string | number)[] };
+          const meta = inputMeta as DynMeta;
+          const arg0 = inputMeta.type_args?.[0] as DynTypeArg | undefined;
+          resolvedType = {
+            ...inputMeta,
+            type: inputMeta.type,
+            type_args: inputMeta.type_args ?? [],
+            optional: inputMeta.optional ?? false,
+            values: inputMeta.values || meta.enum || arg0?.values || arg0?.enum,
+          } as TypeMetadata;
+          description = inputMeta.description;
+      } else {
+        resolvedType = {
+          type: "any",
+          type_args: [],
+          optional: false
+        } as TypeMetadata;
+        if (incoming) {
+          const sourceNode = findNode(incoming.source);
+          if (sourceNode) {
+            const sourceMeta = getMetadata(sourceNode.type || "");
+            const handle = sourceMeta
+              ? findOutputHandle(
+                  sourceNode,
+                  incoming.sourceHandle || "",
+                  sourceMeta
+                )
+              : undefined;
+            if (handle?.type) {
+              resolvedType = handle.type;
+            }
           }
         }
       }
+
       return (
         <NodeInput
           key={`dynamic-${name}-${id}`}
@@ -217,38 +267,81 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           property={{
             name,
             type: resolvedType,
-            required: false
+            required: false,
+            ...(description != null && { description }),
+            ...(inputMeta?.min != null && { min: inputMeta.min }),
+            ...(inputMeta?.max != null && { max: inputMeta.max }),
+            ...(inputMeta?.default !== undefined && { default: inputMeta.default })
           }}
           propertyIndex={`dynamic-${index}`}
           data={data}
-          showFields={true}
+          showFields={editableDynamicInputs}
           showHandle={true}
           tabIndex={-1}
           isDynamicProperty={true}
+          isConnected={!!incoming}
         />
       );
     }
-  );
+  ), [
+    dynamicProperties,
+    connectedEdges,
+    dynamicInputs,
+    id,
+    nodeType,
+    layout,
+    data,
+    editableDynamicInputs,
+    findNode,
+    getMetadata
+  ]);
 
   return (
-    <div className={`node-inputs node-drag-handle node-${id}`}>
+    <div className={`node-inputs node-drag-handle node-${id}`} css={rootStyles}>
       {basicInputs}
 
       {hasAdvancedFields && (
-        <div className="expand-button-container">
+        <div
+          className="expand-button-container"
+          css={expandButtonContainerStyles}
+        >
           <Tooltip
             title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
             placement="bottom"
             enterDelay={TOOLTIP_ENTER_DELAY}
           >
             <Button
-              className={`advanced-fields-button${
-                showAdvancedFields ? " active" : ""
-              }`}
               tabIndex={-1}
               onClick={onToggleAdvancedFields}
               size="small"
               variant="text"
+              sx={(theme) => ({
+                margin: "0 2px",
+                padding: "0.1em 1em 0.1em 0.5em",
+                minWidth: 0,
+                fontSize: "0.7rem",
+                color: theme.vars.palette.grey[500],
+                backgroundColor: "transparent",
+                border: "none",
+                cursor: "pointer",
+                textAlign: "left",
+                "&:hover": {
+                  backgroundColor: "transparent",
+                  color: theme.vars.palette.grey[0]
+                },
+                "& .MuiSvgIcon-root": {
+                  transition: "transform 0.3s ease, color 0.2s ease",
+                  fontSize: "1rem",
+                  verticalAlign: "middle",
+                  marginRight: "2px",
+                  transform: showAdvancedFields
+                    ? "rotate(180deg) scale(0.7)"
+                    : "scale(0.7)",
+                  color: showAdvancedFields
+                    ? theme.vars.palette.primary.main
+                    : "inherit"
+                }
+              })}
             >
               <ExpandMoreIcon /> {showAdvancedFields ? "Less" : "More"}
             </Button>

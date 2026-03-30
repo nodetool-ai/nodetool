@@ -1,0 +1,45 @@
+{
+  "modelId": "beautyyuyanli/multilingual-e5-large",
+  "owner": "beautyyuyanli",
+  "name": "multilingual-e5-large",
+  "version": "a06276a89f1a902d5fc225a9ca32b6e8e6292b7f3b136518878da97c458e2bad",
+  "description": "multilingual-e5-large: A multi-language text embedding model",
+  "inputSchema": {
+    "properties": {
+      "batch_size": {
+        "default": 32,
+        "description": "Batch size to use when processing text data.",
+        "minimum": 0,
+        "title": "Batch Size",
+        "type": "integer",
+        "x-order": 1
+      },
+      "normalize_embeddings": {
+        "default": true,
+        "description": "Whether to normalize embeddings.",
+        "title": "Normalize Embeddings",
+        "type": "boolean",
+        "x-order": 2
+      },
+      "texts": {
+        "default": "[\"In the water, fish are swimming.\", \"Fish swim in the water.\", \"A book lies open on the table.\"]",
+        "description": "text to embed, formatted as JSON list of strings (e.g. [\"hello\", \"world\"])",
+        "title": "Texts",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "items": {
+        "type": "number"
+      },
+      "type": "array"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

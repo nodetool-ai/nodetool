@@ -1,0 +1,36 @@
+{
+  "modelId": "pixverse/lipsync",
+  "owner": "pixverse",
+  "name": "lipsync",
+  "version": "3ca6d73f4fb9e1d77a4b6e14f8998ee18926e4dc462838e31fa2bb5e662c1e2c",
+  "description": "Generate realistic lipsync animations from audio for high-quality synchronization",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Audio file to upload to PixVerse as media",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 1
+      },
+      "video": {
+        "description": "Video file to upload to PixVerse as media",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video",
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

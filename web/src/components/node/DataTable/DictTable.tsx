@@ -15,13 +15,20 @@ import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
 import TableActions from "./TableActions";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import type { TableData } from "./TableActions";
+
 export type DictDataType = "int" | "string" | "datetime" | "float";
+
+/**
+ * Union type for all possible cell values in a dict table
+ */
+export type DictCellValue = string | number | boolean | Date | null | undefined;
+
 export type DictTableProps = {
-  data: Record<string, any>;
+  data: Record<string, DictCellValue>;
   editable: boolean;
   data_type: DictDataType;
-  onDataChange?: (newData: Record<string, any>) => void;
+  onDataChange?: (newData: Record<string, DictCellValue>) => void;
 };
 
 const DictTable: React.FC<DictTableProps> = ({
@@ -50,7 +57,7 @@ const DictTable: React.FC<DictTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (e: any, cell: CellComponent) {
+              cellClick: function (_e: any, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -107,7 +114,7 @@ const DictTable: React.FC<DictTableProps> = ({
         oldKey = currentKey;
       }
 
-      const newData: Record<string, any> = {};
+      const newData: Record<string, DictCellValue> = {};
       Object.keys(data).forEach((k) => {
         if (k === oldKey) {
           newData[currentKey] = currentValue;
@@ -124,20 +131,21 @@ const DictTable: React.FC<DictTableProps> = ({
   );
 
   const onChangeRows = useCallback(
-    (newData: any[] | Record<string, any>) => {
+    (newData: Record<string, DictCellValue>) => {
       if (onDataChange) {
-        if (Array.isArray(newData)) {
-          const updatedData = newData.reduce((acc, row) => {
-            acc[row.key] = row.value;
-            return acc;
-          }, {} as Record<string, any>);
-          onDataChange(updatedData);
-        } else {
-          onDataChange(newData);
-        }
+        onDataChange(newData);
       }
     },
     [onDataChange]
+  );
+
+  const tableData = useMemo(
+    () =>
+      Object.keys(data).map((key) => ({
+        key,
+        value: data[key]
+      })),
+    [data]
   );
 
   useEffect(() => {
@@ -145,10 +153,7 @@ const DictTable: React.FC<DictTableProps> = ({
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "300px",
-      data: Object.keys(data).map((key) => ({
-        key,
-        value: data[key]
-      })),
+      data: tableData,
       columns: columns,
       columnDefaults: {
         headerSort: true,
@@ -172,14 +177,14 @@ const DictTable: React.FC<DictTableProps> = ({
     return () => {
       tabulatorInstance.destroy();
     };
-  }, [data, columns, onCellEdited]);
+  }, [tableData, columns, onCellEdited]);
 
   const theme = useTheme();
   return (
     <div className="dicttable nowheel nodrag" css={tableStyles(theme)}>
       <TableActions
         tabulator={tabulator}
-        data={data}
+        data={data as unknown as TableData}
         selectedRows={selectedRows}
         showSelect={showSelect}
         setShowSelect={setShowSelect}
@@ -187,7 +192,7 @@ const DictTable: React.FC<DictTableProps> = ({
         setShowRowNumbers={() => {}}
         editable={editable}
         dataframeColumns={[]}
-        onChangeRows={onChangeRows}
+        onChangeRows={onChangeRows as unknown as (newData: TableData) => void}
       />
       <div ref={tableRef} className="dicttable" />
     </div>

@@ -10,7 +10,7 @@ interface PreRendererProps {
 }
 
 export const PreRenderer: React.FC<PreRendererProps> = ({
-  node,
+  node: _node,
   children,
   ...props
 }) => {
@@ -22,7 +22,7 @@ export const PreRenderer: React.FC<PreRendererProps> = ({
     const singleChild = React.Children.toArray(children)[0];
     if (
       React.isValidElement(singleChild) &&
-      singleChild.props?.node?.tagName === "code"
+      (singleChild.props as any)?.node?.tagName === "code"
     ) {
       codeBlockChild = singleChild as React.ReactElement;
     }
@@ -34,7 +34,7 @@ export const PreRenderer: React.FC<PreRendererProps> = ({
     // and add our special flag.
     return (
       <CodeBlock
-        {...codeBlockChild.props}
+        {...(codeBlockChild.props as Record<string, unknown>)}
         _isFromPre={true}
         onInsert={props.onInsert}
       />

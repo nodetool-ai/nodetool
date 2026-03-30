@@ -1,14 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { useTheme } from "@mui/material/styles";
+import React, { useCallback, memo } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import dialogStyles from "../../styles/DialogStyles";
-
-import React from "react";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import Button from "@mui/material/Button";
+import { Dialog } from "../ui_primitives";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -23,7 +16,7 @@ interface ConfirmDialogProps {
   alert?: boolean;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(function ConfirmDialog({
   open,
   onClose,
   onConfirm,
@@ -34,14 +27,12 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   notificationMessage,
   notificationType = "info",
   alert
-}) => {
+}) {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
 
-  const theme = useTheme();
-
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     onConfirm();
     onClose();
     if (notificationMessage) {
@@ -51,34 +42,22 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         alert: alert
       });
     }
-  };
+  }, [onConfirm, onClose, notificationMessage, addNotification, notificationType, alert]);
 
   return (
-    <div>
-      <Dialog
-        style={{ minWidth: "100%", minHeight: "100%" }}
-        css={dialogStyles(theme)}
-        className="dialog"
-        open={open}
-        onClose={onClose}
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-description"
-      >
-        <DialogTitle className="dialog-title" id="confirm-dialog-title">
-          {title}
-        </DialogTitle>
-        {content && <DialogContent>{content}</DialogContent>}
-        <DialogActions className="dialog-actions">
-          <Button className="button-cancel" onClick={onClose}>
-            {cancelText}
-          </Button>
-          <Button className="button-confirm" onClick={handleConfirm} autoFocus>
-            {confirmText}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={title}
+      content={content}
+      onConfirm={handleConfirm}
+      onCancel={onClose}
+      confirmText={confirmText}
+      cancelText={cancelText}
+    />
   );
-};
+});
+
+ConfirmDialog.displayName = "ConfirmDialog";
 
 export default ConfirmDialog;

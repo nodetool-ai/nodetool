@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo, useCallback } from "react";
 import { Box, Tooltip } from "@mui/material";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -29,24 +29,40 @@ const moveRight = keyframes`
 
 const OverallDownloadProgress: React.FC = () => {
   const { downloads, openDialog } = useModelDownloadStore(
-    (state) => ({
+    useShallow((state) => ({
       downloads: state.downloads,
       openDialog: state.openDialog
-    }),
-    shallow
+    }))
   );
 
-  const totalBytes = Object.values(downloads).reduce(
-    (sum, download) =>
-      download.status === "progress" ? sum + download.totalBytes : sum,
-    0
+  const { progress } = useMemo(() => {
+    const total = Object.values(downloads).reduce(
+      (sum, download) =>
+        download.status === "progress" ? sum + download.totalBytes : sum,
+      0
+    );
+    const downloaded = Object.values(downloads).reduce(
+      (sum, download) =>
+        download.status === "progress" ? sum + download.downloadedBytes : sum,
+      0
+    );
+    const prog = total > 0 ? (downloaded / total) * 100 : 0;
+    return { progress: prog };
+  }, [downloads]);
+
+  const handleClick = useCallback(() => {
+    openDialog();
+  }, [openDialog]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openDialog();
+      }
+    },
+    [openDialog]
   );
-  const downloadedBytes = Object.values(downloads).reduce(
-    (sum, download) =>
-      download.status === "progress" ? sum + download.downloadedBytes : sum,
-    0
-  );
-  const progress = totalBytes > 0 ? (downloadedBytes / totalBytes) * 100 : 0;
 
   return (
     <Tooltip title="Download Progress" enterDelay={TOOLTIP_ENTER_DELAY}>
@@ -72,15 +88,8 @@ const OverallDownloadProgress: React.FC = () => {
             outlineOffset: "2px"
           }
         }}
-        onClick={() => {
-          openDialog();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            openDialog();
-          }
-        }}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
       >
         <Box
           className="icon-container"

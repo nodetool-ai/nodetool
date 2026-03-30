@@ -1,4 +1,5 @@
 import { createAssetFile } from "../createAssetFile";
+import { client } from "../../stores/ApiClient";
 
 const readFileAsText = async (file: File): Promise<string> => {
   if (typeof file.text === "function") {
@@ -13,6 +14,11 @@ const readFileAsText = async (file: File): Promise<string> => {
 };
 
 describe("createAssetFile", () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    global.fetch = jest.fn();
+  });
+
   it("creates a file for single image output", async () => {
     const data = { 0: 1, 1: 2, 2: 3, 3: 4 };
     const [result] = await createAssetFile({ type: "image", data }, "abc");
@@ -112,5 +118,38 @@ describe("createAssetFile", () => {
     const files = await createAssetFile(outputs, "node");
     expect(files[0].filename).toBe("note.txt");
     expect(files[1].filename).toBe("note_1.txt");
+  });
+
+  it("resolves asset refs through asset metadata instead of fetching asset:// directly", async () => {
+    jest.spyOn(client, "GET").mockResolvedValue({
+      data: {
+        id: "asset-1",
+        name: "fal-video.mp4",
+        get_url: "/api/storage/asset-1.mp4"
+      }
+    } as any);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+    });
+
+    const [result] = await createAssetFile(
+      {
+        type: "video",
+        uri: "asset://asset-1.mp4",
+        asset_id: "asset-1"
+      },
+      "node"
+    );
+
+    expect(client.GET).toHaveBeenCalledWith("/api/assets/{id}", {
+      params: { path: { id: "asset-1" } }
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/storage/asset-1.mp4"),
+      expect.objectContaining({ mode: "cors" })
+    );
+    expect(result.filename).toBe("fal-video.mp4");
+    expect(result.file.size).toBe(3);
   });
 });

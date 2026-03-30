@@ -1,0 +1,48 @@
+{
+  "modelId": "google-research/maxim",
+  "owner": "google-research",
+  "name": "maxim",
+  "version": "494ca4d578293b4b93945115601b6a38190519da18467556ca223d219c3af9f9",
+  "description": "Multi-Axis MLP for Image Processing",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "model": {
+        "description": "Choose a model.",
+        "enum": [
+          "Image Denoising",
+          "Image Deblurring (GoPro)",
+          "Image Deblurring (REDS)",
+          "Image Deblurring (RealBlur_R)",
+          "Image Deblurring (RealBlur_J)",
+          "Image Deraining (Rain streak)",
+          "Image Deraining (Rain drop)",
+          "Image Dehazing (Indoor)",
+          "Image Dehazing (Outdoor)",
+          "Image Enhancement (Low-light)",
+          "Image Enhancement (Retouching)"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "model",
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -8,28 +8,37 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Dialog, IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { getShortcutTooltip } from "../config/shortcuts";
-import { CopyToClipboardButton } from "../components/common/CopyToClipboardButton";
+import { CopyButton, Dialog } from "../components/ui_primitives";
+import "../styles/markdown/github-markdown.css";
+import "../styles/markdown/nodetool-markdown.css";
 
 interface MarkdownRendererProps {
   content: string;
   isReadme?: boolean;
+  fillContainer?: boolean;
 }
 
 const styles = (
   theme: Theme,
-  opts: { constrainHeight: boolean; isScrollable: boolean; fontSize?: string }
+  opts: {
+    constrainHeight: boolean;
+    isScrollable: boolean;
+    fontSize?: string;
+    fillContainer?: boolean;
+  }
 ) =>
   css({
     "&": {
       cursor: "text",
       userSelect: "text",
       width: "100%",
-      height: "fit-content",
+      height: opts.fillContainer ? "100%" : "fit-content",
+      minHeight: opts.fillContainer ? 0 : undefined,
       padding: "0.25em 0.5em 2em 0.5em",
       fontSize: opts.fontSize ?? theme.vars.fontSizeBig,
       fontWeight: "300",
@@ -65,7 +74,8 @@ const styles = (
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
-  isReadme
+  isReadme,
+  fillContainer = false
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -78,6 +88,42 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   const handleClose = useCallback(() => {
     setSelectedNodeType(null);
   }, []);
+
+  const handleEnterFullscreen = useCallback(() => {
+    setIsFullscreen(true);
+  }, []);
+
+  const handleExitFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
+  const handleFocusCapture = useCallback((_e: React.FocusEvent<HTMLDivElement>) => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlurCapture = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
+    const next = e.relatedTarget as Node | null;
+    if (!next || !e.currentTarget.contains(next)) {
+      setIsFocused(false);
+    }
+  }, []);
+
+  const handleWheelCapture = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (isFocused) {
+      e.stopPropagation();
+    }
+  }, [isFocused]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
+  const handlePointerDown = useCallback((e: React.PointerEvent) => e.stopPropagation(), []);
 
   const isExternalLink = (url: string) => {
     return /^https?:\/\//.test(url);
@@ -113,38 +159,29 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           isFocused ? "nowheel" : ""
         }`}
         css={styles(theme, {
-          constrainHeight: true,
+          constrainHeight: !fillContainer,
           isScrollable: isFocused,
-          fontSize: baseFontSize
+          fontSize: baseFontSize,
+          fillContainer
         })}
         ref={containerRef}
         tabIndex={0}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onFocusCapture={() => setIsFocused(true)}
-        onBlurCapture={(e) => {
-          const next = e.relatedTarget as Node | null;
-          if (!next || !e.currentTarget.contains(next)) {
-            setIsFocused(false);
-          }
-        }}
-        onWheelCapture={(e) => {
-          // Only capture wheel when focused; otherwise let ReactFlow zoom/pan.
-          if (isFocused) {
-            e.stopPropagation();
-          }
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onFocusCapture={handleFocusCapture}
+        onBlurCapture={handleBlurCapture}
+        onWheelCapture={handleWheelCapture}
+        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
       >
         {(isHovered || Boolean(isReadme)) && (
           <div className="markdown-output-actions">
-            <CopyToClipboardButton copyValue={content ?? ""} size="small" />
+            <CopyButton value={content ?? ""} buttonSize="small" />
             <Tooltip title="Enter fullscreen" enterDelay={TOOLTIP_ENTER_DELAY}>
               <IconButton
                 className="fullscreen-button"
                 aria-label="Enter fullscreen"
-                onClick={() => setIsFullscreen(true)}
+                onClick={handleEnterFullscreen}
                 size="small"
                 sx={{
                   bgcolor: (t) => t.palette.action.hover,
@@ -156,7 +193,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             </Tooltip>
           </div>
         )}
-        <Box>
+        <Box sx={fillContainer ? { height: "100%" } : undefined}>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={rehypePlugins}
@@ -178,7 +215,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       <Dialog
         fullScreen
         open={isFullscreen}
-        onClose={() => setIsFullscreen(false)}
+        onClose={handleExitFullscreen}
         slotProps={{
           paper: {
             sx: {
@@ -206,9 +243,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           }}
         >
           <div className="markdown-output-actions">
-            <CopyToClipboardButton
-              copyValue={content ?? ""}
-              size="small"
+            <CopyButton
+              value={content ?? ""}
+              buttonSize="small"
               tooltipPlacement="bottom"
             />
             <Tooltip
@@ -218,7 +255,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               <IconButton
                 className="fullscreen-exit-button"
                 aria-label="Exit fullscreen"
-                onClick={() => setIsFullscreen(false)}
+                onClick={handleExitFullscreen}
                 size="small"
                 sx={{
                   bgcolor: (t) => t.palette.action.hover,

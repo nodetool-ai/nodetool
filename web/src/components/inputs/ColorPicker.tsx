@@ -2,11 +2,11 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useState } from "react";
-import { MuiColorInput } from "mui-color-input";
+import React, { useCallback, useState, useRef } from "react";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { ColorPickerModal } from "../color_picker";
 
 const PALETTE_BUTTON_SIZE = 28;
 
@@ -14,17 +14,23 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
-      width: "100%",
-      height: "100%"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
     },
     ".open-colors-button": {
       borderRadius: "50%",
       backgroundColor: "transparent",
-      border: `2px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
+      border: `1px solid ${theme.vars.palette.grey[600] || "rgba(100, 100, 100, 0.75)"}`,
       padding: 0,
       minWidth: "unset !important",
       minHeight: "unset !important",
-      outline: `1px solid ${(theme as any).vars?.palette?.grey?.[0] || "white"}`
+      boxShadow: `0 0 0 1px ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.5)"}`,
+      transition: "all 0.15s ease",
+      "&:hover": {
+        transform: "scale(1.1)",
+        boxShadow: `0 0 0 2px ${theme.vars.palette.grey[800] || "rgba(0, 0, 0, 0.7)"}`
+      }
     }
   });
 
@@ -39,11 +45,17 @@ const colorMatrixStyle = (theme: Theme) =>
     maxWidth: "300px",
     ".pick-color-button": {
       borderRadius: "50%",
-      border: `1px solid ${(theme as any).vars?.palette?.grey?.[900] || "rgba(0, 0, 0, 0.75)"}`,
+      border: `1px solid ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.75)"}`,
       minWidth: "unset",
       minHeight: "unset",
       width: PALETTE_BUTTON_SIZE,
       height: PALETTE_BUTTON_SIZE
+    },
+    ".custom-button": {
+      width: "100%",
+      marginTop: "8px",
+      fontSize: "11px",
+      textTransform: "none"
     }
   });
 
@@ -61,18 +73,20 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   onColorChange,
   label,
   showCustom = false,
-  isNodeProperty = false,
   buttonSize = 20
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const [showModal, setShowModal] = useState(false);
+  const currentColorRef = useRef(color || "#ffffff");
 
-  const handleClose = () => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
   const open = Boolean(anchorEl);
   const id = open ? "color-picker-popover" : undefined;
@@ -82,7 +96,43 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       onColorChange(newColor);
       handleClose();
     },
+    [onColorChange, handleClose]
+  );
+
+  const handleOpenModal = useCallback(() => {
+    currentColorRef.current = color || "#ffffff";
+    setShowModal(true);
+    handleClose();
+  }, [color, handleClose]);
+
+  const handleModalChange = useCallback(
+    (newColor: string, alpha: number) => {
+      // Convert to hex with alpha if needed
+      if (alpha < 1) {
+        const alphaHex = Math.round(alpha * 255)
+          .toString(16)
+          .padStart(2, "0");
+        onColorChange(newColor + alphaHex);
+      } else {
+        onColorChange(newColor);
+      }
+    },
     [onColorChange]
+  );
+
+  const handleModalClose = useCallback(() => {
+    setShowModal(false);
+  }, []);
+
+  // Handle color cell click using data attribute to avoid creating new functions in map
+  const handleColorCellButtonClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const button = event.currentTarget;
+      const isNullColor = button.getAttribute('data-color-null') === 'true';
+      const cellColor: string | null = isNullColor ? null : button.getAttribute('data-color');
+      handleColorCellClick(cellColor);
+    },
+    [handleColorCellClick]
   );
 
   return (
@@ -120,10 +170,13 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         }}
       >
         <div css={colorMatrixStyle(theme)}>
-          {colorPickerColors.map((cellColor, index) => (
+          {colorPickerColors.map((cellColor) => (
             <Button
-              key={index}
+              key={String(cellColor)}
               className="pick-color-button"
+              {...(cellColor === null
+                ? { 'data-color-null': 'true' }
+                : { 'data-color': cellColor })}
               sx={{
                 borderRadius: "50%",
                 cursor: "pointer",
@@ -135,23 +188,33 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
-              onClick={() => handleColorCellClick(cellColor)}
+              onClick={handleColorCellButtonClick}
             />
           ))}
+          {showCustom && (
+            <Button
+              className="custom-button"
+              variant="outlined"
+              size="small"
+              onClick={handleOpenModal}
+            >
+              Custom Color...
+            </Button>
+          )}
         </div>
-        {showCustom && (
-          <div className="custom-selection">
-            <div className="custom-selection-title">CUSTOM</div>
-            <MuiColorInput
-              format="hex"
-              value={color || ""}
-              onChange={(newColor) => {
-                onColorChange(newColor);
-              }}
-            />
-          </div>
-        )}
       </Popover>
+
+      {/* Professional Color Picker Modal */}
+      {showModal && (
+        <ColorPickerModal
+          color={currentColorRef.current}
+          alpha={1}
+          onChange={handleModalChange}
+          onClose={handleModalClose}
+          showGradient={true}
+          showContrast={true}
+        />
+      )}
     </div>
   );
 };

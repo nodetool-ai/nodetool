@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Typography, Button } from "@mui/material";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
@@ -12,8 +12,12 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
     const missingAPIKey = useApiKeyValidation(nodeNamespace);
 
+    const handleOpenSettings = useCallback(() => {
+      setMenuOpen(true, 1);
+    }, [setMenuOpen]);
+
     const content = useMemo(() => {
-      if (!missingAPIKey) {return null;}
+      if (!missingAPIKey || typeof missingAPIKey !== "string") {return null;}
 
       return (
         <>
@@ -28,14 +32,14 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               marginBottom: "0"
             }}
           >
-            {missingAPIKey} is missing!
+            {String(missingAPIKey)} is missing!
           </Typography>
           <Button
             className="api-key-button"
             variant="contained"
             color="primary"
             size="small"
-            onClick={() => setMenuOpen(true, 1)}
+            onClick={handleOpenSettings}
             sx={{
               margin: "0 1em",
               padding: ".2em 0 0",
@@ -51,7 +55,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
           </Button>
         </>
       );
-    }, [missingAPIKey, setMenuOpen]);
+    }, [missingAPIKey, handleOpenSettings]);
 
     return content;
   }

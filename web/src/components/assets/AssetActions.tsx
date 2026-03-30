@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, memo, useMemo } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -28,14 +28,13 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
-import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import FileUploadButton from "../buttons/FileUploadButton";
+import { UploadButton } from "../ui_primitives";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -234,10 +233,8 @@ const AssetActions = ({
 }: AssetActionsProps) => {
   const theme = useTheme();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
-  const _parentFolder = useAssetGridStore((state) => state.parentFolder);
   const { refetchAssetsAndFolders, isLoading } =
     useAssets();
-  const _currentUser = useAuth((state) => state.user);
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =
@@ -259,21 +256,25 @@ const AssetActions = ({
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleOrderChange = (_: any, newOrder: any) => {
+  const handleOrderChange = useCallback((_event: unknown, newOrder: "name" | "date" | "size" | null) => {
     if (newOrder !== null) {
       setAssetsOrder(newOrder);
     }
-  };
+  }, [setAssetsOrder]);
 
-  const handleSizeFilterChange = (_: any, newSizeFilter: SizeFilterKey) => {
+  const handleSizeFilterChange = useCallback((_event: unknown, newSizeFilter: SizeFilterKey | null) => {
     if (newSizeFilter !== null) {
       setSizeFilter(newSizeFilter);
     }
-  };
+  }, [setSizeFilter]);
 
-  const handleViewModeToggle = () => {
+  const handleViewModeToggle = useCallback(() => {
     setViewMode(viewMode === "grid" ? "list" : "grid");
-  };
+  }, [viewMode, setViewMode]);
+
+  const handleCloseCreateFolder = useCallback(() => {
+    setCreateFolderAnchor(null);
+  }, []);
 
   useEffect(() => {
     if (createFolderAnchor) {
@@ -286,14 +287,26 @@ const AssetActions = ({
     }
   }, [createFolderAnchor]);
 
-  const handleChange = (event: Event, value: number | number[]) => {
+  const handleChange = useCallback((event: Event, value: number | number[]) => {
     if (Array.isArray(value)) {
       setAssetItemSize(value[0] as number);
     } else {
       setAssetItemSize(value as number);
     }
-  };
-  const handleCreateFolder = () => {
+  }, [setAssetItemSize]);
+
+  const loadingIndicatorStyle = useMemo(() => ({
+    position: "absolute" as const,
+    right: "4em",
+    top: "1.4em",
+    left: "unset",
+    "& span": {
+      height: "1em !important",
+      width: "1em !important"
+    }
+  }), []);
+
+  const handleCreateFolder = useCallback(() => {
     setCreateFolderAnchor(null);
     createFolder(currentFolder?.id || "", createFolderName).then(() => {
       addNotification({
@@ -303,12 +316,37 @@ const AssetActions = ({
       setCreateFolderAnchor(null);
       refetchAssetsAndFolders();
     });
-  };
+  }, [createFolder, currentFolder?.id, createFolderName, addNotification, refetchAssetsAndFolders]);
+
+  const handleOpenCreateFolder = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    setCreateFolderAnchor(e.currentTarget);
+  }, []);
+
+  const handleSortChange = useCallback((e: unknown) => {
+    handleOrderChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as "name" | "date" | "size");
+  }, [handleOrderChange]);
+
+  const handleSizeFilter = useCallback((e: unknown) => {
+    handleSizeFilterChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as SizeFilterKey);
+  }, [handleSizeFilterChange]);
+
+  const handleFolderNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter") {
+      handleCreateFolder();
+    }
+  }, [handleCreateFolder]);
+
+  const handleFolderNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setCreateFolderName(e.target.value);
+  }, []);
+
   return (
     <div className="asset-actions" css={styles(theme)}>
-      <FileUploadButton
-        onFileChange={(files) => onUploadFiles?.(files)}
-        compact
+      <UploadButton
+        onFileSelect={(files) => onUploadFiles?.(files)}
+        iconVariant="file"
+        tooltip="Upload files"
+        multiple
       />
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
         <Tooltip
@@ -317,7 +355,7 @@ const AssetActions = ({
           disableInteractive
         >
           <Button
-            onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
+            onClick={handleOpenCreateFolder}
             tabIndex={-1}
           >
             <CreateNewFolderIcon />
@@ -354,16 +392,7 @@ const AssetActions = ({
         {isLoading && (
           <Box
             className={`loading-indicator ${isLoading ? "loading" : ""}`}
-            sx={{
-              position: "absolute",
-              right: "4em",
-              top: "1.4em",
-              left: "unset",
-              "& span": {
-                height: "1em !important",
-                width: "1em !important"
-              }
-            }}
+            sx={loadingIndicatorStyle}
           >
             <CircularProgress />
           </Box>
@@ -380,7 +409,7 @@ const AssetActions = ({
           variant="standard"
           className="sort-assets"
           value={settings.assetsOrder}
-          onChange={(e) => handleOrderChange(null, e.target.value)}
+          onChange={handleSortChange}
           displayEmpty
           inputProps={{ "aria-label": "Sort assets" }}
           tabIndex={-1}
@@ -406,9 +435,7 @@ const AssetActions = ({
               minWidth: "80px"
             }
           }}
-          onChange={(e) =>
-            handleSizeFilterChange(null, e.target.value as SizeFilterKey)
-          }
+          onChange={handleSizeFilter}
           displayEmpty
           inputProps={{ "aria-label": "Filter by size" }}
           tabIndex={-1}
@@ -440,11 +467,10 @@ const AssetActions = ({
       )}
       <Popover
         css={dialogStyles(theme)}
-        style={{ minWidth: "100%", minHeight: "100%" }}
         className="dialog"
         open={Boolean(createFolderAnchor)}
         anchorEl={createFolderAnchor}
-        onClose={() => setCreateFolderAnchor(null)}
+        onClose={handleCloseCreateFolder}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -460,12 +486,8 @@ const AssetActions = ({
               autoFocus
               autoComplete="off"
               id="name"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleCreateFolder();
-                }
-              }}
-              onChange={(e) => setCreateFolderName(e.target.value)}
+              onKeyDown={handleFolderNameKeyDown}
+              onChange={handleFolderNameChange}
               fullWidth
             />
           </div>
@@ -473,7 +495,7 @@ const AssetActions = ({
         <DialogActions className="dialog-actions">
           <Button
             className="button-cancel"
-            onClick={() => setCreateFolderAnchor(null)}
+            onClick={handleCloseCreateFolder}
           >
             Cancel
           </Button>
@@ -486,4 +508,6 @@ const AssetActions = ({
   );
 };
 
-export default AssetActions;
+AssetActions.displayName = "AssetActions";
+
+export default memo(AssetActions);

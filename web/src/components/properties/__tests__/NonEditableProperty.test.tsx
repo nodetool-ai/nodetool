@@ -1,16 +1,8 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import NonEditableProperty from "../NonEditableProperty";
-
-jest.mock("../../themes/ThemeNodetool", () => ({
-  __esModule: true,
-  default: {
-    palette: {},
-    fontSizeNormal: "",
-    fontFamily1: "",
-    fontSizeSmall: ""
-  }
-}));
 
 const defaultProps = {
   property: {
@@ -26,7 +18,11 @@ const defaultProps = {
 
 describe("NonEditableProperty", () => {
   it("renders only the label", () => {
-    render(<NonEditableProperty {...defaultProps} />);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <NonEditableProperty {...defaultProps} />
+      </ThemeProvider>
+    );
     expect(screen.getByText("Readonly")).toBeInTheDocument();
   });
 });

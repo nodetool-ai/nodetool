@@ -1,11 +1,14 @@
 import { create } from "zustand";
 import { Asset } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
+import { UploadSource } from "../utils/imageUploadValidation";
 
-type UploadFile = {
+type UploadFileInput = {
+  id?: string;
   file: File;
   workflow_id?: string;
   parent_id?: string;
+  source?: UploadSource;
   onCompleted?: (asset: Asset) => void;
   onFailed?: (error: string) => void;
   error?: string;
@@ -13,13 +16,15 @@ type UploadFile = {
   status?: "uploading" | "completed" | "error";
 };
 
+type UploadFile = Required<Pick<UploadFileInput, 'id'>> & Omit<UploadFileInput, 'id'>;
+
 type UploadState = {
   files: UploadFile[];
   maxConcurrentUploads: number;
   isUploading: boolean;
   overallProgress: number;
   completed: number;
-  uploadAsset: (file: UploadFile) => void;
+  uploadAsset: (file: UploadFileInput) => void;
   updateStatus: (
     index: number,
     progress: number,
@@ -36,10 +41,14 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
   overallProgress: 0,
   completed: 0,
 
-  uploadAsset: (file: UploadFile) => {
+  uploadAsset: (file: UploadFileInput) => {
     const { handleUpload, files } = get();
+    const fileWithId: UploadFile = {
+      ...file,
+      id: file.id || crypto.randomUUID(),
+    };
     set({
-      files: [...files, file],
+      files: [...files, fileWithId],
     });
     handleUpload();
   },
@@ -93,7 +102,8 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
       (progressEvent) => {
         const progress = (progressEvent.loaded / progressEvent.total) * 100;
         get().updateStatus(nextUploadIndex, progress, "uploading");
-      }
+      },
+      uploadFile.source
     )
       .then((asset: Asset) => {
         get().updateStatus(nextUploadIndex, 100, "completed");

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, memo } from "react";
 import {
   Menu,
   MenuItem,
@@ -32,12 +32,21 @@ const ConnectionMatchMenu: React.FC = () => {
       closeContextMenu: state.closeContextMenu
     }));
 
+  const data = payload as ConnectionMatchMenuPayload | undefined;
+  const options = data?.options ?? [];
+
+  const handleSelectOption = useCallback((option: ConnectionMatchOption) => {
+    data?.onSelect?.(option);
+    closeContextMenu();
+  }, [data, closeContextMenu]);
+
+  const createSelectOptionHandler = useCallback((option: ConnectionMatchOption) => {
+    return () => handleSelectOption(option);
+  }, [handleSelectOption]);
+
   if (openMenuType !== "connection-match-menu" || !menuPosition) {
     return null;
   }
-
-  const data = payload as ConnectionMatchMenuPayload | undefined;
-  const options = data?.options ?? [];
 
   if (!options.length) {
     closeContextMenu();
@@ -72,10 +81,7 @@ const ConnectionMatchMenu: React.FC = () => {
             }
           }}
           key={option.id}
-          onClick={() => {
-            data?.onSelect?.(option);
-            closeContextMenu();
-          }}
+          onClick={createSelectOptionHandler(option)}
         >
           <ListItemText
             primary={
@@ -118,4 +124,4 @@ const ConnectionMatchMenu: React.FC = () => {
   );
 };
 
-export default ConnectionMatchMenu;
+export default memo(ConnectionMatchMenu);

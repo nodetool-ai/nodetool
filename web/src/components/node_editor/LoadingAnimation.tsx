@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import "../../styles/loading_animation.css";
 import isEqual from "lodash/isEqual";
 

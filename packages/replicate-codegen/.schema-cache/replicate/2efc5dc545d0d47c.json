@@ -1,0 +1,45 @@
+{
+  "modelId": "replicate/all-mpnet-base-v2",
+  "owner": "replicate",
+  "name": "all-mpnet-base-v2",
+  "version": "b6b7585c9640cd7a9572c6e129c9549d79c9c31f0d3fdce7baac7c67ca38f305",
+  "description": "This is a language model that can be used to obtain document embeddings suitable for downstream tasks like semantic search and clustering.",
+  "inputSchema": {
+    "properties": {
+      "text": {
+        "description": "A single string to encode.",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      },
+      "text_batch": {
+        "description": "A JSON-formatted list of strings to encode.",
+        "title": "Text Batch",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "properties": {
+        "embedding": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Embedding",
+          "type": "array"
+        }
+      },
+      "required": [
+        "embedding"
+      ],
+      "title": "Embedding",
+      "type": "object"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

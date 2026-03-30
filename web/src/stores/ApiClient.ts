@@ -102,10 +102,10 @@ export const setForceLocalhost = (force: boolean | null): void => {
 
 // Expose production status globally for potential debugging or conditional logic
 if (typeof window !== "undefined") {
-  (window as any)["isProduction"] = isProduction;
-  (window as any)["isLocalhost"] = isLocalhost;
-  (window as any)["isElectron"] = isElectron;
-  (window as any)["setForceLocalhost"] = setForceLocalhost;
+  window.isProduction = isProduction;
+  window.isLocalhost = isLocalhost;
+  window.isElectron = isElectron;
+  window.setForceLocalhost = setForceLocalhost;
 }
 
 /**

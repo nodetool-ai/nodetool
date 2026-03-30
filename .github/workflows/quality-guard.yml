@@ -1,0 +1,160 @@
+name: Quality Guard
+
+on:
+  workflow_call:
+    inputs:
+      check-before:
+        description: 'Run quality checks before agent work'
+        required: false
+        type: boolean
+        default: true
+      check-after:
+        description: 'Run quality checks after agent work'
+        required: false
+        type: boolean
+        default: true
+      auto-fix:
+        description: 'Auto-fix lint issues after agent runs'
+        required: false
+        type: boolean
+        default: true
+      fail-on-errors:
+        description: 'Fail workflow if quality checks fail'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  pre-check:
+    name: Pre-Flight Quality Check
+    if: ${{ inputs.check-before }}
+    runs-on: ubuntu-latest
+    outputs:
+      should-continue: ${{ steps.decision.outputs.should-continue }}
+      has-errors: ${{ steps.check.outputs.has-errors }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Run quality checks
+        id: check
+        continue-on-error: true
+        run: |
+          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
+          FAIL=0
+
+          if make typecheck 2>&1 | tee typecheck.log; then
+            echo "✅ TypeScript: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            FAIL=1
+            echo "❌ TypeScript: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint 2>&1 | tee lint.log; then
+            echo "✅ ESLint: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            FAIL=1
+            echo "⚠️ ESLint: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make test 2>&1 | tee test.log; then
+            echo "✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            FAIL=1
+            echo "❌ Tests: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ $FAIL -ne 0 ]; then
+            echo "has-errors=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "has-errors=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Decision
+        id: decision
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.has-errors }}" == "true" ]; then
+            echo "should-continue=false" >> $GITHUB_OUTPUT
+          else
+            echo "should-continue=true" >> $GITHUB_OUTPUT
+          fi
+
+  post-check:
+    name: Post-Change Quality Check
+    if: ${{ inputs.check-after && !cancelled() }}
+    runs-on: ubuntu-latest
+    needs: [pre-check]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Auto-fix lint issues
+        if: ${{ inputs.auto-fix }}
+        run: make lint-fix || true
+
+      - name: Commit auto-fixes
+        if: ${{ inputs.auto-fix }}
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: auto-fix lint issues [skip ci]"
+            git push
+          fi
+
+      - name: Final quality checks
+        run: |
+          echo "## Final Quality Check" >> $GITHUB_STEP_SUMMARY
+          FAIL=0
+
+          if make typecheck; then
+            echo "✅ TypeScript: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            FAIL=1; echo "❌ TypeScript: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint; then
+            echo "✅ ESLint: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            FAIL=1; echo "❌ ESLint: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make test; then
+            echo "✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            FAIL=1; echo "❌ Tests: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ $FAIL -ne 0 ]; then
+            echo "❌ Quality checks failed after changes" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

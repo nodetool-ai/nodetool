@@ -4,28 +4,23 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   Tooltip,
   IconButton,
   Grid,
-  Box,
   Typography
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { Dialog, FlexColumn } from "../ui_primitives";
 import ModelCard from "./model_card/ModelCard";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 
 const styles = (_theme: Theme) =>
   css({
-    ".model-content": {
-      display: "flex",
-      flexDirection: "column"
-    },
     ".models-grid": {
       maxHeight: "1000px",
       overflowY: "auto",
@@ -33,11 +28,6 @@ const styles = (_theme: Theme) =>
       paddingRight: "1em",
       flexGrow: 1,
       minHeight: 0
-    },
-    ".model-container": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "1rem"
     }
   });
 
@@ -61,12 +51,11 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
 }) => {
   const theme = useTheme();
   const { startDownload, downloads } = useModelDownloadStore(
-    (state) => ({
+    useShallow((state) => ({
       startDownload: state.startDownload,
       openDialog: state.openDialog,
       downloads: state.downloads
-    }),
-    shallow
+    }))
   );
 
   return (
@@ -105,70 +94,63 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
         </Tooltip>
       </DialogTitle>
 
-      <DialogContent className="model-content" sx={{ paddingBottom: "3em" }}>
-        <Box className="model-desc" sx={{ mb: 3 }}>
-          <Typography
-            className="model-desc-title"
-            variant="body1"
-            sx={{ mb: 1 }}
-          >
-            To run this workflow, the following AI models need to be downloaded
-            to your local machine:
-          </Typography>
-          <Typography
-            className="model-desc-details"
-            variant="body2"
-            color="text.secondary"
-          >
-            • Models will be stored locally in the Hugging Face cache
-            <br />
-            • Download times may vary based on model size and internet speed
-            <br />• You can close this dialog and return later - downloads will
-            continue in the background
-          </Typography>
-        </Box>
+      <DialogContent sx={{ paddingBottom: "3em" }}>
+        <FlexColumn gap={3} className="model-content">
+          <FlexColumn gap={1} className="model-desc">
+            <Typography variant="body1">
+              To run this workflow, the following AI models need to be downloaded
+              to your local machine:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              • Models will be stored locally in the Hugging Face cache
+              <br />
+              • Download times may vary based on model size and internet speed
+              <br />• You can close this dialog and return later - downloads will
+              continue in the background
+            </Typography>
+          </FlexColumn>
 
-        <Grid container spacing={2} className="model-grid models-grid">
-          {repos.map((repo, index) => {
-            return (
-              <Grid
-                sx={{
-                  gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
-                }}
-                key={index}
-                className="model-item"
-              >
-                <Box className="model-container">
-                  {!downloads[repo] && (
-                  <ModelCard
-                      model={{
-                        id: repo,
-                        name: repo,
-                        repo_id: repo,
-                        type: "hf.",
-                        downloaded: false
-                      }}
-                      onDownload={() => {
-                        startDownload(repo, "hf.model");
-                      }}
-                    />
-                  )}
-                  {downloads[repo] && <DownloadProgress name={repo} />}
-                </Box>
-              </Grid>
-            );
-          })}
-          {repoPaths.map((repoPath, index) => {
-            const modelId = `${repoPath.repo_id}/${repoPath.path}`;
-            return (
-              <Grid
-                sx={{
-                  gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
-                }}
-                key={index}
-                className="model-item"
-              >
-                <Box className="model-container">
+          <Grid container spacing={2} className="model-grid models-grid">
+            {repos.map((repo) => {
+              return (
+                <Grid
+                  sx={{
+                    gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
+                  }}
+                  key={repo}
+                  className="model-item"
+                >
+                  <FlexColumn gap={4} className="model-container">
+                    {!downloads[repo] && (
+                    <ModelCard
+                        model={{
+                          id: repo,
+                          name: repo,
+                          repo_id: repo,
+                          type: "hf.",
+                          downloaded: false
+                        }}
+                        onDownload={() => {
+                          startDownload(repo, "hf.model");
+                        }}
+                      />
+                    )}
+                    {downloads[repo] && <DownloadProgress name={repo} />}
+                  </FlexColumn>
+                </Grid>
+              );
+            })}
+            {repoPaths.map((repoPath) => {
+              const modelId = `${repoPath.repo_id}/${repoPath.path}`;
+              return (
+                <Grid
+                  sx={{
+                    gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
+                  }}
+                  key={modelId}
+                  className="model-item"
+                >
+                  <FlexColumn gap={4} className="model-container">
                   {!downloads[modelId] && (
                   <ModelCard
                       model={{
@@ -189,12 +171,13 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
                     />
                   )}
                   {downloads[modelId] && <DownloadProgress name={modelId} />}
-                </Box>
+                </FlexColumn>
               </Grid>
             );
           })}
         </Grid>
-      </DialogContent>
+      </FlexColumn>
+    </DialogContent>
     </Dialog>
   );
 };

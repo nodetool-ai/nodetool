@@ -1,10 +1,24 @@
+/**
+ * StatusStore tracks execution status values for nodes.
+ *
+ * Responsibilities:
+ * - Store arbitrary status values for workflow nodes
+ * - Provide thread-safe status updates and retrieval
+ * - Clear all statuses when a workflow completes
+ *
+ * Status values can be strings, objects, or null/undefined.
+ * Used to track node state during workflow execution.
+ */
+
 import { create } from "zustand";
 
+type StatusValue = string | Record<string, unknown> | null | undefined;
+
 type StatusStore = {
-  statuses: Record<string, string>;
-  setStatus: (workflowId: string, nodeId: string, status: any) => void;
-  getStatus: (workflowId: string, nodeId: string) => any;
-  clearStatuses: (workflowId: string) => void;
+  statuses: Record<string, StatusValue>;
+  setStatus: (workflowId: string, nodeId: string, status: StatusValue) => void;
+  getStatus: (workflowId: string, nodeId: string) => StatusValue | undefined;
+  clearStatuses: (workflowId: string, nodeIds?: Set<string>) => void;
 };
 
 export const hashKey = (workflowId: string, nodeId: string) =>
@@ -15,17 +29,38 @@ const useStatusStore = create<StatusStore>((set, get) => ({
 
   /**
    * Clear the statuses for a workflow.
+   * If nodeIds is provided, only clears statuses for those specific nodes.
    *
    * @param workflowId The id of the workflow.
+   * @param nodeIds Optional set of node IDs to clear. If omitted, clears all nodes in the workflow.
    */
-  clearStatuses: (workflowId: string) => {
+  clearStatuses: (workflowId: string, nodeIds?: Set<string>) => {
     const statuses = get().statuses;
-    for (const key in statuses) {
-      if (key.startsWith(workflowId)) {
-        delete statuses[key];
+    const newStatuses = { ...statuses };
+    let changed = false;
+
+    if (nodeIds) {
+      const keysToRemove = new Set(
+        Array.from(nodeIds).map((id) => hashKey(workflowId, id))
+      );
+      for (const key in newStatuses) {
+        if (keysToRemove.has(key)) {
+          delete newStatuses[key];
+          changed = true;
+        }
+      }
+    } else {
+      for (const key in newStatuses) {
+        if (key.startsWith(workflowId)) {
+          delete newStatuses[key];
+          changed = true;
+        }
       }
     }
-    set({ statuses });
+
+    if (changed) {
+      set({ statuses: newStatuses });
+    }
   },
 
   /**
@@ -36,7 +71,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    * @param nodeId The id of the node.
    * @param status The status to set.
    */
-  setStatus: (workflowId: string, nodeId: string, status: any) => {
+  setStatus: (workflowId: string, nodeId: string, status: StatusValue) => {
     const key = hashKey(workflowId, nodeId);
     set({ statuses: { ...get().statuses, [key]: status } });
   },
@@ -48,7 +83,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    * @param nodeId The id of the node.
    * @returns The status for the node.
    */
-  getStatus: (workflowId: string, nodeId: string) => {
+  getStatus: (workflowId: string, nodeId: string): StatusValue | undefined => {
     const statuses = get().statuses;
     const key = hashKey(workflowId, nodeId);
     return statuses[key];

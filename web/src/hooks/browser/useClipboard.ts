@@ -1,26 +1,24 @@
 import { useCallback, useEffect, useMemo } from "react";
 import log from "loglevel";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import { copyAssetToClipboard } from "../../utils/clipboardUtils";
+import type {} from "../../window.d";
 
 export const useClipboard = () => {
-  const {
-    clipboardData,
-    setClipboardData,
-    isClipboardValid,
-    setIsClipboardValid
-  } = useSessionStateStore((state) => ({
-    clipboardData: state.clipboardData,
-    setClipboardData: state.setClipboardData,
-    isClipboardValid: state.isClipboardValid,
-    setIsClipboardValid: state.setIsClipboardValid
-  }));
+  const clipboardData = useSessionStateStore((state) => state.clipboardData);
+  const setClipboardData = useSessionStateStore((state) => state.setClipboardData);
+  const isClipboardValid = useSessionStateStore((state) => state.isClipboardValid);
+  const setIsClipboardValid = useSessionStateStore((state) => state.setIsClipboardValid);
   const isFirefox = useMemo(
     () => navigator.userAgent.toLowerCase().includes("firefox"),
     []
   );
 
   // Check if Electron API is available
-  const hasElectronApi = useMemo(() => typeof window !== "undefined" && !!window.api, []);
+  const hasElectronApi = useMemo(
+    () => typeof window !== "undefined" && !!window.api,
+    []
+  );
 
   useEffect(() => {
     if (isFirefox) {
@@ -39,7 +37,7 @@ export const useClipboard = () => {
         Object.prototype.hasOwnProperty.call(parsedData, "edges") &&
         Array.isArray(parsedData.edges);
       return hasNodes && hasValidEdges;
-    } catch (error) {
+    } catch {
       return false;
     }
   }, []);
@@ -50,19 +48,23 @@ export const useClipboard = () => {
   }> => {
     log.info("Attempting to read from clipboard.");
     let data = "";
-    
+
     if (isFirefox && clipboardData) {
       data = clipboardData;
-    } else if (hasElectronApi && window.api?.clipboardReadText) {
-      // Prefer Electron API when available
+    } else if (hasElectronApi && window.api?.clipboard?.readText) {
+      // Prefer new Electron API when available
       try {
-        data = await window.api.clipboardReadText();
-        log.info("Clipboard read via Electron API.");
-      } catch (e) {
-        log.warn("Electron clipboard read failed, falling back to navigator.");
+        data = await window.api.clipboard.readText();
+        log.info("Clipboard read via Electron clipboard API.");
+      } catch {
         if (document.hasFocus() && navigator.clipboard) {
           data = await navigator.clipboard.readText();
         }
+      }
+    } else if (hasElectronApi && !window.api?.clipboard?.readText) {
+      // Fallback to web API if Electron API exists but readText doesn't (should be rare/impossible with types)
+      if (document.hasFocus() && navigator.clipboard) {
+        data = await navigator.clipboard.readText();
       }
     } else {
       if (document.hasFocus() && navigator.clipboard) {
@@ -70,7 +72,7 @@ export const useClipboard = () => {
         log.info("Clipboard read successfully.");
       }
     }
-    
+
     const isValid = validateData(data);
     setIsClipboardValid(isValid);
     setClipboardData(isValid ? data : null);
@@ -103,19 +105,26 @@ export const useClipboard = () => {
           setClipboardData(outputData);
         }
         setClipboardData(outputData);
-        
-        // Prefer Electron API when available
-        if (hasElectronApi && window.api?.clipboardWriteText) {
-          window.api.clipboardWriteText(outputData);
-          log.info("Clipboard written via Electron API.");
+
+        // Prefer new Electron API when available
+        if (window.api?.clipboard?.writeText) {
+          await window.api.clipboard.writeText(outputData);
+          log.info("Clipboard written via Electron clipboard API.");
         } else {
           await navigator.clipboard.writeText(outputData);
           log.info("Clipboard written via navigator API.");
         }
       }
     },
-    [hasElectronApi, isFirefox, setClipboardData, setIsClipboardValid, validateData]
+    [isFirefox, setClipboardData, setIsClipboardValid, validateData]
   );
 
-  return { clipboardData, readClipboard, writeClipboard, isClipboardValid };
+  return {
+    clipboardData,
+    readClipboard,
+    writeClipboard,
+    isClipboardValid,
+    // Export utility function for asset-based clipboard operations
+    copyAssetToClipboard
+  };
 };

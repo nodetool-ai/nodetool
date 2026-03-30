@@ -17,6 +17,7 @@ import {
   useASRProviders,
   useVideoProviders
 } from "./useProviders";
+import log from "loglevel";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
@@ -60,7 +61,7 @@ export const useLanguageModelsByProvider = (options?: {
         const { data, error } = await client.GET("/api/models/llm/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -84,12 +85,44 @@ export const useLanguageModelsByProvider = (options?: {
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
 
+  // Track per-provider errors for debugging feedback
+  const providerErrors = useMemo(() => {
+    const errors: Array<{ provider: string; error: unknown }> = [];
+    queries.forEach((q, idx) => {
+      if (q.error && providers[idx]) {
+        errors.push({
+          provider: providers[idx].provider,
+          error: q.error
+        });
+      }
+    });
+    return errors;
+  }, [queries, providers]);
+
+  // Track loading progress
+  const loadingProgress = useMemo(() => {
+    const total = providers.length;
+    const loaded = queries.filter((q) => q.data || q.error).length;
+    const loading = queries.filter((q) => q.isLoading).length;
+    return { total, loaded, loading };
+  }, [providers.length, queries]);
+
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
     error,
-    allowedProviders: options?.allowedProviders
+    providerErrors,
+    loadingProgress,
+    allowedProviders: options?.allowedProviders,
+    refetch
   };
 };
 
@@ -105,17 +138,16 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
       queryKey: ["image-models", provider.provider],
       queryFn: async () => {
         try {
-          // Convert Provider enum to string for API path parameter
-          const providerValue = String(provider.provider);
+          const providerValue = provider.provider;
           const { data, error } = await client.GET("/api/models/image/{provider}", {
             params: {
               path: {
-                provider: providerValue as any
+                provider: providerValue
               }
             }
           });
           if (error) {
-            console.error(`Error fetching image models for provider ${providerValue}:`, error);
+            log.error(`Error fetching image models for provider ${providerValue}:`, error);
             throw error;
           }
           return {
@@ -123,10 +155,10 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
             models: (data || []) as ImageModel[]
           };
         } catch (err) {
-          console.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
+          log.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
           // Return empty array for this provider instead of failing completely
           return {
-            provider: String(provider.provider),
+            provider: provider.provider,
             models: [] as ImageModel[]
           };
         }
@@ -148,16 +180,24 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
   // Filter by supported task if requested. Include models with unknown supported_tasks for compatibility.
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
   }
 
   // Debug logging removed
+
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
 
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -176,7 +216,7 @@ export const useTTSModelsByProvider = () => {
         const { data, error } = await client.GET("/api/models/tts/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -200,11 +240,19 @@ export const useTTSModelsByProvider = () => {
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -223,7 +271,7 @@ export const useASRModelsByProvider = () => {
         const { data, error } = await client.GET("/api/models/asr/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -247,11 +295,19 @@ export const useASRModelsByProvider = () => {
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -270,7 +326,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
         const { data, error } = await client.GET("/api/models/video/{provider}", {
           params: {
             path: {
-              provider: providerValue as any
+              provider: providerValue
             }
           }
         });
@@ -296,14 +352,22 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
 
   if (opts?.task) {
     const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
   }
+
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
 
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -347,12 +411,23 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
   const isLoading = opts?.modelType ? query.isLoading : baseData.isLoading;
   const isFetching = opts?.modelType ? query.isFetching : baseData.isFetching;
   const error = opts?.modelType ? query.error : baseData.error;
+  const refetch = useMemo(
+    () => async () => {
+      if (opts?.modelType) {
+        await query.refetch();
+        return;
+      }
+      await baseData.refetch();
+    },
+    [opts?.modelType, query, baseData]
+  );
 
   return {
     models: models || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -393,6 +468,6 @@ const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
     id: model.id || model.repo_id || "",
     name: model.name || model.repo_id || model.id || "",
     path: model.path || undefined,
-    supported_tasks: pipelineTask ? [pipelineTask as any] : []
+    supported_tasks: pipelineTask ? [pipelineTask] : []
   };
 };

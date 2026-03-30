@@ -1,22 +1,13 @@
+import { z } from "zod";
+import { uiConnectNodesParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
+import { resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_connect_nodes",
   description:
     "Connect two nodes by handles. Requires source/target ids and handles.",
-  hidden: true,
-  parameters: {
-    type: "object",
-    properties: {
-      source_id: { type: "string" },
-      source_handle: { type: "string" },
-      target_id: { type: "string" },
-      target_handle: { type: "string" },
-      workflow_id: optionalWorkflowIdSchema
-    },
-    required: ["source_id", "source_handle", "target_id", "target_handle"]
-  },
+  parameters: z.object(uiConnectNodesParams),
   async execute(
     { source_id, source_handle, target_id, target_handle, workflow_id },
     ctx
@@ -36,9 +27,9 @@ FrontendToolRegistry.register({
       target: target_id,
       sourceHandle: source_handle,
       targetHandle: target_handle
-    } as any;
+    };
 
-    const ok = nodeStore.validateConnection(connection, src as any, tgt as any);
+    const ok = nodeStore.validateConnection(connection, src, tgt);
     if (!ok) {throw new Error("Invalid connection");}
 
     const edgeId = nodeStore.generateEdgeId();
@@ -48,7 +39,7 @@ FrontendToolRegistry.register({
       target: target_id,
       sourceHandle: source_handle,
       targetHandle: target_handle
-    } as any);
+    });
 
     return { ok: true, edge_id: edgeId };
   }

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
-import { ButtonGroup, Typography } from "@mui/material";
+import React, { memo, useMemo, useCallback } from "react";
+import { Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
@@ -11,13 +11,14 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import DeleteButton from "../buttons/DeleteButton";
+import { DeleteButton } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+
 
 const styles = (theme: Theme) =>
   css({
@@ -44,7 +45,8 @@ const styles = (theme: Theme) =>
       bottom: 0,
       backgroundColor: "var(--palette-grey-800)",
       borderRadius: "0.5em",
-      overflow: "hidden"
+      overflow: "hidden",
+      contain: "layout style paint"
     },
     ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
@@ -54,12 +56,13 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      transition: "opacity 0.5s"
+      transition: "opacity 0.3s"
     },
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800],
+      willChange: "opacity"
     },
     "&:hover .asset .image": {
       opacity: 1
@@ -155,10 +158,10 @@ const styles = (theme: Theme) =>
     },
     ".asset-delete": {
       pointerEvents: "none",
-      opacity: 0
+      opacity: 0,
+      transition: "opacity 0.2s ease"
     },
     "&.selected:hover .asset-delete": {
-      backgroundColor: "transparent",
       pointerEvents: "all",
       opacity: 1
     },
@@ -275,6 +278,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleClick,
     // handleDoubleClick,
     handleDrag,
+    handleDragEnd,
     handleDragOver,
     handleDragEnter,
     handleDragLeave,
@@ -283,79 +287,85 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleDelete
   } = useAssetActions(asset);
 
-  const assetType = useMemo(() => {
-    return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
-  }, [asset?.content_type]);
+  // Combine related type checks into a single useMemo for better performance
+  const {
+    assetType,
+    assetFileEnding,
+    isImage,
+    isText,
+    isAudio,
+    isVideo,
+    isPdf,
+    isJson,
+    isCsv
+  } = useMemo(() => {
+    const contentType = asset?.content_type || "";
+    const name = asset?.name || "";
+    const parts = contentType.split("/");
 
-  const assetFileEnding = useMemo(() => {
-    return asset?.content_type ? asset.content_type.split("/")[1] : "unknown";
-  }, [asset?.content_type]);
+    return {
+      assetType: parts[0] || "unknown",
+      assetFileEnding: parts[1] || "unknown",
+      isImage: contentType.match("image") !== null,
+      isText: contentType.match("text") !== null,
+      isAudio: contentType.match("audio") !== null,
+      isVideo: contentType.match("video") !== null,
+      isPdf: contentType.match("pdf") !== null,
+      isJson: contentType.includes("json") || name.toLowerCase().endsWith(".json"),
+      isCsv: contentType.includes("csv") || name.toLowerCase().endsWith(".csv")
+    };
+  }, [asset?.content_type, asset?.name]);
 
-  const isImage = useMemo(
-    () => asset?.content_type?.match("image") !== null,
-    [asset?.content_type]
-  );
-  const isText = useMemo(
-    () => asset?.content_type?.match("text") !== null,
-    [asset?.content_type]
-  );
-  const isAudio = useMemo(
-    () => asset?.content_type?.match("audio") !== null,
-    [asset?.content_type]
-  );
-  const isVideo = useMemo(
-    () => asset?.content_type?.match("video") !== null,
-    [asset?.content_type]
-  );
-  const isPdf = useMemo(
-    () => asset?.content_type?.match("pdf") !== null,
-    [asset?.content_type]
-  );
-  const isJson = useMemo(
-    () =>
-      asset?.content_type?.includes("json") ||
-      asset?.name?.toLowerCase().endsWith(".json"),
-    [asset?.content_type, asset?.name]
-  );
-  const isCsv = useMemo(
-    () =>
-      asset?.content_type?.includes("csv") ||
-      asset?.name?.toLowerCase().endsWith(".csv"),
-    [asset?.content_type, asset?.name]
-  );
+  const handleAudioClick = useCallback(() => {
+    onSetCurrentAudioAsset?.(asset);
+  }, [asset, onSetCurrentAudioAsset]);
+
+  // Memoize click handler to prevent unnecessary re-renders
+  const handleItemClick = useCallback(() => {
+    handleClick(onSelect, onClickParent, isParent);
+  }, [handleClick, onSelect, onClickParent, isParent]);
+
+  const handleDoubleClickWithStop = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDoubleClick) {
+      onDoubleClick(asset);
+    }
+  }, [onDoubleClick, asset]);
 
   const result = (
     <div
       css={styles(theme)}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
-        isDragHovered ? "drag-hover" : ""
-      } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
+        } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
       key={asset.id}
       draggable={draggable}
       onDragStart={handleDrag}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        if (onDoubleClick) {
-          onDoubleClick(asset);
-        }
-      }}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+      onDragEnd={handleDragEnd}
+      onDoubleClick={handleDoubleClickWithStop}
+      onClick={handleItemClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <ButtonGroup className="asset-item-actions" size="small" tabIndex={-1}>
-          <DeleteButton<Asset>
+        <div
+          css={css({
+            position: "absolute",
+            top: 4,
+            right: 4,
+            zIndex: 1000
+          })}
+        >
+          <DeleteButton
             className="asset-delete"
-            item={asset}
-            onClick={() => handleDelete()}
+            onClick={handleDelete}
+            buttonSize="small"
           />
-        </ButtonGroup>
+        </div>
       )}
-      <div className="asset">
+      <div className={`asset ${isImage ? "alpha-surface" : ""}`}>
         {!asset.get_url && <div className="asset-missing" />}
         {isImage && (
           <>
@@ -365,14 +375,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 <div
                   className="image"
                   style={{
-                    backgroundImage: `url(${asset.get_url})`
+                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
                   }}
                   aria-label={asset.id}
                 />
                 <div
                   className="image-aspect-ratio"
                   style={{
-                    backgroundImage: `url(${asset.get_url})`
+                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
                   }}
                   aria-label={asset.id}
                 />
@@ -390,7 +400,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onClick={() => onSetCurrentAudioAsset?.(asset)}
+              onClick={handleAudioClick}
               className="placeholder"
               titleAccess={asset.content_type || "Audio file"}
             />
@@ -403,18 +413,39 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         )}
         {isVideo && (
           <>
-            <VideoFileIcon
-              className="placeholder"
-              style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
-              titleAccess={asset.content_type || "Video file"}
-            />
-            <div
-              className="image"
-              style={{
-                backgroundImage: `url(${asset.get_url})`
-              }}
-              aria-label={asset.id}
-            />
+            {!asset.thumb_url && !asset.get_url ? (
+              <VideoFileIcon
+                className="placeholder"
+                style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
+                titleAccess={asset.content_type || "Video file"}
+              />
+            ) : (
+              <div
+                className="image"
+                style={{
+                  backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                }}
+                aria-label={asset.id}
+              />
+            )}
+
+            {/* Always show icon overlay for video if we have a thumbnail to indicate it's playble/video */}
+            {(asset.thumb_url || asset.get_url) && (
+              <VideoFileIcon
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  color: "white",
+                  fontSize: "3em",
+                  opacity: 0.8,
+                  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
+                  zIndex: 10
+                }}
+              />
+            )}
+
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Typography className="duration info">
                 {secondsToHMS(asset.duration)}
@@ -491,18 +522,19 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             </Typography>
           )}
           {showFileSize &&
-            (asset as any).size !== undefined &&
-            (asset as any).size > 0 &&
+            asset.size !== undefined &&
+            asset.size !== null &&
+            asset.size > 0 &&
             assetItemSize > 3 && (
               <Typography
                 className="filesize info"
-                title={`File size: ${formatFileSize((asset as any).size)}`}
+                title={`File size: ${formatFileSize(asset.size)}`}
                 style={{
                   color: "white",
                   backgroundColor: "var(--palette-grey-700)"
                 }}
               >
-                {formatFileSize((asset as any).size)}
+                {formatFileSize(asset.size)}
               </Typography>
             )}
           {showName && assetItemSize > 2 && (

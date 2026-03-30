@@ -1,0 +1,48 @@
+{
+  "modelId": "tencentarc/vqfr",
+  "owner": "tencentarc",
+  "name": "vqfr",
+  "version": "f9085ea5bf9c8f2d7e5c64564234ab41b5bcd8cd61a58b59a3dde5cbb487721a",
+  "description": "Blind Face Restoration with Vector-Quantized Dictionary and Parallel Decoder",
+  "inputSchema": {
+    "properties": {
+      "aligned": {
+        "default": false,
+        "description": "Input are aligned faces.",
+        "title": "Aligned",
+        "type": "boolean",
+        "x-order": 1
+      },
+      "image": {
+        "description": "Input image. Output restored faces and whole image.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "properties": {
+        "image": {
+          "format": "uri",
+          "title": "Image",
+          "type": "string"
+        }
+      },
+      "required": [
+        "image"
+      ],
+      "title": "ModelOutput",
+      "type": "object"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

@@ -1,3 +1,4 @@
+
 import { useAssetStore } from "../AssetStore";
 import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
 import { QueryClient } from "@tanstack/react-query";
@@ -24,11 +25,14 @@ jest.mock("../AssetGridStore", () => ({
 
 jest.mock("../../utils/errorHandling", () => ({
   createErrorMessage: jest.fn(
-    (error) => `Error: ${error?.response?.data?.message || error.message}`
+    (error, message) =>
+      new Error(
+        message || `Error: ${error?.response?.data?.message || error.message}`
+      )
   )
 }));
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000"
+  BASE_URL: "http://localhost:7777"
 }));
 
 import axios from "axios";
@@ -158,6 +162,10 @@ describe("AssetStore", () => {
   });
 
   describe("createAsset", () => {
+    const pngBytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+    ]);
+
     it("should create an asset with file upload", async () => {
       const mockFile = new File(["test content"], "test.jpg", {
         type: "image/jpeg"
@@ -186,6 +194,107 @@ describe("AssetStore", () => {
         body: expect.any(FormData)
       });
       expect(result).toEqual(mockAsset);
+    });
+
+    it("uploads valid clipboard PNG payload as image", async () => {
+      const mockFile = new File([pngBytes], "clipboard-image.jpeg", {
+        type: "image/jpeg"
+      });
+      const mockAsset: Asset = {
+        id: "new-asset-id",
+        name: "clipboard-image.png",
+        content_type: "image/png",
+        size: 1024,
+        created_at: "2023-01-01T00:00:00Z",
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
+        workflow_id: "test-workflow",
+        thumb_url: "/thumbnail.jpg",
+        metadata: {}
+      };
+
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+
+      const { createAsset } = useAssetStore.getState();
+      const result = await createAsset(
+        mockFile,
+        "test-workflow",
+        undefined,
+        undefined,
+        "clipboard"
+      );
+
+      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
+        body: expect.any(FormData)
+      });
+      expect(result).toEqual(mockAsset);
+    });
+
+    it("rejects empty clipboard payload and does not send request", async () => {
+      const mockFile = new File([], "clipboard-image.png", {
+        type: "image/png"
+      });
+
+      const { client } = await import("../ApiClient");
+      const { createAsset } = useAssetStore.getState();
+
+      await expect(
+        createAsset(mockFile, "test-workflow", undefined, undefined, "clipboard")
+      ).rejects.toThrow("Clipboard content is not a valid image");
+      expect(client.POST).not.toHaveBeenCalled();
+    });
+
+    it("blocks invalid clipboard image bytes and does not send request", async () => {
+      const mockFile = new File([new Uint8Array([0x00, 0x01, 0x02])], "test.jpg", {
+        type: "image/jpeg"
+      });
+
+      const { client } = await import("../ApiClient");
+      const { createAsset } = useAssetStore.getState();
+
+      await expect(
+        createAsset(mockFile, "test-workflow", undefined, undefined, "clipboard")
+      ).rejects.toThrow("Clipboard content is not a valid image");
+      expect(client.POST).not.toHaveBeenCalled();
+    });
+
+    it("downgrades invalid dropped image bytes to octet-stream", async () => {
+      const mockFile = new File([new Uint8Array([0x00, 0x01, 0x02])], "test.jpg", {
+        type: "image/jpeg"
+      });
+      const mockAsset: Asset = {
+        id: "new-asset-id",
+        name: "test.jpg",
+        content_type: "application/octet-stream",
+        size: 1024,
+        created_at: "2023-01-01T00:00:00Z",
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
+        workflow_id: "test-workflow",
+        thumb_url: "/thumbnail.jpg",
+        metadata: {}
+      };
+
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+
+      const { createAsset } = useAssetStore.getState();
+      await createAsset(
+        mockFile,
+        "test-workflow",
+        undefined,
+        undefined,
+        "drop"
+      );
+
+      const [[, payload]] = (client.POST as jest.Mock).mock.calls;
+      const formData = payload.body as FormData;
+      const json = JSON.parse(formData.get("json") as string);
+
+      expect(json.content_type).toBe("application/octet-stream");
     });
 
     it("should handle upload progress callback", async () => {
@@ -338,8 +447,14 @@ describe("AssetStore", () => {
         metadata: { updated: true }
       };
 
+      const prevAsset = { 
+        id: "asset1", 
+        name: "old.jpg",
+        parent_id: "", 
+        content_type: "image/jpeg" 
+      };
       const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: { id: "asset1", parent_id: "" } });
+      (client.GET as jest.Mock).mockResolvedValue({ data: prevAsset });
       (client.PUT as jest.Mock).mockResolvedValue({ data: mockAsset });
 
       const { update } = useAssetStore.getState();
@@ -348,14 +463,16 @@ describe("AssetStore", () => {
         name: "updated.jpg"
       });
 
+      // The update function falls back to previous values for fields not explicitly provided
       expect(client.PUT).toHaveBeenCalledWith("/api/assets/{id}", {
         params: { path: { id: "asset1" } },
         body: {
           name: "updated.jpg",
-          parent_id: null,
-          content_type: null,
+          parent_id: "",
+          content_type: "image/jpeg",
           metadata: null,
-          data: null
+          data: null,
+          data_encoding: null
         }
       });
       expect(result).toEqual(mockAsset);
@@ -455,7 +572,7 @@ describe("AssetStore", () => {
 
   describe("loadFolderTree", () => {
     it("should load folder tree with default sorting", async () => {
-      const mockFolderTree = {
+      const _mockFolderTree = {
         folder1: {
           id: "folder1",
           name: "Folder 1",
@@ -477,7 +594,7 @@ describe("AssetStore", () => {
     });
 
     it("should load folder tree with custom sorting", async () => {
-      const mockFolderTree = {
+      const _mockFolderTree = {
         folder1: {
           id: "folder1",
           name: "Folder 1",
@@ -495,6 +612,66 @@ describe("AssetStore", () => {
         params: { query: { content_type: "folder" } }
       });
       expect(result).toBeTruthy();
+    });
+  });
+
+  describe("getAllAssetsInFolder", () => {
+    it("should recursively get all assets in a folder using the recursive API", async () => {
+      const mockResponse = {
+        assets: [
+          {
+            id: "folder1",
+            name: "Folder 1",
+            content_type: "folder",
+            children: [
+              {
+                id: "file1",
+                name: "file1.txt",
+                content_type: "text/plain",
+                children: []
+              }
+            ]
+          },
+          {
+            id: "file2",
+            name: "file2.txt",
+            content_type: "text/plain",
+            children: []
+          }
+        ]
+      };
+
+      const { client } = await import("../ApiClient");
+      (client.GET as jest.Mock).mockResolvedValue({ data: mockResponse });
+
+      const { getAllAssetsInFolder } = useAssetStore.getState();
+      const result = await getAllAssetsInFolder("root-folder");
+
+      expect(client.GET).toHaveBeenCalledWith(
+        "/api/assets/{folder_id}/recursive",
+        {
+          params: { path: { folder_id: "root-folder" } }
+        }
+      );
+
+      // Verify flattening logic
+      // Should contain folder1, file1 (child of folder1), and file2
+      expect(result).toHaveLength(3);
+      const ids = result.map((a) => a.id).sort();
+      expect(ids).toEqual(["file1", "file2", "folder1"]);
+    });
+
+    it("should handle API errors", async () => {
+      const { client } = await import("../ApiClient");
+      // Simulate API error response structure
+      (client.GET as jest.Mock).mockResolvedValue({
+        error: { message: "Failed to fetch" }
+      });
+
+      const { getAllAssetsInFolder } = useAssetStore.getState();
+      await expect(getAllAssetsInFolder("root-folder")).rejects.toThrow(
+        /Failed to load assets recursively/
+      );
     });
   });
 
@@ -525,7 +702,7 @@ describe("AssetStore", () => {
   describe("utility functions", () => {
     describe("sort", () => {
       it("should sort assets by created_at in descending order", () => {
-        const assets = {
+        const _assets = {
           asset1: {
             id: "asset1",
             name: "asset1.jpg",

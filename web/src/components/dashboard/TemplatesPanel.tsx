@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
-import { Box, Typography, CircularProgress, Button } from "@mui/material";
+import React, { memo, useCallback } from "react";
+import { Box, Typography, CircularProgress } from "@mui/material";
+import { EditorButton, FlexColumn, FlexRow, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
@@ -20,18 +21,10 @@ const styles = (theme: Theme) =>
   css({
     borderRadius: theme.spacing(1),
     padding: "1em",
-    display: "flex",
-    flexDirection: "column",
     overflowY: "auto",
     height: "100%",
     boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     background: theme.vars.palette.c_editor_bg_color,
-    ".panel-header": {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "1em"
-    },
     ".section-title": {
       color: theme.vars.palette.grey[100],
       fontSize: "1.25rem",
@@ -126,21 +119,30 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
   handleViewAllTemplates
 }) => {
   const theme = useTheme();
+
+  const onExampleClick = useCallback((example: Workflow) => {
+    handleExampleClick(example);
+  }, [handleExampleClick]);
+
+  const createExampleClickHandler = useCallback((example: Workflow) => {
+    return () => onExampleClick(example);
+  }, [onExampleClick]);
+
   return (
-    <Box className="templates-panel" css={styles(theme)}>
-      <Box className="panel-header">
-        <Typography variant="h3" className="section-title">
+    <FlexColumn gap={0} fullHeight className="templates-panel" css={styles(theme)}>
+      <FlexRow justify="space-between" align="center" sx={{ marginBottom: "1em" }}>
+        <Text size="big" weight={500} className="section-title">
           Start with a Template
-        </Typography>
-        <Button
+        </Text>
+        <EditorButton
           onClick={handleViewAllTemplates}
-          size="small"
           variant="text"
           sx={{ color: "primary.main" }}
+          density="compact"
         >
           View All
-        </Button>
-      </Box>
+        </EditorButton>
+      </FlexRow>
       <Box className="content-scrollable">
         {isLoadingTemplates ? (
           <Box className="loading-container">
@@ -152,7 +154,7 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
               <Box
                 key={example.id}
                 className="example-card"
-                onClick={() => handleExampleClick(example)}
+                onClick={createExampleClickHandler(example)}
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">
@@ -180,8 +182,8 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
           </Box>
         )}
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 
-export default TemplatesPanel;
+export default memo(TemplatesPanel);

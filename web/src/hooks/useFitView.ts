@@ -5,8 +5,14 @@ import { NodeData } from "../stores/NodeData";
 
 const EXTRA_LEFT_PADDING = 100;
 const TOP_PADDING_ADJUSTMENT = 50;
+// Minimum viewport size around a single node (in pixels)
+const SINGLE_NODE_MIN_WIDTH = 1000;
+const SINGLE_NODE_MIN_HEIGHT = 800;
 
-function getNodesBounds(
+/**
+ * Calculates the bounding box that contains all specified nodes.
+ */
+export function getNodesBounds(
   nodesToBound: Node<NodeData>[],
   nodesById: Record<string, XYPosition>
 ) {
@@ -33,6 +39,15 @@ function getNodesBounds(
   return { xMin, xMax, yMin, yMax };
 }
 
+/**
+ * Hook for fitting the workflow editor viewport to display specified nodes.
+ * 
+ * @example
+ * const fitView = useFitView();
+ * fitView(); // Fit all nodes
+ * fitView({ padding: 0.2 }); // Custom padding
+ * fitView({ nodeIds: ['node-1', 'node-2'] }); // Specific nodes
+ */
 export const useFitView = () => {
   const reactFlowInstance = useReactFlow();
   const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
@@ -66,9 +81,35 @@ export const useFitView = () => {
         reactFlowInstance.fitView({ duration: TRANSITION_DURATION, padding });
         return;
       }
+      if (nodesToFit.length === 1) {
+        const node = nodesToFit[0];
+        const nodeWidth = node.measured?.width || 200;
+        const nodeHeight = node.measured?.height || 100;
+        
+        // Use fixed minimum bounds so small nodes don't zoom in too close
+        // and large nodes don't zoom out too far
+        const boundsWidth = Math.max(nodeWidth, SINGLE_NODE_MIN_WIDTH);
+        const boundsHeight = Math.max(nodeHeight, SINGLE_NODE_MIN_HEIGHT);
+        
+        // Center the node in the bounds
+        const offsetX = (boundsWidth - nodeWidth) / 2;
+        const offsetY = (boundsHeight - nodeHeight) / 2;
+        
+        const singleNodeBounds = {
+          x: node.position.x - offsetX,
+          y: node.position.y - offsetY,
+          width: boundsWidth,
+          height: boundsHeight
+        };
+        
+        reactFlowInstance.fitBounds(singleNodeBounds, {
+          duration: TRANSITION_DURATION,
+          padding: 0.1
+        });
+        return;
+      }
 
       // Only auto-deselect if more than 1 node is selected
-      //  if (!explicitNodeIds.length && selectedNodes.length == 1) {
       if (selectedNodes.length > 1) {
         setTimeout(() => {
           setSelectedNodes([]);

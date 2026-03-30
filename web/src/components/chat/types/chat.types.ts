@@ -1,4 +1,5 @@
 export type DroppedFile = {
+  id: string;
   dataUri: string;
   type: string;
   name: string;

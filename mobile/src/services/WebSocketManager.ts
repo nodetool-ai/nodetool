@@ -171,7 +171,7 @@ export class WebSocketManager {
   }
 
   private setupEventHandlers(): void {
-    if (!this.ws) return;
+    if (!this.ws) {return;}
 
     this.ws.onopen = () => this.handleOpen();
     this.ws.onmessage = (event) => this.handleMessage(event);
@@ -371,7 +371,7 @@ export class WebSocketManager {
   private getReconnectDelay(): number {
     const delay = Math.min(
       this.config.reconnectInterval *
-        Math.pow(this.config.reconnectDecay, this.reconnectAttempt - 1),
+        Math.pow(this.config.reconnectDecay, this.reconnectAttempt),
       30000 // Max 30 seconds
     );
     return delay;
@@ -416,7 +416,7 @@ export class WebSocketManager {
   }
 
   private processMessageQueue(): void {
-    if (this.messageQueue.length === 0) return;
+    if (this.messageQueue.length === 0) {return;}
 
     console.log(`Processing ${this.messageQueue.length} queued messages`);
     const queue = [...this.messageQueue];

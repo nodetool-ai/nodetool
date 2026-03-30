@@ -1,0 +1,79 @@
+{
+  "modelId": "anthropic/claude-3.7-sonnet",
+  "owner": "anthropic",
+  "name": "claude-3.7-sonnet",
+  "version": "81a891bd00c339f3565bda15b255b372eb8bf6c669fe996b66eea5d677454a46",
+  "description": "The most intelligent Claude model and the first hybrid reasoning model on the market (claude-3-7-sonnet-20250219)",
+  "inputSchema": {
+    "properties": {
+      "extended_thinking": {
+        "default": false,
+        "description": "Whether to enable extended thinking mode (only supported for Sonnet 3.7 and Sonnet 4)",
+        "title": "Extended Thinking",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Optional input image. Images are priced as (width px * height px)/750 input tokens",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "max_image_resolution": {
+        "default": 0.5,
+        "description": "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money.",
+        "maximum": 2,
+        "minimum": 0.001,
+        "title": "Max Image Resolution",
+        "type": "number",
+        "x-order": 4
+      },
+      "max_tokens": {
+        "default": 8192,
+        "description": "Maximum number of output tokens",
+        "maximum": 64000,
+        "minimum": 1024,
+        "title": "Max Tokens",
+        "type": "integer",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "system_prompt": {
+        "default": "",
+        "description": "System prompt",
+        "title": "System Prompt",
+        "type": "string",
+        "x-order": 2
+      },
+      "thinking_budget_tokens": {
+        "default": 1024,
+        "description": "Maximum number of tokens to use for extended thinking when enabled (only supported for Sonnet 3.7 and Sonnet 4)",
+        "maximum": 64000,
+        "minimum": 1024,
+        "title": "Thinking Budget Tokens",
+        "type": "integer",
+        "x-order": 6
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

@@ -8,6 +8,43 @@ import {
 } from "../stores/ApiTypes";
 
 /**
+ * Node types that output an enum-like type based on their instance properties.
+ * These nodes store enum_type_name and options in their properties, and their
+ * output should be treated as an enum for connectability purposes.
+ */
+const SELECT_NODE_TYPES = [
+  "nodetool.input.SelectInput",
+  "nodetool.constant.Select"
+];
+
+/**
+ * Checks if a node type is a Select node (outputs enum-like type).
+ */
+export function isSelectNodeType(nodeType: string): boolean {
+  return SELECT_NODE_TYPES.includes(nodeType);
+}
+
+/**
+ * Gets the effective output type for a Select node based on its properties.
+ * Returns an enum TypeMetadata with type_name and values from the node's properties.
+ */
+export function getSelectNodeEffectiveOutputType(
+  node: Node<NodeData>
+): TypeMetadata {
+  const props = node.data.properties || {};
+  const enumTypeName = (props.enum_type_name as string) || null;
+  const options = (props.options as string[]) || [];
+
+  return {
+    type: "enum",
+    optional: false,
+    values: options.length > 0 ? options : null,
+    type_args: [],
+    type_name: enumTypeName
+  };
+}
+
+/**
  * Represents an output handle (either static or dynamic)
  */
 export interface OutputHandle {
@@ -29,18 +66,34 @@ export interface InputHandle {
 /**
  * Finds an output handle by name on a node
  * Checks both static outputs (from metadata) and dynamic outputs (from node data)
+ *
+ * For Select nodes (SelectInput, Select), returns an effective enum type based
+ * on the node's instance properties (enum_type_name, options) so that
+ * connectability and highlighting work correctly.
  */
 export function findOutputHandle(
   node: Node<NodeData>,
   handleName: string,
   metadata: NodeMetadata
 ): OutputHandle | undefined {
+  const isComfyNode = metadata.node_type.startsWith("comfy.");
+
   // First check static outputs
   const staticOutput = metadata.outputs.find(
     (output: OutputSlot) => output.name === handleName
   );
 
   if (staticOutput) {
+    // For Select nodes, return an effective enum type instead of the static "str" type
+    if (handleName === "output" && isSelectNodeType(metadata.node_type)) {
+      return {
+        name: staticOutput.name,
+        type: getSelectNodeEffectiveOutputType(node),
+        stream: staticOutput.stream,
+        isDynamic: false
+      };
+    }
+
     return {
       name: staticOutput.name,
       type: staticOutput.type,
@@ -62,6 +115,28 @@ export function findOutputHandle(
     };
   }
 
+  // Compatibility: imported Comfy graphs may still use slot-style handle names
+  // (e.g. output_0) while metadata exposes named outputs (e.g. MODEL).
+  if (isComfyNode) {
+    const match = /^output_(\d+)$/.exec(handleName);
+    if (match) {
+      const outputIndex = Number(match[1]);
+      if (
+        Number.isInteger(outputIndex) &&
+        outputIndex >= 0 &&
+        outputIndex < metadata.outputs.length
+      ) {
+        const indexedOutput = metadata.outputs[outputIndex];
+        return {
+          name: indexedOutput.name,
+          type: indexedOutput.type,
+          stream: indexedOutput.stream,
+          isDynamic: false
+        };
+      }
+    }
+  }
+
   return undefined;
 }
 
@@ -74,6 +149,8 @@ export function findInputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): InputHandle | undefined {
+  const isComfyNode = metadata.node_type.startsWith("comfy.");
+
   // First check static properties
   const staticProperty = metadata.properties.find(
     (property: Property) => property.name === handleName
@@ -90,17 +167,48 @@ export function findInputHandle(
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
     if (dynamicProperties[handleName] !== undefined) {
+      const inputMeta = node.data.dynamic_inputs?.[handleName];
+      const type = inputMeta
+        ? {
+            type: inputMeta.type,
+            optional: inputMeta.optional ?? false,
+            values: inputMeta.values ?? null,
+            type_args: inputMeta.type_args ?? [],
+            type_name: inputMeta.type_name ?? null
+          }
+        : {
+            type: "any",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          };
       return {
         name: handleName,
-        type: {
-          type: "any",
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        },
+        type,
         isDynamic: true
       };
+    }
+  }
+
+  // Compatibility: imported Comfy graphs may still use slot-style handle names
+  // (e.g. input_0) while metadata exposes named inputs.
+  if (isComfyNode) {
+    const match = /^input_(\d+)$/.exec(handleName);
+    if (match) {
+      const inputIndex = Number(match[1]);
+      if (
+        Number.isInteger(inputIndex) &&
+        inputIndex >= 0 &&
+        inputIndex < metadata.properties.length
+      ) {
+        const indexedProperty = metadata.properties[inputIndex];
+        return {
+          name: indexedProperty.name,
+          type: indexedProperty.type,
+          isDynamic: false
+        };
+      }
     }
   }
 
@@ -115,12 +223,19 @@ export function getAllOutputHandles(
   metadata: NodeMetadata
 ): OutputHandle[] {
   const handles: OutputHandle[] = [];
+  const isSelectNode = isSelectNodeType(metadata.node_type);
 
   // Add static outputs
   metadata.outputs.forEach((output: OutputSlot) => {
+    // For Select nodes, return an effective enum type for the "output" handle
+    const effectiveType =
+      isSelectNode && output.name === "output"
+        ? getSelectNodeEffectiveOutputType(node)
+        : output.type;
+
     handles.push({
       name: output.name,
-      type: output.type,
+      type: effectiveType,
       stream: output.stream,
       isDynamic: false
     });
@@ -161,16 +276,27 @@ export function getAllInputHandles(
   // Add dynamic properties (for dynamic nodes)
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
+    const dynamicInputs = node.data.dynamic_inputs || {};
     Object.keys(dynamicProperties).forEach((name) => {
+      const inputMeta = dynamicInputs[name];
+      const type = inputMeta
+        ? {
+            type: inputMeta.type,
+            optional: inputMeta.optional ?? false,
+            values: inputMeta.values ?? null,
+            type_args: inputMeta.type_args ?? [],
+            type_name: inputMeta.type_name ?? null
+          }
+        : {
+            type: "any",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          };
       handles.push({
         name,
-        type: {
-          type: "any", // Dynamic properties take on the type of their incoming connection
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        },
+        type,
         isDynamic: true
       });
     });

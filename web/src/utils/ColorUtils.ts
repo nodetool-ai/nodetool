@@ -1,4 +1,5 @@
 import chroma from "chroma-js";
+import log from "loglevel";
 
 // Utility to detect CSS variable references (e.g. "var(--palette-primary-main)")
 function isCssVar(color: string): boolean {
@@ -25,7 +26,7 @@ export function hexToRgba(hex: string, alpha: number): string {
   } catch (err) {
     // Fallback: if chroma cannot parse the color, just return the original
     // string unchanged to avoid runtime errors.
-    console.error("hexToRgba: unable to parse color", hex, err);
+    log.error("hexToRgba: unable to parse color", hex, err);
     return hex;
   }
 }
@@ -125,4 +126,105 @@ export function simulateOpacity(
   const blendedColor = chroma.mix(bgColor, foregroundColor, alpha, "rgb");
 
   return blendedColor.hex();
+}
+
+// ---------------------------------------------------------------------
+// NODE TYPE COLORS FOR MINIMAP
+// ---------------------------------------------------------------------
+
+/**
+ * Node categories for color coding in the minimap.
+ */
+export enum NodeTypeCategory {
+  /** Input nodes that accept user data */
+  Input = "input",
+  /** Constant value nodes */
+  Constant = "constant",
+  /** Processing/workflow nodes (default) */
+  Processing = "processing",
+  /** Group nodes */
+  Group = "group",
+  /** Comment nodes */
+  Comment = "comment",
+  /** Output/asset nodes */
+  Output = "output"
+}
+
+/**
+ * Determines the category of a node based on its type string.
+ */
+export function getNodeTypeCategory(nodeType: string | undefined): NodeTypeCategory {
+  if (!nodeType) {
+    return NodeTypeCategory.Processing;
+  }
+
+  if (nodeType.startsWith("nodetool.input.")) {
+    return NodeTypeCategory.Input;
+  }
+  if (nodeType.startsWith("nodetool.constant.")) {
+    return NodeTypeCategory.Constant;
+  }
+  if (nodeType.includes(".Group") || nodeType.includes("group")) {
+    return NodeTypeCategory.Group;
+  }
+  if (nodeType.includes(".Comment") || nodeType.includes("comment")) {
+    return NodeTypeCategory.Comment;
+  }
+  if (nodeType.includes("output") || nodeType.includes("Output")) {
+    return NodeTypeCategory.Output;
+  }
+
+  return NodeTypeCategory.Processing;
+}
+
+/**
+ * Gets a color for a node type category in light mode.
+ */
+export function getNodeCategoryColor(
+  category: NodeTypeCategory,
+  isDarkMode: boolean
+): string {
+  const colors: Record<NodeTypeCategory, { light: string; dark: string }> = {
+    [NodeTypeCategory.Input]: { light: "#3b82f6", dark: "#60a5fa" }, // Blue
+    [NodeTypeCategory.Constant]: { light: "#8b5cf6", dark: "#a78bfa" }, // Purple
+    [NodeTypeCategory.Processing]: { light: "#64748b", dark: "#94a3b8" }, // Slate
+    [NodeTypeCategory.Group]: { light: "#6366f1", dark: "#818cf8" }, // Indigo
+    [NodeTypeCategory.Comment]: { light: "#22c55e", dark: "#4ade80" }, // Green
+    [NodeTypeCategory.Output]: { light: "#f59e0b", dark: "#fbbf24" } // Amber
+  };
+
+  return isDarkMode ? colors[category].dark : colors[category].light;
+}
+
+/**
+ * Gets a minimap color function based on node type coloring mode.
+ * When useTypeColors is false, all nodes get the same color (selected nodes
+ * still use primary color).
+ */
+export function createMinimapNodeColorFn(
+  isDarkMode: boolean,
+  useTypeColors: boolean,
+  primaryColor: string
+): (node: { type?: string; selected?: boolean }) => string {
+  return (node) => {
+    // Always use primary color for selected nodes
+    if (node.selected) {
+      return primaryColor;
+    }
+
+    if (!useTypeColors) {
+      // Original behavior: only special nodes get colors
+      if (node.type === "nodetool.workflows.base_node.Group") {
+        return isDarkMode ? "#6366f1" : "#818cf8";
+      }
+      if (node.type === "nodetool.workflows.base_node.Comment") {
+        return isDarkMode ? "#22c55e" : "#22c55e";
+      }
+      return isDarkMode ? "#94a3b8" : "#64748b";
+    }
+
+    // Type-based coloring
+    const category = getNodeTypeCategory(node.type);
+    return getNodeCategoryColor(category, isDarkMode);
+  };
 }

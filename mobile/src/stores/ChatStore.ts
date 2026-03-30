@@ -76,8 +76,9 @@ function handleWebSocketMessage(
   console.log('WebSocket message received:', data.type);
 
   if (state.status === 'stopping') {
-    // Only process certain messages while stopping
-    if (!['generation_stopped', 'error', 'job_update'].includes(data.type)) {
+    // Only process certain messages while stopping; messages without a type are ignored
+    const msgType = data.type ?? '';
+    if (!['generation_stopped', 'error', 'job_update'].includes(msgType)) {
       return;
     }
   }
@@ -86,7 +87,7 @@ function handleWebSocketMessage(
     case 'message': {
       const msg = data as Message;
       const msgThreadId = msg.thread_id ?? threadId;
-      if (!msgThreadId) break;
+      if (!msgThreadId) {break;}
 
       // Don't add duplicate messages
       const existingMessages = state.messageCache[msgThreadId] || [];
@@ -119,7 +120,7 @@ function handleWebSocketMessage(
 
     case 'chunk': {
       const chunk = data as Chunk;
-      if (!threadId) break;
+      if (!threadId) {break;}
 
       const messages = state.messageCache[threadId] || [];
       const lastMessage = messages[messages.length - 1];
@@ -223,10 +224,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   connect: async () => {
     const state = get();
 
+    // Prevent duplicate connection attempts
+    if (state.status === 'connecting') {
+      console.log('Connection already in progress, skipping');
+      return;
+    }
+
     // Clean up existing connection
     if (state.wsManager) {
       state.wsManager.destroy();
     }
+
+    set({ status: 'connecting' });
 
     // Get WebSocket URL from API service
     const wsUrl = apiService.getWebSocketUrl('/ws/chat');
@@ -442,14 +451,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   switchThread: (threadId: string) => {
     const exists = !!get().threads[threadId];
-    if (!exists) return;
+    if (!exists) {return;}
 
     set({ currentThreadId: threadId });
   },
 
   getCurrentMessages: () => {
     const { currentThreadId, messageCache } = get();
-    if (!currentThreadId) return [];
+    if (!currentThreadId) {return [];}
     return messageCache[currentThreadId] || [];
   },
 

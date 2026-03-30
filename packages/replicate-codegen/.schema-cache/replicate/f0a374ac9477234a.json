@@ -1,0 +1,58 @@
+{
+  "modelId": "chenxwh/openvoice",
+  "owner": "chenxwh",
+  "name": "openvoice",
+  "version": "d548923c9d7fc9330a3b7c7f9e2f91b2ee90c83311a351dfcd32af353799223d",
+  "description": "Updated to OpenVoice v2: Versatile Instant Voice Cloning",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Input reference audio",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 0
+      },
+      "language": {
+        "default": "EN_NEWEST",
+        "description": "The language of the audio to be generated",
+        "enum": [
+          "EN_NEWEST",
+          "EN",
+          "ES",
+          "FR",
+          "ZH",
+          "JP",
+          "KR"
+        ],
+        "title": "language",
+        "type": "string",
+        "x-order": 2
+      },
+      "speed": {
+        "default": 1,
+        "description": "Set speed scale of the output audio",
+        "title": "Speed",
+        "type": "number",
+        "x-order": 3
+      },
+      "text": {
+        "default": "Did you ever hear a folk tale about a giant turtle?",
+        "description": "Input text",
+        "title": "Text",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -8,7 +8,7 @@ export const useAssetDeletion = () => {
     (state) => state.addNotification
   );
   const deleteAsset = useAssetStore((state) => state.delete);
-  const [assets, setAssets] = useState<string[]>([]);
+  const [_assets, setAssets] = useState<string[]>([]);
 
   const performMutation = async (
     assets: string[]

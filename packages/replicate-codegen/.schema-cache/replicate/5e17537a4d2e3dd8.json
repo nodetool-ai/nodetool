@@ -1,0 +1,99 @@
+{
+  "modelId": "luma/photon-flash",
+  "owner": "luma",
+  "name": "photon-flash",
+  "version": "8cee7d47f81d8f4f77c1aec44ffb3d1ce09d36388db637ceaa8a6cbcf30b63e1",
+  "description": "Accelerated variant of Photon prioritizing speed while maintaining quality",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "9:21",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 1
+      },
+      "character_reference": {
+        "description": "Character reference image to guide generation",
+        "format": "uri",
+        "title": "Character Reference",
+        "type": "string"
+      },
+      "character_reference_url": {
+        "deprecated": true,
+        "description": "Deprecated: Use character_reference instead",
+        "title": "Character Reference Url",
+        "type": "string"
+      },
+      "image_reference": {
+        "description": "Reference image to guide generation",
+        "format": "uri",
+        "title": "Image Reference",
+        "type": "string"
+      },
+      "image_reference_url": {
+        "deprecated": true,
+        "description": "Deprecated: Use image_reference instead",
+        "title": "Image Reference Url",
+        "type": "string"
+      },
+      "image_reference_weight": {
+        "default": 0.85,
+        "description": "Weight of the reference image. Larger values will make the reference image have a stronger influence on the generated image.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Image Reference Weight",
+        "type": "number"
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer"
+      },
+      "style_reference": {
+        "description": "Style reference image to guide generation",
+        "format": "uri",
+        "title": "Style Reference",
+        "type": "string"
+      },
+      "style_reference_url": {
+        "deprecated": true,
+        "description": "Deprecated: Use style_reference instead",
+        "title": "Style Reference Url",
+        "type": "string"
+      },
+      "style_reference_weight": {
+        "default": 0.85,
+        "description": "Weight of the style reference image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Style Reference Weight",
+        "type": "number"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

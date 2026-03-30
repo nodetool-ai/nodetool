@@ -1,0 +1,90 @@
+{
+  "modelId": "zsxkib/flux-music",
+  "owner": "zsxkib",
+  "name": "flux-music",
+  "version": "eebfed4a1749bb1172f005f71fac5a1e0377502ec149c9d02b56ac1de3aa9f07",
+  "description": "🎼FluxMusic Text-to-Music Generation with Rectified Flow Transformer🎶",
+  "inputSchema": {
+    "properties": {
+      "guidance_scale": {
+        "default": 7,
+        "description": "Classifier-free guidance scale",
+        "maximum": 20,
+        "minimum": 0,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 2
+      },
+      "model_version": {
+        "default": "base",
+        "description": "Select the model version to use",
+        "enum": [
+          "small",
+          "base",
+          "large",
+          "giant"
+        ],
+        "title": "model_version",
+        "type": "string",
+        "x-order": 3
+      },
+      "negative_prompt": {
+        "default": "low quality, gentle",
+        "description": "Text prompt for negative guidance (unconditioned prompt)",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "default": "The song is an epic blend of space-rock, rock, and post-rock genres.",
+        "description": "Text prompt for music generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "save_spectrogram": {
+        "default": false,
+        "description": "Whether to save the spectrogram image",
+        "title": "Save Spectrogram",
+        "type": "boolean",
+        "x-order": 5
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 6
+      },
+      "steps": {
+        "default": 50,
+        "description": "Number of sampling steps",
+        "maximum": 200,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "melspectrogram": {
+        "format": "uri",
+        "title": "Melspectrogram",
+        "type": "string"
+      },
+      "wav": {
+        "format": "uri",
+        "title": "Wav",
+        "type": "string"
+      }
+    },
+    "required": [
+      "wav"
+    ],
+    "title": "Output",
+    "type": "object"
+  }
+}

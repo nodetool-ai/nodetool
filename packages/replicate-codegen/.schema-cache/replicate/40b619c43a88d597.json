@@ -1,0 +1,112 @@
+{
+  "modelId": "prunaai/flux-kontext-fast",
+  "owner": "prunaai",
+  "name": "flux-kontext-fast",
+  "version": "6efb57153457f8c51fb813c6d15f45d896f1916dd7d732af49d6a4b09488e2a6",
+  "description": "Ultra fast flux kontext endpoint",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Aspect ratio of the output image",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "3:4",
+          "4:3",
+          "9:16",
+          "9:21"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 6
+      },
+      "guidance": {
+        "default": 3.5,
+        "description": "Guidance scale",
+        "title": "Guidance",
+        "type": "number"
+      },
+      "image_size": {
+        "default": 1024,
+        "description": "Base image size (longest side)",
+        "title": "Image Size",
+        "type": "integer"
+      },
+      "img_cond_path": {
+        "description": "Input image for image to image mode. The aspect ratio of your output will match this image",
+        "format": "uri",
+        "title": "Img Cond Path",
+        "type": "string"
+      },
+      "num_inference_steps": {
+        "default": 30,
+        "description": "Number of inference steps",
+        "title": "Num Inference Steps",
+        "type": "integer"
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Output format",
+        "enum": [
+          "png",
+          "jpg",
+          "webp"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 8
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Output quality (for jpg and webp)",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Output Quality",
+        "type": "integer"
+      },
+      "prompt": {
+        "description": "Prompt",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "seed": {
+        "default": -1,
+        "description": "Seed",
+        "title": "Seed",
+        "type": "integer"
+      },
+      "speed_mode": {
+        "default": "Extra Juiced 🔥 (more speed)",
+        "description": "Speed optimization level",
+        "enum": [
+          "Lightly Juiced 🍊 (more consistent)",
+          "Juiced 🔥 (default)",
+          "Extra Juiced 🔥 (more speed)",
+          "Blink of an eye 👁️",
+          "Real Time"
+        ],
+        "title": "speed_mode",
+        "type": "string",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "prompt",
+      "img_cond_path"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "modelId": "cjwbw/parler-tts",
+  "owner": "cjwbw",
+  "name": "parler-tts",
+  "version": "bf38249a8cc143b97b5108570d1c81b8321881dd91fe7837877e7dfa3a0fad27",
+  "description": "lightweight text-to-speech (TTS) model, trained on 10.5K hours of audio data",
+  "inputSchema": {
+    "properties": {
+      "description": {
+        "default": "A female speaker with a slightly low-pitched voice delivers her words quite expressively, in a very confined sounding environment with clear audio quality. She speaks very fast.",
+        "description": "Provide description of the output audio",
+        "title": "Description",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "default": "Hey, how are you doing today?",
+        "description": "Text for audio generation",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

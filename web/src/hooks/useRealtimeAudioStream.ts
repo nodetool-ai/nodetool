@@ -11,8 +11,29 @@ type UseRealtimeAudioStream = {
   version: number;
 };
 
+/**
+ * Custom hook for streaming real-time audio to workflow input nodes.
+ *
+ * Captures microphone audio, converts to PCM16LE format, and streams
+ * chunks to an input node during workflow execution. Used by realtime
+ * voice agents and audio processing nodes.
+ *
+ * @param inputNodeName - Optional name of the input node to stream to
+ * @param sampleRate - Target sample rate in Hz (default: 24000)
+ * @returns Object containing streaming state and control functions
+ *
+ * @example
+ * ```typescript
+ * const { isStreaming, start, stop, toggle } = useRealtimeAudioStream("audio-input", 16000);
+ *
+ * <button onClick={toggle}>
+ *   {isStreaming ? "Stop Recording" : "Start Recording"}
+ * </button>
+ * ```
+ */
 export const useRealtimeAudioStream = (
-  inputNodeName?: string
+  inputNodeName?: string,
+  sampleRate: number = 24000
 ): UseRealtimeAudioStream => {
   const [isStreaming, setIsStreaming] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -29,21 +50,21 @@ export const useRealtimeAudioStream = (
     setIsStreaming(false);
     try {
       mediaRecorderRef.current?.stop();
-    } catch (e) {
+    } catch {
       // noop
     }
     mediaRecorderRef.current = null;
     try {
       processorNodeRef.current?.disconnect();
       sourceNodeRef.current?.disconnect();
-    } catch (e) {
+    } catch {
       // noop
     }
     processorNodeRef.current = null;
     sourceNodeRef.current = null;
     try {
       audioContextRef.current?.close();
-    } catch (e) {
+    } catch {
       // noop
     }
     audioContextRef.current = null;
@@ -58,7 +79,7 @@ export const useRealtimeAudioStream = (
         "chunk"
       );
       end("chunk");
-    } catch (e) {
+    } catch {
       // noop
     }
     setVersion((v) => v + 1);
@@ -73,14 +94,15 @@ export const useRealtimeAudioStream = (
   }, []);
 
   useEffect(() => {
-    if (!isStreaming) {return;}
+    if (!isStreaming) {
+      return;
+    }
     let activeStream: MediaStream | null = null;
-    const targetSampleRate = 22000; // 22 kHz per updated realtime session config
     navigator.mediaDevices
       .getUserMedia({
         audio: {
           channelCount: 1,
-          sampleRate: targetSampleRate
+          sampleRate: sampleRate
         } as MediaTrackConstraints
       })
       .then(async (stream) => {
@@ -88,10 +110,11 @@ export const useRealtimeAudioStream = (
         audioStreamRef.current = stream;
         setVersion((v) => v + 1);
 
-        const AudioContextCtor =
-          (window as any).AudioContext || (window as any).webkitAudioContext;
+        type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+        const AudioContextCtor: typeof AudioContext =
+          window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
         const audioContext: AudioContext = new AudioContextCtor({
-          sampleRate: targetSampleRate
+          sampleRate: sampleRate
         });
         audioContextRef.current = audioContext;
 
@@ -120,6 +143,7 @@ export const useRealtimeAudioStream = (
             binary += String.fromCharCode(bytes[i]);
           }
           const base64 = btoa(binary);
+          const duration_seconds = input.length / sampleRate;
           send(
             {
               type: "chunk",
@@ -128,8 +152,10 @@ export const useRealtimeAudioStream = (
               content_type: "audio",
               content_metadata: {
                 encoding: "pcm16le",
-                sample_rate_hz: targetSampleRate,
-                channels: 1
+                sample_rate: sampleRate,
+                channels: 1,
+                format: "pcm16le",
+                duration_seconds: duration_seconds
               }
             },
             "chunk"
@@ -145,14 +171,14 @@ export const useRealtimeAudioStream = (
     return () => {
       try {
         mediaRecorderRef.current?.stop();
-      } catch (e) {
+      } catch {
         // noop
       }
       mediaRecorderRef.current = null;
       try {
         processorNodeRef.current?.disconnect();
         sourceNodeRef.current?.disconnect();
-      } catch (e) {
+      } catch {
         // noop
       }
       processorNodeRef.current = null;
@@ -162,7 +188,7 @@ export const useRealtimeAudioStream = (
       }
       try {
         audioContextRef.current?.close();
-      } catch (e) {
+      } catch {
         // noop
       }
       audioContextRef.current = null;
@@ -173,12 +199,12 @@ export const useRealtimeAudioStream = (
           "chunk"
         );
         end("chunk");
-      } catch (e) {
+      } catch {
         // noop
       }
       setVersion((v) => v + 1);
     };
-  }, [isStreaming, send, end]);
+  }, [isStreaming, sampleRate, send, end]);
 
   // Stop streaming automatically when workflow stops/cancels/errors
   useEffect(() => {

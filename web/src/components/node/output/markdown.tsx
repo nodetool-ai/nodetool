@@ -1,5 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
+
+// Memoize the style object to prevent recreation on every render
+const MARKDOWN_TEXT_STYLE = {
+  padding: "0 0.5em",
+  whiteSpace: "pre-wrap" as const,
+  fontWeight: "300" as const
+};
 
 export const isLikelyMarkdown = (text: string): boolean => {
   if (!text) {return false;}
@@ -20,14 +27,27 @@ export const isLikelyMarkdown = (text: string): boolean => {
   return patterns.some((re) => re.test(text));
 };
 
-export const MaybeMarkdown: React.FC<{ text: string }> = ({ text }) =>
-  isLikelyMarkdown(text) ? (
-    <MarkdownRenderer content={text} />
+type MaybeMarkdownProps = {
+  text: string;
+  fillContainer?: boolean;
+};
+
+export const MaybeMarkdown: React.FC<MaybeMarkdownProps> = memo(
+  ({ text, fillContainer = false }) => {
+  return isLikelyMarkdown(text) ? (
+    <MarkdownRenderer content={text} fillContainer={fillContainer} />
   ) : (
     <div
       className="output no-markdown-text"
-      style={{ padding: "0 0.5em", whiteSpace: "pre-wrap", fontWeight: "300" }}
+      style={{
+        ...MARKDOWN_TEXT_STYLE,
+        ...(fillContainer ? { height: "100%", minHeight: 0 } : {})
+      }}
     >
       {text}
     </div>
   );
+  }
+);
+
+MaybeMarkdown.displayName = "MaybeMarkdown";

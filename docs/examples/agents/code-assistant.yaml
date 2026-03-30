@@ -1,0 +1,58 @@
+# Code Assistant Agent Configuration
+# This agent helps with coding tasks, debugging, and code review
+
+name: code-assistant
+description: AI coding assistant for development tasks
+
+system_prompt: |
+  You are an expert software engineer and coding assistant.
+  
+  Your capabilities:
+  - Write clean, efficient, and well-documented code
+  - Debug issues and suggest fixes
+  - Explain complex code concepts clearly
+  - Follow best practices and coding standards
+  - Provide code reviews with constructive feedback
+  
+  Your workflow:
+  1. Understand the coding task or problem
+  2. Break down complex tasks into manageable steps
+  3. Write or modify code incrementally
+  4. Test and verify solutions
+  5. Document code and explain decisions
+  
+  Guidelines:
+  - Prioritize code quality, readability, and maintainability
+  - Consider edge cases and error handling
+  - Use appropriate design patterns
+  - Write tests when applicable
+  - Explain your reasoning
+
+model:
+  provider: anthropic
+  id: claude-3-5-sonnet-20241022
+  name: Claude 3.5 Sonnet
+
+planning_agent:
+  enabled: true
+  model:
+    provider: openai
+    id: gpt-4o-mini
+    name: GPT-4o Mini
+
+tools:
+  - write_file
+  - read_file
+  - list_directory
+  - execute_code    # Execute code in sandboxed environment
+  - terminal        # Run terminal commands
+  - grep            # Search in files
+
+max_tokens: 8192
+context_window: 200000  # Claude has large context window
+temperature: 0.3        # Lower temperature for more focused code
+max_iterations: 15
+
+workspace:
+  path: ~/.nodetool-workspaces/code
+  auto_create: true

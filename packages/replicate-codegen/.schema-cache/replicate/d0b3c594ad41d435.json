@@ -1,0 +1,63 @@
+{
+  "modelId": "nateraw/bge-large-en-v1.5",
+  "owner": "nateraw",
+  "name": "bge-large-en-v1.5",
+  "version": "9cf9f015a9cb9c61d1a2610659cdac4a4ca222f2d3707a68517b18c198a9add1",
+  "description": "BAAI's bge-en-large-v1.5 for embedding text sequences",
+  "inputSchema": {
+    "properties": {
+      "batch_size": {
+        "default": 32,
+        "description": "Batch size to use when processing text data.",
+        "title": "Batch Size",
+        "type": "integer",
+        "x-order": 2
+      },
+      "convert_to_numpy": {
+        "default": false,
+        "description": "When true, return output as npy file. By default, we return JSON",
+        "title": "Convert To Numpy",
+        "type": "boolean",
+        "x-order": 4
+      },
+      "normalize_embeddings": {
+        "default": true,
+        "description": "Whether to normalize embeddings.",
+        "title": "Normalize Embeddings",
+        "type": "boolean",
+        "x-order": 3
+      },
+      "path": {
+        "description": "Path to file containing text as JSONL with 'text' field or valid JSON string list.",
+        "format": "uri",
+        "title": "Path",
+        "type": "string",
+        "x-order": 0
+      },
+      "texts": {
+        "default": "",
+        "description": "text to embed, formatted as JSON list of strings (e.g. [\"hello\", \"world\"])",
+        "title": "Texts",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "anyOf": [
+      {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      {
+        "format": "uri",
+        "type": "string"
+      }
+    ],
+    "title": "Output"
+  }
+}

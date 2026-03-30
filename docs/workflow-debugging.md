@@ -196,7 +196,7 @@ Error: CUDA out of memory
 → Use a smaller model, reduce batch size, or close other GPU applications
 
 ```
-Error: Connection refused on localhost:8000
+Error: Connection refused on localhost:7777
 ```
 → NodeTool server isn't running, or firewall is blocking
 
@@ -226,7 +226,7 @@ Error: Connection refused on localhost:8000
 
 1. **Check model installation**
    - Open Model Manager
-   - Ensure SDXL/Flux/etc. is downloaded
+   - Ensure Flux/Qwen Image/etc. is downloaded
 
 2. **Verify VRAM**
    - Check GPU memory with `nvidia-smi`
