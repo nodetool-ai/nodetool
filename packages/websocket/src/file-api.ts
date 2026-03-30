@@ -126,6 +126,11 @@ export async function handleFileRequest(
   request: Request,
   options: FileApiOptions = {}
 ): Promise<Response> {
+  // File browser exposes the local filesystem — disabled in production
+  if (process.env["NODETOOL_ENV"] === "production") {
+    return errorResponse(403, "File browser is disabled in production");
+  }
+
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }

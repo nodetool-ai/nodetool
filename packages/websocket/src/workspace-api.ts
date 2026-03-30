@@ -103,6 +103,11 @@ export async function handleWorkspaceRequest(
   request: Request,
   options: HttpApiOptions,
 ): Promise<Response | null> {
+  // Workspaces browse the local filesystem — disabled in production
+  if (process.env["NODETOOL_ENV"] === "production") {
+    return errorResponse(403, "Workspaces are disabled in production");
+  }
+
   const url = new URL(request.url);
   const pathname = normalizePath(url.pathname);
 

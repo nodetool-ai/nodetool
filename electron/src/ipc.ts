@@ -972,12 +972,6 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  // Package version check handler
-  createIpcMainHandler(IpcChannels.PACKAGE_VERSION_CHECK, async () => {
-    logMessage("Checking expected package versions");
-    return await checkExpectedPackageVersions();
-  });
-
   // Log viewer handlers
   createIpcMainHandler(IpcChannels.GET_LOGS, async () => {
     logMessage("Getting server logs");

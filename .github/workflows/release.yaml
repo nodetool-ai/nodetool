@@ -17,7 +17,6 @@ permissions:
 
 jobs:
   release-build:
-    needs: generate-locks
     strategy:
       matrix:
         include:

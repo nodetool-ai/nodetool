@@ -167,56 +167,6 @@ async function checkAndInstallExpectedPackages(): Promise<boolean> {
   }
 }
 
-function assertActivatedCondaEnvironmentForDevMode(): void {
-  if (process.env.CONDA_PREFIX && process.env.CONDA_PREFIX.trim().length > 0) {
-    return;
-  }
-
-  const message =
-    "Electron dev mode requires an activated conda environment. " +
-    "Please run `conda activate <env>` before starting `make electron-dev`.";
-  dialog.showErrorBox("Conda Environment Required", message);
-  throw new Error(message);
-}
-
-async function waitForWebDevServerReady(
-  baseUrl: string,
-  timeoutMs: number = 60000,
-): Promise<boolean> {
-  const startTime = Date.now();
-  const probeUrl = `${baseUrl}/`;
-  let lastStatus: number | null = null;
-  let attempts = 0;
-
-  while (Date.now() - startTime < timeoutMs) {
-    attempts += 1;
-    try {
-      const response = await fetch(probeUrl, { method: "GET" });
-      lastStatus = response.status;
-      if (response.ok) {
-        logMessage(
-          `Web dev server is ready at ${probeUrl} after ${attempts} attempt(s)`,
-        );
-        return true;
-      }
-      logMessage(
-        `Web dev server not ready yet (${response.status}), retrying...`,
-        "warn",
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logMessage(`Web dev server probe failed (${message}), retrying...`, "warn");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-
-  logMessage(
-    `Timed out waiting for web dev server at ${probeUrl}. Last status: ${lastStatus ?? "none"}`,
-    "warn",
-  );
-  return false;
-}
-
 /**
  * Checks if the Python Conda environment is available (non-blocking).
  * Returns true if the environment exists, false otherwise.

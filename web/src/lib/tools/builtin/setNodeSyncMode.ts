@@ -3,8 +3,6 @@ import { uiSetNodeSyncModeParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 
-const syncModeSchema = z.enum(["on_any", "zip_all"]);
-
 FrontendToolRegistry.register({
   name: "ui_set_node_sync_mode",
   description:

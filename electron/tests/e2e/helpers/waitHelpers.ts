@@ -179,11 +179,44 @@ export async function waitForElements(
 }
 
 /**
+ * Wait for the Electron window to have a proper HTTP URL.
+ *
+ * When the Electron app starts, the window initially loads a file:// or
+ * data: URL while the backend server is starting. Once the backend is
+ * healthy, the window navigates to http://127.0.0.1:<port>. This helper
+ * waits for that transition so tests can navigate to routes.
+ */
+export async function waitForAppUrl(
+  page: Page,
+  timeout = 60000
+): Promise<string> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const currentUrl = page.url();
+    try {
+      const parsed = new URL(currentUrl);
+      if (parsed.origin !== "null" && parsed.protocol.startsWith("http")) {
+        return parsed.origin;
+      }
+    } catch {
+      // URL not parseable yet
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error(
+    `Timed out waiting for app to load an HTTP URL (still at ${page.url()} after ${timeout}ms)`
+  );
+}
+
+/**
  * Navigate to a page within the Electron app.
  *
  * In Electron the app is loaded at its own URL (e.g. http://localhost:...
  * or file://...). This helper resolves relative paths against the current
  * origin so that navigateToPage(page, "/dashboard") works correctly.
+ *
+ * If the current page origin is "null" (file:// or data: URL), this will
+ * wait for the app to transition to an HTTP URL before navigating.
  */
 export async function navigateToPage(
   page: Page,
@@ -196,13 +229,20 @@ export async function navigateToPage(
   let targetUrl = url;
   if (url.startsWith("/")) {
     const currentUrl = page.url();
+    let origin: string | null = null;
     try {
       const base = new URL(currentUrl);
-      targetUrl = `${base.origin}${url}`;
+      origin = base.origin;
     } catch {
-      // If current URL can't be parsed (e.g. about:blank), use as-is
-      targetUrl = url;
+      // URL not parseable
     }
+
+    // If origin is "null" (file:// or data: URLs), wait for HTTP URL
+    if (!origin || origin === "null") {
+      origin = await waitForAppUrl(page);
+    }
+
+    targetUrl = `${origin}${url}`;
   }
 
   await page.goto(targetUrl, { timeout: 30000 });

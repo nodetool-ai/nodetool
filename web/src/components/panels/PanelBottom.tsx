@@ -123,10 +123,6 @@ const PanelBottom: React.FC = () => {
     handlePanelToggle("trace");
   }, [handlePanelToggle]);
 
-  const handleTerminalToggle = useCallback(() => {
-    handlePanelToggle("terminal");
-  }, [handlePanelToggle]);
-
   const openHeight = isVisible
     ? Math.min(
         panelSize,

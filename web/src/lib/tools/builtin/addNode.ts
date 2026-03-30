@@ -31,47 +31,6 @@ const addNodeParametersSchema = z
     }
   );
 
-const nodePropertySchema = z.record(z.string(), z.any());
-
-const xyPositionSchema = z.object({
-  x: z.number(),
-  y: z.number()
-});
-
-const positionInputSchema = z.union([xyPositionSchema, z.string()]);
-
-const nodeInputSchema = z.object({
-  id: z.string(),
-  type: z.string().optional(),
-  node_type: z.string().optional(),
-  position: positionInputSchema,
-  properties: nodePropertySchema.optional()
-});
-
-const addNodeParametersSchema = z
-  .object({
-    node: nodeInputSchema.optional(),
-    id: z.string().optional(),
-    type: z.string().optional(),
-    node_type: z.string().optional(),
-    position: positionInputSchema.optional(),
-    properties: nodePropertySchema.optional(),
-    workflow_id: optionalWorkflowIdSchema
-  })
-  .refine(
-    (data) => {
-      // Either node object is provided, or id and position are provided
-      if (data.node) {
-        return true;
-      }
-      return data.id !== undefined && data.position !== undefined;
-    },
-    {
-      message:
-        "Either 'node' object or both 'id' and 'position' must be provided"
-    }
-  );
-
 FrontendToolRegistry.register({
   name: "ui_add_node",
   description: "Add a node to the current workflow graph.",

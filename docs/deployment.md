@@ -28,8 +28,6 @@ Before deploying, ensure you have:
 
 **For Supabase:** Create a project at [supabase.com](https://supabase.com) and note your project URL and service role key
 
-For a practical full runbook (desktop, public, private, Docker/Podman, and workflow sync verification), see [End-to-End Deployment Guide](deployment-e2e-guide.md).
-
 ---
 
 ## Quick Reference: What Do You Want to Do?

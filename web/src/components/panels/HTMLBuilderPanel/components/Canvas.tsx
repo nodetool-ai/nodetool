@@ -5,7 +5,14 @@
  * inline text editing, and element reordering capabilities.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX
+} from "react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";

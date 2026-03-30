@@ -125,13 +125,6 @@ const ToolsListProperty = (props: PropertyProps) => {
     [toolNames, onChange]
   );
 
-  const handleToolClick = useCallback(
-    (toolName: string) => () => {
-      handleToggleTool(toolName);
-    },
-    [handleToggleTool]
-  );
-
   return (
     <>
       <PropertyLabel

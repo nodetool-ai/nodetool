@@ -21,6 +21,8 @@ async function resolveProvider(providerId: string, userId: string) {
   return getProvider(providerId.toLowerCase(), userId);
 }
 
+const isProduction = process.env["NODETOOL_ENV"] === "production";
+
 const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, opts) => {
   const { registry, pythonBridge, getPythonBridgeReady, toolClassMap } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
@@ -74,65 +76,68 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
     });
   });
 
-  // Terminal WebSocket
-  app.get("/ws/terminal", { websocket: true }, (socket, _req) => {
-    (socket as any).on("error", (error: Error) => {
-      log.error("Terminal WebSocket error", error);
-    });
-    log.info("Terminal WebSocket client connected");
-    (socket as any).send(JSON.stringify({ type: "output", data: "Terminal connected.\r\n" }));
-    (socket as any).on("message", (raw: any) => {
-      try {
-        const msg = JSON.parse(raw.toString());
-        if (msg.type === "input") {
-          (socket as any).send(JSON.stringify({ type: "output", data: msg.data }));
-        }
-      } catch {
-        // ignore
-      }
-    });
-  });
-
-  // Download WebSocket (HuggingFace model downloads)
-  app.get("/ws/download", { websocket: true }, (socket, _req) => {
-    (socket as any).on("error", (error: Error) => {
-      log.error("Download WebSocket error", error);
-    });
-    log.info("Download WebSocket client connected");
-
-    import("@nodetool/huggingface").then(({ getDownloadManager }) => {
-      (socket as any).on("message", async (raw: any) => {
+  // Terminal and Download WebSocket endpoints — local development only
+  if (!isProduction) {
+    // Terminal WebSocket
+    app.get("/ws/terminal", { websocket: true }, (socket, _req) => {
+      (socket as any).on("error", (error: Error) => {
+        log.error("Terminal WebSocket error", error);
+      });
+      log.info("Terminal WebSocket client connected");
+      (socket as any).send(JSON.stringify({ type: "output", data: "Terminal connected.\r\n" }));
+      (socket as any).on("message", (raw: any) => {
         try {
           const msg = JSON.parse(raw.toString());
-          if (msg.command === "start_download") {
-            const manager = await getDownloadManager();
-            await manager.startDownload(msg.repo_id ?? "", {
-              path: msg.path ?? null,
-              allowPatterns: msg.allow_patterns ?? null,
-              ignorePatterns: msg.ignore_patterns ?? null,
-              cacheDir: msg.cache_dir ?? null,
-              modelType: msg.model_type ?? null,
-              onProgress: (update) => {
-                try { (socket as any).send(JSON.stringify(update)); } catch { /* gone */ }
-              },
-            });
-          } else if (msg.command === "cancel_download") {
-            const manager = await getDownloadManager();
-            manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
+          if (msg.type === "input") {
+            (socket as any).send(JSON.stringify({ type: "output", data: msg.data }));
           }
-        } catch (err) {
-          const error = err instanceof Error ? err.message : String(err);
-          try { (socket as any).send(JSON.stringify({ status: "error", error })); } catch { /* gone */ }
+        } catch {
+          // ignore
         }
       });
-    }).catch((err: unknown) => {
-      log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
-      try {
-        (socket as any).send(JSON.stringify({ status: "error", error: "Download module unavailable" }));
-        (socket as any).close();
-      } catch { /* socket already gone */ }
     });
-  });
+
+    // Download WebSocket (HuggingFace model downloads)
+    app.get("/ws/download", { websocket: true }, (socket, _req) => {
+      (socket as any).on("error", (error: Error) => {
+        log.error("Download WebSocket error", error);
+      });
+      log.info("Download WebSocket client connected");
+
+      import("@nodetool/huggingface").then(({ getDownloadManager }) => {
+        (socket as any).on("message", async (raw: any) => {
+          try {
+            const msg = JSON.parse(raw.toString());
+            if (msg.command === "start_download") {
+              const manager = await getDownloadManager();
+              await manager.startDownload(msg.repo_id ?? "", {
+                path: msg.path ?? null,
+                allowPatterns: msg.allow_patterns ?? null,
+                ignorePatterns: msg.ignore_patterns ?? null,
+                cacheDir: msg.cache_dir ?? null,
+                modelType: msg.model_type ?? null,
+                onProgress: (update) => {
+                  try { (socket as any).send(JSON.stringify(update)); } catch { /* gone */ }
+                },
+              });
+            } else if (msg.command === "cancel_download") {
+              const manager = await getDownloadManager();
+              manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
+            }
+          } catch (err) {
+            const error = err instanceof Error ? err.message : String(err);
+            try { (socket as any).send(JSON.stringify({ status: "error", error })); } catch { /* gone */ }
+          }
+        });
+      }).catch((err: unknown) => {
+        log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
+        try {
+          (socket as any).send(JSON.stringify({ status: "error", error: "Download module unavailable" }));
+          (socket as any).close();
+        } catch { /* socket already gone */ }
+      });
+    });
+  }
 };
 
 export default websocketPlugin;

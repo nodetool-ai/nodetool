@@ -426,9 +426,6 @@ const createSingleAssetFile = async (
   const stringLooksLikeUrl =
     typeof data === "string" &&
     (data.startsWith("http://") || data.startsWith("https://"));
-  const outputUri = typeof output?.uri === "string" ? output.uri : undefined;
-  const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
-  let desiredFilename = output?.filename as string | undefined;
 
   const typedOutput = output && typeof output === "object" ? output as TypedOutput : null;
   const outputUri = typeof typedOutput?.uri === "string" ? typedOutput.uri : undefined;

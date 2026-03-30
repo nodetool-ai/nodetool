@@ -126,6 +126,11 @@ export async function handleDebugExportRequest(
   request: Request,
   providerIds?: string[],
 ): Promise<Response> {
+  // Debug export leaks system info — disabled in production
+  if (process.env["NODETOOL_ENV"] === "production") {
+    return errorResponse(403, "Debug export is disabled in production");
+  }
+
   if (request.method !== "POST") {
     return errorResponse(405, "Method not allowed");
   }

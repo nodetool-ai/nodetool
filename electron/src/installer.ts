@@ -24,8 +24,6 @@ import { BrowserWindow } from "electron";
 // Lock file no longer used — packages are specified directly via runtime configuration
 import { InstallToLocationData, IpcChannels, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
-import { detectTorchPlatform, type TorchruntimeDetectionResult } from "./torchruntime";
-import { saveTorchPlatform } from "./torchPlatformCache";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
 const CPU_LLAMA_SPEC = "llama.cpp";

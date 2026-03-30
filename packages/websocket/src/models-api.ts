@@ -194,7 +194,7 @@ function errorResponse(status: number, detail: string | Record<string, unknown>)
 }
 
 function isProduction(): boolean {
-  const value = (process.env.ENV ?? process.env.NODE_ENV ?? "").toLowerCase();
+  const value = (process.env.NODETOOL_ENV ?? process.env.NODE_ENV ?? "").toLowerCase();
   return value === "production";
 }
 
@@ -511,6 +511,9 @@ async function serverAllowsModel(model: RecommendedUnifiedModel, servers: Record
 }
 
 async function getServerAvailability(): Promise<Record<string, boolean>> {
+  // Skip localhost probes in production — local servers won't be available
+  if (isProduction()) return { ollama: false, llama_cpp: false };
+
   const ollamaUrl = (process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434").replace(/\/+$/, "");
   const llamaUrl = process.env.LLAMA_CPP_URL?.replace(/\/+$/, "") ?? "";
 

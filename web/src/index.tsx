@@ -126,9 +126,6 @@ const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
 const CodeEditorDebug = React.lazy(() => import("./components/CodeEditorDebug"));
-const HTMLBuilderPanel = React.lazy(
-  () => import("./components/panels/HTMLBuilderPanel")
-);
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -394,16 +391,6 @@ function getRoutes() {
       )
     },
     {
-      path: "html-builder",
-      element: (
-        <ProtectedRoute>
-          <PanelLeft />
-          <HTMLBuilderPanel />
-          <PanelBottom />
-        </ProtectedRoute>
-      )
-    },
-    {
       path: "graph/:workflowId",
       element: <WorkflowGraphView />
     }
@@ -507,13 +494,6 @@ const AppWrapper = () => {
       window.location.pathname.startsWith(p)
     );
 
-  // Allow dev-only test pages to render without backend metadata
-  const isDevTestRoute =
-    isLocalhost &&
-    ["/layouttest", "/chatmarkdowntest"].some((p) =>
-      window.location.pathname.startsWith(p)
-    );
-
   useEffect(() => {
     // Register frontend tools after initial render
     registerFrontendTools();
@@ -546,9 +526,6 @@ const AppWrapper = () => {
 
   const shouldRenderRouter =
     isDevTestRoute || status === "success" || status === "logged_out";
-
-  const shouldRenderRouter =
-    isDevTestRoute || (status !== "pending" && status !== "error");
 
   return (
     <React.StrictMode>

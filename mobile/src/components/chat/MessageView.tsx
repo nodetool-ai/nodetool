@@ -88,7 +88,6 @@ function hasMediaContent(content: Message['content']): boolean {
 }
 
 export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
-  // All hooks must be called before any early returns
   const isUser = message.role === 'user';
   const { colors } = useTheme();
 
