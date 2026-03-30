@@ -29,6 +29,16 @@ export interface UseCompositingParams {
   isolatedLayerId?: string | null;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   transformPreviewByLayerId?: Record<string, LayerTransform>;
+  /**
+   * Synchronously-updated preview map (e.g. move-tool drag). rAF compositing
+   * reads `.current` so it matches pointer events before React commits `transformPreviewByLayerId` state.
+   */
+  transformPreviewByLayerIdRef?: React.MutableRefObject<Record<string, LayerTransform>>;
+  /**
+   * Latest document for compositing (e.g. `() => useSketchStore.getState().document`)
+   * so committed layer transforms paint immediately before the `doc` prop re-renders.
+   */
+  getDocumentForComposite?: () => SketchDocument;
 }
 
 export interface UseCompositingResult {
@@ -63,7 +73,9 @@ export function useCompositing({
   zoom: externalZoom = 1,
   isolatedLayerId,
   activeStrokeRef,
-  transformPreviewByLayerId = {}
+  transformPreviewByLayerId = {},
+  transformPreviewByLayerIdRef,
+  getDocumentForComposite
 }: UseCompositingParams): UseCompositingResult {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const bootstrapDisplayRef = useRef<HTMLCanvasElement>(null);
@@ -222,16 +234,19 @@ export function useCompositing({
       if (!rt) {
         return;
       }
-      const hasTransformPreview = Object.keys(transformPreviewByLayerId).length > 0;
+      const previewSource =
+        transformPreviewByLayerIdRef?.current ?? transformPreviewByLayerId;
+      const hasTransformPreview = Object.keys(previewSource).length > 0;
+      const baseDoc = getDocumentForComposite?.() ?? doc;
       const compositeDoc = hasTransformPreview
         ? {
-            ...doc,
-            layers: doc.layers.map((layer) => {
-              const previewTransform = transformPreviewByLayerId[layer.id];
+            ...baseDoc,
+            layers: baseDoc.layers.map((layer) => {
+              const previewTransform = previewSource[layer.id];
               return previewTransform ? { ...layer, transform: previewTransform } : layer;
             })
           }
-        : doc;
+        : baseDoc;
       const activeStroke = activeStrokeRef.current;
       rt.compositeToDisplay(
         targetCanvas,
@@ -251,7 +266,9 @@ export function useCompositing({
       activeStrokeRef,
       backend,
       bootstrapPhaseActive,
-      transformPreviewByLayerId
+      transformPreviewByLayerId,
+      transformPreviewByLayerIdRef,
+      getDocumentForComposite
     ]
   );
 

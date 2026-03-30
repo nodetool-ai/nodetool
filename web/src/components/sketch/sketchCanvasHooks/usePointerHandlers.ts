@@ -1179,6 +1179,10 @@ export function usePointerHandlers({
           movePreviewTransformRef.current = previewTransform;
           movePreviewLayerIdRef.current = layer.id;
           setLayerTransformPreview?.(layer.id, previewTransform);
+          // Schedule a redraw so the preview is visible in the next frame.
+          // The React-effect path in useCompositing is deferred and can be
+          // missed before any paint stroke has occurred.
+          requestRedraw();
         }
         return;
       }
@@ -1493,6 +1497,11 @@ export function usePointerHandlers({
             syncDocumentFromCanvas: false
           });
         }
+        // Explicitly schedule a redraw so the committed transform is visible
+        // immediately. The React-effect-based redraw in useCompositing is
+        // asynchronous and can be missed in some batching scenarios (e.g. the
+        // first move on a locked layer before any paint stroke has occurred).
+        requestRedraw();
         return;
       }
       if (interactionTool === "clone_stamp") {
