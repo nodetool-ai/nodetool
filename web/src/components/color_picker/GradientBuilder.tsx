@@ -281,8 +281,12 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
     [removeStop]
   );
 
-  const copyToClipboard = useCallback(() => {
-    navigator.clipboard.writeText(cssOutput);
+  const copyToClipboard = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(cssOutput);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+    }
   }, [cssOutput]);
 
   const selectedStop =

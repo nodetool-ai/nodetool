@@ -218,9 +218,13 @@ const TracePanel: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [exportJSON]);
 
-  const handleCopy = useCallback(() => {
-    const json = exportJSON();
-    navigator.clipboard.writeText(json);
+  const handleCopy = useCallback(async () => {
+    try {
+      const json = exportJSON();
+      await navigator.clipboard.writeText(json);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+    }
   }, [exportJSON]);
 
   return (
