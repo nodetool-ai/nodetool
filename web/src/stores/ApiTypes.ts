@@ -73,9 +73,12 @@ export interface FalUnitPricing {
   unit_price: number;
   billing_unit: string;
   currency: string;
-  /** "live" = fetched at runtime from FAL API; "bundle" = baked in at codegen time */
+  /** "live" = fetched at runtime from FAL API; "bundle" = from codegen JSON / enriched snapshot */
   source?: "live" | "bundle";
-  /** ISO timestamp of when the price was last fetched (live only) */
+  /**
+   * ISO time for the price row: live fetch time, or bundle snapshot
+   * (`fal-unit-pricing.json` writtenAt preferred, else `fal-node-type-pricing.json` writtenAt).
+   */
   checked_at?: string;
 }
 
