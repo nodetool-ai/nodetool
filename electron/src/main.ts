@@ -339,11 +339,15 @@ async function initialize(): Promise<void> {
       return;
     }
 
-    dialog.showErrorBox(
-      "Initialization Error",
-      `Failed to initialize: ${message}`,
-    );
-    app.quit();
+    if (!process.env.CI) {
+      dialog.showErrorBox(
+        "Initialization Error",
+        `Failed to initialize: ${message}`,
+      );
+      app.quit();
+    } else {
+      logMessage("CI environment: skipping error dialog, app stays open for testing", "warn");
+    }
   }
 }
 

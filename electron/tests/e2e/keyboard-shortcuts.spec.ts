@@ -1,10 +1,10 @@
 import { test, expect } from "./fixtures/electronApp";
-import { BACKEND_API_URL } from "../../../web/tests/e2e/support/backend";
+import { BACKEND_API_URL } from "./support/backend";
 import {
   navigateToPage,
   waitForEditorReady,
   waitForAnimation,
-} from "../../../web/tests/e2e/helpers/waitHelpers";
+} from "./helpers/waitHelpers";
 
 // Note: These tests use "Meta" modifier which maps to Command on macOS and Windows key on Windows.
 // Playwright handles this cross-platform, but the actual shortcuts in the app may differ by platform.

@@ -43,18 +43,55 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: electron/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            electron/package-lock.json
           check-latest: true
+
+      - name: Set up Python (for node-gyp)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install root workspace dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        run: npm run build:packages
 
       - name: Install Electron dependencies
         run: |
           cd electron
           npm ci
 
-      - name: Install mobile dependencies
+      - name: Link workspace packages into electron
+        if: runner.os != 'Windows'
         run: |
-          cd mobile
-          npm ci
+          mkdir -p electron/node_modules/@nodetool
+          for pkg in packages/*/; do
+            pkg_name=$(node -e "console.log(require('./${pkg}package.json').name)" 2>/dev/null) || continue
+            short_name="${pkg_name#@nodetool/}"
+            if [ "$short_name" != "$pkg_name" ]; then
+              ln -sf "$(pwd)/${pkg}" "electron/node_modules/@nodetool/${short_name}"
+            fi
+          done
+
+      - name: Link workspace packages into electron (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force electron/node_modules/@nodetool -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path electron/node_modules/@nodetool
+          Get-ChildItem -Directory packages | ForEach-Object {
+            $pkgJson = Join-Path $_.FullName "package.json"
+            if (Test-Path $pkgJson) {
+              $name = (node -e "console.log(require('./packages/$($_.Name)/package.json').name)" 2>$null)
+              if ($name -and $name.StartsWith("@nodetool/")) {
+                $shortName = $name.Replace("@nodetool/", "")
+                New-Item -ItemType Junction -Path "electron/node_modules/@nodetool/$shortName" -Target $_.FullName -ErrorAction SilentlyContinue
+              }
+            }
+          }
 
       - name: Install Playwright browsers
         run: |
@@ -64,7 +101,9 @@ jobs:
       - name: Rebuild native modules for Electron
         run: |
           cd electron
-          npx @electron/rebuild
+          ELECTRON_VERSION=$(node -e "console.log(require('electron/package.json').version)")
+          npx @electron/rebuild --version $ELECTRON_VERSION
+        shell: bash
 
       - name: Build Electron app
         run: |

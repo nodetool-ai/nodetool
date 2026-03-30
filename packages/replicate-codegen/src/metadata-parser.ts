@@ -9,7 +9,7 @@
 import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 import { SchemaParser } from "./schema-parser.js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type AnyRecord = Record<string, any>;
 
 /** A single node entry from the Python metadata JSON. */

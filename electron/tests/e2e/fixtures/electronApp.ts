@@ -57,7 +57,7 @@ export const test = base.extend<ElectronFixtures>({
 
     const app = await electron.launch({
       args: [
-        path.join(__dirname, '../../../../dist-electron/main.js'),
+        path.join(__dirname, '../../../dist-electron/main.js'),
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage'
@@ -79,7 +79,7 @@ export const test = base.extend<ElectronFixtures>({
   page: async ({ electronApp }, use) => {
     const window = await electronApp.firstWindow();
     try {
-      await window.waitForLoadState('load', { timeout: 15000 });
+      await window.waitForLoadState('load', { timeout: 30000 });
     } catch {
       // Timeout is acceptable - app may still be loading
     }

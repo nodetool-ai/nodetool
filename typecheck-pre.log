@@ -10,16 +10,87 @@ cd electron && npm run typecheck
 > nodetool-electron@0.6.3-rc.47 typecheck
 > tsc --noEmit
 
-Type checking mobile package...
-cd mobile && npm run typecheck
-
-> nodetool-mobile@0.6.3-rc.47 typecheck
-> tsc --noEmit
-
-error TS2688: Cannot find type definition file for 'jest'.
-  The file is in the program because:
-    Entry point of type library 'jest' specified in compilerOptions
-error TS2688: Cannot find type definition file for 'node'.
-  The file is in the program because:
-    Entry point of type library 'node' specified in compilerOptions
-make: *** [Makefile:181: typecheck-mobile] Error 2
+src/WorkflowRunner.ts(4,30): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/agent.ts(20,48): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/agent.ts(1141,22): error TS2503: Cannot find namespace 'Electron'.
+src/codexAgent.ts(5,34): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/codexAgent.ts(6,25): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/codexAgent.ts(184,22): error TS2503: Cannot find namespace 'Electron'.
+src/condaPackageChecker.ts(12,21): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/condaPackageChecker.ts(89,22): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/config.ts(3,21): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/config.ts(9,39): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/config.ts(13,23): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/config.ts(206,20): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/config.ts(207,17): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/debug.ts(16,21): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/events.ts(1,31): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/fileExplorer.ts(4,23): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/installer.ts(3,29): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/installer.ts(23,31): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/installer.ts(360,22): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/ipc.ts(8,8): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/ipc.ts(82,10): error TS2503: Cannot find namespace 'Electron'.
+src/ipc.ts(87,10): error TS2503: Cannot find namespace 'Electron'.
+src/ipc.ts(188,10): error TS2503: Cannot find namespace 'Electron'.
+src/ipc.ts(204,22): error TS2503: Cannot find namespace 'Electron'.
+src/ipc.ts(345,44): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/ipc.ts(787,42): error TS2307: Cannot find module 'electron-updater' or its corresponding type declarations.
+src/ipc.ts(793,41): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/ipc.ts(804,44): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/ipc.ts(815,44): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/logger.ts(1,21): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/logger.ts(3,17): error TS2307: Cannot find module 'electron-log' or its corresponding type declarations.
+src/main.ts(35,8): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/main.ts(450,24): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/menu.ts(1,53): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/packageManager.ts(2,21): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/preload-workflow.ts(1,44): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/preload.ts(14,44): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/preload.ts(56,31): error TS2503: Cannot find namespace 'Electron'.
+src/preload.ts(774,25): error TS2503: Cannot find namespace 'Electron'.
+src/python.ts(4,29): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/scheduler.ts(14,28): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/server.ts(1,36): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/server.ts(22,30): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/settings.ts(4,18): error TS7016: Could not find a declaration file for module 'js-yaml'. '/home/runner/work/nodetool/nodetool/node_modules/js-yaml/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/js-yaml` if it exists or add a new declaration (.d.ts) file containing `declare module 'js-yaml';`
+src/shortcuts.ts(1,40): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/state.ts(1,31): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/systemInfo.ts(9,21): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/systemInfo.ts(241,5): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/systemInfo.ts(242,5): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/tray.ts(1,55): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/tray.ts(36,19): error TS2503: Cannot find namespace 'Electron'.
+src/tray.ts(179,38): error TS2503: Cannot find namespace 'Electron'.
+src/tray.ts(267,39): error TS2503: Cannot find namespace 'Electron'.
+src/tray.ts(298,68): error TS2503: Cannot find namespace 'Electron'.
+src/tray.ts(346,56): error TS2503: Cannot find namespace 'Electron'.
+src/updater.ts(1,35): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/updater.ts(2,55): error TS2307: Cannot find module 'electron-updater' or its corresponding type declarations.
+src/updater.ts(3,17): error TS2307: Cannot find module 'electron-log' or its corresponding type declarations.
+src/updater.ts(52,35): error TS2339: Property 'resourcesPath' does not exist on type 'Process'.
+src/watchdog.ts(2,48): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/window.ts(1,61): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/window.ts(9,29): error TS2503: Cannot find namespace 'Electron'.
+src/window.ts(19,48): error TS7006: Parameter '_event' implicitly has an 'any' type.
+src/window.ts(19,56): error TS7006: Parameter 'input' implicitly has an 'any' type.
+src/window.ts(69,23): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/window.ts(266,6): error TS7006: Parameter 'details' implicitly has an 'any' type.
+src/window.ts(266,15): error TS7006: Parameter 'callback' implicitly has an 'any' type.
+src/window.ts(309,6): error TS7006: Parameter 'w' implicitly has an 'any' type.
+src/workflowExecution.ts(3,40): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+src/workflowWindow.ts(1,50): error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+vite.config.ts(3,22): error TS2307: Cannot find module 'vite-plugin-electron' or its corresponding type declarations.
+vite.config.ts(75,17): error TS7006: Parameter 'options' implicitly has an 'any' type.
+vite.config.ts(93,17): error TS7006: Parameter 'options' implicitly has an 'any' type.
+npm error Lifecycle script `typecheck` failed with error:
+npm error code 2
+npm error path /home/runner/work/nodetool/nodetool/electron
+npm error workspace nodetool-electron@0.6.3-rc.47
+npm error location /home/runner/work/nodetool/nodetool/electron
+npm error command failed
+npm error command sh -c tsc --noEmit
+make: *** [Makefile:188: typecheck-electron] Error 2
