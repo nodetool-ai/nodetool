@@ -85,20 +85,34 @@ describe("AlertBanner", () => {
   });
 
   describe("compact mode", () => {
-    it("applies compact styles when compact is true", () => {
-      render(
+    it("applies different styling when compact is true", () => {
+      const { container: compactContainer } = render(
         <AlertBanner severity="info" compact>
-          Compact message
+          Message
         </AlertBanner>
       );
-      const alert = screen.getByRole("alert");
-      expect(alert).toBeInTheDocument();
+      const { container: normalContainer } = render(
+        <AlertBanner severity="info">Message</AlertBanner>
+      );
+      const compactAlert = compactContainer.querySelector('[role="alert"]');
+      const normalAlert = normalContainer.querySelector('[role="alert"]');
+      // compact prop adds reduced padding via sx, generating different emotion CSS classes
+      expect(compactAlert?.className).not.toEqual(normalAlert?.className);
     });
 
-    it("does not apply compact styles by default", () => {
-      render(<AlertBanner severity="info">Regular message</AlertBanner>);
-      const alert = screen.getByRole("alert");
-      expect(alert).toBeInTheDocument();
+    it("applies same styling when compact is false as when omitted", () => {
+      const { container: noCompactContainer } = render(
+        <AlertBanner severity="info" compact={false}>
+          Message
+        </AlertBanner>
+      );
+      const { container: defaultContainer } = render(
+        <AlertBanner severity="info">Message</AlertBanner>
+      );
+      const noCompactAlert = noCompactContainer.querySelector('[role="alert"]');
+      const defaultAlert = defaultContainer.querySelector('[role="alert"]');
+      // compact=false (default) should produce identical classes to omitting the prop
+      expect(noCompactAlert?.className).toEqual(defaultAlert?.className);
     });
   });
 
@@ -138,13 +152,18 @@ describe("AlertBanner", () => {
 
   describe("custom styling via sx prop", () => {
     it("applies custom styles from sx prop", () => {
-      render(
+      const { container: withSxContainer } = render(
         <AlertBanner severity="info" sx={{ marginTop: "16px" }}>
           Message
         </AlertBanner>
       );
-      const alert = screen.getByRole("alert");
-      expect(alert).toBeInTheDocument();
+      const { container: withoutSxContainer } = render(
+        <AlertBanner severity="info">Message</AlertBanner>
+      );
+      const withSxAlert = withSxContainer.querySelector('[role="alert"]');
+      const withoutSxAlert = withoutSxContainer.querySelector('[role="alert"]');
+      // sx prop is merged into the Alert's sx, generating different emotion CSS classes
+      expect(withSxAlert?.className).not.toEqual(withoutSxAlert?.className);
     });
   });
 
