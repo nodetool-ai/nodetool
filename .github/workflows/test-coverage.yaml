@@ -1,0 +1,140 @@
+name: Test Coverage Improvement
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Run coverage report
+        id: coverage
+        continue-on-error: true
+        run: |
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+
+          cd web && npx vitest run --coverage --reporter=json --outputFile=coverage-report.json 2>&1 | tee coverage.log || true
+          echo "### Web Coverage" >> $GITHUB_STEP_SUMMARY
+          tail -20 coverage.log >> $GITHUB_STEP_SUMMARY || true
+          cd ..
+
+          cd electron && npx vitest run --coverage --reporter=json --outputFile=coverage-report.json 2>&1 | tee coverage.log || true
+          echo "### Electron Coverage" >> $GITHUB_STEP_SUMMARY
+          tail -20 coverage.log >> $GITHUB_STEP_SUMMARY || true
+          cd ..
+
+      - name: Run quality checks baseline
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+          prompt: |
+            # Improve Test Coverage
+
+            Add meaningful tests for untested or under-tested code in the NodeTool codebase.
+
+            ## Scope
+            - `/web/src` — React frontend
+            - `/electron/src` — desktop app
+
+            ## How to find gaps
+
+            1. Read the coverage reports: `web/coverage.log` and `electron/coverage.log`
+            2. Identify source files with low or zero coverage
+            3. Prioritize: utility functions > store logic > hooks > components
+
+            ## What to test
+
+            **Utility functions**: Pure functions in utils/helpers directories. Test edge cases, error conditions, and typical usage.
+
+            **Zustand store actions**: Test store actions produce the correct state changes. Use the pattern from existing tests.
+
+            **Custom hooks**: Test hooks using `renderHook` from React Testing Library. Test state changes and side effects.
+
+            **React components**: Test rendering, user interactions, and conditional display. Follow existing patterns using React Testing Library.
+
+            ## Rules
+            - Follow existing test patterns and conventions in the codebase. Read existing test files first.
+            - Place test files adjacent to source files as `__tests__/<filename>.test.ts(x)` matching the existing convention.
+            - Use the same test utilities and mocking patterns already in the codebase.
+            - Do not mock what you can test directly. Prefer integration-style tests.
+            - Do not add tests for trivial code (simple pass-through components, re-exports).
+            - Do not modify existing tests unless they are broken.
+            - Do not touch `@ts-expect-error` / `@ts-ignore` directives.
+            - Do not touch `test.skip` / `describe.skipIf` / `test.fixme` markers.
+            - Do not touch CI workflow files.
+            - Keep changes focused — maximum 5 new test files per PR.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a test coverage PR is already open.
+            - Read 2-3 existing test files to understand the project's testing conventions.
+
+            ## Verification
+            After adding tests, all checks must pass:
+            ```bash
+            make typecheck && make lint && make test
+            ```
+
+            ## Submit
+            Create a PR titled "test: add coverage for <area>" listing each new test file and what it covers.
+
+      - name: Post-change verification
+        if: always()
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

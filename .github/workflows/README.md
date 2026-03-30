@@ -7,6 +7,11 @@
 | **opencode.yml** | `/oc` comment on issue/PR | Interactive assistant — answers questions, investigates bugs, implements fixes on request |
 | **quality-assurance.yaml** | Every 6h + manual | Fixes broken typecheck/lint/tests. Only runs Claude if checks are actually failing. |
 | **security-audit.yaml** | Manual only | Scans for dependency CVEs, dangerous code patterns, and Electron misconfigurations |
+| **dead-code-cleanup.yaml** | Daily 3am + manual | Finds and removes unused exports, imports, unreachable code, and commented-out blocks |
+| **type-safety.yaml** | Daily 3am + manual | Replaces `any` types, adds missing return types, improves type narrowing |
+| **performance-optimization.yaml** | Daily 3am + manual | Fixes React performance issues: missing memo, useMemo/useCallback, inefficient selectors |
+| **dependency-cleanup.yaml** | Daily 3am + manual | Removes unused dependencies, aligns versions, updates minor/patch versions |
+| **test-coverage.yaml** | Daily 3am + manual | Adds tests for uncovered utility functions, store actions, hooks, and components |
 
 ## Standard CI Workflows
 
@@ -32,4 +37,9 @@
 ```bash
 gh workflow run security-audit.yaml
 gh workflow run quality-assurance.yaml
+gh workflow run dead-code-cleanup.yaml
+gh workflow run type-safety.yaml
+gh workflow run performance-optimization.yaml
+gh workflow run dependency-cleanup.yaml
+gh workflow run test-coverage.yaml
 ```
