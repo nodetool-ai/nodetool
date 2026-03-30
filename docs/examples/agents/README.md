@@ -70,6 +70,141 @@ nodetool agent \
   --prompt "Write a blog post about sustainable software development practices"
 ```
 
+### [nodejs-code-reviewer.yaml](nodejs-code-reviewer.yaml)
+
+Reviews Node.js and TypeScript code for quality, best practices, and common pitfalls.
+
+**Use cases:**
+- Code review for Node.js/TypeScript projects
+- Identifying anti-patterns and error handling issues
+- Checking TypeScript type safety
+- Evaluating module structure and dependencies
+
+**Tools:**
+- File operations
+- Terminal access
+- File search (grep)
+
+**Example:**
+```bash
+nodetool agent \
+  --config examples/agents/nodejs-code-reviewer.yaml \
+  --prompt "Review the src/api directory for Node.js best practices"
+```
+
+### [nodejs-test-generator.yaml](nodejs-test-generator.yaml)
+
+Generates comprehensive test suites for Node.js and TypeScript code.
+
+**Use cases:**
+- Generating unit tests for functions and classes
+- Creating integration tests for module interactions
+- Writing edge case and error path tests
+- Generating mocks and stubs for dependencies
+
+**Tools:**
+- File operations
+- Code execution
+- Terminal access
+- File search (grep)
+
+**Example:**
+```bash
+nodetool agent \
+  --config examples/agents/nodejs-test-generator.yaml \
+  --prompt "Generate tests for all exported functions in src/utils/"
+```
+
+### [nodejs-security-auditor.yaml](nodejs-security-auditor.yaml)
+
+Audits Node.js code for security vulnerabilities and unsafe patterns.
+
+**Use cases:**
+- OWASP Top 10 vulnerability scanning
+- Injection attack detection (SQL, command, path traversal)
+- Authentication and authorization review
+- Secrets and configuration security audit
+
+**Tools:**
+- File operations
+- Terminal access
+- File search (grep)
+
+**Example:**
+```bash
+nodetool agent \
+  --config examples/agents/nodejs-security-auditor.yaml \
+  --prompt "Audit the authentication middleware and API routes for security issues"
+```
+
+### [nodejs-performance-optimizer.yaml](nodejs-performance-optimizer.yaml)
+
+Analyzes Node.js code for performance bottlenecks and applies optimizations.
+
+**Use cases:**
+- Event loop blocking detection
+- Async pattern optimization
+- Memory leak identification
+- I/O and stream processing optimization
+
+**Tools:**
+- File operations
+- Code execution
+- Terminal access
+- File search (grep)
+
+**Example:**
+```bash
+nodetool agent \
+  --config examples/agents/nodejs-performance-optimizer.yaml \
+  --prompt "Analyze the data processing pipeline for performance bottlenecks"
+```
+
+### [nodejs-refactorer.yaml](nodejs-refactorer.yaml)
+
+Refactors Node.js and TypeScript code to improve structure and modernize patterns.
+
+**Use cases:**
+- Modernizing legacy JavaScript to TypeScript/ESM
+- Reducing cyclomatic complexity
+- Converting callbacks to async/await
+- Improving module boundaries and SOLID adherence
+
+**Tools:**
+- File operations
+- Code execution
+- Terminal access
+- File search (grep)
+
+**Example:**
+```bash
+nodetool agent \
+  --config examples/agents/nodejs-refactorer.yaml \
+  --prompt "Refactor the user service to use async/await and proper error types"
+```
+
+### [nodejs-dependency-analyzer.yaml](nodejs-dependency-analyzer.yaml)
+
+Analyzes Node.js project dependencies for bloat, outdated packages, and optimization opportunities.
+
+**Use cases:**
+- Finding unused dependencies
+- Detecting heavy packages with lighter alternatives
+- Identifying dev vs prod misclassification
+- Checking for Node.js built-in replacements
+
+**Tools:**
+- File operations
+- Terminal access
+- File search (grep)
+
+**Example:**
+```bash
+nodetool agent \
+  --config examples/agents/nodejs-dependency-analyzer.yaml \
+  --prompt "Analyze package.json and find unused or replaceable dependencies"
+```
+
 ### [minimal.yaml](minimal.yaml)
 
 Minimal agent configuration showing required fields only.
