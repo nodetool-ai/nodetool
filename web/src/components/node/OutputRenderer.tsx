@@ -278,13 +278,19 @@ const useDraggableScroll = () => {
 export type OutputRendererProps = {
   value: any;
   showTextActions?: boolean;
+  /**
+   * When false, image tile grids hide multi-select / compare. When omitted, defaults to true.
+   * Preview node passes false unless multiple renderable images exist.
+   */
+  imageGridEnableSelection?: boolean;
 };
 
 // all helpers/styles/hooks moved to ./output/*
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({
   value,
-  showTextActions = true
+  showTextActions = true,
+  imageGridEnableSelection
 }) => {
   const shouldRender = !(
     value === undefined ||
@@ -658,6 +664,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <OutputRenderer
               value={singleValue}
               showTextActions={showTextActions}
+              imageGridEnableSelection={imageGridEnableSelection}
             />
           );
         }
@@ -667,7 +674,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <ObjectRenderer
             value={value}
             renderValue={(v) => (
-              <OutputRenderer value={v} showTextActions={showTextActions} />
+              <OutputRenderer
+                value={v}
+                showTextActions={showTextActions}
+                imageGridEnableSelection={imageGridEnableSelection}
+              />
             )}
           />
         );
@@ -793,6 +804,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                       )}
                       value={c}
                       showTextActions={showTextActions}
+                      imageGridEnableSelection={imageGridEnableSelection}
                     />
                   ))}
                 </Container>
@@ -806,7 +818,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             }
             if (value[0].type === "image") {
               return (
-                <AssetGrid values={value} onOpenIndex={onDoubleClickAsset} />
+                <AssetGrid
+                  values={value}
+                  onOpenIndex={onDoubleClickAsset}
+                  enableSelection={imageGridEnableSelection ?? true}
+                />
               );
             }
             if (["audio", "video", "html"].includes(value[0].type)) {
@@ -821,6 +837,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                       )}
                       value={v}
                       showTextActions={showTextActions}
+                      imageGridEnableSelection={imageGridEnableSelection}
                     />
                   ))}
                 </Container>
@@ -860,6 +877,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
                   value={v}
                   showTextActions={showTextActions}
+                  imageGridEnableSelection={imageGridEnableSelection}
                 />
               ));
             })()}
@@ -873,6 +891,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 key={v[0]}
                 value={v[1]}
                 showTextActions={showTextActions}
+                imageGridEnableSelection={imageGridEnableSelection}
               />
             ))}
           </div>
@@ -919,7 +938,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     handleMouseDown,
     scrollRef,
     showTextActions,
-    handleModel3DDoubleClick
+    handleModel3DDoubleClick,
+    imageGridEnableSelection
   ]);
 
   const handleCloseAsset = useCallback(() => {

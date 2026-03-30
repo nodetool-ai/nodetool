@@ -10,12 +10,14 @@ import log from "loglevel";
 import isEqual from "lodash/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
+import type { AssetRef } from "../../../stores/ApiTypes";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
+import { countPreviewGridImages } from "../output/AssetGrid";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeOutputs } from "../NodeOutputs";
@@ -410,11 +412,32 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     [displayResult]
   );
 
+  /** For a top-level list of image refs only: allow grid multi-select when there is more than one renderable image. Otherwise leave default (nested grids unchanged). */
+  const previewImageGridEnableSelection = useMemo((): boolean | undefined => {
+    const out = previewOutput ?? displayResult;
+    if (!Array.isArray(out) || out.length === 0) {
+      return undefined;
+    }
+    const first = out[0];
+    if (
+      !first ||
+      typeof first !== "object" ||
+      (first as { type?: string }).type !== "image"
+    ) {
+      return undefined;
+    }
+    return countPreviewGridImages(out as AssetRef[]) > 1;
+  }, [previewOutput, displayResult]);
+
   const memoizedOutputRenderer = useMemo(() => {
     return displayResult !== undefined ? (
-      <OutputRenderer value={displayResult} showTextActions={false} />
+      <OutputRenderer
+        value={displayResult}
+        showTextActions={false}
+        imageGridEnableSelection={previewImageGridEnableSelection}
+      />
     ) : null;
-  }, [displayResult]);
+  }, [displayResult, previewImageGridEnableSelection]);
 
   const copyPayloadSource = useMemo(
     () => getCopySource(previewOutput ?? displayResult ?? null),
