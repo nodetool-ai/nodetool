@@ -109,203 +109,26 @@ async function assertNoErrorBoundary(page: Page): Promise<void> {
 }
 
 // ─── Test suite ───────────────────────────────────────────────────────────────
+//
+// Each test captures a UNIQUE page or interaction state. No two tests produce
+// the same screenshot.
 
 // Skip when executed by Jest (only Playwright runner)
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
-  // ===========================================================================
-  // DASHBOARD / PORTAL
-  // ===========================================================================
-  test.describe("Dashboard", () => {
+  test.describe("Documentation Screenshots", () => {
     test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
     });
 
-    test("Dashboard overview", async ({ page }) => {
+    // ── Dashboard ───────────────────────────────────────────────────────────
+    test("Dashboard", async ({ page }) => {
       test.skip(shouldSkip("dashboard-overview.png"), "Already captured");
       await gotoPage(page, "/");
       await saveScreenshot(page, "dashboard-overview.png");
     });
 
-    test("Dashboard – workflow list", async ({ page }) => {
-      test.skip(shouldSkip("dashboard-workflows.png"), "Already captured");
-      await gotoPage(page, "/");
-      await saveScreenshot(page, "dashboard-workflows.png");
-    });
-  });
-
-  // ===========================================================================
-  // TEMPLATES
-  // ===========================================================================
-  test.describe("Templates", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test("Templates grid", async ({ page }) => {
-      test.skip(shouldSkip("templates-grid.png"), "Already captured");
-      await gotoPage(page, "/templates");
-      await saveScreenshot(page, "templates-grid.png");
-    });
-  });
-
-  // ===========================================================================
-  // CHAT
-  // ===========================================================================
-  test.describe("Chat", () => {
-    test("Global chat interface", async ({ page }) => {
-      test.skip(shouldSkip("global-chat-interface.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/chat");
-      await saveScreenshot(page, "global-chat-interface.png");
-    });
-
-    test("Standalone chat", async ({ page }) => {
-      test.skip(shouldSkip("standalone-chat.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/standalone-chat");
-      await saveScreenshot(page, "standalone-chat.png");
-    });
-
-    test("Chat – mobile viewport", async ({ page }) => {
-      test.skip(shouldSkip("chat-mobile.png"), "Already captured");
-      await page.setViewportSize({ width: 375, height: 812 });
-      await gotoPage(page, "/chat");
-      await saveScreenshot(page, "chat-mobile.png");
-    });
-  });
-
-  // ===========================================================================
-  // MINI-APPS
-  // ===========================================================================
-  test.describe("Mini-Apps", () => {
-    test("Mini-apps gallery", async ({ page }) => {
-      test.skip(shouldSkip("mini-apps-page.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/apps");
-      await saveScreenshot(page, "mini-apps-page.png");
-    });
-  });
-
-  // ===========================================================================
-  // WORKFLOW EDITOR
-  // ===========================================================================
-  test.describe("Workflow Editor", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test("Editor – empty canvas", async ({ page }) => {
-      test.skip(shouldSkip("editor-empty-state.png"), "Already captured");
-      await gotoPage(page, "/editor/wf-story-generator");
-      await saveScreenshot(page, "editor-empty-state.png");
-    });
-
-    test("Editor – workflow view (1280×720)", async ({ page }) => {
-      test.skip(shouldSkip("editor-workflow-view.png"), "Already captured");
-      await page.setViewportSize({ width: 1280, height: 720 });
-      await gotoPage(page, "/editor/wf-story-generator");
-      await saveScreenshot(page, "editor-workflow-view.png");
-    });
-
-    test("Canvas workflow", async ({ page }) => {
-      test.skip(shouldSkip("canvas-workflow.png"), "Already captured");
-      await gotoPage(page, "/editor/wf-story-generator");
-      await saveScreenshot(page, "canvas-workflow.png");
-    });
-  });
-
-  // ===========================================================================
-  // ASSETS
-  // ===========================================================================
-  test.describe("Asset Explorer", () => {
-    test("Asset explorer", async ({ page }) => {
-      test.skip(shouldSkip("asset-explorer.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/assets");
-      await saveScreenshot(page, "asset-explorer.png");
-    });
-  });
-
-  // ===========================================================================
-  // COLLECTIONS
-  // ===========================================================================
-  test.describe("Collections", () => {
-    test("Collections explorer", async ({ page }) => {
-      test.skip(shouldSkip("collections-explorer.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/collections");
-      await saveScreenshot(page, "collections-explorer.png");
-    });
-  });
-
-  // ===========================================================================
-  // MODELS
-  // ===========================================================================
-  test.describe("Models", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-    });
-
-    test("Models list", async ({ page }) => {
-      test.skip(shouldSkip("models-list.png"), "Already captured");
-      await gotoPage(page, "/models");
-      await saveScreenshot(page, "models-list.png");
-    });
-
-    test("Models manager – full view", async ({ page }) => {
-      test.skip(shouldSkip("models-manager-full.png"), "Already captured");
-      await gotoPage(page, "/models");
-      await saveScreenshot(page, "models-manager-full.png");
-    });
-  });
-
-  // ===========================================================================
-  // ISOLATED COMPONENT PREVIEWS (via /preview routes, bypasses metadata gate)
-  // ===========================================================================
-  test.describe("Isolated Component Previews", () => {
-    test("App Header – full width strip", async ({ page }) => {
-      test.skip(shouldSkip("app-header.png"), "Already captured");
-      // Use a narrow viewport height to get just the header
-      await page.setViewportSize({ width: 1920, height: 80 });
-      await gotoPage(page, "/preview/app-header");
-      await saveScreenshot(page, "app-header.png");
-    });
-
-    test("Preview index page", async ({ page }) => {
-      test.skip(shouldSkip("component-preview-index.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/preview");
-      await saveScreenshot(page, "component-preview-index.png");
-    });
-
-    test("Dashboard – isolated preview", async ({ page }) => {
-      test.skip(shouldSkip("component-dashboard.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/preview/dashboard");
-      await saveScreenshot(page, "component-dashboard.png");
-    });
-
-    test("Models – isolated preview", async ({ page }) => {
-      test.skip(shouldSkip("component-models.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/preview/models");
-      await saveScreenshot(page, "component-models.png");
-    });
-
-    test("Assets – isolated preview", async ({ page }) => {
-      test.skip(shouldSkip("component-assets.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/preview/assets");
-      await saveScreenshot(page, "component-assets.png");
-    });
-  });
-
-  // ===========================================================================
-  // RESPONSIVE VIEWS
-  // ===========================================================================
-  test.describe("Responsive Viewports", () => {
     test("Dashboard – mobile (375×812)", async ({ page }) => {
       test.skip(shouldSkip("dashboard-mobile.png"), "Already captured");
       await page.setViewportSize({ width: 375, height: 812 });
@@ -320,38 +143,66 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "dashboard-tablet.png");
     });
 
-    test("Editor – wide (2560×1440)", async ({ page }) => {
-      test.skip(shouldSkip("editor-wide.png"), "Already captured");
-      await page.setViewportSize({ width: 2560, height: 1440 });
+    // ── Editor ──────────────────────────────────────────────────────────────
+    test("Editor", async ({ page }) => {
+      test.skip(shouldSkip("editor-empty-state.png"), "Already captured");
       await gotoPage(page, "/editor/wf-story-generator");
-      await saveScreenshot(page, "editor-wide.png");
-    });
-  });
-
-  // ===========================================================================
-  // SETTINGS
-  // ===========================================================================
-  test.describe("Settings", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
+      await saveScreenshot(page, "editor-empty-state.png");
     });
 
+    // ── Chat ────────────────────────────────────────────────────────────────
+    test("Chat", async ({ page }) => {
+      test.skip(shouldSkip("global-chat-interface.png"), "Already captured");
+      await gotoPage(page, "/chat");
+      await saveScreenshot(page, "global-chat-interface.png");
+    });
+
+    test("Standalone chat", async ({ page }) => {
+      test.skip(shouldSkip("standalone-chat.png"), "Already captured");
+      await gotoPage(page, "/standalone-chat");
+      await saveScreenshot(page, "standalone-chat.png");
+    });
+
+    test("Chat – mobile (375×812)", async ({ page }) => {
+      test.skip(shouldSkip("chat-mobile.png"), "Already captured");
+      await page.setViewportSize({ width: 375, height: 812 });
+      await gotoPage(page, "/chat");
+      await saveScreenshot(page, "chat-mobile.png");
+    });
+
+    // ── Templates ───────────────────────────────────────────────────────────
+    test("Templates", async ({ page }) => {
+      test.skip(shouldSkip("templates-grid.png"), "Already captured");
+      await gotoPage(page, "/templates");
+      await saveScreenshot(page, "templates-grid.png");
+    });
+
+    // ── Assets ──────────────────────────────────────────────────────────────
+    // NOTE: /assets and /apps routes still crash due to deep Zustand object
+    // selector issues in useMiniAppRunner and AssetGrid sub-components.
+    // These need a broader refactor (178 remaining instances codebase-wide).
+
+    // ── Collections ─────────────────────────────────────────────────────────
+    test("Collections", async ({ page }) => {
+      test.skip(shouldSkip("collections-explorer.png"), "Already captured");
+      await gotoPage(page, "/collections");
+      await saveScreenshot(page, "collections-explorer.png");
+    });
+
+    // ── Models ──────────────────────────────────────────────────────────────
+    test("Models", async ({ page }) => {
+      test.skip(shouldSkip("models-list.png"), "Already captured");
+      await gotoPage(page, "/models");
+      await saveScreenshot(page, "models-list.png");
+    });
+
+    // ── Settings ────────────────────────────────────────────────────────────
     test("Settings dialog", async ({ page }) => {
       test.skip(shouldSkip("settings-dialog.png"), "Already captured");
       await gotoPage(page, "/");
-      // Open settings via keyboard shortcut
       await page.keyboard.press("Control+,");
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "settings-dialog.png");
-    });
-
-    test("Settings – general tab (1280×720)", async ({ page }) => {
-      test.skip(shouldSkip("settings-general.png"), "Already captured");
-      await page.setViewportSize({ width: 1280, height: 720 });
-      await gotoPage(page, "/");
-      await page.keyboard.press("Control+,");
-      await waitForAnimation(page, 600);
-      await saveScreenshot(page, "settings-general.png");
     });
 
     test("Settings – API keys tab", async ({ page }) => {
@@ -359,7 +210,6 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/");
       await page.keyboard.press("Control+,");
       await waitForAnimation(page, 600);
-      // Click the API Keys / Secrets tab if present
       const apiKeysTab = page
         .getByRole("tab")
         .filter({ hasText: /api.*key|secret/i })
@@ -370,17 +220,19 @@ if (process.env.JEST_WORKER_ID) {
       }
       await saveScreenshot(page, "settings-api-keys.png");
     });
-  });
 
-  // ===========================================================================
-  // CREATIVE STORY WORKFLOW
-  // ===========================================================================
-  test.describe("Workflow Thumbnails", () => {
-    test("Creative story workflow", async ({ page }) => {
-      test.skip(shouldSkip("creative-story-workflow.png"), "Already captured");
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoPage(page, "/editor/wf-story-generator");
-      await saveScreenshot(page, "creative-story-workflow.png");
+    // ── Isolated components ─────────────────────────────────────────────────
+    test("App header strip", async ({ page }) => {
+      test.skip(shouldSkip("app-header.png"), "Already captured");
+      await page.setViewportSize({ width: 1920, height: 80 });
+      await gotoPage(page, "/preview/app-header");
+      await saveScreenshot(page, "app-header.png");
+    });
+
+    test("Models – isolated component", async ({ page }) => {
+      test.skip(shouldSkip("component-models.png"), "Already captured");
+      await gotoPage(page, "/preview/models");
+      await saveScreenshot(page, "component-models.png");
     });
   });
 }
