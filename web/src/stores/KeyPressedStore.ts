@@ -371,7 +371,7 @@ const initKeyListeners = () => {
   };
 };
 
-export const useKeyPressed = (selector: (state: KeyPressedState) => any) =>
+export const useKeyPressed = <T>(selector: (state: KeyPressedState) => T) =>
   useStoreWithEqualityFn(useKeyPressedStore, selector, shallow);
 
 // Update useCombo to import KeyboardContext from new location

@@ -10,6 +10,7 @@ import { NodeStore, createNodeStore } from "./NodeStore";
 import {
   Workflow,
   WorkflowAttributes,
+  WorkflowList,
   WorkflowRequest
 } from "./ApiTypes";
 import { client } from "./ApiClient";
@@ -140,14 +141,14 @@ export type WorkflowManagerState = {
     fromExamplePackage?: string,
     fromExampleName?: string
   ) => Promise<Workflow>;
-  load: (cursor?: string, limit?: number, columns?: string) => Promise<any>;
+  load: (cursor?: string, limit?: number, columns?: string) => Promise<WorkflowList>;
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
-  loadPublic: (cursor?: string) => Promise<any>;
-  loadTemplates: () => Promise<any>;
-  searchTemplates: (query: string) => Promise<any>;
+  loadPublic: (cursor?: string) => Promise<WorkflowList>;
+  loadTemplates: () => Promise<WorkflowList>;
+  searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
-  saveExample: (packageName: string) => Promise<any>;
+  saveExample: (packageName: string) => Promise<Workflow>;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -331,7 +332,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} [cursor] Pagination cursor
        * @param {number} [limit] Number of workflows to load
        * @param {string} [columns] Optional comma-separated list of columns to fetch
-       * @returns {Promise<any>} The loaded workflows data
+       * @returns {Promise<WorkflowList>} The loaded workflows data
        * @throws {Error} If the API call fails
        */
       load: async (cursor?: string, limit?: number, columns?: string) => {
