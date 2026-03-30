@@ -22,7 +22,9 @@ describe('ProtectedRoute', () => {
   });
 
   it('redirects to /login when logged_out', async () => {
-    (useAuth as unknown as jest.Mock).mockReturnValue({ state: 'logged_out' });
+    (useAuth as unknown as jest.Mock).mockImplementation((selector: (s: { state: string }) => unknown) =>
+      selector({ state: 'logged_out' })
+    );
     render(
       <ProtectedRoute>
         <div>secure</div>
@@ -32,7 +34,9 @@ describe('ProtectedRoute', () => {
   });
 
   it('shows loading spinner when state is loading', () => {
-    (useAuth as unknown as jest.Mock).mockReturnValue({ state: 'loading' });
+    (useAuth as unknown as jest.Mock).mockImplementation((selector: (s: { state: string }) => unknown) =>
+      selector({ state: 'loading' })
+    );
     render(
       <ProtectedRoute>
         <div>secure</div>
@@ -42,7 +46,9 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders children when logged_in', () => {
-    (useAuth as unknown as jest.Mock).mockReturnValue({ state: 'logged_in' });
+    (useAuth as unknown as jest.Mock).mockImplementation((selector: (s: { state: string }) => unknown) =>
+      selector({ state: 'logged_in' })
+    );
     render(
       <ProtectedRoute>
         <div>secure</div>

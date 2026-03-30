@@ -21,6 +21,7 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
+import { useShallow } from "zustand/react/shallow";
 import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
@@ -103,7 +104,7 @@ const GlobalChat: React.FC = () => {
     selectedCollections,
     setSelectedCollections
   } = useGlobalChatStore(
-    (state) => ({
+    useShallow((state) => ({
       currentRunningToolCallId: state.currentRunningToolCallId,
       currentToolMessage: state.currentToolMessage,
       selectedModel: state.selectedModel,
@@ -112,7 +113,7 @@ const GlobalChat: React.FC = () => {
       setSelectedTools: state.setSelectedTools,
       selectedCollections: state.selectedCollections,
       setSelectedCollections: state.setSelectedCollections
-    })
+    }))
   );
 
   // Use the consolidated TanStack Query hook from the store
