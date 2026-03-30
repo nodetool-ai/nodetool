@@ -44,18 +44,17 @@ export const ProcessTimer = ({ status }: { status: string }) => {
         transition: "opacity 1s 1s"
       })}
     >
-      {status === "starting" && (
-        <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>
-      )}
-      {status === "booting" && (
-        <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>
+      {(status === "starting" || status === "booting") && (
+        <Box sx={{ color: "warning.main" }}>{seconds} starting...</Box>
       )}
       {status === "running" && (
-        <Box sx={{ color: "white" }}>{seconds} running...</Box>
+        <Box sx={{ color: "text.primary" }}>{seconds} running...</Box>
       )}
-      {status === "failed" && <Box sx={{ color: "red" }}>failed</Box>}
+      {status === "failed" && (
+        <Box sx={{ color: "error.main" }}>failed</Box>
+      )}
       {status === "completed" && (
-        <Box sx={{ color: "white" }}>completed in {seconds}</Box>
+        <Box sx={{ color: "text.primary" }}>completed in {seconds}</Box>
       )}
     </div>
   );

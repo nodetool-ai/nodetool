@@ -98,17 +98,17 @@ export function computeEtag(data: Record<string, unknown>): string {
 
 // ── DBModel Base ─────────────────────────────────────────────────────
 
- 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle tables have deeply nested generics; `any` is required for the base-class pattern.
 export type DrizzleTable = SQLiteTableWithColumns<any>;
 
 /**
  * Helper to get column object from table by name.
- * Needed because Drizzle tables store columns as properties.
+ * Needed because Drizzle tables store columns as properties keyed by column name.
+ * Returns the Drizzle column object for use with query builders (eq, etc.).
  */
- 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle column type varies per table; callers pass result to eq() which accepts any column.
 function getTableColumn(table: DrizzleTable, colName: string): any {
-   
-  return (table as any)[colName];
+  return (table as Record<string, unknown>)[colName];
 }
 
 /**
@@ -116,8 +116,7 @@ function getTableColumn(table: DrizzleTable, colName: string): any {
  */
 function getColumnNames(table: DrizzleTable): string[] {
   // Drizzle stores column config under Symbol.for("drizzle:Columns")
-   
-  const cols = (table as any)[Symbol.for("drizzle:Columns")];
+  const cols = (table as unknown as Record<symbol, Record<string, unknown>>)[Symbol.for("drizzle:Columns")];
   if (cols) return Object.keys(cols);
   // Fallback: iterate own enumerable string keys that look like columns
   return Object.keys(table).filter(k => !k.startsWith("_"));
@@ -130,8 +129,8 @@ export abstract class DBModel {
   /** Primary key column name. Override for non-'id' PKs (e.g. RunLease uses 'run_id'). */
   static primaryKey = "id";
 
-  // Allow dynamic property access for column data
-   
+  // Allow dynamic property access for column data — DBModel instances store column values as properties.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 
   constructor(data: Record<string, unknown>) {
@@ -140,7 +139,7 @@ export abstract class DBModel {
 
   // ── CRUD ─────────────────────────────────────────────────────────
 
-   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `this: any` enables static polymorphism across subclasses.
   static async create<T extends DBModel>(this: any, data: Record<string, unknown>): Promise<T> {
     const instance = new this(data) as T;
     await instance.save();
@@ -148,7 +147,7 @@ export abstract class DBModel {
     return instance;
   }
 
-   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `this: any` enables static polymorphism across subclasses.
   static async get<T extends DBModel>(this: any, key: string | number): Promise<T | null> {
     const db = getDb();
     const table = this.table as DrizzleTable;
@@ -194,7 +193,7 @@ export abstract class DBModel {
   }
 
   async reload(): Promise<this> {
-     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructor must be callable with `new` for dynamic instantiation.
     const ctor = this.constructor as any;
     const db = getDb();
     const table = (ctor as typeof DBModel).table;
