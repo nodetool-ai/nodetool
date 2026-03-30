@@ -579,6 +579,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const pixelLayerCanvasActionsDisabled =
     !activeLayer || activeLayer.locked || activeLayer.type === "group";
 
+  const hasMultiLayerSelection = selectedLayerIds.length >= 2;
+  const layerIdsInDoc = new Set(layers.map((l) => l.id));
+  const selectedLayersPresentCount = selectedLayerIds.filter((id) =>
+    layerIdsInDoc.has(id)
+  ).length;
+  const canDeleteToolbarLayer = hasMultiLayerSelection
+    ? layers.length - selectedLayersPresentCount >= 1
+    : layers.length > 1;
+
   return (
     <Box className="sketch-layers-panel" css={styles(theme)}>
       {/* ── Color Selector ── */}
@@ -732,12 +741,22 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <ContentCopyIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete Layer">
+          <Tooltip
+            title={
+              hasMultiLayerSelection
+                ? "Delete selected layers"
+                : "Delete Layer"
+            }
+          >
             <span>
               <IconButton
                 size="small"
-                onClick={() => onRemoveLayer(activeLayerId)}
-                disabled={layers.length <= 1}
+                onClick={() =>
+                  hasMultiLayerSelection
+                    ? onDeleteSelectedLayers()
+                    : onRemoveLayer(activeLayerId)
+                }
+                disabled={!canDeleteToolbarLayer}
               >
                 <DeleteIcon sx={{ fontSize: "1.125rem" }} />
               </IconButton>
