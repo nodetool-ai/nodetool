@@ -1,0 +1,28 @@
+{
+  "modelId": "zylim0702/remove_bg",
+  "owner": "zylim0702",
+  "name": "remove_bg",
+  "version": "35f26d202befb596c0bce411284649324b2b33dc1c7645a03155f3ec11585c59",
+  "description": "Best Human detection and Object Detection Background removal.",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

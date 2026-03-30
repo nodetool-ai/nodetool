@@ -1,0 +1,14 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "audio_in", "type": "test.Input", "name": "audio_path" },
+      { "id": "reverb", "type": "lib.pedalboard.Reverb", "data": { "room_scale": 0.5, "damping": 0.5, "wet_level": 0.15, "dry_level": 0.5 } },
+      { "id": "out", "type": "nodetool.control.Reroute", "name": "output" }
+    ],
+    "edges": [
+      { "source": "audio_in", "sourceHandle": "value", "target": "reverb", "targetHandle": "audio" },
+      { "source": "reverb", "sourceHandle": "output", "target": "out", "targetHandle": "input_value" }
+    ]
+  },
+  "params": {}
+}

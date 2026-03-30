@@ -1,0 +1,27 @@
+{
+  "modelId": "mickeybeurskens/latex-ocr",
+  "owner": "mickeybeurskens",
+  "name": "latex-ocr",
+  "version": "b3278fae4c46eb2798804fc66e721e6ce61a450d072041a7e402b2c77805dcc3",
+  "description": "Optical character recognition to turn images of latex equations into latex format.",
+  "inputSchema": {
+    "properties": {
+      "image_path": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image Path",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image_path"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "title": "Output",
+    "type": "string"
+  }
+}

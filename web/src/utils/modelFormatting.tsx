@@ -1,4 +1,3 @@
-import React from "react";
 import { UnifiedModel } from "../stores/ApiTypes";
 import ModelIcon from "../icons/data_types/nodetool/model.svg";
 import PetsIcon from "@mui/icons-material/Pets";

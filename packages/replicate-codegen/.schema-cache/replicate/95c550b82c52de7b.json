@@ -1,0 +1,74 @@
+{
+  "modelId": "zsxkib/step1x-edit",
+  "owner": "zsxkib",
+  "name": "step1x-edit",
+  "version": "12b5a5a61e3419f792eb56cfc16eed046252740ebf5d470228f9b4cf2c861610",
+  "description": "✍️Step1X-Edit by stepfun-ai, Edit an image using text prompt📸",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Output image format",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 4
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Compression quality for JPEG / WebP (1-100)",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 5
+      },
+      "prompt": {
+        "default": "Remove the person from the image.",
+        "description": "Editing instruction prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Random seed for reproducible results (leave blank for random)",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 3
+      },
+      "size_level": {
+        "default": 512,
+        "description": "Internal resolution (larger values process slower but may capture finer details)",
+        "enum": [
+          512,
+          768,
+          1024
+        ],
+        "title": "size_level",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

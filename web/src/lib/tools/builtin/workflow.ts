@@ -1,11 +1,7 @@
 import { z } from "zod";
 import type { FrontendToolState } from "../frontendTools";
 
-export const optionalWorkflowIdSchema = z
-  .string()
-  .nullable()
-  .optional()
-  .describe("Optional workflow id; when omitted/null, the current workflow is used.");
+export { optionalWorkflowIdSchema } from "@nodetool/protocol";
 
 export const optionalWorkflowIdSchemaCompact = z.string().nullable().optional();
 

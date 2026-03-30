@@ -1,16 +1,24 @@
-import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
+import { defineConfig, loadEnv, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const configDir = dirname(fileURLToPath(import.meta.url));
+const rootNodeModules = resolve(configDir, "../node_modules");
 
 export default defineConfig(async ({ mode }) => {
+  // Load all env vars (including non-VITE_ prefixed ones) for server-side config
+  const env = loadEnv(mode, configDir, "");
   const browserslistToEsbuild = (await import("browserslist-to-esbuild"))
     .default;
   const isDebug = mode === "debug";
 
+  const apiTarget = env.PROXY_API_TARGET || "http://localhost:7777";
   const proxyConfig: Record<string, ProxyOptions> = {
     "/api": {
-      target: "http://localhost:7777",
+      target: apiTarget,
       changeOrigin: true,
       secure: false
     },
@@ -22,12 +30,12 @@ export default defineConfig(async ({ mode }) => {
       rewrite: (path) => path.replace(/^\/comfy-api/, "/api")
     },
     "/ws": {
-      target: "http://localhost:7777",
+      target: apiTarget,
       ws: true,
       changeOrigin: true
     },
     "/storage": {
-      target: "http://localhost:7777",
+      target: apiTarget,
       changeOrigin: true,
       secure: false,
       rewrite: (path) => path.replace(/^\/storage/, "/api/storage")
@@ -41,7 +49,18 @@ export default defineConfig(async ({ mode }) => {
       proxy: proxyConfig
     },
     optimizeDeps: {
-      exclude: ["@tanstack/react-query"]
+      exclude: [
+        "@tanstack/react-query",
+        "monaco-editor",
+        "@monaco-editor/react",
+        "@monaco-editor/loader",
+      ]
+    },
+    resolve: {
+      alias: {
+        "@nodetool/protocol": resolve(configDir, "../packages/protocol/src/index.ts"),
+        "monaco-editor": resolve(rootNodeModules, "monaco-editor"),
+      },
     },
     plugins: [
       react({
@@ -50,7 +69,12 @@ export default defineConfig(async ({ mode }) => {
           plugins: ["@emotion/babel-plugin"]
         }
       }),
-      viteTsconfigPaths(),
+      viteTsconfigPaths({
+        // Skip Electron build output directories — they contain bundled npm
+        // packages with tsconfig.json files whose "extends" targets (e.g.
+        // @ljharb/tsconfig) are not installed in the stripped bundle.
+        ignoreConfigErrors: true,
+      }),
       svgr()
     ],
     build: {

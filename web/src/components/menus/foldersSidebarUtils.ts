@@ -1,9 +1,6 @@
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import type { SettingWithValue } from "../../stores/ApiTypes";
 
-export const getFoldersSidebarSections = () => {
-  const store = useRemoteSettingsStore.getState();
-  const settings = store.settings;
-
+export const getFoldersSidebarSections = (settings: SettingWithValue[]) => {
   const allGroupedSettings = settings.reduce((acc, setting) => {
     const groupKey = setting.group || "UnknownGroup";
     acc[groupKey] = acc[groupKey] || [];
@@ -22,22 +19,22 @@ export const getFoldersSidebarSections = () => {
     ];
   }
 
-  const desiredLabels = ["Font Path", "Comfy Folder", "Chroma Path"];
+  const desiredLabels = ["Font Path", "Comfy Folder", "Vector DB Path"];
   const sectionId = "folders-settings"; // Static ID for the "Folders" section group
 
   const items = folderGroupSettings
-    .map((setting) => ({
+    .map((setting: any) => ({
       originalSetting: setting,
       label: setting.env_var
         .replace(/_/g, " ")
         .toLowerCase()
         .replace(/\b\w/g, (char: string) => char.toUpperCase())
     }))
-    .filter((settingInfo) => {
+    .filter((settingInfo: any) => {
       const passesFilter = desiredLabels.includes(settingInfo.label);
       return passesFilter;
     })
-    .map((settingInfo) => ({
+    .map((settingInfo: any) => ({
       id: sectionId, // All items in this group point to the same section
       label: settingInfo.label
     }));

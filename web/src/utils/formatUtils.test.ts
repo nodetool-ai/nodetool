@@ -1,7 +1,8 @@
 import {
   formatFileSize,
   getSizeCategory,
-  SIZE_FILTERS
+  SIZE_FILTERS,
+  formatToolName
 } from "./formatUtils";
 
 describe("formatUtils", () => {
@@ -98,6 +99,31 @@ describe("formatUtils", () => {
         expect(typeof filter.min).toBe("number");
         expect(typeof filter.max).toBe("number");
       });
+    });
+  });
+
+  describe("formatToolName", () => {
+    it("formats MCP tool names", () => {
+      expect(formatToolName("mcp__nodetool-ui__ui_search_nodes")).toBe("Search Nodes");
+      expect(formatToolName("mcp__nodetool-ui__ui_get_metadata")).toBe("Get Metadata");
+    });
+
+    it("formats plain snake_case names", () => {
+      expect(formatToolName("google_search")).toBe("Google Search");
+      expect(formatToolName("read_file")).toBe("Read File");
+    });
+
+    it("strips ui_ and tool_ prefixes", () => {
+      expect(formatToolName("ui_search_nodes")).toBe("Search Nodes");
+      expect(formatToolName("tool_run_workflow")).toBe("Run Workflow");
+    });
+
+    it("handles single-word names", () => {
+      expect(formatToolName("search")).toBe("Search");
+    });
+
+    it("handles MCP names with hyphens in server name", () => {
+      expect(formatToolName("mcp__my-server__do_something")).toBe("Do Something");
     });
   });
 });

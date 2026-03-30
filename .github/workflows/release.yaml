@@ -16,49 +16,16 @@ permissions:
   contents: write
 
 jobs:
-  generate-locks:
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Print selected version
-        run: echo "Using VERSION=$VERSION"
-
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          python-version: "3.11"
-          activate-environment: lockgen
-          auto-activate-base: false
-          miniforge-version: latest
-
-      - name: Install conda-lock
-        shell: bash -l {0}
-        run: conda install -y -c conda-forge conda-lock
-
-      - name: Generate platform lock files
-        shell: bash -l {0}
-        run: bash lock.sh
-
-      - name: Validate conda lock resources
-        shell: bash
-        run: bash scripts/verify-env-locks.sh
-
-      - name: Upload conda lock resources
-        uses: actions/upload-artifact@v4
-        with:
-          name: conda-lock-resources
-          path: electron/resources
-          retention-days: 1
-          if-no-files-found: error
-
   release-build:
-    needs: generate-locks
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            node_version: "25.7.0"
+          - os: ubuntu-latest
+            node_version: "25.2.1"
+          - os: macos-latest
+            node_version: "24.12.0"
 
     runs-on: ${{ matrix.os }}
 
@@ -76,12 +43,6 @@ jobs:
       - name: Print selected version
         run: echo "Using VERSION=$VERSION"
 
-      - name: Download conda lock resources
-        uses: actions/download-artifact@v4
-        with:
-          name: conda-lock-resources
-          path: electron/resources
-
       - name: Validate conda lock resources
         shell: bash
         run: bash scripts/verify-env-locks.sh
@@ -89,7 +50,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          # Keep this aligned with the packaged backend runtime from electron/resources/environment-*.yml.
+          node-version: ${{ matrix.node_version }}
 
       - name: Install Apple Certificate
         if: matrix.os == 'macos-latest'
@@ -132,17 +94,24 @@ jobs:
           echo "Using Python: $(which python)"
           python --version
 
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: npm ci
+
+      - name: Build workspace packages
+        shell: bash -l {0}
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        run: npm run build:packages
+
       - name: Build Web
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-        run: |
-          cd web
-          npm ci
-          npm run build
+        run: npm run build --workspace=web
 
       - name: Create Web Build Archive
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
         shell: bash
         id: create_archive
         run: |
@@ -154,7 +123,7 @@ jobs:
           echo "archive_name=nodetool-web-${VERSION_NO_V}.zip" >> $GITHUB_OUTPUT
 
       - name: Upload Web Build to GitHub Release
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -169,9 +138,9 @@ jobs:
           DEBUG: electron-builder
         run: |
           cd electron
-          npm ci
           npm run download-micromamba
           npm run vite:build
+          npm run prepare-backend
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
 
       - name: Resolve Windows artifacts (paths)
@@ -180,6 +149,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION_NO_V="${VERSION#v}"
+          VERSION_NO_V="${VERSION_NO_V//\//-}"
           DIST_DIR="${GITHUB_WORKSPACE}/electron/dist"
           WIN_UNPACKED_DIR="${DIST_DIR}/win-unpacked"
           INSTALLER_PATH="${DIST_DIR}/Nodetool-Setup-${VERSION_NO_V}.exe"
@@ -202,8 +172,19 @@ jobs:
           echo "APP_EXE=${APP_EXE}" >> "${GITHUB_ENV}"
           echo "INSTALLER_PATH=${INSTALLER_PATH}" >> "${GITHUB_ENV}"
 
-      - name: Decide whether to sign (skip test tags)
+      - name: Create Windows unpacked archive
         if: matrix.os == 'windows-latest'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          ARCHIVE_PATH="${DIST_DIR}/Nodetool-win-unpacked-${VERSION}.zip"
+          rm -f "${ARCHIVE_PATH}"
+          cd "${WIN_UNPACKED_DIR}"
+          powershell.exe -NoLogo -NoProfile -Command "Compress-Archive -Path * -DestinationPath '${ARCHIVE_PATH}' -Force"
+          echo "WIN_UNPACKED_ARCHIVE=${ARCHIVE_PATH}" >> "${GITHUB_ENV}"
+
+      - name: Decide whether to sign (skip test tags)
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -216,7 +197,7 @@ jobs:
           echo "Windows signing enabled: ${SHOULD_SIGN}"
 
       - name: Sign main app exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -230,7 +211,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed app exe back to unpacked directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -244,7 +225,7 @@ jobs:
           echo "Moved signed exe to ${APP_EXE}"
 
       - name: Build NSIS installer from prepackaged app (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -255,7 +236,7 @@ jobs:
           npx electron-builder --config electron-builder.json --win --x64 --prepackaged dist/win-unpacked --publish never
 
       - name: Sign installer exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -269,7 +250,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed installer back to dist directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -283,7 +264,7 @@ jobs:
           echo "Moved signed installer to ${INSTALLER_PATH}"
 
       - name: Update latest.yml sha512/size for signed installer (Windows)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -341,7 +322,7 @@ jobs:
           NODE
 
       - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -350,7 +331,7 @@ jobs:
             ${{ env.DIST_DIR }}/latest.yml
 
       - name: Upload Windows assets to GitHub Release (unsigned)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false'
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -374,14 +355,15 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          ulimit -n 65536
           cd electron
-          npm ci
           npm run download-micromamba
           npm run vite:build
+          npm run prepare-backend
           npx electron-builder --config electron-builder.json --publish never
 
       - name: Upload macOS assets to GitHub Release
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -391,10 +373,25 @@ jobs:
             electron/dist/latest-mac.yml
 
       - name: Upload Linux assets to GitHub Release
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: |
             electron/dist/*.AppImage
             electron/dist/latest-linux.yml
+
+      # ── Workflow artifacts (downloadable from the Actions run page) ────
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ matrix.os }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            electron/dist/*.dmg
+            electron/dist/*.zip
+            electron/dist/*.AppImage
+            electron/dist/*.exe
+            electron/dist/latest*.yml

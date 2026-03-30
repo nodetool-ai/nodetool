@@ -1,0 +1,69 @@
+{
+  "modelId": "google/nano-banana",
+  "owner": "google",
+  "name": "nano-banana",
+  "version": "5bdc2c7cd642ae33611d8c33f79615f98ff02509ab8db9d8ec1cc6c36d378fba",
+  "description": "Google's latest image editing model in Gemini 2.5",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "match_input_image",
+        "description": "Aspect ratio of the generated image",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "image_input": {
+        "default": [],
+        "description": "Input images to transform or use as reference (supports multiple images)",
+        "items": {
+          "format": "uri",
+          "type": "string"
+        },
+        "title": "Image Input",
+        "type": "array",
+        "x-order": 1
+      },
+      "output_format": {
+        "default": "jpg",
+        "description": "Format of the output image",
+        "enum": [
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 3
+      },
+      "prompt": {
+        "description": "A text description of the image you want to generate",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

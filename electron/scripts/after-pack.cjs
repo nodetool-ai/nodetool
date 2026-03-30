@@ -187,6 +187,31 @@ function resolveResourcesDir(context) {
   return path.join(appOutDir, "resources");
 }
 
+async function promoteBackendNodeModules(context) {
+  const resourcesDir = resolveResourcesDir(context);
+  const backendDir = path.join(resourcesDir, "backend");
+  const stagedModulesPath = path.join(backendDir, "_modules");
+  const runtimeNodeModulesPath = path.join(backendDir, "node_modules");
+
+  try {
+    await fsp.access(stagedModulesPath);
+  } catch {
+    console.warn(`No staged backend modules found at ${stagedModulesPath}`);
+    return;
+  }
+
+  try {
+    await fsp.access(runtimeNodeModulesPath);
+    console.info(`backend/node_modules already present at ${runtimeNodeModulesPath}`);
+    return;
+  } catch {
+    // Continue to promote the staged modules directory.
+  }
+
+  await fsp.rename(stagedModulesPath, runtimeNodeModulesPath);
+  console.info(`Promoted backend modules to ${runtimeNodeModulesPath}`);
+}
+
 async function ensureMicromambaBundled(context) {
   const { electronPlatformName, arch } = context;
   const downloadUrl = resolveMicromambaUrl(electronPlatformName, arch);
@@ -246,8 +271,12 @@ async function ensureMicromambaBundled(context) {
 module.exports = async function afterPack(context) {
   try {
     await ensureMicromambaBundled(context);
+    await promoteBackendNodeModules(context);
   } catch (error) {
-    console.error("Failed to bundle micromamba", error);
+    console.error("afterPack failed", error);
     throw error;
   }
 };
+
+module.exports.promoteBackendNodeModules = promoteBackendNodeModules;
+module.exports.resolveResourcesDir = resolveResourcesDir;

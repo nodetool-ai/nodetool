@@ -4785,13 +4785,7 @@ export interface components {
              * @description Outputs of the node
              */
             outputs: components["schemas"]["OutputSlot"][];
-            /**
-             * The Model Info
-             * @description HF Model info for the node
-             */
-            the_model_info: {
-                [key: string]: unknown;
-            };
+
             /**
              * Recommended Models
              * @description Recommended models for the node

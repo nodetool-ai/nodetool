@@ -17,7 +17,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
     }, [setMenuOpen]);
 
     const content = useMemo(() => {
-      if (!missingAPIKey) {return null;}
+      if (!missingAPIKey || typeof missingAPIKey !== "string") {return null;}
 
       return (
         <>
@@ -32,7 +32,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               marginBottom: "0"
             }}
           >
-            {missingAPIKey} is missing!
+            {String(missingAPIKey)} is missing!
           </Typography>
           <Button
             className="api-key-button"

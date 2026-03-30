@@ -1,0 +1,93 @@
+{
+  "modelId": "inworld/tts-1.5-max",
+  "owner": "inworld",
+  "name": "tts-1.5-max",
+  "version": "cd3daef10bdf2569116cfc09be2a8d3c686622ad9c45bd7e072eea8232c1075a",
+  "description": "Highest-quality text-to-speech with <200ms latency, emotion control, and 15-language support",
+  "inputSchema": {
+    "properties": {
+      "audio_format": {
+        "default": "mp3",
+        "description": "Output audio format.",
+        "enum": [
+          "mp3",
+          "wav",
+          "ogg_opus",
+          "flac"
+        ],
+        "title": "audio_format",
+        "type": "string",
+        "x-order": 3
+      },
+      "sample_rate": {
+        "default": 48000,
+        "description": "Audio sample rate in Hz.",
+        "enum": [
+          8000,
+          16000,
+          22050,
+          24000,
+          32000,
+          44100,
+          48000
+        ],
+        "title": "sample_rate",
+        "type": "integer",
+        "x-order": 4
+      },
+      "speaking_rate": {
+        "default": 0,
+        "description": "Speaking speed multiplier. Set to 0 for normal speed (1.0).",
+        "maximum": 1.5,
+        "minimum": 0,
+        "title": "Speaking Rate",
+        "type": "number",
+        "x-order": 5
+      },
+      "temperature": {
+        "default": 1,
+        "description": "Controls randomness when generating audio. Higher values produce more expressive results, lower values are more deterministic.",
+        "maximum": 2,
+        "minimum": 0,
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 2
+      },
+      "text": {
+        "description": "The text to convert to speech. Maximum 2,000 characters. Supports SSML break tags for pauses (e.g. `<break time=\"1s\" />`), emotion markups (e.g. `[happy]`, `[sad]`), and non-verbal vocalizations (e.g. `[laugh]`, `[sigh]`).",
+        "title": "Text",
+        "type": "string",
+        "x-order": 0
+      },
+      "text_normalization": {
+        "default": "auto",
+        "description": "Controls whether numbers, dates, and abbreviations are expanded before synthesis. 'auto' lets the model decide, 'on' always normalizes, 'off' reads text as-is.",
+        "enum": [
+          "auto",
+          "on",
+          "off"
+        ],
+        "title": "text_normalization",
+        "type": "string",
+        "x-order": 6
+      },
+      "voice_id": {
+        "default": "Ashley",
+        "description": "The voice to use. Use a preset voice name (e.g. 'Ashley', 'Dennis', 'Alex') or a custom cloned voice ID.",
+        "title": "Voice Id",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

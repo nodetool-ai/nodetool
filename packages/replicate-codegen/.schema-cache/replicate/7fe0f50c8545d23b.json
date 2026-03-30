@@ -1,0 +1,36 @@
+{
+  "modelId": "lucataco/modelscope-facefusion",
+  "owner": "lucataco",
+  "name": "modelscope-facefusion",
+  "version": "52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
+  "description": "Auto fuse a user's face onto the template image, with a similar appearance to the user",
+  "inputSchema": {
+    "properties": {
+      "template_image": {
+        "description": "Input body image",
+        "format": "uri",
+        "title": "Template Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "user_image": {
+        "description": "Input face image",
+        "format": "uri",
+        "title": "User Image",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "template_image",
+      "user_image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

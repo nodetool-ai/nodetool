@@ -1,0 +1,157 @@
+{
+  "modelId": "stability-ai/stable-diffusion-inpainting",
+  "owner": "stability-ai",
+  "name": "stable-diffusion-inpainting",
+  "version": "95b7223104132402a9ae91cc677285bc5eb997834bd2349fa486f53910fd68b3",
+  "description": "Fill in masked parts of images with Stable Diffusion",
+  "inputSchema": {
+    "properties": {
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 11
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Scale for classifier-free guidance",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 8
+      },
+      "height": {
+        "default": 512,
+        "description": "Height of generated image in pixels. Needs to be a multiple of 64",
+        "enum": [
+          64,
+          128,
+          192,
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "height",
+        "type": "integer",
+        "x-order": 3
+      },
+      "image": {
+        "description": "Initial image to generate variations of. Will be resized to height x width",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "mask": {
+        "description": "Black and white image to use as mask for inpainting over the image provided. White pixels are inpainted and black pixels are preserved.",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 2
+      },
+      "negative_prompt": {
+        "description": "Specify things to not see in the output",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 5
+      },
+      "num_inference_steps": {
+        "default": 50,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 7
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of images to generate.",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 6
+      },
+      "prompt": {
+        "default": "a vision of paradise. unreal engine",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "scheduler": {
+        "default": "DPMSolverMultistep",
+        "description": "Choose a scheduler.",
+        "enum": [
+          "DDIM",
+          "K_EULER",
+          "DPMSolverMultistep",
+          "K_EULER_ANCESTRAL",
+          "PNDM",
+          "KLMS"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 9
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 10
+      },
+      "width": {
+        "default": 512,
+        "description": "Width of generated image in pixels. Needs to be a multiple of 64",
+        "enum": [
+          64,
+          128,
+          192,
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "width",
+        "type": "integer",
+        "x-order": 4
+      }
+    },
+    "required": [
+      "image",
+      "mask"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

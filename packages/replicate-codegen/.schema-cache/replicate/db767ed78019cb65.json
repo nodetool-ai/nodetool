@@ -1,0 +1,91 @@
+{
+  "modelId": "snowflake/snowflake-arctic-instruct",
+  "owner": "snowflake",
+  "name": "snowflake-arctic-instruct",
+  "version": "081f548e9a59c93b8355abe28ca52680c8305bc8f4a186a3de62ea41b25db8dd",
+  "description": "An efficient, intelligent, and truly open-source language model",
+  "inputSchema": {
+    "properties": {
+      "frequency_penalty": {
+        "default": 0.2,
+        "description": "Deprecated. This input no longer has any effect.",
+        "title": "Frequency Penalty",
+        "type": "number",
+        "x-order": 8
+      },
+      "max_new_tokens": {
+        "default": 512,
+        "description": "The maximum number of tokens the model should generate as output. A word is generally 2-3 tokens.",
+        "title": "Max New Tokens",
+        "type": "integer",
+        "x-order": 4
+      },
+      "min_new_tokens": {
+        "default": 0,
+        "description": "Deprecated. This input no longer has any effect.",
+        "title": "Min New Tokens",
+        "type": "integer",
+        "x-order": 5
+      },
+      "presence_penalty": {
+        "default": 1.15,
+        "description": "Deprecated. This input no longer has any effect.",
+        "title": "Presence Penalty",
+        "type": "number",
+        "x-order": 7
+      },
+      "prompt": {
+        "default": "",
+        "description": "Prompt to send to the model.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "stop_sequences": {
+        "default": "<|im_end|>",
+        "title": "Stop Sequences",
+        "type": "string",
+        "x-order": 9
+      },
+      "system_prompt": {
+        "default": "You are a helpful assistant.",
+        "description": "System prompt to send to the model. This is prepended to the prompt and helps guide system behavior.",
+        "title": "System Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "temperature": {
+        "default": 0.6,
+        "description": "The value used to modulate the next token probabilities. Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
+        "title": "Temperature",
+        "type": "number",
+        "x-order": 3
+      },
+      "top_k": {
+        "default": 50,
+        "description": "Deprecated. This input no longer has any effect.",
+        "title": "Top K",
+        "type": "integer",
+        "x-order": 6
+      },
+      "top_p": {
+        "default": 0.9,
+        "description": "A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751). Lower to ignore less likely tokens.",
+        "title": "Top P",
+        "type": "number",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array",
+    "x-cog-array-display": "concatenate",
+    "x-cog-array-type": "iterator"
+  }
+}

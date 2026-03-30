@@ -32,6 +32,7 @@ import {
   DialogOpenFolderRequest,
   AgentSessionOptions,
   LocalhostProxyRequest,
+  RuntimePackageId,
 } from "./types.d";
 
 // ============================================================================
@@ -301,6 +302,25 @@ const api = {
     /** Check package versions against expected versions */
     checkVersion: () =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_VERSION_CHECK),
+
+    /** Get runtime package statuses for all registered runtimes */
+    getRuntimeStatuses: () =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_STATUSES),
+
+    /** Install a runtime package */
+    installRuntime: (packageId: RuntimePackageId, installLocation?: string) =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_INSTALL, {
+        packageId,
+        installLocation,
+      }),
+
+    /** Get current conda install location */
+    getInstallLocation: () =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_GET_INSTALL_LOCATION),
+
+    /** Open folder picker for conda install location */
+    selectInstallLocation: () =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION),
   },
 
   // ============================================================================

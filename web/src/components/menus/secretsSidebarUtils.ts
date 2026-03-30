@@ -1,14 +1,10 @@
-import useSecretsStore from "../../stores/SecretsStore";
 import { SecretResponse } from "../../stores/ApiTypes";
 
 /**
  * Generate sidebar sections for secrets management
  * Groups secrets by their type/category for navigation
  */
-export const getSecretsSidebarSections = () => {
-  const store = useSecretsStore.getState();
-  const secrets = store.secrets;
-
+export const getSecretsSidebarSections = (secrets: SecretResponse[]) => {
   if (!secrets || secrets.length === 0) {
     return [
       {

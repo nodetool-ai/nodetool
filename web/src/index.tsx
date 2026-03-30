@@ -86,7 +86,7 @@ const AppHeader = React.lazy(
 );
 
 // Lazy-loaded route components for code splitting
-const Dashboard = React.lazy(
+const _Dashboard = React.lazy(
   () => import("./components/dashboard/Dashboard")
 );
 const GlobalChat = React.lazy(
@@ -104,6 +104,9 @@ const StandaloneMiniApp = React.lazy(
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
 );
+const WorkflowGraphView = React.lazy(
+  () => import("./components/graph_view/WorkflowGraphView")
+);
 const TabsNodeEditor = React.lazy(
   () => import("./components/editor/TabsNodeEditor")
 );
@@ -119,8 +122,10 @@ const CollectionsExplorer = React.lazy(
 const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
+const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
+const CodeEditorDebug = React.lazy(() => import("./components/CodeEditorDebug"));
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -142,7 +147,7 @@ const registerFrontendTools = () => {
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
-(window as any).log = log;
+window.log = log;
 installIpcLogBridge();
 
 if (isLocalhost) {
@@ -232,9 +237,7 @@ function getRoutes() {
       path: "/dashboard",
       element: (
         <ProtectedRoute>
-          <PanelLeft />
-          <Dashboard />
-          <PanelBottom />
+          <Portal />
         </ProtectedRoute>
       )
     },
@@ -386,6 +389,10 @@ function getRoutes() {
           <ModelListIndex />
         </ProtectedRoute>
       )
+    },
+    {
+      path: "graph/:workflowId",
+      element: <WorkflowGraphView />
     }
   ];
 
@@ -398,6 +405,10 @@ function getRoutes() {
     routes.push({
       path: "/chatmarkdowntest",
       element: <ChatMarkdownTest />
+    });
+    routes.push({
+      path: "/code-editor-debug",
+      element: <CodeEditorDebug />
     });
   }
 
@@ -474,19 +485,30 @@ const preloadComfyMetadata = async (): Promise<void> => {
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
+  const authState = useAuth((s) => s.state);
 
   // Allow dev-only test pages to render without backend metadata
   const isDevTestRoute =
     isLocalhost &&
-    ["/layouttest", "/chatmarkdowntest"].some((p) =>
+    ["/layouttest", "/chatmarkdowntest", "/graph"].some((p) =>
       window.location.pathname.startsWith(p)
     );
 
   useEffect(() => {
     // Register frontend tools after initial render
     registerFrontendTools();
+  }, []);
 
-    // Existing effect for loading metadata
+  useEffect(() => {
+    // In production mode, wait until user is logged in before fetching metadata.
+    // When logged out, skip metadata so the router can render and redirect to /login.
+    if (!isLocalhost && authState !== "logged_in") {
+      if (authState === "logged_out" || authState === "error") {
+        setStatus("logged_out");
+      }
+      return;
+    }
+
     loadMetadata()
       .then((data) => {
         setStatus(data);
@@ -498,12 +520,12 @@ const AppWrapper = () => {
       })
       .catch((error) => {
         log.error("Failed to load metadata:", error);
-        setStatus("error"); // Ensure status is set to error on promise rejection
+        setStatus("error");
       });
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [authState]);
 
   const shouldRenderRouter =
-    isDevTestRoute || (status !== "pending" && status !== "error");
+    isDevTestRoute || status === "success" || status === "logged_out";
 
   return (
     <React.StrictMode>

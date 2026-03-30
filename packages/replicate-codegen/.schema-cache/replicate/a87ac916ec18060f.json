@@ -1,0 +1,67 @@
+{
+  "modelId": "zsxkib/thinksound",
+  "owner": "zsxkib",
+  "name": "thinksound",
+  "version": "40d08f9f569e91a5d72f6795ebed75178c185b0434699a98c07fc5f566efb2d4",
+  "description": "Generate contextual audio from video using step-by-step reasoning🎶",
+  "inputSchema": {
+    "properties": {
+      "caption": {
+        "default": "",
+        "description": "Caption/title describing the video content (optional)",
+        "title": "Caption",
+        "type": "string",
+        "x-order": 1
+      },
+      "cfg_scale": {
+        "default": 5,
+        "description": "Classifier-free guidance scale. Higher values follow conditioning more closely but may reduce creativity",
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Cfg Scale",
+        "type": "number",
+        "x-order": 3
+      },
+      "cot": {
+        "default": "",
+        "description": "Chain-of-Thought description providing detailed reasoning about the desired audio (optional)",
+        "title": "Cot",
+        "type": "string",
+        "x-order": 2
+      },
+      "num_inference_steps": {
+        "default": 24,
+        "description": "Number of diffusion denoising steps. More steps = higher quality but slower generation",
+        "maximum": 100,
+        "minimum": 10,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed for reproducible outputs. Leave empty for random seed",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 5
+      },
+      "video": {
+        "description": "Input video file (supports various formats)",
+        "format": "uri",
+        "title": "Video",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "video"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

@@ -262,4 +262,6 @@ function VerticalToolbar({
     );
 };
 
+VerticalToolbar.displayName = "VerticalToolbar";
+
 export default memo(VerticalToolbar);

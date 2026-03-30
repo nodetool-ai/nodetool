@@ -1,0 +1,116 @@
+{
+  "modelId": "lucataco/hotshot-xl",
+  "owner": "lucataco",
+  "name": "hotshot-xl",
+  "version": "78b3a6257e16e4b241245d65c8b2b81ea2e1ff7ed4c55306b511509ddbfd327a",
+  "description": "😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL",
+  "inputSchema": {
+    "properties": {
+      "height": {
+        "default": 384,
+        "description": "Height of the output",
+        "enum": [
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          672,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "height",
+        "type": "integer",
+        "x-order": 3
+      },
+      "mp4": {
+        "default": false,
+        "description": "Save as mp4, False for GIF",
+        "title": "Mp4",
+        "type": "boolean",
+        "x-order": 6
+      },
+      "negative_prompt": {
+        "default": "blurry",
+        "description": "Negative prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "prompt": {
+        "default": "a camel smoking a cigarette, hd, high quality",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "scheduler": {
+        "default": "EulerAncestralDiscreteScheduler",
+        "description": "Select a Scheduler",
+        "enum": [
+          "DDIMScheduler",
+          "DPMSolverMultistepScheduler",
+          "HeunDiscreteScheduler",
+          "KarrasDPM",
+          "EulerAncestralDiscreteScheduler",
+          "EulerDiscreteScheduler",
+          "PNDMScheduler"
+        ],
+        "title": "scheduler",
+        "type": "string",
+        "x-order": 4
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 7
+      },
+      "steps": {
+        "default": 30,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "width": {
+        "default": 672,
+        "description": "Width of the output",
+        "enum": [
+          256,
+          320,
+          384,
+          448,
+          512,
+          576,
+          640,
+          672,
+          704,
+          768,
+          832,
+          896,
+          960,
+          1024
+        ],
+        "title": "width",
+        "type": "integer",
+        "x-order": 2
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

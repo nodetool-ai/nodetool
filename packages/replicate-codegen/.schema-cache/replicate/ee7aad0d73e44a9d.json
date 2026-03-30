@@ -1,0 +1,28 @@
+{
+  "modelId": "smoretalk/rembg-enhance",
+  "owner": "smoretalk",
+  "name": "rembg-enhance",
+  "version": "4067ee2a58f6c161d434a9c077cfa012820b8e076efa2772aa171e26557da919",
+  "description": "A background removal model enhanced with better matting",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

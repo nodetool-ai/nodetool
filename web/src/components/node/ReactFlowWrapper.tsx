@@ -86,10 +86,10 @@ import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 
-const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
+const ReactFlowWrapper = ({
   workflowId,
   active
-}) => {
+}: ReactFlowWrapperProps) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
   // Combine multiple store subscriptions into a single selector to reduce re-renders
@@ -489,10 +489,15 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   useEffect(() => {
     if (shouldFitToScreen) {
+      // Skip fitView if we already have a stored viewport that shows the nodes
+      if (storedViewport && nodes.length > 0) {
+        setShouldFitToScreen(false);
+        return;
+      }
       fitView({ padding: 0.8 });
       setShouldFitToScreen(false);
     }
-  }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
+  }, [fitView, shouldFitToScreen, setShouldFitToScreen, storedViewport, nodes.length]);
 
   useEffect(() => {
     if (storedViewport) {
@@ -579,6 +584,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         defaultViewport={storedViewport || undefined}
         onMoveEnd={handleMoveEnd}
         panOnDrag={panOnDrag}
+        panOnScroll={/Mac|iPhone|iPad/.test(navigator.platform)}
+        zoomOnPinch={/Mac|iPhone|iPad/.test(navigator.platform)}
+        zoomOnScroll={!/Mac|iPhone|iPad/.test(navigator.platform)}
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
         connectionRadius={settings.connectionSnap}

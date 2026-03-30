@@ -39,7 +39,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       }
 
       // Create new object URL
-      const newObjectUrl = URL.createObjectURL(new Blob([source], { type }));
+      const newObjectUrl = URL.createObjectURL(new Blob([source as BlobPart], { type }));
       objectUrlRef.current = newObjectUrl;
       return newObjectUrl;
     },
@@ -74,11 +74,15 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         if (messages.length > 0) {
           return (
             <>
-              {messages.map((message, i) => (
-                <React.Fragment key={i}>
-                  {renderTextContent(getDisplayContent(message), index + i)}
-                </React.Fragment>
-              ))}
+              {messages.map((message, i) => {
+                // Create a stable key using message content and position
+                const messageKey = `${index}-${i}-${typeof message === 'string' ? message : JSON.stringify(message).slice(0, 20)}`;
+                return (
+                  <React.Fragment key={messageKey}>
+                    {renderTextContent(getDisplayContent(message), index + i)}
+                  </React.Fragment>
+                );
+              })}
               {rawText && renderTextContent(rawText, index + messages.length)}
             </>
           );

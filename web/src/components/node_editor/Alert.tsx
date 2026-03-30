@@ -88,7 +88,7 @@ const styles = () =>
 
 interface NotificationItemProps {
   notification: Notification;
-  nodeRef: React.RefObject<HTMLLIElement>;
+  nodeRef: React.RefObject<HTMLLIElement | null>;
   onClose: (id: string) => void;
   in?: boolean;
   onExited?: () => void;
@@ -291,7 +291,7 @@ const Alert: React.FC = memo(() => {
     <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
-          nodeRefs.current[notification.id] = createRef<HTMLLIElement>();
+          nodeRefs.current[notification.id] = createRef<HTMLLIElement>() as React.RefObject<HTMLLIElement>;
         }
         const nodeRef = nodeRefs.current[notification.id];
 

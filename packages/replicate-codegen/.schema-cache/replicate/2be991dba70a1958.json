@@ -1,0 +1,91 @@
+{
+  "modelId": "bytedance/seedance-1-pro-fast",
+  "owner": "bytedance",
+  "name": "seedance-1-pro-fast",
+  "version": "155d6d446da5e7cd4a2ef72725461ba8687bdf63a2a1fb7bb574f25af24dc7b5",
+  "description": "A faster and cheaper version of Seedance 1 Pro",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "16:9",
+        "description": "Video aspect ratio. Ignored if an image is used.",
+        "enum": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "9:21"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 4
+      },
+      "camera_fixed": {
+        "default": false,
+        "description": "Whether to fix camera position",
+        "title": "Camera Fixed",
+        "type": "boolean"
+      },
+      "duration": {
+        "default": 5,
+        "description": "Video duration in seconds",
+        "maximum": 12,
+        "minimum": 2,
+        "title": "Duration",
+        "type": "integer"
+      },
+      "fps": {
+        "default": 24,
+        "description": "Frame rate (frames per second)",
+        "enum": [
+          24
+        ],
+        "title": "fps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "image": {
+        "description": "Input image for image-to-video generation",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Text prompt for video generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "resolution": {
+        "default": "1080p",
+        "description": "Video resolution",
+        "enum": [
+          "480p",
+          "720p",
+          "1080p"
+        ],
+        "title": "resolution",
+        "type": "string",
+        "x-order": 3
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

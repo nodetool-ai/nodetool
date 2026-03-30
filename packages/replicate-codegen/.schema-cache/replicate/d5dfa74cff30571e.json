@@ -1,0 +1,210 @@
+{
+  "modelId": "igorriti/flux-360",
+  "owner": "igorriti",
+  "name": "flux-360",
+  "version": "d26037255a2b298408505e2fbd0bf7703521daca8f07e8c8f335ba874b4aa11a",
+  "description": "Generate 360 panorama images.",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "Aspect ratio for the generated image. If custom is selected, uses height and width below & will run in bf16 mode",
+        "enum": [
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "3:4",
+          "4:3",
+          "9:16",
+          "9:21",
+          "custom"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 3
+      },
+      "disable_safety_checker": {
+        "default": false,
+        "description": "Disable safety checker for generated images.",
+        "title": "Disable Safety Checker",
+        "type": "boolean",
+        "x-order": 14
+      },
+      "extra_lora": {
+        "description": "Load LoRA weights. Supports Replicate models in the format <owner>/<username> or <owner>/<username>/<version>, HuggingFace URLs in the format huggingface.co/<owner>/<model-name>, CivitAI URLs in the format civitai.com/models/<id>[/<model-name>], or arbitrary .safetensors URLs from the Internet. For example, 'fofr/flux-pixar-cars'",
+        "title": "Extra Lora",
+        "type": "string",
+        "x-order": 19
+      },
+      "extra_lora_scale": {
+        "default": 1,
+        "description": "Determines how strongly the extra LoRA should be applied. Sane results between 0 and 1 for base inference. For go_fast we apply a 1.5x multiplier to this value; we've generally seen good performance when scaling the base value by that amount. You may still need to experiment to find the best value for your particular lora.",
+        "maximum": 3,
+        "minimum": -1,
+        "title": "Extra Lora Scale",
+        "type": "number",
+        "x-order": 20
+      },
+      "go_fast": {
+        "default": false,
+        "description": "Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16",
+        "title": "Go Fast",
+        "type": "boolean",
+        "x-order": 15
+      },
+      "guidance_scale": {
+        "default": 3,
+        "description": "Guidance scale for the diffusion process. Lower values can give more realistic images. Good values to try are 2, 2.5, 3 and 3.5",
+        "maximum": 10,
+        "minimum": 0,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 10
+      },
+      "height": {
+        "description": "Height of generated image. Only works if `aspect_ratio` is set to custom. Will be rounded to nearest multiple of 16. Incompatible with fast generation",
+        "maximum": 1440,
+        "minimum": 256,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 4
+      },
+      "image": {
+        "description": "Input image for image to image or inpainting mode. If provided, aspect_ratio, width, and height inputs are ignored.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 1
+      },
+      "lora_scale": {
+        "default": 1,
+        "description": "Determines how strongly the main LoRA should be applied. Sane results between 0 and 1 for base inference. For go_fast we apply a 1.5x multiplier to this value; we've generally seen good performance when scaling the base value by that amount. You may still need to experiment to find the best value for your particular lora.",
+        "maximum": 3,
+        "minimum": -1,
+        "title": "Lora Scale",
+        "type": "number",
+        "x-order": 18
+      },
+      "mask": {
+        "description": "Image mask for image inpainting mode. If provided, aspect_ratio, width, and height inputs are ignored.",
+        "format": "uri",
+        "title": "Mask",
+        "type": "string",
+        "x-order": 2
+      },
+      "megapixels": {
+        "default": "1",
+        "description": "Approximate number of megapixels for generated image",
+        "enum": [
+          "1",
+          "0.25"
+        ],
+        "title": "megapixels",
+        "type": "string",
+        "x-order": 16
+      },
+      "model": {
+        "default": "dev",
+        "description": "Which model to run inference with. The dev model performs best with around 28 inference steps but the schnell model only needs 4 steps.",
+        "enum": [
+          "dev",
+          "schnell"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 7
+      },
+      "num_inference_steps": {
+        "default": 28,
+        "description": "Number of denoising steps. More steps can give more detailed images, but take longer.",
+        "maximum": 50,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 9
+      },
+      "num_outputs": {
+        "default": 1,
+        "description": "Number of outputs to generate",
+        "maximum": 4,
+        "minimum": 1,
+        "title": "Num Outputs",
+        "type": "integer",
+        "x-order": 8
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 12
+      },
+      "output_quality": {
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "maximum": 100,
+        "minimum": 0,
+        "title": "Output Quality",
+        "type": "integer",
+        "x-order": 13
+      },
+      "prompt": {
+        "description": "Prompt for generated image. If you include the `trigger_word` used in the training process you are more likely to activate the trained object, style, or concept in the resulting image.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt_strength": {
+        "default": 0.8,
+        "description": "Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number",
+        "x-order": 6
+      },
+      "replicate_weights": {
+        "description": "Load LoRA weights. Supports Replicate models in the format <owner>/<username> or <owner>/<username>/<version>, HuggingFace URLs in the format huggingface.co/<owner>/<model-name>, CivitAI URLs in the format civitai.com/models/<id>[/<model-name>], or arbitrary .safetensors URLs from the Internet. For example, 'fofr/flux-pixar-cars'",
+        "title": "Replicate Weights",
+        "type": "string",
+        "x-order": 17
+      },
+      "seed": {
+        "description": "Random seed. Set for reproducible generation",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 11
+      },
+      "width": {
+        "description": "Width of generated image. Only works if `aspect_ratio` is set to custom. Will be rounded to nearest multiple of 16. Incompatible with fast generation",
+        "maximum": 1440,
+        "minimum": 256,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 5
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

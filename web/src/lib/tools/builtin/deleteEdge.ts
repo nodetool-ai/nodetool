@@ -1,15 +1,13 @@
 import { z } from "zod";
+import { uiDeleteEdgeParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
+import { resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_delete_edge",
   description: "Delete an edge from the workflow graph.",
   requireUserConsent: true,
-  parameters: z.object({
-    edge_id: z.string(),
-    workflow_id: optionalWorkflowIdSchema
-  }),
+  parameters: z.object(uiDeleteEdgeParams),
   async execute({ edge_id, workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);

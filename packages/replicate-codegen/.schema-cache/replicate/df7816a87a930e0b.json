@@ -1,0 +1,91 @@
+{
+  "modelId": "stability-ai/stable-diffusion-3.5-large-turbo",
+  "owner": "stability-ai",
+  "name": "stable-diffusion-3.5-large-turbo",
+  "version": "6ce89263555dde3393564e799f1310ee247c5339c3c665250b5dd5d26b7bcc3d",
+  "description": "A text-to-image model that generates high-resolution images with fine details. It supports various artistic styles and produces diverse outputs from the same prompt, with a focus on fewer inference steps",
+  "inputSchema": {
+    "properties": {
+      "aspect_ratio": {
+        "default": "1:1",
+        "description": "The aspect ratio of your output image. This value is ignored if you are using an input image.",
+        "enum": [
+          "16:9",
+          "1:1",
+          "21:9",
+          "2:3",
+          "3:2",
+          "4:5",
+          "5:4",
+          "9:16",
+          "9:21"
+        ],
+        "title": "aspect_ratio",
+        "type": "string",
+        "x-order": 2
+      },
+      "cfg": {
+        "default": 1,
+        "description": "The guidance scale tells the model how similar the output should be to the prompt.",
+        "maximum": 10,
+        "minimum": 1,
+        "title": "Cfg",
+        "type": "number"
+      },
+      "image": {
+        "description": "Input image for image to image mode. The aspect ratio of your output will match this image.",
+        "format": "uri",
+        "nullable": true,
+        "title": "Image",
+        "type": "string"
+      },
+      "negative_prompt": {
+        "description": "What you do not want to see in the image",
+        "nullable": true,
+        "title": "Negative Prompt",
+        "type": "string"
+      },
+      "output_format": {
+        "default": "webp",
+        "description": "Format of the output images",
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "title": "output_format",
+        "type": "string",
+        "x-order": 7
+      },
+      "prompt": {
+        "description": "Text prompt for image generation",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "prompt_strength": {
+        "default": 0.85,
+        "description": "Prompt strength (or denoising strength) when using image to image. 1.0 corresponds to full destruction of information in image.",
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Prompt Strength",
+        "type": "number"
+      },
+      "seed": {
+        "description": "Set a seed for reproducibility. Random by default.",
+        "nullable": true,
+        "title": "Seed",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

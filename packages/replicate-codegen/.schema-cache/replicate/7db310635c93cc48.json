@@ -1,0 +1,65 @@
+{
+  "modelId": "lucataco/controlnet-tile",
+  "owner": "lucataco",
+  "name": "controlnet-tile",
+  "version": "f688ff774c27a4843c819c9264c0f949925970bb278669ed9140364c8389869c",
+  "description": "Controlnet v1.1 - Tile Version",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Input image",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "num_inference_steps": {
+        "default": 32,
+        "description": "Number of inference steps",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 3
+      },
+      "scale": {
+        "default": 2,
+        "description": "Scale multiplier",
+        "enum": [
+          2,
+          4,
+          8,
+          16
+        ],
+        "title": "scale",
+        "type": "integer",
+        "x-order": 1
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 4
+      },
+      "strength": {
+        "default": 0.5,
+        "description": "Strength of the diffusion",
+        "maximum": 2,
+        "minimum": 0.1,
+        "title": "Strength",
+        "type": "number",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

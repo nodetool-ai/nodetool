@@ -54,8 +54,8 @@ const SPACER_RECALC_DEBOUNCE_MS = 100;
 // Purpose: Provide enough space at the bottom so the last user message can be scrolled to the top
 // Memoized to prevent unnecessary re-renders during scrolling
 interface DynamicScrollSpacerProps {
-  lastUserMessageRef: RefObject<HTMLDivElement>;
-  bottomRef: RefObject<HTMLDivElement>;
+  lastUserMessageRef: RefObject<HTMLDivElement | null>;
+  bottomRef: RefObject<HTMLDivElement | null>;
   scrollHost: HTMLElement | null;
 }
 
@@ -176,7 +176,7 @@ interface MemoizedMessageListProps {
   messages: Message[];
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
-  lastUserMessageRef: RefObject<HTMLDivElement>;
+  lastUserMessageRef: RefObject<HTMLDivElement | null>;
   componentStyles: ReturnType<typeof createStyles>;
   toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
   onInsertCode?: (text: string, language?: string) => void;

@@ -777,4 +777,6 @@ const AgentPanel: React.FC = () => {
   );
 };
 
+AgentPanel.displayName = "AgentPanel";
+
 export default memo(AgentPanel);

@@ -9,6 +9,7 @@ import AssetViewer from "../assets/AssetViewer";
 import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
+import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -47,7 +48,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     alignItems: "center",
     width: "100%",
     height: "100%",
-    minHeight: "80px"
+    minHeight: "80px",
+    borderRadius: "4px",
+    overflow: "hidden" as const,
+    ...alphaSurfaceBg
   }), []);
 
   const actionsStyle = useMemo(() => ({

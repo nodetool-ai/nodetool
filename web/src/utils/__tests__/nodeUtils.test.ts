@@ -26,7 +26,7 @@ describe("nodeUtils", () => {
       expect(GROUP_NODE_METADATA).toHaveProperty("title");
       expect(GROUP_NODE_METADATA).toHaveProperty("description");
       expect(GROUP_NODE_METADATA).toHaveProperty("outputs");
-      expect(GROUP_NODE_METADATA).toHaveProperty("the_model_info");
+
       expect(GROUP_NODE_METADATA).toHaveProperty("layout");
       expect(GROUP_NODE_METADATA).toHaveProperty("recommended_models");
       expect(GROUP_NODE_METADATA).toHaveProperty("basic_fields");
@@ -50,9 +50,6 @@ describe("nodeUtils", () => {
       expect(GROUP_NODE_METADATA.basic_fields).toEqual([]);
     });
 
-    it("should have empty object for the_model_info", () => {
-      expect(GROUP_NODE_METADATA.the_model_info).toEqual({});
-    });
 
     it("should have all boolean flags set to false", () => {
       expect(GROUP_NODE_METADATA.is_dynamic).toBe(false);
@@ -79,7 +76,7 @@ describe("nodeUtils", () => {
       expect(COMMENT_NODE_METADATA).toHaveProperty("title");
       expect(COMMENT_NODE_METADATA).toHaveProperty("description");
       expect(COMMENT_NODE_METADATA).toHaveProperty("outputs");
-      expect(COMMENT_NODE_METADATA).toHaveProperty("the_model_info");
+
       expect(COMMENT_NODE_METADATA).toHaveProperty("layout");
       expect(COMMENT_NODE_METADATA).toHaveProperty("recommended_models");
       expect(COMMENT_NODE_METADATA).toHaveProperty("basic_fields");
@@ -108,10 +105,6 @@ describe("nodeUtils", () => {
       expect(COMMENT_NODE_METADATA.outputs).toEqual([]);
       expect(COMMENT_NODE_METADATA.recommended_models).toEqual([]);
       expect(COMMENT_NODE_METADATA.basic_fields).toEqual([]);
-    });
-
-    it("should have empty object for the_model_info", () => {
-      expect(COMMENT_NODE_METADATA.the_model_info).toEqual({});
     });
 
     it("should have all boolean flags set to false", () => {

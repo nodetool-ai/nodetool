@@ -427,31 +427,24 @@ const createSingleAssetFile = async (
     typeof data === "string" &&
     (data.startsWith("http://") || data.startsWith("https://"));
 
-  // Helper to safely access output properties
-  const getTypedOutput = (value: AssetOutput): TypedOutput | undefined => {
-    return value && typeof value === "object" && !Array.isArray(value) && !(value instanceof Uint8Array)
-      ? value as TypedOutput
-      : undefined;
-  };
-
-  const typedOutput = getTypedOutput(output);
-  const outputUri = typedOutput?.uri;
+  const typedOutput = output && typeof output === "object" ? output as TypedOutput : null;
+  const outputUri = typeof typedOutput?.uri === "string" ? typedOutput.uri : undefined;
   const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
   let desiredFilename = typedOutput?.filename;
-  const assetId = typedOutput?.asset_id;
 
   const shouldFetchFromUri =
     typeof outputUri === "string" &&
     !isAssetUri &&
     (isDataEmpty || stringLooksLikeUrl || data === output);
   const shouldDownloadAsset =
-    typeof assetId === "string" &&
+    typeof typedOutput?.asset_id === "string" &&
     (isDataEmpty || data === output || isAssetUri);
+
 
   if (shouldDownloadAsset) {
     try {
       const assetResponse = await client.GET("/api/assets/{id}", {
-        params: { path: { id: assetId! } }
+        params: { path: { id: typedOutput?.asset_id ?? "" } }
       });
       if (assetResponse.error) {
         const detail =

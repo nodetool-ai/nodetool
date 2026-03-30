@@ -253,7 +253,11 @@ const NodeInfoPanel: React.FC = memo(() => {
     });
   }, [nodeInfo]);
 
-  const handleTagClick = useCallback((tag: string) => {
+  const handleTagClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const tag = event.currentTarget.dataset.tag;
+    if (!tag) {
+      return;
+    }
     useNodeMenuStore.getState().openNodeMenu({
       x: 500,
       y: 200
@@ -323,7 +327,8 @@ const NodeInfoPanel: React.FC = memo(() => {
                 {parsedDescription.tags.map((tag) => (
                   <span
                     key={tag}
-                    onClick={() => handleTagClick(tag)}
+                    data-tag={tag}
+                    onClick={handleTagClick}
                   >
                     {tag}
                   </span>

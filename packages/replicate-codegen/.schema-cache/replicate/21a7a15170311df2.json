@@ -1,0 +1,42 @@
+{
+  "modelId": "microsoft/bringing-old-photos-back-to-life",
+  "owner": "microsoft",
+  "name": "bringing-old-photos-back-to-life",
+  "version": "c75db81db6cbd809d93cc3b7e7a088a351a3349c9fa02b6d393e35e0d51ba799",
+  "description": "Bringing Old Photos Back to Life",
+  "inputSchema": {
+    "properties": {
+      "HR": {
+        "default": false,
+        "description": "whether the input image is high-resolution",
+        "title": "Hr",
+        "type": "boolean",
+        "x-order": 1
+      },
+      "image": {
+        "description": "input image.",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      },
+      "with_scratch": {
+        "default": false,
+        "description": "whether the input image is scratched",
+        "title": "With Scratch",
+        "type": "boolean",
+        "x-order": 2
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

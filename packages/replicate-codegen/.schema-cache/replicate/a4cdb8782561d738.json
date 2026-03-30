@@ -1,0 +1,34 @@
+{
+  "modelId": "meronym/speaker-transcription",
+  "owner": "meronym",
+  "name": "speaker-transcription",
+  "version": "9950ee297f0fdad8736adf74ada54f63cc5b5bdfd5b2187366910ed5baf1a7a1",
+  "description": "Whisper transcription plus speaker diarization",
+  "inputSchema": {
+    "properties": {
+      "audio": {
+        "description": "Audio file",
+        "format": "uri",
+        "title": "Audio",
+        "type": "string",
+        "x-order": 0
+      },
+      "prompt": {
+        "description": "Optional text to provide as a prompt for each Whisper model call.",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 1
+      }
+    },
+    "required": [
+      "audio"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}

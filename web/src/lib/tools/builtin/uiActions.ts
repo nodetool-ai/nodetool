@@ -1,18 +1,10 @@
 import { z } from "zod";
+import { uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool/protocol";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { FrontendToolRegistry } from "../frontendTools";
 
 const workflowTargetSchema = z
-  .object({
-    workflow_id: z
-      .string()
-      .optional()
-      .describe("Workflow id to target."),
-    id: z
-      .string()
-      .optional()
-      .describe("Alias for workflow_id.")
-  })
+  .object(uiOpenWorkflowParams)
   .refine((value) => Boolean(value.workflow_id ?? value.id), {
     message: "workflow_id (or id) is required"
   });
@@ -86,12 +78,11 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_run_workflow",
   description: "Run a workflow by id.",
-  parameters: workflowTargetSchema.extend({
-    params: z
-      .record(z.string(), z.unknown())
-      .optional()
-      .describe("Optional workflow run parameters.")
-  }),
+  parameters: z
+    .object(uiRunWorkflowParams)
+    .refine((value) => Boolean(value.workflow_id ?? value.id), {
+      message: "workflow_id (or id) is required"
+    }),
   async execute({ workflow_id, id, params }, ctx) {
     const state = ctx.getState();
     const targetWorkflowId = workflow_id ?? id;
@@ -128,13 +119,7 @@ FrontendToolRegistry.register({
   name: "ui_switch_tab",
   description:
     "Switch to an already-open workflow tab by zero-based tab index.",
-  parameters: z.object({
-    tab_index: z
-      .number()
-      .int()
-      .min(0)
-      .describe("Zero-based tab index (0 is the first tab).")
-  }),
+  parameters: z.object(uiSwitchTabParams),
   async execute({ tab_index }, ctx) {
     const state = ctx.getState();
 
@@ -159,9 +144,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_copy",
   description: "Copy text to clipboard.",
-  parameters: z.object({
-    text: z.string().describe("The text to copy to clipboard.")
-  }),
+  parameters: z.object(uiCopyParams),
   async execute({ text }, ctx) {
     await writeClipboardText(text, ctx.getState().copyToClipboard);
     return { ok: true, text_length: text.length };

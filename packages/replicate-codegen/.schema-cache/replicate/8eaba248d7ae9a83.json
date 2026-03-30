@@ -1,0 +1,130 @@
+{
+  "modelId": "anotherjesse/zeroscope-v2-xl",
+  "owner": "anotherjesse",
+  "name": "zeroscope-v2-xl",
+  "version": "9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+  "description": "Zeroscope V2 XL & 576w",
+  "inputSchema": {
+    "properties": {
+      "batch_size": {
+        "default": 1,
+        "description": "Batch size",
+        "minimum": 1,
+        "title": "Batch Size",
+        "type": "integer",
+        "x-order": 11
+      },
+      "fps": {
+        "default": 8,
+        "description": "fps for the output video",
+        "title": "Fps",
+        "type": "integer",
+        "x-order": 9
+      },
+      "guidance_scale": {
+        "default": 7.5,
+        "description": "Guidance scale",
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Guidance Scale",
+        "type": "number",
+        "x-order": 8
+      },
+      "height": {
+        "default": 320,
+        "description": "Height of the output video",
+        "minimum": 256,
+        "title": "Height",
+        "type": "integer",
+        "x-order": 7
+      },
+      "init_video": {
+        "description": "URL of the initial video (optional)",
+        "format": "uri",
+        "title": "Init Video",
+        "type": "string",
+        "x-order": 2
+      },
+      "init_weight": {
+        "default": 0.5,
+        "description": "Strength of init_video",
+        "title": "Init Weight",
+        "type": "number",
+        "x-order": 3
+      },
+      "model": {
+        "default": "xl",
+        "description": "Model to use",
+        "enum": [
+          "xl",
+          "576w",
+          "potat1",
+          "animov-512x"
+        ],
+        "title": "model",
+        "type": "string",
+        "x-order": 10
+      },
+      "negative_prompt": {
+        "description": "Negative prompt",
+        "title": "Negative Prompt",
+        "type": "string",
+        "x-order": 1
+      },
+      "num_frames": {
+        "default": 24,
+        "description": "Number of frames for the output video",
+        "title": "Num Frames",
+        "type": "integer",
+        "x-order": 4
+      },
+      "num_inference_steps": {
+        "default": 50,
+        "description": "Number of denoising steps",
+        "maximum": 500,
+        "minimum": 1,
+        "title": "Num Inference Steps",
+        "type": "integer",
+        "x-order": 5
+      },
+      "prompt": {
+        "default": "An astronaut riding a horse",
+        "description": "Input prompt",
+        "title": "Prompt",
+        "type": "string",
+        "x-order": 0
+      },
+      "remove_watermark": {
+        "default": false,
+        "description": "Remove watermark",
+        "title": "Remove Watermark",
+        "type": "boolean",
+        "x-order": 12
+      },
+      "seed": {
+        "description": "Random seed. Leave blank to randomize the seed",
+        "title": "Seed",
+        "type": "integer",
+        "x-order": 13
+      },
+      "width": {
+        "default": 576,
+        "description": "Width of the output video",
+        "minimum": 256,
+        "title": "Width",
+        "type": "integer",
+        "x-order": 6
+      }
+    },
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "items": {
+      "format": "uri",
+      "type": "string"
+    },
+    "title": "Output",
+    "type": "array"
+  }
+}

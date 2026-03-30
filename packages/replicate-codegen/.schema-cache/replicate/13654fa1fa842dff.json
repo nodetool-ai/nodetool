@@ -1,0 +1,28 @@
+{
+  "modelId": "recraft-ai/recraft-creative-upscale",
+  "owner": "recraft-ai",
+  "name": "recraft-creative-upscale",
+  "version": "55c7bc47bac03ff7248e74561f7798f1cdcb51646242da191227eed1af2c7e43",
+  "description": "Creative Upscale focuses on enhancing details and refining complex elements in the image. It doesn’t just increase resolution but adds depth by improving textures, fine details, and facial features.",
+  "inputSchema": {
+    "properties": {
+      "image": {
+        "description": "Image to upscale",
+        "format": "uri",
+        "title": "Image",
+        "type": "string",
+        "x-order": 0
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "title": "Input",
+    "type": "object"
+  },
+  "outputSchema": {
+    "format": "uri",
+    "title": "Output",
+    "type": "string"
+  }
+}
