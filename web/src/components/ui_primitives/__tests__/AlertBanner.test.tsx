@@ -13,7 +13,8 @@ describe("AlertBanner", () => {
         const alert = screen.getByRole("alert");
         expect(alert).toBeInTheDocument();
         // Default variant is "standard"
-        const capitalizedSeverity = severity.charAt(0).toUpperCase() + severity.slice(1);
+        const capitalizedSeverity =
+          severity.charAt(0).toUpperCase() + severity.slice(1);
         expect(alert).toHaveClass(`MuiAlert-standard${capitalizedSeverity}`);
       });
     });
@@ -21,7 +22,11 @@ describe("AlertBanner", () => {
 
   describe("renders with title", () => {
     it("displays title when provided", () => {
-      render(<AlertBanner severity="info" title="Important">Message content</AlertBanner>);
+      render(
+        <AlertBanner severity="info" title="Important">
+          Message content
+        </AlertBanner>
+      );
       expect(screen.getByText("Important")).toBeInTheDocument();
     });
 
@@ -35,7 +40,9 @@ describe("AlertBanner", () => {
 
   describe("renders children", () => {
     it("displays message content", () => {
-      render(<AlertBanner severity="info">This is an info message</AlertBanner>);
+      render(
+        <AlertBanner severity="info">This is an info message</AlertBanner>
+      );
       expect(screen.getByText("This is an info message")).toBeInTheDocument();
     });
 
@@ -98,7 +105,11 @@ describe("AlertBanner", () => {
   describe("dismissible alerts", () => {
     it("renders close button when onClose is provided", () => {
       const handleClose = jest.fn();
-      render(<AlertBanner severity="info" onClose={handleClose}>Message</AlertBanner>);
+      render(
+        <AlertBanner severity="info" onClose={handleClose}>
+          Message
+        </AlertBanner>
+      );
       const closeButton = screen.getByRole("button", { name: /close/i });
       expect(closeButton).toBeInTheDocument();
     });
@@ -106,11 +117,15 @@ describe("AlertBanner", () => {
     it("calls onClose when close button is clicked", async () => {
       const user = userEvent.setup();
       const handleClose = jest.fn();
-      render(<AlertBanner severity="info" onClose={handleClose}>Message</AlertBanner>);
-      
+      render(
+        <AlertBanner severity="info" onClose={handleClose}>
+          Message
+        </AlertBanner>
+      );
+
       const closeButton = screen.getByRole("button", { name: /close/i });
       await user.click(closeButton);
-      
+
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
 
@@ -136,7 +151,11 @@ describe("AlertBanner", () => {
   describe("forwardRef support", () => {
     it("forwards ref to underlying Alert component", () => {
       const ref = createRef<HTMLDivElement>();
-      render(<AlertBanner severity="info" ref={ref}>Message</AlertBanner>);
+      render(
+        <AlertBanner severity="info" ref={ref}>
+          Message
+        </AlertBanner>
+      );
       expect(ref.current).toBeInstanceOf(HTMLDivElement);
     });
   });
