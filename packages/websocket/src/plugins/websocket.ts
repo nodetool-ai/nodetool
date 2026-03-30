@@ -15,6 +15,7 @@ export interface WebSocketPluginOptions {
   registry: NodeRegistry;
   pythonBridge: PythonBridge;
   getPythonBridgeReady: () => boolean;
+  ensurePythonBridge: () => Promise<void>;
   toolClassMap: Map<string, new () => Tool>;
 }
 
@@ -25,7 +26,7 @@ async function resolveProvider(providerId: string, userId: string) {
 const isProduction = process.env["NODETOOL_ENV"] === "production";
 
 const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, opts) => {
-  const { registry, pythonBridge, getPythonBridgeReady, toolClassMap } = opts;
+  const { registry, pythonBridge, getPythonBridgeReady, ensurePythonBridge, toolClassMap } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
   async function resolveTools(toolNames: string[]): Promise<Tool[]> {
@@ -44,6 +45,18 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
     });
     const runner = new UnifiedWebSocketRunner({
       userId: req.userId ?? "1",
+      beforeRunJob: async (graph) => {
+        if (getPythonBridgeReady()) return;
+        const hasPythonNode = graph.nodes.some(
+          (n) => {
+            const type = typeof n.type === "string" ? n.type : "";
+            return registry.getMetadata(type) && !registry.has(type);
+          },
+        );
+        if (hasPythonNode) {
+          await ensurePythonBridge();
+        }
+      },
       resolveExecutor: (node) => {
         if (registry.has(node.type)) {
           return registry.resolve(node);
