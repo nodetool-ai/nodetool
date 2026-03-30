@@ -2,7 +2,7 @@ name: Performance Optimization
 
 on:
   schedule:
-    - cron: "0 3 * * 5"
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 jobs:
