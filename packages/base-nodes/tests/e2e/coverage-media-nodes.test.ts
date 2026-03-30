@@ -243,7 +243,8 @@ describe("audio nodes — full coverage", () => {
     const a = { data: Buffer.from([10, 20]).toString("base64") };
     const b = { data: Buffer.from([30, 40]).toString("base64") };
     const _n = new AudioMixerNode();
-    _n.assign({ track1: a, track2: b });
+    // Set unused tracks to non-object values to exclude them from mixing
+    _n.assign({ track1: a, track2: b, track3: null, track4: null, track5: null });
     const result = await _n.process();
     const outData = Buffer.from((result.output as { data: string }).data, "base64");
     expect(outData[0]).toBe(20); // (10+30)/2
@@ -1114,12 +1115,11 @@ describe("video nodes — full coverage", () => {
   });
 
   it("video helper functions handle edge cases", async () => {
-    // videoBytes with non-object
+    // FpsNode returns a float (fps value), not a video ref
     const _n = new FpsNode();
     _n.assign({ video: "not-object", fps: 10 });
     const result = await _n.process();
-    const outData = Buffer.from((result.output as { data: string }).data, "base64");
-    expect(outData.length).toBe(0);
+    expect(typeof result.output).toBe("number");
 
     // imageBytes in video module
     const _n2 = new ImageToVideoNode();

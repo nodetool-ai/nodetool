@@ -691,14 +691,14 @@ describe("Models API: unknown path returns null", () => {
 });
 
 describe("Models API: isProduction behavior", () => {
-  const originalEnv = process.env.ENV;
+  const originalNodetoolEnv = process.env.NODETOOL_ENV;
   const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
-    if (originalEnv === undefined) {
-      delete process.env.ENV;
+    if (originalNodetoolEnv === undefined) {
+      delete process.env.NODETOOL_ENV;
     } else {
-      process.env.ENV = originalEnv;
+      process.env.NODETOOL_ENV = originalNodetoolEnv;
     }
     if (originalNodeEnv === undefined) {
       delete process.env.NODE_ENV;
@@ -708,7 +708,7 @@ describe("Models API: isProduction behavior", () => {
   });
 
   it("huggingface/search returns empty in production mode", async () => {
-    process.env.ENV = "production";
+    process.env.NODETOOL_ENV = "production";
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/search")
     );
@@ -717,7 +717,7 @@ describe("Models API: isProduction behavior", () => {
   });
 
   it("ollama DELETE returns false in production mode", async () => {
-    process.env.ENV = "production";
+    process.env.NODETOOL_ENV = "production";
     const res = await handleModelsApiRequest(
       makeRequest("/ollama", { method: "DELETE" })
     );
@@ -726,7 +726,7 @@ describe("Models API: isProduction behavior", () => {
   });
 
   it("pull_ollama_model returns 503 in production mode", async () => {
-    process.env.ENV = "production";
+    process.env.NODETOOL_ENV = "production";
     const res = await handleModelsApiRequest(
       makeRequest("/pull_ollama_model", { method: "POST" })
     );
@@ -734,7 +734,7 @@ describe("Models API: isProduction behavior", () => {
   });
 
   it("huggingface/file_info returns empty in production mode", async () => {
-    process.env.ENV = "production";
+    process.env.NODETOOL_ENV = "production";
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/file_info", { method: "POST" })
     );

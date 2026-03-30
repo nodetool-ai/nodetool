@@ -45,7 +45,7 @@ describe("native lib.pillow via sharp", () => {
     const imgB = await bg.process();
 
     const blend = new blendNodeClass();
-    blend.assign({ image: imgA.output, image2: imgB.output, alpha: 0.5 });
+    blend.assign({ image1: imgA.output, image2: imgB.output, alpha: 0.5 });
     const out = await blend.process();
     expect(typeof (out.output as { data: string }).data).toBe("string");
   });
