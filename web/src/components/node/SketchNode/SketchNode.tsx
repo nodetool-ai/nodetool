@@ -21,7 +21,7 @@ import React, {
   useRef,
   useEffect
 } from "react";
-import { Handle, NodeProps, Position } from "@xyflow/react";
+import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -29,6 +29,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
+import NodeToolButtons from "../NodeToolButtons";
 import NodeOutput from "../NodeOutput";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
@@ -51,6 +52,8 @@ import {
   loadImageWithDimensions
 } from "../../sketch";
 import { useNodes } from "../../../contexts/NodeContext";
+import useSelect from "../../../hooks/nodes/useSelect";
+import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import type { Node as FlowNode } from "@xyflow/react";
@@ -248,6 +251,32 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
         transform: "translate(0, -50%) scale(1.75, 1.5)"
       }
   });
+
+const TOOLBAR_SHOW_DELAY = 200;
+
+const Toolbar = memo(function Toolbar({
+  id,
+  selected,
+  dragging
+}: {
+  id: string;
+  selected: boolean;
+  dragging?: boolean;
+}) {
+  const { activeSelect } = useSelect();
+  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
+  const delayedSelected = useDelayedVisibility({
+    shouldBeVisible: selected && !dragging,
+    delay: TOOLBAR_SHOW_DELAY
+  });
+  const isVisible =
+    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
+  return (
+    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
+      <NodeToolButtons nodeId={id} />
+    </NodeToolbar>
+  );
+});
 
 // Type metadata for handles
 const imageTypeMetadata = {
@@ -1290,6 +1319,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         hasParent ? " hasParent" : ""
       }`}
     >
+      {props.selected && (
+        <Toolbar
+          id={props.id}
+          selected={props.selected}
+          dragging={props.dragging}
+        />
+      )}
       <div className="sketch-node-content">
         <div className="sketch-node-stack">
           <NodeHeader

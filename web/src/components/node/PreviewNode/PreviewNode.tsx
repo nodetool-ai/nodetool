@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Handle, NodeProps, Position } from "@xyflow/react";
+import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -19,11 +19,14 @@ import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { countPreviewGridImages } from "../output/AssetGrid";
 import { NodeHeader } from "../NodeHeader";
+import NodeToolButtons from "../NodeToolButtons";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeOutputs } from "../NodeOutputs";
 import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
+import useSelect from "../../../hooks/nodes/useSelect";
+import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useNodes } from "../../../contexts/NodeContext";
 
@@ -193,6 +196,32 @@ const styles = (theme: Theme) =>
     },
     tableStyles(theme)
   ]);
+
+const TOOLBAR_SHOW_DELAY = 200;
+
+const Toolbar = memo(function Toolbar({
+  id,
+  selected,
+  dragging
+}: {
+  id: string;
+  selected: boolean;
+  dragging?: boolean;
+}) {
+  const { activeSelect } = useSelect();
+  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
+  const delayedSelected = useDelayedVisibility({
+    shouldBeVisible: selected && !dragging,
+    delay: TOOLBAR_SHOW_DELAY
+  });
+  const isVisible =
+    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
+  return (
+    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
+      <NodeToolButtons nodeId={id} />
+    </NodeToolbar>
+  );
+});
 
 const getOutputFromResult = (result: any) => {
   if (result === null || result === undefined) {
@@ -556,6 +585,13 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         hasParent ? "hasParent" : ""
       }`}
     >
+      {props.selected && (
+        <Toolbar
+          id={props.id}
+          selected={props.selected}
+          dragging={props.dragging}
+        />
+      )}
       <div className={`preview-node-content `}>
         <Handle
           style={{ top: "50%" }}
