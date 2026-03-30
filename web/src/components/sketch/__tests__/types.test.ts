@@ -19,6 +19,8 @@ import {
   isPaintingTool,
   layerAllowsTransformWhilePixelLocked,
   summarizeLayerImageReference,
+  summarizeImageRefUriForDisplay,
+  coerceBlendMode,
   hexToRgb,
   rgbToHex,
   rgbToHsl,
@@ -148,6 +150,34 @@ describe("Sketch Types", () => {
       expect(s).toContain("10×20");
       expect(s).toContain("https://ex/img.png");
       expect(s).toContain("crop");
+    });
+
+    it("summarizeLayerImageReference does not embed full data URL payload", () => {
+      const data = "data:image/png;base64," + "A".repeat(50_000);
+      const s = summarizeLayerImageReference({
+        uri: data,
+        naturalWidth: 64,
+        naturalHeight: 64,
+        objectFit: "cover"
+      });
+      expect(s).toContain("data:image/png;base64");
+      expect(s).toContain("50,000");
+      expect(s.length).toBeLessThan(500);
+      expect(s).not.toContain("AAAA");
+    });
+
+    it("summarizeImageRefUriForDisplay ellides long http URLs", () => {
+      const long =
+        "https://example.com/" + "x".repeat(300) + "/file.png";
+      const d = summarizeImageRefUriForDisplay(long);
+      expect(d.length).toBeLessThan(long.length);
+      expect(d).toContain("…");
+    });
+
+    it("coerceBlendMode rejects non-enum strings", () => {
+      expect(coerceBlendMode("multiply")).toBe("multiply");
+      expect(coerceBlendMode("data:image/png;base64,xyz")).toBe("normal");
+      expect(coerceBlendMode(undefined)).toBe("normal");
     });
   });
 

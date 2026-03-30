@@ -96,19 +96,20 @@ export function useLayerActions({
     [pushHistory, duplicateLayer]
   );
 
-  const handleReorderLayers = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      pushHistory("reorder layers");
-      reorderLayers(fromIndex, toIndex);
-    },
-    [pushHistory, reorderLayers]
-  );
-
   const scheduleDisplayRedraw = useCallback(() => {
     requestAnimationFrame(() => {
       canvasRef.current?.redrawDisplay();
     });
   }, [canvasRef]);
+
+  const handleReorderLayers = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      pushHistory("reorder layers");
+      reorderLayers(fromIndex, toIndex);
+      scheduleDisplayRedraw();
+    },
+    [pushHistory, reorderLayers, scheduleDisplayRedraw]
+  );
 
   const syncLayerDataFromCanvas = useCallback(
     (layerId: string) => {

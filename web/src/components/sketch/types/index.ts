@@ -354,6 +354,31 @@ export type BlendMode =
   | "difference"
   | "exclusion";
 
+const BLEND_MODE_VALUES = [
+  "normal",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-dodge",
+  "color-burn",
+  "hard-light",
+  "soft-light",
+  "difference",
+  "exclusion"
+] as const satisfies readonly BlendMode[];
+
+const BLEND_MODE_SET: ReadonlySet<string> = new Set(BLEND_MODE_VALUES);
+
+/** Ensures UI (e.g. layer blend Select) never receives garbage strings like data URLs. */
+export function coerceBlendMode(value: unknown): BlendMode {
+  if (typeof value === "string" && BLEND_MODE_SET.has(value)) {
+    return value as BlendMode;
+  }
+  return "normal";
+}
+
 /**
  * How the (optionally cropped) source image is mapped into the layer's
  * `contentBounds` when the two aspect ratios differ.
@@ -712,13 +737,36 @@ export function layerAllowsTransformWhilePixelLocked(layer: Layer): boolean {
   return Boolean(layer.imageReference?.uri);
 }
 
+const MAX_IMAGE_REF_URI_CHARS = 160;
+
+/**
+ * Shorten data URLs and very long paths for tooltips / layers panel (never dump base64).
+ */
+export function summarizeImageRefUriForDisplay(uri: string): string {
+  if (!uri) {
+    return "";
+  }
+  if (uri.startsWith("data:")) {
+    const comma = uri.indexOf(",");
+    const header = comma >= 0 ? uri.slice(0, comma) : uri.slice(0, 48);
+    return `${header} … (${uri.length.toLocaleString()} chars)`;
+  }
+  if (uri.length <= MAX_IMAGE_REF_URI_CHARS) {
+    return uri;
+  }
+  const head = Math.max(24, Math.floor(MAX_IMAGE_REF_URI_CHARS / 2) - 1);
+  const tail = MAX_IMAGE_REF_URI_CHARS - head - 1;
+  return `${uri.slice(0, head)}…${uri.slice(-tail)}`;
+}
+
 /** Tooltip / panel text for an image-backed layer. */
 export function summarizeLayerImageReference(ref: LayerImageReference): string {
   const crop = ref.sourceCrop;
   const cropPart = crop
     ? ` · crop ${crop.width}×${crop.height} @ (${crop.x}, ${crop.y})`
     : "";
-  return `${ref.objectFit} · source ${ref.naturalWidth}×${ref.naturalHeight}${cropPart}\n${ref.uri}`;
+  const uriLine = summarizeImageRefUriForDisplay(ref.uri);
+  return `${ref.objectFit} · source ${ref.naturalWidth}×${ref.naturalHeight}${cropPart}\n${uriLine}`;
 }
 
 export function createDefaultLayer(
@@ -743,7 +791,9 @@ export function createDefaultLayer(
       y: 0,
       width: canvasWidth,
       height: canvasHeight
-    }
+    },
+    exposedAsInput: true,
+    exposedAsOutput: true
   };
 }
 
@@ -790,7 +840,7 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         opacity: layer.opacity ?? 1,
         locked: layer.locked ?? false,
         alphaLock: layer.alphaLock ?? false,
-        blendMode: layer.blendMode ?? "normal",
+        blendMode: coerceBlendMode(layer.blendMode),
         data: layer.data ?? null,
         imageReference: layer.imageReference ?? undefined,
         parentId: layer.parentId ?? undefined,

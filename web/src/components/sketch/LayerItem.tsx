@@ -3,7 +3,7 @@
  *
  * Renders an individual layer row within the layers panel, including
  * thumbnail, name (with inline rename), visibility, isolate, and
- * exposed input/output toggles. Supports drag-and-drop reordering.
+ * exposed input/output indicators. Supports drag-and-drop reordering.
  * Group layers show an expand/collapse toggle and a folder icon.
  */
 
@@ -12,8 +12,6 @@ import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import LoginIcon from "@mui/icons-material/Login";
-import LogoutIcon from "@mui/icons-material/Logout";
 import LinkIcon from "@mui/icons-material/Link";
 import LockIcon from "@mui/icons-material/Lock";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -50,14 +48,14 @@ export interface LayerItemProps {
   onToggleIsolateLayer: (layerId: string) => void;
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
+  onContextMenu: (e: React.MouseEvent, layerId: string) => void;
   onStartRename: (layerId: string, currentName: string) => void;
   onFinishRename: (layerId: string) => void;
   onEditNameChange: (value: string) => void;
   onCancelRename: () => void;
-  onDragStart: (realIdx: number) => void;
+  onDragStart: (e: React.DragEvent, realIdx: number) => void;
   onDragOver: (e: React.DragEvent, realIdx: number) => void;
-  onDragLeave: () => void;
-  onDrop: (realIdx: number) => void;
+  onDrop: (realIdx: number, e: React.DragEvent) => void;
   onDragEnd: () => void;
   onToggleGroupCollapsed?: (groupId: string) => void;
 }
@@ -77,15 +75,15 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onLayerRowClick,
   onToggleVisibility,
   onToggleIsolateLayer,
-  onToggleExposedInput,
-  onToggleExposedOutput,
+  onToggleExposedInput: _onToggleExposedInput,
+  onToggleExposedOutput: _onToggleExposedOutput,
+  onContextMenu,
   onStartRename,
   onFinishRename,
   onEditNameChange,
   onCancelRename,
   onDragStart,
   onDragOver,
-  onDragLeave,
   onDrop,
   onDragEnd,
   onToggleGroupCollapsed
@@ -122,17 +120,20 @@ const LayerItem: React.FC<LayerItemProps> = ({
       <Box
         className={rowClass}
         draggable
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onContextMenu(e, layer.id);
+        }}
         onDragStart={(e) => {
           const t = e.target as HTMLElement;
           if (t.closest("button")) {
             e.preventDefault();
             return;
           }
-          onDragStart(realIdx);
+          onDragStart(e, realIdx);
         }}
         onDragOver={(e) => onDragOver(e, realIdx)}
-        onDragLeave={onDragLeave}
-        onDrop={() => onDrop(realIdx)}
+        onDrop={(e) => onDrop(realIdx, e)}
         onDragEnd={onDragEnd}
         onPointerDown={(e) => onLayerRowPointerDown(e, layer.id)}
         onClick={(e) => onLayerRowClick(e, layer.id)}
@@ -290,82 +291,49 @@ const LayerItem: React.FC<LayerItemProps> = ({
           </Box>
         )}
 
-        {/* I/O toggles: stacked, full row height (in / out flow) */}
+        {/* I/O indicator dots: visible only when input or output is hidden */}
         {!isGroup && (
           <Box
             sx={{
               display: "flex",
               flexDirection: "column",
-              alignSelf: "stretch",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "3px",
               flexShrink: 0,
-              width: 30,
-              minHeight: 0,
-              ml: "auto",
-              pl: 0.5,
-              my: "-2px"
+              width: 10,
+              ml: "4px"
             }}
           >
             <Tooltip
-              title={
-                layer.exposedAsInput
-                  ? "Remove input handle"
-                  : "Expose as input"
-              }
+              title={layer.exposedAsInput === false ? "Input hidden" : ""}
+              placement="left"
+              disableHoverListener={layer.exposedAsInput !== false}
             >
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleExposedInput(layer.id);
-                }}
+              <Box
                 sx={{
-                  flex: 1,
-                  minHeight: 0,
-                  width: "100%",
-                  py: 0,
-                  borderRadius: "4px 4px 0 0",
-                  color: layer.exposedAsInput ? "info.main" : "grey.400",
-                  opacity: layer.exposedAsInput ? 1 : 0.88,
-                  "&:hover": {
-                    opacity: 1,
-                    color: layer.exposedAsInput ? "info.light" : "grey.200",
-                    bgcolor: "action.hover"
-                  }
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  bgcolor: layer.exposedAsInput === false ? "info.main" : "transparent",
+                  flexShrink: 0
                 }}
-              >
-                <LoginIcon sx={{ fontSize: "1rem" }} />
-              </IconButton>
+              />
             </Tooltip>
             <Tooltip
-              title={
-                layer.exposedAsOutput
-                  ? "Remove output handle"
-                  : "Expose as output"
-              }
+              title={layer.exposedAsOutput === false ? "Output hidden" : ""}
+              placement="left"
+              disableHoverListener={layer.exposedAsOutput !== false}
             >
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleExposedOutput(layer.id);
-                }}
+              <Box
                 sx={{
-                  flex: 1,
-                  minHeight: 0,
-                  width: "100%",
-                  py: 0,
-                  borderRadius: "0 0 4px 4px",
-                  color: layer.exposedAsOutput ? "success.main" : "grey.400",
-                  opacity: layer.exposedAsOutput ? 1 : 0.88,
-                  "&:hover": {
-                    opacity: 1,
-                    color: layer.exposedAsOutput ? "success.light" : "grey.200",
-                    bgcolor: "action.hover"
-                  }
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  bgcolor: layer.exposedAsOutput === false ? "success.main" : "transparent",
+                  flexShrink: 0
                 }}
-              >
-                <LogoutIcon sx={{ fontSize: "1rem" }} />
-              </IconButton>
+              />
             </Tooltip>
           </Box>
         )}

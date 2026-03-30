@@ -21,6 +21,8 @@ import {
   Box,
   Button,
   IconButton,
+  ListItemIcon,
+  Menu,
   Slider,
   TextField,
   Tooltip,
@@ -48,6 +50,7 @@ import {
   Layer,
   BlendMode,
   CANVAS_PRESETS,
+  coerceBlendMode,
   summarizeLayerImageReference,
   buildLayersPanelRows,
   getDescendantIds
@@ -361,6 +364,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     realIdx: number;
     position: DropPosition;
   } | null>(null);
+  /** Latest drag-over target; state alone is cleared by row dragLeave and drops then no-op. */
+  const dropTargetRef = useRef<{
+    realIdx: number;
+    position: DropPosition;
+  } | null>(null);
   const dragSourceIndex = useRef<number | null>(null);
 
   // ─── Collapsible section state (persisted in localStorage) ────────
@@ -467,13 +475,24 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   );
 
   // ─── Drag-and-drop layer reordering (tree-aware) ───────────────
-  const handleDragStart = useCallback((realIdx: number) => {
-    dragSourceIndex.current = realIdx;
-  }, []);
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, realIdx: number) => {
+      dragSourceIndex.current = realIdx;
+      dropTargetRef.current = null;
+      try {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", layers[realIdx]?.id ?? "");
+      } catch {
+        // Some browsers restrict setData in dragstart; reorder still works.
+      }
+    },
+    [layers]
+  );
 
   const handleDragOver = useCallback(
     (e: React.DragEvent, realIdx: number) => {
       e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const y = e.clientY - rect.top;
       const height = rect.height;
@@ -494,28 +513,45 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         position = y < height * 0.5 ? "before" : "after";
       }
 
-      setDropTarget({ realIdx, position });
+      const payload = { realIdx, position };
+      dropTargetRef.current = payload;
+      setDropTarget(payload);
     },
     [layers]
   );
 
-  const handleDragLeave = useCallback(() => {
-    setDropTarget(null);
-  }, []);
+  // Do not clear on row dragLeave: leaving the row to enter a child (or a gap)
+  // drops React state and the drop handler used to see null — preview lied.
 
   const handleDrop = useCallback(
-    (realIdx: number) => {
+    (_realIdx: number, e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       const from = dragSourceIndex.current;
-      if (from === null || !dropTarget) {
+      const pending = dropTargetRef.current;
+      if (from === null || !pending) {
         dragSourceIndex.current = null;
+        dropTargetRef.current = null;
         setDropTarget(null);
         return;
       }
 
+      const targetIdx = pending.realIdx;
+      const { position } = pending;
+
       const draggedLayer = layers[from];
-      const targetLayer = layers[realIdx];
-      if (!draggedLayer || !targetLayer || from === realIdx) {
+      const targetLayer = layers[targetIdx];
+      if (!draggedLayer || !targetLayer) {
         dragSourceIndex.current = null;
+        dropTargetRef.current = null;
+        setDropTarget(null);
+        return;
+      }
+
+      if (from === targetIdx || (position === "into" && draggedLayer.id === targetLayer.id)) {
+        dragSourceIndex.current = null;
+        dropTargetRef.current = null;
         setDropTarget(null);
         return;
       }
@@ -525,12 +561,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         const descendantIds = getDescendantIds(layers, draggedLayer.id);
         if (descendantIds.includes(targetLayer.id)) {
           dragSourceIndex.current = null;
+          dropTargetRef.current = null;
           setDropTarget(null);
           return;
         }
       }
-
-      const { position } = dropTarget;
 
       if (position === "into" && targetLayer.type === "group") {
         // Drop INTO a group: reparent the dragged layer
@@ -541,37 +576,54 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         if ((draggedLayer.parentId ?? null) !== targetParentId) {
           onMoveLayerToGroup(draggedLayer.id, targetParentId);
         }
-        // Calculate the target insertion index in the flat array.
-        // "after" inserts one position later; "before" inserts at the target's index.
-        const insertIdx = position === "after" ? realIdx + 1 : realIdx;
-        // After reparenting, the array order hasn't changed; recalculate the
-        // source index. Skip the reorder when the layer is already at the
-        // target position (currentFrom === insertIdx) or directly before it
-        // (currentFrom + 1 === insertIdx), since splice-based reorder would
-        // be a no-op in those cases.
-        const currentFrom = layers.indexOf(draggedLayer);
-        if (
-          currentFrom !== -1 &&
-          currentFrom !== insertIdx &&
-          currentFrom + 1 !== insertIdx
-        ) {
-          onReorderLayers(
-            currentFrom,
-            insertIdx > currentFrom ? insertIdx - 1 : insertIdx
-          );
+        // The panel renders layers in REVERSE array order (last array item = top of panel).
+        // "before" in panel (above target) → place dragged item at a HIGHER array index.
+        // "after"  in panel (below target) → place dragged item at a LOWER  array index.
+        //
+        // Derivation: when removing `from` then inserting at `toIndex`, the item
+        // ends up at `toIndex` in the final array. Accounting for the array-vs-panel
+        // reversal:
+        //   before: toIndex = from < targetIdx ? targetIdx : targetIdx + 1
+        //   after:  toIndex = from < targetIdx ? targetIdx - 1 : targetIdx
+        let toIndex: number;
+        if (position === "before") {
+          toIndex = from < targetIdx ? targetIdx : targetIdx + 1;
+        } else {
+          toIndex = from < targetIdx ? targetIdx - 1 : targetIdx;
+        }
+        if (toIndex !== from) {
+          onReorderLayers(from, toIndex);
         }
       }
 
       dragSourceIndex.current = null;
+      dropTargetRef.current = null;
       setDropTarget(null);
     },
-    [layers, dropTarget, onReorderLayers, onMoveLayerToGroup]
+    [layers, onReorderLayers, onMoveLayerToGroup]
   );
 
   const handleDragEnd = useCallback(() => {
     dragSourceIndex.current = null;
+    dropTargetRef.current = null;
     setDropTarget(null);
   }, []);
+
+  // ─── Layer context menu ───────────────────────────────────────
+  const [layerCtxMenu, setLayerCtxMenu] = useState<{
+    position: { top: number; left: number };
+    layerId: string;
+  } | null>(null);
+
+  const handleLayerContextMenu = useCallback(
+    (e: React.MouseEvent, layerId: string) => {
+      e.preventDefault();
+      setLayerCtxMenu({ position: { top: e.clientY, left: e.clientX }, layerId });
+    },
+    []
+  );
+
+  const handleLayerCtxClose = useCallback(() => setLayerCtxMenu(null), []);
 
   const activeLayer = layers.find((l) => l.id === activeLayerId);
   const activeLayerFlatIndex = activeLayer ? layers.indexOf(activeLayer) : -1;
@@ -864,13 +916,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onToggleIsolateLayer={onToggleIsolateLayer}
               onToggleExposedInput={onToggleExposedInput}
               onToggleExposedOutput={onToggleExposedOutput}
+              onContextMenu={handleLayerContextMenu}
               onStartRename={handleStartRename}
               onFinishRename={handleFinishRename}
               onEditNameChange={handleEditNameChange}
               onCancelRename={handleCancelRename}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
               onToggleGroupCollapsed={onToggleGroupCollapsed}
@@ -1027,7 +1079,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Box>
           <FormControl size="small" sx={{ px: "6px" }}>
             <Select
-              value={activeLayer.blendMode || "normal"}
+              value={coerceBlendMode(activeLayer.blendMode)}
               onChange={(e) =>
                 onLayerBlendModeChange(
                   activeLayerId,
@@ -1160,6 +1212,185 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           Apply
         </Button>
       </PanelSection>
+
+      {/* ── Layer context menu ──────────────────────────────────── */}
+      {(() => {
+        const ctxLayer = layerCtxMenu
+          ? layers.find((l) => l.id === layerCtxMenu.layerId) ?? null
+          : null;
+        // Determine which layer IDs are targeted: if the right-clicked layer is part of
+        // a multi-selection, apply to all selected layers; otherwise single layer only.
+        const isMulti =
+          layerCtxMenu !== null &&
+          selectedLayerIds.length >= 2 &&
+          selectedLayerIds.includes(layerCtxMenu.layerId);
+        const targetIds: string[] = isMulti
+          ? selectedLayerIds
+          : layerCtxMenu
+          ? [layerCtxMenu.layerId]
+          : [];
+
+        const ctxIsGroup = ctxLayer?.type === "group";
+        const ctxCanMergeDown =
+          ctxLayer &&
+          !isMulti &&
+          layers.indexOf(ctxLayer) > 0;
+        const ctxPixelActionsDisabled =
+          !ctxLayer || ctxLayer.locked || ctxLayer.type === "group";
+
+        const allInputHidden = targetIds.every(
+          (id) => layers.find((l) => l.id === id)?.exposedAsInput === false
+        );
+        const allOutputHidden = targetIds.every(
+          (id) => layers.find((l) => l.id === id)?.exposedAsOutput === false
+        );
+
+        const handleCtxToggleInput = () => {
+          targetIds.forEach((id) => onToggleExposedInput(id));
+          handleLayerCtxClose();
+        };
+        const handleCtxToggleOutput = () => {
+          targetIds.forEach((id) => onToggleExposedOutput(id));
+          handleLayerCtxClose();
+        };
+        const handleCtxDuplicate = () => {
+          if (ctxLayer) { onDuplicateLayer(ctxLayer.id); }
+          handleLayerCtxClose();
+        };
+        const handleCtxDelete = () => {
+          if (isMulti) {
+            onDeleteSelectedLayers();
+          } else if (ctxLayer) {
+            onRemoveLayer(ctxLayer.id);
+          }
+          handleLayerCtxClose();
+        };
+        const handleCtxRename = () => {
+          if (ctxLayer) { handleStartRename(ctxLayer.id, ctxLayer.name); }
+          handleLayerCtxClose();
+        };
+        const handleCtxClear = () => {
+          onClearLayer();
+          handleLayerCtxClose();
+        };
+        const handleCtxFlipH = () => {
+          onFlipHorizontal();
+          handleLayerCtxClose();
+        };
+        const handleCtxFlipV = () => {
+          onFlipVertical();
+          handleLayerCtxClose();
+        };
+        const handleCtxMergeDown = () => {
+          onMergeDown();
+          handleLayerCtxClose();
+        };
+        const handleCtxFlatten = () => {
+          onFlattenVisible();
+          handleLayerCtxClose();
+        };
+        const handleCtxMask = () => {
+          if (ctxLayer) {
+            onSetMaskLayer(maskLayerId === ctxLayer.id ? null : ctxLayer.id);
+          }
+          handleLayerCtxClose();
+        };
+        const handleCtxAlphaLock = () => {
+          if (ctxLayer) { onToggleAlphaLock(ctxLayer.id); }
+          handleLayerCtxClose();
+        };
+        const handleCtxTrim = () => {
+          onTrimLayerToBounds();
+          handleLayerCtxClose();
+        };
+        const handleCtxUngroup = () => {
+          if (ctxLayer) { onUngroupLayer(ctxLayer.id); }
+          handleLayerCtxClose();
+        };
+        const handleCtxGroup = () => {
+          onGroupSelectedLayers();
+          handleLayerCtxClose();
+        };
+        const handleCtxVisibility = () => {
+          if (ctxLayer) { onToggleVisibility(ctxLayer.id); }
+          handleLayerCtxClose();
+        };
+
+        const menuItemSx = { fontSize: "0.8rem", py: "4px", minHeight: 0 };
+
+        return (
+          <Menu
+            open={layerCtxMenu !== null}
+            onClose={handleLayerCtxClose}
+            anchorReference="anchorPosition"
+            anchorPosition={layerCtxMenu?.position}
+            slotProps={{ paper: { sx: { minWidth: 180 } } }}
+          >
+            <MenuItem sx={menuItemSx} onClick={handleCtxToggleInput}>
+              {allInputHidden ? "Show Input" : "Hide Input"}
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxToggleOutput}>
+              {allOutputHidden ? "Show Output" : "Hide Output"}
+            </MenuItem>
+
+            <Divider sx={{ my: "4px" }} />
+
+            <MenuItem sx={menuItemSx} onClick={handleCtxVisibility}>
+              {ctxLayer?.visible === false ? "Show Layer" : "Hide Layer"}
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxRename} disabled={isMulti || !ctxLayer}>
+              Rename
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxDuplicate} disabled={!ctxLayer || isMulti}>
+              Duplicate
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxDelete}>
+              Delete
+            </MenuItem>
+
+            <Divider sx={{ my: "4px" }} />
+
+            <MenuItem sx={menuItemSx} onClick={handleCtxClear} disabled={ctxPixelActionsDisabled || isMulti}>
+              Clear Layer
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxFlipH} disabled={ctxPixelActionsDisabled || isMulti}>
+              Flip Horizontal
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxFlipV} disabled={ctxPixelActionsDisabled || isMulti}>
+              Flip Vertical
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxMergeDown} disabled={!ctxCanMergeDown}>
+              Merge Down
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxFlatten}>
+              Flatten Visible
+            </MenuItem>
+
+            <Divider sx={{ my: "4px" }} />
+
+            <MenuItem sx={menuItemSx} onClick={handleCtxAlphaLock} disabled={ctxIsGroup || isMulti}>
+              {ctxLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"}
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxMask} disabled={ctxIsGroup || isMulti}>
+              {ctxLayer && maskLayerId === ctxLayer.id ? "Remove Mask" : "Set as Mask"}
+            </MenuItem>
+            <MenuItem sx={menuItemSx} onClick={handleCtxTrim} disabled={ctxPixelActionsDisabled || isMulti}>
+              Trim to Bounds
+            </MenuItem>
+
+            {ctxIsGroup && !isMulti && (
+              <MenuItem sx={menuItemSx} onClick={handleCtxUngroup}>
+                Ungroup
+              </MenuItem>
+            )}
+            {isMulti && (
+              <MenuItem sx={menuItemSx} onClick={handleCtxGroup}>
+                Group Selected
+              </MenuItem>
+            )}
+          </Menu>
+        );
+      })()}
 
       <Divider />
 

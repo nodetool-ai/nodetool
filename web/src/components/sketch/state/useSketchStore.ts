@@ -256,6 +256,8 @@ export interface SketchStore {
 
   // ─── Canvas Resize ─────────────────────────────────────────────────────────
   resizeCanvas: (width: number, height: number) => void;
+  /** Nudge every paintable layer (raster + mask) together — used for Alt+resize-from-center. */
+  offsetAllPaintLayersTransform: (dx: number, dy: number) => void;
 
   // ─── History Actions ──────────────────────────────────────────────────────
   pushHistory: (
@@ -650,8 +652,8 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         id: generateLayerId(),
         name: `${layer.name} Copy`,
         locked: false,
-        exposedAsInput: false,
-        exposedAsOutput: false,
+        exposedAsInput: true,
+        exposedAsOutput: true,
         imageReference: undefined
       };
       const idx = state.document.layers.findIndex((l) => l.id === layerId);
@@ -1228,6 +1230,36 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         }
       }
     })),
+
+  offsetAllPaintLayersTransform: (dx: number, dy: number) => {
+    if (!dx && !dy) {
+      return;
+    }
+    set((state) =>
+      withUpdatedDocumentTimestamp({
+        ...state,
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.type === "raster" || layer.type === "mask"
+              ? {
+                  ...layer,
+                  transform: {
+                    ...layer.transform,
+                    x: layer.transform.x + dx,
+                    y: layer.transform.y + dy
+                  }
+                }
+              : layer
+          ),
+          metadata: {
+            ...state.document.metadata,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      })
+    );
+  },
 
   // ─── History Actions ──────────────────────────────────────────────────
   pushHistory: (

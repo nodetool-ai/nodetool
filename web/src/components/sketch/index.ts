@@ -109,6 +109,8 @@ export {
   generateLayerId,
   layerAllowsTransformWhilePixelLocked,
   summarizeLayerImageReference,
+  summarizeImageRefUriForDisplay,
+  coerceBlendMode,
   isShapeTool,
   isPaintingTool,
   hexToRgb,
