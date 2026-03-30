@@ -35,6 +35,8 @@ Before installing, make sure your machine meets the minimum requirements:
 2. **Run the installer** — follow the platform-specific prompts
 3. **Launch NodeTool** — the app opens immediately, no setup wizard needed
 
+![Dashboard Overview](assets/screenshots/dashboard-overview.png)
+
 > Python and AI engines are installed on demand when you first use local models. See [Installation Guide](installation.md) for platform-specific instructions and troubleshooting.
 
 ### Install AI Models (Optional)
@@ -57,6 +59,8 @@ For running AI locally without cloud APIs:
 
 Now that NodeTool is installed, let's run a real workflow. Pick one of the templates below to try:
 
+![Templates Grid](assets/screenshots/templates-grid.png)
+
 ### Option A: Generate Movie Posters
 
 1. **Find it**: Dashboard → Templates → "Movie Posters"
@@ -77,7 +81,7 @@ Now that NodeTool is installed, let's run a real workflow. Pick one of the templ
 
 ### Option B: Creative Story Ideas
 
-![Creative Story Ideas Workflow](assets/screenshots/creative-story-workflow.png)
+![Workflow Editor](assets/screenshots/editor-empty-state.png)
 
 1. **Find it**: Dashboard → Templates → "Creative Story Ideas"
 2. **How it works**:
