@@ -92,7 +92,7 @@
     "react-simple-code-editor": "^0.14.1",
     "react-simple-keyboard": "^3.8.93",
     "react-syntax-highlighter": "^16.1.0",
-    "react-tag-autocomplete": "^7.4.0",
+    "react-tag-autocomplete": "^7.5.1",
     "react-textarea-autosize": "^8.5.5",
     "react-virtualized-auto-sizer": "^1.0.24",
     "react-window": "^1.8.10",
