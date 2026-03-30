@@ -1,7 +1,7 @@
 /**
  * Mock API data for documentation screenshot capture.
  *
- * Used by screenshots.spec.ts via Playwright's page.route() to intercept API
+ * Used by screenshots.spec.ts via the mock HTTP server started in globalSetup.ts to intercept API
  * calls and return realistic fake data — no real backend required.
  *
  * The data is intentionally rich and visually interesting so that screenshots
