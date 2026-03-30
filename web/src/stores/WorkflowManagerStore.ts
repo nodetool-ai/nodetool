@@ -8,7 +8,6 @@
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeStore, createNodeStore } from "./NodeStore";
 import {
-  SystemStats,
   Workflow,
   WorkflowAttributes,
   WorkflowRequest
@@ -120,10 +119,8 @@ export type WorkflowManagerState = {
   loadingStates: Record<string, never>;
   openWorkflows: WorkflowAttributes[];
   queryClient: QueryClient;
-  systemStats: SystemStats | null;
   // Track notified autosave versions to prevent duplicate notifications
   notifiedAutosaveVersions: Record<string, Set<string>>;
-  getSystemStats: () => SystemStats | null;
   getCurrentLoadingState: () => undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
@@ -151,7 +148,6 @@ export type WorkflowManagerState = {
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: (packageName: string) => Promise<any>;
-  validateAllEdges: () => void;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -176,11 +172,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       notifiedAutosaveVersions: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       loadingStates: {},
-      error: null,
       queryClient: queryClient,
-      systemStats: null,
-      getSystemStats: () => get().systemStats,
-      setSystemStats: (stats: SystemStats) => set({ systemStats: stats }),
 
       // ---------------------------------------------------------------------------------
       // Workflow Creation and API methods
@@ -675,16 +667,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             e
           );
         }
-      },
-
-      validateAllEdges: () => {
-        // Edge validation functionality removed - will be implemented in separate branch
       }
-
-      /**
-       * Fetches workflow tools from the API.
-       * @returns {Promise<void>}
-       */
     };
   });
 
