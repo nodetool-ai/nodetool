@@ -69,7 +69,7 @@ export default defineConfig({
   webServer: {
     command: "PROXY_API_TARGET=http://localhost:4444 npm start",
     url: "http://localhost:3000",
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 120_000
   }
 });

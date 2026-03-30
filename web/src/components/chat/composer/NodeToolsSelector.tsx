@@ -197,17 +197,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   }, [selectedNodeTypes, metadata]);
 
   // Use NodeMenuStore for search functionality
-  const {
-    searchTerm,
-    setSearchTerm,
-    searchResults,
-    isLoading
-  } = useNodeToolsMenuStore((state) => ({
-    searchTerm: state.searchTerm,
-    setSearchTerm: state.setSearchTerm,
-    searchResults: state.searchResults,
-    isLoading: state.isLoading
-  }));
+  const searchTerm = useNodeToolsMenuStore((state) => state.searchTerm);
+  const setSearchTerm = useNodeToolsMenuStore((state) => state.setSearchTerm);
+  const searchResults = useNodeToolsMenuStore((state) => state.searchResults);
+  const isLoading = useNodeToolsMenuStore((state) => state.isLoading);
 
   // Show all nodes in the left panel, including selected ones (they'll show as selected/disabled)
   const nodesForDisplay = useMemo(() => {

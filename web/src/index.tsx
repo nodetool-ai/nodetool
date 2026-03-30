@@ -158,7 +158,7 @@ if (isLocalhost) {
 }
 
 const NavigateToStart = () => {
-  const { state } = useAuth((auth) => ({ state: auth.state }));
+  const state = useAuth((auth) => auth.state);
   const showWelcomeOnStartup = useSettingsStore((state) => state.settings.showWelcomeOnStartup);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();

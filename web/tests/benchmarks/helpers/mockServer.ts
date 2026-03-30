@@ -184,6 +184,15 @@ add("POST", /^\/api\/messages\/(\?.*)?$/, (_req, res) => {
 });
 
 // Models
+add("GET", /^\/api\/models\/providers(\?.*)?$/, (_req, res) => {
+  // useProviders hook expects array of ProviderInfo: { provider, capabilities: string[] }
+  sendJson(res, [
+    { provider: "openai", capabilities: ["generate_message", "generate_image"] },
+    { provider: "anthropic", capabilities: ["generate_message"] },
+    { provider: "ollama", capabilities: ["generate_message"] }
+  ]);
+});
+
 add("GET", /^\/api\/models\/all(\?.*)?$/, (_req, res) => {
   sendJson(res, MOCK_MODELS);
 });
@@ -206,7 +215,8 @@ add("DELETE", /^\/api\/models\/.*/, (_req, res) => {
 
 // Settings / secrets
 add("GET", /^\/api\/settings\/secrets(\?.*)?$/, (_req, res) => {
-  sendJson(res, MOCK_SECRETS);
+  // SecretsStore expects { secrets: [...] }
+  sendJson(res, { secrets: MOCK_SECRETS });
 });
 
 add("PUT", /^\/api\/settings\/secrets\/.*/, (_req, res) => {
@@ -217,8 +227,9 @@ add("DELETE", /^\/api\/settings\/secrets\/.*/, (_req, res) => {
   sendEmpty(res);
 });
 
+// General settings — RemoteSettingStore expects { settings: [...] }
 add(null, /^\/api\/settings\/.*/, (_req, res) => {
-  sendJson(res, {});
+  sendJson(res, { settings: [] });
 });
 
 // Collections

@@ -73,6 +73,7 @@ function shouldSkip(filename: string): boolean {
 
 /**
  * Navigate to a page and wait for the app to finish loading.
+ * Asserts that no React ErrorBoundary is visible (which would indicate a crash).
  * Uses a short network-idle timeout since some background retries (HMR, etc.)
  * may never fully settle.
  */
@@ -81,6 +82,30 @@ async function gotoPage(page: Page, url: string): Promise<void> {
   // Wait for React to hydrate; cap networkidle so we don't hang on retries
   await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
   await waitForAnimation(page, 1000);
+  // Fail fast if React Router caught an error and rendered the error boundary
+  await assertNoErrorBoundary(page);
+}
+
+/**
+ * Fail the test if the React Router error boundary is visible.
+ * The boundary renders with class `errorBoundaryStyles` and the text "Something went wrong".
+ */
+async function assertNoErrorBoundary(page: Page): Promise<void> {
+  const errorEl = page.locator('[class*="errorBoundary"]').first();
+  const hasError = (await errorEl.count()) > 0;
+  if (hasError) {
+    const errorText = await errorEl.innerText().catch(() => "(could not read error text)");
+    // Expand error details if present to get the actual error
+    await page.locator('button', { hasText: /show details/i }).first().click().catch(() => {});
+    await page.waitForTimeout(300);
+    const detailText = await page.locator('.details-section').innerText().catch(() => "");
+    // Capture a failure screenshot for diagnostics
+    const failPath = path.join(SCREENSHOT_DIR, "_error_" + Date.now() + ".png");
+    await page.screenshot({ path: failPath }).catch(() => {});
+    throw new Error(
+      `React ErrorBoundary is visible — the page crashed.\nURL: ${page.url()}\nError: ${errorText.substring(0, 200)}\nDetails: ${detailText.substring(0, 600)}`
+    );
+  }
 }
 
 // ─── Test suite ───────────────────────────────────────────────────────────────
