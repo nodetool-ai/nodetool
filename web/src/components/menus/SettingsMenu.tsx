@@ -211,15 +211,24 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   const id = isMenuOpen ? "docs" : undefined;
 
-  const copyAuthToken = () => {
+  const copyAuthToken = async () => {
     const accessToken = session?.access_token;
     if (accessToken) {
-      navigator.clipboard.writeText(accessToken);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Nodetool API Token copied to Clipboard!"
-      });
+      try {
+        await navigator.clipboard.writeText(accessToken);
+        addNotification({
+          type: "info",
+          alert: true,
+          content: "Nodetool API Token copied to Clipboard!"
+        });
+      } catch (error) {
+        console.error("Failed to copy to clipboard:", error);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Failed to copy token to clipboard"
+        });
+      }
     }
   };
 

@@ -187,17 +187,28 @@ const AboutMenu: React.FC = memo(() => {
     fetchSystemInfo();
   }, []);
 
-  const handleCopy = useCallback((value: string) => {
-    navigator.clipboard.writeText(value);
-    addNotification({
-      type: "info",
-      alert: true,
-      content: "Copied to clipboard!"
-    });
+  const handleCopy = useCallback(async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Copied to clipboard!"
+      });
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to copy to clipboard"
+      });
+    }
   }, [addNotification]);
 
-  const handleCopyAll = useCallback(() => {
-    if (!systemInfo) {return;}
+  const handleCopyAll = useCallback(async () => {
+    if (!systemInfo) {
+      return;
+    }
 
     const text = `NodeTool System Information
 =============================
@@ -227,12 +238,21 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
 Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion || "Installed" : "Not installed"}
 `;
 
-    navigator.clipboard.writeText(text);
-    addNotification({
-      type: "info",
-      alert: true,
-      content: "System information copied to clipboard!"
-    });
+    try {
+      await navigator.clipboard.writeText(text);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "System information copied to clipboard!"
+      });
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to copy system information to clipboard"
+      });
+    }
   }, [systemInfo, addNotification]);
 
   if (loading) {
