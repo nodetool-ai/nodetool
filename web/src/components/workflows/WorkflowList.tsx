@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { Typography } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useKeyPressedStore, useKeyPressed } from "../../stores/KeyPressedStore";
 import WorkflowToolbar from "./WorkflowToolbar";
 import WorkflowDeleteDialog from "./WorkflowDeleteDialog";
 import {
@@ -92,7 +92,7 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
+  const { shiftKeyPressed, controlKeyPressed } = useKeyPressed(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("Shift"),
       controlKeyPressed: state.isKeyPressed("Control")
@@ -171,7 +171,7 @@ const WorkflowList = () => {
         !target.closest(".MuiDialog-root") &&
         !target.closest(".delete-selected-button")
       ) {
-        setSelectedWorkflows([]);
+        setSelectedWorkflows((prev) => (prev.length > 0 ? [] : prev));
       }
     },
     [controlKeyPressed, shiftKeyPressed]
