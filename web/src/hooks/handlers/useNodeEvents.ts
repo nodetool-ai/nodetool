@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
-import { Node } from "@xyflow/react";
+import { Node, NodeChange } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useSelect from "../nodes/useSelect";
@@ -48,7 +49,7 @@ export function useNodeEvents() {
   );
 
   const handleNodesChange = useCallback(
-    (changes: any[]) => {
+    (changes: NodeChange<Node<NodeData>>[]) => {
       onNodesChange(changes);
     },
     [onNodesChange]
