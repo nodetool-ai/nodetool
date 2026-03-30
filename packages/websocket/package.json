@@ -40,7 +40,8 @@
     "@nodetool/security": "*",
     "@nodetool/vectorstore": "*",
     "fastify": "^5.2.0",
-    "msgpackr": "^1.11.2"
+    "msgpackr": "^1.11.2",
+    "node-pty": "^1.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

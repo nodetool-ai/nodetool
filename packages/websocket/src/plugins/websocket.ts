@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { createLogger } from "@nodetool/config";
 import { WsAdapter } from "../ws-adapter.js";
 import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
+import { handleTerminalConnection } from "../terminal.js";
 import type { NodeRegistry } from "@nodetool/node-sdk";
 import { createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import type { PythonBridge } from "@nodetool/runtime";
@@ -78,22 +79,17 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (app, 
 
   // Terminal and Download WebSocket endpoints — local development only
   if (!isProduction) {
-    // Terminal WebSocket
+    // Terminal WebSocket — real PTY-backed shell
     app.get("/ws/terminal", { websocket: true }, (socket, _req) => {
       (socket as any).on("error", (error: Error) => {
         log.error("Terminal WebSocket error", error);
       });
       log.info("Terminal WebSocket client connected");
-      (socket as any).send(JSON.stringify({ type: "output", data: "Terminal connected.\r\n" }));
-      (socket as any).on("message", (raw: any) => {
-        try {
-          const msg = JSON.parse(raw.toString());
-          if (msg.type === "input") {
-            (socket as any).send(JSON.stringify({ type: "output", data: msg.data }));
-          }
-        } catch {
-          // ignore
-        }
+      handleTerminalConnection(socket as any).catch((err) => {
+        log.error(
+          "Terminal handler failed",
+          err instanceof Error ? err : new Error(String(err)),
+        );
       });
     });
 
