@@ -19,7 +19,6 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useNavigate } from "react-router";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import { CloseButton } from "../ui_primitives";
@@ -72,7 +71,6 @@ interface SettingsMenuProps {
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const session = useAuth((state) => state.session);
-  const _navigate = useNavigate();
   const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
   const settingsTab = useSettingsStore((state) => state.settingsTab);

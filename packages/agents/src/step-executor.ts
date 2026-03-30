@@ -27,12 +27,11 @@ import type { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { extractJSON } from "./utils/json-parser.js";
+import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
-const MAX_TOOL_RESULT_CHARS = 20000;
 const DEFAULT_MAX_ITERATIONS = 30;
-const DEFAULT_TOKEN_LIMIT = 128000;
 const JSON_FAILURE_ALERT_THRESHOLD = 3;
 const MAX_JSON_PARSE_FAILURES = 6;
 

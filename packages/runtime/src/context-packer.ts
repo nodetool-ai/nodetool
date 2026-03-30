@@ -8,24 +8,29 @@
 
 import type { Message, MessageContent } from "./providers/types.js";
 
+/** Rough estimate: 1 token ≈ 4 characters. */
+const CHARS_PER_TOKEN = 4;
+
+/** Fixed token overhead for non-text content blocks (images, audio). */
+const NON_TEXT_BLOCK_CHARS = 100;
+
+function charsToTokens(chars: number): number {
+  return Math.ceil(chars / CHARS_PER_TOKEN);
+}
+
 function estimateMessageTokens(msg: Message): number {
   if (msg.content === null || msg.content === undefined) return 1;
-  if (typeof msg.content === "string") return Math.ceil(msg.content.length / 4);
+  if (typeof msg.content === "string") return charsToTokens(msg.content.length);
   // MessageContent array
   let chars = 0;
   for (const part of msg.content as MessageContent[]) {
     if (part.type === "text") {
       chars += part.text.length;
     } else {
-      // image/audio — estimate a fixed overhead
-      chars += 100;
+      chars += NON_TEXT_BLOCK_CHARS;
     }
   }
-  return Math.ceil(chars / 4);
-}
-
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+  return charsToTokens(chars);
 }
 
 export interface PackedContext {
@@ -47,11 +52,11 @@ export function packContext(
   maxTokens: number
 ): PackedContext {
   let sysPrompt = systemPrompt;
-  let sysTokens = estimateTokens(sysPrompt);
+  let sysTokens = charsToTokens(sysPrompt.length);
 
   // If system prompt alone exceeds budget, truncate it
   if (sysTokens > maxTokens) {
-    const maxChars = maxTokens * 4;
+    const maxChars = maxTokens * CHARS_PER_TOKEN;
     sysPrompt = sysPrompt.slice(0, maxChars);
     sysTokens = maxTokens;
   }
