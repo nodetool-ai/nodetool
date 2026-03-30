@@ -17,7 +17,19 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Button, Container, Tooltip } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  Divider,
+  Link,
+  Menu,
+  MenuItem,
+  Tooltip,
+  Typography
+} from "@mui/material";
+import LaunchIcon from "@mui/icons-material/Launch";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -46,7 +58,6 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { getIsElectronDetails } from "../../utils/browser";
-import { Box } from "@mui/material";
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -62,6 +73,13 @@ import {
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,
 } from "../../utils/formatFalUnitPricing";
+import {
+  FAL_DASHBOARD_KEYS_URL,
+  falCreditsDetailSuggestsKeysLink,
+  fetchFalCredits,
+  formatCredits,
+  type FalCredits,
+} from "../../utils/falCredits";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -348,6 +366,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
+  const [falMenuAnchor, setFalMenuAnchor] = useState<HTMLElement | null>(null);
+  const [falCreditsLoading, setFalCreditsLoading] = useState(false);
+  const [falCreditsData, setFalCreditsData] = useState<
+    FalCredits | null | "error"
+  >(null);
+  const falPricingMenuOpen = Boolean(falMenuAnchor);
   const initialRenderRef = useRef(true);
   const suppressResultOverlay = type === "nodetool.constant.Model3D";
   const nodeType = useMemo(
@@ -640,6 +664,30 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [metadata.namespace]
   );
 
+  const handleFalPricingFooterClick = useCallback(
+    async (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setFalMenuAnchor(e.currentTarget);
+      setFalCreditsLoading(true);
+      setFalCreditsData(null);
+      const result = await fetchFalCredits();
+      setFalCreditsLoading(false);
+      setFalCreditsData(result ?? "error");
+    },
+    [],
+  );
+
+  const handleFalFooterMenuClose = useCallback(() => {
+    setFalMenuAnchor(null);
+  }, []);
+
+  useEffect(() => {
+    if (!selected) {
+      setFalMenuAnchor(null);
+    }
+  }, [selected]);
+
   // Track error state for node dimension management
   const hasError = useErrorStore((state) =>
     workflow_id !== undefined
@@ -831,23 +879,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </Tooltip>
       )}
       {selected && metadata.fal_unit_pricing && (
-        <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
-          title={
-            <span style={{ whiteSpace: "pre-line" }}>
-              {formatFalUnitPricingTooltip(metadata.fal_unit_pricing)}
-            </span>
-          }
-          placement="bottom-end"
-          arrow
-        >
+        <>
           <Button
             variant="text"
             className="node-fal-pricing nodrag nopan"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
+            aria-haspopup="true"
+            aria-expanded={falPricingMenuOpen}
+            onClick={handleFalPricingFooterClick}
             sx={{
               position: "absolute",
               bottom: -25,
@@ -868,7 +906,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               border: "1px solid",
               borderColor: "transparent",
               whiteSpace: "nowrap",
-              cursor: "default",
+              cursor: "pointer",
               "&:hover": {
                 bgcolor: (t) => t.palette.success.main,
               },
@@ -879,7 +917,137 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             )}
             {formatFalUnitPricingShort(metadata.fal_unit_pricing)}
           </Button>
-        </Tooltip>
+          <Menu
+            anchorEl={falMenuAnchor}
+            open={falPricingMenuOpen}
+            onClose={handleFalFooterMenuClose}
+            anchorOrigin={{ vertical: "top", horizontal: "right" }}
+            transformOrigin={{ vertical: "bottom", horizontal: "right" }}
+            slotProps={{
+              paper: {
+                sx: {
+                  minWidth: 220,
+                  fontSize: "12px",
+                  "& .MuiMenuItem-root": { fontSize: "12px" },
+                },
+              },
+            }}
+          >
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: "success.main",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                FAL pricing
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: "12px",
+                  mt: 0.5,
+                  whiteSpace: "pre-line",
+                  color: "text.secondary",
+                }}
+              >
+                {formatFalUnitPricingTooltip(metadata.fal_unit_pricing)}
+              </Typography>
+            </Box>
+            <Divider />
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Account credits
+              </Typography>
+              {falCreditsLoading ? (
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}
+                >
+                  <CircularProgress size={12} />
+                  <Typography sx={{ fontSize: "12px", color: "text.secondary" }}>
+                    Loading…
+                  </Typography>
+                </Box>
+              ) : falCreditsData === "error" || falCreditsData === null ? (
+                <Typography
+                  sx={{ fontSize: "12px", color: "text.disabled", mt: 0.5 }}
+                >
+                  {falCreditsData === "error"
+                    ? "Could not load credits"
+                    : "—"}
+                </Typography>
+              ) : falCreditsData.unavailable ? (
+                <Box sx={{ mt: 0.5 }}>
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      color: "warning.main",
+                      lineHeight: 1.4,
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {falCreditsData.detail ?? "Credits unavailable"}
+                  </Typography>
+                  {falCreditsDetailSuggestsKeysLink(falCreditsData.detail) && (
+                    <Link
+                      href={FAL_DASHBOARD_KEYS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFalFooterMenuClose();
+                      }}
+                      sx={{
+                        fontSize: "12px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        mt: 1,
+                        fontWeight: 600,
+                      }}
+                    >
+                      fal.ai API keys
+                      <LaunchIcon sx={{ fontSize: 14 }} />
+                    </Link>
+                  )}
+                </Box>
+              ) : (
+                <Typography
+                  sx={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "success.main",
+                    mt: 0.5,
+                  }}
+                >
+                  {formatCredits(falCreditsData)} remaining
+                </Typography>
+              )}
+            </Box>
+            <Divider />
+            <MenuItem
+              component="a"
+              href={`https://fal.ai/models/${metadata.fal_unit_pricing.endpoint_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleFalFooterMenuClose}
+              sx={{ gap: 1, fontSize: "12px" }}
+            >
+              <LaunchIcon sx={{ fontSize: 14 }} />
+              View on fal.ai
+            </MenuItem>
+          </Menu>
+        </>
       )}
     </Container>
   );

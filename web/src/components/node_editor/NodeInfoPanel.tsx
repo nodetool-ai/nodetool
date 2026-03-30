@@ -12,7 +12,8 @@ import {
   Menu,
   MenuItem,
   Divider,
-  CircularProgress
+  CircularProgress,
+  Link
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -27,8 +28,14 @@ import {
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,
 } from "../../utils/formatFalUnitPricing";
-import { BASE_URL } from "../../stores/BASE_URL";
 import type { FalUnitPricing } from "../../stores/ApiTypes";
+import {
+  FAL_DASHBOARD_KEYS_URL,
+  falCreditsDetailSuggestsKeysLink,
+  fetchFalCredits,
+  formatCredits,
+  type FalCredits
+} from "../../utils/falCredits";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -228,44 +235,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface FalCredits {
-  credit_balance?: { amount?: number; currency?: string } | number;
-}
-
-async function fetchFalCredits(): Promise<FalCredits | null> {
-  try {
-    const res = await fetch(`${BASE_URL}/api/fal/credits`);
-    if (res.status === 204) { return null; }
-    if (!res.ok) { return null; }
-    return await res.json() as FalCredits;
-  } catch {
-    return null;
-  }
-}
-
-function formatCredits(data: FalCredits): string {
-  const bal = data.credit_balance;
-  if (bal == null) { return "N/A"; }
-  if (typeof bal === "number") { return `$${bal.toFixed(2)}`; }
-  if (typeof bal === "object") {
-    const amount = bal.amount;
-    const currency = (bal.currency ?? "USD").toUpperCase();
-    if (typeof amount === "number") {
-      try {
-        return new Intl.NumberFormat(undefined, {
-          style: "currency",
-          currency,
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 4,
-        }).format(amount);
-      } catch {
-        return `${amount} ${currency}`;
-      }
-    }
-  }
-  return "N/A";
-}
-
 const NodeInfoPanel: React.FC = memo(() => {
   const theme = useTheme();
   const { getNode, setCenter } = useReactFlow();
@@ -453,6 +422,41 @@ const NodeInfoPanel: React.FC = memo(() => {
                   <Typography sx={{ fontSize: "12px", color: "text.disabled", mt: 0.5 }}>
                     {falCreditsData === "error" ? "Could not load credits" : "—"}
                   </Typography>
+                ) : falCreditsData.unavailable ? (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: "12px",
+                        color: "warning.main",
+                        lineHeight: 1.4,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {falCreditsData.detail ?? "Credits unavailable"}
+                    </Typography>
+                    {falCreditsDetailSuggestsKeysLink(falCreditsData.detail) && (
+                      <Link
+                        href={FAL_DASHBOARD_KEYS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFalMenuClose();
+                        }}
+                        sx={{
+                          fontSize: "12px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          mt: 1,
+                          fontWeight: 600,
+                        }}
+                      >
+                        fal.ai API keys
+                        <LaunchIcon sx={{ fontSize: 14 }} />
+                      </Link>
+                    )}
+                  </Box>
                 ) : (
                   <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "success.main", mt: 0.5 }}>
                     {formatCredits(falCreditsData)} remaining
