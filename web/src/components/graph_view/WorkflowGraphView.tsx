@@ -152,10 +152,12 @@ function GraphInner() {
   // Fit view once nodes are initialized
   useEffect(() => {
     if (nodesInitialized && nodes.length > 0) {
-      setTimeout(() => {
+      const fitViewTimeout = setTimeout(() => {
         fitView({ padding: padding / 100 });
-        setTimeout(() => setReady(true), 300);
+        const readyTimeout = setTimeout(() => setReady(true), 300);
+        return () => clearTimeout(readyTimeout);
       }, 200);
+      return () => clearTimeout(fitViewTimeout);
     }
   }, [nodesInitialized, nodes.length, fitView, padding]);
 
