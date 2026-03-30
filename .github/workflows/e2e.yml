@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Rebuild native modules
+        run: npm rebuild better-sqlite3
+
       - name: Build backend packages
         run: npm run build:packages
 

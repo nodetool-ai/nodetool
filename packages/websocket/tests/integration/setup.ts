@@ -30,6 +30,7 @@ export async function startServer(): Promise<void> {
 
 /** Shut the server down. */
 export async function stopServer(): Promise<void> {
+  if (!server) return;
   await new Promise<void>((resolve, reject) => {
     server.close((err) => (err ? reject(err) : resolve()));
   });
