@@ -1,4 +1,4 @@
-import type { WebSocket } from "ws";
+import type { WebSocket } from "@fastify/websocket";
 import type { WebSocketConnection } from "./unified-websocket-runner.js";
 
 type WsFrame = { type: string; bytes?: Uint8Array | null; text?: string | null };
@@ -22,6 +22,16 @@ export class WsAdapter implements WebSocketConnection {
       const waiter = this.waiters.shift();
       if (waiter) waiter(frame);
       else this.queue.push(frame);
+    });
+
+    socket.on("error", () => {
+      this.clientState = "disconnected";
+      this.applicationState = "disconnected";
+      const frame = { type: "websocket.disconnect" };
+      for (const waiter of this.waiters) {
+        waiter(frame);
+      }
+      this.waiters.length = 0;
     });
 
     socket.on("close", () => {
