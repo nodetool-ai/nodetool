@@ -645,6 +645,7 @@ export enum IpcChannels {
   WORKSPACE_FILE_WRITE = "workspace-file-write",
   WORKSPACE_FILE_READ = "workspace-file-read",
   WORKSPACE_FILE_LIST = "workspace-file-list",
+  WORKSPACE_FILE_DIAGNOSTICS = "workspace-file-diagnostics",
   WORKSPACE_SERVER_LOG_STREAM = "workspace-server-log-stream",
 }
 
@@ -839,6 +840,7 @@ export interface IpcRequest {
   [IpcChannels.WORKSPACE_FILE_WRITE]: { workspacePath: string; relPath: string; content: string };
   [IpcChannels.WORKSPACE_FILE_READ]: { workspacePath: string; relPath: string };
   [IpcChannels.WORKSPACE_FILE_LIST]: { workspacePath: string; relPath: string };
+  [IpcChannels.WORKSPACE_FILE_DIAGNOSTICS]: { workspacePath: string };
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -960,6 +962,7 @@ export interface IpcResponse {
   [IpcChannels.WORKSPACE_FILE_WRITE]: void;
   [IpcChannels.WORKSPACE_FILE_READ]: string;
   [IpcChannels.WORKSPACE_FILE_LIST]: Array<{ name: string; path: string; isDir: boolean; size: number }>;
+  [IpcChannels.WORKSPACE_FILE_DIAGNOSTICS]: Array<{ filePath: string; line: number; column: number; message: string; severity: "error" | "warning" }>;
 }
 
 // Event types for each IPC channel

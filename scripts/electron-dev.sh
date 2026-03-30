@@ -19,16 +19,37 @@ if [[ -z "${CONDA_PREFIX:-}" ]]; then
   exit 1
 fi
 
+# Check if any TS workspace package has source changes newer than its dist/
+PACKAGES_STALE=0
+for pkg_dir in packages/*/; do
+  if [[ -d "${pkg_dir}src" ]] && grep -q '"build"' "${pkg_dir}package.json" 2>/dev/null; then
+    if [[ ! -d "${pkg_dir}dist" ]] || \
+       [[ -n "$(find "${pkg_dir}src" -newer "${pkg_dir}dist" -print -quit 2>/dev/null)" ]]; then
+      echo "Package $(basename "${pkg_dir}") has changes."
+      PACKAGES_STALE=1
+    fi
+  fi
+done
+
+if [[ ${PACKAGES_STALE} -eq 1 ]]; then
+  echo "Rebuilding workspace packages (ordered)..."
+  npm run build:packages || { echo "ERROR: Package build failed."; exit 1; }
+  echo "Package build done."
+else
+  echo "All packages up to date."
+fi
+
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
 npm --prefix web start &
 WEB_SERVER_PID=$!
 
-# Only rebuild electron if source changed since last build
+# Only rebuild electron if source changed since last build (or packages were rebuilt)
 ELECTRON_MARKER="electron/dist-electron/main.js"
 if [[ ! -f "${ELECTRON_MARKER}" ]] || \
-   [[ -n "$(find electron/src electron/vite.config.ts -newer "${ELECTRON_MARKER}" -print -quit 2>/dev/null)" ]]; then
-  echo "Building Electron main/preload bundle (parallel)..."
+   [[ -n "$(find electron/src electron/vite.config.ts -newer "${ELECTRON_MARKER}" -print -quit 2>/dev/null)" ]] || \
+   [[ ${PACKAGES_STALE} -eq 1 ]]; then
+  echo "Building Electron main/preload bundle..."
   npm --prefix electron run vite:build &
   ELECTRON_BUILD_PID=$!
   if ! wait "${ELECTRON_BUILD_PID}"; then

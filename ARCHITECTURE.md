@@ -226,7 +226,7 @@ Core business logic for workflows, nodes, agents, and persistence.
 
 Node implementations and provider integrations.
 
-**`base-nodes`** — 100+ built-in node types organized by category: input/output, data processing (lists, dicts, transforms), text manipulation, code execution (Python/JS/TS via isolated-vm), document processing (PDF extraction, DOCX/Excel/Markdown conversion), image/audio/video processing, web scraping (Playwright), email, search, agent execution, vector store operations, and LLM model integration (Gemini, Anthropic, OpenAI).
+**`base-nodes`** — 100+ built-in node types organized by category: input/output, data processing (lists, dicts, transforms), text manipulation, code execution (Python/JS/TS), document processing (PDF extraction, DOCX/Excel/Markdown conversion), image/audio/video processing, web scraping (Playwright), email, search, agent execution, vector store operations, and LLM model integration (Gemini, Anthropic, OpenAI).
 
 **`dsl`** — Type-safe TypeScript DSL for programmatically defining workflows. Converts between DSL representation and kernel graph format.
 

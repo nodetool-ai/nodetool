@@ -1577,4 +1577,42 @@ export function initializeIpcHandlers(): void {
       return results;
     }
   );
+
+  // Run `npx tsc --noEmit --pretty false` in the workspace and parse diagnostics
+  createIpcMainHandler(
+    IpcChannels.WORKSPACE_FILE_DIAGNOSTICS,
+    async (_event, { workspacePath }) => {
+      const resolvedBase = path.resolve(workspacePath);
+      const { execFile } = require('child_process') as typeof import('child_process');
+      return new Promise<Array<{ filePath: string; line: number; column: number; message: string; severity: 'error' | 'warning' }>>((resolve) => {
+        // Use npx to run the workspace's local tsc
+        const proc = execFile('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
+          cwd: resolvedBase,
+          timeout: 30000,
+          maxBuffer: 1024 * 1024,
+          env: { ...process.env, FORCE_COLOR: '0' },
+        }, (error, stdout, stderr) => {
+          const output = (stdout || '') + (stderr || '');
+          if (!output.trim()) {
+            resolve([]);
+            return;
+          }
+          // Parse tsc output: file(line,col): error TS1234: message
+          const diagnostics: Array<{ filePath: string; line: number; column: number; message: string; severity: 'error' | 'warning' }> = [];
+          const tscRegex = /^(.+?)\((\d+),(\d+)\):\s*(error|warning)\s+TS\d+:\s*(.+)$/gm;
+          let match;
+          while ((match = tscRegex.exec(output)) !== null) {
+            diagnostics.push({
+              filePath: match[1].replace(/\\/g, '/'),
+              line: parseInt(match[2], 10),
+              column: parseInt(match[3], 10),
+              message: match[5],
+              severity: match[4] as 'error' | 'warning',
+            });
+          }
+          resolve(diagnostics);
+        });
+      });
+    }
+  );
 }

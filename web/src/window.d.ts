@@ -419,6 +419,8 @@ declare global {
           read: (workspacePath: string, relPath: string) => Promise<string>;
           /** List files and directories at a relative path inside workspacePath */
           list: (workspacePath: string, relPath: string) => Promise<Array<{ name: string; path: string; isDir: boolean; size: number }>>;
+          /** Run tsc --noEmit and return diagnostics */
+          diagnostics: (workspacePath: string) => Promise<Array<{ filePath: string; line: number; column: number; message: string; severity: "error" | "warning" }>>;
         };
       };
 

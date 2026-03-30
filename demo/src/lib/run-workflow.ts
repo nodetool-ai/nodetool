@@ -2,10 +2,6 @@
  * Server-side workflow execution using @nodetool packages.
  * Runs entirely within the Next.js API route – no external server needed.
  *
- * Imports only the specific node sub-files needed rather than the full
- * @nodetool/base-nodes barrel, which would transitively load
- * @nodetool/code-runners → isolated-vm (a native module incompatible with
- * Next.js build-time evaluation).
  * All @nodetool/* packages are declared in serverExternalPackages so webpack
  * never bundles them; they are resolved by Node.js at runtime instead.
  *
@@ -18,13 +14,9 @@ import { WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 import { ProcessingContext } from "@nodetool/runtime";
+import { registerBaseNodes } from "@nodetool/base-nodes";
 import type { NodeDescriptor, Edge } from "@nodetool/protocol";
 import { randomUUID } from "node:crypto";
-
-// Import only the specific node files we need — NOT the barrel (@nodetool/base-nodes
-// index.js) which loads lib-beautifulsoup → jsdom and code-node → isolated-vm.
-import { SummarizerNode, ClassifierNode } from "@nodetool/base-nodes/dist/nodes/agents.js";
-import { RerouteNode } from "@nodetool/base-nodes/dist/nodes/control.js";
 
 // Use flexible types so plain workflow JSON (without edge_type etc.) is accepted.
 export interface WorkflowGraph {
@@ -49,9 +41,7 @@ let registryCache: NodeRegistry | null = null;
 function getRegistry(): NodeRegistry {
   if (!registryCache) {
     registryCache = new NodeRegistry();
-    registryCache.register(SummarizerNode as unknown as NodeClass);
-    registryCache.register(ClassifierNode as unknown as NodeClass);
-    registryCache.register(RerouteNode as unknown as NodeClass);
+    registerBaseNodes(registryCache);
   }
   return registryCache;
 }

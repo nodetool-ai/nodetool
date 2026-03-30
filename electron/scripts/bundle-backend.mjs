@@ -85,9 +85,6 @@ const EXTERNAL_PACKAGES = [
   // CJS packages with __dirname-relative file reads at runtime
   "jsdom",
 
-  // Sandboxed code execution (native addon, optional)
-  "isolated-vm",
-
   // CJS require() packages
   "openai",
   "ssh2",

@@ -716,6 +716,8 @@ const api = {
         ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_READ, { workspacePath, relPath }),
       list: (workspacePath: string, relPath: string) =>
         ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_LIST, { workspacePath, relPath }),
+      diagnostics: (workspacePath: string) =>
+        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_DIAGNOSTICS, { workspacePath }),
     },
   },
 

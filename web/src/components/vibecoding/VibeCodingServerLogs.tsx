@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo } from "react";
 import { Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import BuildIcon from "@mui/icons-material/Build";
 import { ServerStatus } from "../../stores/VibeCodingStore";
 
@@ -19,6 +21,7 @@ interface VibeCodingServerLogsProps {
   workspacePath: string | undefined;
   serverStatus: ServerStatus;
   onAutoFix?: (port: number) => void;
+  onFixWithAI?: (errorLogs: string) => void;
 }
 
 function classifyLine(
@@ -45,7 +48,8 @@ const LINE_COLORS: Record<string, string> = {
 const VibeCodingServerLogs: React.FC<VibeCodingServerLogsProps> = ({
   workspacePath,
   serverStatus,
-  onAutoFix
+  onAutoFix,
+  onFixWithAI
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -104,6 +108,14 @@ const VibeCodingServerLogs: React.FC<VibeCodingServerLogsProps> = ({
     }
   }, []);
 
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(allLines.join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  }, [allLines]);
+
   const eaddrinusePort = useMemo(
     () => (serverStatus === "error" ? extractEaddrinusePort(allLines) : null),
     [allLines, serverStatus]
@@ -112,6 +124,25 @@ const VibeCodingServerLogs: React.FC<VibeCodingServerLogsProps> = ({
   const handleAutoFix = useCallback(() => {
     if (eaddrinusePort != null) onAutoFix?.(eaddrinusePort);
   }, [eaddrinusePort, onAutoFix]);
+
+  const hasErrors = useMemo(
+    () => allLines.some((l) => {
+      const lower = l.toLowerCase();
+      return lower.includes("error") || lower.includes("failed");
+    }),
+    [allLines]
+  );
+
+  const handleFixWithAI = useCallback(() => {
+    // Extract the last error block (last 50 lines or from last "compiling")
+    const lastCompiling = allLines.findLastIndex((l) =>
+      l.toLowerCase().includes("compiling")
+    );
+    const errorLines = lastCompiling >= 0
+      ? allLines.slice(lastCompiling)
+      : allLines.slice(-50);
+    onFixWithAI?.(errorLines.join("\n"));
+  }, [allLines, onFixWithAI]);
 
   return (
     <Box
@@ -164,6 +195,33 @@ const VibeCodingServerLogs: React.FC<VibeCodingServerLogsProps> = ({
             </IconButton>
           </Tooltip>
         )}
+        {hasErrors && onFixWithAI && (
+          <Tooltip title="Send errors to chat for AI fix">
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AutoFixHighIcon sx={{ fontSize: 12 }} />}
+              onClick={handleFixWithAI}
+              sx={{
+                fontSize: "0.65rem",
+                py: "1px",
+                px: "6px",
+                minWidth: 0,
+                mr: "4px",
+                borderColor: "#569cd6",
+                color: "#569cd6",
+                "&:hover": { borderColor: "#79b8ff", color: "#79b8ff", bgcolor: "rgba(86,156,214,0.08)" }
+              }}
+            >
+              Fix with AI
+            </Button>
+          </Tooltip>
+        )}
+        <Tooltip title={copied ? "Copied!" : "Copy logs"}>
+          <IconButton size="small" onClick={handleCopy} sx={{ p: "3px" }}>
+            <ContentCopyIcon sx={{ fontSize: 13, color: copied ? "#50FA7B" : undefined }} />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Clear">
           <IconButton size="small" onClick={handleClear} sx={{ p: "3px" }}>
             <DeleteOutlineIcon sx={{ fontSize: 13 }} />

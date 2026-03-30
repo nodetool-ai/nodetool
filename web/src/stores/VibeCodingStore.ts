@@ -1,6 +1,12 @@
 import { create } from "zustand";
+import type { Diagnostic } from "../components/vibecoding/diagnosticParser";
 
 export type ServerStatus = "starting" | "running" | "error" | "stopped";
+
+export interface OpenTab {
+  filePath: string;
+  content: string;
+}
 
 export interface VibeCodingSession {
   workspaceId: string;
@@ -9,8 +15,9 @@ export interface VibeCodingSession {
   serverStatus: ServerStatus;
   serverLogs: string[];
   isPublished: boolean;
-  openFilePath: string | null;
-  openFileContent: string | null;
+  openTabs: OpenTab[];
+  activeTabPath: string | null;
+  diagnostics: Diagnostic[];
 }
 
 const MAX_LOGS = 100;
@@ -22,8 +29,9 @@ const defaultSession = (workspaceId: string): VibeCodingSession => ({
   serverStatus: "stopped",
   serverLogs: [],
   isPublished: false,
-  openFilePath: null,
-  openFileContent: null,
+  openTabs: [],
+  activeTabPath: null,
+  diagnostics: [],
 });
 
 interface VibeCodingState {
@@ -35,7 +43,10 @@ interface VibeCodingState {
   appendServerLog: (workspaceId: string, line: string) => void;
   setIsPublished: (workspaceId: string, published: boolean) => void;
   openFile: (workspaceId: string, filePath: string, content: string) => void;
-  closeFile: (workspaceId: string) => void;
+  closeFile: (workspaceId: string, filePath: string) => void;
+  setActiveTab: (workspaceId: string, filePath: string) => void;
+  updateTabContent: (workspaceId: string, filePath: string, content: string) => void;
+  setDiagnostics: (workspaceId: string, diagnostics: Diagnostic[]) => void;
 }
 
 function patch(
@@ -62,9 +73,9 @@ export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
           [workspaceId]: {
             ...defaultSession(workspaceId),
             workspacePath: workspacePath ?? "",
-            // Preserve open file across re-init
-            openFilePath: existing?.openFilePath ?? null,
-            openFileContent: existing?.openFileContent ?? null,
+            openTabs: existing?.openTabs ?? [],
+            activeTabPath: existing?.activeTabPath ?? null,
+            diagnostics: existing?.diagnostics ?? [],
           },
         },
       };
@@ -99,17 +110,53 @@ export const useVibeCodingStore = create<VibeCodingState>()((set, get) => ({
 
   openFile: (workspaceId, filePath, content) =>
     set((state) => ({
+      sessions: patch(state.sessions, workspaceId, (s) => {
+        const exists = s.openTabs.some((t) => t.filePath === filePath);
+        const openTabs = exists
+          ? s.openTabs.map((t) => (t.filePath === filePath ? { ...t, content } : t))
+          : [...s.openTabs, { filePath, content }];
+        return { openTabs, activeTabPath: filePath };
+      }),
+    })),
+
+  closeFile: (workspaceId, filePath) =>
+    set((state) => ({
+      sessions: patch(state.sessions, workspaceId, (s) => {
+        const idx = s.openTabs.findIndex((t) => t.filePath === filePath);
+        if (idx === -1) return {};
+        const openTabs = s.openTabs.filter((t) => t.filePath !== filePath);
+        let activeTabPath = s.activeTabPath;
+        if (activeTabPath === filePath) {
+          if (openTabs.length === 0) {
+            activeTabPath = null;
+          } else if (idx >= openTabs.length) {
+            activeTabPath = openTabs[openTabs.length - 1].filePath;
+          } else {
+            activeTabPath = openTabs[idx].filePath;
+          }
+        }
+        return { openTabs, activeTabPath };
+      }),
+    })),
+
+  setActiveTab: (workspaceId, filePath) =>
+    set((state) => ({
       sessions: patch(state.sessions, workspaceId, () => ({
-        openFilePath: filePath,
-        openFileContent: content,
+        activeTabPath: filePath,
       })),
     })),
 
-  closeFile: (workspaceId) =>
+  updateTabContent: (workspaceId, filePath, content) =>
     set((state) => ({
-      sessions: patch(state.sessions, workspaceId, () => ({
-        openFilePath: null,
-        openFileContent: null,
+      sessions: patch(state.sessions, workspaceId, (s) => ({
+        openTabs: s.openTabs.map((t) =>
+          t.filePath === filePath ? { ...t, content } : t
+        ),
       })),
+    })),
+
+  setDiagnostics: (workspaceId, diagnostics) =>
+    set((state) => ({
+      sessions: patch(state.sessions, workspaceId, () => ({ diagnostics })),
     })),
 }));

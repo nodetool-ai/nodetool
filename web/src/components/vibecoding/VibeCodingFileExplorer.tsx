@@ -7,9 +7,6 @@ import {
   CircularProgress,
   Collapse
 } from "@mui/material";
-import FolderIcon from "@mui/icons-material/Folder";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -28,31 +25,15 @@ interface FileTreeItemProps {
   onFileOpen?: (filePath: string) => void;
 }
 
-const FILE_ICON_COLORS: Record<string, string> = {
-  tsx: "#61dafb",
-  ts: "#3178c6",
-  js: "#f7df1e",
-  jsx: "#61dafb",
-  json: "#a8b1c2",
-  css: "#264de4",
-  md: "#6a9955",
-  html: "#e34c26",
-  svg: "#ffb13b",
-  mjs: "#f7df1e"
-};
-
-function getFileColor(name: string): string | undefined {
-  const ext = name.split(".").pop()?.toLowerCase();
-  return ext ? FILE_ICON_COLORS[ext] : undefined;
-}
-
 function formatSize(bytes: number): string {
   if (bytes < 1024) {return `${bytes}B`;}
   if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)}K`;}
   return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
 }
 
-const ROW_HEIGHT = 24;
+const ROW_HEIGHT = 32;
+const EXPLORER_FONT =
+  "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
 const FileTreeItem: React.FC<FileTreeItemProps> = memo(
   ({ entry, workspacePath, depth, onFileOpen }) => {
@@ -86,8 +67,6 @@ const FileTreeItem: React.FC<FileTreeItemProps> = memo(
       setExpanded(true);
     }, [entry, workspacePath, expanded, children, onFileOpen]);
 
-    const fileColor = !entry.isDir ? getFileColor(entry.name) : undefined;
-
     return (
       <>
         <Box
@@ -109,44 +88,25 @@ const FileTreeItem: React.FC<FileTreeItemProps> = memo(
         >
           {entry.isDir ? (
             loading ? (
-              <CircularProgress size={12} sx={{ color: "text.disabled" }} />
+              <CircularProgress size={14} sx={{ color: "text.disabled" }} />
             ) : expanded ? (
-              <ExpandMoreIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+              <ExpandMoreIcon sx={{ fontSize: 18, color: "text.disabled" }} />
             ) : (
               <ChevronRightIcon
-                sx={{ fontSize: 14, color: "text.disabled" }}
+                sx={{ fontSize: 18, color: "text.disabled" }}
               />
             )
           ) : (
-            <Box sx={{ width: 14, flexShrink: 0 }} />
-          )}
-
-          {entry.isDir ? (
-            expanded ? (
-              <FolderOpenIcon
-                sx={{ fontSize: 14, color: "#FFB86C", opacity: 0.85 }}
-              />
-            ) : (
-              <FolderIcon
-                sx={{ fontSize: 14, color: "#FFB86C", opacity: 0.7 }}
-              />
-            )
-          ) : (
-            <InsertDriveFileOutlinedIcon
-              sx={{
-                fontSize: 13,
-                color: fileColor ?? "text.disabled",
-                opacity: 0.85
-              }}
-            />
+            <Box sx={{ width: 18, flexShrink: 0 }} />
           )}
 
           <Typography
             noWrap
             sx={{
-              fontSize: "0.75rem",
-              fontFamily: "fontFamily2",
-              color: entry.isDir ? "text.primary" : "text.secondary",
+              fontSize: "13px",
+              fontFamily: EXPLORER_FONT,
+              fontWeight: 400,
+              color: entry.isDir ? "#c4a46c" : "text.secondary",
               flex: 1,
               lineHeight: 1
             }}
@@ -157,11 +117,12 @@ const FileTreeItem: React.FC<FileTreeItemProps> = memo(
           {!entry.isDir && entry.size > 0 && (
             <Typography
               sx={{
-                fontSize: "0.625rem",
+                fontSize: "10px",
                 color: "text.disabled",
-                fontFamily: "fontFamily2",
+                fontFamily: EXPLORER_FONT,
                 flexShrink: 0,
-                lineHeight: 1
+                lineHeight: 1,
+                opacity: 0.7
               }}
             >
               {formatSize(entry.size)}
@@ -187,7 +148,8 @@ const FileTreeItem: React.FC<FileTreeItemProps> = memo(
                   py: "2px",
                   display: "block",
                   color: "text.disabled",
-                  fontSize: "0.65rem",
+                  fontSize: "11px",
+                  fontFamily: EXPLORER_FONT,
                   fontStyle: "italic",
                   height: ROW_HEIGHT,
                   lineHeight: `${ROW_HEIGHT}px`
@@ -251,7 +213,7 @@ const VibeCodingFileExplorer: React.FC<VibeCodingFileExplorerProps> = ({
         }}
       >
         <Typography
-          sx={{ fontSize: "0.75rem", color: "text.disabled" }}
+          sx={{ fontSize: "13px", fontFamily: EXPLORER_FONT, color: "text.disabled" }}
         >
           Select a workspace
         </Typography>
@@ -281,10 +243,11 @@ const VibeCodingFileExplorer: React.FC<VibeCodingFileExplorerProps> = ({
       >
         <Typography
           sx={{
-            fontSize: "0.65rem",
+            fontSize: "10px",
+            fontFamily: EXPLORER_FONT,
             fontWeight: 600,
             textTransform: "uppercase",
-            letterSpacing: "0.05em",
+            letterSpacing: "0.1em",
             color: "text.disabled"
           }}
         >
