@@ -43,9 +43,7 @@ const BackToEditorButton = forwardRef<
   BackToEditorButtonProps
 >(({ title, ...props }, ref) => {
   const theme = useTheme();
-  const { currentWorkflowId } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId
-  }));
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   const navigate = useNavigate();
 
   const loadWorkflows = async () => {

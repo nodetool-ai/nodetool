@@ -19,6 +19,7 @@ import useGlobalChatStore, {
 import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import { useShallow } from "zustand/react/shallow";
 import log from "loglevel";
 
 /**
@@ -70,7 +71,7 @@ const StandaloneChat: React.FC = () => {
     selectedCollections,
     setSelectedCollections,
   } = useGlobalChatStore(
-    useCallback(
+    useShallow(
       (state) => ({
         // Connection
         connect: state.connect,
@@ -108,8 +109,7 @@ const StandaloneChat: React.FC = () => {
         setSelectedTools: state.setSelectedTools,
         selectedCollections: state.selectedCollections,
         setSelectedCollections: state.setSelectedCollections,
-      }),
-      []
+      })
     )
   );
 

@@ -3,6 +3,7 @@ import {
   useRightPanelStore,
   RightPanelView
 } from "../../stores/RightPanelStore";
+import { useShallow } from "zustand/react/shallow";
 
 const DEFAULT_PANEL_SIZE = 350;
 const MIN_DRAG_SIZE = 60;
@@ -12,20 +13,19 @@ const MAX_PANEL_SIZE = 600;
 export const useResizeRightPanel = (
   panelPosition: "left" | "right" = "right"
 ) => {
-  const panel = useRightPanelStore((state) => state.panel);
+  const panel = useRightPanelStore(useShallow((state) => state.panel));
   const startDragX = useRef(0);
   const startDragSize = useRef(0);
 
   const actions = useRightPanelStore(
-    useCallback(
+    useShallow(
       (state) => ({
         setSize: state.setSize,
         setVisibility: state.setVisibility,
         setIsDragging: state.setIsDragging,
         setHasDragged: state.setHasDragged,
         handleViewChange: state.handleViewChange
-      }),
-      []
+      })
     )
   );
 

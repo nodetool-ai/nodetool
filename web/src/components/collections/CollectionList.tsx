@@ -18,6 +18,7 @@ import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
+import { useShallow } from "zustand/react/shallow";
 import { DialogActionButtons } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 
@@ -41,7 +42,7 @@ const CollectionList = () => {
     handleDragOver: storeHandleDragOver,
     handleDragLeave: storeHandleDragLeave,
     handleDrop: storeHandleDrop
-  } = useCollectionStore((state) => ({
+  } = useCollectionStore(useShallow((state) => ({
     collections: state.collections,
     isLoading: state.isLoading,
     error: state.error,
@@ -59,7 +60,7 @@ const CollectionList = () => {
     handleDragOver: state.handleDragOver,
     handleDragLeave: state.handleDragLeave,
     handleDrop: state.handleDrop
-  }));
+  })));
 
   useEffect(() => {
     fetchCollections();

@@ -365,12 +365,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isSuspended
   } = useFloatingToolbarActions();
 
-  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
-    (state) => ({
-      isRightPanelVisible: state.panel.isVisible,
-      rightPanelSize: state.panel.panelSize
-    })
-  );
+  const isRightPanelVisible = useRightPanelStore((state) => state.panel.isVisible);
+  const rightPanelSize = useRightPanelStore((state) => state.panel.panelSize);
   const bottomPanelVisible = useBottomPanelStore(
     (state) => state.panel.isVisible
   );

@@ -149,10 +149,8 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const { getViewport } = useReactFlow();
-  const { addNode, createNode } = useNodes((state) => ({
-    addNode: state.addNode,
-    createNode: state.createNode
-  }));
+  const addNode = useNodes((state) => state.addNode);
+  const createNode = useNodes((state) => state.createNode);
 
   // Subscribe to store with selective properties using shallow equality
   const searchTerm = useStoreWithEqualityFn(

@@ -17,9 +17,7 @@ interface WorkflowSelectProps {
 }
 
 const WorkflowSelect = (props: WorkflowSelectProps) => {
-  const { load } = useWorkflowManager((state) => ({
-    load: state.load
-  }));
+  const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],

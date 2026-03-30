@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { BottomPanelView, useBottomPanelStore } from "../../stores/BottomPanelStore";
+import { useShallow } from "zustand/react/shallow";
 
 const DEFAULT_PANEL_SIZE = 300;
 const MIN_DRAG_SIZE = 40;
@@ -7,20 +8,19 @@ const MIN_PANEL_SIZE = 200;
 const MAX_PANEL_SIZE = 600;
 
 export const useResizeBottomPanel = () => {
-  const panel = useBottomPanelStore((state) => state.panel);
+  const panel = useBottomPanelStore(useShallow((state) => state.panel));
   const startDragY = useRef(0);
   const startDragSize = useRef(0);
 
   const actions = useBottomPanelStore(
-    useCallback(
+    useShallow(
       (state) => ({
         setSize: state.setSize,
         setVisibility: state.setVisibility,
         setIsDragging: state.setIsDragging,
         setHasDragged: state.setHasDragged,
         handleViewChange: state.handleViewChange
-      }),
-      []
+      })
     )
   );
 

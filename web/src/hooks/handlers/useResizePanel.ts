@@ -1,25 +1,25 @@
 import { useCallback, useEffect, useRef } from "react";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
+import { useShallow } from "zustand/react/shallow";
 const DEFAULT_PANEL_SIZE = 400;
 const MIN_DRAG_SIZE = 60;
 const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
 const MAX_PANEL_SIZE = 800;
 
 export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
-  const panel = usePanelStore((state) => state.panel);
+  const panel = usePanelStore(useShallow((state) => state.panel));
   const startDragX = useRef(0);
   const startDragSize = useRef(0);
 
   const actions = usePanelStore(
-    useCallback(
+    useShallow(
       (state) => ({
         setSize: state.setSize,
         setVisibility: state.setVisibility,
         setIsDragging: state.setIsDragging,
         setHasDragged: state.setHasDragged,
         handleViewChange: state.handleViewChange
-      }),
-      []
+      })
     )
   );
 
