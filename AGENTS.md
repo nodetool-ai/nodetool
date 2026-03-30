@@ -10,7 +10,7 @@ Guidelines for working with code in this repository. These are linter-like rules
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/README.md)** — React Native mobile app
-- **[Documentation](docs/AGENTS.md)** — Docs site
+- **[Agent System](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
 - **[Workflow Runner](workflow_runner/AGENTS.md)** — Standalone workflow runner
 
@@ -28,6 +28,15 @@ make lint             # Lint all packages
 make lint-fix         # Auto-fix linting issues
 make test             # Run all tests
 make check            # Run all checks (typecheck, lint, test)
+```
+
+### Backend Packages
+
+```bash
+npm run build:packages                          # Build all in dependency order
+npm run test:packages                           # Test all packages
+npm run test --workspace=packages/<name>        # Test single package
+npm run test:watch --workspace=packages/<name>  # Watch mode for single package
 ```
 
 ### Web Package
@@ -52,11 +61,20 @@ npm run test:e2e         # Run e2e tests (requires backend)
 cd electron
 npm install              # Install dependencies
 npm start                # Start electron
-npm run build            # Production build
+npm run build            # Production build (tsc + vite + electron-builder)
 npm run typecheck        # TypeScript check
 npm run lint             # ESLint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run tests
+```
+
+### Development Servers
+
+```bash
+make dev                 # Backend (tsx --watch) + web Vite server
+make dev-server          # Backend dev server only (tsx --watch, port 7777)
+make electron            # Build web and start Electron app
+make electron-dev        # Electron against Vite server (requires conda env)
 ```
 
 ### Mandatory Post-Change Verification
@@ -73,16 +91,25 @@ All three must pass before the task is complete.
 
 ### Code Review for Regressions
 
-After making changes and before submitting a PR, review your code for potential regressions:
+Before submitting a PR, review for:
 
-1. **Manual Testing**: Run the affected features manually to ensure they work correctly
-2. **Test Coverage**: Verify that existing tests still pass and cover the changes
-3. **Side Effects**: Look for unintended side effects in related code
-4. **Quality Checks**: Confirm no new TypeScript errors or lint warnings were introduced
-5. **Edge Cases**: Test edge cases and error handling scenarios
-6. **Performance**: Consider any performance implications of your changes
+1. **Existing tests still pass** and cover the changes
+2. **No new TypeScript errors or lint warnings**
+3. **No unintended side effects** in related code
+4. **Edge cases and error handling** are covered
+5. **Performance implications** considered
 
-This review helps catch issues before they reach production and ensures your changes don't break existing functionality.
+---
+
+## Common Pitfalls
+
+- **Decorator packages load from `dist/`**: `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes` use decorators. After changing these, run `npm run build:packages` before running `make dev`.
+- **Package build order matters**: Always use `npm run build:packages` (builds in dependency order). Don't build individual packages with unbuilt dependencies.
+- **Mobile typecheck needs protocol**: Run `cd packages/protocol && npm run build` before `make typecheck-mobile`.
+- **WebSocket uses MsgPack, not JSON**: Use existing serialization helpers. Don't serialize WebSocket messages as JSON.
+- **Don't create WebSocket instances**: Use `GlobalWebSocketManager` singleton in the frontend.
+- **ES Modules everywhere**: All packages use `"type": "module"`. Compiled imports need `.js` extensions.
+- **Never import from `dist/`**: Use `@nodetool/<package>` workspace references in source code.
 
 ---
 
