@@ -682,9 +682,6 @@ export function usePointerHandlers({
         clearLayerTransformPreview?.(moveTargetLayer.id);
         isDrawingRef.current = true;
         onStrokeStart();
-        // Synchronous composite: deferred rAF can skip the first move preview on a
-        // cold canvas/WebGPU path; brush strokes implicitly force a present first.
-        redraw();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         return;
       }
@@ -1182,8 +1179,6 @@ export function usePointerHandlers({
           movePreviewTransformRef.current = previewTransform;
           movePreviewLayerIdRef.current = layer.id;
           setLayerTransformPreview?.(layer.id, previewTransform);
-          // Same frame as pointer events — matches cold WebGPU / before first paint.
-          redraw();
         }
         return;
       }
@@ -1436,7 +1431,6 @@ export function usePointerHandlers({
       drawOverlayGradient,
       drawOverlayCrop,
       redrawDirty,
-      redraw,
       requestRedraw,
       clipSelectionForOffset,
       drawOverlaySelection,
@@ -1499,7 +1493,6 @@ export function usePointerHandlers({
             syncDocumentFromCanvas: false
           });
         }
-        redraw();
         return;
       }
       if (interactionTool === "clone_stamp") {
@@ -1705,14 +1698,6 @@ export function usePointerHandlers({
           clearOverlay();
           drawSelectionOverlay();
         }
-        const rBrushUp = containerRef.current?.getBoundingClientRect();
-        if (rBrushUp) {
-          mousePositionRef.current = {
-            x: e.clientX - rBrushUp.left,
-            y: e.clientY - rBrushUp.top
-          };
-        }
-        drawCursor(e.clientX, e.clientY);
         return;
       }
 
@@ -1793,7 +1778,6 @@ export function usePointerHandlers({
       drawActiveStrokePreview,
       activeStrokeRef,
       redraw,
-      drawCursor,
       screenToCanvas,
       onSelectionChange,
       containerRef,
