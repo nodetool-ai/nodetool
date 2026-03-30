@@ -1,11 +1,6 @@
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import type { SettingWithValue } from "../../stores/ApiTypes";
 
-
-
-export const getRemoteSidebarSections = () => {
-  const store = useRemoteSettingsStore.getState();
-  const settings = store.settings;
-
+export const getRemoteSidebarSections = (settings: SettingWithValue[]) => {
   const initialGroupedSettings = settings
     .filter((setting) => !setting.is_secret)
     .reduce((acc, setting) => {

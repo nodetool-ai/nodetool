@@ -1,0 +1,121 @@
+name: Dependency Cleanup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  dependency-cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Run quality checks baseline
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+          prompt: |
+            # Dependency Cleanup
+
+            Find and clean up unnecessary or outdated dependencies in the NodeTool codebase.
+
+            ## Scope
+            - `/web/package.json`
+            - `/electron/package.json`
+            - `/mobile/package.json`
+
+            ## What to fix
+
+            **Unused dependencies**: For each dependency in `dependencies` and `devDependencies`, search the source code to verify it's actually imported/required. Remove any that have zero imports. Be careful with:
+            - Vite/build plugins (referenced in config files, not source)
+            - Type packages (`@types/*`) — check if the parent package is used
+            - PostCSS/Babel/ESLint plugins (referenced in config files)
+            - Packages used only in scripts defined in package.json
+
+            **Duplicate dependencies**: Packages that appear in multiple workspaces with different versions. Align to a single version where possible.
+
+            **Minor/patch updates**: Update dependencies to their latest minor/patch version (not major). Run `npm outdated` to find candidates. Only update if:
+            - The update is within the same major version
+            - Tests still pass after the update
+
+            **Misplaced dependencies**: Runtime packages in `devDependencies` or dev-only packages in `dependencies`. Move them to the correct section.
+
+            ## Rules
+            - Do not bump major versions. Major upgrades need manual review.
+            - Do not remove packages you cannot verify are unused — search source, configs, and scripts.
+            - Do not touch version pins that have comments explaining why they're pinned.
+            - Do not touch CI workflow files.
+            - Run `npm ci` after any package.json changes to verify the lockfile is consistent.
+            - Keep changes focused — one PR per cleanup run.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a dependency cleanup PR is already open.
+
+            ## Verification
+            After changes, reinstall and verify:
+            ```bash
+            cd web && npm ci && cd ../electron && npm ci && cd ../mobile && npm ci
+            make typecheck && make lint && make test
+            ```
+
+            ## Submit
+            Create a PR titled "chore: clean up dependencies" listing each package added/removed/updated and why.
+
+      - name: Post-change verification
+        if: always()
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

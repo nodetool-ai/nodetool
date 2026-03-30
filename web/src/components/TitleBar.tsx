@@ -1,34 +1,34 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
 
-const containerStyle: React.CSSProperties = {
+const styles = css({
   display: "flex",
   alignItems: "center",
-  gap: "6px"
-};
-
-const baseButtonStyle: React.CSSProperties = {
-  appearance: "none",
-  WebkitAppearance: "none",
-  background: "transparent",
-  border: "0",
-  outline: "none",
-  width: "24px",
-  height: "24px",
-  lineHeight: "22px",
-  textAlign: "center",
-  borderRadius: "6px",
-  color: "inherit",
-  cursor: "pointer"
-};
-
-const hoverStyle: React.CSSProperties = {
-  background: "action.hover"
-};
-
-const closeHoverStyle: React.CSSProperties = {
-  background: "error.main",
-  color: "error.contrastText"
-};
+  gap: "6px",
+  WebkitAppRegion: "no-drag",
+  "& button": {
+    appearance: "none",
+    WebkitAppearance: "none",
+    background: "transparent",
+    border: 0,
+    outline: "none",
+    width: "24px",
+    height: "24px",
+    lineHeight: "22px",
+    textAlign: "center",
+    borderRadius: "6px",
+    color: "inherit",
+    cursor: "pointer",
+    "&:hover": {
+      background: "var(--palette-action-hover)"
+    }
+  },
+  "& .close-btn:hover": {
+    background: "var(--palette-error-main)",
+    color: "var(--palette-error-contrastText)"
+  }
+});
 
 const TitleBar: React.FC = memo(function TitleBar() {
   const minimize = useCallback(() => {
@@ -44,41 +44,15 @@ const TitleBar: React.FC = memo(function TitleBar() {
   }, []);
 
   return (
-    <div
-      style={{ ...containerStyle, WebkitAppRegion: "no-drag" } as React.CSSProperties & { WebkitAppRegion: string }}
-    >
-      <button
-        style={baseButtonStyle}
-        onMouseEnter={(e) => Object.assign(e.currentTarget.style, hoverStyle)}
-        onMouseLeave={(e) =>
-          Object.assign(e.currentTarget.style, baseButtonStyle)
-        }
-        onClick={minimize}
-        aria-label="Minimize window"
-        title="Minimize"
-      >
+    <div css={styles}>
+      <button onClick={minimize} aria-label="Minimize window" title="Minimize">
         —
       </button>
-      <button
-        style={baseButtonStyle}
-        onMouseEnter={(e) => Object.assign(e.currentTarget.style, hoverStyle)}
-        onMouseLeave={(e) =>
-          Object.assign(e.currentTarget.style, baseButtonStyle)
-        }
-        onClick={maximize}
-        aria-label="Maximize window"
-        title="Maximize"
-      >
+      <button onClick={maximize} aria-label="Maximize window" title="Maximize">
         ▢
       </button>
       <button
-        style={baseButtonStyle}
-        onMouseEnter={(e) =>
-          Object.assign(e.currentTarget.style, closeHoverStyle)
-        }
-        onMouseLeave={(e) =>
-          Object.assign(e.currentTarget.style, baseButtonStyle)
-        }
+        className="close-btn"
         onClick={close}
         aria-label="Close window"
         title="Close"

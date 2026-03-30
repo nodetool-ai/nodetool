@@ -19,7 +19,6 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useNavigate } from "react-router";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import { CloseButton } from "../ui_primitives";
@@ -27,6 +26,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { client, isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import { getRemoteSidebarSections as getApiServicesSidebarSections } from "./remoteSidebarUtils";
+import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
 import { getFoldersSidebarSections } from "./foldersSidebarUtils";
 import SecretsMenu from "./SecretsMenu";
@@ -71,7 +71,6 @@ interface SettingsMenuProps {
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const session = useAuth((state) => state.session);
-  const _navigate = useNavigate();
   const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
   const settingsTab = useSettingsStore((state) => state.settingsTab);
@@ -212,15 +211,24 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   const id = isMenuOpen ? "docs" : undefined;
 
-  const copyAuthToken = () => {
+  const copyAuthToken = async () => {
     const accessToken = session?.access_token;
     if (accessToken) {
-      navigator.clipboard.writeText(accessToken);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Nodetool API Token copied to Clipboard!"
-      });
+      try {
+        await navigator.clipboard.writeText(accessToken);
+        addNotification({
+          type: "info",
+          alert: true,
+          content: "Nodetool API Token copied to Clipboard!"
+        });
+      } catch (error) {
+        console.error("Failed to copy to clipboard:", error);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: "Failed to copy token to clipboard"
+        });
+      }
     }
   };
 
@@ -364,6 +372,27 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   }
 
+  // Subscribe to store data for sidebar sections to enable memoization
+  const remoteSettings = useRemoteSettingsStore((state) => state.settings);
+  const secrets = useSecretsStore((state) => state.secrets);
+
+  // Memoize expensive sidebar computations
+  // These functions perform filter/reduce/map operations on store data
+  const apiServicesSidebarSections = React.useMemo(
+    () => getApiServicesSidebarSections(remoteSettings),
+    [remoteSettings]
+  );
+
+  const foldersSidebarSections = React.useMemo(
+    () => getFoldersSidebarSections(remoteSettings),
+    [remoteSettings]
+  );
+
+  const secretsSidebarSections = React.useMemo(
+    () => getSecretsSidebarSections(secrets),
+    [secrets]
+  );
+
   const theme = useTheme();
 
   return (
@@ -431,11 +460,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     settingsTab === 0
                       ? generalSidebarSections
                       : settingsTab === 1
-                        ? getApiServicesSidebarSections()
+                        ? apiServicesSidebarSections
                         : settingsTab === 2
-                          ? getFoldersSidebarSections()
+                          ? foldersSidebarSections
                           : settingsTab === 3
-                            ? getSecretsSidebarSections()
+                            ? secretsSidebarSections
                             : settingsTab === 4
                               ? getAboutSidebarSections()
                               : []

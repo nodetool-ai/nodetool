@@ -1,9 +1,6 @@
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import type { SettingWithValue } from "../../stores/ApiTypes";
 
-export const getFoldersSidebarSections = () => {
-  const store = useRemoteSettingsStore.getState();
-  const settings = store.settings;
-
+export const getFoldersSidebarSections = (settings: SettingWithValue[]) => {
   const allGroupedSettings = settings.reduce((acc, setting) => {
     const groupKey = setting.group || "UnknownGroup";
     acc[groupKey] = acc[groupKey] || [];

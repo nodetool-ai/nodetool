@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import type * as monaco from "monaco-editor";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import type {
   MessageContent,
@@ -11,7 +12,7 @@ export function useChatIntegration(params: {
   isCodeEditor: boolean;
   language?: string;
   nodeType?: string;
-  monacoRef: React.MutableRefObject<any>;
+  monacoRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null>;
   getSelectedTextFnRef: React.MutableRefObject<(() => string) | null>;
   replaceSelectionFnRef: React.MutableRefObject<
     ((text: string) => void) | null
@@ -215,7 +216,7 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
     baseCount: number;
     hadSelection: boolean;
     isCodeEditor: boolean;
-    monacoRange: any | null;
+    monacoRange: monaco.Selection | null;
   }>({
     active: false,
     baseCount: 0,
@@ -230,13 +231,14 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
 
       let selected = "";
       let hadSelection = false;
-      let monacoRange: any | null = null;
+      let monacoRange: monaco.Selection | null = null;
       if (isCodeEditor && monacoRef.current) {
         try {
           const editor = monacoRef.current;
           const selection = editor.getSelection();
-          if (selection) {
-            selected = editor.getModel().getValueInRange(selection) || "";
+          const model = editor.getModel();
+          if (selection && model) {
+            selected = model.getValueInRange(selection) || "";
             hadSelection = !!selected && selected.trim().length > 0;
             monacoRange = selection;
           }

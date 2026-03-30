@@ -23,10 +23,10 @@ const log = createLogger("nodetool.agents.task-executor");
 import { StepExecutor } from "./step-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
+import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
 
 const DEFAULT_MAX_STEPS = 50;
 const DEFAULT_MAX_STEP_ITERATIONS = 10;
-const DEFAULT_TOKEN_LIMIT = 128000;
 
 export interface TaskExecutorOptions {
   provider: BaseProvider;

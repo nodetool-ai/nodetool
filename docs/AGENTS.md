@@ -5,43 +5,45 @@ permalink: /agents
 description: "Architecture of the NodeTool agent system — planning, execution, tools, skills, and workflow integration."
 ---
 
+**Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **Agent System**
+
 The **agent system** (`@nodetool/agents`) gives LLMs the ability to decompose complex objectives into steps, execute those steps with tools, and return structured results. It powers the Agent, Research Agent, and Control Agent nodes in the workflow editor, as well as the standalone Agent CLI.
 
 ---
 
-## Architecture overview
+## Architecture Overview
 
 ```
-Objective
-    |
-    v
-+-- Agent -------------------------------------------------+
-|                                                           |
-|  1. Skill resolution   (load SKILL.md files)              |
-|  2. Planning phase     (TaskPlanner → Task with Steps)    |
-|  3. Execution phase    (TaskExecutor → StepExecutor loop) |
-|                                                           |
-+-----------------------------------------------------------+
-    |
-    v
-Structured result (validated against output schema)
+Objective (user goal)
+    │
+    ▼
+┌── Agent ──────────────────────────────────────────────┐
+│                                                        │
+│  1. Skill resolution    (load SKILL.md files)          │
+│  2. Planning phase      (TaskPlanner → Task with Steps)│
+│  3. Execution phase     (TaskExecutor → StepExecutor)  │
+│                                                        │
+└────────────────────────────────────────────────────────┘
+    │
+    ▼
+Structured result (validated against output JSON schema)
 ```
 
-Three agent classes share the same base:
+### Agent Classes
 
-| Class | When to use | Package |
-|---|---|---|
-| **Agent** | Multi-step objectives that need planning | `@nodetool/agents` |
-| **SimpleAgent** | Single-step tasks with a known output schema | `@nodetool/agents` |
-| **AgentExecutor** | Lightweight value extraction (no planning) | `@nodetool/agents` |
+| Class | When to Use | Planning | Source |
+|---|---|---|---|
+| **Agent** | Multi-step objectives needing decomposition | Full DAG planning | `packages/agents/src/agent.ts` |
+| **SimpleAgent** | Single-step tasks with known output schema | No planning | `packages/agents/src/simple-agent.ts` |
+| **AgentExecutor** | Lightweight value extraction | No planning | `packages/agents/src/agent-executor.ts` |
 
-All agents extend **BaseAgent**, which defines the contract:
+All agents extend **BaseAgent**:
 
 ```ts
 abstract class BaseAgent {
   readonly name: string;
   readonly objective: string;
-  readonly provider: BaseProvider;   // LLM provider (OpenAI, Ollama, etc.)
+  readonly provider: BaseProvider;   // LLM provider (OpenAI, Anthropic, Ollama, etc.)
   readonly model: string;
   readonly tools: Tool[];
 
@@ -52,9 +54,9 @@ abstract class BaseAgent {
 
 ---
 
-## Planning phase
+## Planning Phase
 
-When you use the full **Agent**, the first thing it does is call **TaskPlanner** to decompose the objective into a **Task** — an ordered list of **Steps** with dependency edges.
+When you use the full **Agent**, the first thing it does is call **TaskPlanner** to decompose the objective into a **Task** — an ordered DAG of **Steps** with dependency edges.
 
 ```ts
 interface Task {
@@ -67,11 +69,11 @@ interface Task {
 interface Step {
   id: string;
   instructions: string;
-  dependsOn: string[];          // IDs of prerequisite steps
-  tools?: string[];             // restrict available tools
-  outputSchema?: string;        // JSON schema for validation
+  dependsOn: string[];          // IDs of prerequisite steps (forms a DAG)
+  tools?: string[];             // restrict available tools for this step
+  outputSchema?: string;        // JSON schema for step output validation
   mode?: "discover" | "process" | "aggregate";
-  perItemInstructions?: string; // template for fan-out
+  perItemInstructions?: string; // template for fan-out processing
   completed: boolean;
 }
 ```
@@ -82,7 +84,7 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 
 ---
 
-## Execution phase
+## Execution Phase
 
 **TaskExecutor** walks the step DAG, respecting dependency order. For each step, it creates a **StepExecutor** that runs a tool-calling loop:
 
@@ -93,21 +95,23 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 5. Repeat until the LLM calls `finish_step` or max iterations are reached
 6. Validate the result against the step's output schema
 
-### Token management
+### Token Management
 
 StepExecutor estimates token usage and enters a "conclusion stage" at 90% of the budget. In this stage only the `finish_step` tool is available, forcing the LLM to wrap up. Older messages are summarized to stay within limits.
 
-### Fan-out execution
+### Fan-Out Execution
 
 Steps can use three modes for batch processing:
 
-- **discover** — produces a list of items
-- **process** — creates an ephemeral sub-step per item (runs in parallel)
-- **aggregate** — collects all per-item results into a final output
+| Mode | Purpose | Example |
+|------|---------|---------|
+| **discover** | Produce a list of items | "Find all CSV files in the workspace" |
+| **process** | Create sub-step per item (runs in parallel) | "Analyze each CSV file" |
+| **aggregate** | Collect per-item results into final output | "Summarize all analyses" |
 
 ---
 
-## Tool system
+## Tool System
 
 Every tool extends a single base class:
 
@@ -115,7 +119,7 @@ Every tool extends a single base class:
 abstract class Tool {
   abstract readonly name: string;
   abstract readonly description: string;
-  abstract readonly inputSchema: Record<string, unknown>;
+  abstract readonly inputSchema: Record<string, unknown>; // JSON Schema
 
   abstract process(
     context: ProcessingContext,
@@ -126,9 +130,9 @@ abstract class Tool {
 }
 ```
 
-### Built-in tools
+### Built-In Tools
 
-| Category | Tools | Source |
+| Category | Tools | Source File |
 |---|---|---|
 | **Step control** | `FinishStepTool` | `finish-step-tool.ts` |
 | **Workflow control** | `ControlNodeTool` | `control-tool.ts` |
@@ -147,7 +151,7 @@ abstract class Tool {
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
 | **MCP** | `ListWorkflowsTool`, `RunWorkflowTool`, `SearchNodesTool`, and more | `mcp-tools.ts` |
 
-### Tool registry
+### Tool Registry
 
 Register custom tools so they can be resolved by name:
 
@@ -156,9 +160,10 @@ import { registerTool, resolveTool, getAllTools } from "@nodetool/agents";
 
 registerTool(new MyCustomTool());
 const tool = resolveTool("my_custom_tool");
+const allTools = getAllTools(); // returns all registered tools
 ```
 
-### Writing a custom tool
+### Writing a Custom Tool
 
 ```ts
 import { Tool } from "@nodetool/agents";
@@ -183,13 +188,19 @@ class WeatherTool extends Tool {
 }
 ```
 
+**Rules for custom tools**:
+- Always validate params before use (the schema provides type hints to the LLM, but doesn't enforce at runtime).
+- Return serializable values (JSON-compatible objects).
+- Handle errors within `process` — throw `Error` objects with descriptive messages.
+- Use `context` for secret resolution, storage access, and provider calls.
+
 ---
 
 ## Skills
 
 Skills are markdown files (`SKILL.md`) that inject domain-specific instructions into the agent's system prompt.
 
-### Skill format
+### Skill Format
 
 ```markdown
 ---
@@ -204,7 +215,7 @@ When working with data analysis tasks:
 ...
 ```
 
-### Skill discovery
+### Skill Discovery
 
 The agent searches these directories (in order):
 
@@ -214,7 +225,7 @@ The agent searches these directories (in order):
 4. `~/.claude/skills`
 5. `~/.codex/skills`
 
-### Skill resolution
+### Skill Resolution
 
 - **Explicit** — set `NODETOOL_AGENT_SKILLS=skill-a,skill-b` or pass `skills: ["skill-a"]` in the constructor
 - **Auto-select** — the agent matches words in the objective against skill descriptions (disable with `NODETOOL_AGENT_AUTO_SKILLS=0`)
@@ -223,7 +234,7 @@ Matched skill instructions are prepended to the system prompt under an `# Agent 
 
 ---
 
-## Workflow nodes
+## Workflow Nodes
 
 The agent system surfaces in the workflow editor through several node types defined in `base-nodes/src/nodes/agents.ts`:
 
@@ -236,7 +247,7 @@ The agent system surfaces in the workflow editor through several node types defi
 | **ClassifierNode** | Classify text into categories |
 | **CreateThreadNode** | Manage multi-turn conversation threads |
 
-### Control edges
+### Control Edges
 
 When an agent node has outgoing control edges, **ControlNodeTool** instances are automatically added to its tool list. The agent can call these tools to trigger downstream nodes with specific parameter values:
 
@@ -249,9 +260,9 @@ AgentNode ──control edge──> ImageGeneratorNode
 
 ---
 
-## Using agents programmatically
+## Using Agents Programmatically
 
-### Full agent with planning
+### Full Agent with Planning
 
 ```ts
 import { Agent } from "@nodetool/agents";
@@ -277,7 +288,7 @@ for await (const message of agent.execute(context)) {
 const result = agent.getResults();
 ```
 
-### Simple agent (single step)
+### Simple Agent (Single Step)
 
 ```ts
 import { SimpleAgent } from "@nodetool/agents";
@@ -305,7 +316,7 @@ const { emails } = agent.getResults() as { emails: string[] };
 
 ---
 
-## Configuration reference
+## Configuration Reference
 
 | Option | Default | Description |
 |---|---|---|
@@ -328,7 +339,19 @@ const { emails } = agent.getResults() as { emails: string[] };
 
 ---
 
-## Related pages
+## Claude Agent SDK Integration
+
+The `ClaudeAgentProvider` in `packages/runtime/src/providers/claude-agent-provider.ts` integrates with the Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`):
+
+- Uses Claude subscription (Pro/Max/Team) — does NOT require `ANTHROPIC_API_KEY`
+- Requires Claude Code CLI installed and authenticated
+- Creates an in-process MCP server via the SDK's `createSdkMcpServer()`
+- Disables Claude Code's built-in tools (Bash, Read, Write, etc.) — only NodeTool tools are available
+- Supports: Claude Sonnet 4, Claude Opus 4, Claude Haiku 4
+
+---
+
+## Related Pages
 
 - [Global Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
 - [Agent CLI](agent-cli.md) — Running agents from the command line

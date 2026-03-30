@@ -303,7 +303,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
   // Copy color to clipboard
   const copyColor = useCallback(
-    (format: string) => {
+    async (format: string) => {
       let textToCopy = "";
       const rgb = hexToRgb(color);
 
@@ -329,8 +329,16 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
           textToCopy = color;
       }
 
-      navigator.clipboard.writeText(textToCopy);
-      setCopiedFormat(format);
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopiedFormat(format);
+      } catch (error) {
+        console.error("Failed to copy to clipboard:", error);
+        window.alert(
+          "Failed to copy the color to the clipboard. Please check your browser permissions and try again."
+        );
+        return;
+      }
 
       // Clear previous timeout if exists
       if (copiedTimeoutRef.current) {
