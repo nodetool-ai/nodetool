@@ -4,6 +4,9 @@
     "paths": {
       "@nodetool/fal-node-type-pricing": [
         "../packages/fal-nodes/src/generated/fal-node-type-pricing.json"
+      ],
+      "@nodetool/fal-unit-pricing-catalog": [
+        "../packages/fal-nodes/src/generated/fal-unit-pricing.json"
       ]
     },
     "target": "ESNext",

@@ -11,6 +11,8 @@ export default {
   moduleNameMapper: {
     "^@nodetool/fal-node-type-pricing$":
       "<rootDir>/../packages/fal-nodes/src/generated/fal-node-type-pricing.json",
+    "^@nodetool/fal-unit-pricing-catalog$":
+      "<rootDir>/../packages/fal-nodes/src/generated/fal-unit-pricing.json",
     "^@nodetool/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     "^@nodetool/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
     // Strip .js extensions from TypeScript ESM imports (packages use .js in source imports per ESM convention)

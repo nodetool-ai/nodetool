@@ -60,6 +60,7 @@ export default defineConfig(async ({ mode }) => {
       alias: {
         "@nodetool/protocol": resolve(configDir, "../packages/protocol/src/index.ts"),
         "@nodetool/fal-node-type-pricing": resolve(configDir, "../packages/fal-nodes/src/generated/fal-node-type-pricing.json"),
+        "@nodetool/fal-unit-pricing-catalog": resolve(configDir, "../packages/fal-nodes/src/generated/fal-unit-pricing.json"),
         "monaco-editor": resolve(rootNodeModules, "monaco-editor"),
       },
     },
