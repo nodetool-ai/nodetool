@@ -16,6 +16,7 @@ import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { ScrollArea } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 320;
@@ -24,7 +25,6 @@ const POPOVER_HEIGHT = 380;
 const styles = (theme: Theme) => css({
   ".collections-list": {
     flex: 1,
-    overflow: "auto",
     padding: "8px"
   },
   ".collection-item": {
@@ -284,7 +284,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
         </Box>
 
         {/* Collections List */}
-        <Box className="collections-list">
+        <ScrollArea className="collections-list" fullHeight>
           {isLoading ? (
             <Typography
               variant="body2"
@@ -349,7 +349,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               );
             })
           )}
-        </Box>
+        </ScrollArea>
       </Popover>
     </>
   );

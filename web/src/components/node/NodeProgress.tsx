@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useEffect, useState, useRef } from "react";
-import { LinearProgress, Typography } from "@mui/material";
 import useResultsStore from "../../stores/ResultsStore";
 import isEqual from "lodash/isEqual";
+import { ProgressBar } from "../ui_primitives/ProgressBar";
 
 const NodeProgress = ({
   id,
@@ -36,22 +36,18 @@ const NodeProgress = ({
     return null;
   }
 
+  const percentValue = (progress.progress * 100) / progress.total;
+
   return (
     <div className="node-progress" style={{ margin: "0.75em 0 0.5em 0" }}>
-      <LinearProgress
-        variant="determinate"
-        value={(progress.progress * 100) / progress.total}
+      <ProgressBar
+        value={percentValue}
         color="secondary"
+        showValue={true}
+        formatValue={() =>
+          `${progress.progress} / ${progress.total}${eta ? ` (eta ${eta}s)` : ""}`
+        }
       />
-      <Typography
-        variant="caption"
-        component="div"
-        color="textSecondary"
-        style={{ textAlign: "center", marginTop: "0.5em", minHeight: "1.2em" }}
-      >
-        {progress.progress} / {progress.total}
-        {eta && ` (eta ${eta}s)`}
-      </Typography>
     </div>
   );
 };

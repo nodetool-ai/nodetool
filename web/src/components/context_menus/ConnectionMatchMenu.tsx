@@ -7,6 +7,7 @@ import {
   Box,
   Divider
 } from "@mui/material";
+import { Caption } from "../ui_primitives";
 import { Connection } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 
@@ -96,24 +97,22 @@ const ConnectionMatchMenu: React.FC = () => {
                 flexDirection="column"
               >
                 {option.typeLabel && (
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
+                  <Caption
+                    color="secondary"
                     component="span"
                     sx={{ whiteSpace: "normal", lineHeight: 1.4 }}
                   >
                     {option.typeLabel.toUpperCase()}
-                  </Typography>
+                  </Caption>
                 )}
                 {option.description && (
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
+                  <Caption
+                    color="secondary"
                     component="span"
                     sx={{ whiteSpace: "normal", lineHeight: 1.4 }}
                   >
                     {option.description}
-                  </Typography>
+                  </Caption>
                 )}
               </Box>
             }

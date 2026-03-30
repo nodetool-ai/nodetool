@@ -14,7 +14,7 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState } from "../ui_primitives";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -510,12 +510,11 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   if (assets.length === 0) {
     return (
       <Box css={styles(theme)} className="asset-list-view">
-        <Typography
-          variant="body2"
-          style={{ textAlign: "center", padding: "2em", color: "var(--palette-text-secondary)" }}
-        >
-          No assets to display
-        </Typography>
+        <EmptyState
+          variant="no-data"
+          title="No assets to display"
+          size="small"
+        />
       </Box>
     );
   }

@@ -6,7 +6,7 @@ import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/mat
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import { CloseButton, ExpandCollapseButton } from "../../ui_primitives";
+import { Caption, CloseButton, ExpandCollapseButton } from "../../ui_primitives";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
@@ -250,13 +250,12 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
               Design App UI
             </Button>
             {workflow.html_app && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
+              <Caption
+                color="secondary"
                 sx={{ mt: 0.5 }}
               >
                 This workflow has a custom app UI
-              </Typography>
+              </Caption>
             )}
           </div>
 
@@ -265,9 +264,9 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
 
           {/* Theme toggle at bottom */}
           <div className="theme-toggle-wrapper">
-            <Typography variant="caption" color="text.secondary">
+            <Caption color="secondary">
               Theme
-            </Typography>
+            </Caption>
             <ThemeToggle />
           </div>
         </div>

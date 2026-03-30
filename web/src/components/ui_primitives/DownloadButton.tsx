@@ -134,6 +134,7 @@ export const DownloadButton = memo(
             enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
             placement={tooltipPlacement}
           >
+            <span style={{ display: "inline-flex" }}>
             <Button
               ref={ref}
               tabIndex={tabIndex}
@@ -158,6 +159,7 @@ export const DownloadButton = memo(
             >
               {label}
             </Button>
+            </span>
           </Tooltip>
         );
       }
@@ -169,6 +171,7 @@ export const DownloadButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
+          <span style={{ display: "inline-flex" }}>
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
@@ -192,6 +195,7 @@ export const DownloadButton = memo(
           >
             {content}
           </IconButton>
+          </span>
         </Tooltip>
       );
     }

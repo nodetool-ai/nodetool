@@ -7,7 +7,8 @@ import React, {
   useState,
   useCallback
 } from "react";
-import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
+import { Box, Typography, useMediaQuery } from "@mui/material";
+import { AlertBanner } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -367,9 +368,9 @@ const StandaloneChat: React.FC = () => {
           justifyContent: "center"
         }}
       >
-        <Alert severity="error">
+        <AlertBanner severity="error">
           Failed to load threads: {threadsError.message}
-        </Alert>
+        </AlertBanner>
       </Box>
     );
   }
@@ -408,7 +409,7 @@ const StandaloneChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed && error && (
-          <Alert
+          <AlertBanner
             className="standalone-chat-status-alert"
             severity="error"
             onClose={() => setAlertDismissed(true)}
@@ -424,7 +425,7 @@ const StandaloneChat: React.FC = () => {
             }}
           >
             {error}
-          </Alert>
+          </AlertBanner>
         )}
 
         {/* Controls row */}

@@ -26,6 +26,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
 import SearchInput from "../../search/SearchInput";
+import { ScrollArea } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 360;
@@ -35,7 +36,6 @@ const toolsSelectorStyles = (theme: Theme) =>
   css({
     ".items-container": {
       flex: 1,
-      overflow: "auto",
       padding: "0 8px"
     },
     ".loading-container": {
@@ -368,7 +368,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
 
         {/* Main Content */}
         <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          <div className="items-container">
+          <ScrollArea className="items-container" fullHeight>
             {isLoading ? (
               <div className="loading-container">
                 <CircularProgress size={24} />
@@ -435,7 +435,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
                   <Typography variant="body2">No matching tools</Typography>
                 </div>
               )}
-          </div>
+          </ScrollArea>
 
           {/* Hovered Tool Info */}
           {HoveredToolInfo}

@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, memo } from "react";
 import { IconButton, Collapse, Box } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
-import CloseIcon from "@mui/icons-material/Close";
+import { CloseButton } from "../../ui_primitives";
 import ChatToolBar from "./ChatToolBar";
 import { LanguageModel } from "../../../stores/ApiTypes";
 
@@ -126,13 +126,11 @@ const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
           </IconButton>
         ) : (
           <div className="toolbar-container">
-            <IconButton
+            <CloseButton
               className="close-button"
               onClick={handleClose}
-              aria-label="Close chat settings"
-            >
-              <CloseIcon />
-            </IconButton>
+              tooltip="Close chat settings"
+            />
             <Collapse in={isExpanded} timeout={200}>
               <ChatToolBar
                 selectedTools={selectedTools}

@@ -8,10 +8,7 @@ import {
   Box,
   useMediaQuery,
   Tooltip,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText
+  Menu
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -38,6 +35,7 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
+import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
@@ -569,38 +567,32 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           }
         }}
       >
-        <MenuItem onClick={handleToggleTerminalAndCloseMenu}>
-          <ListItemIcon>
-            <TerminalIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
-          />
-        </MenuItem>
-        <MenuItem onClick={handleEditWorkflowAndCloseMenu}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Workflow Settings" />
-        </MenuItem>
-        <MenuItem onClick={handleOpenAdvancedMenu}>
-          <ListItemIcon>
-            <MapIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Advanced" />
-        </MenuItem>
-        <MenuItem onClick={handleDownloadAndCloseMenu}>
-          <ListItemIcon>
-            <DownloadIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Download JSON" />
-        </MenuItem>
-        <MenuItem onClick={handleRunAsAppAndCloseMenu}>
-          <ListItemIcon>
-            <RocketLaunchIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Run as App" />
-        </MenuItem>
+        <MenuItemPrimitive
+          label={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
+          icon={<TerminalIcon fontSize="small" />}
+          onClick={handleToggleTerminalAndCloseMenu}
+        />
+        <MenuItemPrimitive
+          label="Workflow Settings"
+          icon={<EditIcon fontSize="small" />}
+          onClick={handleEditWorkflowAndCloseMenu}
+        />
+        <MenuItemPrimitive
+          label="Advanced"
+          icon={<MapIcon fontSize="small" />}
+          onClick={handleOpenAdvancedMenu as (event: React.MouseEvent) => void}
+          hasSubmenu
+        />
+        <MenuItemPrimitive
+          label="Download JSON"
+          icon={<DownloadIcon fontSize="small" />}
+          onClick={handleDownloadAndCloseMenu}
+        />
+        <MenuItemPrimitive
+          label="Run as App"
+          icon={<RocketLaunchIcon fontSize="small" />}
+          onClick={handleRunAsAppAndCloseMenu}
+        />
       </Menu>
 
       <Menu
@@ -615,18 +607,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           }
         }}
       >
-        <MenuItem
+        <MenuItemPrimitive
+          label="Mini Map"
+          icon={<MapIcon fontSize="small" />}
+          secondary={isMiniMapVisible ? "Visible" : "Hidden"}
           className={cn(isMiniMapVisible && "minimap-active")}
           onClick={handleToggleMiniMapAndCloseMenu}
-        >
-          <ListItemIcon>
-            <MapIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary="Mini Map"
-            secondary={isMiniMapVisible ? "Visible" : "Hidden"}
-          />
-        </MenuItem>
+        />
       </Menu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />

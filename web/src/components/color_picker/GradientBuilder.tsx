@@ -6,7 +6,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   Box,
   Typography,
-  IconButton,
   Tooltip,
   ToggleButtonGroup,
   ToggleButton,
@@ -15,8 +14,8 @@ import {
   Button
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { DeleteButton } from "../ui_primitives";
 import {
   GradientValue,
   GradientStop,
@@ -385,16 +384,12 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
               Apply
             </Button>
           </Tooltip>
-          <Tooltip title="Remove stop">
-            <IconButton
-              size="small"
-              data-stop-index={selectedStopIndex}
-              onClick={handleRemoveStopButtonClick}
-              disabled={gradient.stops.length <= 2}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <DeleteButton
+            onClick={handleRemoveStopButtonClick}
+            tooltip="Remove stop"
+            disabled={gradient.stops.length <= 2}
+            nodrag={false}
+          />
         </div>
       )}
 

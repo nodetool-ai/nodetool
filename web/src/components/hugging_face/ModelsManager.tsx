@@ -3,15 +3,12 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
-  Tooltip
+  Box
 } from "@mui/material";
 import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
 import PanelHeadline from "../ui/PanelHeadline";
-import { Dialog } from "../ui_primitives";
+import { Dialog, CloseButton } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -112,15 +109,11 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
         <PanelHeadline
           title="Model Manager"
           actions={
-            <Tooltip title="Close">
-              <IconButton
-                aria-label="close"
-                onClick={onClose}
-                className="close-button"
-              >
-                <CloseIcon />
-              </IconButton>
-            </Tooltip>
+            <CloseButton
+              onClick={onClose}
+              className="close-button"
+              nodrag={false}
+            />
           }
         />
       }

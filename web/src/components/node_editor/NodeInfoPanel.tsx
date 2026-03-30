@@ -7,11 +7,10 @@ import {
   Box,
   Typography,
   Tooltip,
-  Button,
-  IconButton
+  Button
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { CloseButton } from "../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -281,14 +280,11 @@ const NodeInfoPanel: React.FC = memo(() => {
       <Box className="panel-content">
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
           <Typography className="node-name">{nodeInfo.label}</Typography>
-          <Tooltip title="Close" arrow>
-            <IconButton
-              size="small"
-              onClick={handleClose}
-              sx={{ color: "text.secondary" }}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <CloseButton
+            onClick={handleClose}
+            sx={{ color: "text.secondary" }}
+            nodrag={false}
+          />
         </Box>
 
         <Tooltip

@@ -25,6 +25,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
+import { ScrollArea } from "../ui_primitives";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -407,9 +408,9 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           <PanelHeadline title="Workflows" />
-          <Box sx={{ flex: 1, overflow: "auto" }}>
+          <ScrollArea fullHeight>
             <WorkflowList />
-          </Box>
+          </ScrollArea>
         </Box>
       )}
 

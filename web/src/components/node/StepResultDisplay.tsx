@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Collapse } from "@mui/material";
+import { Typography } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { StepResult } from "../../stores/ApiTypes";
-import { ExpandCollapseButton } from "../ui_primitives";
+import { CollapsibleSection } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -23,14 +23,7 @@ const styles = (theme: Theme) =>
     ".step-result-header": {
       display: "flex",
       alignItems: "center",
-      gap: "0.75rem",
-      padding: "0.75rem 1rem",
-      cursor: "pointer",
-      userSelect: "none",
-      transition: "background-color 0.2s ease",
-      "&:hover": {
-        backgroundColor: `rgba(50, 60, 70, 0.4)`
-      }
+      gap: "0.75rem"
     },
 
     ".step-result-icon": {
@@ -47,15 +40,6 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.5px",
       color: theme.vars.palette.success.light,
       flex: 1
-    },
-
-    ".expand-button": {
-      padding: "4px",
-      transition: "transform 0.3s ease",
-      color: theme.vars.palette.grey[400],
-      "&.expanded": {
-        transform: "rotate(180deg)"
-      }
     },
 
     ".step-result-content": {
@@ -105,7 +89,6 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
   stepResult
 }) => {
   const theme = useTheme();
-  const [expanded, setExpanded] = useState(false);
 
   const { displayValue, isPrimitive, resultType } = useMemo(() => {
     const result = stepResult.result;
@@ -161,10 +144,6 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
     }
   }, [stepResult.result]);
 
-  const handleToggle = () => {
-    setExpanded(!expanded);
-  };
-
   // For primitive types, show inline without expand
   if (isPrimitive && displayValue.length < 100) {
     return (
@@ -185,25 +164,23 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
 
   return (
     <div className="step-result-container" css={styles(theme)}>
-      <div className="step-result-header" onClick={handleToggle}>
-        <CheckCircleOutlineIcon className="step-result-icon" />
-        <Typography className="step-result-title">
-          Step Completed
-        </Typography>
-        <ExpandCollapseButton
-          expanded={expanded}
-          onClick={handleToggle}
-          buttonSize="small"
-          expandTooltip="Show details"
-          collapseTooltip="Hide details"
-        />
-      </div>
-      <Collapse in={expanded}>
+      <CollapsibleSection
+        defaultOpen={false}
+        title={
+          <div className="step-result-header">
+            <CheckCircleOutlineIcon className="step-result-icon" />
+            <Typography className="step-result-title">
+              Step Completed
+            </Typography>
+          </div>
+        }
+        compact
+      >
         <div className="step-result-content">
           <Typography className="result-type-label">{resultType}</Typography>
           <pre className="result-value">{displayValue}</pre>
         </div>
-      </Collapse>
+      </CollapsibleSection>
     </div>
   );
 };

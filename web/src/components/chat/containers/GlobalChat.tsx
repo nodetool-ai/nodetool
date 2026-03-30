@@ -8,7 +8,8 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
+import { Box, Typography, useMediaQuery } from "@mui/material";
+import { AlertBanner } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -424,9 +425,9 @@ const GlobalChat: React.FC = () => {
           justifyContent: "center"
         }}
       >
-        <Alert severity="error">
+        <AlertBanner severity="error">
           Failed to load threads: {threadsError.message}
-        </Alert>
+        </AlertBanner>
       </Box>
     );
   }
@@ -470,7 +471,7 @@ const GlobalChat: React.FC = () => {
       >
         {!alertDismissed &&
           (error &&
-            <Alert
+            <AlertBanner
               className="global-chat-status-alert"
               severity="error"
               onClose={() => setAlertDismissed(true)}
@@ -486,7 +487,7 @@ const GlobalChat: React.FC = () => {
               }}
             >
               {error}
-            </Alert>
+            </AlertBanner>
           )}
 
         <Box

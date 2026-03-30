@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../stores/useAuth";
-import { CircularProgress } from "@mui/material";
+import { LoadingSpinner } from "./ui_primitives";
 
 type Props = {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
   }, [state, navigate]);
 
   if (state === "loading" || state === "init") {
-    return <CircularProgress />;
+    return <LoadingSpinner />;
   }
 
   if (state === "logged_in") {

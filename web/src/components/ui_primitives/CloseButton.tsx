@@ -115,6 +115,7 @@ export const CloseButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
+          <span style={{ display: "inline-flex" }}>
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
@@ -138,6 +139,7 @@ export const CloseButton = memo(
           >
             <Icon fontSize={buttonSize} />
           </IconButton>
+          </span>
         </Tooltip>
       );
     }

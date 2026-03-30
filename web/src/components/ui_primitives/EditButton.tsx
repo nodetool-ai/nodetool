@@ -121,6 +121,7 @@ export const EditButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
+          <span style={{ display: "inline-flex" }}>
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
@@ -144,6 +145,7 @@ export const EditButton = memo(
           >
             <Icon fontSize={buttonSize} />
           </IconButton>
+          </span>
         </Tooltip>
       );
     }
