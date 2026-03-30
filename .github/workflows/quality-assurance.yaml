@@ -33,39 +33,40 @@ jobs:
           cd ../electron && npm ci
           cd ../mobile && npm ci
 
-      - name: Pre-flight quality check
-        id: pre-check
+      - name: Run quality checks
+        id: quality-check
         continue-on-error: true
         run: |
-          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          echo "## Quality Check Results" >> $GITHUB_STEP_SUMMARY
+          FAILED=0
 
-          if make typecheck 2>&1 | tee typecheck-pre.log; then
-            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          make lint-fix 2>&1 || true
+
+          if make typecheck 2>&1 | tee typecheck.log; then
+            echo "- typecheck: PASS" >> $GITHUB_STEP_SUMMARY
           else
-            TYPECHECK_EXIT=1
-            echo "⚠️ TypeScript errors found" >> $GITHUB_STEP_SUMMARY
+            FAILED=1
+            echo "- typecheck: FAIL" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make lint 2>&1 | tee lint-pre.log; then
-            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
+          if make lint 2>&1 | tee lint.log; then
+            echo "- lint: PASS" >> $GITHUB_STEP_SUMMARY
           else
-            LINT_EXIT=1
-            echo "⚠️ Lint errors found" >> $GITHUB_STEP_SUMMARY
+            FAILED=1
+            echo "- lint: FAIL" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make test 2>&1 | tee test-pre.log; then
-            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
+          if make test 2>&1 | tee test.log; then
+            echo "- test: PASS" >> $GITHUB_STEP_SUMMARY
           else
-            TEST_EXIT=1
-            echo "⚠️ Test failures found" >> $GITHUB_STEP_SUMMARY
+            FAILED=1
+            echo "- test: FAIL" >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          echo "QUALITY_FAILED=$FAILED" >> $GITHUB_ENV
 
       - name: Run Claude Code
+        if: env.QUALITY_FAILED == '1'
         uses: anthropics/claude-code-action@v1
         env:
           ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
@@ -74,106 +75,47 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
           prompt: |
-            ## MANDATORY: Read .github/bot-guardrails.md before making any changes
-            # Quality Assurance
+            # Fix Broken Quality Checks
 
-            Fix quality issues in NodeTool (React/TypeScript visual AI workflow builder).
+            The quality checks for this repo are failing. Your job is to fix them.
 
-            ## ⚠️ IMPORTANT: You MUST create a Pull Request
-            Your job is to:
-            1. Run quality checks and identify issues
-            2. Fix any issues you find
-            3. **Create a Pull Request with your fixes**
-            
-            If you find issues, you MUST fix them and create a PR. Do NOT just report findings.
-            If everything is already green (no issues found), you can skip creating a PR.
-
-            ## Context
-            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
-            - Packages: `/web`, `/electron`, `/mobile`
-            - Memory: `.memory/` contains project context and known issues
-
-            ## Before Starting — MANDATORY DEDUPLICATION
-            1. Run `git branch -a` — avoid duplicating existing fix branches
-            2. **Run `gh pr list --state open --limit 50`** — if a similar fix PR is already open, STOP and find a different issue type
-            3. Read `.memory/project-context.md` for recent changes
-
-            ## Your Task
-
-            1. Run `make lint-fix` to auto-fix lint issues
-            2. Run `make typecheck` — fix any TypeScript errors
-            3. Run `make lint` — fix remaining lint errors
-            4. Run `make test` — fix failing tests
-            5. Run `make check` — all must pass (exit code 0)
-
-            ## Fix Priorities
-            1. **Critical**: Test failures, type errors blocking builds
-            2. **High**: Lint errors, security issues
-            3. **Medium**: Lint warnings, missing tests
+            Read the error logs to understand what's broken, then fix it:
+            - `typecheck.log` — TypeScript compilation errors
+            - `lint.log` — ESLint violations (run `make lint-fix` first, then fix the rest manually)
+            - `test.log` — failing test cases
 
             ## Rules
-            - Never make quality worse — if codebase was clean, keep it clean
-            - One issue type per PR (don't mix type errors with test failures)
-            - Small, focused changes (5-10 files max per PR)
+            - Only fix actual errors. Do not refactor, improve, or "clean up" anything.
+            - Do not touch code unrelated to the failing checks.
+            - Do not add features, comments, or documentation.
+            - Keep changes minimal — the smallest diff that makes checks pass.
+            - If a test is failing because the code is wrong, fix the code. If a test is wrong, fix the test. Use git blame and recent commits to determine which.
 
-            ## Code Review for Regressions
-            After making fixes, review your code for potential regressions:
-            - Run the affected features manually to ensure they work
-            - Check that existing tests still pass
-            - Look for unintended side effects in related code
-            - Verify no new TypeScript errors or lint warnings were introduced
-            - Test edge cases and error handling
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — if an open PR already fixes these errors, stop.
+            - Run `git branch -a | grep fix` — avoid duplicate branches.
 
-            ## Final Step: CREATE THE PULL REQUEST (if you made fixes)
-            If you found and fixed issues, you MUST:
-            1. Commit all your changes
-            2. Push your branch
-            3. **Open a Pull Request** describing:
-               - What was broken and how you fixed it
-               - Quality check results (make lint, make typecheck, make test all passing)
-               - Any potential regressions you identified and how you addressed them
-            
-            If no issues were found and everything is green, you may skip the PR.
+            ## Verification
+            After fixing, run all three and confirm exit code 0:
+            ```bash
+            make typecheck
+            make lint
+            make test
+            ```
+
+            ## Submit
+            If you made changes, create a PR with a title like "fix: resolve typecheck/lint/test failures" describing what broke and how you fixed it.
+            If everything was already passing (logs show no errors), do nothing.
 
       - name: Post-change verification
-        if: always()
+        if: always() && env.QUALITY_FAILED == '1'
         run: |
-          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-
-          if make typecheck 2>&1 | tee typecheck-post.log; then
-            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          echo "## Post-Fix Verification" >> $GITHUB_STEP_SUMMARY
+          if make typecheck && make lint && make test; then
+            echo "All checks passing." >> $GITHUB_STEP_SUMMARY
           else
-            TYPECHECK_EXIT=1
-            echo "❌ TypeScript errors" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if make lint 2>&1 | tee lint-post.log; then
-            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            LINT_EXIT=1
-            echo "❌ Lint errors" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if make test 2>&1 | tee test-post.log; then
-            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            TEST_EXIT=1
-            echo "❌ Test failures" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Fail if quality degraded
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "🔴 NEW TypeScript errors introduced!" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "🔴 NEW lint errors introduced!" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "🔴 NEW test failures introduced!" >> $GITHUB_STEP_SUMMARY
+            echo "Checks still failing after fix attempt." >> $GITHUB_STEP_SUMMARY
             exit 1
           fi

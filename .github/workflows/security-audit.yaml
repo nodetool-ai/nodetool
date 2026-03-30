@@ -1,8 +1,6 @@
 name: Security Audit
 
 on:
-  schedule:
-    - cron: "0 9 * * 3"  # Wednesdays at 9 AM UTC
   workflow_dispatch:
 
 jobs:
@@ -34,44 +32,28 @@ jobs:
           cd ../electron && npm ci
           cd ../mobile && npm ci
 
-      - name: Pre-flight quality check
-        id: pre-check
-        continue-on-error: true
-        run: |
-          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-
-          if make typecheck 2>&1 | tee typecheck-pre.log; then
-            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            TYPECHECK_EXIT=1
-            echo "⚠️ TypeScript errors found" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if make lint 2>&1 | tee lint-pre.log; then
-            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            LINT_EXIT=1
-            echo "⚠️ Lint errors found" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if make test 2>&1 | tee test-pre.log; then
-            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            TEST_EXIT=1
-            echo "⚠️ Test failures found" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
-
       - name: Run npm audit
         continue-on-error: true
         run: |
-          cd web && npm audit --json > npm-audit-web.json || true
-          cd ../electron && npm audit --json > npm-audit-electron.json || true
-          cd ../mobile && npm audit --json > npm-audit-mobile.json || true
+          echo "## npm audit results" >> $GITHUB_STEP_SUMMARY
+          for pkg in web electron mobile; do
+            echo "### $pkg" >> $GITHUB_STEP_SUMMARY
+            cd $pkg && npm audit --json > npm-audit.json 2>/dev/null || true
+            npm audit 2>/dev/null | tail -20 >> $GITHUB_STEP_SUMMARY || true
+            cd ..
+          done
+
+      - name: Run quality checks baseline
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
@@ -82,118 +64,65 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
           prompt: |
-            ## MANDATORY: Read .github/bot-guardrails.md before making any changes
             # Security Audit
 
-            Find and fix security vulnerabilities in NodeTool (React/TypeScript visual AI workflow builder).
+            Audit NodeTool for security vulnerabilities and fix what you find.
 
-            ## ⚠️ IMPORTANT: You MUST create a Pull Request
-            Your job is to:
-            1. Find security vulnerabilities
-            2. Fix them
-            3. **Create a Pull Request with your changes**
-            
-            Do NOT just analyze or report findings. You must make fixes and submit a PR.
+            ## Scope
+            - `/web` — React frontend
+            - `/electron` — desktop app (Electron)
+            - `/mobile` — React Native app
 
-            ## Context
-            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
-            - Packages: `/web`, `/electron`, `/mobile`
-            - Security concerns: API keys, user data, file uploads
-            - npm audit results: `web/npm-audit-web.json`, `electron/npm-audit-electron.json`, `mobile/npm-audit-mobile.json`
+            ## What to check
 
-            ## Before Starting — MANDATORY DEDUPLICATION
-            1. Run `git branch -a` — avoid duplicating existing security branches
-            2. **Run `gh pr list --state open --limit 50`** — if a similar security PR is already open, STOP and find a different vulnerability to fix
-            3. Read `.memory/project-context.md`
+            **Dependencies**: Read `*/npm-audit.json` for known CVEs. Fix critical/high severity by updating packages. Do not bump major versions without checking for breaking changes.
 
-            ## Audit Areas
+            **Code patterns** (search for these):
+            - `dangerouslySetInnerHTML` without sanitization (DOMPurify)
+            - `eval()` or `new Function()` with user input
+            - Hardcoded API keys, tokens, or passwords in source files
+            - User input passed directly to DOM or URLs without validation
+            - File upload handlers without type/size validation
 
-            **Dependencies**: Review npm audit results. Update vulnerable packages (critical/high first).
+            **Electron-specific**:
+            - `nodeIntegration` should be `false`
+            - `contextIsolation` should be `true`
+            - IPC messages should be validated
 
-            **Code**: Check for:
-            - `dangerouslySetInnerHTML` without DOMPurify
-            - `eval()` or `new Function()`
-            - Hardcoded secrets/API keys in source
-            - Unsanitized user input
-            - Missing file upload validation
+            ## Rules
+            - Fix real vulnerabilities only. Do not add speculative defenses or wrap everything in try/catch.
+            - One PR per audit. Keep changes focused and reviewable.
+            - Maximum 10 files changed.
+            - Do not touch CI workflows.
 
-            **Electron**: Context isolation enabled? Node integration disabled? IPC validated?
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a security PR is already open.
 
-            **Config**: TypeScript strict mode? CSP headers configured?
-
-            ## Scanning
+            ## Verification
+            After fixing, all checks must still pass:
             ```bash
-            grep -r "dangerouslySetInnerHTML" --include="*.tsx" web/src
-            grep -r "eval\(|new Function" --include="*.ts" --include="*.tsx" web/src
-            grep -r "api_key\|apiKey\|password\|secret" --include="*.ts" --include="*.tsx" web/src | grep -v "\.test\."
+            make typecheck && make lint && make test
             ```
 
-            ## Mandatory Quality Checks
-            Before submitting your PR, you MUST run and pass all quality checks:
-            ```bash
-            make lint       # All lint checks must pass
-            make typecheck  # All type checks must pass
-            make test       # All tests must pass
-            ```
-            All three commands must exit with code 0. Fix any errors before proceeding.
-            Test affected functionality after fixes.
-
-            ## Code Review for Regressions
-            After making changes, review your code for potential regressions:
-            - Run the affected features manually to ensure they work
-            - Check that existing tests still pass
-            - Look for unintended side effects in related code
-            - Verify no new TypeScript errors or lint warnings were introduced
-            - Test edge cases and error handling
-
-            ## Final Step: CREATE THE PULL REQUEST
-            Once you've made your security fixes, you MUST:
-            1. Commit all your changes
-            2. Push your branch
-            3. **Open a Pull Request** with:
-               - Security fixes, noting severity and CVEs addressed
-               - Quality check results (make lint, make typecheck, make test all passing)
-               - Any potential regressions you identified and how you addressed them
+            ## Submit
+            Create a PR titled "security: <brief description>" listing each vulnerability fixed and its severity.
 
       - name: Post-change verification
         if: always()
         run: |
-          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
           TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
 
-          if make typecheck 2>&1 | tee typecheck-post.log; then
-            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            TYPECHECK_EXIT=1
-            echo "❌ TypeScript errors" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if make lint 2>&1 | tee lint-post.log; then
-            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            LINT_EXIT=1
-            echo "❌ Lint errors" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if make test 2>&1 | tee test-post.log; then
-            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
-          else
-            TEST_EXIT=1
-            echo "❌ Test failures" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Fail if quality degraded
           if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "🔴 NEW TypeScript errors introduced!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
           fi
           if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "🔴 NEW lint errors introduced!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
           fi
           if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "🔴 NEW test failures introduced!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
           fi
