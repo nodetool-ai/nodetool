@@ -28,6 +28,8 @@ NodeTool has five workspaces:
 
 The header bar is your creative command center (always visible at the top):
 
+![App Header](assets/screenshots/app-header.png)
+
 - **Logo/Title** – Click to return to Dashboard
 - **Models** – Manage your AI models (Flux, Qwen Image, etc.)
 - **Assets** – Access your media library
@@ -41,6 +43,8 @@ The header bar is your creative command center (always visible at the top):
 ## Dashboard
 
 The Dashboard is the home screen.
+
+![Dashboard Overview](assets/screenshots/dashboard-overview.png)
 
 ### Contents
 
@@ -63,6 +67,8 @@ The Dashboard is the home screen.
 ## Workflow Canvas
 
 Build workflows visually by connecting nodes.
+
+![Workflow Editor](assets/screenshots/editor-empty-state.png)
 
 ### The Canvas
 
@@ -128,6 +134,8 @@ AI assistant built into NodeTool.
 | **Agent Mode** | Let the AI use tools and modify your canvas |
 
 ### Standalone Chat Window
+
+![Standalone Chat](assets/screenshots/standalone-chat.png)
 
 Access chat directly from the system tray for quick conversations:
 
@@ -200,6 +208,8 @@ The built-in audio player features waveform visualization:
 ## Models Manager
 
 Download, organize, and configure AI models.
+
+![Models Manager](assets/screenshots/models-list.png)
 
 ### Finding Models
 
