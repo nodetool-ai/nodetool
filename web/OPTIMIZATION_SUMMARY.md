@@ -231,3 +231,23 @@ Verify by checking React Profiler during node drag operations with multiple node
 - Ran `cd web && pnpm typecheck`: Passed.
 - Ran `cd web && pnpm lint`: Passed.
 - Ran `make test-web`: All core and performance tests passed.
+
+# ⚡ Bolt: NodeToolsSelector Optimization
+
+## 💡 What
+Optimized `nodeTools` computation in `web/src/components/chat/composer/NodeToolsSelector.tsx`.
+Replaced the expensive chained iteration (`Object.values(metadata).filter(...).reduce(...)`) with a single efficient `for...in` loop.
+
+## 🎯 Why
+`metadata` is a large object containing all node type definitions. `Object.values()` creates a massive intermediate array, which is then copied again by `.filter()`, before finally being iterated by `.reduce()`. This creates unnecessary memory allocations and garbage collection overhead, which impacts frontend performance whenever the `useMemo` is recalculated. Using a simple `for...in` loop accomplishes the same dictionary transformation in a single pass without intermediate arrays.
+
+## 📊 Impact
+- **Improves Memory Efficiency:** Eliminates O(N) intermediate array allocations during node tools computation.
+- **Reduces Main Thread Work:** Converts an O(3N) operation into O(N) with a smaller constant factor.
+- **Improved Responsiveness:** Ensures faster UI updates when interacting with the Chat Composer's node tools selector.
+
+## 🔬 Measurement
+Verify by capturing a memory allocation profile while opening the Chat Composer's Node Tools Selector with a large number of nodes loaded. Notice the elimination of `Array` allocations associated with the `Object.values` conversion.
+
+## 🧪 Testing
+- `npm run typecheck` and `npm run lint` run inside the `web` folder.

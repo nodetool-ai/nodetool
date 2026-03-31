@@ -54,7 +54,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     lastRunDuration,
     resetWorkflowState
   } = useMiniAppsStore(
-    useShallow((state) => ({
+    (state) => ({
       results: workflowId ? state.apps[workflowId]?.results ?? [] : [],
       progress: workflowId ? state.apps[workflowId]?.progress ?? null : null,
       upsertResult: state.upsertResult,
@@ -62,7 +62,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       setLastRunDuration: state.setLastRunDuration,
       lastRunDuration: workflowId ? state.apps[workflowId]?.lastRunDuration ?? null : null,
       resetWorkflowState: state.resetWorkflowState
-    }))
+    })
   );
 
   useEffect(() => {
