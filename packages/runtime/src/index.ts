@@ -39,3 +39,5 @@ export {
   type RunPodImageOutput,
   type RunPodComfyInput,
 } from "./runpod-comfy-client.js";
+export { executeComfyLocal, executeComfyRunPod } from "./comfy-executor.js";
+export type { ComfyExecutorResult, ComfyImage } from "./comfy-executor.js";
