@@ -157,13 +157,22 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
       }
       const objectInfo = await resp.json() as ComfyUIObjectInfo;
 
-      // Register ComfyUI node metadata
+      // Register ComfyUI node metadata and components
       const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-      const currentMetadata = useMetadataStore.getState().metadata;
-      useMetadataStore.getState().setMetadata({
-        ...currentMetadata,
+      const metaStore = useMetadataStore.getState();
+      metaStore.setMetadata({
+        ...metaStore.metadata,
         ...comfyMetadata,
       });
+      // Use an existing node component as base for all comfy nodes
+      const baseComponent =
+        metaStore.nodeTypes["nodetool.workflows.base_node.Preview"] ||
+        Object.values(metaStore.nodeTypes)[0];
+      if (baseComponent) {
+        for (const nodeType of Object.keys(comfyMetadata)) {
+          metaStore.addNodeType(nodeType, baseComponent);
+        }
+      }
 
       set({
         objectInfo,
