@@ -29,7 +29,8 @@ import {
   Divider,
   Select,
   MenuItem,
-  FormControl
+  FormControl,
+  Switch
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -103,6 +104,8 @@ interface PanelSectionProps {
   collapsed: boolean;
   onToggle: (key: PanelSectionKey) => void;
   children: React.ReactNode;
+  /** Optional control on the right (e.g. toggle); click does not collapse the section. */
+  titleEndAdornment?: React.ReactNode;
 }
 
 const PanelSection = memo(function PanelSection({
@@ -110,7 +113,8 @@ const PanelSection = memo(function PanelSection({
   sectionKey,
   collapsed,
   onToggle,
-  children
+  children,
+  titleEndAdornment
 }: PanelSectionProps) {
   const handleClick = useCallback(() => {
     onToggle(sectionKey);
@@ -126,6 +130,7 @@ const PanelSection = memo(function PanelSection({
           cursor: "pointer",
           userSelect: "none",
           mt: "2px",
+          width: "100%",
           "&:hover": {
             "& .section-label": { color: "grey.200" },
             "& .collapse-icon": { color: "grey.200" }
@@ -143,7 +148,19 @@ const PanelSection = memo(function PanelSection({
             sx={{ fontSize: "0.85rem", color: "grey.500", mr: "2px" }}
           />
         )}
-        <Typography className="section-label">{title}</Typography>
+        <Typography className="section-label" sx={{ flex: 1 }}>
+          {title}
+        </Typography>
+        {titleEndAdornment ? (
+          <Box
+            onClick={(ev) => {
+              ev.stopPropagation();
+            }}
+            sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+          >
+            {titleEndAdornment}
+          </Box>
+        ) : null}
       </Box>
       {!collapsed && children}
     </>
@@ -312,6 +329,9 @@ export interface SketchLayersPanelProps {
   canvasWidth: number;
   canvasHeight: number;
   onCanvasResize: (width: number, height: number) => void;
+  /** Edge resize handles on the canvas (persisted via parent). */
+  canvasResizeHandlesEnabled: boolean;
+  onCanvasResizeHandlesEnabledChange: (enabled: boolean) => void;
   onAddGroup: (name?: string) => void;
   onToggleGroupCollapsed: (groupId: string) => void;
   onMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
@@ -353,6 +373,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   canvasWidth,
   canvasHeight,
   onCanvasResize,
+  canvasResizeHandlesEnabled,
+  onCanvasResizeHandlesEnabledChange,
   onAddGroup,
   onToggleGroupCollapsed,
   onMoveLayerToGroup,
@@ -1138,6 +1160,25 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         sectionKey="canvasSize"
         collapsed={collapsedSections.canvasSize}
         onToggle={handleToggleSection}
+        titleEndAdornment={
+          <Tooltip
+            title={
+              canvasResizeHandlesEnabled
+                ? "Hide resize handles on canvas"
+                : "Show resize handles on canvas"
+            }
+            placement="left"
+          >
+            <Switch
+              size="small"
+              checked={canvasResizeHandlesEnabled}
+              onChange={(_, checked) => onCanvasResizeHandlesEnabledChange(checked)}
+              inputProps={{
+                "aria-label": "Toggle canvas resize handles"
+              }}
+            />
+          </Tooltip>
+        }
       >
         <Select
           size="small"

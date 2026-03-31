@@ -199,7 +199,7 @@ export interface SketchCanvasProps {
   onCanvasResize?: (
     width: number,
     height: number,
-    options?: { translateLayers?: Point }
+    options?: { translateLayers?: Point; resizeFromCenter?: boolean }
   ) => void;
 }
 

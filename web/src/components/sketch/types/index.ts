@@ -143,6 +143,24 @@ export const DEFAULT_PRESSURE_MIN_SCALE = 0.06;
  */
 export const DEFAULT_PRESSURE_CURVE = 1;
 
+/**
+ * Global pen/tablet pressure (single source of truth for drawing).
+ * {@link BrushSettings} / {@link PencilSettings} still include the same fields for future per-tool expansion.
+ */
+export interface PenPressureSettings {
+  pressureSensitivity: boolean;
+  pressureAffects: "size" | "opacity" | "both";
+  pressureMinScale: number;
+  pressureCurve: number;
+}
+
+export const DEFAULT_PEN_PRESSURE: PenPressureSettings = {
+  pressureSensitivity: true,
+  pressureAffects: "both",
+  pressureMinScale: DEFAULT_PRESSURE_MIN_SCALE,
+  pressureCurve: DEFAULT_PRESSURE_CURVE
+};
+
 export interface BrushSettings {
   size: number;
   opacity: number;
@@ -327,6 +345,8 @@ export interface ToolSettings {
   brush: BrushSettings;
   pencil: PencilSettings;
   eraser: EraserSettings;
+  /** Global pressure curve; merged over brush/pencil when computing effective tool settings. */
+  penPressure: PenPressureSettings;
   shape: ShapeSettings;
   fill: FillSettings;
   blur: BlurSettings;
@@ -646,6 +666,7 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   brush: DEFAULT_BRUSH_SETTINGS,
   pencil: DEFAULT_PENCIL_SETTINGS,
   eraser: DEFAULT_ERASER_SETTINGS,
+  penPressure: DEFAULT_PEN_PRESSURE,
   shape: DEFAULT_SHAPE_SETTINGS,
   fill: DEFAULT_FILL_SETTINGS,
   blur: DEFAULT_BLUR_SETTINGS,
@@ -664,6 +685,7 @@ export function cloneDefaultToolSettings(): ToolSettings {
     brush: { ...DEFAULT_BRUSH_SETTINGS },
     pencil: { ...DEFAULT_PENCIL_SETTINGS },
     eraser: { ...DEFAULT_ERASER_SETTINGS },
+    penPressure: { ...DEFAULT_PEN_PRESSURE },
     shape: { ...DEFAULT_SHAPE_SETTINGS },
     fill: { ...DEFAULT_FILL_SETTINGS },
     blur: { ...DEFAULT_BLUR_SETTINGS },
@@ -910,41 +932,60 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         ...DEFAULT_CLONE_STAMP_SETTINGS,
         ...doc.toolSettings?.cloneStamp
       };
+      const normalizedBrush = {
+        ...mergedBrush,
+        size: normalizedLargeToolSize(
+          mergedBrush.size,
+          DEFAULT_BRUSH_SETTINGS.size
+        ),
+        opacity: normalizedUnitScalar(
+          mergedBrush.opacity,
+          DEFAULT_BRUSH_SETTINGS.opacity
+        ),
+        hardness: normalizedUnitScalar(
+          mergedBrush.hardness,
+          DEFAULT_BRUSH_SETTINGS.hardness
+        ),
+        roundness: normalizedBrushRoundness(
+          mergedBrush.roundness,
+          DEFAULT_BRUSH_SETTINGS.roundness
+        ),
+        angle: normalizedBrushAngle(
+          mergedBrush.angle,
+          DEFAULT_BRUSH_SETTINGS.angle
+        )
+      };
+      const normalizedPencil = {
+        ...mergedPencil,
+        size: normalizedPencilSize(
+          mergedPencil.size,
+          DEFAULT_PENCIL_SETTINGS.size
+        ),
+        opacity: normalizedUnitScalar(
+          mergedPencil.opacity,
+          DEFAULT_PENCIL_SETTINGS.opacity
+        )
+      };
+      const rawPen = doc.toolSettings?.penPressure as
+        | Partial<PenPressureSettings>
+        | undefined;
+      const mergedPenPressure: PenPressureSettings =
+        rawPen == null || Object.keys(rawPen).length === 0
+          ? {
+              ...DEFAULT_PEN_PRESSURE,
+              pressureSensitivity: normalizedBrush.pressureSensitivity,
+              pressureAffects: normalizedBrush.pressureAffects,
+              pressureMinScale: normalizedBrush.pressureMinScale,
+              pressureCurve: normalizedBrush.pressureCurve
+            }
+          : {
+              ...DEFAULT_PEN_PRESSURE,
+              ...rawPen
+            };
       return {
-        brush: {
-          ...mergedBrush,
-          size: normalizedLargeToolSize(
-            mergedBrush.size,
-            DEFAULT_BRUSH_SETTINGS.size
-          ),
-          opacity: normalizedUnitScalar(
-            mergedBrush.opacity,
-            DEFAULT_BRUSH_SETTINGS.opacity
-          ),
-          hardness: normalizedUnitScalar(
-            mergedBrush.hardness,
-            DEFAULT_BRUSH_SETTINGS.hardness
-          ),
-          roundness: normalizedBrushRoundness(
-            mergedBrush.roundness,
-            DEFAULT_BRUSH_SETTINGS.roundness
-          ),
-          angle: normalizedBrushAngle(
-            mergedBrush.angle,
-            DEFAULT_BRUSH_SETTINGS.angle
-          )
-        },
-        pencil: {
-          ...mergedPencil,
-          size: normalizedPencilSize(
-            mergedPencil.size,
-            DEFAULT_PENCIL_SETTINGS.size
-          ),
-          opacity: normalizedUnitScalar(
-            mergedPencil.opacity,
-            DEFAULT_PENCIL_SETTINGS.opacity
-          )
-        },
+        brush: normalizedBrush,
+        pencil: normalizedPencil,
+        penPressure: mergedPenPressure,
         eraser: {
           ...mergedEraser,
           size: normalizedLargeToolSize(

@@ -64,6 +64,9 @@ export class WebGPURuntime implements SketchRuntime {
   private context: GPUCanvasContext | null = null;
   private presentationFormat: GPUTextureFormat;
   private targetCanvas: HTMLCanvasElement | null = null;
+  /** Last size passed to `GPUCanvasContext.configure` for `targetCanvas` (must reconfigure when the element resizes). */
+  private configuredCanvasPixelWidth = 0;
+  private configuredCanvasPixelHeight = 0;
 
   // ── Pipelines ────────────────────────────────────────────────────────
   private checkerboardPipeline: GPURenderPipeline | null = null;
@@ -243,7 +246,14 @@ export class WebGPURuntime implements SketchRuntime {
    * Must be called before compositeToDisplay.
    */
   configureContext(canvas: HTMLCanvasElement): void {
-    if (this.targetCanvas === canvas && this.context) {
+    const w = canvas.width;
+    const h = canvas.height;
+    if (
+      this.targetCanvas === canvas &&
+      this.context &&
+      w === this.configuredCanvasPixelWidth &&
+      h === this.configuredCanvasPixelHeight
+    ) {
       return;
     }
     this.targetCanvas = canvas;
@@ -257,6 +267,8 @@ export class WebGPURuntime implements SketchRuntime {
       format: this.presentationFormat,
       alphaMode: "premultiplied"
     });
+    this.configuredCanvasPixelWidth = w;
+    this.configuredCanvasPixelHeight = h;
   }
 
   // ─── Layer texture management ────────────────────────────────────────

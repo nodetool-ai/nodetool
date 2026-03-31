@@ -44,6 +44,26 @@ import {
 } from "./hooks";
 import { selectionHasAnyPixels } from "./selection/selectionMask";
 
+const SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY =
+  "nodetool-sketch-canvas-resize-handles";
+
+function readCanvasResizeHandlesEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  try {
+    const raw = window.localStorage.getItem(
+      SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY
+    );
+    if (raw === null) {
+      return true;
+    }
+    return raw === "1" || raw === "true";
+  } catch {
+    return true;
+  }
+}
+
 const styles = (theme: Theme) =>
   css({
     display: "flex",
@@ -90,6 +110,24 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
    * preview (built from props) still looks correct.
    */
   const [canvasReady, setCanvasReady] = useState(false);
+  const [canvasResizeHandlesEnabled, setCanvasResizeHandlesEnabled] = useState(
+    readCanvasResizeHandlesEnabled
+  );
+
+  const handleCanvasResizeHandlesEnabledChange = useCallback(
+    (enabled: boolean) => {
+      setCanvasResizeHandlesEnabled(enabled);
+      try {
+        window.localStorage.setItem(
+          SKETCH_CANVAS_RESIZE_HANDLES_STORAGE_KEY,
+          enabled ? "1" : "0"
+        );
+      } catch {
+        // localStorage may be unavailable (private mode, etc.)
+      }
+    },
+    []
+  );
 
   // ─── Store selectors ────────────────────────────────────────────────
   const store = useSketchStoreSelectors();
@@ -437,6 +475,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onCancelSegmentation={segmentation.cancelSegmentation}
             onClearSegmentPrompts={handleClearSegmentPrompts}
             onCheckSegmentModel={segmentation.checkModel}
+            penPressure={store.toolSettings.penPressure}
+            onPenPressureChange={store.setPenPressure}
           />
         )}
 
@@ -474,8 +514,16 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
               onAutoPickLayer={store.setActiveLayer}
               foregroundColor={store.foregroundColor}
               onDropImage={canvasActions.handleDropImage}
-              onCanvasResizeStart={canvasActions.handleCanvasResizeStart}
-              onCanvasResize={canvasActions.handleCanvasResizeDrag}
+              onCanvasResizeStart={
+                canvasResizeHandlesEnabled
+                  ? canvasActions.handleCanvasResizeStart
+                  : undefined
+              }
+              onCanvasResize={
+                canvasResizeHandlesEnabled
+                  ? canvasActions.handleCanvasResizeDrag
+                  : undefined
+              }
             />
           ) : null}
         </Box>
@@ -515,6 +563,10 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           canvasWidth={store.document.canvas.width}
           canvasHeight={store.document.canvas.height}
           onCanvasResize={canvasActions.handleCanvasResize}
+          canvasResizeHandlesEnabled={canvasResizeHandlesEnabled}
+          onCanvasResizeHandlesEnabledChange={
+            handleCanvasResizeHandlesEnabledChange
+          }
           onAddGroup={layerActions.handleAddGroup}
           onToggleGroupCollapsed={layerActions.handleToggleGroupCollapsed}
           onMoveLayerToGroup={layerActions.handleMoveLayerToGroup}
@@ -582,6 +634,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onCancelSegmentation={segmentation.cancelSegmentation}
         onClearSegmentPrompts={handleClearSegmentPrompts}
         onCheckSegmentModel={segmentation.checkModel}
+        penPressure={store.toolSettings.penPressure}
+        onPenPressureChange={store.setPenPressure}
         onSwapColors={store.swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}

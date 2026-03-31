@@ -29,12 +29,21 @@ import {
   SegmentSettings,
   SegmentationStatus,
   ShapeSettings,
+  PenPressureSettings,
   SketchTool,
   isShapeTool
 } from "./types";
 import type { SamModelInfo } from "./sam";
 import { CONTEXT_MENU_TOOLS, getToolDefinition, type ToolDefinition } from "./toolDefinitions";
-import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
+import {
+  ToolSettingsPanel,
+  PenPressureSettingsPanel,
+  getToolSettingsLabel
+} from "./ToolSettingsPanels";
+
+function isPressureTool(tool: SketchTool): boolean {
+  return tool === "brush" || tool === "pencil" || tool === "eraser";
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -226,6 +235,8 @@ export interface SketchCanvasContextMenuProps {
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
   onCheckSegmentModel?: () => void;
+  penPressure: PenPressureSettings;
+  onPenPressureChange: (settings: Partial<PenPressureSettings>) => void;
   onSwapColors: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -293,6 +304,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onCancelSegmentation,
   onClearSegmentPrompts,
   onCheckSegmentModel,
+  penPressure,
+  onPenPressureChange,
   onSwapColors,
   onUndo,
   onRedo,
@@ -516,6 +529,15 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             py: 1.2
           }}
         >
+          {isPressureTool(activeTool) ? (
+            <Box sx={{ ...sketchToolSettingsContainerSx, mb: 1 }}>
+              <SectionLabel>Pen pressure</SectionLabel>
+              <PenPressureSettingsPanel
+                settings={penPressure}
+                onChange={onPenPressureChange}
+              />
+            </Box>
+          ) : null}
           <SectionLabel>{getToolSettingsLabel(activeTool)}</SectionLabel>
           <Box sx={sketchToolSettingsContainerSx}>
             <ToolSettingsPanel

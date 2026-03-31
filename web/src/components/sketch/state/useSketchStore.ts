@@ -27,6 +27,7 @@ import {
   CloneStampSettings,
   SelectSettings,
   SegmentSettings,
+  PenPressureSettings,
   BlendMode,
   LayerTransform,
   PushHistoryOptions,
@@ -54,6 +55,23 @@ import {
 /** Sketch viewport zoom limits (1 = 100%). */
 export const SKETCH_ZOOM_MIN = 0.1;
 export const SKETCH_ZOOM_MAX = 56;
+
+const PRESSURE_OPTIONAL_KEYS = [
+  "pressureSensitivity",
+  "pressureAffects",
+  "pressureMinScale",
+  "pressureCurve"
+] as const;
+
+function stripPressureFromPartial<T extends Record<string, unknown>>(
+  partial: Partial<T>
+): Partial<T> {
+  const next = { ...partial } as Record<string, unknown>;
+  for (const k of PRESSURE_OPTIONAL_KEYS) {
+    delete next[k];
+  }
+  return next as Partial<T>;
+}
 
 function withUpdatedDocumentTimestamp(document: SketchDocument): SketchDocument {
   return {
@@ -151,6 +169,7 @@ export interface SketchStore {
   setTransientMoveModifierHeld: (held: boolean) => void;
   setBrushSettings: (settings: Partial<BrushSettings>) => void;
   setPencilSettings: (settings: Partial<PencilSettings>) => void;
+  setPenPressure: (settings: Partial<PenPressureSettings>) => void;
   setEraserSettings: (settings: Partial<EraserSettings>) => void;
   setShapeSettings: (settings: Partial<ShapeSettings>) => void;
   setFillSettings: (settings: Partial<FillSettings>) => void;
@@ -334,7 +353,10 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         ...state.document,
         toolSettings: {
           ...state.document.toolSettings,
-          brush: { ...state.document.toolSettings.brush, ...settings }
+          brush: {
+            ...state.document.toolSettings.brush,
+            ...stripPressureFromPartial(settings)
+          }
         },
         metadata: {
           ...state.document.metadata,
@@ -349,7 +371,28 @@ export const useSketchStore = create<SketchStore>((set, get) => ({
         ...state.document,
         toolSettings: {
           ...state.document.toolSettings,
-          pencil: { ...state.document.toolSettings.pencil, ...settings }
+          pencil: {
+            ...state.document.toolSettings.pencil,
+            ...stripPressureFromPartial(settings)
+          }
+        },
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    })),
+
+  setPenPressure: (settings: Partial<PenPressureSettings>) =>
+    set((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          penPressure: {
+            ...state.document.toolSettings.penPressure,
+            ...settings
+          }
         },
         metadata: {
           ...state.document.metadata,

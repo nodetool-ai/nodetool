@@ -65,7 +65,8 @@ install-mobile:
 # Web build optimization
 WEB_DIR := web
 WEB_BUILD_MARKER := $(WEB_DIR)/dist/.build_marker
-WEB_SOURCES := $(shell find $(WEB_DIR)/src -type f 2>/dev/null) $(WEB_DIR)/package.json $(WEB_DIR)/vite.config.ts $(WEB_DIR)/index.html
+# Exclude _references/ (local mirrors / docs) so they are not prerequisites and do not pull in huge trees or paths that confuse make.
+WEB_SOURCES := $(shell find $(WEB_DIR)/src -type f ! -path '*/_references/*' 2>/dev/null) $(WEB_DIR)/package.json $(WEB_DIR)/vite.config.ts $(WEB_DIR)/index.html
 
 $(WEB_BUILD_MARKER): $(WEB_SOURCES)
 	@echo "Building web package (sources changed)..."

@@ -109,9 +109,28 @@ describe("SketchCanvasResizeHandles", () => {
 
     const seHandle = container.querySelector(".resize-handle--se")!;
     fireEvent.pointerDown(seHandle, { clientX: 100, clientY: 100, pointerId: 1 });
-    // Move 50px right and 30px down at zoom=1 → canvas grows by 50×30
+    // Move 50px right and 30px down at zoom=1 → corner keeps aspect: width drives (562×562)
     fireEvent.pointerMove(seHandle, { clientX: 150, clientY: 130, pointerId: 1 });
-    expect(onResize).toHaveBeenCalledWith(562, 542);
+    expect(onResize).toHaveBeenCalledWith(562, 562);
+  });
+
+  it("corner resize keeps aspect for non-square canvas (dominant axis)", () => {
+    const onResize = jest.fn();
+    const { container } = render(
+      <SketchCanvasResizeHandles
+        {...defaultProps}
+        canvasWidth={800}
+        canvasHeight={400}
+        zoom={1}
+        onResize={onResize}
+      />
+    );
+
+    const seHandle = container.querySelector(".resize-handle--se")!;
+    fireEvent.pointerDown(seHandle, { clientX: 100, clientY: 100, pointerId: 1 });
+    // +100 width, +30 height in doc px → width-relative motion wins → scale matches 900×450 (2:1)
+    fireEvent.pointerMove(seHandle, { clientX: 200, clientY: 130, pointerId: 1 });
+    expect(onResize).toHaveBeenCalledWith(900, 450);
   });
 
   it("calls onResize with new dimensions during drag (N edge)", () => {
@@ -128,9 +147,32 @@ describe("SketchCanvasResizeHandles", () => {
 
     const nHandle = container.querySelector(".resize-handle--n")!;
     fireEvent.pointerDown(nHandle, { clientX: 200, clientY: 100, pointerId: 1 });
-    // Move up by 40px → canvas grows by 40 in height
+    // Move up by 40px → canvas grows by 40 in height; layers shift down in doc space
     fireEvent.pointerMove(nHandle, { clientX: 200, clientY: 60, pointerId: 1 });
-    expect(onResize).toHaveBeenCalledWith(512, 552);
+    expect(onResize).toHaveBeenCalledWith(512, 552, {
+      translateLayers: { x: 0, y: 40 }
+    });
+  });
+
+  it("passes layer translate when resizing from the west edge", () => {
+    const onResize = jest.fn();
+    const { container } = render(
+      <SketchCanvasResizeHandles
+        {...defaultProps}
+        canvasWidth={512}
+        canvasHeight={512}
+        zoom={1}
+        onResize={onResize}
+      />
+    );
+
+    const wHandle = container.querySelector(".resize-handle--w")!;
+    fireEvent.pointerDown(wHandle, { clientX: 100, clientY: 200, pointerId: 1 });
+    // Move left 50px → width grows by 50; layers shift right in doc space
+    fireEvent.pointerMove(wHandle, { clientX: 50, clientY: 200, pointerId: 1 });
+    expect(onResize).toHaveBeenCalledWith(562, 512, {
+      translateLayers: { x: 50, y: 0 }
+    });
   });
 
   it("respects zoom level when computing size changes", () => {
@@ -170,7 +212,9 @@ describe("SketchCanvasResizeHandles", () => {
     fireEvent.pointerDown(wHandle, { clientX: 100, clientY: 100, pointerId: 1 });
     // Move right by 200px → try to shrink width by 200 (from 100 → clamped to 50)
     fireEvent.pointerMove(wHandle, { clientX: 300, clientY: 100, pointerId: 1 });
-    expect(onResize).toHaveBeenCalledWith(50, 100);
+    expect(onResize).toHaveBeenCalledWith(50, 100, {
+      translateLayers: { x: -50, y: 0 }
+    });
   });
 
   it("calls onResizeEnd when drag finishes", () => {
@@ -218,11 +262,15 @@ describe("SketchCanvasResizeHandles", () => {
       pointerId: 1,
       altKey: true
     });
-    fireEvent.pointerMove(seHandle, { clientX: 150, clientY: 130, pointerId: 1 });
-    expect(onResize).toHaveBeenCalledWith(
-      612,
-      572,
-      { translateLayers: { x: 50, y: 30 } }
-    );
+    fireEvent.pointerMove(seHandle, {
+      clientX: 150,
+      clientY: 130,
+      pointerId: 1,
+      altKey: true
+    });
+    expect(onResize).toHaveBeenCalledWith(612, 612, {
+      translateLayers: { x: 50, y: 50 },
+      resizeFromCenter: true
+    });
   });
 });

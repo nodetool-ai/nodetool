@@ -74,6 +74,16 @@ export function useCompositing({
   const isFullRedrawRef = useRef(false);
   const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
   /**
+   * Last known physical pixel size per layer raster (after setLayerData / decode).
+   * Used when contentBounds omit width/height so document canvas resize does not
+   * re-hydrate at the new doc size and stretch pixels (see layerHydrationSignature).
+   * Survives before the user paints — unlike reading from an in-memory canvas that
+   * may not exist yet on the first tick.
+   */
+  const layerStableRasterSizeRef = useRef<Map<string, { w: number; h: number }>>(
+    new Map()
+  );
+  /**
    * While true and WebGPU is exposed by the browser, we composite with Canvas2D
    * onto `bootstrapDisplayRef` so the editor is not blank during async init.
    * The real display canvas stays free of a "2d" context until WebGPU is ready
@@ -162,13 +172,23 @@ export function useCompositing({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Stable hydration key: must NOT include doc canvas size when width/height
+   * are inferred from the document (resize would re-run setLayerData and stretch
+   * pixels into a larger backing store). Only explicit layer.contentBounds size
+   * participates in the signature; missing dims use "".
+   */
   const layerHydrationSignature = doc.layers
     .map((layer) => {
       const ref = layer.imageReference;
       const refKey = ref
         ? `${ref.uri}|${ref.objectFit}|${ref.naturalWidth}x${ref.naturalHeight}|${ref.sourceCrop ? `${ref.sourceCrop.x},${ref.sourceCrop.y},${ref.sourceCrop.width},${ref.sourceCrop.height}` : ""}`
         : "";
-      return `${layer.id}:${layer.data ?? ""}:${refKey}:${layer.contentBounds?.x ?? 0}:${layer.contentBounds?.y ?? 0}:${layer.contentBounds?.width ?? doc.canvas.width}:${layer.contentBounds?.height ?? doc.canvas.height}`;
+      const w =
+        layer.contentBounds?.width != null ? String(layer.contentBounds.width) : "";
+      const h =
+        layer.contentBounds?.height != null ? String(layer.contentBounds.height) : "";
+      return `${layer.id}:${layer.data ?? ""}:${refKey}:${layer.contentBounds?.x ?? 0}:${layer.contentBounds?.y ?? 0}:${w}:${h}`;
     })
     .join("|");
 
@@ -185,8 +205,20 @@ export function useCompositing({
   const getOrCreateLayerCanvas = useCallback(
     (layerId: string): HTMLCanvasElement => {
       const layer = doc.layers.find((entry) => entry.id === layerId);
-      const width = Math.max(1, layer?.contentBounds?.width ?? doc.canvas.width);
-      const height = Math.max(1, layer?.contentBounds?.height ?? doc.canvas.height);
+      const existing = layerCanvasesRef.current.get(layerId);
+      const stable = layerStableRasterSizeRef.current.get(layerId);
+      const width = Math.max(
+        1,
+        layer?.contentBounds?.width ??
+          stable?.w ??
+          (existing && existing.width > 0 ? existing.width : doc.canvas.width)
+      );
+      const height = Math.max(
+        1,
+        layer?.contentBounds?.height ??
+          stable?.h ??
+          (existing && existing.height > 0 ? existing.height : doc.canvas.height)
+      );
       // Always read from runtimeRef so we never hold a stale Canvas2D
       // reference after the WebGPU upgrade.
       return runtimeRef.current!.getOrCreateLayerCanvas(
@@ -402,12 +434,29 @@ export function useCompositing({
       if (!layerIds.has(id)) {
         runtime.deleteLayerCanvas(id);
         hydratedLayerStateRef.current.delete(id);
+        layerStableRasterSizeRef.current.delete(id);
       }
     }
 
     for (const layer of doc.layers) {
-      const rasterWidth = Math.max(1, layer.contentBounds?.width ?? doc.canvas.width);
-      const rasterHeight = Math.max(1, layer.contentBounds?.height ?? doc.canvas.height);
+      const existingRaster = layerCanvasesRef.current.get(layer.id);
+      const stableSz = layerStableRasterSizeRef.current.get(layer.id);
+      const rasterWidth = Math.max(
+        1,
+        layer.contentBounds?.width ??
+          stableSz?.w ??
+          (existingRaster && existingRaster.width > 0
+            ? existingRaster.width
+            : doc.canvas.width)
+      );
+      const rasterHeight = Math.max(
+        1,
+        layer.contentBounds?.height ??
+          stableSz?.h ??
+          (existingRaster && existingRaster.height > 0
+            ? existingRaster.height
+            : doc.canvas.height)
+      );
       const defaultBounds = {
         x: Math.round(layer.contentBounds?.x ?? 0),
         y: Math.round(layer.contentBounds?.y ?? 0),
@@ -420,25 +469,41 @@ export function useCompositing({
         : "";
       const hydrationKey = `${layer.data ?? ""}:${refKey}:${defaultBounds.x}:${defaultBounds.y}:${defaultBounds.width}:${defaultBounds.height}`;
       if (hydratedLayerStateRef.current.get(layer.id) === hydrationKey) {
+        const ex = layerCanvasesRef.current.get(layer.id);
+        if (ex != null && ex.width > 0 && ex.height > 0) {
+          layerStableRasterSizeRef.current.set(layer.id, {
+            w: ex.width,
+            h: ex.height
+          });
+        }
         continue;
       }
       hydratedLayerStateRef.current.set(layer.id, hydrationKey);
+      layerStableRasterSizeRef.current.set(layer.id, {
+        w: defaultBounds.width,
+        h: defaultBounds.height
+      });
       getOrCreateLayerCanvas(layer.id);
       runtime.setLayerData(layer.id, layer.data ?? null, defaultBounds, () => {
         if (hydratedLayerStateRef.current.get(layer.id) !== hydrationKey) {
           return;
         }
+        const lc = layerCanvasesRef.current.get(layer.id);
+        if (lc != null && lc.width > 0 && lc.height > 0) {
+          layerStableRasterSizeRef.current.set(layer.id, {
+            w: lc.width,
+            h: lc.height
+          });
+        }
         invalidateLayer(layer.id);
         requestRedraw();
       });
     }
+    // Intentionally omit doc.canvas.width/height: canvas resize must not
+    // re-hydrate layers (that called setLayerData with new doc bounds and
+    // stretched rasters). Redraw is handled by the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    layerHydrationSignature,
-    doc.canvas.width,
-    doc.canvas.height,
-    requestRedraw
-  ]);
+  }, [layerHydrationSignature, requestRedraw]);
 
   useEffect(() => {
     requestRedraw();

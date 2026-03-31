@@ -543,12 +543,36 @@ export function useCanvasActions({
   ]);
 
   // ─── Canvas resize ─────────────────────────────────────────────
+  /**
+   * The editor centers the artboard with translate(-50%, -50%) + pan + scale(zoom).
+   * When the canvas pixel size changes, that keeps the *geometric center* pinned unless
+   * we nudge pan so the top-left of the document stays stable on screen (normal resize).
+   * Alt+resize still shifts layer transforms; this pan correction applies in both cases.
+   */
+  const nudgePanForCanvasPixelDelta = useCallback(
+    (dW: number, dH: number) => {
+      if (dW === 0 && dH === 0) {
+        return;
+      }
+      const { pan: p } = useSketchStore.getState();
+      setPan({
+        x: p.x + (dW / 2) * zoom,
+        y: p.y + (dH / 2) * zoom
+      });
+    },
+    [setPan, zoom]
+  );
+
   const handleCanvasResize = useCallback(
     (width: number, height: number) => {
       pushHistory("resize canvas");
+      const { document: doc } = useSketchStore.getState();
+      const dW = width - doc.canvas.width;
+      const dH = height - doc.canvas.height;
       resizeCanvas(width, height);
+      nudgePanForCanvasPixelDelta(dW, dH);
     },
-    [pushHistory, resizeCanvas]
+    [pushHistory, resizeCanvas, nudgePanForCanvasPixelDelta]
   );
 
   /** Push a single history snapshot before a drag-resize begins. */
@@ -561,15 +585,26 @@ export function useCanvasActions({
     (
       width: number,
       height: number,
-      options?: { translateLayers?: Point }
+      options?: { translateLayers?: Point; resizeFromCenter?: boolean }
     ) => {
+      const { document: doc } = useSketchStore.getState();
+      const dW = width - doc.canvas.width;
+      const dH = height - doc.canvas.height;
+      if (dW === 0 && dH === 0) {
+        return;
+      }
       resizeCanvas(width, height);
       const t = options?.translateLayers;
       if (t && (t.x !== 0 || t.y !== 0)) {
         offsetAllPaintLayersTransform(t.x, t.y);
       }
+      const hasLayerTranslate =
+        t != null && (t.x !== 0 || t.y !== 0);
+      if (!options?.resizeFromCenter && !hasLayerTranslate) {
+        nudgePanForCanvasPixelDelta(dW, dH);
+      }
     },
-    [resizeCanvas, offsetAllPaintLayersTransform]
+    [resizeCanvas, offsetAllPaintLayersTransform, nudgePanForCanvasPixelDelta]
   );
 
   // ─── Zoom handlers ─────────────────────────────────────────────────

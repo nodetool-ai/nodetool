@@ -11,7 +11,20 @@ import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, IconButton, Typography, Tooltip, Divider, Menu, MenuItem, ListItemIcon, ListItemText, Slider } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  Typography,
+  Tooltip,
+  Divider,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Slider,
+  Popover
+} from "@mui/material";
+import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import TrashIconSvg from "../../icons/trash.svg?react";
 const TrashIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
@@ -21,8 +34,20 @@ import FlipIcon from "@mui/icons-material/Flip";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import CheckIcon from "@mui/icons-material/Check";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
+import { PenPressureSettingsPanel } from "./ToolSettingsPanels";
 import { useSketchStore } from "./state";
-import { SketchDocument, SymmetryMode, SYMMETRY_MIN_RAYS, SYMMETRY_MAX_RAYS } from "./types";
+import {
+  SketchDocument,
+  SymmetryMode,
+  SYMMETRY_MIN_RAYS,
+  SYMMETRY_MAX_RAYS,
+  DEFAULT_PEN_PRESSURE
+} from "./types";
+import type { SketchTool } from "./types";
+
+function isPressureSketchTool(tool: SketchTool): boolean {
+  return tool === "brush" || tool === "pencil" || tool === "eraser";
+}
 
 const styles = (theme: Theme) =>
   css({
@@ -83,6 +108,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const setSymmetryRays = useSketchStore((s) => s.setSymmetryRays);
   const canUndo = useSketchStore((s) => s.canUndo);
   const canRedo = useSketchStore((s) => s.canRedo);
+  const activeTool = useSketchStore((s) => s.activeTool);
+  const penPressure = useSketchStore((s) => ({
+    ...DEFAULT_PEN_PRESSURE,
+    ...s.document.toolSettings?.penPressure
+  }));
+  const setPenPressure = useSketchStore((s) => s.setPenPressure);
+  const [penPressureAnchor, setPenPressureAnchor] =
+    useState<HTMLElement | null>(null);
 
   // Derive label from mode
   const symmetryLabels: Record<SymmetryMode, string> = {
@@ -130,6 +163,44 @@ const SketchModal: React.FC<SketchModalProps> = ({
         <Typography variant="body2" sx={{ fontWeight: 500, mr: "auto" }}>
           {title}
         </Typography>
+
+        {isPressureSketchTool(activeTool) ? (
+          <>
+            <Tooltip title="Pen pressure (stylus / tablet)">
+              <IconButton
+                size="small"
+                onClick={(e) => setPenPressureAnchor(e.currentTarget)}
+                color={penPressureAnchor ? "primary" : "default"}
+                aria-label="Open pen pressure settings"
+                sx={{ color: penPressureAnchor ? undefined : "grey.300" }}
+              >
+                <DrawOutlinedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+            <Popover
+              open={Boolean(penPressureAnchor)}
+              anchorEl={penPressureAnchor}
+              onClose={() => setPenPressureAnchor(null)}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    backgroundColor: theme.vars.palette.grey[900],
+                    border: `1px solid ${theme.vars.palette.grey[700]}`,
+                    p: 1.25,
+                    minWidth: 240
+                  }
+                }
+              }}
+            >
+              <PenPressureSettingsPanel
+                settings={penPressure}
+                onChange={setPenPressure}
+              />
+            </Popover>
+          </>
+        ) : null}
 
         {/* ── Actions (right-aligned) ── */}
         <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>

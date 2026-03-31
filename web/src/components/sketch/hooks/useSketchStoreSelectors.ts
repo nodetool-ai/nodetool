@@ -10,6 +10,7 @@ import {
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_PENCIL_SETTINGS,
   DEFAULT_ERASER_SETTINGS,
+  DEFAULT_PEN_PRESSURE,
   DEFAULT_SHAPE_SETTINGS,
   DEFAULT_FILL_SETTINGS,
   DEFAULT_BLUR_SETTINGS,
@@ -37,6 +38,7 @@ export function useSketchStoreSelectors() {
   const setCloneStampSettings = useSketchStore((s) => s.setCloneStampSettings);
   const setSelectSettings = useSketchStore((s) => s.setSelectSettings);
   const setSegmentSettings = useSketchStore((s) => s.setSegmentSettings);
+  const setPenPressure = useSketchStore((s) => s.setPenPressure);
   const featherCurrentSelection = useSketchStore((s) => s.featherCurrentSelection);
   const smoothCurrentSelectionBorders = useSketchStore(
     (s) => s.smoothCurrentSelectionBorders
@@ -108,11 +110,25 @@ export function useSketchStoreSelectors() {
   const setSymmetryMode = useSketchStore((s) => s.setSymmetryMode);
   const setSymmetryRays = useSketchStore((s) => s.setSymmetryRays);
 
+  const resolvedPenPressure = {
+    ...DEFAULT_PEN_PRESSURE,
+    ...document.toolSettings?.penPressure
+  };
+
   // Defensively merge defaults so older/incomplete documents cannot break render.
   const toolSettings = {
-    brush: { ...DEFAULT_BRUSH_SETTINGS, ...document.toolSettings?.brush },
-    pencil: { ...DEFAULT_PENCIL_SETTINGS, ...document.toolSettings?.pencil },
+    brush: {
+      ...DEFAULT_BRUSH_SETTINGS,
+      ...document.toolSettings?.brush,
+      ...resolvedPenPressure
+    },
+    pencil: {
+      ...DEFAULT_PENCIL_SETTINGS,
+      ...document.toolSettings?.pencil,
+      ...resolvedPenPressure
+    },
     eraser: { ...DEFAULT_ERASER_SETTINGS, ...document.toolSettings?.eraser },
+    penPressure: resolvedPenPressure,
     shape: { ...DEFAULT_SHAPE_SETTINGS, ...document.toolSettings?.shape },
     fill: { ...DEFAULT_FILL_SETTINGS, ...document.toolSettings?.fill },
     blur: { ...DEFAULT_BLUR_SETTINGS, ...document.toolSettings?.blur },
@@ -143,6 +159,7 @@ export function useSketchStoreSelectors() {
     setCloneStampSettings,
     setSelectSettings,
     setSegmentSettings,
+    setPenPressure,
     featherCurrentSelection,
     smoothCurrentSelectionBorders,
     convertSelectionToBorderOutline,
