@@ -294,7 +294,6 @@ Installation Paths
 Features & Versions
   Python: ${info.pythonVersion || "Not available"}
   CUDA: ${info.cudaAvailable ? (info.cudaVersion || "Available") : "Not available"}
-  Ollama: ${info.ollamaInstalled ? (info.ollamaVersion || "Installed") : "Not installed"}
   Llama Server: ${info.llamaServerInstalled ? (info.llamaServerVersion || "Installed") : "Not installed"}`;
 
     const dialogOptions = {

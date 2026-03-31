@@ -1069,7 +1069,7 @@ import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
 /** All valid runtime package IDs, derived from a single source of truth. */
 export const RUNTIME_PACKAGE_IDS: readonly RuntimePackageId[] = [
   "python", "nodejs", "bash", "ruby", "lua",
-  "ffmpeg", "pandoc", "yt-dlp", "ollama", "llama-cpp",
+  "ffmpeg", "pandoc", "yt-dlp",
 ] as const;
 
 /**
@@ -1138,20 +1138,6 @@ const RUNTIME_DEFINITIONS: Record<RuntimePackageId, {
     condaPackages: ["yt-dlp"],
     verifyBinary: "yt-dlp",
   },
-  ollama: {
-    name: "Ollama",
-    description: "Local LLM inference server. Easy to use, recommended for most users.",
-    condaPackages: ["ollama"],
-    verifyBinary: "ollama",
-    windowsBinSubdir: "Scripts",
-  },
-  "llama-cpp": {
-    name: "llama.cpp",
-    description: "High-performance GPU-accelerated LLM backend with GGUF model support.",
-    condaPackages: [], // Platform-dependent; handled in installRuntimePackage
-    verifyBinary: "llama-server",
-    windowsBinSubdir: "Library\\bin",
-  },
 };
 
 // Track which runtime packages are currently being installed
@@ -1197,10 +1183,6 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
     if (envExists) {
       installed = await checkRuntimeBinary(condaEnvPath, def.verifyBinary, def.windowsBinSubdir);
     }
-    // Special case: check if Ollama is running as a system service
-    if (id === "ollama" && !installed) {
-      installed = await checkSystemOllama();
-    }
     return {
       id,
       name: def.name,
@@ -1211,20 +1193,6 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
   });
 
   return Promise.all(checks);
-}
-
-async function checkSystemOllama(): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 1000);
-    const res = await fetch("http://127.0.0.1:11434/api/tags", {
-      signal: controller.signal,
-    });
-    clearTimeout(id);
-    return res.ok;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -1271,13 +1239,7 @@ export async function installRuntimePackage(
     const condaEnvPath = await ensureCondaEnvironment(installLocation);
 
     // Determine packages to install
-    let packageSpecs = [...def.condaPackages];
-
-    // Special handling for llama-cpp (CUDA vs CPU)
-    if (packageId === "llama-cpp") {
-      const prefersCuda = process.platform === "win32" || process.platform === "linux";
-      packageSpecs = [prefersCuda ? "llama.cpp=*=cuda126*" : "llama.cpp"];
-    }
+    const packageSpecs = [...def.condaPackages];
 
     // Install conda packages
     if (packageSpecs.length > 0) {

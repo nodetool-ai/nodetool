@@ -4,7 +4,6 @@ import { UpdateInfo } from "../src/types";
 
 const Settings: React.FC = () => {
   const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
-  const [startOllamaOnStartup, setStartOllamaOnStartup] = useState(true);
   const [startLlamaCppOnStartup, setStartLlamaCppOnStartup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,7 +35,6 @@ const Settings: React.FC = () => {
       }
       if (window.api?.settings?.getModelServicesStartup) {
         const startup = await window.api.settings.getModelServicesStartup();
-        setStartOllamaOnStartup(startup.startOllamaOnStartup);
         setStartLlamaCppOnStartup(startup.startLlamaCppOnStartup);
       }
     } catch (error) {
@@ -82,7 +80,7 @@ const Settings: React.FC = () => {
   };
 
   const handleModelServiceStartupToggle = async (
-    key: "startOllamaOnStartup" | "startLlamaCppOnStartup",
+    key: "startLlamaCppOnStartup",
     value: boolean
   ) => {
     if (serviceSaving) return;
@@ -93,7 +91,6 @@ const Settings: React.FC = () => {
         const next = await window.api.settings.setModelServicesStartup({
           [key]: value,
         });
-        setStartOllamaOnStartup(next.startOllamaOnStartup);
         setStartLlamaCppOnStartup(next.startLlamaCppOnStartup);
       }
     } catch (error) {
@@ -181,31 +178,6 @@ const Settings: React.FC = () => {
           </div>
 
           <div className="settings-card">
-            <div className="setting-row">
-              <div className="setting-info">
-                <div className="setting-label">Start Ollama on Startup</div>
-                <div className="setting-description">
-                  Start or attach to Ollama when the desktop app starts.
-                </div>
-              </div>
-              <div className="setting-control">
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={startOllamaOnStartup}
-                    onChange={(event) =>
-                      void handleModelServiceStartupToggle(
-                        "startOllamaOnStartup",
-                        event.target.checked
-                      )
-                    }
-                    disabled={serviceSaving}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-              </div>
-            </div>
-
             <div className="setting-row">
               <div className="setting-info">
                 <div className="setting-label">Start Llama.cpp on Startup</div>

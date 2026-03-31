@@ -988,12 +988,6 @@ export function initializeIpcHandlers(): void {
     logMessage(`${source}${data.message}`, data.level);
   });
 
-  createIpcMainHandler(IpcChannels.CHECK_OLLAMA_INSTALLED, async () => {
-    // Lazy import to avoid circular deps if any
-    const { isOllamaInstalled } = await import("./python");
-    return await isOllamaInstalled();
-  });
-
   createIpcMainHandler(
     IpcChannels.LOCALHOST_PROXY_REQUEST,
     async (_event, request) => {

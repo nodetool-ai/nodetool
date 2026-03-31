@@ -8,8 +8,6 @@ export interface ServerState {
   error?: string;
   logs: string[];
   serverPort?: number;
-  ollamaPort?: number;
-  ollamaExternalManaged?: boolean;
   llamaPort?: number;
   llamaExternalManaged?: boolean;
 }
@@ -24,8 +22,6 @@ const serverState: ServerState = {
   error: undefined,
   logs: [],
   serverPort: 7777,
-  ollamaPort: 11435,
-  ollamaExternalManaged: false,
   llamaPort: 8080,
   llamaExternalManaged: false,
 };

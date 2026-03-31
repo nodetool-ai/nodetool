@@ -27,7 +27,6 @@ import { createIpcMainHandler } from "./ipc";
 
 const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
 const CPU_LLAMA_SPEC = "llama.cpp";
-const OLLAMA_SPEC = "ollama";
 const CONDA_CHANNELS = ["conda-forge"];
 const MICROMAMBA_ENV_VAR = "MICROMAMBA_EXE";
 const MICROMAMBA_BIN_DIR_NAME = "bin";
@@ -45,9 +44,7 @@ interface InstallationPreferences {
 }
 
 interface InstallationSelection extends InstallationPreferences {
-  installOllama?: boolean;
   installLlamaCpp?: boolean;
-  startOllamaOnStartup?: boolean;
   startLlamaCppOnStartup?: boolean;
 }
 
@@ -70,17 +67,12 @@ function persistInstallationPreferences(
   location: unknown,
   modelBackend: unknown,
   startupSettings?: {
-    startOllamaOnStartup?: unknown;
     startLlamaCppOnStartup?: unknown;
   }
 ): InstallationPreferences {
   const normalizedLocation = normalizeInstallLocation(location);
   const normalizedBackend = normalizeModelBackend(modelBackend);
   const startupDefaults = getModelServiceStartupDefaults(normalizedBackend);
-  const startOllamaOnStartup =
-    typeof startupSettings?.startOllamaOnStartup === "boolean"
-      ? startupSettings.startOllamaOnStartup
-      : startupDefaults.startOllamaOnStartup;
   const startLlamaCppOnStartup =
     typeof startupSettings?.startLlamaCppOnStartup === "boolean"
       ? startupSettings.startLlamaCppOnStartup
@@ -90,7 +82,6 @@ function persistInstallationPreferences(
     updateSettings({
       CONDA_ENV: normalizedLocation,
       [MODEL_BACKEND_SETTING_KEY]: normalizedBackend,
-      START_OLLAMA_ON_STARTUP: startOllamaOnStartup,
       START_LLAMA_CPP_ON_STARTUP: startLlamaCppOnStartup,
     });
     logMessage(
@@ -152,9 +143,7 @@ async function promptForInstallLocation(
         {
           location,
           modelBackend,
-          installOllama,
           installLlamaCpp,
-          startOllamaOnStartup,
           startLlamaCppOnStartup,
         }: InstallToLocationData
       ) => {
@@ -162,18 +151,12 @@ async function promptForInstallLocation(
           location,
           modelBackend,
           {
-            startOllamaOnStartup,
             startLlamaCppOnStartup,
           }
         );
         resolve({
           ...preferences,
-          installOllama,
           installLlamaCpp,
-          startOllamaOnStartup:
-            typeof startOllamaOnStartup === "boolean"
-              ? startOllamaOnStartup
-              : undefined,
           startLlamaCppOnStartup:
             typeof startLlamaCppOnStartup === "boolean"
               ? startLlamaCppOnStartup
@@ -632,7 +615,6 @@ async function provisionCondaEnvironment(
   modelBackend: ModelBackend,
   options?: {
     bootMessage?: string;
-    installOllama?: boolean;
     installLlamaCpp?: boolean;
   }
 ): Promise<void> {
@@ -652,7 +634,6 @@ async function provisionCondaEnvironment(
 
   const condaEnvPath = location;
   await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {
-    installOllama: options?.installOllama,
     installLlamaCpp: options?.installLlamaCpp,
   });
 
@@ -694,10 +675,9 @@ async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
     const persistedPreferences = readInstallationPreferences();
-    const { location, modelBackend, installOllama, installLlamaCpp } =
+    const { location, modelBackend, installLlamaCpp } =
       await promptForInstallLocation(persistedPreferences);
     await provisionCondaEnvironment(location, modelBackend, {
-      installOllama,
       installLlamaCpp,
     });
   } catch (error: any) {
@@ -740,25 +720,15 @@ async function installCondaPackages(
   micromambaExecutable: string,
   envPrefix: string,
   modelBackend: ModelBackend,
-  options?: { installOllama?: boolean; installLlamaCpp?: boolean }
+  options?: { installLlamaCpp?: boolean }
 ): Promise<void> {
   const prefersCuda =
     process.platform === "win32" || process.platform === "linux";
-  
+
   const packageSpecs: string[] = [];
 
-  const shouldInstallOllama = options?.installOllama ?? modelBackend === "ollama";
   const shouldInstallLlamaCpp =
     options?.installLlamaCpp ?? modelBackend === "llama_cpp";
-
-  if (shouldInstallOllama) {
-    packageSpecs.push(OLLAMA_SPEC);
-  } else {
-    logMessage(
-      "Skipping Ollama conda package installation (not selected or external Ollama selected)",
-      "info"
-    );
-  }
 
   if (shouldInstallLlamaCpp) {
     packageSpecs.push(prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC);
@@ -819,43 +789,12 @@ async function ensureLlamaCppInstalled(
   logMessage("llama.cpp binary missing, reinstalling package via micromamba");
   const micromambaExecutable = await ensureMicromambaAvailable();
   await installCondaPackages(micromambaExecutable, envPrefix, "llama_cpp", {
-    installOllama: false,
     installLlamaCpp: true,
   });
 
   if (!(await fileExists(llamaBinaryPath))) {
     throw new Error(
       "llama.cpp binary was not found after conda installation. Please verify your GPU drivers or try reinstalling manually."
-    );
-  }
-}
-
-async function ensureOllamaInstalled(
-  envPrefix: string
-): Promise<void> {
-  const executableName =
-    os.platform() === "win32" ? "ollama.exe" : "ollama";
-  const condaBinDir =
-    os.platform() === "win32"
-      ? path.join(envPrefix, "Scripts")
-      : path.join(envPrefix, "bin");
-  const ollamaBinaryPath = path.join(condaBinDir, executableName);
-
-  if (await fileExists(ollamaBinaryPath)) {
-    logMessage(`Ollama binary already present at ${ollamaBinaryPath}`);
-    return;
-  }
-
-  logMessage("Ollama binary missing, reinstalling package via micromamba");
-  const micromambaExecutable = await ensureMicromambaAvailable();
-  await installCondaPackages(micromambaExecutable, envPrefix, "ollama", {
-    installOllama: true,
-    installLlamaCpp: false,
-  });
-
-  if (!(await fileExists(ollamaBinaryPath))) {
-    throw new Error(
-      "Ollama binary was not found after conda installation. Please try reinstalling manually."
     );
   }
 }
@@ -947,7 +886,6 @@ export {
   installCondaEnvironment,
   provisionCondaEnvironment,
   ensureCondaEnvironment,
-  ensureOllamaInstalled,
   ensureLlamaCppInstalled,
   installCondaPackageBySpec,
   setCondaInstallLocation,

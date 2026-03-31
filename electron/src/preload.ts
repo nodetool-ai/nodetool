@@ -372,9 +372,6 @@ const api = {
     openExternal: (url: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, validateUrl(url)),
 
-    /** Check if Ollama is installed */
-    checkOllamaInstalled: () =>
-      ipcRenderer.invoke(IpcChannels.CHECK_OLLAMA_INSTALLED),
   },
 
   // ============================================================================
@@ -491,18 +488,14 @@ const api = {
       location: string,
       packages: PythonPackages,
       modelBackend?: "ollama" | "llama_cpp" | "none",
-      installOllama?: boolean,
       installLlamaCpp?: boolean,
-      startOllamaOnStartup?: boolean,
       startLlamaCppOnStartup?: boolean,
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
         packages,
         modelBackend,
-        installOllama,
         installLlamaCpp,
-        startOllamaOnStartup,
         startLlamaCppOnStartup,
       }),
 
@@ -644,7 +637,6 @@ const api = {
 
     /** Update startup settings for managed local model services */
     setModelServicesStartup: (update: {
-      startOllamaOnStartup?: boolean;
       startLlamaCppOnStartup?: boolean;
     }) =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP, update),

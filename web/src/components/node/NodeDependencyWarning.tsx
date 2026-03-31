@@ -14,8 +14,6 @@ export const RUNTIME_LABELS: Record<string, string> = {
   bash: "Bash",
   ruby: "Ruby",
   lua: "Lua",
-  ollama: "Ollama",
-  "llama-cpp": "llama.cpp",
   "yt-dlp": "yt-dlp",
   pandoc: "Pandoc",
 };
@@ -30,8 +28,6 @@ export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   ffmpeg: "ffmpeg",
   pandoc: "pandoc",
   "yt-dlp": "yt-dlp",
-  ollama: "ollama",
-  "llama-cpp": "llama-cpp",
 };
 
 const warningStyles = (theme: Theme) =>

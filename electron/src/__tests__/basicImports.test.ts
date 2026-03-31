@@ -2,15 +2,10 @@
 // This will at least cover the import and top-level variable declarations
 
 import * as loggerModule from "../logger";
-import * as ollamaModule from "../ollama";
 
 describe("Module Import Coverage", () => {
   it("should import logger module without errors", () => {
     expect(loggerModule).toBeDefined();
-  });
-
-  it("should import ollama module without errors", () => {
-    expect(ollamaModule).toBeDefined();
   });
 
   it("should define module constants and exports", () => {

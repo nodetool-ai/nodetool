@@ -104,7 +104,6 @@ declare global {
         ) => Promise<FileExplorerResult>;
         openModelPath: (path: string) => Promise<FileExplorerResult>;
         openExternal: (url: string) => Promise<void>;
-        checkOllamaInstalled: () => Promise<boolean>;
         getSystemInfo: () => Promise<SystemInfo>;
       };
 
@@ -156,9 +155,7 @@ declare global {
           location: string,
           packages: PythonPackages,
           modelBackend?: ModelBackend,
-          installOllama?: boolean,
           installLlamaCpp?: boolean,
-          startOllamaOnStartup?: boolean,
           startLlamaCppOnStartup?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
@@ -301,8 +298,6 @@ export interface SystemInfo {
   // Feature availability
   cudaAvailable: boolean;
   cudaVersion: string | null;
-  ollamaInstalled: boolean;
-  ollamaVersion: string | null;
   llamaServerInstalled: boolean;
   llamaServerVersion: string | null;
 }
@@ -560,7 +555,6 @@ export enum IpcChannels {
   // Log viewer channels
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
-  CHECK_OLLAMA_INSTALLED = "check-ollama-installed",
   // Shell module channels
   SHELL_SHOW_ITEM_IN_FOLDER = "shell-show-item-in-folder",
   SHELL_OPEN_PATH = "shell-open-path",
@@ -621,10 +615,7 @@ export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
   modelBackend?: ModelBackend;
-  // Deprecated: kept for backward compatibility if needed
-  installOllama?: boolean;
   installLlamaCpp?: boolean;
-  startOllamaOnStartup?: boolean;
   startLlamaCppOnStartup?: boolean;
 }
 
@@ -738,7 +729,6 @@ export interface IpcRequest {
   // Log viewer
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
-  [IpcChannels.CHECK_OLLAMA_INSTALLED]: void;
   // Shell module
   [IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER]: string; // fullPath
   [IpcChannels.SHELL_OPEN_PATH]: string; // path
@@ -800,12 +790,10 @@ export interface IpcRequest {
 export type WindowCloseAction = "ask" | "quit" | "background";
 
 export interface ModelServicesStartupSettings {
-  startOllamaOnStartup: boolean;
   startLlamaCppOnStartup: boolean;
 }
 
 export interface ModelServicesStartupSettingsUpdate {
-  startOllamaOnStartup?: boolean;
   startLlamaCppOnStartup?: boolean;
 }
 
@@ -859,7 +847,6 @@ export interface IpcResponse {
   // Log viewer
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
-  [IpcChannels.CHECK_OLLAMA_INSTALLED]: boolean;
   // Shell module
   [IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER]: void;
   [IpcChannels.SHELL_OPEN_PATH]: string; // error message or empty string
@@ -1020,9 +1007,7 @@ export type RuntimePackageId =
   | "lua"
   | "ffmpeg"
   | "pandoc"
-  | "yt-dlp"
-  | "ollama"
-  | "llama-cpp";
+  | "yt-dlp";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;
