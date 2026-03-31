@@ -14,6 +14,7 @@ import AddIcon from "@mui/icons-material/Add";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ThreadList from "../thread/ThreadList";
 import type { ThreadInfo } from "../types/thread.types";
+import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../../config/constants";
 
 export const SIDEBAR_WIDTH = 280;
 
@@ -99,7 +100,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     transition: "all 0.3s ease"
                 }}
             >
-                <Tooltip title="Open sidebar" placement="bottom">
+                <Tooltip
+                    title="Open sidebar"
+                    placement="bottom"
+                    enterDelay={TOOLTIP_ENTER_DELAY}
+                    enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                >
                     <IconButton
                         onClick={handleOpen}
                         size="small"
@@ -115,7 +121,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <MenuIcon />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title="New chat" placement="bottom">
+                <Tooltip
+                    title="New chat"
+                    placement="bottom"
+                    enterDelay={TOOLTIP_ENTER_DELAY}
+                    enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                >
                     <IconButton
                         onClick={handleNewChat}
                         size="small"
@@ -166,7 +177,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <Box sx={{ fontSize: "0.875rem", fontWeight: 600, pl: 1, color: theme.vars.palette.text.secondary }}>
                         Conversations
                     </Box>
-                    <Tooltip title="Collapse sidebar" placement="right">
+                    <Tooltip
+                        title="Collapse sidebar"
+                        placement="right"
+                        enterDelay={TOOLTIP_ENTER_DELAY}
+                        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                    >
                         <IconButton
                             onClick={handleClose}
                             size="small"
@@ -226,7 +242,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             }}
                         />
                     </Box>
-                    <Tooltip title="New chat" placement="bottom">
+                    <Tooltip
+                        title="New chat"
+                        placement="bottom"
+                        enterDelay={TOOLTIP_ENTER_DELAY}
+                        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+                    >
                         <IconButton
                             onClick={handleNewChat}
                             size="small"
