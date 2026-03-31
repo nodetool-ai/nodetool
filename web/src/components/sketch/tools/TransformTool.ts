@@ -99,7 +99,7 @@ function cursorForHandle(handle: TransformHandle | null, rotation: number): stri
     return "grab";
   }
   // For scale handles, pick a directional resize cursor rotated by the layer rotation
-  const baseDeg: Record<string, number> = {
+  const baseDeg: Partial<Record<TransformHandle, number>> = {
     "top": 0,
     "top-right": 45,
     "right": 90,
@@ -116,6 +116,21 @@ function cursorForHandle(handle: TransformHandle | null, rotation: number): stri
   const cursors = ["ns-resize", "nesw-resize", "ew-resize", "nwse-resize"];
   return cursors[bucket];
 }
+
+/**
+ * Anchor direction for each scale handle: the opposite edge stays fixed
+ * while the dragged edge moves. { dx, dy } point from center toward the anchor.
+ */
+const HANDLE_ANCHOR: Partial<Record<TransformHandle, { dx: number; dy: number }>> = {
+  "top-left":     { dx:  1, dy:  1 },
+  "top-right":    { dx: -1, dy:  1 },
+  "bottom-left":  { dx:  1, dy: -1 },
+  "bottom-right": { dx: -1, dy: -1 },
+  "left":         { dx:  1, dy:  0 },
+  "right":        { dx: -1, dy:  0 },
+  "top":          { dx:  0, dy:  1 },
+  "bottom":       { dx:  0, dy: -1 }
+};
 
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
@@ -426,36 +441,16 @@ export class TransformTool implements ToolHandler {
 
     // ALT modifier: scale from center (default behavior).
     // Without ALT, anchor the opposite edge so it stays fixed.
-    if (!alt && handle !== "move" && handle !== "rotate") {
+    const anchor = HANDLE_ANCHOR[handle];
+    if (!alt && anchor) {
       const result = { ...ds, scaleX: newSx, scaleY: newSy };
       // Compute the translation offset to keep the opposite edge fixed
       const dScaleX = newSx - sx;
       const dScaleY = newSy - sy;
 
-      // The anchor direction depends on which handle is being dragged
-      let anchorDx = 0;
-      let anchorDy = 0;
-      if (handle === "top-left") {
-        anchorDx = 1; anchorDy = 1;
-      } else if (handle === "top-right") {
-        anchorDx = -1; anchorDy = 1;
-      } else if (handle === "bottom-left") {
-        anchorDx = 1; anchorDy = -1;
-      } else if (handle === "bottom-right") {
-        anchorDx = -1; anchorDy = -1;
-      } else if (handle === "left") {
-        anchorDx = 1; anchorDy = 0;
-      } else if (handle === "right") {
-        anchorDx = -1; anchorDy = 0;
-      } else if (handle === "top") {
-        anchorDx = 0; anchorDy = 1;
-      } else if (handle === "bottom") {
-        anchorDx = 0; anchorDy = -1;
-      }
-
       // Offset = half the size change, in the anchor direction, rotated by layer rotation
-      const offsetX = (anchorDx * dScaleX * bounds.width) / 2;
-      const offsetY = (anchorDy * dScaleY * bounds.height) / 2;
+      const offsetX = (anchor.dx * dScaleX * bounds.width) / 2;
+      const offsetY = (anchor.dy * dScaleY * bounds.height) / 2;
 
       // Rotate the offset by the current rotation
       const cos = Math.cos(rot);
