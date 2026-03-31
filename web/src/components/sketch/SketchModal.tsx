@@ -21,8 +21,7 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Slider,
-  Popover
+  Slider
 } from "@mui/material";
 import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
 import CloseIcon from "@mui/icons-material/Close";
@@ -63,13 +62,48 @@ const styles = (theme: Theme) =>
     "& .sketch-modal-header": {
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      flexWrap: "wrap",
+      rowGap: "6px",
+      columnGap: "8px",
       padding: "4px 12px",
       backgroundColor: theme.vars.palette.grey[800],
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
       minHeight: "36px",
       "& .MuiIconButton-root": {
         padding: "3px"
+      },
+      "& .sketch-modal-pen-inline": {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: "8px",
+        flexShrink: 0,
+        "& .setting-row": {
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          "& .MuiSlider-root": {
+            width: "80px",
+            minWidth: "60px"
+          },
+          "& .setting-label": {
+            fontSize: "0.65rem",
+            whiteSpace: "nowrap",
+            color: theme.vars.palette.grey[300]
+          },
+          "& .setting-value": {
+            fontSize: "0.65rem",
+            minWidth: "24px",
+            textAlign: "right",
+            color: theme.vars.palette.grey[200]
+          }
+        },
+        "& .MuiToggleButtonGroup-root": {
+          "& .MuiToggleButton-root": {
+            padding: "2px 6px",
+            fontSize: "0.6rem"
+          }
+        }
       }
     },
     "& .sketch-modal-body": {
@@ -114,8 +148,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
     ...s.document.toolSettings?.penPressure
   }));
   const setPenPressure = useSketchStore((s) => s.setPenPressure);
-  const [penPressureAnchor, setPenPressureAnchor] =
-    useState<HTMLElement | null>(null);
+  const [headerPenPressureOpen, setHeaderPenPressureOpen] = useState(false);
 
   // Derive label from mode
   const symmetryLabels: Record<SymmetryMode, string> = {
@@ -130,8 +163,17 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const symmetryActive = symmetryMode !== "off";
 
   useEffect(() => {
-    if (!open) { setConfirmDiscard(false); }
+    if (!open) {
+      setConfirmDiscard(false);
+      setHeaderPenPressureOpen(false);
+    }
   }, [open]);
+
+  useEffect(() => {
+    if (!isPressureSketchTool(activeTool)) {
+      setHeaderPenPressureOpen(false);
+    }
+  }, [activeTool]);
 
   const handleRequestClose = useCallback(() => {
     editorRef.current?.flushPendingChanges();
@@ -165,41 +207,51 @@ const SketchModal: React.FC<SketchModalProps> = ({
         </Typography>
 
         {isPressureSketchTool(activeTool) ? (
-          <>
-            <Tooltip title="Pen pressure (stylus / tablet)">
+          <Box className="sketch-modal-pen-inline">
+            <Tooltip
+              title={
+                headerPenPressureOpen
+                  ? "Hide pen pressure"
+                  : "Show pen pressure"
+              }
+            >
               <IconButton
                 size="small"
-                onClick={(e) => setPenPressureAnchor(e.currentTarget)}
-                color={penPressureAnchor ? "primary" : "default"}
-                aria-label="Open pen pressure settings"
-                sx={{ color: penPressureAnchor ? undefined : "grey.300" }}
+                onClick={() => setHeaderPenPressureOpen((v) => !v)}
+                color={headerPenPressureOpen ? "primary" : "default"}
+                aria-label="Toggle pen pressure settings"
+                aria-expanded={headerPenPressureOpen}
+                aria-controls="sketch-modal-pen-pressure-panel"
+                sx={{
+                  color: headerPenPressureOpen ? undefined : "grey.300",
+                  flexShrink: 0
+                }}
               >
                 <DrawOutlinedIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
-            <Popover
-              open={Boolean(penPressureAnchor)}
-              anchorEl={penPressureAnchor}
-              onClose={() => setPenPressureAnchor(null)}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    backgroundColor: theme.vars.palette.grey[900],
-                    border: `1px solid ${theme.vars.palette.grey[700]}`,
-                    p: 1.25,
-                    minWidth: 240
-                  }
-                }
-              }}
-            >
-              <PenPressureSettingsPanel
-                settings={penPressure}
-                onChange={setPenPressure}
-              />
-            </Popover>
-          </>
+            {headerPenPressureOpen ? (
+              <Box
+                id="sketch-modal-pen-pressure-panel"
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.35,
+                  py: 0.25,
+                  pl: 0.5,
+                  ml: 0.25,
+                  borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+                  minWidth: 0,
+                  maxWidth: { xs: "100%", sm: 300 }
+                }}
+              >
+                <PenPressureSettingsPanel
+                  settings={penPressure}
+                  onChange={setPenPressure}
+                />
+              </Box>
+            ) : null}
+          </Box>
         ) : null}
 
         {/* ── Actions (right-aligned) ── */}
