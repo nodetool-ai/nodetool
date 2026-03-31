@@ -188,14 +188,16 @@ export const PlaybackButton = memo(
         }
       }, [buttonSize]);
 
+      const errorMain = theme.vars?.palette?.error?.main ?? theme.palette.error.main;
+      const errorLight = theme.vars?.palette?.error?.light ?? theme.palette.error.light;
       const colorStyles = useMemo(() => {
         const isStopAction = playbackAction === "stop" || (playbackAction === "toggle" && state === "playing");
         if (isStopAction) {
           return {
-            color: theme.vars.palette.error.main,
+            color: errorMain,
             "&:hover": {
-              backgroundColor: `${theme.vars.palette.error.main}20`,
-              color: theme.vars.palette.error.light
+              backgroundColor: `${errorMain}20`,
+              color: errorLight
             }
           };
         }
@@ -206,7 +208,7 @@ export const PlaybackButton = memo(
             color: "var(--palette-primary-light)"
           }
         };
-      }, [playbackAction, state, theme.vars.palette.error.main, theme.vars.palette.error.light]);
+      }, [playbackAction, state, errorMain, errorLight]);
 
       return (
         <Tooltip

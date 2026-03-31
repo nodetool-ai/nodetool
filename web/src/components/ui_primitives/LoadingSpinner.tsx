@@ -32,14 +32,14 @@ const styles = (theme: Theme, variant: string, size: string) =>
       width: size === "small" ? 6 : size === "large" ? 12 : 8,
       height: size === "small" ? 6 : size === "large" ? 12 : 8,
       borderRadius: "50%",
-      backgroundColor: theme.vars.palette.primary.main,
+      backgroundColor: theme.vars?.palette?.primary?.main ?? theme.palette.primary.main,
       animation: `${pulse} 1.4s infinite ease-in-out`,
       "&:nth-of-type(1)": { animationDelay: "-0.32s" },
       "&:nth-of-type(2)": { animationDelay: "-0.16s" },
       "&:nth-of-type(3)": { animationDelay: "0s" }
     },
     ".loading-text": {
-      color: theme.vars.palette.text.secondary,
+      color: theme.vars?.palette?.text?.secondary ?? theme.palette.text.secondary,
       fontSize: size === "small" ? 12 : size === "large" ? 16 : 14
     }
   });
