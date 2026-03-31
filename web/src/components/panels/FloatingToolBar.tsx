@@ -2,14 +2,16 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState, useRef } from "react";
 import {
   Fab,
   Box,
   useMediaQuery,
   Tooltip,
   Menu,
-  TextField
+  TextField,
+  InputAdornment,
+  CircularProgress
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -18,6 +20,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import { useLocation } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -392,6 +395,29 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     return String(settings?.comfy_host ?? "");
   });
   const updateWorkflowSetting = useNodes((state) => state.updateWorkflowSetting);
+  const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
+  const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
+  const comfyConnectionError = useComfyUIStore((state) => state.connectionError);
+  const comfyConnect = useComfyUIStore((state) => state.connect);
+  const comfySetBaseUrl = useComfyUIStore((state) => state.setBaseUrl);
+  const [comfyHostInput, setComfyHostInput] = useState(comfyHost);
+  const comfyHostRef = useRef(comfyHost);
+  if (comfyHostRef.current !== comfyHost) {
+    comfyHostRef.current = comfyHost;
+    setComfyHostInput(comfyHost);
+  }
+
+  const connectComfyHost = useCallback(async (host: string) => {
+    const trimmed = host.trim();
+    if (!trimmed) return;
+    updateWorkflowSetting("comfy_host", trimmed);
+    comfySetBaseUrl(trimmed);
+    try {
+      await comfyConnect();
+    } catch {
+      // error is stored in comfyConnectionError
+    }
+  }, [updateWorkflowSetting, comfySetBaseUrl, comfyConnect]);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
@@ -520,17 +546,53 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {isComfyWorkflow && (
-          <TextField
-            size="small"
-            placeholder="ComfyUI host (default: localhost:8188)"
-            value={comfyHost}
-            onChange={(e) => updateWorkflowSetting("comfy_host", e.target.value)}
-            sx={{
-              width: 250,
-              mr: 1,
-              "& .MuiInputBase-input": { height: 28, py: 0, fontSize: "0.75rem" }
-            }}
-          />
+          <Tooltip title={comfyConnectionError || (comfyIsConnected ? "Connected" : "Enter ComfyUI host and press Enter")}>
+            <TextField
+              size="small"
+              placeholder="ComfyUI host (e.g. localhost:8188)"
+              value={comfyHostInput}
+              onChange={(e) => setComfyHostInput(e.target.value)}
+              onBlur={() => {
+                if (comfyHostInput.trim() && comfyHostInput.trim() !== comfyHost) {
+                  connectComfyHost(comfyHostInput);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (comfyHostInput.trim()) {
+                    connectComfyHost(comfyHostInput);
+                  }
+                }
+              }}
+              error={!!comfyConnectionError}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      {comfyIsConnecting ? (
+                        <CircularProgress size={14} />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            bgcolor: comfyIsConnected ? "success.main" : comfyConnectionError ? "error.main" : "grey.500",
+                          }}
+                        />
+                      )}
+                    </InputAdornment>
+                  ),
+                }
+              }}
+              sx={{
+                width: 260,
+                mr: 1,
+                "& .MuiInputBase-input": { height: 28, py: 0, fontSize: "0.75rem" }
+              }}
+            />
+          </Tooltip>
         )}
 
         <Box
