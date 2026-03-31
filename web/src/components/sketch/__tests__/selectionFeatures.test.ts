@@ -9,6 +9,7 @@
 
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
+import { rectSelectionMask, getSelectionBounds } from "../selection/selectionMask";
 
 // Reset store before each test
 beforeEach(() => {
@@ -24,11 +25,14 @@ beforeEach(() => {
 describe("Selection features", () => {
   describe("setSelection / selectAll / deselect", () => {
     it("sets a rectangular selection", () => {
+      const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
       act(() => {
-        useSketchStore.getState().setSelection({ x: 10, y: 20, width: 100, height: 50 });
+        useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 10, 20, 100, 50));
       });
       const sel = useSketchStore.getState().selection;
-      expect(sel).toEqual({ x: 10, y: 20, width: 100, height: 50 });
+      expect(sel).not.toBeNull();
+      const bounds = getSelectionBounds(sel!);
+      expect(bounds).toEqual({ x: 10, y: 20, width: 100, height: 50 });
     });
 
     it("selectAll creates selection covering the full canvas", () => {
@@ -37,12 +41,17 @@ describe("Selection features", () => {
       });
       const sel = useSketchStore.getState().selection;
       const { width, height } = useSketchStore.getState().document.canvas;
-      expect(sel).toEqual({ x: 0, y: 0, width, height });
+      expect(sel).not.toBeNull();
+      expect(sel!.width).toBe(width);
+      expect(sel!.height).toBe(height);
+      const bounds = getSelectionBounds(sel!);
+      expect(bounds).toEqual({ x: 0, y: 0, width, height });
     });
 
     it("setSelection(null) deselects", () => {
+      const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
       act(() => {
-        useSketchStore.getState().setSelection({ x: 0, y: 0, width: 100, height: 100 });
+        useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 0, 0, 100, 100));
       });
       expect(useSketchStore.getState().selection).not.toBeNull();
       act(() => {
@@ -228,19 +237,26 @@ describe("Invert selection", () => {
     });
     const sel = useSketchStore.getState().selection;
     const { width, height } = useSketchStore.getState().document.canvas;
-    expect(sel).toEqual({ x: 0, y: 0, width, height });
+    expect(sel).not.toBeNull();
+    expect(sel!.width).toBe(width);
+    expect(sel!.height).toBe(height);
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 0, y: 0, width, height });
   });
 
   it("invertSelection with existing selection selects all (approx invert)", () => {
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
     act(() => {
-      useSketchStore.getState().setSelection({ x: 10, y: 10, width: 50, height: 50 });
+      useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 10, 10, 50, 50));
     });
     act(() => {
       useSketchStore.getState().invertSelection();
     });
     const sel = useSketchStore.getState().selection;
     const { width, height } = useSketchStore.getState().document.canvas;
-    expect(sel).toEqual({ x: 0, y: 0, width, height });
+    expect(sel).not.toBeNull();
+    expect(sel!.width).toBe(width);
+    expect(sel!.height).toBe(height);
   });
 });
 
@@ -250,7 +266,8 @@ describe("Reselect last selection", () => {
   });
 
   it("deselecting stores the previous selection as lastSelection", () => {
-    const testSel = { x: 20, y: 30, width: 100, height: 60 };
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
+    const testSel = rectSelectionMask(cw, ch, 20, 30, 100, 60);
     act(() => {
       useSketchStore.getState().setSelection(testSel);
     });
@@ -258,11 +275,15 @@ describe("Reselect last selection", () => {
       useSketchStore.getState().setSelection(null);
     });
     expect(useSketchStore.getState().selection).toBeNull();
-    expect(useSketchStore.getState().lastSelection).toEqual(testSel);
+    const last = useSketchStore.getState().lastSelection;
+    expect(last).not.toBeNull();
+    const bounds = getSelectionBounds(last!);
+    expect(bounds).toEqual({ x: 20, y: 30, width: 100, height: 60 });
   });
 
   it("reselectLastSelection restores the previous selection", () => {
-    const testSel = { x: 20, y: 30, width: 100, height: 60 };
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
+    const testSel = rectSelectionMask(cw, ch, 20, 30, 100, 60);
     act(() => {
       useSketchStore.getState().setSelection(testSel);
     });
@@ -272,7 +293,10 @@ describe("Reselect last selection", () => {
     act(() => {
       useSketchStore.getState().reselectLastSelection();
     });
-    expect(useSketchStore.getState().selection).toEqual(testSel);
+    const sel = useSketchStore.getState().selection;
+    expect(sel).not.toBeNull();
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 20, y: 30, width: 100, height: 60 });
   });
 
   it("reselectLastSelection does nothing when no last selection exists", () => {

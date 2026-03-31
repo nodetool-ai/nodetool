@@ -132,7 +132,7 @@ describe("Phase 2 Layer Presets", () => {
     it("default eraser settings are correct", () => {
       const state = useSketchStore.getState();
       const eraser = state.document.toolSettings.eraser;
-      expect(eraser.size).toBe(20);
+      expect(eraser.size).toBe(14);
       expect(eraser.opacity).toBe(1);
       expect(eraser.mode).toBe("brush");
     });

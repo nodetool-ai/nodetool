@@ -9,6 +9,13 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import type { Point, Selection } from "../types";
+import {
+  selectionHitTest,
+  rectSelectionMask,
+  combineMasks,
+  offsetSelectionByDocumentDelta,
+  cloneSelectionMask,
+} from "../selection/selectionMask";
 
 export class SelectTool implements ToolHandler {
   readonly toolId = "select" as const;
@@ -27,14 +34,11 @@ export class SelectTool implements ToolHandler {
       selection &&
       !ctx.shiftHeldRef.current &&
       !ctx.altHeldRef.current &&
-      pt.x >= selection.x &&
-      pt.x < selection.x + selection.width &&
-      pt.y >= selection.y &&
-      pt.y < selection.y + selection.height
+      selectionHitTest(selection, pt.x, pt.y)
     ) {
       this.isMovingSelection = true;
       this.moveSelectionOrigin = pt;
-      this.selectionAtMoveStart = { ...selection };
+      this.selectionAtMoveStart = cloneSelectionMask(selection);
       return true;
     }
 
@@ -54,15 +58,11 @@ export class SelectTool implements ToolHandler {
       this.moveSelectionOrigin &&
       this.selectionAtMoveStart
     ) {
-      const dx = pt.x - this.moveSelectionOrigin.x;
-      const dy = pt.y - this.moveSelectionOrigin.y;
-      const orig = this.selectionAtMoveStart;
-      ctx.onSelectionChange?.({
-        x: Math.round(orig.x + dx),
-        y: Math.round(orig.y + dy),
-        width: orig.width,
-        height: orig.height
-      });
+      const dx = Math.round(pt.x - this.moveSelectionOrigin.x);
+      const dy = Math.round(pt.y - this.moveSelectionOrigin.y);
+      ctx.onSelectionChange?.(
+        offsetSelectionByDocumentDelta(this.selectionAtMoveStart, dx, dy)
+      );
       return;
     }
 
@@ -98,44 +98,18 @@ export class SelectTool implements ToolHandler {
     this.selectStart = null;
 
     if (w > 1 && h > 1 && ctx.onSelectionChange) {
-      const newRect = { x, y, width: w, height: h };
+      const docW = ctx.doc.canvas.width;
+      const docH = ctx.doc.canvas.height;
+      const newSel = rectSelectionMask(docW, docH, x, y, w, h);
       const { selection } = ctx;
       if (ctx.shiftHeldRef.current && selection) {
         // Shift+drag: union
-        const ux = Math.min(selection.x, newRect.x);
-        const uy = Math.min(selection.y, newRect.y);
-        const ux2 = Math.max(
-          selection.x + selection.width,
-          newRect.x + newRect.width
-        );
-        const uy2 = Math.max(
-          selection.y + selection.height,
-          newRect.y + newRect.height
-        );
-        ctx.onSelectionChange({
-          x: ux,
-          y: uy,
-          width: ux2 - ux,
-          height: uy2 - uy
-        });
+        ctx.onSelectionChange(combineMasks(selection, newSel, "add"));
       } else if (ctx.altHeldRef.current && selection) {
         // Alt+drag: subtract
-        const sx1 = selection.x;
-        const sy1 = selection.y;
-        const sx2 = selection.x + selection.width;
-        const sy2 = selection.y + selection.height;
-        const nx1 = newRect.x;
-        const ny1 = newRect.y;
-        const nx2 = newRect.x + newRect.width;
-        const ny2 = newRect.y + newRect.height;
-        if (nx1 <= sx1 && ny1 <= sy1 && nx2 >= sx2 && ny2 >= sy2) {
-          ctx.onSelectionChange(null);
-        } else {
-          // Partial overlap: keep existing selection unchanged
-          ctx.onSelectionChange(selection);
-        }
+        ctx.onSelectionChange(combineMasks(selection, newSel, "subtract"));
       } else {
-        ctx.onSelectionChange(newRect);
+        ctx.onSelectionChange(newSel);
       }
     }
   }

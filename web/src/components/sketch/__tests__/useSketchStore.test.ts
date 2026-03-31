@@ -220,8 +220,8 @@ describe("useSketchStore", () => {
       expect(layers).toHaveLength(2);
       expect(layers[1].name).toBe("Background Copy");
       expect(layers[1].locked).toBe(false);
-      expect(layers[1].exposedAsInput).toBe(false);
-      expect(layers[1].exposedAsOutput).toBe(false);
+      expect(layers[1].exposedAsInput).toBe(true);
+      expect(layers[1].exposedAsOutput).toBe(true);
       expect(layers[1].imageReference).toBeUndefined();
     });
 
@@ -650,10 +650,13 @@ describe("useSketchStore", () => {
     });
 
     it("sets shape tools", () => {
+      // These are ShapeToolType values, not SketchTool values.
+      // The store accepts them at runtime via setActiveTool.
       const shapeTools = ["line", "rectangle", "ellipse", "arrow"] as const;
       for (const tool of shapeTools) {
         act(() => {
-          useSketchStore.getState().setActiveTool(tool);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          useSketchStore.getState().setActiveTool(tool as any);
         });
         expect(useSketchStore.getState().activeTool).toBe(tool);
       }

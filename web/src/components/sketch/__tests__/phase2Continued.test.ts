@@ -12,6 +12,7 @@ import {
   DEFAULT_TOOL_SETTINGS,
   BrushType
 } from "../types";
+import { rectSelectionMask, getSelectionBounds } from "../selection/selectionMask";
 
 // Reset store before each test
 beforeEach(() => {
@@ -298,16 +299,20 @@ describe("Phase 2 Continued Features", () => {
     });
 
     it("can set a selection region", () => {
+      const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
       act(() => {
-        useSketchStore.getState().setSelection({ x: 10, y: 20, width: 100, height: 50 });
+        useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 10, 20, 100, 50));
       });
       const sel = useSketchStore.getState().selection;
-      expect(sel).toEqual({ x: 10, y: 20, width: 100, height: 50 });
+      expect(sel).not.toBeNull();
+      const bounds = getSelectionBounds(sel!);
+      expect(bounds).toEqual({ x: 10, y: 20, width: 100, height: 50 });
     });
 
     it("can clear selection", () => {
+      const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
       act(() => {
-        useSketchStore.getState().setSelection({ x: 0, y: 0, width: 50, height: 50 });
+        useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 0, 0, 50, 50));
         useSketchStore.getState().setSelection(null);
       });
       expect(useSketchStore.getState().selection).toBeNull();
@@ -319,7 +324,11 @@ describe("Phase 2 Continued Features", () => {
       });
       const sel = useSketchStore.getState().selection;
       const { width, height } = useSketchStore.getState().document.canvas;
-      expect(sel).toEqual({ x: 0, y: 0, width, height });
+      expect(sel).not.toBeNull();
+      expect(sel!.width).toBe(width);
+      expect(sel!.height).toBe(height);
+      const bounds = getSelectionBounds(sel!);
+      expect(bounds).toEqual({ x: 0, y: 0, width, height });
     });
   });
 

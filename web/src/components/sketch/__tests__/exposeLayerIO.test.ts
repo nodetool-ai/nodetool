@@ -25,21 +25,21 @@ describe("Expose Layer Input/Output", () => {
   // ─── Type defaults ─────────────────────────────────────────────────
 
   describe("layer type defaults", () => {
-    it("createDefaultLayer does not set exposedAsInput", () => {
+    it("createDefaultLayer sets exposedAsInput to true", () => {
       const layer = createDefaultLayer("Test");
-      expect(layer.exposedAsInput).toBeUndefined();
+      expect(layer.exposedAsInput).toBe(true);
     });
 
-    it("createDefaultLayer does not set exposedAsOutput", () => {
+    it("createDefaultLayer sets exposedAsOutput to true", () => {
       const layer = createDefaultLayer("Test");
-      expect(layer.exposedAsOutput).toBeUndefined();
+      expect(layer.exposedAsOutput).toBe(true);
     });
 
-    it("new layers in document don't have exposed flags", () => {
+    it("new layers in document have exposed flags set to true", () => {
       const layers = useSketchStore.getState().document.layers;
       for (const layer of layers) {
-        expect(layer.exposedAsInput).toBeUndefined();
-        expect(layer.exposedAsOutput).toBeUndefined();
+        expect(layer.exposedAsInput).toBe(true);
+        expect(layer.exposedAsOutput).toBe(true);
       }
     });
   });
@@ -47,27 +47,27 @@ describe("Expose Layer Input/Output", () => {
   // ─── Store toggle actions ──────────────────────────────────────────
 
   describe("toggleLayerExposedInput", () => {
-    it("toggles exposedAsInput on", () => {
+    it("toggles exposedAsInput off (first toggle from default true)", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
       act(() => {
-        useSketchStore.getState().toggleLayerExposedInput(layerId);
-      });
-      const layer = useSketchStore.getState().document.layers.find(
-        (l) => l.id === layerId
-      );
-      expect(layer?.exposedAsInput).toBe(true);
-    });
-
-    it("toggles exposedAsInput off", () => {
-      const layerId = useSketchStore.getState().document.layers[0].id;
-      act(() => {
-        useSketchStore.getState().toggleLayerExposedInput(layerId);
         useSketchStore.getState().toggleLayerExposedInput(layerId);
       });
       const layer = useSketchStore.getState().document.layers.find(
         (l) => l.id === layerId
       );
       expect(layer?.exposedAsInput).toBe(false);
+    });
+
+    it("toggles exposedAsInput back on (second toggle)", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().toggleLayerExposedInput(layerId);
+        useSketchStore.getState().toggleLayerExposedInput(layerId);
+      });
+      const layer = useSketchStore.getState().document.layers.find(
+        (l) => l.id === layerId
+      );
+      expect(layer?.exposedAsInput).toBe(true);
     });
 
     it("only affects the targeted layer", () => {
@@ -83,27 +83,15 @@ describe("Expose Layer Input/Output", () => {
       });
 
       const updatedLayers = useSketchStore.getState().document.layers;
-      expect(updatedLayers.find((l) => l.id === targetId)?.exposedAsInput).toBe(true);
-      expect(updatedLayers.find((l) => l.id === otherId)?.exposedAsInput).toBeUndefined();
+      expect(updatedLayers.find((l) => l.id === targetId)?.exposedAsInput).toBe(false);
+      expect(updatedLayers.find((l) => l.id === otherId)?.exposedAsInput).toBe(true);
     });
   });
 
   describe("toggleLayerExposedOutput", () => {
-    it("toggles exposedAsOutput on", () => {
+    it("toggles exposedAsOutput off (first toggle from default true)", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
       act(() => {
-        useSketchStore.getState().toggleLayerExposedOutput(layerId);
-      });
-      const layer = useSketchStore.getState().document.layers.find(
-        (l) => l.id === layerId
-      );
-      expect(layer?.exposedAsOutput).toBe(true);
-    });
-
-    it("toggles exposedAsOutput off", () => {
-      const layerId = useSketchStore.getState().document.layers[0].id;
-      act(() => {
-        useSketchStore.getState().toggleLayerExposedOutput(layerId);
         useSketchStore.getState().toggleLayerExposedOutput(layerId);
       });
       const layer = useSketchStore.getState().document.layers.find(
@@ -111,12 +99,24 @@ describe("Expose Layer Input/Output", () => {
       );
       expect(layer?.exposedAsOutput).toBe(false);
     });
+
+    it("toggles exposedAsOutput back on (second toggle)", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        useSketchStore.getState().toggleLayerExposedOutput(layerId);
+        useSketchStore.getState().toggleLayerExposedOutput(layerId);
+      });
+      const layer = useSketchStore.getState().document.layers.find(
+        (l) => l.id === layerId
+      );
+      expect(layer?.exposedAsOutput).toBe(true);
+    });
   });
 
   // ─── Both toggles work independently ──────────────────────────────
 
   describe("independent input/output toggling", () => {
-    it("can expose a layer as both input and output", () => {
+    it("can turn off both input and output exposure", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
       act(() => {
         useSketchStore.getState().toggleLayerExposedInput(layerId);
@@ -125,12 +125,13 @@ describe("Expose Layer Input/Output", () => {
       const layer = useSketchStore.getState().document.layers.find(
         (l) => l.id === layerId
       );
-      expect(layer?.exposedAsInput).toBe(true);
-      expect(layer?.exposedAsOutput).toBe(true);
+      expect(layer?.exposedAsInput).toBe(false);
+      expect(layer?.exposedAsOutput).toBe(false);
     });
 
     it("toggling input doesn't affect output flag", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
+      // Both start as true; toggle output off, then toggle input off
       act(() => {
         useSketchStore.getState().toggleLayerExposedOutput(layerId);
         useSketchStore.getState().toggleLayerExposedInput(layerId);
@@ -138,18 +139,18 @@ describe("Expose Layer Input/Output", () => {
       const layer = useSketchStore.getState().document.layers.find(
         (l) => l.id === layerId
       );
-      expect(layer?.exposedAsInput).toBe(true);
-      expect(layer?.exposedAsOutput).toBe(true);
+      expect(layer?.exposedAsInput).toBe(false);
+      expect(layer?.exposedAsOutput).toBe(false);
 
-      // Toggle input off — output should remain
+      // Toggle input back on — output should remain off
       act(() => {
         useSketchStore.getState().toggleLayerExposedInput(layerId);
       });
       const updated = useSketchStore.getState().document.layers.find(
         (l) => l.id === layerId
       );
-      expect(updated?.exposedAsInput).toBe(false);
-      expect(updated?.exposedAsOutput).toBe(true);
+      expect(updated?.exposedAsInput).toBe(true);
+      expect(updated?.exposedAsOutput).toBe(false);
     });
   });
 
@@ -178,16 +179,14 @@ describe("Expose Layer Input/Output", () => {
       expect(deserialized!.layers[0].exposedAsOutput).toBe(true);
     });
 
-    it("handles missing exposed flags gracefully (backward compat)", () => {
+    it("handles exposed flags through serialization (default true)", () => {
       const doc = createDefaultDocument();
-      // Simulate old document without exposed flags
       const serialized = serializeDocument(doc);
       const deserialized = deserializeDocument(serialized);
 
       expect(deserialized).not.toBeNull();
-      // normalizeSketchDocument fills missing flags as false
-      expect(deserialized!.layers[0].exposedAsInput).toBe(false);
-      expect(deserialized!.layers[0].exposedAsOutput).toBe(false);
+      expect(deserialized!.layers[0].exposedAsInput).toBe(true);
+      expect(deserialized!.layers[0].exposedAsOutput).toBe(true);
     });
   });
 });

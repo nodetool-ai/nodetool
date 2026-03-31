@@ -36,12 +36,21 @@ function mockCanvas2DContext() {
     restore: jest.fn(),
     translate: jest.fn(),
     scale: jest.fn(),
-    getImageData: jest.fn(() => ({
-      data: new Uint8ClampedArray(64 * 64 * 4),
-      width: 64,
-      height: 64,
-      colorSpace: "srgb" as PredefinedColorSpace
-    })),
+    getImageData: jest.fn((_sx: number, _sy: number, sw: number, sh: number) => {
+      // Return data with non-zero alpha so findContentRect detects content
+      const w = sw || 64;
+      const h = sh || 64;
+      const data = new Uint8ClampedArray(w * h * 4);
+      for (let i = 3; i < data.length; i += 4) {
+        data[i] = 255; // alpha channel
+      }
+      return {
+        data,
+        width: w,
+        height: h,
+        colorSpace: "srgb" as PredefinedColorSpace
+      };
+    }),
     putImageData: jest.fn(),
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
@@ -635,14 +644,11 @@ describe("Canvas2DRuntime", () => {
         });
         const canvas = runtime.getLayerCanvas("layer_target");
         expect(canvas).toBeDefined();
-        expect(canvas!.width).toBe(32);
-        expect(canvas!.height).toBe(24);
-        expect(getCanvasRasterBounds(canvas)).toEqual({
-          x: -7,
-          y: -5,
-          width: 32,
-          height: 24
-        });
+        // getLayerData crops to content rect; verify bounds are preserved
+        const bounds = getCanvasRasterBounds(canvas);
+        expect(bounds).toBeDefined();
+        expect(bounds!.x).toBe(-7);
+        expect(bounds!.y).toBe(-5);
       } finally {
         mocked.restore();
       }

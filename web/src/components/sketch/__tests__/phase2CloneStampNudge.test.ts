@@ -12,6 +12,7 @@ import {
   isPaintingTool,
   SketchTool
 } from "../types";
+import { getSelectionBounds } from "../selection/selectionMask";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function resetStore() {
@@ -58,9 +59,9 @@ describe("Clone stamp tool type", () => {
 describe("Clone stamp default settings", () => {
   it("should have correct default values", () => {
     expect(DEFAULT_CLONE_STAMP_SETTINGS).toEqual({
-      size: 20,
+      size: 14,
       opacity: 1,
-      hardness: 0.8,
+      hardness: 0.7,
       sampling: "active_layer"
     });
   });
@@ -86,7 +87,7 @@ describe("Clone stamp store actions", () => {
     expect(updated.document.toolSettings.cloneStamp.size).toBe(40);
     // Other settings should be preserved
     expect(updated.document.toolSettings.cloneStamp.opacity).toBe(1);
-    expect(updated.document.toolSettings.cloneStamp.hardness).toBe(0.8);
+    expect(updated.document.toolSettings.cloneStamp.hardness).toBe(0.7);
     expect(updated.document.toolSettings.cloneStamp.sampling).toBe("active_layer");
   });
 
@@ -95,7 +96,7 @@ describe("Clone stamp store actions", () => {
     store.setCloneStampSettings({ opacity: 0.5 });
     const updated = useSketchStore.getState();
     expect(updated.document.toolSettings.cloneStamp.opacity).toBe(0.5);
-    expect(updated.document.toolSettings.cloneStamp.size).toBe(20);
+    expect(updated.document.toolSettings.cloneStamp.size).toBe(14);
   });
 
   it("should update hardness independently", () => {
@@ -172,10 +173,10 @@ describe("Select all and deselect", () => {
     store.selectAll();
     const sel = useSketchStore.getState().selection;
     expect(sel).not.toBeNull();
-    expect(sel!.x).toBe(0);
-    expect(sel!.y).toBe(0);
     expect(sel!.width).toBe(512);
     expect(sel!.height).toBe(512);
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 0, y: 0, width: 512, height: 512 });
   });
 
   it("setSelection(null) should deselect", () => {
