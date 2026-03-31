@@ -2,6 +2,7 @@
  * SketchToolTopBar
  *
  * Horizontal bar above the canvas: tool-specific settings only.
+ * Pen pressure lives in the sketch modal header only (not duplicated here).
  * Color controls live in the left toolbar (SketchToolbar).
  */
 
@@ -10,13 +11,12 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import {
   SketchTool,
   BrushSettings,
   PencilSettings,
   EraserSettings,
-  PenPressureSettings,
   ShapeSettings,
   FillSettings,
   BlurSettings,
@@ -27,13 +27,7 @@ import {
   SegmentationStatus
 } from "./types";
 import type { SamModelInfo } from "./sam";
-import { ToolSettingsPanel, PenPressureSettingsPanel } from "./ToolSettingsPanels";
-
-const TOOLS_WITH_GLOBAL_PRESSURE: ReadonlyArray<SketchTool> = [
-  "brush",
-  "pencil",
-  "eraser"
-];
+import { ToolSettingsPanel } from "./ToolSettingsPanels";
 
 const styles = (theme: Theme) =>
   css({
@@ -129,8 +123,6 @@ export interface SketchToolTopBarProps {
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
   onCheckSegmentModel?: () => void;
-  penPressure: PenPressureSettings;
-  onPenPressureChange: (settings: Partial<PenPressureSettings>) => void;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -181,46 +173,12 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onDiscardSegmentResult,
   onCancelSegmentation,
   onClearSegmentPrompts,
-  onCheckSegmentModel,
-  penPressure,
-  onPenPressureChange
+  onCheckSegmentModel
 }) => {
   const theme = useTheme();
 
   return (
     <Box className="sketch-tool-top-bar" css={styles(theme)}>
-      {TOOLS_WITH_GLOBAL_PRESSURE.includes(activeTool) ? (
-        <Box
-          sx={{
-            flex: "0 0 auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: 0.35,
-            py: 0.25,
-            pr: 1,
-            mr: 0.5,
-            borderRight: `1px solid ${theme.vars.palette.grey[700]}`,
-            maxWidth: 300,
-            minWidth: 0
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              color: theme.vars.palette.grey[400],
-              fontWeight: 600,
-              lineHeight: 1.2,
-              letterSpacing: "0.02em"
-            }}
-          >
-            Pen pressure
-          </Typography>
-          <PenPressureSettingsPanel
-            settings={penPressure}
-            onChange={onPenPressureChange}
-          />
-        </Box>
-      ) : null}
       <ToolSettingsPanel
         activeTool={activeTool}
         brushSettings={brushSettings}

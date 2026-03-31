@@ -93,92 +93,137 @@ export function getToolSettingsLabel(tool: SketchTool): string {
 interface PenPressureSettingsPanelProps {
   settings: PenPressureSettings;
   onChange: (settings: Partial<PenPressureSettings>) => void;
+  /**
+   * Hide the Pressure on/off switch (e.g. sketch modal header uses the stylus
+   * icon as the only sensitivity toggle).
+   */
+  omitSensitivitySwitch?: boolean;
+  /**
+   * One horizontal strip: affects, then sliders left-to-right (tight chrome).
+   */
+  inlineRow?: boolean;
 }
 
 /** Global pen pressure (Brush/Pencil tool panels no longer duplicate these controls). */
 export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
   settings,
-  onChange
+  onChange,
+  omitSensitivitySwitch = false,
+  inlineRow = false
 }: PenPressureSettingsPanelProps) {
+  const affectsGroup = (
+    <ToggleButtonGroup
+      value={settings.pressureAffects || "both"}
+      exclusive
+      onChange={(_, v) => {
+        if (v) {
+          onChange({
+            pressureAffects: v as "size" | "opacity" | "both"
+          });
+        }
+      }}
+      size="small"
+    >
+      <ToggleButton value="size" sx={toggleButtonSmallSx}>
+        Size
+      </ToggleButton>
+      <ToggleButton value="opacity" sx={toggleButtonSmallSx}>
+        Opacity
+      </ToggleButton>
+      <ToggleButton value="both" sx={toggleButtonSmallSx}>
+        Both
+      </ToggleButton>
+    </ToggleButtonGroup>
+  );
+
+  const lightEndRow = (
+    <Box className="setting-row">
+      <Typography
+        className="setting-label"
+        title="Size/opacity at minimum pressure (lower = thinner light strokes, wider thin-to-thick range)"
+      >
+        Light end
+      </Typography>
+      <Slider
+        sx={sketchSliderSx}
+        size="small"
+        min={0.02}
+        max={0.55}
+        step={0.01}
+        value={settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE}
+        onChange={(_, v) => onChange({ pressureMinScale: v as number })}
+      />
+      <Typography className="setting-value">
+        {Math.round(
+          (settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE) * 100
+        )}
+        %
+      </Typography>
+    </Box>
+  );
+
+  const curveRow = (
+    <Box className="setting-row">
+      <Typography
+        className="setting-label"
+        title="Pressure exponent before mapping: 1 = linear; higher = need firmer pressure for full size"
+      >
+        Curve
+      </Typography>
+      <Slider
+        sx={sketchSliderSx}
+        size="small"
+        min={0.5}
+        max={2.5}
+        step={0.05}
+        value={settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE}
+        onChange={(_, v) => onChange({ pressureCurve: v as number })}
+      />
+      <Typography className="setting-value">
+        {(settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE).toFixed(2)}
+      </Typography>
+    </Box>
+  );
+
+  const advancedBlock =
+    settings.pressureSensitivity !== false ? (
+      inlineRow ? (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            alignItems: "center",
+            columnGap: 12,
+            rowGap: 4
+          }}
+        >
+          {affectsGroup}
+          {lightEndRow}
+          {curveRow}
+        </Box>
+      ) : (
+        <Box sx={{ mb: "4px" }}>
+          {affectsGroup}
+          {lightEndRow}
+          {curveRow}
+        </Box>
+      )
+    ) : null;
+
   return (
     <>
-      <Box className="setting-row" sx={{ alignItems: "center" }}>
-        <Typography className="setting-label">Pressure</Typography>
-        <Switch
-          size="small"
-          checked={settings.pressureSensitivity ?? true}
-          onChange={(_, checked) => onChange({ pressureSensitivity: checked })}
-        />
-      </Box>
-      {settings.pressureSensitivity !== false && (
-        <Box sx={{ mb: "4px" }}>
-          <ToggleButtonGroup
-            value={settings.pressureAffects || "both"}
-            exclusive
-            onChange={(_, v) => {
-              if (v) {
-                onChange({
-                  pressureAffects: v as "size" | "opacity" | "both"
-                });
-              }
-            }}
+      {!omitSensitivitySwitch ? (
+        <Box className="setting-row" sx={{ alignItems: "center" }}>
+          <Typography className="setting-label">Pressure</Typography>
+          <Switch
             size="small"
-          >
-            <ToggleButton value="size" sx={toggleButtonSmallSx}>
-              Size
-            </ToggleButton>
-            <ToggleButton value="opacity" sx={toggleButtonSmallSx}>
-              Opacity
-            </ToggleButton>
-            <ToggleButton value="both" sx={toggleButtonSmallSx}>
-              Both
-            </ToggleButton>
-          </ToggleButtonGroup>
-          <Box className="setting-row">
-            <Typography
-              className="setting-label"
-              title="Size/opacity at minimum pressure (lower = thinner light strokes, wider thin-to-thick range)"
-            >
-              Light end
-            </Typography>
-            <Slider
-              sx={sketchSliderSx}
-              size="small"
-              min={0.02}
-              max={0.55}
-              step={0.01}
-              value={settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE}
-              onChange={(_, v) => onChange({ pressureMinScale: v as number })}
-            />
-            <Typography className="setting-value">
-              {Math.round(
-                (settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE) * 100
-              )}
-              %
-            </Typography>
-          </Box>
-          <Box className="setting-row">
-            <Typography
-              className="setting-label"
-              title="Pressure exponent before mapping: 1 = linear; higher = need firmer pressure for full size"
-            >
-              Curve
-            </Typography>
-            <Slider
-              sx={sketchSliderSx}
-              size="small"
-              min={0.5}
-              max={2.5}
-              step={0.05}
-              value={settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE}
-              onChange={(_, v) => onChange({ pressureCurve: v as number })}
-            />
-            <Typography className="setting-value">
-              {(settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE).toFixed(2)}
-            </Typography>
-          </Box>
+            checked={settings.pressureSensitivity ?? true}
+            onChange={(_, checked) => onChange({ pressureSensitivity: checked })}
+          />
         </Box>
-      )}
+      ) : null}
+      {advancedBlock}
     </>
   );
 });

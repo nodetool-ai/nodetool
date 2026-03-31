@@ -148,7 +148,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
     ...s.document.toolSettings?.penPressure
   }));
   const setPenPressure = useSketchStore((s) => s.setPenPressure);
-  const [headerPenPressureOpen, setHeaderPenPressureOpen] = useState(false);
+  const headerPenPressureOn = penPressure.pressureSensitivity !== false;
 
   // Derive label from mode
   const symmetryLabels: Record<SymmetryMode, string> = {
@@ -165,15 +165,8 @@ const SketchModal: React.FC<SketchModalProps> = ({
   useEffect(() => {
     if (!open) {
       setConfirmDiscard(false);
-      setHeaderPenPressureOpen(false);
     }
   }, [open]);
-
-  useEffect(() => {
-    if (!isPressureSketchTool(activeTool)) {
-      setHeaderPenPressureOpen(false);
-    }
-  }, [activeTool]);
 
   const handleRequestClose = useCallback(() => {
     editorRef.current?.flushPendingChanges();
@@ -207,47 +200,63 @@ const SketchModal: React.FC<SketchModalProps> = ({
         </Typography>
 
         {isPressureSketchTool(activeTool) ? (
-          <Box className="sketch-modal-pen-inline">
+          <Box
+            className="sketch-modal-pen-inline"
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 0.75,
+              rowGap: "4px"
+            }}
+          >
             <Tooltip
               title={
-                headerPenPressureOpen
-                  ? "Hide pen pressure"
-                  : "Show pen pressure"
+                headerPenPressureOn
+                  ? "Turn off pen pressure"
+                  : "Turn on pen pressure"
               }
             >
               <IconButton
                 size="small"
-                onClick={() => setHeaderPenPressureOpen((v) => !v)}
-                color={headerPenPressureOpen ? "primary" : "default"}
-                aria-label="Toggle pen pressure settings"
-                aria-expanded={headerPenPressureOpen}
+                onClick={() =>
+                  setPenPressure({ pressureSensitivity: !headerPenPressureOn })
+                }
+                color={headerPenPressureOn ? "primary" : "default"}
+                aria-label="Toggle pen pressure"
+                aria-expanded={headerPenPressureOn}
                 aria-controls="sketch-modal-pen-pressure-panel"
                 sx={{
-                  color: headerPenPressureOpen ? undefined : "grey.300",
+                  color: headerPenPressureOn ? undefined : "grey.300",
                   flexShrink: 0
                 }}
               >
                 <DrawOutlinedIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
-            {headerPenPressureOpen ? (
+            {headerPenPressureOn ? (
               <Box
                 id="sketch-modal-pen-pressure-panel"
                 sx={{
                   display: "flex",
-                  flexDirection: "column",
-                  gap: 0.35,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  columnGap: 10,
+                  rowGap: 4,
                   py: 0.25,
-                  pl: 0.5,
+                  pl: 0.75,
                   ml: 0.25,
                   borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
-                  minWidth: 0,
-                  maxWidth: { xs: "100%", sm: 300 }
+                  minWidth: 0
                 }}
               >
                 <PenPressureSettingsPanel
                   settings={penPressure}
                   onChange={setPenPressure}
+                  omitSensitivitySwitch
+                  inlineRow
                 />
               </Box>
             ) : null}

@@ -475,8 +475,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
             onCancelSegmentation={segmentation.cancelSegmentation}
             onClearSegmentPrompts={handleClearSegmentPrompts}
             onCheckSegmentModel={segmentation.checkModel}
-            penPressure={store.toolSettings.penPressure}
-            onPenPressureChange={store.setPenPressure}
           />
         )}
 
@@ -634,8 +632,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onCancelSegmentation={segmentation.cancelSegmentation}
         onClearSegmentPrompts={handleClearSegmentPrompts}
         onCheckSegmentModel={segmentation.checkModel}
-        penPressure={store.toolSettings.penPressure}
-        onPenPressureChange={store.setPenPressure}
         onSwapColors={store.swapColors}
         onUndo={handleUndo}
         onRedo={handleRedo}
