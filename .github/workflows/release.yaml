@@ -384,7 +384,7 @@ jobs:
       # ── Workflow artifacts (downloadable from the Actions run page) ────
       - name: Upload build artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: electron-${{ matrix.os }}
           retention-days: 7
