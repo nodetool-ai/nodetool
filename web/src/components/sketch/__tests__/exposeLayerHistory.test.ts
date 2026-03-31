@@ -35,10 +35,11 @@ describe("Exposed Layer History", () => {
     const afterToggle = useSketchStore.getState().document.layers.find(
       (l) => l.id === layerId
     );
-    expect(afterToggle?.exposedAsInput).toBe(true);
+    // Default is true, toggle makes it false
+    expect(afterToggle?.exposedAsInput).toBe(false);
 
     // Undo should revert to state captured by the "toggle exposed input" entry
-    // which is before the toggle happened
+    // which is before the toggle happened (true)
     act(() => {
       useSketchStore.getState().undo();
     });
@@ -46,7 +47,7 @@ describe("Exposed Layer History", () => {
     const afterUndo = useSketchStore.getState().document.layers.find(
       (l) => l.id === layerId
     );
-    expect(afterUndo?.exposedAsInput).toBeFalsy();
+    expect(afterUndo?.exposedAsInput).toBe(true);
   });
 
   it("pushHistory before toggleLayerExposedOutput allows undo", () => {
@@ -64,7 +65,8 @@ describe("Exposed Layer History", () => {
     const afterToggle = useSketchStore.getState().document.layers.find(
       (l) => l.id === layerId
     );
-    expect(afterToggle?.exposedAsOutput).toBe(true);
+    // Default is true, toggle makes it false
+    expect(afterToggle?.exposedAsOutput).toBe(false);
 
     act(() => {
       useSketchStore.getState().undo();
@@ -73,7 +75,7 @@ describe("Exposed Layer History", () => {
     const afterUndo = useSketchStore.getState().document.layers.find(
       (l) => l.id === layerId
     );
-    expect(afterUndo?.exposedAsOutput).toBeFalsy();
+    expect(afterUndo?.exposedAsOutput).toBe(true);
   });
 
   it("redo restores exposed input flag after undo", () => {
@@ -92,10 +94,10 @@ describe("Exposed Layer History", () => {
       useSketchStore.getState().undo();
     });
 
-    // After undo, flag should be off
+    // After undo, flag should be restored to true (default)
     expect(
       useSketchStore.getState().document.layers.find((l) => l.id === layerId)?.exposedAsInput
-    ).toBeFalsy();
+    ).toBe(true);
 
     // Redo steps through history: first redo restores the pre-toggle snapshot,
     // second redo restores the tip (post-toggle state saved during undo).
@@ -107,7 +109,8 @@ describe("Exposed Layer History", () => {
     const afterRedo = useSketchStore.getState().document.layers.find(
       (l) => l.id === layerId
     );
-    expect(afterRedo?.exposedAsInput).toBe(true);
+    // After redo, back to toggled state (false)
+    expect(afterRedo?.exposedAsInput).toBe(false);
   });
 });
 

@@ -107,7 +107,8 @@ describe("SketchNode data flow helpers", () => {
       expect(restored!.layers).toHaveLength(2);
       expect(restored!.layers[0].name).toBe(SKETCH_NODE_INPUT_IMAGE_LAYER_NAME);
       expect(restored!.layers[0].locked).toBe(true);
-      expect(restored!.layers[0].data).toBe("data:image/png;base64,testdata");
+      // data is stripped to null for locked layers with imageReference
+      expect(restored!.layers[0].data).toBeNull();
       expect(restored!.layers[0].imageReference?.uri).toBe("asset://abc");
       expect(restored!.layers[0].imageReference?.objectFit).toBe("cover");
       expect(restored!.layers[0].imageReference?.sourceCrop?.width).toBe(100);

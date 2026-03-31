@@ -98,8 +98,8 @@ export class SelectTool implements ToolHandler {
     this.selectStart = null;
 
     if (w > 1 && h > 1 && ctx.onSelectionChange) {
-      const docW = ctx.doc.width;
-      const docH = ctx.doc.height;
+      const docW = ctx.doc.canvas.width;
+      const docH = ctx.doc.canvas.height;
       const newSel = rectSelectionMask(docW, docH, x, y, w, h);
       const { selection } = ctx;
       if (ctx.shiftHeldRef.current && selection) {

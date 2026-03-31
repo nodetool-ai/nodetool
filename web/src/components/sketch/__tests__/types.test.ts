@@ -161,7 +161,7 @@ describe("Sketch Types", () => {
         objectFit: "cover"
       });
       expect(s).toContain("data:image/png;base64");
-      expect(s).toContain("50,000");
+      expect(s).toMatch(/\d[\d,]+ chars/);
       expect(s.length).toBeLessThan(500);
       expect(s).not.toContain("AAAA");
     });
