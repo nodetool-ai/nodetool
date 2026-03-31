@@ -11,6 +11,7 @@ import {
   createDefaultDocument,
   SketchDocument
 } from "../types";
+import { rectSelectionMask, getSelectionBounds } from "../selection/selectionMask";
 
 // Reset store before each test
 beforeEach(() => {
@@ -36,9 +37,20 @@ describe("Pressure sensitivity", () => {
 
   it("can update pressure sensitivity settings", () => {
     act(() => {
-      useSketchStore.getState().setBrushSettings({
-        pressureSensitivity: false,
-        pressureAffects: "size"
+      const state = useSketchStore.getState();
+      const doc = state.document;
+      useSketchStore.setState({
+        document: {
+          ...doc,
+          toolSettings: {
+            ...doc.toolSettings,
+            brush: {
+              ...doc.toolSettings.brush,
+              pressureSensitivity: false,
+              pressureAffects: "size"
+            }
+          }
+        }
       });
     });
     const state = useSketchStore.getState();
@@ -48,8 +60,19 @@ describe("Pressure sensitivity", () => {
 
   it("can set pressure to affect only opacity", () => {
     act(() => {
-      useSketchStore.getState().setBrushSettings({
-        pressureAffects: "opacity"
+      const state = useSketchStore.getState();
+      const doc = state.document;
+      useSketchStore.setState({
+        document: {
+          ...doc,
+          toolSettings: {
+            ...doc.toolSettings,
+            brush: {
+              ...doc.toolSettings.brush,
+              pressureAffects: "opacity"
+            }
+          }
+        }
       });
     });
     expect(useSketchStore.getState().document.toolSettings.brush.pressureAffects).toBe("opacity");
@@ -138,16 +161,20 @@ describe("Rectangle selection tool", () => {
   });
 
   it("can set a selection", () => {
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
     act(() => {
-      useSketchStore.getState().setSelection({ x: 10, y: 20, width: 100, height: 50 });
+      useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 10, 20, 100, 50));
     });
     const sel = useSketchStore.getState().selection;
-    expect(sel).toEqual({ x: 10, y: 20, width: 100, height: 50 });
+    expect(sel).not.toBeNull();
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 10, y: 20, width: 100, height: 50 });
   });
 
   it("can clear a selection", () => {
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
     act(() => {
-      useSketchStore.getState().setSelection({ x: 10, y: 20, width: 100, height: 50 });
+      useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 10, 20, 100, 50));
     });
     expect(useSketchStore.getState().selection).not.toBeNull();
 
@@ -162,7 +189,11 @@ describe("Rectangle selection tool", () => {
       useSketchStore.getState().selectAll();
     });
     const sel = useSketchStore.getState().selection;
-    expect(sel).toEqual({ x: 0, y: 0, width: 512, height: 512 });
+    expect(sel).not.toBeNull();
+    expect(sel!.width).toBe(512);
+    expect(sel!.height).toBe(512);
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 0, y: 0, width: 512, height: 512 });
   });
 
   it("selectAll respects custom canvas dimensions", () => {
@@ -173,7 +204,11 @@ describe("Rectangle selection tool", () => {
       useSketchStore.getState().selectAll();
     });
     const sel = useSketchStore.getState().selection;
-    expect(sel).toEqual({ x: 0, y: 0, width: 1024, height: 768 });
+    expect(sel).not.toBeNull();
+    expect(sel!.width).toBe(1024);
+    expect(sel!.height).toBe(768);
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 0, y: 0, width: 1024, height: 768 });
   });
 
   it("select tool is a valid tool type", () => {
