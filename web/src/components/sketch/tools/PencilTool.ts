@@ -7,12 +7,13 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import { PaintSession, PencilEngine } from "../painting";
-import { mergePenPressureIntoPencil } from "../types";
+import { DEFAULT_PENCIL_SETTINGS, mergePenPressureIntoPencil } from "../types";
 
 export class PencilTool implements ToolHandler {
   readonly toolId = "pencil" as const;
 
   private engine = new PencilEngine({
+    ...DEFAULT_PENCIL_SETTINGS,
     size: 1,
     opacity: 1,
     color: "#000000"

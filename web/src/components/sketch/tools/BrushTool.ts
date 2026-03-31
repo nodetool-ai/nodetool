@@ -7,12 +7,13 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import { PaintSession, BrushEngine } from "../painting";
-import { mergePenPressureIntoBrush } from "../types";
+import { DEFAULT_BRUSH_SETTINGS, mergePenPressureIntoBrush } from "../types";
 
 export class BrushTool implements ToolHandler {
   readonly toolId = "brush" as const;
 
   private engine = new BrushEngine({
+    ...DEFAULT_BRUSH_SETTINGS,
     size: 10,
     opacity: 1,
     hardness: 0.8,
