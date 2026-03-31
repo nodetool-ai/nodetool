@@ -67,8 +67,8 @@
 
 - [x] rename the editor/node from "Sketch Input" to "Image Editor"
 - [x] import image into current layer by drop from outside and paste command
-- [ ] add groupable layers as tree structure with drag and drop support, expand / close option
-- [ ] better cursor and pixel-workflow affordances such as thin white grid overlay when zoomed in, snap-to-pixel, and crisp high-zoom view
+- [x] add groupable layers as tree structure with drag and drop support, expand / close option
+- [x] better cursor and pixel-workflow affordances such as thin white grid overlay when zoomed in, snap-to-pixel, and crisp high-zoom view
 - [x] improve selection mask to be able to select 1 pixel width exactly on close zoom
 - [x] make the canvas resizable from edges/corners with a solid interaction model
 
@@ -81,8 +81,8 @@
 
 ### PHASE 6 - IMPROVE PAINT AND SELECT
 
-- [-] build- [ ] build a more programmable/extensible brush system on top of the shared paint/session seams a more programmable/extensible brush system on top of the shared paint/session seams
-- [x] drawing extensions: stronger stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
+- [-] build a more programmable/extensible brush system on top of the shared paint/session seams a more programmable/extensible brush system on top of the shared paint/session seams
+- [ ] drawing extensions: ADJUSTABLE stabilizer controls to help with drawing less jaggy lines, similar to https://github.com/steveruizok/perfect-freehand. one implementation that all drawing tools can use.
 - [ ] brush extensions: smudge/color-smudge
 - [ ] selection transform tools + selection move with (shift) arrow keys. note: do not move layer when selection active
 - [ ] add AI-assisted tools such as healing or segmentation-driven layer creation
