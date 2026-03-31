@@ -570,6 +570,16 @@ export class UnifiedWebSocketRunner {
       assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
     });
 
+    // Expose executor/node-type resolution on the context so that
+    // sub-workflow nodes (WorkflowNode) can create child runners.
+    context.setResolveExecutor((node) => this.resolveExecutor(node));
+    if (this.resolveNodeType) {
+      const resolverObj = typeof this.resolveNodeType === "function"
+        ? { resolveNodeType: this.resolveNodeType }
+        : this.resolveNodeType;
+      context.setResolveNodeType((nodeType) => resolverObj.resolveNodeType(nodeType) as Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>);
+    }
+
     const runner = new WorkflowRunner(jobId, {
       resolveExecutor: (node) => this.resolveExecutor(node as { id: string; type: string; [key: string]: unknown }),
       executionContext: context,
@@ -1591,6 +1601,15 @@ export class UnifiedWebSocketRunner {
         workspaceDir,
         assetOutputMode: this.mode === "text" ? "data_uri" : "raw",
       });
+
+      // Expose executor/node-type resolution for sub-workflow nodes
+      context.setResolveExecutor((node) => this.resolveExecutor(node));
+      if (this.resolveNodeType) {
+        const resolverObj = typeof this.resolveNodeType === "function"
+          ? { resolveNodeType: this.resolveNodeType }
+          : this.resolveNodeType;
+        context.setResolveNodeType((nodeType) => resolverObj.resolveNodeType(nodeType) as Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>);
+      }
 
       // Create and run workflow
       const runner = new WorkflowRunner(jobId, {
