@@ -1,5 +1,6 @@
 import React from "react";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
+import { ResponsiveImage } from "../../ui_primitives/ResponsiveImage";
 import { DroppedFile } from "../types/chat.types";
 
 const isValidImageDataUri = (uri: string) =>
@@ -13,7 +14,14 @@ interface FilePreviewProps {
 export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
   <div className="file-preview">
     {file.type.startsWith("image/") && isValidImageDataUri(file.dataUri) ? (
-      <img src={file.dataUri} alt={file.name} />
+      <ResponsiveImage
+        src={file.dataUri}
+        alt={file.name}
+        fit="cover"
+        borderRadius="4px"
+        showErrorFallback
+        sx={{ width: "24px", height: "24px" }}
+      />
     ) : (
       <div className="file-icon-wrapper">
         <FileIcon />

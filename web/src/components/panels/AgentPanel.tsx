@@ -14,7 +14,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   InputLabel,
   CircularProgress
 } from "@mui/material";
@@ -31,6 +30,7 @@ import useAgentStore from "../../stores/AgentStore";
 import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
 import PanelHeadline from "../ui/PanelHeadline";
+import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
@@ -744,21 +744,14 @@ const AgentPanel: React.FC = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleCancelNewSession}
-            disabled={creatingSession}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleConfirmNewSessionClick}
-            disabled={!canCreateSession}
-          >
-            {creatingSession ? "Starting..." : "Start Session"}
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onCancel={handleCancelNewSession}
+          onConfirm={handleConfirmNewSessionClick}
+          confirmText={creatingSession ? "Starting..." : "Start Session"}
+          isLoading={creatingSession}
+          confirmDisabled={!canCreateSession}
+          cancelDisabled={creatingSession}
+        />
       </Dialog>
 
       <ChatView

@@ -23,6 +23,8 @@ The chat maintains a persistent WebSocket connection and automatically reconnect
 
 ---
 
+![Global Chat Interface](assets/screenshots/global-chat-interface.png)
+
 ## Getting Started
 
 ### Opening Global Chat
@@ -138,6 +140,8 @@ NodeTool supports MCP for connecting to external tool servers. This enables inte
 ---
 
 ## Standalone Chat Window
+
+![Standalone Chat](assets/screenshots/standalone-chat.png)
 
 Access chat in a focused, dedicated window outside the main app:
 

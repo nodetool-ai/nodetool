@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useReactFlow, XYPosition, Node } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { NodeData } from "../stores/NodeData";
+import { useShallow } from "zustand/react/shallow";
 
 const EXTRA_LEFT_PADDING = 100;
 const TOP_PADDING_ADJUSTMENT = 50;
@@ -51,12 +52,12 @@ export function getNodesBounds(
 export const useFitView = () => {
   const reactFlowInstance = useReactFlow();
   const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
-    (state) => ({
+    useShallow((state) => ({
       nodes: state.nodes,
       selectedNodes: state.getSelectedNodes(),
       setSelectedNodes: state.setSelectedNodes,
       setViewport: state.setViewport
-    })
+    }))
   );
   const TRANSITION_DURATION = 800;
 

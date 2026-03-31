@@ -3,3 +3,18 @@
 *.mp4
 %Y-%m-%d-%H-%M-%S.txt
 \[object\ Object\]/
+
+# File-system node test outputs
+bin.dat
+dst.txt
+ex.txt
+f.txt
+info.txt
+log.txt
+new.txt
+notes/
+sized.txt
+src.txt
+sub/
+test.txt
+top/

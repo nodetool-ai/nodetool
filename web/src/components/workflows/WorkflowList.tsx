@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { Typography } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
-import { useKeyPressedStore, useKeyPressed } from "../../stores/KeyPressedStore";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import WorkflowToolbar from "./WorkflowToolbar";
 import WorkflowDeleteDialog from "./WorkflowDeleteDialog";
 import {
@@ -73,7 +73,11 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
   cursor = cursor || "";
   const { data, error } = await client.GET("/api/workflows/", {
     params: {
-      query: { cursor, limit, columns: "name,id,updated_at,description,tags,graph" }
+      query: {
+        cursor,
+        limit,
+        columns: "name,id,updated_at,description,tags,graph"
+      }
     }
   });
   if (error) {
@@ -92,11 +96,11 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const { shiftKeyPressed, controlKeyPressed } = useKeyPressed(
-    (state) => ({
-      shiftKeyPressed: state.isKeyPressed("Shift"),
-      controlKeyPressed: state.isKeyPressed("Control")
-    })
+  const shiftKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("Shift")
+  );
+  const controlKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("Control")
   );
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 1000;
@@ -118,7 +122,9 @@ const WorkflowList = () => {
 
   // Derive available tags from all workflows
   const availableTags = useMemo(() => {
-    if (!data?.workflows) { return []; }
+    if (!data?.workflows) {
+      return [];
+    }
     const tagSet = new Set<string>();
     data.workflows.forEach((workflow) => {
       workflow.tags?.forEach((tag) => tagSet.add(tag));
@@ -127,7 +133,9 @@ const WorkflowList = () => {
   }, [data?.workflows]);
 
   const workflows = useMemo(() => {
-    if (!data?.workflows) { return []; }
+    if (!data?.workflows) {
+      return [];
+    }
     let filtered = data.workflows;
 
     if (filterValue !== "") {
@@ -152,7 +160,13 @@ const WorkflowList = () => {
     }
 
     return filtered;
-  }, [data?.workflows, filterValue, showFavoritesOnly, favoriteWorkflowIds, selectedTags]);
+  }, [
+    data?.workflows,
+    filterValue,
+    showFavoritesOnly,
+    favoriteWorkflowIds,
+    selectedTags
+  ]);
 
   const onSelect = useCallback((workflow: Workflow) => {
     setSelectedWorkflows((prev) =>
@@ -165,7 +179,9 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) { return; }
+      if (controlKeyPressed || shiftKeyPressed) {
+        return;
+      }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -189,13 +205,10 @@ const WorkflowList = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { copyWorkflow, createWorkflow, updateWorkflow, getWorkflow } = useWorkflowManager((state) => ({
-    copyWorkflow: state.copy,
-    createWorkflow: state.create,
-    updateWorkflow: state.updateWorkflow,
-    getWorkflow: state.getWorkflow
-  }));
-
+  const copyWorkflow = useWorkflowManager((state) => state.copy);
+  const createWorkflow = useWorkflowManager((state) => state.create);
+  const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
@@ -230,7 +243,9 @@ const WorkflowList = () => {
       const baseName = workflow.name.replace(/ \(\d+\)$/, "");
       const existingNames = workflowNamesMap.get(baseName) || [];
       let highestNumber = 0;
-      const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\((\\d+)\\)$`);
+      const regex = new RegExp(
+        `^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\((\\d+)\\)$`
+      );
       existingNames.forEach((name) => {
         const match = name.match(regex);
         if (match && match[1]) {
@@ -261,7 +276,9 @@ const WorkflowList = () => {
         });
         // Update the cache optimistically
         queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
-          if (!old) { return old; }
+          if (!old) {
+            return old;
+          }
           return {
             ...old,
             workflows: old.workflows.map((w) =>
@@ -284,8 +301,6 @@ const WorkflowList = () => {
   const handleToggleFavorites = useCallback(() => {
     setShowFavoritesOnly((prev) => !prev);
   }, []);
-
-
 
   return (
     <>
@@ -327,7 +342,16 @@ const WorkflowList = () => {
         </FlexRow>
         <div className="status">
           {isLoading && (
-            <FlexColumn gap={3} justify="center" align="center" sx={{ height: "45vh", width: "100%", color: theme.vars.palette.grey[0] }}>
+            <FlexColumn
+              gap={3}
+              justify="center"
+              align="center"
+              sx={{
+                height: "45vh",
+                width: "100%",
+                color: theme.vars.palette.grey[0]
+              }}
+            >
               <LoadingSpinner size="large" text="Loading Workflows" />
             </FlexColumn>
           )}
@@ -338,15 +362,24 @@ const WorkflowList = () => {
               <Typography>No workflows found.</Typography>
             </FlexRow>
           )}
-          {showFavoritesOnly && workflows.length === 0 && !isLoading && !isError && (
-            <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
-              No favorite workflows. Click the star icon on a workflow to add it to your favorites.
-            </Typography>
-          )}
+          {showFavoritesOnly &&
+            workflows.length === 0 &&
+            !isLoading &&
+            !isError && (
+              <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
+                No favorite workflows. Click the star icon on a workflow to add
+                it to your favorites.
+              </Typography>
+            )}
         </div>
         <div className="workflow-items">
           {!isLoading && !isError && workflows.length === 0 ? (
-            <FlexColumn gap={2} align="center" justify="center" sx={{ padding: "2em 1em", color: theme.vars.palette.grey[300] }}>
+            <FlexColumn
+              gap={2}
+              align="center"
+              justify="center"
+              sx={{ padding: "2em 1em", color: theme.vars.palette.grey[300] }}
+            >
               {data?.workflows && data.workflows.length > 0 ? (
                 <>
                   <Typography variant="h6">No matching workflows</Typography>

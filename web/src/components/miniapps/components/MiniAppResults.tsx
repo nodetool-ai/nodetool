@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Typography, IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { Caption } from "../../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
@@ -165,9 +166,8 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
           {filteredResults.map((result) => (
             <div className="result-card" key={result.id}>
               {result.outputName && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
+                <Caption
+                  color="secondary"
                   sx={{
                     display: "block",
                     fontWeight: 500,
@@ -176,7 +176,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
                   }}
                 >
                   {result.outputName}
-                </Typography>
+                </Caption>
               )}
               <div className="result-card-body">
                 <OutputRenderer value={result.value} showTextActions={false} />

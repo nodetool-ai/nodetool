@@ -181,7 +181,7 @@ async function handleStorageRequest(
       const { start, end } = range;
       const chunkSize = end - start + 1;
       const body = nodeStreamToWebStream(filePath, { start, end });
-      return new Response(body as unknown as BodyInit, {
+      return new Response(body, {
         status: 206,
         headers: {
           "Content-Type": contentType,
@@ -195,7 +195,7 @@ async function handleStorageRequest(
 
     // Full file
     const body = nodeStreamToWebStream(filePath);
-    return new Response(body as unknown as BodyInit, {
+    return new Response(body, {
       status: 200,
       headers: {
         "Content-Type": contentType,

@@ -16,7 +16,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "lodash/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import { CloseButton, EditorButton } from "./ui_primitives";
+import { CloseButton, EditorButton, ScrollArea } from "./ui_primitives";
 import PanelHeadline from "./ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
@@ -47,8 +47,6 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       padding: "0.5em",
-      overflowY: "auto",
-      overflowX: "hidden",
       transformOrigin: "top left"
     },
     ".inspector-header h5": {
@@ -278,9 +276,9 @@ const Inspector: React.FC = () => {
       <EditorUiProvider scope="inspector">
         <Box className="inspector" css={inspectorStyles}>
           <Box className="top">
-            <Box className="top-content">
+            <ScrollArea className="top-content" direction="vertical">
               <NodeExplorer />
-            </Box>
+            </ScrollArea>
           </Box>
           <Box className="bottom"></Box>
         </Box>
@@ -293,11 +291,11 @@ const Inspector: React.FC = () => {
       return (
         <Box className="inspector" css={inspectorStyles}>
           <Box className="top">
-            <Box className="top-content">
+            <ScrollArea className="top-content" direction="vertical">
               <Typography>
                 Metadata is not available for all selected nodes.
               </Typography>
-            </Box>
+            </ScrollArea>
           </Box>
         </Box>
       );
@@ -307,7 +305,7 @@ const Inspector: React.FC = () => {
       <EditorUiProvider scope="inspector">
         <Box className="inspector" css={inspectorStyles}>
           <Box className="top">
-            <Box className="top-content">
+            <ScrollArea className="top-content" direction="vertical">
               <div className="inspector-header">
                 <PanelHeadline
                   title="Inspector"
@@ -365,7 +363,7 @@ const Inspector: React.FC = () => {
                   No shared editable properties across the selected nodes.
                 </Typography>
               )}
-            </Box>
+            </ScrollArea>
           </Box>
           <div className="bottom"></div>
         </Box>
@@ -377,14 +375,14 @@ const Inspector: React.FC = () => {
     return (
       <Box className="inspector" css={inspectorStyles}>
         <Box className="top">
-          <Box className="top-content">
+          <ScrollArea className="top-content" direction="vertical">
             <Box className="inspector-header">
               <PanelHeadline title="Inspector" />
               <Typography variant="body2" color="text.secondary">
                 Select nodes to edit
               </Typography>
             </Box>
-          </Box>
+          </ScrollArea>
         </Box>
         <Box className="bottom"></Box>
       </Box>
@@ -399,7 +397,7 @@ const Inspector: React.FC = () => {
     <EditorUiProvider scope="inspector">
       <Box className="inspector" css={inspectorStyles}>
         <Box className="top">
-          <Box className="top-content">
+          <ScrollArea className="top-content" direction="vertical">
             <div className="inspector-header">
               <PanelHeadline
                 title="Inspector"
@@ -498,7 +496,7 @@ const Inspector: React.FC = () => {
                 );
               }
             )}
-          </Box>
+          </ScrollArea>
         </Box>
         <div className="bottom">
           <NodeDescription

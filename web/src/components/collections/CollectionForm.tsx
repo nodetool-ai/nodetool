@@ -10,6 +10,7 @@ import {
   CircularProgress,
   Typography
 } from "@mui/material";
+import { FormField } from "../ui_primitives/FormField";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { CollectionCreate } from "../../stores/ApiTypes";
@@ -191,8 +192,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
 
         {/* Collection Name */}
-        <Box sx={{ flex: 1, minWidth: 180 }}>
-          <Typography className="field-label" sx={{ mb: 0.5 }}>Collection Name</Typography>
+        <FormField label="Collection Name" compact sx={{ flex: 1, minWidth: 180 }}>
           <TextField
             className="text-input"
             value={formData.name}
@@ -206,7 +206,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
             disabled={createMutation.isPending}
             autoFocus
           />
-        </Box>
+        </FormField>
 
         {/* Embedding Model */}
         <Box sx={{ flex: 1, minWidth: 200 }}>

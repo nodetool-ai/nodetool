@@ -19,6 +19,7 @@ import {
   ZoomOut,
   RestartAlt
 } from "@mui/icons-material";
+import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -119,10 +120,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.background.paper,
       padding: "0.2em",
       borderRadius: "4px",
-      zIndex: 1,
-      display: "flex",
-      flexDirection: "row",
-      gap: "0.2em"
+      zIndex: 1
     },
     ".vertical-slider": {
       position: "absolute",
@@ -256,7 +254,12 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           </IconButton>
         </div>
       </div>
-      <div className="zoom-controls">
+      <ActionButtonGroup
+        className="zoom-controls"
+        spacing={0.25}
+        aria-label="Zoom controls"
+        nodrag={false}
+      >
         <IconButton onClick={zoomIn} size="small" title="Zoom in">
           <ZoomIn fontSize="small" />
         </IconButton>
@@ -266,7 +269,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
         <IconButton onClick={resetZoom} size="small" title="Reset zoom">
           <RestartAlt fontSize="small" />
         </IconButton>
-      </div>
+      </ActionButtonGroup>
       <div className="vertical-slider">
         <Slider
           value={numPages ? numPages - pageNumber + 1 : 1}

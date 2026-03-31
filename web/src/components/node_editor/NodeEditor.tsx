@@ -77,10 +77,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   // Subscribe only to undo/redo functions to prevent re-renders on history changes
-  const { undo, redo } = useTemporalNodes((state) => ({
-    undo: state.undo,
-    redo: state.redo
-  }));
+  const undo = useTemporalNodes((state) => state.undo);
+  const redo = useTemporalNodes((state) => state.redo);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)

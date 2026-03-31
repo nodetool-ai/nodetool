@@ -2,11 +2,9 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useRef, useEffect, useCallback, useState } from "react";
+import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 import {
   Typography,
-  Tooltip,
-  IconButton,
   Chip,
   Stack,
   Button,
@@ -20,7 +18,7 @@ import useLogsStore from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import isEqual from "lodash/isEqual";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { CopyButton } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 import log from "loglevel";
@@ -78,20 +76,12 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
 
     const count = logs?.length || 0;
 
-    const onCopy = useCallback(() => {
+    const logText = useMemo(() => {
       const MAX_LINES = 2000;
       const logsToCopy = (logs || []).slice(-MAX_LINES);
-
-      const text = logsToCopy
+      return logsToCopy
         .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
         .join("\n");
-
-      if (!text) {
-        return;
-      }
-      navigator.clipboard?.writeText(text).catch((err) => {
-        log.warn("Failed to copy logs to clipboard:", err);
-      });
     }, [logs]);
 
     useEffect(() => {
@@ -154,11 +144,11 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               Node Logs
             </Typography>
             <Chip size="small" label={`${count}`} />
-            <Tooltip title="Copy logs">
-              <IconButton size="small" onClick={onCopy} aria-label="Copy logs">
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <CopyButton
+              value={logText}
+              tooltip="Copy logs"
+              nodrag={false}
+            />
           </Stack>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>

@@ -375,12 +375,8 @@ const NodeMenuButton = memo(function NodeMenuButton() {
 });
 
 const SaveWorkflowButton = memo(function SaveWorkflowButton() {
-  // Combine multiple useWorkflowManager subscriptions into a single selector with shallow equality
-  // to reduce unnecessary re-renders when other parts of the workflow manager state change
-  const { saveWorkflow, getCurrentWorkflow } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow,
-    getCurrentWorkflow: state.getCurrentWorkflow
-  }));
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -432,10 +428,7 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
 
   const workflowMode = (workflow?.run_mode || "workflow") as string;
 
-  // Combine selector with shallow equality (built into useWorkflowManager)
-  const { saveWorkflow } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow
-  }));
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
   const [selectIsOpen, setSelectIsOpen] = useState(false);
 
@@ -604,15 +597,14 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 });
 
 const StopWorkflowButton = memo(function StopWorkflowButton() {
-  const { canStop, cancel } = useWebsocketRunner((state) => ({
-    canStop:
-      state.state === "running" ||
-      state.state === "paused" ||
-      state.state === "suspended" ||
-      state.state === "connecting" ||
-      state.state === "connected",
-    cancel: state.cancel
-  }));
+  const canStop = useWebsocketRunner((state) =>
+    state.state === "running" ||
+    state.state === "paused" ||
+    state.state === "suspended" ||
+    state.state === "connecting" ||
+    state.state === "connected"
+  );
+  const cancel = useWebsocketRunner((state) => state.cancel);
 
   const handleCancel = useCallback(() => {
     cancel();

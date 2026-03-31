@@ -5,13 +5,9 @@ import {
   Box,
   TextField,
   Button,
-  IconButton,
-  Collapse,
   Alert
 } from "@mui/material";
-import { LoadingSpinner, FlexColumn } from "../ui_primitives";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { LoadingSpinner, FlexColumn, CollapsibleSection } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SaveIcon from "@mui/icons-material/Save";
@@ -159,19 +155,6 @@ const panelStyles = (theme: Theme) =>
       display: "flex",
       justifyContent: "flex-end"
     },
-    ".collapse-header": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      cursor: "pointer",
-      padding: "8px 12px",
-      borderRadius: "8px",
-      marginBottom: "8px",
-      background: theme.vars.palette.grey[900],
-      "&:hover": {
-        background: theme.vars.palette.grey[850]
-      }
-    },
     ".section-title": {
       display: "flex",
       alignItems: "center",
@@ -194,7 +177,6 @@ const ProviderSetupPanel: React.FC = () => {
   const updateSecret = useSecretsStore((state) => state.updateSecret);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
-  const [isExpanded, setIsExpanded] = useState(true);
   const [apiKeys, setApiKeys] = useState<Record<ProviderKey, string>>({
     OPENAI_API_KEY: "",
     ANTHROPIC_API_KEY: "",
@@ -293,10 +275,6 @@ const ProviderSetupPanel: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
-  const handleToggleExpand = useCallback(() => {
-    setIsExpanded((prev) => !prev);
-  }, []);
-
   const handleProviderSave = useCallback((providerKey: ProviderKey) => {
     handleSaveKey(providerKey);
   }, [handleSaveKey]);
@@ -314,27 +292,22 @@ const ProviderSetupPanel: React.FC = () => {
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
         <Box className="provider-setup-container">
-          <div
-            className="collapse-header"
-            onClick={handleToggleExpand}
+          <CollapsibleSection
+            defaultOpen={true}
+            title={
+              <div className="section-title">
+                <Typography
+                  variant="h6"
+                  sx={{ fontSize: "1em", fontWeight: 600 }}
+                >
+                  AI Provider Setup
+                </Typography>
+                <span className="configured-count">
+                  {configuredCount}/{PROVIDERS.length} configured
+                </span>
+              </div>
+            }
           >
-            <div className="section-title">
-              <Typography
-                variant="h6"
-                sx={{ fontSize: "1em", fontWeight: 600 }}
-              >
-                AI Provider Setup
-              </Typography>
-              <span className="configured-count">
-                {configuredCount}/{PROVIDERS.length} configured
-              </span>
-            </div>
-            <IconButton size="small">
-              {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </div>
-
-          <Collapse in={isExpanded}>
             {isLoading ? (
               <FlexColumn align="center" sx={{ py: 4 }}>
                 <LoadingSpinner size="medium" />
@@ -446,7 +419,7 @@ const ProviderSetupPanel: React.FC = () => {
                 )}
               </>
             )}
-          </Collapse>
+          </CollapsibleSection>
         </Box>
       </div>
     </Box>

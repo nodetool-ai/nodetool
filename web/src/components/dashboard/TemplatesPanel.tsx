@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
-import { EditorButton, FlexColumn, FlexRow, Text } from "../ui_primitives";
+import { Box, Typography } from "@mui/material";
+import { EditorButton, FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
@@ -146,7 +146,7 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
       <Box className="content-scrollable">
         {isLoadingTemplates ? (
           <Box className="loading-container">
-            <CircularProgress />
+            <LoadingSpinner />
           </Box>
         ) : (
           <Box className="example-grid">
@@ -158,7 +158,7 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">
-                    <CircularProgress size={30} />
+                    <LoadingSpinner size="medium" />
                   </Box>
                 )}
                 <img

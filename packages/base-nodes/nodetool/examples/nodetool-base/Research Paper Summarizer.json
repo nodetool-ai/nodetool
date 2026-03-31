@@ -1,0 +1,217 @@
+{
+  "id": "research_paper_summarizer",
+  "access": "public",
+  "created_at": "2025-11-22T16:54:18.095690",
+  "updated_at": "2025-11-22T16:54:18.095690",
+  "name": "Research Paper Summarizer",
+  "tool_name": null,
+  "description": "Extract and summarize key findings from research papers and technical documents.",
+  "tags": [
+    "research"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "paper_summary",
+          "value": "",
+          "description": ""
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "# Research Paper Summary Report\n\n## Key Findings:\n{{ findings }}\n\n## Technical Approach:\n{{ technical }}\n\n## Quick Reference:\n- **Type:** Research Paper (Academic)\n- **Field:** Machine Learning\n- **Contribution Level:** High Impact\n- **Methodology:** Novel Architecture\n\n## For Practitioners:\nThis paper presents fundamental concepts that have influenced modern AI development.\nThe techniques are widely applicable across various sequence modeling tasks.\n\n## Further Reading:\nConsider reading related work on:\n- RNN architectures\n- Attention mechanisms\n- Transfer learning approaches\n"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "findings": null,
+          "technical": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a research analyst. Extract key findings and contributions from academic papers.",
+          "prompt": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 1000
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Analyze this research paper and extract:\n1. Main research question/contribution\n2. Novel approach or methodology\n3. Key findings and results\n4. Impact and significance\n\nPaper:\n{{ paper }}"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "paper": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "paper",
+          "value": "\nTitle: Attention Is All You Need\n\nAbstract:\nThe dominant sequence transduction models are based on complex recurrent or convolutional neural networks.\nWe propose a new simple network architecture, the Transformer, based solely on attention mechanisms.\n\nIntroduction:\nRecurrent neural networks have long been the standard for sequence modeling tasks.\nHowever, RNNs suffer from parallelization challenges during training.\nOur approach abandons recurrence entirely and relies on attention mechanisms.\n\nMethods:\nThe Transformer architecture consists of:\n1. Multi-head self-attention layers\n2. Feed-forward networks\n3. Positional encoding\n4. Layer normalization\n\nResults:\nOur model achieves state-of-the-art results on machine translation tasks.\nThe architecture enables much faster training compared to RNNs.\nWe demonstrate superior performance on multiple benchmarks.\n\nConclusion:\nThe Transformer architecture represents a major advancement in sequence modeling.\nIt enables faster training and better parallelization.\nFuture work will explore applications beyond sequence transduction.\n",
+          "description": "Research paper text"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a technical expert. Summarize research methodologies clearly.",
+          "prompt": "",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 800
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Provide a technical summary of the methodology described in this paper:\n{{ paper }}\n\nFocus on: Architecture, algorithms, and technical innovations."
+        },
+        "ui_properties": {},
+        "dynamic_properties": {
+          "paper": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "paper",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "3",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "findings",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "paper",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "technical",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

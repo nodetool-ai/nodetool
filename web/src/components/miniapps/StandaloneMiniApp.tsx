@@ -32,9 +32,7 @@ const StandaloneMiniApp: React.FC = () => {
   const [_submitError, setSubmitError] = useState<string | null>(null);
   const { workflowId } = useParams<{ workflowId?: string }>();
 
-  const { fetchWorkflow } = useWorkflowManager((state) => ({
-    fetchWorkflow: state.fetchWorkflow
-  }));
+  const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
 
   const {
     data: workflow,

@@ -1,4 +1,7 @@
+import type { WebSocket } from "@fastify/websocket";
 import type { WebSocketConnection } from "./unified-websocket-runner.js";
+
+type WsFrame = { type: string; bytes?: Uint8Array | null; text?: string | null };
 
 /**
  * Adapts a ws WebSocket to the WebSocketConnection interface used by UnifiedWebSocketRunner.
@@ -7,17 +10,28 @@ export class WsAdapter implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
   applicationState: "connected" | "disconnected" = "connected";
 
-  private queue: Array<{ type: string; bytes?: Uint8Array | null; text?: string | null }> = [];
-  private waiters: Array<(frame: { type: string; bytes?: Uint8Array | null; text?: string | null }) => void> = [];
+  private queue: WsFrame[] = [];
+  private waiters: Array<(frame: WsFrame) => void> = [];
 
-  constructor(private socket: any) {
-    socket.on("message", (raw: any, isBinary: boolean) => {
-      const frame = isBinary
-        ? { type: "websocket.message", bytes: raw instanceof Uint8Array ? raw : new Uint8Array(raw as Buffer) }
-        : { type: "websocket.message", text: raw.toString() };
+  constructor(private socket: WebSocket) {
+    socket.on("message", (raw: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => {
+      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer);
+      const frame: WsFrame = isBinary
+        ? { type: "websocket.message", bytes }
+        : { type: "websocket.message", text: bytes.toString() };
       const waiter = this.waiters.shift();
       if (waiter) waiter(frame);
       else this.queue.push(frame);
+    });
+
+    socket.on("error", () => {
+      this.clientState = "disconnected";
+      this.applicationState = "disconnected";
+      const frame = { type: "websocket.disconnect" };
+      for (const waiter of this.waiters) {
+        waiter(frame);
+      }
+      this.waiters.length = 0;
     });
 
     socket.on("close", () => {
@@ -35,7 +49,7 @@ export class WsAdapter implements WebSocketConnection {
 
   async accept(): Promise<void> {}
 
-  async receive(): Promise<{ type: string; bytes?: Uint8Array | null; text?: string | null }> {
+  async receive(): Promise<WsFrame> {
     const next = this.queue.shift();
     if (next) return next;
     return new Promise((resolve) => this.waiters.push(resolve));

@@ -27,14 +27,47 @@ import type { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { extractJSON } from "./utils/json-parser.js";
+import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
-const MAX_TOOL_RESULT_CHARS = 20000;
 const DEFAULT_MAX_ITERATIONS = 30;
-const DEFAULT_TOKEN_LIMIT = 128000;
 const JSON_FAILURE_ALERT_THRESHOLD = 3;
 const MAX_JSON_PARSE_FAILURES = 6;
+
+// ---------------------------------------------------------------------------
+// Shared prompt fragments (DRY)
+// ---------------------------------------------------------------------------
+
+const PROMPT_NO_HUMAN_FEEDBACK = `# Hard Constraint: No Human Feedback
+- Do NOT ask clarifying questions or request user input.
+- If something is ambiguous or missing, choose the simplest reasonable assumption and proceed.`;
+
+const PROMPT_SCHEMA_STRICT = `- Never invent fields: the final result must match the schema exactly (no extra keys; include all required keys).
+
+Output style:
+- Keep non-tool messages concise.
+- Do not reveal chain-of-thought or internal reasoning traces.`;
+
+const PROMPT_OUTPUT_SCHEMA = `# Output Schema
+- The final result must match this schema:
+\`\`\`json
+{{ output_schema_json }}
+\`\`\``;
+
+const PROMPT_TOOL_USE = `# Tool Use
+- Use tools only when they materially improve correctness or are required.
+- Avoid exploratory or repeated tool calls that are unlikely to change the outcome.`;
+
+const PROMPT_FINISH_STEP = `# Completion (Tool Call Only)
+- When done, CALL \`finish_step\` exactly once with:
+  {"result": <result>}
+- Do NOT output the final result in assistant text.
+- Stop immediately after calling \`finish_step\`.`;
+
+// ---------------------------------------------------------------------------
+// Assembled system prompts
+// ---------------------------------------------------------------------------
 
 const DEFAULT_EXECUTION_SYSTEM_PROMPT = `# Role
 You are executing EXACTLY one step within a larger plan. Complete this step end-to-end.
@@ -42,66 +75,34 @@ You are executing EXACTLY one step within a larger plan. Complete this step end-
 # Objective
 {{ step_content }}
 
-# Hard Constraint: No Human Feedback
-- Do NOT ask clarifying questions or request user input.
-- If something is ambiguous or missing, choose the simplest reasonable assumption and proceed.
+${PROMPT_NO_HUMAN_FEEDBACK}
 
 # Scope & Discipline
 - Do ONLY what is required to satisfy this step objective; avoid tangents and extra work.
 - Use upstream step results already present in context; do not ask for them again.
-- Never invent fields: the final result must match the schema exactly (no extra keys; include all required keys).
+${PROMPT_SCHEMA_STRICT}
 
-Output style:
-- Keep non-tool messages concise.
-- Do not reveal chain-of-thought or internal reasoning traces.
+${PROMPT_OUTPUT_SCHEMA}
 
-# Output Schema
-- The final \`result\` object MUST match this schema:
-\`\`\`json
-{{ output_schema_json }}
-\`\`\`
+${PROMPT_TOOL_USE}
 
-# Tool Use
-- Use tools only when they materially improve correctness or are required.
-- Avoid exploratory or repeated tool calls that are unlikely to change the outcome.
-
-# Completion (Tool Call Only)
-- When the step is complete, CALL \`finish_step\` exactly once with:
-  {"result": <result>}
-- Do NOT output the final result in assistant text.
-- Stop immediately after calling \`finish_step\`.`;
+${PROMPT_FINISH_STEP}`;
 
 const DEFAULT_FINISH_TASK_SYSTEM_PROMPT = `# Role
 You are completing the final aggregation task, synthesizing results from prior steps into a single deliverable.
 
-# Hard Constraint: No Human Feedback
-- Do NOT ask clarifying questions or request user input.
-- If something is ambiguous or missing, choose the simplest reasonable assumption and proceed.
+${PROMPT_NO_HUMAN_FEEDBACK}
 
 # Scope & Discipline
 - Focus on synthesis and aggregation only (do not do additional research).
 - Use upstream step results already present in context; do not ask for them again.
-- Never invent fields: the final result must match the schema exactly (no extra keys; include all required keys).
+${PROMPT_SCHEMA_STRICT}
 
-Output style:
-- Keep non-tool messages concise.
-- Do not reveal chain-of-thought or internal reasoning traces.
+${PROMPT_OUTPUT_SCHEMA}
 
-# Output Schema
-- The final deliverable must match this schema:
-\`\`\`json
-{{ output_schema_json }}
-\`\`\`
+${PROMPT_TOOL_USE}
 
-# Tool Use
-- Use tools only when they materially improve correctness or are required.
-- Avoid exploratory or repeated tool calls that are unlikely to change the outcome.
-
-# Completion (Tool Call Only)
-- When aggregation is complete, CALL \`finish_step\` exactly once with:
-  {"result": <result>}
-- Do NOT output the final result in assistant text.
-- Stop immediately after calling \`finish_step\`.`;
+${PROMPT_FINISH_STEP}`;
 
 const DEFAULT_UNSTRUCTURED_SYSTEM_PROMPT = `# Role
 You are executing a task. Your job is to complete it end-to-end.
@@ -109,9 +110,7 @@ You are executing a task. Your job is to complete it end-to-end.
 # Objective
 {{ step_content }}
 
-# Hard Constraint: No Human Feedback
-- Do NOT ask clarifying questions or request user input.
-- If something is ambiguous or missing, choose the simplest reasonable assumption and proceed.
+${PROMPT_NO_HUMAN_FEEDBACK}
 
 # Operating Mode
 - Use tools as needed to achieve the objective.

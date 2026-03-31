@@ -9,8 +9,7 @@ import type { ProcessingContext } from "@nodetool/runtime";
 import type { ProcessingMessage } from "@nodetool/protocol";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task } from "./types.js";
-
-const DEFAULT_TOKEN_LIMIT = 128000;
+import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
 
 export abstract class BaseAgent {
   readonly name: string;

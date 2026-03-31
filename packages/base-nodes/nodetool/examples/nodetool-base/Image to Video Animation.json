@@ -1,0 +1,323 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2025-12-21T13:16:19.059846",
+  "updated_at": "2025-12-21T13:16:27.036083",
+  "name": "Image to Video Animation",
+  "tool_name": null,
+  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+  "tags": [
+    "image",
+    "video",
+    "example"
+  ],
+  "thumbnail": "Image to Video Animation.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "2",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "image"
+      },
+      {
+        "id": "3",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "scene"
+      },
+      {
+        "id": "4",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "motion"
+      },
+      {
+        "id": "5",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "6",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "7",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "negative_prompt"
+      },
+      {
+        "id": "8",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "animated_clip",
+          "description": "AI-generated cinematic video based on the supplied reference frame"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1310,
+            "y": 271
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model"
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "num_frames": 120,
+          "guidance_scale": 8,
+          "num_inference_steps": 28,
+          "seed": -1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1000,
+            "y": 165
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "negative_prompt": "",
+          "width": 1280,
+          "height": 720,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 30,
+          "seed": -1,
+          "safety_check": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 500,
+            "y": 510
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "scene_prompt",
+          "value": "Moody twilight ocean scene with cinematic lighting",
+          "description": "High-level description of the mood, setting, and visual tone"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 483
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Transform the reference frame into a cinematic ocean scene. Scene: {{ scene }}. Motion: {{ motion }}. Duration: {{ duration }}. Keep the animation cohesive, with gentle camera movement and atmospheric particles."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 580,
+            "y": 228
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "scene": null,
+          "motion": null,
+          "duration": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "motion_prompt",
+          "value": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
+          "description": "Movement cues that the animation should follow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 80,
+            "y": 255
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "duration_prompt",
+          "value": "8 second dramatic reveal",
+          "description": "Short descriptor for pacing and clip duration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 160,
+            "y": 39
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "negative_prompt",
+          "value": "no watermarks, no text overlays, maintain realistic wave motion",
+          "description": "Elements to avoid in the generated video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "scene_prompt": {
+        "type": "string",
+        "default": "Moody twilight ocean scene with cinematic lighting",
+        "label": ""
+      },
+      "motion_prompt": {
+        "type": "string",
+        "default": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
+        "label": ""
+      },
+      "duration_prompt": {
+        "type": "string",
+        "default": "8 second dramatic reveal",
+        "label": ""
+      },
+      "negative_prompt": {
+        "type": "string",
+        "default": "no watermarks, no text overlays, maintain realistic wave motion",
+        "label": ""
+      }
+    },
+    "required": [
+      "scene_prompt",
+      "motion_prompt",
+      "duration_prompt",
+      "negative_prompt"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "animated_clip": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "animated_clip"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

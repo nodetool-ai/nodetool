@@ -1,0 +1,266 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-01-10T01:06:00.944134",
+  "updated_at": "2026-01-10T01:07:17.681989",
+  "name": "Learning Path Generator",
+  "tool_name": null,
+  "description": "Create a comprehensive learning path for a topic.",
+  "tags": [
+    "education",
+    "planning",
+    "example"
+  ],
+  "thumbnail": "Learning Path Generator.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "topic"
+      },
+      {
+        "id": "2",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "objective"
+      },
+      {
+        "id": "3",
+        "source": "3",
+        "sourceHandle": "topic",
+        "target": "2",
+        "targetHandle": "topic"
+      },
+      {
+        "id": "4",
+        "source": "3",
+        "sourceHandle": "overview",
+        "target": "2",
+        "targetHandle": "overview"
+      },
+      {
+        "id": "5",
+        "source": "3",
+        "sourceHandle": "modules",
+        "target": "2",
+        "targetHandle": "modules"
+      },
+      {
+        "id": "6",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "learning_path_markdown",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": true,
+          "position": {
+            "x": 1590,
+            "y": 485
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\n# Learning path: {{ topic }}\n\n## Overview\n{{ overview }}\n\n{% for m in modules %}\n### {{ m.title }}\n{{ m.description }}\n\nResources:\n{% for r in m.resources %}\n- {{ r }}\n{% endfor %}\n\n{% endfor %}\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1280,
+            "y": 465
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "topic": null,
+          "overview": null,
+          "modules": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "nodetool.agents.ResearchAgent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system_prompt": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "google_search"
+            },
+            {
+              "type": "tool_name",
+              "name": "browser"
+            }
+          ],
+          "max_tokens": 8192
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 620,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "topic": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "overview": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "modules": {
+            "type": "list",
+            "optional": false,
+            "values": null,
+            "type_args": [
+              {
+                "type": "dict",
+                "optional": false,
+                "values": null,
+                "type_args": [
+                  {
+                    "type": "str",
+                    "optional": false,
+                    "values": null,
+                    "type_args": [],
+                    "type_name": null
+                  },
+                  {
+                    "type": "any",
+                    "optional": false,
+                    "values": null,
+                    "type_args": [],
+                    "type_name": null
+                  }
+                ],
+                "type_name": null
+              }
+            ],
+            "type_name": null
+          }
+        },
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nCreate a comprehensive learning path for the topic \"{{ topic }}\".\n\nRequirements:\n- Structure the path into 3 to 5 modules.\n- Each module must have:\n  - title\n  - description\n  - resources: a list of concrete web resources (URLs, docs, tutorials).\n\nFocus:\n- Keep the plan focused on the learner's core objective.\n- Order modules from beginner friendly to more advanced.\n\nOutput format:\nReturn a JSON object:\n{\n  \"topic\": \"<topic name>\",\n  \"overview\": \"<short overview of the full path>\",\n  \"modules\": [\n    {\n      \"title\": \"<module title>\",\n      \"description\": \"<what the learner will accomplish>\",\n      \"resources\": [\"<url1>\", \"<url2>\", ...]\n    },\n    ...\n  ]\n}\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 310,
+            "y": 465
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "topic": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "Getting Started with Docker",
+          "description": "Topic for the learning path"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 554
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string",
+        "default": "Getting Started with Docker",
+        "label": ""
+      }
+    },
+    "required": [
+      "topic"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "learning_path_markdown": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "learning_path_markdown"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

@@ -20,6 +20,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeInfo from "../node_menu/NodeInfo";
 import NodeItem from "../node_menu/NodeItem";
+import { ScrollArea } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -56,14 +57,12 @@ const menuStyles = (theme: Theme) =>
 
 const scrollableContentStyles = (theme: Theme) =>
   css({
-    overflowY: "auto",
     flex: 1,
     backgroundColor: "transparent",
     "&.connectable-nodes-content": {
       minHeight: 0,
       maxHeight: "calc(70vh - 130px)",
-      padding: "0",
-      overflowX: "hidden"
+      padding: "0"
     },
     ".namespace": {
       backgroundColor: theme.vars.palette.action.hover,
@@ -395,7 +394,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         </MenuItem>
       </Box>
 
-      <Box css={scrollableContentStyles} className="connectable-nodes-content">
+      <ScrollArea css={scrollableContentStyles} className="connectable-nodes-content" direction="vertical">
         {totalCount === 0 ? (
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
             <Typography variant="body2">
@@ -458,7 +457,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             </React.Fragment>
           ))
         )}
-      </Box>
+      </ScrollArea>
     </Menu>
   );
 });

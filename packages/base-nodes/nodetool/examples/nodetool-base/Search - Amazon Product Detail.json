@@ -1,0 +1,129 @@
+{
+  "id": "search-amazon-product-detail",
+  "access": "public",
+  "created_at": "2026-03-08T12:00:00.000000",
+  "updated_at": "2026-03-08T12:00:00.000000",
+  "name": "Search - Amazon Product Detail",
+  "tool_name": null,
+  "description": "Claude Agent uses Amazon Product Detail as a tool via control edges. The agent decides what to search and analyzes results.",
+  "tags": [
+    "search",
+    "amazon",
+    "product",
+    "detail",
+    "serp",
+    "agent"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e-control-search",
+        "source": "claude-agent",
+        "sourceHandle": "__control__",
+        "target": "search",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": {}
+      },
+      {
+        "id": "e-agent-to-save",
+        "source": "claude-agent",
+        "sourceHandle": "text",
+        "target": "save-analysis",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "claude-agent",
+        "type": "anthropic.agents.ClaudeAgent",
+        "data": {
+          "prompt": "Use the Amazon Product Detail tool to look up product ASIN 'B0D5CQDG3C'. Analyze the product: what is it, who is it for, strengths, concerns, and whether the price is justified. Give a buy/skip verdict.",
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          },
+          "system_prompt": "You are a sharp research analyst. Use the available search tools to gather data, then provide structured, insightful analysis with specific references. Be concise but thorough.",
+          "max_turns": 10,
+          "allowed_tools": [],
+          "permission_mode": "acceptEdits",
+          "use_claude_credentials": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 100,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 380,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "search",
+        "type": "search.amazon.AmazonProduct",
+        "data": {
+          "product_id": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Amazon Product Detail"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "save-analysis",
+        "type": "nodetool.dictionary.SaveJSON",
+        "data": {
+          "name": "amazon-product-detail-analysis-%Y%m%d-%H%M%S.json"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

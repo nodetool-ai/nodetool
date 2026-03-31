@@ -1,0 +1,182 @@
+{
+  "id": "youtube-research-claude-agent",
+  "access": "public",
+  "created_at": "2026-03-08T12:00:00.000000",
+  "updated_at": "2026-03-08T12:00:00.000000",
+  "name": "YouTube Research with Claude Agent",
+  "tool_name": null,
+  "description": "Search YouTube using SerpAPI and analyze results with Claude Agent for deep research insights.",
+  "tags": [
+    "youtube",
+    "research",
+    "serpapi",
+    "claude",
+    "agent",
+    "search",
+    "analysis"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "edge-yt-to-format",
+        "source": "youtube-search-node",
+        "sourceHandle": "text",
+        "target": "format-prompt-node",
+        "targetHandle": "search_results",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge-format-to-claude",
+        "source": "format-prompt-node",
+        "sourceHandle": "output",
+        "target": "claude-agent-node",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge-claude-chunk-to-preview",
+        "source": "claude-agent-node",
+        "sourceHandle": "chunk",
+        "target": "preview-node",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "chunk"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment-1",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "YouTube Research with Claude Agent",
+          "comment": "This workflow searches YouTube for videos on a topic using SerpAPI, then feeds the results to a Claude Agent for in-depth analysis.\n\n1. YouTubeSearch fetches video results via SerpAPI\n2. FormatText builds a research prompt with the results\n3. ClaudeAgent analyzes the videos and produces a research report\n\nRequires: SERPAPI_API_KEY and ANTHROPIC_API_KEY in your settings."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "youtube-search-node",
+        "type": "search.youtube.YouTubeSearch",
+        "data": {
+          "query": "multi-agent frameworks 2026",
+          "num_results": 10
+        },
+        "ui_properties": {
+          "position": {
+            "x": 60,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "format-prompt-node",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "You are a YouTube research analyst. I searched YouTube for \"multi-agent frameworks 2026\" and found these results:\n\n{{ search_results }}\n\nPlease analyze these videos and provide:\n\n1. **Overview**: What are the main themes and topics covered?\n2. **Top Picks**: Which 3-5 videos seem most valuable and why?\n3. **Content Gaps**: What aspects of multi-agent frameworks are NOT well covered?\n4. **Creators to Watch**: Which channels stand out for quality content?\n5. **Summary**: A concise research brief synthesizing the key insights.\n\nBe specific — reference video titles, channels, and view counts in your analysis."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 350,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "search_results": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "claude-agent-node",
+        "type": "anthropic.agents.ClaudeAgent",
+        "data": {
+          "prompt": "",
+          "model": {
+            "type": "language_model"
+          },
+          "system_prompt": "You are a thorough research analyst specializing in YouTube content analysis. You provide structured, insightful analysis with specific references to the data provided. Be concise but comprehensive.",
+          "max_turns": 5,
+          "allowed_tools": ["Read", "Write", "Bash"],
+          "permission_mode": "acceptEdits",
+          "use_claude_credentials": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 830,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "preview-node",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1230,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 400,
+          "height": 700,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

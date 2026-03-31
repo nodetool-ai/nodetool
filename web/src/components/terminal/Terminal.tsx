@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState, memo } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Box, Alert } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { EditorButton, AlertBanner } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { TERMINAL_URL } from "../../stores/BASE_URL";
@@ -430,9 +430,9 @@ export const Terminal: React.FC = () => {
         )}
       </div>
       {error && (
-        <Alert severity="error" className="terminal-error" onClose={() => setError(null)}>
+        <AlertBanner severity="error" className="terminal-error" onClose={() => setError(null)}>
           {error}
-        </Alert>
+        </AlertBanner>
       )}
       <div className="terminal-wrapper" ref={terminalRef} />
     </Box>

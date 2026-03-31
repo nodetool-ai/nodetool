@@ -30,6 +30,7 @@ import { IconForType } from "../../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { ScrollArea } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 680;
@@ -48,7 +49,6 @@ const toolsSelectorStyles = (theme: Theme) =>
     },
     ".nodes-container": {
       flex: 1,
-      overflow: "auto",
       padding: "0 8px"
     },
     ".loading-container": {
@@ -197,17 +197,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   }, [selectedNodeTypes, metadata]);
 
   // Use NodeMenuStore for search functionality
-  const {
-    searchTerm,
-    setSearchTerm,
-    searchResults,
-    isLoading
-  } = useNodeToolsMenuStore((state) => ({
-    searchTerm: state.searchTerm,
-    setSearchTerm: state.setSearchTerm,
-    searchResults: state.searchResults,
-    isLoading: state.isLoading
-  }));
+  const searchTerm = useNodeToolsMenuStore((state) => state.searchTerm);
+  const setSearchTerm = useNodeToolsMenuStore((state) => state.setSearchTerm);
+  const searchResults = useNodeToolsMenuStore((state) => state.searchResults);
+  const isLoading = useNodeToolsMenuStore((state) => state.isLoading);
 
   // Show all nodes in the left panel, including selected ones (they'll show as selected/disabled)
   const nodesForDisplay = useMemo(() => {
@@ -431,7 +424,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             }}
           >
             <Box className="selector-content" sx={{ flex: 1, overflow: "hidden" }}>
-              <div className="nodes-container">
+              <ScrollArea className="nodes-container" fullHeight>
                 {isLoading ? (
                   <div className="loading-container">
                     <CircularProgress size={24} />
@@ -456,7 +449,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                     onScrollToNamespaceComplete={handleScrollToNamespaceComplete}
                   />
                 )}
-              </div>
+              </ScrollArea>
             </Box>
           </Box>
 

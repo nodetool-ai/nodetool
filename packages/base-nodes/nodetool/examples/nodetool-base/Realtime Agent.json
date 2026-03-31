@@ -1,0 +1,236 @@
+{
+  "id": "06d8221c907e11f0a4240000006ab9b5",
+  "access": "public",
+  "created_at": "2025-09-13T19:42:11.668218",
+  "updated_at": "2025-09-13T19:42:11.668234",
+  "name": "Realtime Agent",
+  "tool_name": null,
+  "description": "",
+  "tags": [
+    "openai",
+    "agent"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "4d19aa3d-bbf2-4bbe-94d1-cc26070cdddd",
+        "parent_id": null,
+        "type": "nodetool.input.RealtimeAudioInput",
+        "data": {
+          "name": "audio",
+          "value": null,
+          "description": "",
+          "audio": {}
+        },
+        "ui_properties": {
+          "position": {
+            "x": 64,
+            "y": 146
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "cbaa7d34-4296-407a-be2a-7ac9e00188b0",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 684,
+            "y": 130
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 287,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "a2a7cb00-0409-4f9a-85f1-c8b53f880bc8",
+        "parent_id": null,
+        "type": "openai.agents.RealtimeAgent",
+        "data": {
+          "model": "gpt-4o-mini-realtime-preview",
+          "system": "\nYou are an AI assistant interacting in real-time. Follow these rules unless explicitly overridden by the user:\n\n1. Respond promptly \u2014 minimize delay. If you do not yet have a complete answer, acknowledge the question and indicate what you are doing to find the answer.\n2. Maintain correctness. Always aim for accuracy; if you\u2019re uncertain, say so and optionally offer to verify.\n3. Be concise but clear. Prioritize key information first, then supporting details if helpful.\n4. Ask clarifying questions when needed. If the user\u2019s request is ambiguous, request clarification rather than guessing.\n5. Be consistent in terminology and definitions. Once you adopt a term or abbreviation, use it consistently in this conversation.\n6. Respect politeness and neutrality. Do not use emotive language unless the conversation tone demands it.\n7. Stay within safe and ethical bounds. Avoid disallowed content; follow OpenAI policies.\n8. Adapt to the user\u2019s style and level. If the user seems technical, use technical detail; if non-technical, explain with simpler language.\n---\nYou are now active. Await the user\u2019s request.\n",
+          "voice": "alloy",
+          "speed": 1,
+          "temperature": 0.8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 374,
+            "y": 58
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "13a2eff9-154c-441e-b31b-6afbe732e1d5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment_lexical": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 1,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "# Realtime Audio Workflow",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 1,
+                  "textStyle": ""
+                },
+                {
+                  "children": [],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "- Realtime Audio Input: Captures microphone or dropped audio.  ",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "- Realtime Agent: Uses GPT Realtime to process audio in real time.  ",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "- Preview: Plays the agent audio.  ",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1
+            }
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 144,
+            "y": -193
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 160,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "b4ff9ba4-366b-4347-abe3-208a4d2060f4",
+        "source": "4d19aa3d-bbf2-4bbe-94d1-cc26070cdddd",
+        "sourceHandle": "chunk",
+        "target": "a2a7cb00-0409-4f9a-85f1-c8b53f880bc8",
+        "targetHandle": "chunk",
+        "ui_properties": {
+          "className": "chunk"
+        }
+      },
+      {
+        "id": "c66d450e-f877-4378-bf28-d4bb5e38474a",
+        "source": "a2a7cb00-0409-4f9a-85f1-c8b53f880bc8",
+        "sourceHandle": "chunk",
+        "target": "cbaa7d34-4296-407a-be2a-7ac9e00188b0",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "chunk"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

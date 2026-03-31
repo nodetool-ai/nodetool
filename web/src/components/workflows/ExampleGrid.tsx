@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import { Typography, Box } from "@mui/material";
-import { LoadingSpinner } from "../ui_primitives";
+import { LoadingSpinner, ScrollArea } from "../ui_primitives";
 import { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -56,7 +56,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       alignItems: "flex-start",
-      overflowY: "auto",
       padding: "2em",
       gap: "1em",
       flex: "1 1 auto",
@@ -539,11 +538,11 @@ const TemplateGrid = memo(function TemplateGrid() {
           </div>
         )}
         {isError && (
-          <Box className="container">
+          <ScrollArea className="container" direction="vertical">
             <ErrorOutlineRounded>
               <Typography>{error?.message}</Typography>
             </ErrorOutlineRounded>
-          </Box>
+          </ScrollArea>
         )}
         {showGrid && (
           <Box className="virtualized-container">
@@ -571,7 +570,7 @@ const TemplateGrid = memo(function TemplateGrid() {
           </Box>
         )}
         {showNoResults && (
-          <Box className="container">
+          <ScrollArea className="container" direction="vertical">
             <Box className="no-results">
               <Typography variant="body1" sx={{ marginBottom: "1em" }}>
                 Nothing found for
@@ -616,7 +615,7 @@ const TemplateGrid = memo(function TemplateGrid() {
                 </li>
               </ul>
             </Box>
-          </Box>
+          </ScrollArea>
         )}
       </Box>
     </Box>

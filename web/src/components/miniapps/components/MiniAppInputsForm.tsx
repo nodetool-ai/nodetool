@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Tooltip, Typography } from "@mui/material";
+import { Tooltip } from "@mui/material";
+import { Caption } from "../../ui_primitives";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
 import { getComponentForProperty } from "../../node/PropertyInput";
@@ -333,25 +334,23 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                           }
                           placement="bottom"
                         >
-                          <Typography
-                            variant="caption"
-                            color={exceedsMaxLength ? "warning.main" : "text.secondary"}
+                          <Caption
+                            color={exceedsMaxLength ? "warning" : "secondary"}
                             sx={{ display: "block", marginTop: 0.5, width: "fit-content" }}
                           >
                             {draft.length}/{maxLength}
-                          </Typography>
+                          </Caption>
                         </Tooltip>
                       )}
                     </div>
                   </div>
                   {definition.data.description && (
-                    <Typography
+                    <Caption
                       id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
+                      color="secondary"
                     >
                       {definition.data.description}
-                    </Typography>
+                    </Caption>
                   )}
                 </div>
               );
@@ -379,13 +378,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                     </div>
                   </div>
                   {definition.data.description && (
-                    <Typography
+                    <Caption
                       id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
+                      color="secondary"
                     >
                       {definition.data.description}
-                    </Typography>
+                    </Caption>
                   )}
                 </div>
               );
@@ -413,13 +411,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                     </div>
                   </div>
                   {definition.data.description && (
-                    <Typography
+                    <Caption
                       id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
+                      color="secondary"
                     >
                       {definition.data.description}
-                    </Typography>
+                    </Caption>
                   )}
                 </div>
               );
@@ -447,13 +444,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                     </div>
                   </div>
                   {definition.data.description && (
-                    <Typography
+                    <Caption
                       id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
+                      color="secondary"
                     >
                       {definition.data.description}
-                    </Typography>
+                    </Caption>
                   )}
                 </div>
               );
@@ -481,13 +477,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                     </div>
                   </div>
                   {definition.data.description && (
-                    <Typography
+                    <Caption
                       id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
+                      color="secondary"
                     >
                       {definition.data.description}
-                    </Typography>
+                    </Caption>
                   )}
                 </div>
               );
@@ -515,13 +510,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                     </div>
                   </div>
                   {definition.data.description && (
-                    <Typography
+                    <Caption
                       id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
+                      color="secondary"
                     >
                       {definition.data.description}
-                    </Typography>
+                    </Caption>
                   )}
                 </div>
               );
@@ -549,13 +543,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                     </div>
                   </div>
                   {definition.data.description && (
-                    <Typography
+                    <Caption
                       id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
+                      color="secondary"
                     >
                       {definition.data.description}
-                    </Typography>
+                    </Caption>
                   )}
                 </div>
               );
@@ -583,13 +576,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                   />
                 </div>
                 {definition.data.description && (
-                  <Typography
+                  <Caption
                     id={`${inputId}-description`}
-                    variant="caption"
-                    color="text.secondary"
+                    color="secondary"
                   >
                     {definition.data.description}
-                  </Typography>
+                  </Caption>
                 )}
               </div>
             );

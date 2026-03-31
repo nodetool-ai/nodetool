@@ -90,6 +90,7 @@ export class PythonBridge extends EventEmitter {
   private _pendingStream = new Map<string, PendingStreamRequest>();
   private _options: PythonBridgeOptions;
   private _connected = false;
+  private _connectPromise: Promise<void> | null = null;
 
   constructor(options: PythonBridgeOptions = {}) {
     super();
@@ -104,6 +105,21 @@ export class PythonBridge extends EventEmitter {
       await this._spawnAndConnect();
     }
     await this._discover();
+  }
+
+  /**
+   * Lazily connect to the Python worker. Returns a cached promise so
+   * multiple callers share the same connection attempt.
+   */
+  ensureConnected(): Promise<void> {
+    if (this._connected) return Promise.resolve();
+    if (!this._connectPromise) {
+      this._connectPromise = this.connect().then(
+        () => { this._connectPromise = null; },
+        (err) => { this._connectPromise = null; throw err; },
+      );
+    }
+    return this._connectPromise;
   }
 
   /** Spawn Python child process and connect to its WebSocket. */

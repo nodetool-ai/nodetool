@@ -1,0 +1,133 @@
+name: Type Safety Improvements
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  type-safety:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Scan for type issues
+        id: type-scan
+        continue-on-error: true
+        run: |
+          echo "## Type Safety Scan" >> $GITHUB_STEP_SUMMARY
+          ISSUES=0
+
+          ANY_COUNT=$(grep -r ": any" web/src electron/src mobile/src --include="*.ts" --include="*.tsx" -l 2>/dev/null | wc -l || echo 0)
+          echo "Files with explicit 'any' types: $ANY_COUNT" >> $GITHUB_STEP_SUMMARY
+          if [ "$ANY_COUNT" -gt 0 ]; then ISSUES=1; fi
+
+          AS_ANY_COUNT=$(grep -r "as any" web/src electron/src mobile/src --include="*.ts" --include="*.tsx" -l 2>/dev/null | wc -l || echo 0)
+          echo "Files with 'as any' casts: $AS_ANY_COUNT" >> $GITHUB_STEP_SUMMARY
+          if [ "$AS_ANY_COUNT" -gt 0 ]; then ISSUES=1; fi
+
+          echo "TYPE_ISSUES=$ISSUES" >> $GITHUB_ENV
+
+      - name: Run quality checks baseline
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.TYPE_ISSUES == '1'
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+          prompt: |
+            # Improve Type Safety
+
+            Find and fix weak TypeScript types in the NodeTool codebase.
+
+            ## Scope
+            - `/web/src` — React frontend
+            - `/electron/src` — desktop app
+            - `/mobile/src` — React Native app
+
+            ## What to fix
+
+            **Replace `any` types**: Search for `: any`, `as any`, `any[]`, `Record<string, any>`, and `Promise<any>`. Replace with proper types by reading the surrounding code to understand what the actual type should be.
+
+            **Add missing return types**: Functions and methods that are missing explicit return type annotations. Focus on exported functions and public methods.
+
+            **Replace type assertions with type guards**: Where `as SomeType` is used, consider if a type guard (`if ('prop' in obj)` or `instanceof`) would be safer.
+
+            **Fix loose generic types**: Replace `Array<any>` with properly typed arrays. Replace `Record<string, any>` with specific interfaces.
+
+            ## Rules
+            - Only fix types you can verify are correct. Do not guess types — read the usage sites.
+            - Do not touch `@ts-expect-error` / `@ts-ignore` directives — these exist for cross-library compatibility.
+            - Do not change runtime behavior. Type changes should be compile-time only.
+            - Do not touch CI workflow files.
+            - Keep changes focused — maximum 10 files per PR.
+            - Prioritize: exported APIs > internal functions > local variables.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a type safety PR is already open.
+            - Pick the 5-10 worst offenders (most `any` usage or most impactful files).
+
+            ## Verification
+            After changes, all checks must still pass:
+            ```bash
+            make typecheck && make lint && make test
+            ```
+
+            ## Submit
+            Create a PR titled "types: improve type safety in <area>" listing each file changed and what types were improved.
+
+      - name: Post-change verification
+        if: always() && env.TYPE_ISSUES == '1'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

@@ -1,5 +1,6 @@
-import { memo, useMemo } from "react";
-import { Box, LinearProgress, LinearProgressProps, Typography } from "@mui/material";
+import { memo } from "react";
+import { LinearProgressProps } from "@mui/material";
+import { ProgressBar } from "../ui_primitives/ProgressBar";
 
 type LinearProgressWithLabelProps = LinearProgressProps & {
     filename?: string,
@@ -9,43 +10,20 @@ type LinearProgressWithLabelProps = LinearProgressProps & {
 /**
  * Memoized linear progress component with filename and percentage display.
  * Optimized to prevent unnecessary re-renders during file upload operations.
+ *
+ * Now wraps the ProgressBar UI primitive.
  */
 export const LinearProgressWithLabel = memo(function LinearProgressWithLabel(props: LinearProgressWithLabelProps) {
-    const { filename, value, ...linearProgressProps } = props;
-
-    // Memoize the container style to avoid creating new objects on each render
-    const containerStyle = useMemo(() => ({ display: 'flex', alignItems: 'center' }), []);
-
-    // Memoize filename box style
-    const filenameBoxStyle = useMemo(() => ({ width: '50%' }), []);
-
-    // Memoize progress box style - depends on whether filename is shown
-    const progressBoxStyle = useMemo(() => ({
-        width: filename ? '50%' : '100%',
-        mr: 1
-    }), [filename]);
-
-    // Memoize percentage box style
-    const percentageBoxStyle = useMemo(() => ({ minWidth: 35 }), []);
+    const { filename, value, ...rest } = props;
 
     return (
-        <Box sx={containerStyle}>
-            {filename && (
-                <Box sx={filenameBoxStyle}>
-                    <Typography variant="body2" color="text.primary">
-                        {filename}
-                    </Typography>
-                </Box>
-            )}
-            <Box sx={progressBoxStyle}>
-                <LinearProgress variant="determinate" value={value ?? 0} {...linearProgressProps} />
-            </Box>
-            <Box sx={percentageBoxStyle}>
-                <Typography variant="body2" color="text.secondary">{`${Math.round(
-                    value,
-                )}%`}</Typography>
-            </Box>
-        </Box>
+        <ProgressBar
+            value={value ?? 0}
+            label={filename}
+            showValue={true}
+            progressVariant="determinate"
+            {...rest}
+        />
     );
 });
 

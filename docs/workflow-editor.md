@@ -24,6 +24,8 @@ The Workflow Editor is where you build, test, and refine AI workflows. This page
 
 Your infinite workspace.
 
+![Workflow Canvas](assets/screenshots/editor-empty-state.png)
+
 **Navigate:**
 
 | Do This | How |

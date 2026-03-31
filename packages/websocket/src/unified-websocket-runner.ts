@@ -289,6 +289,8 @@ export interface UnifiedWebSocketRunnerOptions {
   resolveTools?: (toolNames: string[], userId: string) => Promise<Tool[]>;
   getSystemStats?: () => Record<string, unknown>;
   workspaceResolver?: (workflowId: string, userId: string) => Promise<string | null>;
+  /** Called before a workflow job starts — used to lazily connect the Python bridge. */
+  beforeRunJob?: (graph: { nodes: Array<Record<string, unknown>> }) => Promise<void>;
 }
 
 export class UnifiedWebSocketRunner {
@@ -305,6 +307,7 @@ export class UnifiedWebSocketRunner {
   private resolveTools?: UnifiedWebSocketRunnerOptions["resolveTools"];
   private getSystemStats: () => Record<string, unknown>;
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
+  private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
@@ -390,6 +393,7 @@ export class UnifiedWebSocketRunner {
     this.resolveProvider = options.resolveProvider;
     this.resolveTools = options.resolveTools;
     this.workspaceResolver = options.workspaceResolver;
+    this.beforeRunJob = options.beforeRunJob;
     this.getSystemStats =
       options.getSystemStats ??
       (() => ({
@@ -551,6 +555,11 @@ export class UnifiedWebSocketRunner {
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
     const graph = await this.getWorkflowGraph(req);
+
+    if (this.beforeRunJob) {
+      await this.beforeRunJob(graph);
+    }
+
     const workspaceDir = workflowId && this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
 
     const context = createRuntimeContext({
@@ -1521,6 +1530,10 @@ export class UnifiedWebSocketRunner {
       }
 
       const rawGraph = workflow.graph as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+
+      if (this.beforeRunJob) {
+        await this.beforeRunJob(rawGraph);
+      }
 
       // Detect message input names from raw graph (reads node.data) — matches Python
       const { messageName, messagesName } = this.detectMessageInputNames(rawGraph);

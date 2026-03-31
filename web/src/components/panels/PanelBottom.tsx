@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip } from "@mui/material";
+import { CloseButton } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
@@ -13,7 +14,6 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
-import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import TimelineIcon from "@mui/icons-material/Timeline";
 
@@ -202,34 +202,32 @@ const PanelBottom: React.FC = () => {
                 placement="top-start"
                 enterDelay={TOOLTIP_ENTER_DELAY}
               >
-                <IconButton
-                  size="small"
+                <CloseButton
                   onClick={handleTerminalToggle}
-                  aria-label="Hide panel"
-                >
-                  <CloseIcon />
-                </IconButton>
+                  buttonSize="small"
+                  tooltip=""
+                />
               </Tooltip>
             </div>
           )}
           <div
             className="terminal-wrapper"
             style={{
-              display: activeView === "terminal" && isVisible ? "flex" : "none"
+              display: activeView === "terminal" ? "flex" : "none"
             }}
           >
-            <Terminal />
+            {isVisible && <Terminal />}
           </div>
           <div
             className="trace-wrapper"
             style={{
-              display: activeView === "trace" && isVisible ? "flex" : "none",
+              display: activeView === "trace" ? "flex" : "none",
               flex: 1,
               minHeight: 0,
               overflow: "hidden",
             }}
           >
-            <TracePanel />
+            {isVisible && <TracePanel />}
           </div>
         </div>
       </Drawer>

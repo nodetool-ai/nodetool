@@ -56,17 +56,15 @@ describe("useRunningJobs", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseAuth.mockReturnValue({
-      user: { id: "test-user" },
-      state: "logged_in",
-    } as any);
+    mockUseAuth.mockImplementation((selector: (s: any) => any) =>
+      selector({ user: { id: "test-user" }, state: "logged_in" })
+    );
   });
 
   it("does not fetch when not authenticated", () => {
-    mockUseAuth.mockReturnValue({
-      user: null,
-      state: "logged_out",
-    } as any);
+    mockUseAuth.mockImplementation((selector: (s: any) => any) =>
+      selector({ user: null, state: "logged_out" })
+    );
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),

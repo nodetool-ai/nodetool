@@ -1,0 +1,618 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-01-10T00:39:13.851672",
+  "updated_at": "2026-01-10T00:39:36.845279",
+  "name": "Product Mockup Generator",
+  "tool_name": null,
+  "description": "Generate product mockups for a given product.",
+  "tags": [
+    "product-mockup",
+    "mockup",
+    "design",
+    "example"
+  ],
+  "thumbnail": "Product Mockup Generator.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "image"
+      },
+      {
+        "id": "2",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "name"
+      },
+      {
+        "id": "3",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "description"
+      },
+      {
+        "id": "4",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "audience"
+      },
+      {
+        "id": "5",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "count"
+      },
+      {
+        "id": "6",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "7",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "7",
+        "targetHandle": "scenes"
+      },
+      {
+        "id": "8",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "name"
+      },
+      {
+        "id": "9",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "description"
+      },
+      {
+        "id": "10",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "11",
+        "source": "6",
+        "sourceHandle": "item",
+        "target": "4",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "12",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "image"
+      },
+      {
+        "id": "13",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "image"
+      },
+      {
+        "id": "14",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      },
+      {
+        "id": "15",
+        "source": "6",
+        "sourceHandle": "item",
+        "target": "15",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "16",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "value"
+      },
+      {
+        "id": "17",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "16",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "product_mockups",
+          "description": "Product mockups in various scenes (image-to-image)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2610,
+            "y": 474
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "lib.pillow.enhance.Contrast",
+        "data": {
+          "factor": 1.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2300,
+            "y": 479
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "lib.pillow.enhance.Brightness",
+        "data": {
+          "factor": 1.05
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1990,
+            "y": 479
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.image.ImageToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "negative_prompt": "",
+          "strength": 0.65,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 30,
+          "target_width": 1200,
+          "target_height": 1200,
+          "seed": -1,
+          "scheduler": "",
+          "safety_check": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1680,
+            "y": 388
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "product_image",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The product image to place in scenes"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": 509
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "input_text": "",
+          "max_tokens": 2048
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": 205
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nConvert these scene concepts into image generation prompts.\n\nScene Concepts: {{ scenes }}\nProduct: {{ name }} - {{ description }}\n\nFor each scene, create a detailed image prompt that:\n- Describes the complete scene with the product\n- Specifies lighting (soft, dramatic, natural, studio)\n- Includes realistic shadows and reflections\n- Mentions surface materials and textures\n- Uses professional product photography style\n\nOutput format: One complete prompt per line, no numbering.\nMake each prompt suitable for high-quality product photography.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1030,
+            "y": 155
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "scenes": null,
+          "name": null,
+          "description": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a professional product photographer. Create compelling scene concepts.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 2048
+        },
+        "ui_properties": {
+          "position": {
+            "x": 670,
+            "y": 254
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nYou are a product photography director.\n\nProduct: {{ name }}\nDescription: {{ description }}\nTarget Audience: {{ audience }}\n\nCreate {{ count }} unique scene concepts for product photography mockups.\n\nInclude a variety of settings:\n- Studio shots (clean backgrounds, professional lighting)\n- Lifestyle scenes (product in use)\n- Environmental/outdoor settings\n- Flat lay compositions\n- Detail/close-up angles\n\nFor each scene, describe:\n1. Setting/environment\n2. Lighting style\n3. Props and complementary elements\n4. Mood/atmosphere\n5. Camera angle suggestion\n\nOutput format: Return each complete scene description on a separate line, no numbering.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 281
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "name": null,
+          "description": null,
+          "audience": null,
+          "count": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "10",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_name",
+          "value": "Premium Wireless Headphones",
+          "description": "Name of the product"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 130
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "11",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_description",
+          "value": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents.",
+          "description": "Brief product description for context"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 827
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "12",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "target_audience",
+          "value": "Tech-savvy professionals, music enthusiasts, remote workers",
+          "description": "Target customer demographic"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 583
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "13",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "num_scenes",
+          "value": 6,
+          "description": "Number of scene variations to generate",
+          "min": 2,
+          "max": 12
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 367
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "14",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "generated_scenes",
+          "description": "Generated product scenes (text-to-image)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1990,
+            "y": 89
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "15",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "negative_prompt": "",
+          "width": 1200,
+          "height": 1200,
+          "guidance_scale": 7,
+          "num_inference_steps": 25,
+          "seed": -1,
+          "safety_check": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1680,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "16",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scene_concepts",
+          "description": "Scene concept descriptions for reference"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1030,
+            "y": 558
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "product_image": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "image"
+            ]
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      },
+      "product_name": {
+        "type": "string",
+        "default": "Premium Wireless Headphones",
+        "label": ""
+      },
+      "product_description": {
+        "type": "string",
+        "default": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents.",
+        "label": ""
+      },
+      "target_audience": {
+        "type": "string",
+        "default": "Tech-savvy professionals, music enthusiasts, remote workers",
+        "label": ""
+      },
+      "num_scenes": {
+        "type": "integer",
+        "minimum": 2,
+        "maximum": 12,
+        "default": 6,
+        "label": ""
+      }
+    },
+    "required": [
+      "product_image",
+      "product_name",
+      "product_description",
+      "target_audience",
+      "num_scenes"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "product_mockups": {
+        "type": "any",
+        "label": ""
+      },
+      "generated_scenes": {
+        "type": "any",
+        "label": ""
+      },
+      "scene_concepts": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "product_mockups",
+      "generated_scenes",
+      "scene_concepts"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

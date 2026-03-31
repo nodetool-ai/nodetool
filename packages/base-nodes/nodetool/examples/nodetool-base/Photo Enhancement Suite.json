@@ -1,0 +1,381 @@
+{
+  "id": "004a7fd2-4492-485d-8bdb-ea1ba61f7bdf",
+  "access": "public",
+  "created_at": "2026-01-09T00:13:01.063274+00:00",
+  "updated_at": "2026-01-09T00:13:01.063274+00:00",
+  "name": "Photo Enhancement Suite",
+  "tool_name": null,
+  "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+  "tags": [
+    "image",
+    "photo",
+    "batch processing"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "enhanced_photos",
+          "value": null,
+          "description": "Collection of enhanced photos"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.control.Collect",
+        "data": {
+          "input_item": []
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.image.ImageToImage",
+        "data": {
+          "model": {
+            "type": "image_model"
+          },
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "prompt": "Enhance this photo with professional cinematic color grading, improved lighting, and subtle film grain. Keep the subject and composition intact, only improve quality.",
+          "negative_prompt": "",
+          "strength": 0.3,
+          "guidance_scale": 7.0,
+          "num_inference_steps": 25,
+          "target_width": 512,
+          "target_height": 512,
+          "seed": -1,
+          "scheduler": "",
+          "safety_check": true
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "lib.pillow.enhance.UnsharpMask",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "radius": 2,
+          "percent": 120,
+          "threshold": 3
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "lib.pillow.enhance.Sharpen",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "lib.pillow.enhance.Color",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "factor": 1.0
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "lib.pillow.enhance.Brightness",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "factor": 1.0
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "lib.pillow.enhance.AutoContrast",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "cutoff": 2
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9",
+        "parent_id": null,
+        "type": "nodetool.image.LoadImageFolder",
+        "data": {
+          "folder": "",
+          "include_subdirectories": false,
+          "extensions": [
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".bmp",
+            ".webp",
+            ".tiff"
+          ],
+          "pattern": ""
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "nodetool.input.FolderPathInput",
+        "data": {
+          "name": "image_folder",
+          "value": "./photos",
+          "description": "Folder containing photos to enhance"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.input.FloatInput",
+        "data": {
+          "name": "brightness_adjust",
+          "value": 1.05,
+          "description": "Brightness adjustment factor",
+          "min": 0.5,
+          "max": 1.5
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.input.FloatInput",
+        "data": {
+          "name": "color_boost",
+          "value": 1.2,
+          "description": "Color saturation boost factor (1.0 = no change)",
+          "min": 0.5,
+          "max": 2.0
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "source_paths",
+          "value": null,
+          "description": "Original file paths for reference"
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "14",
+        "parent_id": null,
+        "type": "nodetool.control.Collect",
+        "data": {
+          "input_item": []
+        },
+        "ui_properties": {},
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "folder",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "9",
+        "sourceHandle": "image",
+        "target": "8",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "factor",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "factor",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "input_item",
+        "ui_properties": null
+      },
+      {
+        "id": "11",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "12",
+        "source": "9",
+        "sourceHandle": "path",
+        "target": "14",
+        "targetHandle": "input_item",
+        "ui_properties": null
+      },
+      {
+        "id": "13",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "13",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

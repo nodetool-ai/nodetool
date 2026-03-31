@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { useEffect, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import axios from "axios";
-import { Box, CircularProgress } from "@mui/material";
+import { LoadingSpinner, ScrollArea } from "../ui_primitives";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -18,12 +18,10 @@ const styles = (theme: Theme) =>
     "&.text-viewer": {
       width: "calc(90vw - 200px)",
       height: "calc(90vh - 120px)",
-      overflowY: "auto",
       padding: "2em 1em 4em 1em",
       margin: "2em 1em 1em 8em",
       maxWidth: "1000px",
-      backgroundColor: theme.vars.palette.grey[800],
-      scrollbarWidth: "initial"
+      backgroundColor: theme.vars.palette.grey[800]
     },
     p: {
       fontFamily: theme.fontFamily1
@@ -60,10 +58,10 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
   }, [asset?.get_url]);
 
   return (
-    <Box className="output text-viewer" css={styles(theme)}>
-      {!document && <CircularProgress className="progress" />}
+    <ScrollArea className="output text-viewer" css={styles(theme)} direction="vertical">
+      {!document && <LoadingSpinner className="progress" />}
       <div>{document}</div>
-    </Box>
+    </ScrollArea>
   );
 };
 

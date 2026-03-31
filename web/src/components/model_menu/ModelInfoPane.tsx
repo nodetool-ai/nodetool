@@ -5,11 +5,10 @@ import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { LanguageModel } from "../../stores/ApiTypes";
+import { ScrollArea } from "../ui_primitives";
 
 const paneStyles = (theme: Theme) =>
   css({
-    overflowY: "auto",
-    maxHeight: 520,
     fontSize: theme.vars.fontSizeNormal
   });
 
@@ -22,17 +21,18 @@ const ModelInfoPane: React.FC<ModelInfoPaneProps> = ({ model }) => {
 
   if (!model) {
     return (
-      <Box
+      <ScrollArea
+        maxHeight={520}
         css={paneStyles(theme)}
         className="model-menu__info-pane is-empty"
         sx={{ color: "var(--palette-grey-300)" }}
       >
         <Typography variant="body2">Select a model to see details</Typography>
-      </Box>
+      </ScrollArea>
     );
   }
   return (
-    <Box css={paneStyles(theme)} className="model-menu__info-pane">
+    <ScrollArea maxHeight={520} css={paneStyles(theme)} className="model-menu__info-pane">
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
         {model.name}
       </Typography>
@@ -45,7 +45,7 @@ const ModelInfoPane: React.FC<ModelInfoPaneProps> = ({ model }) => {
           Info will be loaded on click. Future: web search + LLM summary.
         </Typography>
       </Box>
-    </Box>
+    </ScrollArea>
   );
 };
 

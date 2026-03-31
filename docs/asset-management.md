@@ -56,6 +56,8 @@ Open any asset in its viewer by double-clicking it in the Asset Explorer. Use th
 
 ## Collections
 
+![Collections Explorer](assets/screenshots/collections-explorer.png)
+
 Collections group related assets for use in RAG (Retrieval-Augmented Generation) workflows and organized project management.
 
 ### Creating Collections

@@ -1,0 +1,129 @@
+{
+  "id": "travel-planner-inspiration",
+  "access": "public",
+  "created_at": "2026-03-08T12:00:00.000000",
+  "updated_at": "2026-03-08T17:00:00.000000",
+  "name": "Travel Planner & Inspiration",
+  "tool_name": null,
+  "description": "An AI travel concierge that researches flights, hotels, events, and attractions, generates stunning AI destination images, and builds a complete interactive travel website — all orchestrated by a single Claude Agent.",
+  "tags": ["travel", "planner", "flights", "hotels", "events", "agent", "search", "website", "image"],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {"id": "e-ctrl-flights", "source": "agent", "sourceHandle": "__control__", "target": "flights", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-hotels", "source": "agent", "sourceHandle": "__control__", "target": "hotels", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-events", "source": "agent", "sourceHandle": "__control__", "target": "events", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-web", "source": "agent", "sourceHandle": "__control__", "target": "web-search", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-photos", "source": "agent", "sourceHandle": "__control__", "target": "photo-search", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-hero", "source": "agent", "sourceHandle": "__control__", "target": "gen-hero", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-scene1", "source": "agent", "sourceHandle": "__control__", "target": "gen-scene1", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-scene2", "source": "agent", "sourceHandle": "__control__", "target": "gen-scene2", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-scene3", "source": "agent", "sourceHandle": "__control__", "target": "gen-scene3", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-ctrl-scene4", "source": "agent", "sourceHandle": "__control__", "target": "gen-scene4", "targetHandle": "__control__", "edge_type": "control", "ui_properties": {}},
+      {"id": "e-save-html", "source": "agent", "sourceHandle": "text", "target": "save-html", "targetHandle": "text", "ui_properties": {"className": "str"}}
+    ],
+    "nodes": [
+      {
+        "id": "agent",
+        "type": "anthropic.agents.ClaudeAgent",
+        "data": {
+          "prompt": "Plan an unforgettable 5-day trip to Berlin, Germany.\n\nDeparting from San Francisco (SFO) around 2026-05-01, returning 2026-05-06.\n2 adults, economy class, budget ~$150/night for hotels.\n\nPHASE 1 — RESEARCH:\n1. Search flights (nonstop + 1-stop options)\n2. Find hotels in Mitte, Kreuzberg, or Prenzlauer Berg\n3. Discover local events during those dates\n4. Research attractions, hidden gems, food\n5. Search for destination photos\n\nPHASE 2 — GENERATE IMAGES:\nGenerate 5 stunning AI images for the travel page. Call each image tool and note the handle if you get one. Then poll with get_result until all images are ready.\n- gen_hero: cinematic skyline at golden hour (wide 16:9)\n- gen_scene1: most iconic landmark/cultural site\n- gen_scene2: local food & market culture\n- gen_scene3: nightlife/evening atmosphere\n- gen_scene4: architecture, parks, or hidden gem\n\nWrite vivid, detailed prompts (50+ words each).\n\nIMPORTANT: Image tools may return a handle with status 'pending'. Call get_result(handle='xxx') every few seconds until you get the actual image data with a 'uri' field. Collect all 5 image URIs before building the HTML.\n\nPHASE 3 — BUILD WEBSITE:\nUsing ALL research data and the 5 generated image URIs, write a COMPLETE standalone HTML page.\n\nThe HTML must be a polished, dark-themed, agency-quality travel guide with:\n- Full-bleed hero image (from gen_hero URI)\n- Photo grid with 4 scene images (from gen_scene URIs) with hover zoom\n- Flights ranked cards, hotels cards with ratings/prices\n- Day-by-day itinerary timeline, budget stats\n- Hidden gems, events, practical tips\n- Scroll animations (IntersectionObserver), mobile responsive\n- Google Fonts: Space Grotesk + Playfair Display\n- Dark theme (#0c0c14) with amber/teal/coral/blue/purple accents\n- Footer crediting Nodetool\n\nOutput ONLY the raw HTML starting with <!DOCTYPE html>.",
+          "model": {"type": "language_model", "provider": "anthropic", "id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6"},
+          "system_prompt": "You are an elite travel concierge and web designer with access to search tools and AI image generation.\n\n## CRITICAL: Async tool polling protocol\n\nImage generation tools take 30-60 seconds. They return a JSON with status and handle:\n{\"status\": \"pending\", \"handle\": \"abc123\"}\n\nYou MUST follow this EXACT procedure:\n1. Call all 5 image generation tools to start them. Collect all handles.\n2. Poll ONE handle at a time using get_result(handle=\"xxx\").\n   Each call waits ~4 seconds internally before checking.\n3. If still pending, call get_result for the SAME handle again immediately.\n   Keep calling get_result repeatedly for each handle — it waits each time.\n4. After ~8-10 calls per handle (30-40 seconds of waiting), you should get the result.\n5. Once a handle returns data with a \"uri\" field, save that URI and move to the next handle.\n6. NEVER re-call the original image tool. NEVER give up. The image IS generating.\n7. Poll ALL 5 handles until all return results.\n\nThe image URIs look like: https://...supabase.co/storage/.../XXXX.png\nUse these URIs directly in your HTML <img> tags.\n\nFor image prompts, write rich cinematic descriptions (50+ words).\n\nYour final text output must be ONLY the raw HTML — no markdown, no explanation. Start with <!DOCTYPE html> and end with </html>.",
+          "max_turns": 40,
+          "allowed_tools": ["Bash"],
+          "permission_mode": "acceptEdits",
+          "use_claude_credentials": true
+        },
+        "ui_properties": {"position": {"x": 100, "y": 300}, "zIndex": 0, "width": 450, "selectable": true},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "flights",
+        "type": "search.google_extra.GoogleFlights",
+        "data": {"departure_id": "", "arrival_id": "", "outbound_date": "", "return_date": "", "trip_type": 1, "adults": 2, "travel_class": 1, "currency": "USD", "stops": 0, "sort_by": 1},
+        "ui_properties": {"position": {"x": 650, "y": 50}, "zIndex": 0, "width": 260, "selectable": true, "title": "Google Flights"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "hotels",
+        "type": "search.google_extra.GoogleHotels",
+        "data": {"query": "", "check_in_date": "", "check_out_date": "", "adults": 2, "children": 0, "currency": "USD", "sort_by": 0, "min_price": 0, "max_price": 0, "hotel_class": 0},
+        "ui_properties": {"position": {"x": 650, "y": 180}, "zIndex": 0, "width": 260, "selectable": true, "title": "Google Hotels"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "events",
+        "type": "search.google_extra.GoogleEvents",
+        "data": {"query": "", "location": "", "num_results": 10},
+        "ui_properties": {"position": {"x": 650, "y": 310}, "zIndex": 0, "width": 260, "selectable": true, "title": "Local Events"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "web-search",
+        "type": "search.google.GoogleSearch",
+        "data": {"keyword": "", "num_results": 10},
+        "ui_properties": {"position": {"x": 650, "y": 440}, "zIndex": 0, "width": 260, "selectable": true, "title": "Web Search"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "photo-search",
+        "type": "search.google.GoogleImages",
+        "data": {"keyword": "", "num_results": 10},
+        "ui_properties": {"position": {"x": 650, "y": 570}, "zIndex": 0, "width": 260, "selectable": true, "title": "Destination Photos"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "gen-hero",
+        "type": "fal.text_to_image.NanoBanana2",
+        "data": {"prompt": "", "resolution": "2K", "aspect_ratio": "16:9", "num_images": 1, "output_format": "png"},
+        "ui_properties": {"position": {"x": 1000, "y": 50}, "zIndex": 0, "width": 240, "selectable": true, "title": "Hero Image (16:9)"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "gen-scene1",
+        "type": "fal.text_to_image.NanoBanana2",
+        "data": {"prompt": "", "resolution": "1K", "aspect_ratio": "4:3", "num_images": 1, "output_format": "png"},
+        "ui_properties": {"position": {"x": 1000, "y": 200}, "zIndex": 0, "width": 240, "selectable": true, "title": "Scene 1 (4:3)"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "gen-scene2",
+        "type": "fal.text_to_image.NanoBanana2",
+        "data": {"prompt": "", "resolution": "1K", "aspect_ratio": "4:3", "num_images": 1, "output_format": "png"},
+        "ui_properties": {"position": {"x": 1000, "y": 350}, "zIndex": 0, "width": 240, "selectable": true, "title": "Scene 2 (4:3)"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "gen-scene3",
+        "type": "fal.text_to_image.NanoBanana2",
+        "data": {"prompt": "", "resolution": "1K", "aspect_ratio": "4:3", "num_images": 1, "output_format": "png"},
+        "ui_properties": {"position": {"x": 1000, "y": 500}, "zIndex": 0, "width": 240, "selectable": true, "title": "Scene 3 (4:3)"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "gen-scene4",
+        "type": "fal.text_to_image.NanoBanana2",
+        "data": {"prompt": "", "resolution": "1K", "aspect_ratio": "4:3", "num_images": 1, "output_format": "png"},
+        "ui_properties": {"position": {"x": 1000, "y": 650}, "zIndex": 0, "width": 240, "selectable": true, "title": "Scene 4 (4:3)"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      },
+      {
+        "id": "save-html",
+        "type": "nodetool.text.SaveText",
+        "data": {"text": "", "name": "travel-guide-%Y%m%d-%H%M%S.html"},
+        "ui_properties": {"position": {"x": 100, "y": 750}, "zIndex": 0, "width": 300, "selectable": true, "title": "Save Website"},
+        "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {"type": "object", "properties": {}, "required": []},
+  "output_schema": {"type": "object", "properties": {}, "required": []},
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

@@ -100,9 +100,7 @@ const AssetExplorer: React.FC = memo(() => {
   const theme = useTheme();
   const { folderFiles } = useAssets();
   const _navigate = useNavigate();
-  const { currentWorkflowId } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId
-  }));
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   void _navigate;
   void currentWorkflowId;
   return (

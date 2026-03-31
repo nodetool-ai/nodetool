@@ -1,0 +1,118 @@
+name: Dead Code Cleanup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  dead-code-cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Run quality checks baseline
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+          prompt: |
+            # Dead Code Cleanup
+
+            Find and remove dead code across the NodeTool codebase.
+
+            ## Scope
+            - `/web` — React frontend
+            - `/electron` — desktop app (Electron)
+            - `/mobile` — React Native app
+
+            ## What to find and remove
+
+            **Unused exports**: Functions, classes, constants, and types that are exported but never imported anywhere in the project. Use grep/ripgrep to verify zero consumers before removing.
+
+            **Unused imports**: Imports that are not referenced in the file. The linter may catch some, but check for type-only imports and namespace imports too.
+
+            **Unreachable code**: Code after unconditional `return`, `throw`, `break`, or `continue` statements.
+
+            **Unused local variables and parameters**: Variables assigned but never read. Be careful with destructuring patterns — only remove if truly unused.
+
+            **Commented-out code blocks**: Large blocks of commented-out code (5+ lines) that are not documentation. Leave short inline comments that explain why something is done.
+
+            **Empty/no-op functions**: Functions with empty bodies or that only return undefined, unless they serve as intentional callbacks or interface implementations.
+
+            ## Rules
+            - Only remove genuinely dead code. Do not remove code that is used dynamically (e.g. string-based lookups, plugin registries, event handlers registered by name).
+            - Do not remove `@ts-expect-error` / `@ts-ignore` directives.
+            - Do not remove `test.skip` / `describe.skipIf` / `test.fixme` markers.
+            - Do not touch CI workflow files.
+            - Keep changes focused — maximum 15 files per PR.
+            - Verify each removal with grep to confirm zero references.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a dead code cleanup PR is already open.
+
+            ## Verification
+            After cleanup, all checks must still pass:
+            ```bash
+            make typecheck && make lint && make test
+            ```
+
+            ## Submit
+            Create a PR titled "chore: remove dead code" listing each removed item and why it's unused.
+
+      - name: Post-change verification
+        if: always()
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

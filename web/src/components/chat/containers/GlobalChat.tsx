@@ -8,7 +8,8 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
+import { Box, Typography, useMediaQuery } from "@mui/material";
+import { AlertBanner } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -21,6 +22,7 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
+import { useShallow } from "zustand/react/shallow";
 import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
@@ -103,7 +105,7 @@ const GlobalChat: React.FC = () => {
     selectedCollections,
     setSelectedCollections
   } = useGlobalChatStore(
-    (state) => ({
+    useShallow((state) => ({
       currentRunningToolCallId: state.currentRunningToolCallId,
       currentToolMessage: state.currentToolMessage,
       selectedModel: state.selectedModel,
@@ -112,7 +114,7 @@ const GlobalChat: React.FC = () => {
       setSelectedTools: state.setSelectedTools,
       selectedCollections: state.selectedCollections,
       setSelectedCollections: state.setSelectedCollections
-    })
+    }))
   );
 
   // Use the consolidated TanStack Query hook from the store
@@ -424,9 +426,9 @@ const GlobalChat: React.FC = () => {
           justifyContent: "center"
         }}
       >
-        <Alert severity="error">
+        <AlertBanner severity="error">
           Failed to load threads: {threadsError.message}
-        </Alert>
+        </AlertBanner>
       </Box>
     );
   }
@@ -470,7 +472,7 @@ const GlobalChat: React.FC = () => {
       >
         {!alertDismissed &&
           (error &&
-            <Alert
+            <AlertBanner
               className="global-chat-status-alert"
               severity="error"
               onClose={() => setAlertDismissed(true)}
@@ -486,7 +488,7 @@ const GlobalChat: React.FC = () => {
               }}
             >
               {error}
-            </Alert>
+            </AlertBanner>
           )}
 
         <Box

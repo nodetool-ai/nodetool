@@ -1,0 +1,160 @@
+{
+  "id": "claude-agent-node-tools",
+  "access": "public",
+  "created_at": "2026-03-08T12:00:00.000000",
+  "updated_at": "2026-03-08T12:00:00.000000",
+  "name": "Claude Agent with Node Tools",
+  "tool_name": null,
+  "description": "Claude Agent using control edges to call search nodes as tools. The agent decides when and how to search.",
+  "tags": [
+    "claude",
+    "agent",
+    "tools",
+    "control",
+    "search",
+    "research"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e-control-google",
+        "source": "claude-agent",
+        "sourceHandle": "__control__",
+        "target": "google-search",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": {}
+      },
+      {
+        "id": "e-control-duckduckgo",
+        "source": "claude-agent",
+        "sourceHandle": "__control__",
+        "target": "ddg-search",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": {}
+      },
+      {
+        "id": "e-agent-to-save",
+        "source": "claude-agent",
+        "sourceHandle": "text",
+        "target": "save-result",
+        "targetHandle": "data",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "claude-agent",
+        "type": "anthropic.agents.ClaudeAgent",
+        "data": {
+          "prompt": "Research the current state of open-source AI workflow tools in 2026. Use the available search tools to find information, then synthesize a brief research report with your findings. Search at least twice using different queries to get comprehensive coverage.",
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          },
+          "system_prompt": "You are a research analyst. You have access to search tools \u2014 use them to gather real data before writing your report. Be specific and cite sources.",
+          "max_turns": 10,
+          "allowed_tools": [],
+          "permission_mode": "acceptEdits",
+          "use_claude_credentials": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 100,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 350,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "google-search",
+        "type": "search.google.GoogleSearch",
+        "data": {
+          "keyword": "",
+          "num_results": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Google Search"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "ddg-search",
+        "type": "search.duckduckgo.DuckDuckGoSearch",
+        "data": {
+          "query": "",
+          "num_results": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 350
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "DuckDuckGo Search"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "save-result",
+        "type": "nodetool.dictionary.SaveJSON",
+        "data": {
+          "name": "agent-research-%Y%m%d-%H%M%S.json"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 550,
+            "y": 550
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "required_providers": null,
+  "required_models": null
+}

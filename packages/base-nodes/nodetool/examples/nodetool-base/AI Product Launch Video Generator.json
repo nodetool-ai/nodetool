@@ -1,0 +1,353 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2025-12-21T12:48:11.758845",
+  "updated_at": "2025-12-21T12:48:27.594443",
+  "name": "AI Product Launch Video Generator",
+  "tool_name": null,
+  "description": "Create a realistic 16:9 marketing video for a new product launch using the TextToVideo node.",
+  "tags": [
+    "business",
+    "data",
+    "video",
+    "example"
+  ],
+  "thumbnail": "AI Product Launch Video Generator.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "brief"
+      },
+      {
+        "id": "2",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "audience"
+      },
+      {
+        "id": "3",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "features"
+      },
+      {
+        "id": "4",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "tone"
+      },
+      {
+        "id": "5",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "6",
+        "source": "3",
+        "sourceHandle": "text",
+        "target": "2",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "7",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "negative_prompt"
+      },
+      {
+        "id": "8",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "product_launch_video",
+          "description": "Generated marketing video for the Aurora Trail watch"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1630,
+            "y": 109
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "nodetool.video.TextToVideo",
+        "data": {
+          "model": {
+            "type": "video_model"
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "720p",
+          "num_frames": 120,
+          "guidance_scale": 9,
+          "num_inference_steps": 40,
+          "seed": 12345
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a senior video prompt engineer for OpenAI Sora. Follow Sora best practices: describe the shot like a storyboard\u2014subject, setting, action beats, and camera. Be specific about camera framing and movement (e.g., wide establishing, eye level, 50mm, slow push-in), depth cues, composition (rule of thirds, leading lines), lighting and color anchors (name 3\u20135 colors), and atmosphere/texture (mist, rain on asphalt). Keep motion simple and grounded with one clear camera move and one primary subject action. Support continuity and realism (plausible physics, natural motion, environmental interaction). Do not mention size/resolution or clip length; those are set via API, not prose. Use present tense and avoid abstract phrasing and meta commentary. If dialogue adds clarity, include a short 'Dialogue:' block; otherwise omit. End with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 600
+        },
+        "ui_properties": {
+          "position": {
+            "x": 900,
+            "y": 252
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Using the marketing inputs, write an OpenAI Sora prompt for a single 16:9 product launch shot.\n\nRules:\n- Do not specify resolution or duration in text (those are API parameters).\n- Present tense, visually concrete; one clear camera move and one primary subject action.\n- Include: subject, setting, time-of-day, camera language (framing, angle, lens, movement), composition cues, lighting, 3\u20135 color anchors, atmosphere/texture, and realistic motion cues.\n- Emphasize the product and key features naturally within the scene for the target audience and tone.\n- If useful, end with an optional Dialogue: block (short, natural lines) and/or Background Sound: line; otherwise omit.\n- Finish with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.\n\nInputs:\n- Campaign brief: {{ brief }}\n- Target audience: {{ audience }}\n- Desired tone: {{ tone }}\n- Key features: {{ features }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 590,
+            "y": 348
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "brief": null,
+          "audience": null,
+          "features": null,
+          "tone": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "campaign_brief",
+          "value": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+          "description": "Short description of the campaign concept"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 362
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "target_audience",
+          "value": "active millennials who enjoy weekend hiking and fitness challenges",
+          "description": "Primary audience for the marketing video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 80,
+            "y": 590
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "7",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "key_features",
+          "value": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+          "description": "Key product features to highlight"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 160,
+            "y": 818
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "tone",
+          "value": "inspiring, cinematic, and energetic",
+          "description": "Desired tone or mood for the video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 240,
+            "y": 134
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "9",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "Avoid glitch art, distorted anatomy, floating objects, text overlays, watermarks, or unrealistic facial expressions."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 980,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "campaign_brief": {
+        "type": "string",
+        "default": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+        "label": ""
+      },
+      "target_audience": {
+        "type": "string",
+        "default": "active millennials who enjoy weekend hiking and fitness challenges",
+        "label": ""
+      },
+      "key_features": {
+        "type": "string",
+        "default": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+        "label": ""
+      },
+      "tone": {
+        "type": "string",
+        "default": "inspiring, cinematic, and energetic",
+        "label": ""
+      }
+    },
+    "required": [
+      "campaign_brief",
+      "target_audience",
+      "key_features",
+      "tone"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "product_launch_video": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "const": "video"
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "product_launch_video"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

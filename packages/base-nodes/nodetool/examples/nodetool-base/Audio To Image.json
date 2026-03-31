@@ -1,0 +1,198 @@
+{
+  "id": "audio-to-image",
+  "access": "private",
+  "created_at": "2026-01-18T23:02:42.361503",
+  "updated_at": "2026-01-18T23:05:03.247735",
+  "name": "Audio To Image",
+  "tool_name": null,
+  "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
+  "tags": [
+    "huggingface",
+    "multimodal",
+    "start",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "39781356",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "1d496bbb-8d1e-49f2-bc6f-5e13aa607a6c",
+        "source": "8bbe2482-80ad-4ca8-bc9d-f6828618d798",
+        "sourceHandle": "output",
+        "target": "d2ce18a0-c764-4f9d-847b-883eede5340f",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "3d804130-7071-4154-966e-99dc6f0fc002",
+        "source": "14",
+        "sourceHandle": "text",
+        "target": "8bbe2482-80ad-4ca8-bc9d-f6828618d798",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "14",
+        "type": "huggingface.automatic_speech_recognition.Whisper",
+        "data": {
+          "model": {
+            "type": "hf.automatic_speech_recognition"
+          },
+          "task": "transcribe",
+          "language": "auto_detect",
+          "timestamps": "none"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 340,
+            "y": 46
+          },
+          "zIndex": 0,
+          "width": 267,
+          "title": "Transcribes audio file to text.",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "15",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "description",
+          "description": "",
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 65,
+            "y": 67
+          },
+          "zIndex": 0,
+          "width": 245,
+          "title": "Records the user voice as audio file.",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "d2ce18a0-c764-4f9d-847b-883eede5340f",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "image",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 947,
+            "y": 142
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Shows it in the mini app",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "8bbe2482-80ad-4ca8-bc9d-f6828618d798",
+        "type": "kie.image.NanoBanana",
+        "data": {
+          "image_size": "1:1"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 637,
+            "y": 157
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Generate an image from the test",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "audio"
+            ]
+          }
+        },
+        "required": [
+          "uri",
+          "type"
+        ],
+        "label": ""
+      }
+    },
+    "required": [
+      "description"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "image"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null
+}

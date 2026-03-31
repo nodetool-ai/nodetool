@@ -1,0 +1,677 @@
+{
+  "id": "d22725a09fc211f0b7bb00007bf02e69",
+  "access": "public",
+  "created_at": "2025-10-02T22:51:44.770893",
+  "updated_at": "2025-10-02T22:51:44.770914",
+  "name": "Summarize Paper",
+  "tool_name": null,
+  "description": "",
+  "tags": [
+    "audio",
+    "start"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "audio_output_2025-01-12"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1311,
+            "y": 35
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 619,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "lib.pymupdf.ExtractText",
+        "data": {
+          "start_page": 0,
+          "end_page": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 661,
+            "y": 107
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "lib.http.GetRequestDocument",
+        "data": {
+          "headers": null,
+          "auth": null
+        },
+        "ui_properties": {
+          "position": {
+            "x": 351,
+            "y": 144
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.agents.Summarizer",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "prompt": "Create a summary following these rules:\n\u2022 Focus ONLY on the key information from the source text\n\u2022 Maintain a neutral, objective tone throughout\n\u2022 Present information in a logical flow\n\u2022 Remove any redundant points\n\u2022 Keep only the most important ideas and relationships\n* NO CONCLUSION\n* NO INTRODUCTION\n* NO EXPLANATION OR ADDITIONAL TEXT\n* ONLY RESPOND WITH THE SUMMARY\n* The output should be used with a TTS system",
+          "num_predict": 256,
+          "temperature": 0,
+          "top_k": 50,
+          "top_p": 0.95,
+          "keep_alive": 300
+        },
+        "ui_properties": {
+          "position": {
+            "x": 971,
+            "y": 77
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "f78b004b-a8fa-469e-9112-774c22fd81f5",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "https://arxiv.org/pdf/1706.03762",
+          "name": "url",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 41,
+            "y": 95
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "e927bd8f-eca7-434a-b94f-818ed5d6681a",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "\ud83d\udcc4 Workflow: PDF Summarizer  ",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h1"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "This workflow takes a PDF document from a given URL, extracts text, and generates a concise summary.  ",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "---",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "\ud83d\udd39 Steps",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h3"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "String Input",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " \u2192 Provides the PDF URL (example: arXiv paper).  ",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "GET Document",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " \u2192 Downloads the PDF from the given URL.  ",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 2
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Extract Text",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " \u2192 Reads the PDF pages (here: pages 0\u20134).  ",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 3
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Summarizer",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " \u2192 Uses the ",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 16,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "gemma3:1b",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " model to produce a summary of the extracted text (max 200 tokens).  ",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 4
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "list",
+                  "version": 1,
+                  "textFormat": 1,
+                  "listType": "number",
+                  "start": 1,
+                  "tag": "ol"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "---",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "\ud83d\udd39 Usage",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h3"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Change the ",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "URL",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " in the String Input node to process a different PDF.  ",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Adjust ",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Start Page / End Page",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " to select which pages to summarize.  ",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 2
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Modify ",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Max Tokens",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " in Summarizer for longer or shorter summaries.  ",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "value": 3
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "list",
+                  "version": 1,
+                  "listType": "bullet",
+                  "start": 1,
+                  "tag": "ul"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "---",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "\ud83d\udd39 Example",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h3"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Summarizing ",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 2,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "\u201cAttention is All You Need\u201d",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " (arXiv:1706.03762) to get a clear, concise overview of the Transformer architecture.  ",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1
+            }
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": -557,
+            "y": 3
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 537,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ],
+    "edges": [
+      {
+        "id": "158a300a-f102-4a3d-b0e3-37dbf337c543",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "pdf",
+        "ui_properties": {
+          "className": "document"
+        }
+      },
+      {
+        "id": "76c75f5a-4183-464f-a0d9-91258c1976ae",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "10ea911a-0741-49bd-90c2-b2f6298bc041",
+        "source": "f78b004b-a8fa-469e-9112-774c22fd81f5",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "url",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "eb9ddb2a-0c46-438b-835b-47d7e37cfdd8",
+        "source": "6",
+        "sourceHandle": "chunk",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "chunk"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

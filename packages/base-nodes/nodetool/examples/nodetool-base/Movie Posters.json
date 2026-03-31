@@ -1,0 +1,372 @@
+{
+  "id": "movie-posters",
+  "access": "private",
+  "created_at": "2026-01-18T08:58:38.909755",
+  "updated_at": "2026-01-18T09:06:30.696809",
+  "name": "Movie Posters",
+  "tool_name": null,
+  "description": "Create cinematic movie posters using AI image generation",
+  "tags": [
+    "start",
+    "image",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "5ada5828-b7b9-4a21-a0e7-04c315fa8d07",
+        "source": "strategy_template_prompt",
+        "sourceHandle": "output",
+        "target": "strategy_prompt_formatter",
+        "targetHandle": "template"
+      },
+      {
+        "id": "ed372108-44fe-4325-a615-c98f19282ade",
+        "source": "strategy_prompt_formatter",
+        "sourceHandle": "output",
+        "target": "strategy_llm",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "4f7df337-3a31-411d-9ec1-1af5ed3fbe1c",
+        "source": "strategy_llm",
+        "sourceHandle": "text",
+        "target": "prompt_list_generator",
+        "targetHandle": "input_text"
+      },
+      {
+        "id": "7dd2c9a0-81c3-4c18-a8d8-b02b9cb82c2e",
+        "source": "designer_instructions_prompt",
+        "sourceHandle": "output",
+        "target": "prompt_list_generator",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "bdf22e6b-0b03-4434-b628-210a75c1e2b6",
+        "source": "audience_input",
+        "sourceHandle": "output",
+        "target": "strategy_prompt_formatter",
+        "targetHandle": "PRIMARY_AUDIENCE",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "b7ac2972-706a-400d-92b4-038aa9e10107",
+        "source": "movie_title_input",
+        "sourceHandle": "output",
+        "target": "strategy_prompt_formatter",
+        "targetHandle": "MOVIE_TITLE",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "a391366e-3c3b-47a2-bfc0-6f9f93216b4b",
+        "source": "genre_input",
+        "sourceHandle": "output",
+        "target": "strategy_prompt_formatter",
+        "targetHandle": "GENRE",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "f3a0ec18-b7c1-447a-8ac5-c5f8767a9469",
+        "source": "prompt_list_generator",
+        "sourceHandle": "item",
+        "target": "b058212b-fa64-4026-88b4-f06978609d89",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e39331e4-c02f-46f0-bcc2-b940d51e4db4",
+        "source": "b058212b-fa64-4026-88b4-f06978609d89",
+        "sourceHandle": "output",
+        "target": "a920173c-f874-4ef1-ac7e-4becd0a50073",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "strategy_llm",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system": "You are a friendly assistant.",
+          "image": {},
+          "audio": {},
+          "voice": "none",
+          "tools": [],
+          "messages": [],
+          "max_tokens": 4096
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 710,
+            "y": 373
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "strategy_template_prompt",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "You are a senior movie-poster strategist.  \n\nWrite a creative strategy for a fictional film called **“{{MOVIE_TITLE}}”** (Genre: **{{GENRE}}**, Audience: **{{PRIMARY_AUDIENCE}}**).  \n\nReturn only Markdown with the following sections, no commentary.  \n\n## Goal & Positioning  \n\n1–2 lines on what the poster must promise to the audience.  \n\n## Audience Insight  \n\n3–5 bullets: emotional drives, visual tastes, cultural touchpoints.  \n\n## Core Visual Concept  \n\nOne bold line: the “big idea” that excites this audience.  \n\n## Design System  \n\n- **Color Palette** – up to 5 items: Name + Hex + emotion.  \n\n- **Imagery** – ≤10 words: hero focus, composition, lighting style.  \n\n- **Typography** – 1–2 cues (font family + texture/mood).  \n\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 450
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "strategy_prompt_formatter",
+        "type": "nodetool.text.FormatText",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 400,
+            "y": 479
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "MOVIE_TITLE": "",
+          "GENRE": "",
+          "PRIMARY_AUDIENCE": ""
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "movie_title_input",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "Spaceships",
+          "name": "Movie Title"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 1010
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "genre_input",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "S",
+          "name": "Genre"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 213
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "audience_input",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "value": "Boys, Age 8-12, Gamers",
+          "name": "Primary Audience"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 773
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "prompt_list_generator",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "max_tokens": 4096
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1050,
+            "y": 104
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "designer_instructions_prompt",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "You are a senior movie-poster designer.  \n\nUsing the given strategy, create **3 cinematic Stable Diffusion prompts** for poster concepts.  \n\n\n\nGuidelines:  \n\n- Start with the main subject (hero, scene, or symbol).  \n\n- Add composition (wide shot, close-up, collage, minimalist).  \n\n- Weave in genre cues and audience triggers.  \n\n- Apply the color palette and lighting mood.  \n\n- Add typography as “cinematic title text, [style]”.  \n\n- Keep ≤ 60 words per prompt.  \n\n- Exclude watermarks, real logos, or extra limbs.  \n\nOutput format:  \n\n1. Prompt A  \n\n2. Prompt B  \n\n3. Prompt C  \n\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 710,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "b058212b-fa64-4026-88b4-f06978609d89",
+        "type": "kie.image.NanoBanana",
+        "data": {
+          "image_size": "1:1"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1360,
+            "y": 163
+          },
+          "zIndex": 0,
+          "width": 276,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "a920173c-f874-4ef1-ac7e-4becd0a50073",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "output",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1670,
+            "y": 148
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "Movie Title": {
+        "type": "string",
+        "default": "Spaceships",
+        "label": ""
+      },
+      "Genre": {
+        "type": "string",
+        "default": "S",
+        "label": ""
+      },
+      "Primary Audience": {
+        "type": "string",
+        "default": "Boys, Age 8-12, Gamers",
+        "label": ""
+      }
+    },
+    "required": [
+      "Movie Title",
+      "Genre",
+      "Primary Audience"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "output": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "output"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null
+}

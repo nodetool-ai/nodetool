@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { MessageCreateParamsNonStreaming, MessageStreamParams } from "@anthropic-ai/sdk/resources/messages/messages.js";
 import type { Chunk } from "@nodetool/protocol";
 import { createLogger } from "@nodetool/config";
 import { BaseProvider } from "./base-provider.js";
@@ -505,9 +506,9 @@ export class AnthropicProvider extends BaseProvider {
 
     log.debug("Anthropic request", { model: args.model });
 
-    const stream = (await (this.getClient().messages as any).stream(
-      request
-    )) as AsyncIterable<any>;
+    const stream = this.getClient().messages.stream(
+      request as unknown as MessageStreamParams
+    );
 
     let streamInputTokens = 0;
     let streamOutputTokens = 0;
@@ -680,7 +681,7 @@ export class AnthropicProvider extends BaseProvider {
 
     log.debug("Anthropic request", { model: args.model });
 
-    const response = await (this.getClient().messages as any).create(request);
+    const response = await this.getClient().messages.create(request as unknown as MessageCreateParamsNonStreaming);
 
     if (response.usage) {
       this.trackUsage(args.model, {

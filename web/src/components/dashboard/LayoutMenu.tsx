@@ -3,21 +3,19 @@ import React, { useState, useCallback, useMemo } from "react";
 import {
   Button,
   Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
   Divider,
   Dialog,
   DialogTitle,
   DialogContent,
-  TextField,
-  DialogActions
+  TextField
 } from "@mui/material";
+import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
 import { Save, Layers, Add } from "@mui/icons-material";
 import { useLayoutStore, UserLayout } from "../../stores/LayoutStore";
 import { DockviewApi } from "dockview";
 import { defaultLayout } from "../../config/defaultLayouts";
 import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
+import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 
 /** Minimal shape of a panel entry in SerializedDockview.panels */
 interface SerializedPanel {
@@ -148,37 +146,33 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
         Layouts
       </Button>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-        <MenuItem
+        <MenuItemPrimitive
+          label="Default Layout"
           onClick={handleSelectDefaultLayout}
           selected={activeLayoutId === null}
-        >
-          <ListItemText>Default Layout</ListItemText>
-        </MenuItem>
+        />
         <Divider />
         {(layouts || []).map((layout) => (
-          <MenuItem
+          <MenuItemPrimitive
             key={layout.id}
+            label={layout.name}
             onClick={handleSelectLayout(layout.id)}
             selected={layout.id === activeLayoutId}
-          >
-            <ListItemText>{layout.name}</ListItemText>
-          </MenuItem>
+          />
         ))}
         <Divider />
         {activeLayoutId && (
-          <MenuItem onClick={handleUpdateLayout}>
-            <ListItemIcon>
-              <Save fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Save layout</ListItemText>
-          </MenuItem>
+          <MenuItemPrimitive
+            label="Save layout"
+            icon={<Save fontSize="small" />}
+            onClick={handleUpdateLayout}
+          />
         )}
-        <MenuItem onClick={handleSaveAsNewClick}>
-          <ListItemIcon>
-            <Add fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Save as new layout...</ListItemText>
-        </MenuItem>
+        <MenuItemPrimitive
+          label="Save as new layout..."
+          icon={<Add fontSize="small" />}
+          onClick={handleSaveAsNewClick}
+        />
       </Menu>
       <Dialog open={isSaveDialogOpen} onClose={handleSaveDialogClose}>
         <DialogTitle>Save New Layout</DialogTitle>
@@ -194,10 +188,11 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
             onChange={(e) => setNewLayoutName(e.target.value)}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleSaveDialogClose}>Cancel</Button>
-          <Button onClick={handleSaveNewLayout}>Save</Button>
-        </DialogActions>
+        <DialogActionButtons
+          onCancel={handleSaveDialogClose}
+          onConfirm={handleSaveNewLayout}
+          confirmText="Save"
+        />
       </Dialog>
     </div>
   );

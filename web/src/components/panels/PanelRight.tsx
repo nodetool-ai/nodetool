@@ -10,6 +10,7 @@ import { memo, useCallback, useEffect } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useShallow } from "zustand/react/shallow";
 import { useNavigate } from "react-router-dom";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -276,7 +277,7 @@ const PanelRight: React.FC = () => {
     createNew,
     searchTemplates,
     copy,
-  } = useWorkflowManager((state) => ({
+  } = useWorkflowManager(useShallow((state) => ({
     openWorkflows: state.openWorkflows,
     currentWorkflowId: state.currentWorkflowId,
     getWorkflow: state.getWorkflow,
@@ -292,7 +293,7 @@ const PanelRight: React.FC = () => {
     createNew: state.createNew,
     searchTemplates: state.searchTemplates,
     copy: state.copy,
-  }));
+  })));
   const nodeMetadata = useMetadataStore((state) => state.metadata);
 
   const openWorkflow = useCallback(

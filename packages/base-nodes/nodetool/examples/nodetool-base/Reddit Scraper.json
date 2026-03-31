@@ -1,0 +1,317 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-01-10T00:55:56.413902",
+  "updated_at": "2026-01-10T00:56:12.356697",
+  "name": "Reddit Scraper",
+  "tool_name": null,
+  "description": "Analyze a subreddit for specific issues.",
+  "tags": [
+    "reddit",
+    "research",
+    "analysis",
+    "example"
+  ],
+  "thumbnail": "Reddit Scraper.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "subreddit"
+      },
+      {
+        "id": "2",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "subreddit"
+      },
+      {
+        "id": "3",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "focus_area"
+      },
+      {
+        "id": "4",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "objective"
+      },
+      {
+        "id": "5",
+        "source": "4",
+        "sourceHandle": "summary",
+        "target": "2",
+        "targetHandle": "summary"
+      },
+      {
+        "id": "6",
+        "source": "4",
+        "sourceHandle": "posts_analyzed",
+        "target": "2",
+        "targetHandle": "posts"
+      },
+      {
+        "id": "7",
+        "source": "4",
+        "sourceHandle": "key_issues",
+        "target": "2",
+        "targetHandle": "key_issues"
+      },
+      {
+        "id": "8",
+        "source": "4",
+        "sourceHandle": "recommendations",
+        "target": "2",
+        "targetHandle": "recommendations"
+      },
+      {
+        "id": "9",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "reddit_research_report",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1330,
+            "y": 201
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "2",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\n# Reddit analysis for r/{{ subreddit }}\n\n## Executive summary\n{{ summary }}\n\n- Posts analyzed: {{ posts }}\n\n## Key issues\n{% for issue in key_issues %}\n- {{ issue }}\n{% endfor %}\n\n## Recommendations\n{% for rec in recommendations %}\n- {{ rec }}\n{% endfor %}\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "subreddit": null,
+          "summary": null,
+          "posts": null,
+          "key_issues": null,
+          "recommendations": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "3",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "subreddit",
+          "value": "webdev",
+          "description": "Subreddit to analyze"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 32
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4",
+        "type": "nodetool.agents.ResearchAgent",
+        "data": {
+          "model": {
+            "type": "language_model"
+          },
+          "system_prompt": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "google_search"
+            },
+            {
+              "type": "tool_name",
+              "name": "browser"
+            }
+          ],
+          "max_tokens": 8192
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 680,
+            "y": 113
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "summary": {
+            "type": "str",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "posts_analyzed": {
+            "type": "int",
+            "optional": false,
+            "values": null,
+            "type_args": [],
+            "type_name": null
+          },
+          "key_issues": {
+            "type": "list",
+            "optional": false,
+            "values": null,
+            "type_args": [
+              {
+                "type": "str",
+                "optional": false,
+                "values": null,
+                "type_args": [],
+                "type_name": null
+              }
+            ],
+            "type_name": null
+          },
+          "recommendations": {
+            "type": "list",
+            "optional": false,
+            "values": null,
+            "type_args": [
+              {
+                "type": "str",
+                "optional": false,
+                "values": null,
+                "type_args": [],
+                "type_name": null
+              }
+            ],
+            "type_name": null
+          }
+        },
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "5",
+        "type": "nodetool.text.FormatText",
+        "data": {
+          "template": "\nYou are an expert Reddit researcher specializing in customer feedback analysis.\n\nMission:\n- Analyze r/{{ subreddit }} to identify {{ focus_area }}.\n\nResearch approach:\n1) Use google_search with queries such as:\n   - \"site:reddit.com/r/{{ subreddit }} problem\"\n   - \"site:reddit.com/r/{{ subreddit }} issue\"\n   - \"site:reddit.com/r/{{ subreddit }} help\"\n\n2) For each promising post:\n   - Fetch the thread with the browser tool.\n   - Extract the core problem, context, and any workaround or solution patterns.\n\n3) Synthesize an overview and actionable insights.\n\nOutput format (JSON object):\n{\n  \"summary\": \"Brief 3 to 5 sentence overview of key findings\",\n  \"posts_analyzed\": <integer>,\n  \"key_issues\": [\"main problem 1\", \"main problem 2\", ...],\n  \"recommendations\": [\"suggested improvement 1\", \"suggested improvement 2\", ...]\n}\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 164
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "subreddit": null,
+          "focus_area": null
+        },
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "6",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "focus_area",
+          "value": "common developer challenges and pain points",
+          "description": "What kind of issues to look for"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 269
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subreddit": {
+        "type": "string",
+        "default": "webdev",
+        "label": ""
+      },
+      "focus_area": {
+        "type": "string",
+        "default": "common developer challenges and pain points",
+        "label": ""
+      }
+    },
+    "required": [
+      "subreddit",
+      "focus_area"
+    ]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "reddit_research_report": {
+        "type": "any",
+        "label": ""
+      }
+    },
+    "required": [
+      "reddit_research_report"
+    ]
+  },
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null
+}

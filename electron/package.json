@@ -25,15 +25,12 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:e2e": "xvfb-run -a playwright test",
-    "test:e2e:ui": "xvfb-run -a playwright test --ui",
-    "test:e2e:headed": "xvfb-run -a playwright test --headed"
+    "test:integration": "npm run test:integration --workspace=packages/websocket"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
   "devDependencies": {
     "@jest/globals": "^29.7.0",
-    "@playwright/test": "^1.57.0",
     "@types/gunzip-maybe": "^1.4.2",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",

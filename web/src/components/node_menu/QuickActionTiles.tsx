@@ -43,161 +43,45 @@ export type QuickActionDefinition = {
   iconColor: string;
 };
 
+/**
+ * Build a QuickActionDefinition from two rgba base colors and an icon color.
+ * Eliminates the repeated gradient/shadow boilerplate across all action buttons.
+ */
+const buildQuickAction = (
+  key: string,
+  label: string,
+  nodeType: string,
+  icon: ReactNode,
+  primary: string,
+  secondary: string,
+  iconColor: string
+): QuickActionDefinition => ({
+  key,
+  label,
+  nodeType,
+  icon,
+  gradient: `linear-gradient(135deg, ${primary.replace(")", ", 0.4)")}, ${secondary.replace(")", ", 0.25)")})`,
+  hoverGradient: `linear-gradient(135deg, ${primary.replace(")", ", 0.6)")}, ${secondary.replace(")", ", 0.5)")})`,
+  shadow: `0 4px 12px ${primary.replace(")", ", 0.15)")}`,
+  hoverShadow: `0 8px 24px ${primary.replace(")", ", 0.35)")}, 0 0 16px ${secondary.replace(")", ", 0.25)")}`,
+  iconColor
+});
+
+/** Shorthand: pass rgb values (no alpha) as "rgb(r, g, b)" */
+const rgb = (r: number, g: number, b: number) => `rgba(${r}, ${g}, ${b}`;
+
 export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
-  {
-    key: "agent",
-    label: "Agent",
-    nodeType: "nodetool.agents.Agent",
-    icon: <SupportAgentIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(67, 56, 202, 0.4), rgba(79, 70, 229, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(79, 70, 229, 0.6), rgba(99, 102, 241, 0.5))",
-    shadow: "0 4px 12px rgba(79, 70, 229, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(79, 70, 229, 0.35), 0 0 16px rgba(99, 102, 241, 0.25)",
-    iconColor: "#e0e7ff"
-  },
-  {
-    key: "code",
-    label: "Code",
-    nodeType: "nodetool.code.Code",
-    icon: <CodeIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(34, 197, 94, 0.4), rgba(74, 222, 128, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(34, 197, 94, 0.6), rgba(74, 222, 128, 0.5))",
-    shadow: "0 4px 12px rgba(34, 197, 94, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(34, 197, 94, 0.35), 0 0 16px rgba(74, 222, 128, 0.25)",
-    iconColor: "#dcfce7"
-  },
-  {
-    key: "text-to-image",
-    label: "Text to Image",
-    nodeType: "nodetool.image.TextToImage",
-    icon: <ImageIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(219, 39, 119, 0.4), rgba(236, 72, 153, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(236, 72, 153, 0.6), rgba(244, 114, 182, 0.5))",
-    shadow: "0 4px 12px rgba(219, 39, 119, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(236, 72, 153, 0.35), 0 0 16px rgba(244, 114, 182, 0.25)",
-    iconColor: "#fce7f3"
-  },
-  {
-    key: "image-to-image",
-    label: "Image to Image",
-    nodeType: "nodetool.image.ImageToImage",
-    icon: <AutoFixHighIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(5, 150, 105, 0.4), rgba(16, 185, 129, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(16, 185, 129, 0.6), rgba(52, 211, 153, 0.5))",
-    shadow: "0 4px 12px rgba(5, 150, 105, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(16, 185, 129, 0.35), 0 0 16px rgba(52, 211, 153, 0.25)",
-    iconColor: "#d1fae5"
-  },
-  {
-    key: "text-to-video",
-    label: "Text to Video",
-    nodeType: "nodetool.video.TextToVideo",
-    icon: <VideoLibraryIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(147, 51, 234, 0.4), rgba(168, 85, 247, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(168, 85, 247, 0.6), rgba(192, 132, 252, 0.5))",
-    shadow: "0 4px 12px rgba(147, 51, 234, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(168, 85, 247, 0.35), 0 0 16px rgba(192, 132, 252, 0.25)",
-    iconColor: "#f3e8ff"
-  },
-  {
-    key: "image-to-video",
-    label: "Image to Video",
-    nodeType: "nodetool.video.ImageToVideo",
-    icon: <OndemandVideoIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(234, 88, 12, 0.4), rgba(249, 115, 22, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(249, 115, 22, 0.6), rgba(251, 146, 60, 0.5))",
-    shadow: "0 4px 12px rgba(234, 88, 12, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(249, 115, 22, 0.35), 0 0 16px rgba(251, 146, 60, 0.25)",
-    iconColor: "#ffedd5"
-  },
-  {
-    key: "text-to-speech",
-    label: "Text to Speech",
-    nodeType: "nodetool.audio.TextToSpeech",
-    icon: <RecordVoiceOverIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(8, 145, 178, 0.4), rgba(6, 182, 212, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(6, 182, 212, 0.6), rgba(34, 211, 238, 0.5))",
-    shadow: "0 4px 12px rgba(8, 145, 178, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(6, 182, 212, 0.35), 0 0 16px rgba(34, 211, 238, 0.25)",
-    iconColor: "#cffafe"
-  },
-  {
-    key: "speech-to-text",
-    label: "Speech to Text",
-    nodeType: "nodetool.text.AutomaticSpeechRecognition",
-    icon: <KeyboardVoiceIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(2, 132, 199, 0.4), rgba(14, 165, 233, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(14, 165, 233, 0.6), rgba(56, 189, 248, 0.5))",
-    shadow: "0 4px 12px rgba(2, 132, 199, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(14, 165, 233, 0.35), 0 0 16px rgba(56, 189, 248, 0.25)",
-    iconColor: "#e0f2fe"
-  },
-  {
-    key: "fal-dynamic",
-    label: "FalAI",
-    nodeType: DYNAMIC_FAL_NODE_TYPE,
-    icon: <ApiIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(167, 139, 250, 0.5))",
-    shadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(139, 92, 246, 0.35), 0 0 16px rgba(167, 139, 250, 0.25)",
-    iconColor: "#e9d5ff"
-  },
-  {
-    key: "kie-dynamic",
-    label: "KieAI",
-    nodeType: DYNAMIC_KIE_NODE_TYPE,
-    icon: <ApiIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(229, 92, 32, 0.4), rgba(255, 140, 66, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(229, 92, 32, 0.6), rgba(255, 140, 66, 0.5))",
-    shadow: "0 4px 12px rgba(229, 92, 32, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(229, 92, 32, 0.35), 0 0 16px rgba(255, 140, 66, 0.25)",
-    iconColor: "#ffe0cc"
-  },
-  {
-    key: "replicate-dynamic",
-    label: "Replicate",
-    nodeType: DYNAMIC_REPLICATE_NODE_TYPE,
-    icon: <ApiIcon />,
-    gradient:
-      "linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(99, 102, 241, 0.25))",
-    hoverGradient:
-      "linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(129, 140, 248, 0.5))",
-    shadow: "0 4px 12px rgba(59, 130, 246, 0.15)",
-    hoverShadow:
-      "0 8px 24px rgba(59, 130, 246, 0.35), 0 0 16px rgba(129, 140, 248, 0.25)",
-    iconColor: "#dbeafe"
-  }
+  buildQuickAction("agent", "Agent", "nodetool.agents.Agent", <SupportAgentIcon />, rgb(79, 70, 229), rgb(99, 102, 241), "#e0e7ff"),
+  buildQuickAction("code", "Code", "nodetool.code.Code", <CodeIcon />, rgb(34, 197, 94), rgb(74, 222, 128), "#dcfce7"),
+  buildQuickAction("text-to-image", "Text to Image", "nodetool.image.TextToImage", <ImageIcon />, rgb(236, 72, 153), rgb(244, 114, 182), "#fce7f3"),
+  buildQuickAction("image-to-image", "Image to Image", "nodetool.image.ImageToImage", <AutoFixHighIcon />, rgb(16, 185, 129), rgb(52, 211, 153), "#d1fae5"),
+  buildQuickAction("text-to-video", "Text to Video", "nodetool.video.TextToVideo", <VideoLibraryIcon />, rgb(168, 85, 247), rgb(192, 132, 252), "#f3e8ff"),
+  buildQuickAction("image-to-video", "Image to Video", "nodetool.video.ImageToVideo", <OndemandVideoIcon />, rgb(249, 115, 22), rgb(251, 146, 60), "#ffedd5"),
+  buildQuickAction("text-to-speech", "Text to Speech", "nodetool.audio.TextToSpeech", <RecordVoiceOverIcon />, rgb(6, 182, 212), rgb(34, 211, 238), "#cffafe"),
+  buildQuickAction("speech-to-text", "Speech to Text", "nodetool.text.AutomaticSpeechRecognition", <KeyboardVoiceIcon />, rgb(14, 165, 233), rgb(56, 189, 248), "#e0f2fe"),
+  buildQuickAction("fal-dynamic", "FalAI", DYNAMIC_FAL_NODE_TYPE, <ApiIcon />, rgb(139, 92, 246), rgb(167, 139, 250), "#e9d5ff"),
+  buildQuickAction("kie-dynamic", "KieAI", DYNAMIC_KIE_NODE_TYPE, <ApiIcon />, rgb(229, 92, 32), rgb(255, 140, 66), "#ffe0cc"),
+  buildQuickAction("replicate-dynamic", "Replicate", DYNAMIC_REPLICATE_NODE_TYPE, <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#dbeafe")
 ];
 
 const hexToRgba = (hex: string, alpha: number) => {
