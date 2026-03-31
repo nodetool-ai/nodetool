@@ -12,6 +12,13 @@
 - only run sketch-related tests for normal iteration, not full app tests
 - when changing shortcuts, edit src/components/sketch/SHORTCUTS.md
 
+## PHASE 0: Current Fixes
+
+- [ ] Move tool only shows preview after using drawing tool. it should work on first move action as well, not only after drawing.
+- [ ] Transform tool should draw gizom on top of canvas and outside canvas bounds
+- [ ] Transform tool gizmo looks blurry
+- [ ] Transform tool needs general improvments: fitting mouse cursor on hover, ALT modifier for scaling from center, preview while transforming not only on commit
+
 ## PHASE 1: Current Priorities
 
 - [x] fix editor bootstrap so the canvas is visible immediately on open instead of only appearing after the first draw/erase interaction
