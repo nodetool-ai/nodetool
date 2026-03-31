@@ -74,8 +74,10 @@ export function extractDynamicIO(workflow: Workflow) {
   for (const node of nodes) {
     const nodeType = (node as { type?: string }).type ?? "";
     const nodeData = (node as { data?: Record<string, unknown> }).data ?? {};
-    const properties =
-      (nodeData.properties as Record<string, unknown> | undefined) ?? {};
+    // API workflow nodes store properties directly in node.data (e.g. node.data.name),
+    // while ReactFlow nodes nest them under node.data.properties.
+    const nested = nodeData.properties as Record<string, unknown> | undefined;
+    const properties = (nested && typeof nested === "object") ? nested : nodeData;
     const typeNameFallback = nodeType.split(".").pop() ?? "input";
     const inputName =
       (properties.name as string | undefined) ??
