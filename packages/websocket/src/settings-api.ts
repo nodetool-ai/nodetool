@@ -152,7 +152,6 @@ sec("SERPAPI_API_KEY", "SerpAPI", "API key for accessing SerpAPI scraping infras
 sec("APIFY_API_KEY", "Apify", "API key for accessing Apify's web scraping and automation platform");
 sec("BROWSER_URL", "Browser", "Browser URL for accessing a browser instance");
 sec("RUNPOD_API_KEY", "RunPod", "RunPod API key for accessing serverless endpoints");
-sec("RUNPOD_COMFYUI_ENDPOINT_ID", "RunPod", "RunPod serverless endpoint ID for the ComfyUI worker");
 sec("NODE_SUPABASE_KEY", "NodeSupabase", "Supabase service key for user-provided nodes");
 sec("DATA_FOR_SEO_LOGIN", "DataForSEO", "DataForSEO login for accessing DataForSEO's API");
 sec("DATA_FOR_SEO_PASSWORD", "DataForSEO", "DataForSEO password for accessing DataForSEO's API");

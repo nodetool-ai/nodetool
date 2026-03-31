@@ -11,8 +11,11 @@ import {
 } from "@mui/material";
 import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import type { ComfyBackendType } from "../../stores/ComfyUIStore";
-import { RunPodService } from "../../services/RunPodService";
+import useSecretsStore from "../../stores/SecretsStore";
+import { useSecrets } from "../../hooks/useSecrets";
 import { useTheme } from "@mui/material/styles";
+
+const RUNPOD_API_KEY = "RUNPOD_API_KEY";
 
 const ComfyUISettings: React.FC = () => {
   const theme = useTheme();
@@ -25,21 +28,23 @@ const ComfyUISettings: React.FC = () => {
   const isConnecting = useComfyUIStore((state) => state.isConnecting);
   const connectionError = useComfyUIStore((state) => state.connectionError);
   const backendType = useComfyUIStore((state) => state.backendType);
-  const runpod = useComfyUIStore((state) => state.runpod);
-  const isRunpodConnected = useComfyUIStore((state) => state.isRunpodConnected);
 
   const setBaseUrl = useComfyUIStore((state) => state.setBaseUrl);
   const connect = useComfyUIStore((state) => state.connect);
   const disconnect = useComfyUIStore((state) => state.disconnect);
   const setBackendType = useComfyUIStore((state) => state.setBackendType);
-  const setRunpodConfig = useComfyUIStore((state) => state.setRunpodConfig);
-  const setRunpodConnected = useComfyUIStore((state) => state.setRunpodConnected);
+  const setRunpodKeyConfigured = useComfyUIStore((state) => state.setRunpodKeyConfigured);
+
+  const updateSecret = useSecretsStore((state) => state.updateSecret);
+  const { isApiKeySet } = useSecrets();
 
   const [localUrl, setLocalUrl] = useState(baseUrl);
-  const [localApiKey, setLocalApiKey] = useState(runpod.apiKey);
-  const [localEndpointId, setLocalEndpointId] = useState(runpod.endpointId);
-  const [runpodConnecting, setRunpodConnecting] = useState(false);
-  const [runpodError, setRunpodError] = useState<string | null>(null);
+  const [localApiKey, setLocalApiKey] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const runpodKeyConfigured = isApiKeySet(RUNPOD_API_KEY);
 
   const handleConnect = useCallback(async () => {
     try {
@@ -63,29 +68,27 @@ const ComfyUISettings: React.FC = () => {
     [setBackendType]
   );
 
-  const handleRunpodConnect = useCallback(async () => {
-    setRunpodError(null);
-    setRunpodConnecting(true);
+  const handleSaveApiKey = useCallback(async () => {
+    if (!localApiKey) return;
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
     try {
-      setRunpodConfig({ apiKey: localApiKey, endpointId: localEndpointId });
-      const service = new RunPodService(localApiKey, localEndpointId);
-      const healthy = await service.checkHealth();
-      if (!healthy) {
-        throw new Error("RunPod endpoint is not reachable. Check your endpoint ID and API key.");
-      }
-      setRunpodConnected(true);
+      await updateSecret(
+        RUNPOD_API_KEY,
+        localApiKey,
+        "RunPod API key for ComfyUI serverless endpoints"
+      );
+      setLocalApiKey("");
+      setSaveSuccess(true);
+      setRunpodKeyConfigured(true);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Failed to connect";
-      setRunpodError(msg);
-      setRunpodConnected(false);
+      const msg = error instanceof Error ? error.message : "Failed to save API key";
+      setSaveError(msg);
     } finally {
-      setRunpodConnecting(false);
+      setSaving(false);
     }
-  }, [localApiKey, localEndpointId, setRunpodConfig, setRunpodConnected]);
-
-  const handleRunpodDisconnect = useCallback(() => {
-    setRunpodConnected(false);
-  }, [setRunpodConnected]);
+  }, [localApiKey, updateSecret, setRunpodKeyConfigured]);
 
   return (
     <Box sx={{ p: 2 }}>
@@ -168,59 +171,54 @@ const ComfyUISettings: React.FC = () => {
             label="RunPod API Key"
             type="password"
             value={localApiKey}
-            onChange={(e) => setLocalApiKey(e.target.value)}
-            disabled={runpodConnecting || isRunpodConnected}
-            placeholder="rpa_..."
+            onChange={(e) => {
+              setLocalApiKey(e.target.value);
+              setSaveSuccess(false);
+            }}
+            disabled={saving}
+            placeholder={runpodKeyConfigured ? "••••••••  (saved)" : "rpa_..."}
+            helperText={
+              runpodKeyConfigured
+                ? "API key is saved securely. Enter a new value to update it."
+                : "Your API key will be stored securely as an encrypted secret."
+            }
             sx={{ mb: 2 }}
           />
 
-          <TextField
-            fullWidth
-            label="RunPod Endpoint ID"
-            value={localEndpointId}
-            onChange={(e) => setLocalEndpointId(e.target.value)}
-            disabled={runpodConnecting || isRunpodConnected}
-            placeholder="e.g. abc123def456"
-            helperText="The endpoint ID from your RunPod serverless ComfyUI worker"
-            sx={{ mb: 2 }}
-          />
-
-          {runpodError && (
+          {saveError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {runpodError}
+              {saveError}
             </Alert>
           )}
 
-          {isRunpodConnected && (
+          {saveSuccess && (
             <Alert severity="success" sx={{ mb: 2 }}>
-              Connected to RunPod ComfyUI endpoint
+              RunPod API key saved securely.
             </Alert>
           )}
 
-          <Box sx={{ display: "flex", gap: 2 }}>
-            {!isRunpodConnected ? (
-              <Button
-                variant="contained"
-                onClick={handleRunpodConnect}
-                disabled={
-                  runpodConnecting || !localApiKey || !localEndpointId
-                }
-              >
-                {runpodConnecting ? "Connecting..." : "Connect"}
-              </Button>
-            ) : (
-              <Button variant="outlined" onClick={handleRunpodDisconnect}>
-                Disconnect
-              </Button>
-            )}
-          </Box>
+          {runpodKeyConfigured && !saveSuccess && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              RunPod API key is configured. Set the endpoint ID on each
+              &quot;Run ComfyUI Workflow (RunPod)&quot; node in your workflow.
+            </Alert>
+          )}
+
+          <Button
+            variant="contained"
+            onClick={handleSaveApiKey}
+            disabled={saving || !localApiKey}
+          >
+            {saving ? "Saving..." : "Save API Key"}
+          </Button>
 
           <Typography
             variant="caption"
             sx={{ mt: 2, display: "block", color: theme.palette.text.secondary }}
           >
-            Deploy a ComfyUI worker on RunPod Serverless to run workflows in the
-            cloud. Use the blib-la/runpod-worker-comfy Docker image.
+            Deploy a ComfyUI worker on RunPod Serverless, then add a
+            &quot;Run ComfyUI Workflow (RunPod)&quot; node to your workflow with
+            the endpoint ID.
           </Typography>
         </>
       )}

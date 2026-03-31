@@ -15,11 +15,6 @@ import log from "loglevel";
 
 export type ComfyBackendType = "local" | "runpod";
 
-interface RunPodConfig {
-  apiKey: string;
-  endpointId: string;
-}
-
 interface ComfyUIState {
   // Connection state
   isConnected: boolean;
@@ -30,9 +25,8 @@ interface ComfyUIState {
   // Backend selection
   backendType: ComfyBackendType;
 
-  // RunPod config
-  runpod: RunPodConfig;
-  isRunpodConnected: boolean;
+  // RunPod state (API key is stored as a secret via SecretsStore)
+  isRunpodKeyConfigured: boolean;
 
   // Node schema cache
   objectInfo: ComfyUIObjectInfo | null;
@@ -47,7 +41,7 @@ interface ComfyUIState {
   // Actions
   setBaseUrl: (url: string) => void;
   setBackendType: (type: ComfyBackendType) => void;
-  setRunpodConfig: (config: Partial<RunPodConfig>) => void;
+  setRunpodKeyConfigured: (configured: boolean) => void;
   checkConnection: () => Promise<boolean>;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -55,7 +49,6 @@ interface ComfyUIState {
   setCurrentPromptId: (id: string | null) => void;
   setExecuting: (isExecuting: boolean) => void;
   setExecutionProgress: (progress: number) => void;
-  setRunpodConnected: (connected: boolean) => void;
   reset: () => void;
 }
 
@@ -89,18 +82,6 @@ function saveBackendType(type: ComfyBackendType): void {
   localStorage.setItem("comfyui_backend_type", type);
 }
 
-function loadRunpodConfig(): RunPodConfig {
-  return {
-    apiKey: localStorage.getItem("runpod_api_key") || "",
-    endpointId: localStorage.getItem("runpod_endpoint_id") || ""
-  };
-}
-
-function saveRunpodConfig(config: RunPodConfig): void {
-  localStorage.setItem("runpod_api_key", config.apiKey);
-  localStorage.setItem("runpod_endpoint_id", config.endpointId);
-}
-
 export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
   // Initial state
   isConnected: false,
@@ -109,8 +90,7 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
   baseUrl: loadComfyUIUrl(),
 
   backendType: loadBackendType(),
-  runpod: loadRunpodConfig(),
-  isRunpodConnected: false,
+  isRunpodKeyConfigured: false,
 
   objectInfo: null,
   isFetchingObjectInfo: false,
@@ -138,15 +118,8 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
     set({ backendType: type });
   },
 
-  setRunpodConfig: (config: Partial<RunPodConfig>) => {
-    const current = get().runpod;
-    const updated = { ...current, ...config };
-    saveRunpodConfig(updated);
-    set({ runpod: updated, isRunpodConnected: false });
-  },
-
-  setRunpodConnected: (connected: boolean) => {
-    set({ isRunpodConnected: connected });
+  setRunpodKeyConfigured: (configured: boolean) => {
+    set({ isRunpodKeyConfigured: configured });
   },
 
   checkConnection: async () => {
@@ -256,7 +229,6 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
       isConnected: false,
       isConnecting: false,
       connectionError: null,
-      isRunpodConnected: false,
       objectInfo: null,
       isFetchingObjectInfo: false,
       objectInfoError: null,

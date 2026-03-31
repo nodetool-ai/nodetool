@@ -230,10 +230,17 @@ export class RunComfyUIWorkflowOnRunPodNode extends BaseNode {
     "Accepts a workflow in ComfyUI API format. Returns generated images and raw output.\n" +
     "comfyui, workflow, image, generation, runpod, cloud, serverless";
   static readonly metadataOutputTypes = COMFY_OUTPUT_TYPES;
-  static readonly requiredSettings = [
-    "RUNPOD_API_KEY",
-    "RUNPOD_COMFYUI_ENDPOINT_ID",
-  ];
+  static readonly requiredSettings = ["RUNPOD_API_KEY"];
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Endpoint ID",
+    description:
+      "RunPod serverless endpoint ID for the ComfyUI worker (e.g. abc123def456).",
+    required: true,
+  })
+  declare endpoint_id: string;
 
   @prop({
     type: "dict[str, any]",
@@ -249,12 +256,15 @@ export class RunComfyUIWorkflowOnRunPodNode extends BaseNode {
     _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const workflow = requireWorkflow(this.workflow);
+    const endpointId = String(this.endpoint_id ?? "").trim();
+    if (!endpointId) {
+      throw new Error("endpoint_id is required — set the RunPod serverless endpoint ID on this node.");
+    }
 
     const apiKey = envOrSecret(this._secrets, "RUNPOD_API_KEY");
-    const endpointId = envOrSecret(this._secrets, "RUNPOD_COMFYUI_ENDPOINT_ID");
-    if (!apiKey || !endpointId) {
+    if (!apiKey) {
       throw new Error(
-        "RunPod credentials not configured. Set RUNPOD_API_KEY and RUNPOD_COMFYUI_ENDPOINT_ID in settings."
+        "RUNPOD_API_KEY not configured. Set it in Settings > Secrets."
       );
     }
 

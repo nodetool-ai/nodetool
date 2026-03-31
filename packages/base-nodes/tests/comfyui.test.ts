@@ -113,7 +113,7 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
     expect(RunComfyUIWorkflowOnRunPodNode.requiredSettings).toContain(
       "RUNPOD_API_KEY"
     );
-    expect(RunComfyUIWorkflowOnRunPodNode.requiredSettings).toContain(
+    expect(RunComfyUIWorkflowOnRunPodNode.requiredSettings).not.toContain(
       "RUNPOD_COMFYUI_ENDPOINT_ID"
     );
     // Same output types as the local node
@@ -129,24 +129,34 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
 
   it("throws when workflow is empty", async () => {
     const node = new RunComfyUIWorkflowOnRunPodNode();
-    node.assign({ workflow: {} });
+    node.assign({ workflow: {}, endpoint_id: "ep_test" });
     Object.defineProperty(node, "_secrets", {
-      get: () => ({
-        RUNPOD_API_KEY: "rpa_test",
-        RUNPOD_COMFYUI_ENDPOINT_ID: "ep_test",
-      }),
+      get: () => ({ RUNPOD_API_KEY: "rpa_test" }),
     });
     await expect(node.process()).rejects.toThrow("workflow is required");
   });
 
-  it("throws when RunPod creds are missing", async () => {
+  it("throws when endpoint_id is missing", async () => {
     const node = new RunComfyUIWorkflowOnRunPodNode();
     node.assign({
       workflow: { "3": { class_type: "KSampler", inputs: {} } },
+      endpoint_id: "",
+    });
+    Object.defineProperty(node, "_secrets", {
+      get: () => ({ RUNPOD_API_KEY: "rpa_test" }),
+    });
+    await expect(node.process()).rejects.toThrow("endpoint_id is required");
+  });
+
+  it("throws when RunPod API key is missing", async () => {
+    const node = new RunComfyUIWorkflowOnRunPodNode();
+    node.assign({
+      workflow: { "3": { class_type: "KSampler", inputs: {} } },
+      endpoint_id: "ep_test",
     });
     Object.defineProperty(node, "_secrets", { get: () => ({}) });
     await expect(node.process()).rejects.toThrow(
-      "RunPod credentials not configured"
+      "RUNPOD_API_KEY not configured"
     );
   });
 
@@ -181,13 +191,11 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
 
     const node = new RunComfyUIWorkflowOnRunPodNode();
     Object.defineProperty(node, "_secrets", {
-      get: () => ({
-        RUNPOD_API_KEY: "rpa_test",
-        RUNPOD_COMFYUI_ENDPOINT_ID: "ep_test",
-      }),
+      get: () => ({ RUNPOD_API_KEY: "rpa_test" }),
     });
     node.assign({
       workflow: { "3": { class_type: "KSampler", inputs: {} } },
+      endpoint_id: "ep_test",
     });
 
     const result = await node.process();
