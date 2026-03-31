@@ -169,6 +169,7 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
+  updateWorkflowSetting: (key: string, value: unknown) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -990,6 +991,11 @@ export const createNodeStore = (
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
+          },
+          updateWorkflowSetting: (key: string, value: unknown): void => {
+            const current = get().workflow;
+            const settings = { ...(current.settings ?? {}), [key]: value as string | number | boolean | null };
+            set({ workflow: { ...current, settings } });
           },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;

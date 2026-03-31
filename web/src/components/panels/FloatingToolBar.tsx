@@ -8,7 +8,10 @@ import {
   Box,
   useMediaQuery,
   Tooltip,
-  Menu
+  Menu,
+  Select,
+  MenuItem,
+  TextField
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -386,6 +389,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
+  const comfyExecutor = useNodes((state) => {
+    const settings = state.workflow.settings as Record<string, unknown> | undefined;
+    return String(settings?.comfy_executor ?? "local");
+  });
+  const runpodEndpointId = useNodes((state) => {
+    const settings = state.workflow.settings as Record<string, unknown> | undefined;
+    return String(settings?.runpod_endpoint_id ?? "");
+  });
+  const updateWorkflowSetting = useNodes((state) => state.updateWorkflowSetting);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
@@ -511,6 +523,37 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={handleResume}
             aria-label="Resume workflow"
           />
+        )}
+
+        {isComfyWorkflow && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1 }}>
+            <Select
+              size="small"
+              value={comfyExecutor}
+              onChange={(e) => updateWorkflowSetting("comfy_executor", e.target.value)}
+              sx={{
+                minWidth: 100,
+                height: 28,
+                fontSize: "0.75rem",
+                "& .MuiSelect-select": { py: 0.25 }
+              }}
+            >
+              <MenuItem value="local">Local</MenuItem>
+              <MenuItem value="runpod">RunPod</MenuItem>
+            </Select>
+            {comfyExecutor === "runpod" && (
+              <TextField
+                size="small"
+                placeholder="Endpoint ID"
+                value={runpodEndpointId}
+                onChange={(e) => updateWorkflowSetting("runpod_endpoint_id", e.target.value)}
+                sx={{
+                  width: 130,
+                  "& .MuiInputBase-input": { height: 28, py: 0, fontSize: "0.75rem" }
+                }}
+              />
+            )}
+          </Box>
         )}
 
         <Box
