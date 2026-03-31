@@ -28,6 +28,7 @@ import {
 import type { ActiveStrokeInfo } from "./useCompositing";
 import { Canvas2DRuntime } from "../rendering";
 import { getToolHandler } from "../tools";
+import { TransformTool } from "../tools/TransformTool";
 import type {
   ToolContext,
   ToolPointerEvent,
@@ -112,6 +113,8 @@ export interface UsePointerHandlersParams {
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** Screen-resolution canvas for transform gizmo (not clipped by doc-stack). */
+  gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
   mousePositionRef: React.MutableRefObject<Point>;
@@ -205,6 +208,7 @@ export function usePointerHandlers({
   displayCanvasRef,
   overlayCanvasRef,
   cursorCanvasRef,
+  gizmoCanvasRef,
   containerRef,
   layerCanvasesRef,
   mousePositionRef,
@@ -376,6 +380,7 @@ export function usePointerHandlers({
     selection: selection ?? null,
     displayCanvasRef,
     overlayCanvasRef,
+    gizmoCanvasRef,
     cursorCanvasRef,
     containerRef,
     layerCanvasesRef,
@@ -677,6 +682,12 @@ export function usePointerHandlers({
           }
         }
 
+        // Ensure the layer canvas exists so that the compositing pipeline can
+        // render the layer while it is being dragged. Without this, the first
+        // move action on a layer that has never been drawn on shows no preview
+        // because Canvas2DRuntime.compositeToDisplay skips layers without a canvas.
+        getOrCreateLayerCanvas(moveTargetLayer.id);
+
         moveStartRef.current = pt;
         moveLayerStartTransformRef.current = {
           x: moveTargetLayer.transform?.x ?? 0,
@@ -695,6 +706,8 @@ export function usePointerHandlers({
       }
 
       if (interactionTool === "transform") {
+        // Ensure the layer canvas exists for live transform preview compositing
+        getOrCreateLayerCanvas(activeLayer.id);
         const handler = getToolHandler(interactionTool);
         const started = handler.onDown?.(toolCtxRef.current, buildToolPointerEvent(e));
         if (started) {
@@ -1160,6 +1173,19 @@ export function usePointerHandlers({
         const pt = screenToCanvas(e.clientX, e.clientY);
         drawOverlayLassoPreview(lassoPointsRef.current, pt);
         return;
+      }
+
+      // Transform tool: update cursor based on which handle is under the pointer
+      if (!isDrawingRef.current && interactionTool === "transform") {
+        const handler = getToolHandler(interactionTool);
+        if (handler instanceof TransformTool) {
+          const docPt = screenToCanvas(e.clientX, e.clientY);
+          const cursor = handler.getHoverCursor(toolCtxRef.current, docPt);
+          const el = containerRef.current;
+          if (el) {
+            el.style.cursor = cursor ?? "default";
+          }
+        }
       }
 
       if (!isDrawingRef.current) {

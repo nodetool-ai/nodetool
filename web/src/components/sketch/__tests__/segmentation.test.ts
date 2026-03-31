@@ -121,6 +121,7 @@ function makeToolContext(overrides?: Record<string, unknown>) {
     selection: null,
     displayCanvasRef: { current: null },
     overlayCanvasRef: { current: null },
+    gizmoCanvasRef: { current: null },
     cursorCanvasRef: { current: null },
     containerRef: { current: null },
     layerCanvasesRef: { current: new Map() },

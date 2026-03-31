@@ -10,6 +10,13 @@
  * The transform is "live" – it updates the LayerTransform in the store as
  * the user drags. Commit (Enter / button) or cancel (Escape / button) from
  * the top bar.
+ *
+ * Modifiers:
+ *   - Shift: constrain proportions (scale) or snap angle (rotate)
+ *   - Alt: scale from center (keep center fixed)
+ *
+ * The gizmo is drawn on a dedicated screen-resolution canvas (`gizmoCanvasRef`)
+ * so it is not clipped by the document-stack overflow and appears crisp at any zoom.
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
@@ -30,10 +37,12 @@ export type TransformHandle =
   | "rotate"
   | "move";
 
-/** Screen-space radius for handle hit testing. */
+/** Screen-space radius for handle hit testing (CSS px). */
 const HANDLE_RADIUS = 8;
-/** Distance (in screen px) of the rotation handle above the top edge. */
+/** Distance (in CSS px) of the rotation handle above the top edge. */
 const ROTATION_HANDLE_OFFSET = 24;
+/** Screen-space size of a handle square (CSS px). */
+const HANDLE_SIZE = 8;
 
 // ─── Geometry helpers ─────────────────────────────────────────────────────────
 
@@ -78,6 +87,36 @@ function dist(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+/** CSS cursor for a given handle (accounting for rotation). */
+function cursorForHandle(handle: TransformHandle | null, rotation: number): string {
+  if (!handle) {
+    return "default";
+  }
+  if (handle === "move") {
+    return "move";
+  }
+  if (handle === "rotate") {
+    return "grab";
+  }
+  // For scale handles, pick a directional resize cursor rotated by the layer rotation
+  const baseDeg: Record<string, number> = {
+    "top": 0,
+    "top-right": 45,
+    "right": 90,
+    "bottom-right": 135,
+    "bottom": 180,
+    "bottom-left": 225,
+    "left": 270,
+    "top-left": 315
+  };
+  const base = baseDeg[handle] ?? 0;
+  // Normalize the total angle into a cursor bucket (8 directions, 45° each)
+  const totalDeg = ((base + (rotation * 180) / Math.PI) % 360 + 360) % 360;
+  const bucket = Math.round(totalDeg / 45) % 4;
+  const cursors = ["ns-resize", "nesw-resize", "ew-resize", "nwse-resize"];
+  return cursors[bucket];
+}
+
 // ─── TransformTool class ──────────────────────────────────────────────────────
 
 export class TransformTool implements ToolHandler {
@@ -97,6 +136,8 @@ export class TransformTool implements ToolHandler {
   private center: Point = { x: 0, y: 0 };
   /** Whether a transform gesture has been started. */
   private gestureActive = false;
+  /** Currently hovered handle (for cursor feedback). */
+  private hoveredHandle: TransformHandle | null = null;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -114,13 +155,16 @@ export class TransformTool implements ToolHandler {
     };
     this.originalBounds = layerDocBounds(layer.contentBounds, { x: 0, y: 0 });
     this.activeHandle = null;
+    this.hoveredHandle = null;
     this.gestureActive = false;
-    this.drawOverlay(ctx);
+    this.drawGizmo(ctx);
   }
 
   onDeactivate(ctx: ToolContext): void {
     this.activeHandle = null;
+    this.hoveredHandle = null;
     this.gestureActive = false;
+    this.clearGizmo(ctx);
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
   }
@@ -163,11 +207,12 @@ export class TransformTool implements ToolHandler {
     }
 
     const shift = ctx.shiftHeldRef.current;
-    const newTransform = this.computeTransform(pt, shift);
+    const alt = ctx.altHeldRef.current;
+    const newTransform = this.computeTransform(pt, shift, alt);
     ctx.onLayerTransformChange(layer.id, newTransform);
 
-    // Redraw overlay to reflect new handles
-    this.drawOverlay(ctx);
+    // Redraw gizmo to reflect new handles
+    this.drawGizmo(ctx);
   }
 
   onUp(ctx: ToolContext): void {
@@ -180,7 +225,7 @@ export class TransformTool implements ToolHandler {
         syncDocumentFromCanvas: false
       });
     }
-    this.drawOverlay(ctx);
+    this.drawGizmo(ctx);
   }
 
   // ── Public API (for settings panel commit/cancel/reset) ────────────────────
@@ -190,9 +235,24 @@ export class TransformTool implements ToolHandler {
     return { ...this.originalTransform };
   }
 
-  /** Refresh the overlay (e.g. after external transform change). */
+  /** Refresh the gizmo (e.g. after external transform change). */
   refreshOverlay(ctx: ToolContext): void {
-    this.drawOverlay(ctx);
+    this.drawGizmo(ctx);
+  }
+
+  /**
+   * Hit-test handles for cursor feedback during hover (called from pointer handler).
+   * Returns the CSS cursor string, or null if no handle is under the pointer.
+   */
+  getHoverCursor(ctx: ToolContext, docPoint: Point): string | null {
+    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    if (!layer) {
+      return null;
+    }
+    const handle = this.hitTestHandle(layer, docPoint, ctx.zoom);
+    this.hoveredHandle = handle;
+    const rot = layer.transform.rotation ?? 0;
+    return handle ? cursorForHandle(handle, rot) : null;
   }
 
   // ── Handle hit testing ─────────────────────────────────────────────────────
@@ -270,7 +330,7 @@ export class TransformTool implements ToolHandler {
 
   // ── Transform computation ──────────────────────────────────────────────────
 
-  private computeTransform(cursor: Point, shift: boolean): LayerTransform {
+  private computeTransform(cursor: Point, shift: boolean, alt: boolean): LayerTransform {
     const ds = this.dragStartTransform;
     const start = this.dragStart!;
     const handle = this.activeHandle!;
@@ -364,12 +424,197 @@ export class TransformTool implements ToolHandler {
     newSx = Math.max(0.01, newSx);
     newSy = Math.max(0.01, newSy);
 
+    // ALT modifier: scale from center (default behavior).
+    // Without ALT, anchor the opposite edge so it stays fixed.
+    if (!alt && handle !== "move" && handle !== "rotate") {
+      const result = { ...ds, scaleX: newSx, scaleY: newSy };
+      // Compute the translation offset to keep the opposite edge fixed
+      const dScaleX = newSx - sx;
+      const dScaleY = newSy - sy;
+
+      // The anchor direction depends on which handle is being dragged
+      let anchorDx = 0;
+      let anchorDy = 0;
+      if (handle === "top-left") {
+        anchorDx = 1; anchorDy = 1;
+      } else if (handle === "top-right") {
+        anchorDx = -1; anchorDy = 1;
+      } else if (handle === "bottom-left") {
+        anchorDx = 1; anchorDy = -1;
+      } else if (handle === "bottom-right") {
+        anchorDx = -1; anchorDy = -1;
+      } else if (handle === "left") {
+        anchorDx = 1; anchorDy = 0;
+      } else if (handle === "right") {
+        anchorDx = -1; anchorDy = 0;
+      } else if (handle === "top") {
+        anchorDx = 0; anchorDy = 1;
+      } else if (handle === "bottom") {
+        anchorDx = 0; anchorDy = -1;
+      }
+
+      // Offset = half the size change, in the anchor direction, rotated by layer rotation
+      const offsetX = (anchorDx * dScaleX * bounds.width) / 2;
+      const offsetY = (anchorDy * dScaleY * bounds.height) / 2;
+
+      // Rotate the offset by the current rotation
+      const cos = Math.cos(rot);
+      const sin = Math.sin(rot);
+      result.x = Math.round(ds.x + offsetX * cos - offsetY * sin);
+      result.y = Math.round(ds.y + offsetX * sin + offsetY * cos);
+
+      return result;
+    }
+
     return { ...ds, scaleX: newSx, scaleY: newSy };
   }
 
-  // ── Overlay drawing ────────────────────────────────────────────────────────
+  // ── Gizmo drawing (screen-resolution canvas) ──────────────────────────────
 
-  private drawOverlay(ctx: ToolContext): void {
+  private clearGizmo(ctx: ToolContext): void {
+    const gizmo = ctx.gizmoCanvasRef.current;
+    if (!gizmo) {
+      return;
+    }
+    const gc = gizmo.getContext("2d");
+    if (gc) {
+      gc.setTransform(1, 0, 0, 1, 0, 0);
+      gc.clearRect(0, 0, gizmo.width, gizmo.height);
+    }
+  }
+
+  /**
+   * Convert a document-space point to screen-space (gizmo canvas pixel coordinates).
+   * The gizmo canvas is backed at dpr × CSS-size to stay crisp.
+   */
+  private docToScreen(
+    docX: number,
+    docY: number,
+    ctx: ToolContext,
+    containerW: number,
+    containerH: number,
+    dpr: number
+  ): Point {
+    const docW = ctx.doc.canvas.width;
+    const docH = ctx.doc.canvas.height;
+    return {
+      x: ((docX - docW / 2) * ctx.zoom + containerW / 2 + ctx.pan.x) * dpr,
+      y: ((docY - docH / 2) * ctx.zoom + containerH / 2 + ctx.pan.y) * dpr
+    };
+  }
+
+  private drawGizmo(ctx: ToolContext): void {
+    const gizmo = ctx.gizmoCanvasRef.current;
+    const container = ctx.containerRef.current;
+    if (!gizmo || !container) {
+      // Fall back to old overlay approach if gizmo canvas unavailable
+      this.drawOverlayFallback(ctx);
+      return;
+    }
+    const gc = gizmo.getContext("2d");
+    if (!gc) {
+      return;
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    const containerW = container.clientWidth;
+    const containerH = container.clientHeight;
+
+    gc.setTransform(1, 0, 0, 1, 0, 0);
+    gc.clearRect(0, 0, gizmo.width, gizmo.height);
+
+    const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
+    if (!layer) {
+      return;
+    }
+
+    const bounds = layerDocBounds(layer.contentBounds, layer.transform);
+    const sx = layer.transform.scaleX ?? 1;
+    const sy = layer.transform.scaleY ?? 1;
+    const rot = layer.transform.rotation ?? 0;
+
+    const w = bounds.width * sx;
+    const h = bounds.height * sy;
+    const docCx = bounds.x + w / 2;
+    const docCy = bounds.y + h / 2;
+
+    // Convert center to screen space
+    const screenCenter = this.docToScreen(docCx, docCy, ctx, containerW, containerH, dpr);
+
+    gc.save();
+    gc.translate(screenCenter.x, screenCenter.y);
+    gc.rotate(rot);
+
+    const screenW = w * ctx.zoom * dpr;
+    const screenH = h * ctx.zoom * dpr;
+
+    // Bounding box
+    gc.strokeStyle = "rgba(0, 120, 255, 0.8)";
+    gc.lineWidth = 1 * dpr;
+    gc.setLineDash([4 * dpr, 4 * dpr]);
+    gc.strokeRect(-screenW / 2, -screenH / 2, screenW, screenH);
+    gc.setLineDash([]);
+
+    // Handle size in screen pixels
+    const hs = HANDLE_SIZE * dpr;
+    const hoveredHandle = this.activeHandle ?? this.hoveredHandle;
+
+    // Corner handles (filled squares)
+    const cornerHandles: Array<{ pos: Point; handle: TransformHandle }> = [
+      { pos: { x: -screenW / 2, y: -screenH / 2 }, handle: "top-left" },
+      { pos: { x: screenW / 2, y: -screenH / 2 }, handle: "top-right" },
+      { pos: { x: -screenW / 2, y: screenH / 2 }, handle: "bottom-left" },
+      { pos: { x: screenW / 2, y: screenH / 2 }, handle: "bottom-right" }
+    ];
+    for (const { pos, handle } of cornerHandles) {
+      const isHovered = hoveredHandle === handle;
+      gc.fillStyle = isHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
+      gc.strokeStyle = "rgba(0, 120, 255, 1)";
+      gc.lineWidth = (isHovered ? 2 : 1) * dpr;
+      gc.fillRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
+      gc.strokeRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
+    }
+
+    // Edge midpoint handles (filled squares)
+    const midHandles: Array<{ pos: Point; handle: TransformHandle }> = [
+      { pos: { x: 0, y: -screenH / 2 }, handle: "top" },
+      { pos: { x: 0, y: screenH / 2 }, handle: "bottom" },
+      { pos: { x: -screenW / 2, y: 0 }, handle: "left" },
+      { pos: { x: screenW / 2, y: 0 }, handle: "right" }
+    ];
+    for (const { pos, handle } of midHandles) {
+      const isHovered = hoveredHandle === handle;
+      gc.fillStyle = isHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
+      gc.strokeStyle = "rgba(0, 120, 255, 1)";
+      gc.lineWidth = (isHovered ? 2 : 1) * dpr;
+      gc.fillRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
+      gc.strokeRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
+    }
+
+    // Rotation handle: circle above top-center with connecting line
+    const rotYOffset = ROTATION_HANDLE_OFFSET * dpr;
+    const rotY = -screenH / 2 - rotYOffset;
+    gc.beginPath();
+    gc.moveTo(0, -screenH / 2);
+    gc.lineTo(0, rotY);
+    gc.strokeStyle = "rgba(0, 120, 255, 0.6)";
+    gc.lineWidth = 1 * dpr;
+    gc.stroke();
+
+    const isRotHovered = hoveredHandle === "rotate";
+    gc.beginPath();
+    gc.arc(0, rotY, hs * 0.7, 0, Math.PI * 2);
+    gc.fillStyle = isRotHovered ? "rgba(0, 120, 255, 0.15)" : "#ffffff";
+    gc.fill();
+    gc.strokeStyle = "rgba(0, 120, 255, 1)";
+    gc.lineWidth = (isRotHovered ? 2 : 1) * dpr;
+    gc.stroke();
+
+    gc.restore();
+  }
+
+  /** Fallback: draw gizmo on the document-space overlay canvas (clipped, lower resolution). */
+  private drawOverlayFallback(ctx: ToolContext): void {
     const overlay = ctx.overlayCanvasRef.current;
     if (!overlay) {
       return;

@@ -47,6 +47,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     selection: null,
     displayCanvasRef: { current: null },
     overlayCanvasRef: { current: null },
+    gizmoCanvasRef: { current: null },
     cursorCanvasRef: { current: null },
     containerRef: { current: null },
     layerCanvasesRef: { current: new Map() },

@@ -51,6 +51,8 @@ export interface ToolContext {
   // ── Canvas refs ──────────────────────────────────────────────────────
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** Screen-resolution canvas for transform gizmo drawing (not clipped by doc-stack). */
+  gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
