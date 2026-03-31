@@ -53,7 +53,7 @@
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
-    "@xyflow/react": "^12.10.0",
+    "@xyflow/react": "^12.10.2",
     "axios": "^1.13.5",
     "browserslist-to-esbuild": "^2.1.1",
     "chroma-js": "^3.1.2",
