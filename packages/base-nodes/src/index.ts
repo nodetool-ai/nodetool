@@ -121,6 +121,7 @@ export {
   INPUT_NODES,
 } from "./nodes/input.js";
 export { OutputNode, PreviewNode, OUTPUT_NODES } from "./nodes/output.js";
+export { WorkflowNode, WORKFLOW_NODES } from "./nodes/workflow.js";
 export {
   GetWorkspaceDirNode,
   ListWorkspaceFilesNode,
@@ -638,6 +639,7 @@ import { CONSTANT_NODES } from "./nodes/constant.js";
 import { EXTENDED_PLACEHOLDER_NODES } from "./nodes/extended-placeholders.js";
 import { INPUT_NODES } from "./nodes/input.js";
 import { OUTPUT_NODES } from "./nodes/output.js";
+import { WORKFLOW_NODES } from "./nodes/workflow.js";
 import { WORKSPACE_NODES } from "./nodes/workspace.js";
 import { COMPARE_NODES } from "./nodes/compare.js";
 import { DOCUMENT_NODES } from "./nodes/document.js";
@@ -702,6 +704,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...EXTENDED_PLACEHOLDER_NODES,
   ...INPUT_NODES,
   ...OUTPUT_NODES,
+  ...WORKFLOW_NODES,
   ...WORKSPACE_NODES,
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
@@ -775,6 +778,26 @@ export function registerBaseNodes(registry: NodeRegistry): void {
           ],
           outputs: [{ name: "output", type: { type: "any", type_args: [] } }],
           basic_fields: ["value"],
+        },
+      });
+      continue;
+    }
+    if (nodeClass.nodeType === "nodetool.workflows.workflow_node.Workflow") {
+      registry.register(nodeClass, {
+        metadata: {
+          title: "Workflow",
+          description:
+            "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.",
+          namespace: "nodetool.workflows.workflow_node",
+          node_type: "nodetool.workflows.workflow_node.Workflow",
+          is_dynamic: true,
+          is_streaming_output: true,
+          properties: [
+            { name: "workflow_id", type: { type: "str", type_args: [] }, default: "" },
+            { name: "workflow_json", type: { type: "dict", type_args: [] }, default: {} },
+          ],
+          outputs: [],
+          basic_fields: [],
         },
       });
       continue;

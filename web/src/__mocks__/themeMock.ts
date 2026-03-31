@@ -274,6 +274,14 @@ const mockTheme = createTheme({
   border: "rgba(255, 255, 255, 0.23)",
   hoverBorder: "#ffffff",
 };
+(mockTheme as any).vars.palette.Slider = {
+  primaryTrack: "rgba(119, 180, 230, 0.62)",
+  secondaryTrack: "rgba(156, 39, 176, 0.62)",
+  errorTrack: "rgba(244, 67, 54, 0.62)",
+  infoTrack: "rgba(33, 150, 243, 0.62)",
+  successTrack: "rgba(76, 175, 80, 0.62)",
+  warningTrack: "rgba(255, 152, 0, 0.62)",
+};
 
 // Add opacity vars for MUI InputBase component
 (mockTheme as any).vars.opacity = {

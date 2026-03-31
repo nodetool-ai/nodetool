@@ -17,6 +17,7 @@ import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "no
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { BaseProvider } from "./providers/base-provider.js";
 import type { Message, MessageContent, ProviderStreamItem } from "./providers/types.js";
+import type { NodeExecutor } from "./node-executor.js";
 
 // ---------------------------------------------------------------------------
 // Cache interface
@@ -456,6 +457,14 @@ export class ProcessingContext {
   private _sendControlEvent:
     | ((targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown>>)
     | null = null;
+  /** Optional executor resolver for sub-workflow execution. */
+  private _resolveExecutor:
+    | ((node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor)
+    | null = null;
+  /** Optional node type resolver for sub-workflow graph hydration. */
+  private _resolveNodeType:
+    | ((nodeType: string) => Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>)
+    | null = null;
   /** Total cost tracked for operations executed via this context. */
   private _totalCost = 0;
   /** Per-operation cost entries. */
@@ -564,6 +573,30 @@ export class ProcessingContext {
   ): Promise<Record<string, unknown> | null> {
     if (!this._sendControlEvent) return null;
     return this._sendControlEvent(targetNodeId, properties);
+  }
+
+  // -----------------------------------------------------------------------
+  // Sub-workflow executor resolution
+  // -----------------------------------------------------------------------
+
+  setResolveExecutor(
+    fn: (node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor
+  ): void {
+    this._resolveExecutor = fn;
+  }
+
+  get resolveExecutor(): ((node: { id: string; type: string; [key: string]: unknown }) => NodeExecutor) | null {
+    return this._resolveExecutor;
+  }
+
+  setResolveNodeType(
+    fn: (nodeType: string) => Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>
+  ): void {
+    this._resolveNodeType = fn;
+  }
+
+  get resolveNodeType(): ((nodeType: string) => Promise<{ nodeType: string; propertyTypes?: Record<string, string>; outputs?: Record<string, string>; isDynamic?: boolean; descriptorDefaults?: Record<string, unknown> } | null>) | null {
+    return this._resolveNodeType;
   }
 
   /**

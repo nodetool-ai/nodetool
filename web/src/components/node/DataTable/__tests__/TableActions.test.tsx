@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../../__mocks__/themeMock";
 
 // Mock tabulator
 jest.mock("tabulator-tables", () => ({
@@ -46,12 +47,15 @@ describe("TableActions", () => {
     onHistoryChange: jest.fn()
   };
 
+  const renderWithTheme = (ui: React.ReactElement) =>
+    render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("renders table action buttons", () => {
-    render(<TableActions {...defaultProps} />);
+    renderWithTheme(<TableActions {...defaultProps} />);
 
     // Should have buttons for common actions
     const buttons = screen.getAllByRole("button");
@@ -60,7 +64,7 @@ describe("TableActions", () => {
 
   describe("Accessibility", () => {
     it("has aria-label on Add row button", () => {
-      render(<TableActions {...defaultProps} />);
+      renderWithTheme(<TableActions {...defaultProps} />);
 
       const addButton = screen.getByRole("button", { name: /add new row/i });
       expect(addButton).toBeInTheDocument();
@@ -68,7 +72,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Delete rows button", () => {
-      render(<TableActions {...defaultProps} />);
+      renderWithTheme(<TableActions {...defaultProps} />);
 
       const deleteButton = screen.getByRole("button", { name: /delete selected rows/i });
       expect(deleteButton).toBeInTheDocument();
@@ -76,7 +80,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Duplicate rows button", () => {
-      render(<TableActions {...defaultProps} isModalMode={true} />);
+      renderWithTheme(<TableActions {...defaultProps} isModalMode={true} />);
 
       const duplicateButton = screen.getByRole("button", { name: /duplicate selected rows/i });
       expect(duplicateButton).toBeInTheDocument();
@@ -84,7 +88,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Reset sorting button", () => {
-      render(<TableActions {...defaultProps} />);
+      renderWithTheme(<TableActions {...defaultProps} />);
 
       const resetButton = screen.getByRole("button", { name: /reset table sorting/i });
       expect(resetButton).toBeInTheDocument();
@@ -92,7 +96,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Undo button", () => {
-      render(<TableActions {...defaultProps} canUndo={true} />);
+      renderWithTheme(<TableActions {...defaultProps} canUndo={true} />);
 
       const undoButton = screen.getByRole("button", { name: /undo/i });
       expect(undoButton).toBeInTheDocument();
@@ -100,7 +104,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Redo button", () => {
-      render(<TableActions {...defaultProps} canRedo={true} />);
+      renderWithTheme(<TableActions {...defaultProps} canRedo={true} />);
 
       const redoButton = screen.getByRole("button", { name: /redo/i });
       expect(redoButton).toBeInTheDocument();
@@ -108,7 +112,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Paste button", () => {
-      render(<TableActions {...defaultProps} isModalMode={true} />);
+      renderWithTheme(<TableActions {...defaultProps} isModalMode={true} />);
 
       const pasteButton = screen.getByRole("button", { name: /paste from clipboard/i });
       expect(pasteButton).toBeInTheDocument();
@@ -116,7 +120,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Export CSV button", () => {
-      render(<TableActions {...defaultProps} isModalMode={true} />);
+      renderWithTheme(<TableActions {...defaultProps} isModalMode={true} />);
 
       const exportButton = screen.getByRole("button", { name: /export as csv/i });
       expect(exportButton).toBeInTheDocument();
@@ -124,7 +128,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Show Select column button", () => {
-      render(<TableActions {...defaultProps} />);
+      renderWithTheme(<TableActions {...defaultProps} />);
 
       const selectButton = screen.getByRole("button", { name: /show select column/i });
       expect(selectButton).toBeInTheDocument();
@@ -132,7 +136,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Show Row Numbers button", () => {
-      render(<TableActions {...defaultProps} showRowNumbersButton={true} setShowRowNumbers={jest.fn()} />);
+      renderWithTheme(<TableActions {...defaultProps} showRowNumbersButton={true} setShowRowNumbers={jest.fn()} />);
 
       const rowNumbersButton = screen.getByRole("button", { name: /show row numbers/i });
       expect(rowNumbersButton).toBeInTheDocument();
@@ -140,7 +144,7 @@ describe("TableActions", () => {
     });
 
     it("has aria-label on Copy table data button", () => {
-      render(<TableActions {...defaultProps} />);
+      renderWithTheme(<TableActions {...defaultProps} />);
 
       const copyButton = screen.getByRole("button", { name: /copy table data to clipboard/i });
       expect(copyButton).toBeInTheDocument();
@@ -148,7 +152,7 @@ describe("TableActions", () => {
     });
 
     it("all icon buttons have accessible names", () => {
-      render(<TableActions {...defaultProps} />);
+      renderWithTheme(<TableActions {...defaultProps} />);
 
       const buttons = screen.getAllByRole("button");
       const iconButtons = buttons.filter((button) => {
