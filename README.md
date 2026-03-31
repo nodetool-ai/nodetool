@@ -119,40 +119,31 @@ ______________________________________________________________________
 
 ## Development Setup
 
-For core library work, see [nodetool-core](https://github.com/nodetool-ai/nodetool-core).
-
-**Prerequisites:** Python 3.11, Conda, Node.js LTS
+**Prerequisites:** Node.js 18+, npm. Python 3.11 with conda for Python nodes (optional).
 
 ### Quick Start
 
 ```bash
-# Setup environment
-conda env update -f environment.yml --prune
-conda activate nodetool
-
-# Install core packages
-uv pip install git+https://github.com/nodetool-ai/nodetool-core \
-               git+https://github.com/nodetool-ai/nodetool-base
+npm install
+npm run build:packages     # Build all TS packages in dependency order
 
 # Run backend (port 7777) and frontend (port 3000)
-nodetool serve --reload &
-cd web && npm install && npm start
+make dev
 ```
 
-### Optional Packs
+### Python Nodes (optional)
 
-**HuggingFace Pack** (Linux/Windows — requires CUDA driver >=525.60.13 Linux, >=527.41 Windows):
+Python nodes (HuggingFace, MLX, Apple integrations) require a conda environment:
 
 ```bash
-uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface \
-    --extra-index-url https://download.pytorch.org/whl/cu128
+conda activate nodetool
+cd ../nodetool-core && pip install -e .
+# Optional: install additional Python node packages
+pip install -e ../nodetool-huggingface
+pip install -e ../nodetool-mlx
 ```
 
-**MLX Pack** (Apple Silicon):
-
-```bash
-uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
-```
+The Python worker connects via stdio when a workflow uses Python nodes.
 
 ### Electron App
 

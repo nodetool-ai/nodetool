@@ -85,6 +85,7 @@ protocol → config → security → auth → storage
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
 - **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), SimpleAgent (single-step), AgentExecutor (value extraction)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
+- **Python bridge**: `PythonStdioBridge` in `packages/runtime/` — spawns `python -m nodetool.worker --stdio`, communicates via length-prefixed msgpack over stdin/stdout. Lazy-connected on first workflow with Python nodes.
 - **Serialization**: MsgPack for WebSocket messages, JSON for REST API
 - **ES Modules**: All packages use `"type": "module"`. Imports need `.js` extension in compiled output.
 
