@@ -84,6 +84,9 @@ declare global {
           packageId: RuntimePackageId,
           installLocation?: string,
         ) => Promise<{ success: boolean; message: string }>;
+        uninstallRuntime: (
+          packageId: RuntimePackageId,
+        ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
       };
@@ -550,6 +553,7 @@ export enum IpcChannels {
   // Runtime package channels
   RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
+  RUNTIME_PACKAGE_UNINSTALL = "runtime-package-uninstall",
   RUNTIME_GET_INSTALL_LOCATION = "runtime-get-install-location",
   RUNTIME_SELECT_INSTALL_LOCATION = "runtime-select-install-location",
   // Log viewer channels
@@ -724,6 +728,7 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_VERSION_CHECK]: void;
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { packageId: string; installLocation?: string };
+  [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { packageId: string };
   [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: void;
   [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: void;
   // Log viewer
@@ -842,6 +847,7 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
+  [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { success: boolean; message: string };
   [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: string;
   [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: string | null;
   // Log viewer

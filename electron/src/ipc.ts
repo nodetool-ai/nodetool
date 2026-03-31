@@ -953,6 +953,18 @@ export function initializeIpcHandlers(): void {
     },
   );
 
+  createIpcMainHandler(
+    IpcChannels.RUNTIME_PACKAGE_UNINSTALL,
+    async (_event, data: { packageId: string }) => {
+      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+        return { success: false, message: `Unknown package ID: ${data.packageId}` };
+      }
+      logMessage(`Uninstalling runtime package: ${data.packageId}`);
+      const { uninstallRuntimePackage } = await import("./packageManager");
+      return await uninstallRuntimePackage(data.packageId as RuntimePackageId);
+    },
+  );
+
   createIpcMainHandler(IpcChannels.RUNTIME_GET_INSTALL_LOCATION, async () => {
     return getCondaInstallLocation();
   });

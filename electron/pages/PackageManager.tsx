@@ -103,6 +103,30 @@ const PackageManager: React.FC = () => {
     }
   }, [loadRuntimes]);
 
+  const handleUninstallRuntime = useCallback(async (runtimeId: RuntimePackageId) => {
+    const api = window.electronAPI;
+    if (!api?.packages?.uninstallRuntime) return;
+
+    setInstallingRuntimes(prev => new Set(prev).add(runtimeId));
+    setError(null);
+    try {
+      const result = await api.packages.uninstallRuntime(runtimeId);
+      if (result.success) {
+        await loadRuntimes();
+      } else {
+        setError(result.message || "Runtime uninstall failed");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Runtime uninstall failed");
+    } finally {
+      setInstallingRuntimes(prev => {
+        const next = new Set(prev);
+        next.delete(runtimeId);
+        return next;
+      });
+    }
+  }, [loadRuntimes]);
+
   const initialize = async () => {
     try {
       const [availableData, installedData] = await Promise.all([
@@ -415,9 +439,13 @@ const PackageManager: React.FC = () => {
                       </div>
                       <div className="package-card-footer">
                         {rt.installed ? (
-                          <div className="status-text installed">
-                            ✓ Ready to use
-                          </div>
+                          <button
+                            className="btn btn-outline-danger full-width"
+                            onClick={() => handleUninstallRuntime(rt.id as RuntimePackageId)}
+                            disabled={isInstalling || isProcessing}
+                          >
+                            {isInstalling ? "Removing..." : "Uninstall"}
+                          </button>
                         ) : (
                           <button
                             className="btn btn-primary full-width"

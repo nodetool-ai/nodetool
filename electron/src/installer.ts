@@ -839,6 +839,43 @@ async function installCondaPackageBySpec(
 }
 
 /**
+ * Remove conda packages from the existing conda environment.
+ * Used by the package manager to uninstall runtimes like ffmpeg.
+ */
+async function removeCondaPackageBySpec(
+  envPrefix: string,
+  packageNames: string[],
+  progressLabel?: string,
+): Promise<void> {
+  if (packageNames.length === 0) {
+    return;
+  }
+
+  const micromambaExecutable = await ensureMicromambaAvailable();
+
+  // Strip version constraints for removal (e.g. "ffmpeg>=6,<7" → "ffmpeg")
+  const names = packageNames.map((s) => s.split(/[><=!]/)[0]);
+
+  const args = [
+    "remove",
+    "--yes",
+    "--prefix",
+    envPrefix,
+    ...names,
+  ];
+
+  logMessage(
+    `Removing conda packages (${names.join(", ")}) from ${envPrefix}`,
+  );
+
+  await runMicromambaCommand(
+    micromambaExecutable,
+    args,
+    progressLabel ?? `Removing ${names.join(", ")}`,
+  );
+}
+
+/**
  * Set the conda environment install location in settings.
  */
 function setCondaInstallLocation(location: string): void {
@@ -888,5 +925,6 @@ export {
   ensureCondaEnvironment,
   ensureLlamaCppInstalled,
   installCondaPackageBySpec,
+  removeCondaPackageBySpec,
   setCondaInstallLocation,
 };

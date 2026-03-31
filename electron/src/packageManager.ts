@@ -1260,3 +1260,30 @@ export async function installRuntimePackage(
     runtimeInstalling.delete(packageId);
   }
 }
+
+/**
+ * Uninstall a runtime package by removing its conda packages.
+ */
+export async function uninstallRuntimePackage(
+  packageId: RuntimePackageId,
+): Promise<{ success: boolean; message: string }> {
+  const def = RUNTIME_DEFINITIONS[packageId];
+  if (!def) {
+    return { success: false, message: `Unknown runtime: ${packageId}` };
+  }
+
+  try {
+    const { removeCondaPackageBySpec } = await import("./installer");
+    const condaEnvPath = getCondaEnvPath();
+
+    logMessage(`Uninstalling runtime: ${packageId}`);
+    emitBootMessage(`Removing ${def.name}...`);
+
+    await removeCondaPackageBySpec(condaEnvPath, def.condaPackages, `Removing ${def.name}`);
+
+    return { success: true, message: `${def.name} removed successfully` };
+  } catch (error: any) {
+    logMessage(`Failed to uninstall runtime package ${packageId}: ${error.message}`, "error");
+    return { success: false, message: `Failed to uninstall: ${error.message}` };
+  }
+}
