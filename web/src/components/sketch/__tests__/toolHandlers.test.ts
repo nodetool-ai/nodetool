@@ -430,6 +430,7 @@ describe("ShapeTool", () => {
         ]
       },
       overlayCanvasRef: { current: overlayCanvas },
+      gizmoCanvasRef: { current: null },
       layerCanvasesRef: { current: canvasMap },
       getOrCreateLayerCanvas: jest.fn((requestedLayerId: string) => {
         const found = canvasMap.get(requestedLayerId);
