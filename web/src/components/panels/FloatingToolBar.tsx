@@ -21,6 +21,7 @@ import { useLocation } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useComfyUIStore } from "../../stores/ComfyUIStore";
+import { BASE_URL } from "../../stores/BASE_URL";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -395,12 +396,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     return String(settings?.comfy_host ?? "");
   });
   const updateWorkflowSetting = useNodes((state) => state.updateWorkflowSetting);
-  const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
-  const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
-  const comfyConnectionError = useComfyUIStore((state) => state.connectionError);
-  const comfyConnect = useComfyUIStore((state) => state.connect);
   const comfySetBaseUrl = useComfyUIStore((state) => state.setBaseUrl);
   const [comfyHostInput, setComfyHostInput] = useState(comfyHost);
+  const [comfyConnecting, setComfyConnecting] = useState(false);
+  const [comfyConnected, setComfyConnected] = useState(false);
+  const [comfyError, setComfyError] = useState<string | null>(null);
   const comfyHostRef = useRef(comfyHost);
   if (comfyHostRef.current !== comfyHost) {
     comfyHostRef.current = comfyHost;
@@ -411,13 +411,37 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     const trimmed = host.trim();
     if (!trimmed) return;
     updateWorkflowSetting("comfy_host", trimmed);
-    comfySetBaseUrl(trimmed);
+    setComfyConnecting(true);
+    setComfyError(null);
+    setComfyConnected(false);
     try {
-      await comfyConnect();
-    } catch {
-      // error is stored in comfyConnectionError
+      // Fetch object_info through the backend proxy to avoid CORS
+      const resp = await fetch(`${BASE_URL}/api/comfy/object_info?host=${encodeURIComponent(trimmed)}`);
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+        throw new Error((body as Record<string, string>).error || `HTTP ${resp.status}`);
+      }
+      // Feed the object info into ComfyUIStore so useComfyUINodes registers them
+      const objectInfo = await resp.json();
+      comfySetBaseUrl(trimmed);
+      useComfyUIStore.setState({
+        objectInfo,
+        isConnected: true,
+        connectionError: null,
+      });
+      setComfyConnected(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setComfyError(msg);
+      useComfyUIStore.setState({
+        isConnected: false,
+        connectionError: msg,
+        objectInfo: null,
+      });
+    } finally {
+      setComfyConnecting(false);
     }
-  }, [updateWorkflowSetting, comfySetBaseUrl, comfyConnect]);
+  }, [updateWorkflowSetting, comfySetBaseUrl]);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
@@ -546,7 +570,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {isComfyWorkflow && (
-          <Tooltip title={comfyConnectionError || (comfyIsConnected ? "Connected" : "Enter ComfyUI host and press Enter")}>
+          <Tooltip title={comfyError || (comfyConnected ? "Connected" : "Enter ComfyUI host and press Enter")}>
             <TextField
               size="small"
               placeholder="ComfyUI host (e.g. localhost:8188)"
@@ -565,12 +589,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
                   }
                 }
               }}
-              error={!!comfyConnectionError}
+              error={!!comfyError}
               slotProps={{
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
-                      {comfyIsConnecting ? (
+                      {comfyConnecting ? (
                         <CircularProgress size={14} />
                       ) : (
                         <Box
@@ -578,7 +602,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
                             width: 8,
                             height: 8,
                             borderRadius: "50%",
-                            bgcolor: comfyIsConnected ? "success.main" : comfyConnectionError ? "error.main" : "grey.500",
+                            bgcolor: comfyConnected ? "success.main" : comfyError ? "error.main" : "grey.500",
                           }}
                         />
                       )}
