@@ -32,5 +32,5 @@ export {
   type StreamingInputs,
   type StreamingOutputs,
 } from "./node-executor.js";
-export { executeComfyLocal, executeComfyRunPod } from "./comfy-executor.js";
+export { executeComfy } from "./comfy-executor.js";
 export type { ComfyExecutorResult, ComfyImage } from "./comfy-executor.js";

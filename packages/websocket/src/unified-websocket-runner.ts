@@ -29,8 +29,7 @@ import type {
 import {
   FileStorageAdapter,
   ProcessingContext as RuntimeProcessingContext,
-  executeComfyLocal,
-  executeComfyRunPod,
+  executeComfy,
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import type {
@@ -728,25 +727,11 @@ export class UnifiedWebSocketRunner {
       });
 
       const prompt = graphToComfyPrompt(graph);
-      const executor = settings.comfy_executor as string | undefined;
-
-      let result: Awaited<ReturnType<typeof executeComfyLocal>>;
-
-      if (executor === "runpod") {
-        const endpointId = settings.runpod_endpoint_id as string | undefined;
-        if (!endpointId) {
-          throw new Error("runpod_endpoint_id is required for RunPod executor");
-        }
-        const apiKey = await getSecret("RUNPOD_API_KEY", userId);
-        if (!apiKey) {
-          throw new Error("RUNPOD_API_KEY secret is not configured");
-        }
-        result = await executeComfyRunPod(prompt, apiKey, endpointId);
-      } else {
-        const addr =
-          (await getSecret("COMFYUI_ADDR", userId)) ?? "127.0.0.1:8188";
-        result = await executeComfyLocal(prompt, addr);
-      }
+      const host =
+        (settings.comfy_host as string | undefined)?.trim() ||
+        (await getSecret("COMFYUI_ADDR", userId)) ||
+        "127.0.0.1:8188";
+      const result = await executeComfy(prompt, host);
 
       if (result.status === "completed") {
         if (result.images && result.images.length > 0) {

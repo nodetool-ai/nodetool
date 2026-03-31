@@ -9,8 +9,6 @@ import {
   useMediaQuery,
   Tooltip,
   Menu,
-  Select,
-  MenuItem,
   TextField
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
@@ -389,13 +387,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
-  const comfyExecutor = useNodes((state) => {
+  const comfyHost = useNodes((state) => {
     const settings = state.workflow.settings as Record<string, unknown> | undefined;
-    return String(settings?.comfy_executor ?? "local");
-  });
-  const runpodEndpointId = useNodes((state) => {
-    const settings = state.workflow.settings as Record<string, unknown> | undefined;
-    return String(settings?.runpod_endpoint_id ?? "");
+    return String(settings?.comfy_host ?? "");
   });
   const updateWorkflowSetting = useNodes((state) => state.updateWorkflowSetting);
 
@@ -526,34 +520,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {isComfyWorkflow && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1 }}>
-            <Select
-              size="small"
-              value={comfyExecutor}
-              onChange={(e) => updateWorkflowSetting("comfy_executor", e.target.value)}
-              sx={{
-                minWidth: 100,
-                height: 28,
-                fontSize: "0.75rem",
-                "& .MuiSelect-select": { py: 0.25 }
-              }}
-            >
-              <MenuItem value="local">Local</MenuItem>
-              <MenuItem value="runpod">RunPod</MenuItem>
-            </Select>
-            {comfyExecutor === "runpod" && (
-              <TextField
-                size="small"
-                placeholder="Endpoint ID"
-                value={runpodEndpointId}
-                onChange={(e) => updateWorkflowSetting("runpod_endpoint_id", e.target.value)}
-                sx={{
-                  width: 130,
-                  "& .MuiInputBase-input": { height: 28, py: 0, fontSize: "0.75rem" }
-                }}
-              />
-            )}
-          </Box>
+          <TextField
+            size="small"
+            placeholder="ComfyUI host (default: localhost:8188)"
+            value={comfyHost}
+            onChange={(e) => updateWorkflowSetting("comfy_host", e.target.value)}
+            sx={{
+              width: 250,
+              mr: 1,
+              "& .MuiInputBase-input": { height: 28, py: 0, fontSize: "0.75rem" }
+            }}
+          />
         )}
 
         <Box
