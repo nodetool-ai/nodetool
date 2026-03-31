@@ -33,7 +33,11 @@ export interface RunPodJobResponse {
   delayTime?: number;
   executionTime?: number;
   output?: {
+    /** Standard RunPod ComfyUI worker returns a single base64 data-URI string. */
+    message?: string;
+    /** Some custom workers return structured image arrays. */
     images?: RunPodImageOutput[];
+    status?: string;
     errors?: string[];
   };
   error?: string;

@@ -160,7 +160,7 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
     );
   });
 
-  it("submits workflow and returns images in same format as local node", async () => {
+  it("handles standard RunPod response with output.message data-URI", async () => {
     // POST /run
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -171,11 +171,49 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
       ok: true,
       json: async () => ({ id: "job1", status: "IN_PROGRESS" }),
     });
-    // GET /status/job1 — completed
+    // GET /status/job1 — completed (standard RunPod ComfyUI format)
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         id: "job1",
+        status: "COMPLETED",
+        output: {
+          message: "data:image/png;base64,aWltYWdlZGF0YQ==",
+          status: "success",
+        },
+      }),
+    });
+
+    const node = new RunComfyUIWorkflowOnRunPodNode();
+    Object.defineProperty(node, "_secrets", {
+      get: () => ({ RUNPOD_API_KEY: "rpa_test" }),
+    });
+    node.assign({
+      workflow: { "3": { class_type: "KSampler", inputs: {} } },
+      endpoint_id: "ep_test",
+    });
+
+    const result = await node.process();
+    const images = result.images as Array<Record<string, unknown>>;
+    expect(images).toHaveLength(1);
+    expect(images[0].type).toBe("image");
+    expect(images[0].filename).toBe("output.png");
+    // data-URI prefix should be stripped
+    expect(images[0].data).toBe("aWltYWdlZGF0YQ==");
+    expect(result.raw_output).toBeDefined();
+  });
+
+  it("handles custom worker response with output.images array", async () => {
+    // POST /run
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "job2", status: "IN_QUEUE" }),
+    });
+    // GET /status/job2 — completed
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: "job2",
         status: "COMPLETED",
         output: {
           images: [
@@ -201,7 +239,6 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
     const result = await node.process();
     const images = result.images as Array<Record<string, unknown>>;
     expect(images).toHaveLength(1);
-    // Same shape as local node output
     expect(images[0].type).toBe("image");
     expect(images[0].filename).toBe("out.png");
     expect(typeof images[0].data).toBe("string");

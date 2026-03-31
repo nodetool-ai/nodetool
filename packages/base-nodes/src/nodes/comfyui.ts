@@ -143,23 +143,51 @@ async function collectLocalImages(
   return { images, raw_output: rawOutput };
 }
 
-/** Collect images from a RunPod job response. */
+/** Strip the data-URI prefix (e.g. "data:image/png;base64,") if present. */
+function stripDataUriPrefix(data: string): string {
+  const idx = data.indexOf(",");
+  if (idx !== -1 && data.startsWith("data:")) {
+    return data.slice(idx + 1);
+  }
+  return data;
+}
+
+/** Collect images from a RunPod job response.
+ *
+ * The standard RunPod ComfyUI worker (per docs.runpod.io) returns a single
+ * base64 data-URI in `output.message`. Custom workers may return an
+ * `output.images[]` array instead. We handle both formats.
+ */
 function collectRunPodImages(
-  output: { images?: Array<{ filename: string; type: string; data: string }>; errors?: string[] } | undefined
+  output: {
+    message?: string;
+    images?: Array<{ filename: string; type: string; data: string }>;
+    status?: string;
+    errors?: string[];
+  } | undefined
 ): { images: ImageOutput[]; raw_output: Record<string, unknown> } {
   const images: ImageOutput[] = [];
+
+  // Standard RunPod ComfyUI worker format: output.message is a data-URI string
+  if (output?.message && typeof output.message === "string") {
+    images.push({
+      type: "image",
+      data: stripDataUriPrefix(output.message),
+      filename: "output.png",
+    });
+  }
+
+  // Custom worker format: output.images[] array
   if (output?.images) {
     for (const img of output.images) {
       images.push({
         type: "image",
-        // RunPod base64 images come without the data-uri prefix.
-        // S3 URLs are passed through as-is (consumers can detect by checking
-        // whether data starts with "http").
-        data: img.data,
+        data: stripDataUriPrefix(img.data),
         filename: img.filename,
       });
     }
   }
+
   return { images, raw_output: output ?? {} };
 }
 
