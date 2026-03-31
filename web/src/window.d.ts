@@ -397,6 +397,25 @@ declare global {
         onAbort: (callback: (data: { sessionId: string }) => void) => () => void;
       };
 
+      // Package manager operations (available in Electron only)
+      packages?: {
+        getRuntimeStatuses: () => Promise<
+          Array<{
+            id: string;
+            name: string;
+            description: string;
+            installed: boolean;
+            installing: boolean;
+          }>
+        >;
+        installRuntime: (
+          packageId: string,
+          installLocation?: string
+        ) => Promise<{ success: boolean; message: string }>;
+        getInstallLocation: () => Promise<string>;
+        selectInstallLocation: () => Promise<string | null>;
+      };
+
       // Low-level IPC methods for registering handlers (available in Electron only)
       ipc?: {
         /** Invoke a main-process IPC handler */
