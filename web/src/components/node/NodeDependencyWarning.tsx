@@ -177,14 +177,6 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
     return () => window.removeEventListener("focus", onFocus);
   }, [missingRuntimes.length, checkRuntimes]);
 
-  if (loading || missingRuntimes.length === 0) {
-    return null;
-  }
-
-  const runtimeNames = missingRuntimes
-    .map((r) => RUNTIME_LABELS[r] || r)
-    .join(", ");
-
   const handleInstall = useCallback(async () => {
     const api = (window as any).api;
     if (!api?.packages?.installRuntime) return;
@@ -202,6 +194,14 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
       setInstalling(false);
     }
   }, [missingRuntimes, checkRuntimes]);
+
+  if (loading || missingRuntimes.length === 0) {
+    return null;
+  }
+
+  const runtimeNames = missingRuntimes
+    .map((r) => RUNTIME_LABELS[r] || r)
+    .join(", ");
 
   return (
     <div
