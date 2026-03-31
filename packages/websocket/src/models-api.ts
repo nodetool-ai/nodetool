@@ -15,7 +15,7 @@ import {
   type TTSModel,
   type VideoModel,
 } from "@nodetool/runtime";
-import type { PythonBridge } from "@nodetool/runtime";
+import type { PythonStdioBridge } from "@nodetool/runtime";
 import {
   readCachedHfModels,
   searchCachedHfModels,
@@ -367,7 +367,7 @@ import { PythonProvider, registerProvider } from "@nodetool/runtime";
  * Register Python-only providers (HuggingFace Local, MLX) discovered
  * via the PythonBridge. Call after the bridge has connected.
  */
-export async function registerPythonProviders(bridge: PythonBridge): Promise<string[]> {
+export async function registerPythonProviders(bridge: PythonStdioBridge): Promise<string[]> {
   const providers = await bridge.listProviders();
   const registered: string[] = [];
   for (const info of providers) {

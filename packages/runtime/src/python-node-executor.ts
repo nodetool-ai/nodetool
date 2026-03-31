@@ -1,5 +1,16 @@
 import type { ProcessingContext } from "./context.js";
-import type { ExecuteInputBlobs, PythonBridge } from "./python-bridge.js";
+import type { ExecuteInputBlobs, ExecuteResult, ProgressEvent } from "./python-bridge.js";
+
+/** Minimal interface for the bridge — works with both PythonBridge and PythonStdioBridge. */
+interface PythonBridgeLike {
+  execute(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void,
+  ): Promise<ExecuteResult>;
+}
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -124,7 +135,7 @@ async function loadMediaRefBytes(
 
 export class PythonNodeExecutor {
   constructor(
-    private bridge: PythonBridge,
+    private bridge: PythonBridgeLike,
     private nodeType: string,
     _properties: Record<string, unknown>,
     private outputTypes: Record<string, string>,

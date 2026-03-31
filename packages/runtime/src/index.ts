@@ -25,6 +25,7 @@ export {
   type ExecuteResult,
   type ProgressEvent,
 } from "./python-bridge.js";
+export { PythonStdioBridge } from "./python-stdio-bridge.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
 export {
   type NodeExecutor,

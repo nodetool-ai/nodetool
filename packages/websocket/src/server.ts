@@ -18,7 +18,7 @@ import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import {
   setSecretResolver,
-  PythonBridge,
+  PythonStdioBridge,
 } from "@nodetool/runtime";
 import { getSecret, initMasterKey } from "@nodetool/security";
 import { initDb } from "@nodetool/models";
@@ -178,7 +178,7 @@ log.info(`Node registry ready [${startupMs()}]`);
 // Python bridge
 // ---------------------------------------------------------------------------
 
-const pythonBridge = new PythonBridge({
+const pythonBridge = new PythonStdioBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
     : [],

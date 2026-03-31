@@ -5,7 +5,7 @@ import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
 import { handleTerminalConnection } from "../terminal.js";
 import type { NodeRegistry } from "@nodetool/node-sdk";
 import { createGraphNodeTypeResolver } from "@nodetool/node-sdk";
-import type { PythonBridge } from "@nodetool/runtime";
+import type { PythonStdioBridge } from "@nodetool/runtime";
 import { PythonNodeExecutor, getProvider } from "@nodetool/runtime";
 import type { Tool } from "@nodetool/agents";
 
@@ -13,7 +13,7 @@ const log = createLogger("nodetool.websocket.ws");
 
 export interface WebSocketPluginOptions {
   registry: NodeRegistry;
-  pythonBridge: PythonBridge;
+  pythonBridge: PythonStdioBridge;
   getPythonBridgeReady: () => boolean;
   ensurePythonBridge: () => Promise<void>;
   toolClassMap: Map<string, new () => Tool>;
