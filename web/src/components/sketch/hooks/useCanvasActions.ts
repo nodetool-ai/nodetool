@@ -78,6 +78,71 @@ function getNonTransparentCanvasBounds(
   };
 }
 
+function drawLayerSnapshotWithTransform(
+  ctx: CanvasRenderingContext2D,
+  source: HTMLCanvasElement,
+  compositeOffset: Point,
+  transform: LayerTransform
+): void {
+  const scaleX = transform.scaleX ?? 1;
+  const scaleY = transform.scaleY ?? 1;
+  const rotation = transform.rotation ?? 0;
+
+  if (scaleX !== 1 || scaleY !== 1 || rotation !== 0) {
+    const centerX = compositeOffset.x + source.width / 2;
+    const centerY = compositeOffset.y + source.height / 2;
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotation);
+    ctx.scale(scaleX, scaleY);
+    ctx.drawImage(source, -source.width / 2, -source.height / 2);
+    return;
+  }
+
+  ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
+}
+
+function getTransformedLayerExtents(
+  source: HTMLCanvasElement,
+  compositeOffset: Point,
+  transform: LayerTransform
+): LayerContentBounds {
+  const scaleX = transform.scaleX ?? 1;
+  const scaleY = transform.scaleY ?? 1;
+  const rotation = transform.rotation ?? 0;
+  const centerX = compositeOffset.x + source.width / 2;
+  const centerY = compositeOffset.y + source.height / 2;
+
+  const corners = [
+    { x: compositeOffset.x, y: compositeOffset.y },
+    { x: compositeOffset.x + source.width, y: compositeOffset.y },
+    { x: compositeOffset.x + source.width, y: compositeOffset.y + source.height },
+    { x: compositeOffset.x, y: compositeOffset.y + source.height }
+  ];
+
+  const transformedCorners = corners.map((corner) => {
+    const localX = (corner.x - centerX) * scaleX;
+    const localY = (corner.y - centerY) * scaleY;
+    const rotatedX = localX * Math.cos(rotation) - localY * Math.sin(rotation);
+    const rotatedY = localX * Math.sin(rotation) + localY * Math.cos(rotation);
+    return {
+      x: centerX + rotatedX,
+      y: centerY + rotatedY
+    };
+  });
+
+  const minX = Math.min(...transformedCorners.map((corner) => corner.x));
+  const minY = Math.min(...transformedCorners.map((corner) => corner.y));
+  const maxX = Math.max(...transformedCorners.map((corner) => corner.x));
+  const maxY = Math.max(...transformedCorners.map((corner) => corner.y));
+
+  return {
+    x: Math.floor(minX),
+    y: Math.floor(minY),
+    width: Math.max(1, Math.ceil(maxX) - Math.floor(minX)),
+    height: Math.max(1, Math.ceil(maxY) - Math.floor(minY))
+  };
+}
+
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
@@ -729,7 +794,7 @@ export function useCanvasActions({
     ]
   );
 
-  const handleCropCanvasToActiveLayer = useCallback(() => {
+  const handleCropCanvasToActiveLayerVisiblePixels = useCallback(() => {
     const activeLayerId = document.activeLayerId;
     const activeLayer = document.layers.find((layer) => layer.id === activeLayerId);
     if (
@@ -760,27 +825,19 @@ export function useCanvasActions({
       { width: source.width, height: source.height },
       source
     );
-    const scaleX = activeLayer.transform.scaleX ?? 1;
-    const scaleY = activeLayer.transform.scaleY ?? 1;
-    const rotation = activeLayer.transform.rotation ?? 0;
-
-    if (scaleX !== 1 || scaleY !== 1 || rotation !== 0) {
-      const centerX = compositeOffset.x + source.width / 2;
-      const centerY = compositeOffset.y + source.height / 2;
-      probeCtx.translate(centerX, centerY);
-      probeCtx.rotate(rotation);
-      probeCtx.scale(scaleX, scaleY);
-      probeCtx.drawImage(source, -source.width / 2, -source.height / 2);
-    } else {
-      probeCtx.drawImage(source, compositeOffset.x, compositeOffset.y);
-    }
+    drawLayerSnapshotWithTransform(
+      probeCtx,
+      source,
+      compositeOffset,
+      activeLayer.transform
+    );
 
     const cropBounds = getNonTransparentCanvasBounds(probe);
     if (!cropBounds) {
       return;
     }
 
-    pushHistory("crop to active layer");
+    pushHistory("crop to active layer visible pixels");
     reconcileAllLayerTransforms();
     finalizeCanvasCrop(
       cropBounds.x,
@@ -793,6 +850,52 @@ export function useCanvasActions({
     document.layers,
     document.canvas.width,
     document.canvas.height,
+    canvasRef,
+    pushHistory,
+    reconcileAllLayerTransforms,
+    finalizeCanvasCrop
+  ]);
+
+  const handleCropCanvasToActiveLayerExtents = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const activeLayer = document.layers.find((layer) => layer.id === activeLayerId);
+    if (
+      !activeLayerId ||
+      !canvasRef.current ||
+      !activeLayer ||
+      activeLayer.type === "group" ||
+      activeLayer.type === "mask"
+    ) {
+      return;
+    }
+
+    const source = canvasRef.current.snapshotLayerCanvas(activeLayerId);
+    if (!source) {
+      return;
+    }
+
+    const compositeOffset = getLayerCompositeOffset(
+      activeLayer,
+      { width: source.width, height: source.height },
+      source
+    );
+    const cropBounds = getTransformedLayerExtents(
+      source,
+      compositeOffset,
+      activeLayer.transform
+    );
+
+    pushHistory("crop to active layer extents");
+    reconcileAllLayerTransforms();
+    finalizeCanvasCrop(
+      cropBounds.x,
+      cropBounds.y,
+      cropBounds.width,
+      cropBounds.height
+    );
+  }, [
+    document.activeLayerId,
+    document.layers,
     canvasRef,
     pushHistory,
     reconcileAllLayerTransforms,
@@ -1079,7 +1182,8 @@ export function useCanvasActions({
     handleZoomOut,
     handleZoomReset,
     handleCropComplete,
-    handleCropCanvasToActiveLayer,
+    handleCropCanvasToActiveLayerVisiblePixels,
+    handleCropCanvasToActiveLayerExtents,
     contextMenu,
     handleContextMenu,
     handleContextMenuClose,

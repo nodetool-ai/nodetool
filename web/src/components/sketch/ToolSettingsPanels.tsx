@@ -48,7 +48,9 @@ import {
   colorToHex6,
   PenPressureSettings,
   DEFAULT_PRESSURE_MIN_SCALE,
-  DEFAULT_PRESSURE_CURVE
+  DEFAULT_PRESSURE_CURVE,
+  pressureMinScaleFromSliderUnit,
+  pressureMinScaleToSliderUnit
 } from "./types";
 import type { SamModelInfo } from "./sam";
 
@@ -136,28 +138,32 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
     </ToggleButtonGroup>
   );
 
+  const minScale = settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE;
+  const lightEndSlider = Math.round(pressureMinScaleToSliderUnit(minScale) * 100);
+
   const lightEndRow = (
     <Box className="setting-row">
       <Typography
         className="setting-label"
-        title="Size/opacity at minimum pressure (lower = thinner light strokes, wider thin-to-thick range)"
+        title="Size/opacity at minimum pressure. Slider uses eased mapping so the upper range is easier to dial in."
       >
         Light end
       </Typography>
       <Slider
         sx={sketchSliderSx}
         size="small"
-        min={0.02}
-        max={0.55}
-        step={0.01}
-        value={settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE}
-        onChange={(_, v) => onChange({ pressureMinScale: v as number })}
+        min={0}
+        max={100}
+        step={1}
+        value={lightEndSlider}
+        onChange={(_, v) =>
+          onChange({
+            pressureMinScale: pressureMinScaleFromSliderUnit((v as number) / 100)
+          })
+        }
       />
       <Typography className="setting-value">
-        {Math.round(
-          (settings.pressureMinScale ?? DEFAULT_PRESSURE_MIN_SCALE) * 100
-        )}
-        %
+        {Math.round(minScale * 100)}%
       </Typography>
     </Box>
   );

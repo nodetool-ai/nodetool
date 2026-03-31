@@ -143,6 +143,33 @@ export const DEFAULT_PRESSURE_MIN_SCALE = 0.06;
  */
 export const DEFAULT_PRESSURE_CURVE = 1;
 
+/** Stored `pressureMinScale` range surfaced by the Light end control (see eased slider mapping). */
+export const PRESSURE_MIN_SCALE_UI_MIN = 0.02;
+export const PRESSURE_MIN_SCALE_UI_MAX = 0.55;
+
+/**
+ * Map linear slider position `u` in [0, 1] to {@link PenPressureSettings.pressureMinScale}.
+ * Quadratic ease-out allocates more of the track to the upper half of the scale, where a linear
+ * slider felt ineffective (perceptual change is smaller at high min widths).
+ */
+export function pressureMinScaleFromSliderUnit(u: number): number {
+  const t = Math.max(0, Math.min(1, u));
+  const span = PRESSURE_MIN_SCALE_UI_MAX - PRESSURE_MIN_SCALE_UI_MIN;
+  const eased = 1 - (1 - t) * (1 - t);
+  return PRESSURE_MIN_SCALE_UI_MIN + span * eased;
+}
+
+/** Inverse of {@link pressureMinScaleFromSliderUnit} for binding the Light end slider. */
+export function pressureMinScaleToSliderUnit(m: number): number {
+  const span = PRESSURE_MIN_SCALE_UI_MAX - PRESSURE_MIN_SCALE_UI_MIN;
+  const clamped = Math.max(
+    PRESSURE_MIN_SCALE_UI_MIN,
+    Math.min(PRESSURE_MIN_SCALE_UI_MAX, m)
+  );
+  const r = (clamped - PRESSURE_MIN_SCALE_UI_MIN) / span;
+  return 1 - Math.sqrt(Math.max(0, Math.min(1, 1 - r)));
+}
+
 /**
  * Global pen/tablet pressure (single source of truth for drawing).
  * {@link BrushSettings} / {@link PencilSettings} still include the same fields for future per-tool expansion.

@@ -327,7 +327,8 @@ export interface SketchLayersPanelProps {
   onMergeDown: () => void;
   onFlattenVisible: () => void;
   onTrimLayerToBounds: () => void;
-  onCropCanvasToActiveLayer: () => void;
+  onCropCanvasToActiveLayerVisiblePixels: () => void;
+  onCropCanvasToActiveLayerExtents: () => void;
   canvasWidth: number;
   canvasHeight: number;
   onCanvasResize: (width: number, height: number) => void;
@@ -372,7 +373,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onMergeDown,
   onFlattenVisible,
   onTrimLayerToBounds,
-  onCropCanvasToActiveLayer,
+  onCropCanvasToActiveLayerVisiblePixels,
+  onCropCanvasToActiveLayerExtents,
   canvasWidth,
   canvasHeight,
   onCanvasResize,
@@ -898,10 +900,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Crop Canvas To Active Layer">
+          <Tooltip title="Crop Canvas To Visible Pixels">
             <IconButton
               size="small"
-              onClick={onCropCanvasToActiveLayer}
+              onClick={onCropCanvasToActiveLayerVisiblePixels}
               disabled={
                 !activeLayer ||
                 activeLayer.type === "group" ||
@@ -909,6 +911,21 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
             >
               <CropFreeIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Crop Canvas To Layer Extents">
+            <IconButton
+              size="small"
+              onClick={onCropCanvasToActiveLayerExtents}
+              disabled={
+                !activeLayer ||
+                activeLayer.type === "group" ||
+                activeLayer.type === "mask"
+              }
+            >
+              <CropFreeIcon
+                sx={{ fontSize: "1.125rem", transform: "scale(0.9)" }}
+              />
             </IconButton>
           </Tooltip>
           <Tooltip title="Flatten Visible">
@@ -1371,8 +1388,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           onTrimLayerToBounds();
           handleLayerCtxClose();
         };
-        const handleCtxCropToLayer = () => {
-          onCropCanvasToActiveLayer();
+        const handleCtxCropToVisible = () => {
+          onCropCanvasToActiveLayerVisiblePixels();
+          handleLayerCtxClose();
+        };
+        const handleCtxCropToExtents = () => {
+          onCropCanvasToActiveLayerExtents();
           handleLayerCtxClose();
         };
         const handleCtxUngroup = () => {
@@ -1495,10 +1516,17 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </MenuItem>
             <MenuItem
               sx={menuItemSx}
-              onClick={handleCtxCropToLayer}
+              onClick={handleCtxCropToVisible}
               disabled={ctxIsGroup || isMulti || ctxLayer?.type === "mask"}
             >
-              Crop Canvas to Layer
+              Crop Canvas to Visible Pixels
+            </MenuItem>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxCropToExtents}
+              disabled={ctxIsGroup || isMulti || ctxLayer?.type === "mask"}
+            >
+              Crop Canvas to Layer Extents
             </MenuItem>
 
             {ctxIsGroup && !isMulti && (
