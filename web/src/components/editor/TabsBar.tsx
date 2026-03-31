@@ -25,23 +25,13 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     null
   );
   const navigate = useNavigate();
-  const {
-    openWorkflows,
-    getWorkflow,
-    reorderWorkflows,
-    updateWorkflow,
-    removeWorkflow,
-    saveWorkflow,
-    createNewWorkflow
-  } = useWorkflowManager((state) => ({
-    openWorkflows: state.openWorkflows,
-    getWorkflow: state.getWorkflow,
-    removeWorkflow: state.removeWorkflow,
-    reorderWorkflows: state.reorderWorkflows,
-    updateWorkflow: state.updateWorkflow,
-    saveWorkflow: state.saveWorkflow,
-    createNewWorkflow: state.createNew
-  }));
+  const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
+  const reorderWorkflows = useWorkflowManager((state) => state.reorderWorkflows);
+  const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
+  const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
   const [dropTarget, setDropTarget] = useState<{
     id: string;

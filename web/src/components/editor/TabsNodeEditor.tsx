@@ -271,10 +271,9 @@ type TabsNodeEditorProps = {
 };
 
 const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
-  const { openWorkflows, currentWorkflowId } = useWorkflowManager((state) => ({
-    openWorkflows: state.openWorkflows,
-    currentWorkflowId: hideContent ? undefined : state.currentWorkflowId
-  }));
+  const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
+  const storeCurrentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const currentWorkflowId = hideContent ? undefined : storeCurrentWorkflowId;
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId

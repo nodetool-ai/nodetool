@@ -5,6 +5,9 @@
  * while navigating, returning realistic fake data so screenshots look like
  * a real populated application.
  *
+ * Also handles WebSocket upgrade requests on /ws so that the chat views
+ * and workflow runner can establish a connection without a real backend.
+ *
  * Start the mock server:
  *   const { startMockServer } = await import('./mockServer');
  *   const server = await startMockServer(4444);
@@ -16,6 +19,7 @@
  */
 
 import * as http from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import {
   MOCK_NODE_METADATA,
   MOCK_WORKFLOWS,
@@ -115,6 +119,23 @@ add("POST", /^\/api\/workflows\/(\?.*)?$/, (req, res) => {
       updated_at: new Date().toISOString()
     });
   });
+});
+
+// Individual workflow — autosave and versions
+add("POST", /^\/api\/workflows\/([^/?]+)\/autosave(\?.*)?$/, (req, res) => {
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", () => {
+    sendJson(res, { version: null, message: "mock autosave", skipped: true });
+  });
+});
+
+add("GET", /^\/api\/workflows\/([^/?]+)\/versions(\?.*)?$/, (_req, res) => {
+  sendJson(res, { versions: [] });
+});
+
+add("POST", /^\/api\/workflows\/([^/?]+)\/versions(\?.*)?$/, (_req, res) => {
+  sendJson(res, { id: "v-mock", version: 1, created_at: new Date().toISOString() });
 });
 
 // Individual workflow
@@ -308,6 +329,29 @@ export async function startMockServer(port = 4444): Promise<MockServer> {
     sendJson(res, { error: "Not found" }, 404);
   });
 
+  // WebSocket server for /ws — keeps connections alive so the app
+  // doesn't show "Failed to connect" errors in chat or editor views.
+  const wss = new WebSocketServer({ noServer: true });
+
+  wss.on("connection", (ws: WebSocket) => {
+    // Respond to pings from the client to keep the connection alive
+    ws.on("message", () => {
+      // Silently ignore all messages — the mock server doesn't
+      // need to process workflow or chat protocol messages.
+    });
+  });
+
+  server.on("upgrade", (req, socket, head) => {
+    const url = req.url ?? "/";
+    if (url.startsWith("/ws")) {
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit("connection", ws, req);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
+
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, "127.0.0.1", resolve);
@@ -319,6 +363,11 @@ export async function startMockServer(port = 4444): Promise<MockServer> {
     port,
     close: () =>
       new Promise<void>((resolve, reject) => {
+        // Close all WebSocket connections before closing the server
+        for (const client of wss.clients) {
+          client.close();
+        }
+        wss.close();
         server.close((err) => (err ? reject(err) : resolve()));
       })
   };

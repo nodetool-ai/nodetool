@@ -104,7 +104,6 @@ export const FetchCurrentWorkflow: FC<{
   const navigate = useNavigate();
   // Extract workflow id from the route.
   const { workflow: workflowId } = useParams();
-  const isWorkflowLoaded = Boolean(workflowId && getNodeStore(workflowId));
 
   useEffect(() => {
     let isCancelled = false;
@@ -113,7 +112,9 @@ export const FetchCurrentWorkflow: FC<{
         return;
       }
       setCurrentWorkflowId(workflowId);
-      if (isWorkflowLoaded) {
+      // Check if the workflow is already loaded inside the effect
+      // to avoid using a derived value as a dependency
+      if (getNodeStore(workflowId)) {
         return;
       }
       try {
@@ -141,10 +142,10 @@ export const FetchCurrentWorkflow: FC<{
   }, [
     workflowId,
     fetchWorkflow,
-    isWorkflowLoaded,
     setCurrentWorkflowId,
     createNew,
-    navigate
+    navigate,
+    getNodeStore
   ]);
 
   return children;
