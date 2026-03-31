@@ -68,6 +68,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     drawOverlayShape: jest.fn(),
     drawOverlayGradient: jest.fn(),
     drawOverlayCrop: jest.fn(),
+    drawOverlayLassoPreview: jest.fn(),
     drawOverlaySelection: jest.fn(),
     drawCursor: jest.fn(),
     onZoomChange: jest.fn(),
@@ -200,7 +201,10 @@ describe("PaintEngine implementations", () => {
         pressureSensitivity: true,
         pressureAffects: "size",
         roundness: 1,
-        angle: 0
+        angle: 0,
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 0
       });
       expect(engine.engineId).toBe("brush");
       expect(engine.compositeOp).toBe("source-over");
@@ -219,7 +223,10 @@ describe("PaintEngine implementations", () => {
         pressureSensitivity: true,
         pressureAffects: "size",
         roundness: 1,
-        angle: 0
+        angle: 0,
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 0
       });
       engine.beginStroke();
       expect(engine.getDirtyRect()).toBeNull();
@@ -235,7 +242,10 @@ describe("PaintEngine implementations", () => {
         pressureSensitivity: true,
         pressureAffects: "size",
         roundness: 1,
-        angle: 0
+        angle: 0,
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 1
       });
       engine.beginStroke();
       const p1 = engine.stabilize({ x: 0, y: 0 });
@@ -251,24 +261,34 @@ describe("PaintEngine implementations", () => {
       const engine = new PencilEngine({
         size: 1,
         opacity: 1,
-        color: "#000000"
+        color: "#000000",
+        pressureSensitivity: true,
+        pressureAffects: "size",
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 0
       });
       expect(engine.engineId).toBe("pencil");
       expect(engine.compositeOp).toBe("source-over");
-      expect(engine.bufferMode).toBe("direct");
-      expect(engine.hasStabilizer).toBe(false);
+      expect(engine.bufferMode).toBe("buffered");
+      expect(engine.hasStabilizer).toBe(true);
       expect(engine.dabOnDown).toBe(true);
     });
 
-    it("stabilize returns raw point unchanged", () => {
+    it("stabilize snaps to pixel centres", () => {
       const engine = new PencilEngine({
         size: 1,
         opacity: 1,
-        color: "#000000"
+        color: "#000000",
+        pressureSensitivity: true,
+        pressureAffects: "size",
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 0
       });
       engine.beginStroke();
       const pt = { x: 42, y: 17 };
-      expect(engine.stabilize(pt)).toBe(pt);
+      expect(engine.stabilize(pt)).toEqual(pt);
     });
   });
 
@@ -288,7 +308,7 @@ describe("PaintEngine implementations", () => {
 
     it("stabilizes points with a moving average", () => {
       const engine = new EraserEngine(
-        DEFAULT_ERASER_SETTINGS,
+        { ...DEFAULT_ERASER_SETTINGS, stabilizer: 1 },
         DEFAULT_BRUSH_SETTINGS,
         DEFAULT_PENCIL_SETTINGS
       );
@@ -314,7 +334,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
@@ -336,7 +359,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
@@ -348,18 +374,24 @@ describe("PaintSession", () => {
     expect(ctx.activeStrokeRef.current?.compositeOp).toBe("source-over");
   });
 
-  it("begin does NOT create stroke buffer for direct engines (pencil)", () => {
+  it("begin creates stroke buffer for pencil engine (now buffered)", () => {
     const engine = new PencilEngine({
       size: 1,
       opacity: 1,
-      color: "#000000"
+      color: "#000000",
+      pressureSensitivity: true,
+      pressureAffects: "size",
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
     const result = session.begin(ctx, makePointerEvent());
     expect(result).toBe(true);
-    // Pencil paints directly — no stroke buffer
-    expect(ctx.activeStrokeRef.current).toBeNull();
+    // Pencil is now buffered — stroke buffer is created
+    expect(ctx.activeStrokeRef.current).not.toBeNull();
+    expect(ctx.activeStrokeRef.current?.compositeOp).toBe("source-over");
   });
 
   it("end calls onStrokeEnd and clears active stroke", () => {
@@ -372,7 +404,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
@@ -387,7 +422,7 @@ describe("PaintSession", () => {
     }
 
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null
+      ctx.doc.activeLayerId, null, undefined
     );
     expect(ctx.activeStrokeRef.current).toBeNull();
     expect(session.isActive).toBe(false);
@@ -403,7 +438,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
@@ -435,7 +473,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
@@ -455,7 +496,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const ctx = makeToolContext();
@@ -474,7 +518,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const eraserEngine = new EraserEngine(
       DEFAULT_ERASER_SETTINGS,
@@ -507,7 +554,10 @@ describe("PaintSession", () => {
       pressureSensitivity: true,
       pressureAffects: "size",
       roundness: 1,
-      angle: 0
+      angle: 0,
+      pressureMinScale: 0.06,
+      pressureCurve: 1,
+      stabilizer: 0
     });
     const session = new PaintSession(engine);
     const canvasMap = new Map<string, HTMLCanvasElement>();
@@ -592,7 +642,7 @@ describe("BrushTool (PaintSession)", () => {
       stroke.pendingCommit();
     }
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null
+      ctx.doc.activeLayerId, null, undefined
     );
     expect(ctx.activeStrokeRef.current).toBeNull();
   });
@@ -617,12 +667,13 @@ describe("BrushTool (PaintSession)", () => {
 });
 
 describe("PencilTool (PaintSession)", () => {
-  it("paints directly without stroke buffer", () => {
+  it("creates stroke buffer (pencil is now buffered)", () => {
     const tool = new PencilTool();
     const ctx = makeToolContext({ activeTool: "pencil" });
     tool.onDown(ctx, makePointerEvent());
-    // Pencil uses direct mode — no stroke buffer
-    expect(ctx.activeStrokeRef.current).toBeNull();
+    // Pencil is now buffered — stroke buffer is created
+    expect(ctx.activeStrokeRef.current).not.toBeNull();
+    expect(ctx.activeStrokeRef.current?.compositeOp).toBe("source-over");
   });
 
   it("calls onStrokeEnd on pointer up", () => {
@@ -630,8 +681,13 @@ describe("PencilTool (PaintSession)", () => {
     const ctx = makeToolContext({ activeTool: "pencil" });
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
+    // Pencil is now buffered — drain pendingCommit
+    const stroke = ctx.activeStrokeRef.current;
+    if (stroke?.pendingCommit) {
+      stroke.pendingCommit();
+    }
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null
+      ctx.doc.activeLayerId, null, undefined
     );
   });
 });
@@ -656,7 +712,7 @@ describe("EraserTool (PaintSession)", () => {
       stroke.pendingCommit();
     }
     expect(ctx.onStrokeEnd).toHaveBeenCalledWith(
-      ctx.doc.activeLayerId, null
+      ctx.doc.activeLayerId, null, undefined
     );
   });
 });
@@ -686,7 +742,24 @@ describe("ShapeTool (transform-aware commit)", () => {
       drawImage: jest.fn(),
       clearRect: jest.fn(),
       save: jest.fn(),
-      restore: jest.fn()
+      restore: jest.fn(),
+      strokeRect: jest.fn(),
+      fillRect: jest.fn(),
+      beginPath: jest.fn(),
+      closePath: jest.fn(),
+      stroke: jest.fn(),
+      fill: jest.fn(),
+      arc: jest.fn(),
+      ellipse: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      setLineDash: jest.fn(),
+      lineWidth: 1,
+      strokeStyle: "",
+      fillStyle: "",
+      globalAlpha: 1,
+      lineCap: "butt",
+      lineJoin: "miter"
     } as unknown as CanvasRenderingContext2D;
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
