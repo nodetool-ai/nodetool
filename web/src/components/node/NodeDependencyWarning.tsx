@@ -7,7 +7,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "lodash/isEqual";
 import { getIsElectronDetails } from "../../utils/browser";
 
-const RUNTIME_LABELS: Record<string, string> = {
+export const RUNTIME_LABELS: Record<string, string> = {
   ffmpeg: "FFmpeg & Codecs",
   python: "Python",
   nodejs: "Node.js",
@@ -21,7 +21,7 @@ const RUNTIME_LABELS: Record<string, string> = {
 };
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
-const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
+export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   python: "python",
   nodejs: "nodejs",
   bash: "bash",
@@ -75,6 +75,25 @@ const warningStyles = (theme: Theme) =>
         color: theme.vars.palette.primary.light,
       },
     },
+
+    ".install-btn": {
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeTiny,
+      color: theme.vars.palette.common.white,
+      backgroundColor: theme.vars.palette.primary.main,
+      border: "none",
+      borderRadius: "3px",
+      padding: "3px 10px",
+      cursor: "pointer",
+      marginTop: "2px",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.dark,
+      },
+      "&:disabled": {
+        opacity: 0.6,
+        cursor: "default",
+      },
+    },
   });
 
 interface NodeDependencyWarningProps {
@@ -88,7 +107,7 @@ interface NodeDependencyWarningProps {
 let cachedStatuses: Record<string, boolean> | null = null;
 let fetchPromise: Promise<void> | null = null;
 
-async function refreshRuntimeStatuses(): Promise<void> {
+export async function refreshRuntimeStatuses(): Promise<void> {
   const api = (window as any).api;
   if (!api?.packages?.getRuntimeStatuses) {return;}
   try {
@@ -104,12 +123,17 @@ async function refreshRuntimeStatuses(): Promise<void> {
   }
 }
 
+export function getCachedRuntimeStatuses(): Record<string, boolean> | null {
+  return cachedStatuses;
+}
+
 const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   requiredRuntimes,
 }) => {
   const theme = useTheme();
   const [missingRuntimes, setMissingRuntimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [installing, setInstalling] = useState(false);
   const { isElectron } = getIsElectronDetails();
 
   const checkRuntimes = useCallback(async (forceRefresh = false) => {
@@ -165,12 +189,23 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
     .map((r) => RUNTIME_LABELS[r] || r)
     .join(", ");
 
-  const handleOpenPackageManager = () => {
+  const handleInstall = useCallback(async () => {
     const api = (window as any).api;
-    if (api?.packages?.showManager) {
-      api.packages.showManager();
+    if (!api?.packages?.installRuntime) return;
+    setInstalling(true);
+    try {
+      for (const rt of missingRuntimes) {
+        const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
+        await api.packages.installRuntime(pkgId);
+      }
+      await checkRuntimes(true);
+    } catch {
+      // fall back to package manager on error
+      api.packages?.showManager?.();
+    } finally {
+      setInstalling(false);
     }
-  };
+  }, [missingRuntimes, checkRuntimes]);
 
   return (
     <div
@@ -181,19 +216,19 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
         <WarningAmberIcon sx={{ fontSize: 14 }} />
         Requires {runtimeNames}
       </div>
-      <div className="warning-text">
-        {isElectron ? (
-          <>
-            Install via the{" "}
-            <button className="install-link" onClick={handleOpenPackageManager}>
-              Package Manager
-            </button>{" "}
-            to use this node.
-          </>
-        ) : (
-          <>This runtime must be installed on your system to use this node.</>
-        )}
-      </div>
+      {isElectron ? (
+        <button
+          className="install-btn"
+          onClick={handleInstall}
+          disabled={installing}
+        >
+          {installing ? "Installing..." : `Install ${runtimeNames}`}
+        </button>
+      ) : (
+        <div className="warning-text">
+          This runtime must be installed on your system to use this node.
+        </div>
+      )}
     </div>
   );
 };
