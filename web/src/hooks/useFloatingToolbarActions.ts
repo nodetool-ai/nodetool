@@ -5,7 +5,6 @@ import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "./useAutosave";
-import { executeComfyWorkflow } from "../utils/comfyExecutor";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
@@ -69,22 +68,9 @@ export const useFloatingToolbarActions = () => {
         }
       }
 
-      const currentState = nodeStore.getState();
-      const currentWorkflow = currentState.getWorkflow();
-      const shouldRunViaComfy =
-        currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
-
       // Access current state directly to avoid re-renders on every node drag
-      const { nodes, edges } = currentState;
-      if (shouldRunViaComfy) {
-        await executeComfyWorkflow(
-          currentWorkflow.graph,
-          undefined,
-          currentWorkflow
-        );
-      } else {
-        run({}, workflow, nodes, edges, undefined);
-      }
+      const { nodes, edges } = nodeStore.getState();
+      run({}, workflow, nodes, edges, undefined);
     }
     setTimeout(() => {
       const w = getWorkflowById(workflow.id);
