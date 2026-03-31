@@ -143,6 +143,13 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
   const hasParent = props.parentId !== null;
+  const isComfyNode = useMemo(
+    () =>
+      (nodeType || "").startsWith("comfy.") ||
+      (nodeData?.originalType || "").startsWith("comfy.") ||
+      (nodeData?.node_type || "").startsWith("comfy."),
+    [nodeType, nodeData?.originalType, nodeData?.node_type]
+  );
   const incomingEdgeHandles = useNodes(
     useMemo(() => {
       let lastEdges: Edge[] | null = null;
@@ -287,12 +294,21 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       css={styles(theme)}
       className={className}
       sx={{
-        backgroundColor: theme.vars.palette.c_node_bg
+        backgroundColor: theme.vars.palette.c_node_bg,
+        ...(isComfyNode && {
+          outlineColor: theme.vars.palette.warning.main,
+          "& .node-header": {
+            backgroundColor: theme.vars.palette.warning.main
+          },
+          "& .missing-node-text": {
+            color: theme.vars.palette.warning.main
+          }
+        })
       }}
     >
       <NodeHeader
         id={props.id}
-        metadataTitle={computedHeaderTitle || nodeTitle || "Missing Node!"}
+        metadataTitle={computedHeaderTitle || nodeTitle || (isComfyNode ? "ComfyUI Node" : "Missing Node!")}
         data={nodeData || {}}
         showMenu={false}
         selected={props.selected}
@@ -300,25 +316,43 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       />
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
-        title="Try to find a replacement node or write us a fax."
+        title={
+          isComfyNode
+            ? "Start ComfyUI and reload the workflow to use this node."
+            : "Try to find a replacement node or write us a fax."
+        }
       >
         <Typography variant="h4" className="missing-node-text">
-          Missing Node
+          {isComfyNode ? "ComfyUI Not Running" : "Missing Node"}
         </Typography>
       </Tooltip>
 
       <div className="node-actions">
-        <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
-          <Button
-            variant="contained"
-            size="small"
-            className="install-button"
-            onClick={installPackage}
-            startIcon={<CloudDownloadIcon />}
+        {isComfyNode ? (
+          <Typography
+            variant="body2"
+            sx={{
+              textAlign: "center",
+              padding: "4px 8px",
+              fontSize: "var(--fontSizeTiny)",
+              color: theme.vars.palette.text.secondary
+            }}
           >
-            Search Package Manager
-          </Button>
-        </Tooltip>
+            Start ComfyUI, then reload
+          </Typography>
+        ) : (
+          <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
+            <Button
+              variant="contained"
+              size="small"
+              className="install-button"
+              onClick={installPackage}
+              startIcon={<CloudDownloadIcon />}
+            >
+              Search Package Manager
+            </Button>
+          </Tooltip>
+        )}
       </div>
 
       {mockProperties.length > 0 && (

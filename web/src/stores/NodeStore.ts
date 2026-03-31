@@ -263,6 +263,15 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
           "[NodeStore] Failed to hydrate missing ComfyUI metadata from ComfyUI service",
           error
         );
+        const { useNotificationStore } = await import("./NotificationStore");
+        useNotificationStore.getState().addNotification({
+          type: "warning",
+          content:
+            "This workflow contains ComfyUI nodes but ComfyUI is not running. Please start ComfyUI and reload the workflow.",
+          alert: true,
+          timeout: 10000,
+          dedupeKey: "comfyui-not-running"
+        });
       } finally {
         comfyMetadataHydrationPromise = null;
       }
