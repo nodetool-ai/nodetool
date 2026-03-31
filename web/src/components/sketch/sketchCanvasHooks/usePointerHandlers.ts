@@ -161,7 +161,12 @@ export interface UsePointerHandlersParams {
   selectionMoveAntsRef: SelectionMoveAntsRef;
   onAutoPickLayer?: (layerId: string) => void;
   foregroundColor?: string;
-  /** Fires when the pointer leaves the canvas container (thumbnails, etc.). */
+  /**
+   * Fires when the **primary pointer** leaves the canvas container (layer thumbnails,
+   * deferred doc sync). Use pointerleave only — not mouseleave — so stylus input does
+   * not spuriously flush while the pen is still down (Windows often fires mouseleave
+   * for the logical mouse while the pen tip remains over the canvas).
+   */
   onCanvasLeave?: () => void;
   setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
   clearLayerTransformPreview?: (layerId?: string) => void;
@@ -174,6 +179,9 @@ export interface UsePointerHandlersResult {
   handleDoubleClick: (e: React.MouseEvent) => void;
   handleWheel: (e: React.WheelEvent) => void;
   handleMouseMove: (e: React.MouseEvent) => void;
+  /** Pointer left the root — flush deferred layer thumbnails / doc sync. */
+  handlePointerLeave: () => void;
+  /** Mouse `mouseleave` only — clear cursor; do not flush thumbnails (avoids pen + mouse divergence). */
   handleMouseLeave: () => void;
   handleContextMenu: (e: React.MouseEvent) => void;
   shiftHeldRef: React.MutableRefObject<boolean>;
@@ -1855,7 +1863,7 @@ export function usePointerHandlers({
     // after pointer events can report the system mouse, not the pen tip.
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
+  const clearCursorOverlay = useCallback(() => {
     const cursorCanvas = cursorCanvasRef.current;
     if (cursorCanvas) {
       const ctx = cursorCanvas.getContext("2d");
@@ -1863,8 +1871,16 @@ export function usePointerHandlers({
         ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
       }
     }
+  }, [cursorCanvasRef]);
+
+  const handlePointerLeave = useCallback(() => {
+    clearCursorOverlay();
     onCanvasLeave?.();
-  }, [cursorCanvasRef, onCanvasLeave]);
+  }, [clearCursorOverlay, onCanvasLeave]);
+
+  const handleMouseLeave = useCallback(() => {
+    clearCursorOverlay();
+  }, [clearCursorOverlay]);
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -1980,6 +1996,7 @@ export function usePointerHandlers({
     handleDoubleClick,
     handleWheel,
     handleMouseMove,
+    handlePointerLeave,
     handleMouseLeave,
     handleContextMenu,
     shiftHeldRef,
