@@ -293,7 +293,7 @@ export class PaintSession {
       const stroke = ctx.activeStrokeRef.current!;
       const base = this.shiftRubberBandBase;
       const bctx = stroke.buffer.getContext("2d");
-      if (bctx && base.width === stroke.buffer.width && base.height === stroke.buffer.height) {
+      if (bctx && base && base.width === stroke.buffer.width && base.height === stroke.buffer.height) {
         for (const ep of coalescedPoints) {
           const pt = ep.point;
           if (
@@ -312,7 +312,7 @@ export class PaintSession {
           );
           bctx.clearRect(0, 0, stroke.buffer.width, stroke.buffer.height);
           bctx.drawImage(base, 0, 0);
-          const from = this.mapper.docToLayer(this.lastStrokeEnd);
+          const from = this.mapper.docToLayer(this.lastStrokeEnd!);
           const to = this.mapper.docToLayer(pt);
           this.drawStraightLine(ctx, bctx, from, to);
           this.lastPoint = pt;
