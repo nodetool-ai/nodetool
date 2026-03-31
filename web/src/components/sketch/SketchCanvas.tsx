@@ -282,6 +282,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const selectionCanvasRef = useRef<HTMLCanvasElement>(null);
     const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
+    const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
     const mousePositionRef = useRef<Point>({ x: 0, y: 0 });
     /** Last pointer client coords while over the canvas (for paste-at-cursor). */
     const lastPointerClientRef = useRef<{ x: number; y: number } | null>(null);
@@ -352,6 +353,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       overlayCanvasRef,
       selectionCanvasRef,
       cursorCanvasRef,
+      gizmoCanvasRef,
       containerRef,
       shiftHeldRef,
       altHeldRef,
@@ -377,6 +379,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       displayCanvasRef,
       overlayCanvasRef,
       cursorCanvasRef,
+      gizmoCanvasRef,
       containerRef,
       layerCanvasesRef,
       mousePositionRef,
@@ -589,6 +592,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         <canvas
           ref={cursorCanvasRef}
           className="sketch-canvas__cursor cursor-overlay"
+        />
+        {/* Gizmo canvas for transform tool handles (screen resolution, not clipped by doc-stack) */}
+        <canvas
+          ref={gizmoCanvasRef}
+          className="sketch-canvas__gizmo cursor-overlay"
         />
         {/* Canvas resize: eight square handles (corners + edge midpoints) */}
         {onCanvasResize && (

@@ -43,6 +43,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     selection: null,
     displayCanvasRef: { current: null },
     overlayCanvasRef: { current: null },
+    gizmoCanvasRef: { current: null },
     cursorCanvasRef: { current: null },
     containerRef: { current: null },
     layerCanvasesRef: { current: new Map() },
@@ -429,6 +430,7 @@ describe("ShapeTool", () => {
         ]
       },
       overlayCanvasRef: { current: overlayCanvas },
+      gizmoCanvasRef: { current: null },
       layerCanvasesRef: { current: canvasMap },
       getOrCreateLayerCanvas: jest.fn((requestedLayerId: string) => {
         const found = canvasMap.get(requestedLayerId);

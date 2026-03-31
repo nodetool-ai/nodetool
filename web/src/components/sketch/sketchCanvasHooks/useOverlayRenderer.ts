@@ -57,6 +57,8 @@ export interface UseOverlayRendererParams {
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   selectionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   cursorCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** Screen-resolution canvas for transform gizmo (not clipped by doc-stack). */
+  gizmoCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   shiftHeldRef: React.MutableRefObject<boolean>;
   altHeldRef: React.MutableRefObject<boolean>;
@@ -89,6 +91,7 @@ export function useOverlayRenderer({
   overlayCanvasRef,
   selectionCanvasRef,
   cursorCanvasRef,
+  gizmoCanvasRef,
   containerRef,
   shiftHeldRef,
   altHeldRef,
@@ -98,17 +101,19 @@ export function useOverlayRenderer({
 
   const antsPhaseRef = useRef(0);
 
-  // ─── Screen-resolution canvas sizing (cursor + selection) ──────────
+  // ─── Screen-resolution canvas sizing (cursor + selection + gizmo) ───
 
   useEffect(() => {
     const container = containerRef.current;
     const cursorCanvas = cursorCanvasRef.current;
     const selCanvas = selectionCanvasRef.current;
+    const gizmoCanvas = gizmoCanvasRef.current;
     if (!container) {
       return;
     }
 
     const updateScreenCanvasSize = () => {
+      const dpr = window.devicePixelRatio || 1;
       const cw = container.clientWidth;
       const ch = container.clientHeight;
       if (cursorCanvas) {
@@ -117,6 +122,16 @@ export function useOverlayRenderer({
         }
         if (cursorCanvas.height !== ch) {
           cursorCanvas.height = ch;
+        }
+      }
+      if (gizmoCanvas) {
+        const gw = Math.round(cw * dpr);
+        const gh = Math.round(ch * dpr);
+        if (gizmoCanvas.width !== gw) {
+          gizmoCanvas.width = gw;
+        }
+        if (gizmoCanvas.height !== gh) {
+          gizmoCanvas.height = gh;
         }
       }
       if (selCanvas) {
@@ -142,7 +157,7 @@ export function useOverlayRenderer({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [containerRef, cursorCanvasRef, selectionCanvasRef, zoom]);
+  }, [containerRef, cursorCanvasRef, selectionCanvasRef, gizmoCanvasRef, zoom]);
 
   // ─── Overlay helpers ───────────────────────────────────────────────
 
@@ -289,7 +304,17 @@ export function useOverlayRenderer({
       clearOverlay();
       drawSelectionOverlay();
     }
-  }, [activeTool, clearOverlay, drawSelectionOverlay]);
+    // Clear the gizmo canvas when switching away from transform
+    if (activeTool !== "transform") {
+      const gizmoCanvas = gizmoCanvasRef.current;
+      if (gizmoCanvas) {
+        const gc = gizmoCanvas.getContext("2d");
+        if (gc) {
+          gc.clearRect(0, 0, gizmoCanvas.width, gizmoCanvas.height);
+        }
+      }
+    }
+  }, [activeTool, clearOverlay, drawSelectionOverlay, gizmoCanvasRef]);
 
   const drawOverlayShape = useCallback(
     (start: Point, end: Point) => {
