@@ -26,6 +26,7 @@ import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import type { SketchTool } from "../types";
 import { createDefaultDocument, createDefaultLayer } from "../types";
+import { rectSelectionMask } from "../selection/selectionMask";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     drawOverlayShape: jest.fn(),
     drawOverlayGradient: jest.fn(),
     drawOverlayCrop: jest.fn(),
+    drawOverlayLassoPreview: jest.fn(),
     drawOverlaySelection: jest.fn(),
     drawCursor: jest.fn(),
     onZoomChange: jest.fn(),
@@ -343,7 +345,7 @@ describe("SelectTool", () => {
   it("starts moving selection when clicking inside existing selection", () => {
     const tool = new SelectTool();
     const ctx = makeToolContext({
-      selection: { x: 0, y: 0, width: 20, height: 20 }
+      selection: rectSelectionMask(64, 64, 0, 0, 20, 20)
     });
     const result = tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
     expect(result).toBe(true);
@@ -511,7 +513,7 @@ describe("FillTool", () => {
     const tool = new FillTool();
     const ctx = makeToolContext({
       activeTool: "fill",
-      selection: { x: 50, y: 50, width: 10, height: 10 }
+      selection: rectSelectionMask(64, 64, 50, 50, 10, 10)
     });
     const result = tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
     expect(result).toBe(false);
@@ -536,7 +538,14 @@ describe("BrushTool", () => {
     const ctx = makeToolContext({ activeTool: "brush" });
     tool.onDown(ctx, makePointerEvent());
     tool.onUp!(ctx, makePointerEvent());
-    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, expect.anything());
+    // BrushEngine uses "buffered" mode, so end() defers the merge via pendingCommit.
+    // Drain the pending commit to trigger onStrokeEnd (mirrors rAF in production).
+    const stroke = ctx.activeStrokeRef.current;
+    if (stroke?.pendingCommit) {
+      stroke.pendingCommit();
+      stroke.pendingCommit = null;
+    }
+    expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, undefined);
     expect(ctx.activeStrokeRef.current).toBeNull();
   });
 });
