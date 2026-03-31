@@ -2371,15 +2371,27 @@ export class AgentNode extends BaseNode {
         });
         throw new Error("Agent did not return structured output text");
       }
-      const parsed = extractJson(lastTextOutput);
+      let parsed = extractJson(lastTextOutput);
       if (!parsed) {
-        log.error("AgentNode structured output was not valid JSON", {
+        // The LLM returned plain text instead of JSON. Rather than failing
+        // the workflow, build a best-effort result by assigning the raw text
+        // to each required string field in the schema.
+        log.warn("AgentNode structured output was not valid JSON, falling back to raw text", {
           nodeId: this.__node_id ?? null,
           providerId,
           modelId,
           textPreview: lastTextOutput.slice(0, 200),
         });
-        throw new Error("Agent returned invalid structured output");
+        const props = (structuredSchema as { properties?: Record<string, { type?: string }> }).properties ?? {};
+        const fallback: Record<string, unknown> = {};
+        for (const [name, spec] of Object.entries(props)) {
+          if (spec.type === "string") {
+            fallback[name] = lastTextOutput.trim();
+          } else {
+            fallback[name] = null;
+          }
+        }
+        parsed = fallback;
       }
       const required = Array.isArray((structuredSchema as { required?: unknown }).required)
         ? ((structuredSchema as { required: string[] }).required ?? [])

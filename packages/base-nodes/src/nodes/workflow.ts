@@ -53,11 +53,21 @@ export class WorkflowNode extends BaseNode {
 
     const resolveExecutor = context.resolveExecutor;
 
-    // Normalize graph: web UI stores properties under `data`, kernel expects `properties`
+    // Normalize graph: web UI stores properties under `data`, kernel expects `properties`.
+    // The web UI nests actual node properties inside `data.properties`, so when we
+    // move `data` → `properties` we must unwrap that extra level so the runner
+    // sees e.g. `node.properties.name` instead of `node.properties.properties.name`.
     const normalizedNodes = graph.nodes.map((n) => {
       if (n.properties === undefined && n.data !== undefined) {
         const { data, ...rest } = n;
-        return { ...rest, properties: data };
+        const dataObj = data as Record<string, unknown>;
+        // If data has a nested `properties` object, use that as the node properties
+        // (this is the web UI's format: data.properties holds the actual node props).
+        const props =
+          dataObj.properties && typeof dataObj.properties === "object" && !Array.isArray(dataObj.properties)
+            ? dataObj.properties
+            : dataObj;
+        return { ...rest, properties: props };
       }
       return { ...n };
     });
