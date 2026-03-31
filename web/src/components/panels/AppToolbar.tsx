@@ -26,7 +26,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { executeViaComfyUI } from "../../utils/comfyExecutor";
+import { executeComfyWorkflow } from "../../utils/comfyExecutor";
 import { shallow } from "zustand/shallow";
 
 // Icons
@@ -526,7 +526,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
         currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
 
       if (shouldRunViaComfy) {
-        await executeViaComfyUI(currentWorkflow.graph, undefined, currentWorkflow);
+        await executeComfyWorkflow(currentWorkflow.graph, undefined, currentWorkflow);
       } else {
         // Access current state directly when running, not in render
         run({}, workflow, currentState.nodes, currentState.edges);
