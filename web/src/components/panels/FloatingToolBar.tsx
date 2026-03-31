@@ -21,6 +21,8 @@ import { useLocation } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useComfyUIStore } from "../../stores/ComfyUIStore";
+import useMetadataStore from "../../stores/MetadataStore";
+import { comfyObjectInfoToMetadataMap } from "../../utils/comfySchemaConverter";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -421,13 +423,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         const body = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
         throw new Error((body as Record<string, string>).error || `HTTP ${resp.status}`);
       }
-      // Feed the object info into ComfyUIStore so useComfyUINodes registers them
       const objectInfo = await resp.json();
       comfySetBaseUrl(trimmed);
       useComfyUIStore.setState({
         objectInfo,
         isConnected: true,
         connectionError: null,
+      });
+      // Convert ComfyUI schemas to NodeTool metadata and register them
+      const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
+      const currentMetadata = useMetadataStore.getState().metadata;
+      useMetadataStore.getState().setMetadata({
+        ...currentMetadata,
+        ...comfyMetadata,
       });
       setComfyConnected(true);
     } catch (err) {
