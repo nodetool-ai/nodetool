@@ -29,6 +29,8 @@ import type {
 import {
   FileStorageAdapter,
   ProcessingContext as RuntimeProcessingContext,
+  executeComfyLocal,
+  executeComfyRunPod,
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import type {
@@ -110,6 +112,69 @@ function getAssetStoragePath(): string {
   return getDefaultAssetsPath();
 }
 
+/**
+ * Returns true if every node in the graph has a type starting with "comfy.".
+ */
+function isComfyGraph(graph: { nodes: Array<Record<string, unknown>> }): boolean {
+  return (
+    graph.nodes.length > 0 &&
+    graph.nodes.every(
+      (n) => typeof n.type === "string" && (n.type as string).startsWith("comfy.")
+    )
+  );
+}
+
+/**
+ * Converts a NodeTool graph (with comfy.* nodes) into a ComfyUI API prompt dict.
+ */
+function graphToComfyPrompt(
+  graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }
+): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
+  const prompt: Record<string, { class_type: string; inputs: Record<string, unknown> }> = {};
+
+  for (const node of graph.nodes) {
+    const id = String(node.id);
+    const classType = (node.type as string).replace(/^comfy\./, "");
+    const props: Record<string, unknown> =
+      (node.properties as Record<string, unknown>) ??
+      (node.data as Record<string, unknown>) ??
+      {};
+    const inputs: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(props)) {
+      if (key.startsWith("_") || key === "workflow_id") continue;
+      inputs[key] = value;
+    }
+    prompt[id] = { class_type: classType, inputs };
+  }
+
+  // Wire edges: set inputs to [sourceId, slotIndex]
+  for (const edge of graph.edges) {
+    const sourceId = String(edge.source);
+    const targetId = String(edge.target);
+    const sourceHandle = edge.sourceHandle as string;
+    const targetHandle = edge.targetHandle as string;
+
+    if (!prompt[targetId]) continue;
+
+    // Determine output slot index from source node's _comfy_metadata
+    let slotIndex = 0;
+    const sourceNode = graph.nodes.find((n) => String(n.id) === sourceId);
+    if (sourceNode) {
+      const meta = sourceNode._comfy_metadata as
+        | { outputs?: string[] }
+        | undefined;
+      if (meta?.outputs) {
+        const idx = meta.outputs.indexOf(sourceHandle);
+        if (idx >= 0) slotIndex = idx;
+      }
+    }
+
+    prompt[targetId].inputs[targetHandle] = [sourceId, slotIndex];
+  }
+
+  return prompt;
+}
+
 function createRuntimeContext(opts: {
   jobId: string;
   workflowId?: string | null;
@@ -163,6 +228,7 @@ export interface RunJobRequest {
   params?: Record<string, unknown>;
   graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
   explicit_types?: boolean;
+  settings?: Record<string, unknown>;
 }
 
 interface ActiveJob {
@@ -560,6 +626,12 @@ export class UnifiedWebSocketRunner {
       await this.beforeRunJob(graph);
     }
 
+    // Route ComfyUI workflows to the dedicated comfy executor
+    if (isComfyGraph(graph)) {
+      await this.runComfyJob(jobId, workflowId, userId, graph, req.settings ?? {});
+      return;
+    }
+
     const workspaceDir = workflowId && this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
 
     const context = createRuntimeContext({
@@ -624,6 +696,93 @@ export class UnifiedWebSocketRunner {
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
+  }
+
+  /**
+   * Execute a ComfyUI workflow via the comfy executor (local or RunPod).
+   */
+  private async runComfyJob(
+    jobId: string,
+    workflowId: string | null,
+    userId: string,
+    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
+    settings: Record<string, unknown>
+  ): Promise<void> {
+    const active: ActiveJob = {
+      jobId,
+      workflowId,
+      context: null as unknown as ProcessingContext,
+      runner: null as unknown as WorkflowRunner,
+      graph,
+      finished: false,
+      status: "running",
+    };
+    this.activeJobs.set(jobId, active);
+
+    try {
+      await this.sendMessage({
+        type: "job_update",
+        status: "running",
+        job_id: jobId,
+        workflow_id: workflowId,
+      });
+
+      const prompt = graphToComfyPrompt(graph);
+      const executor = settings.comfy_executor as string | undefined;
+
+      let result: Awaited<ReturnType<typeof executeComfyLocal>>;
+
+      if (executor === "runpod") {
+        const endpointId = settings.runpod_endpoint_id as string | undefined;
+        if (!endpointId) {
+          throw new Error("runpod_endpoint_id is required for RunPod executor");
+        }
+        const apiKey = await getSecret("RUNPOD_API_KEY", userId);
+        if (!apiKey) {
+          throw new Error("RUNPOD_API_KEY secret is not configured");
+        }
+        result = await executeComfyRunPod(prompt, apiKey, endpointId);
+      } else {
+        const addr =
+          (await getSecret("COMFYUI_ADDR", userId)) ?? "127.0.0.1:8188";
+        result = await executeComfyLocal(prompt, addr);
+      }
+
+      if (result.status === "completed") {
+        if (result.images && result.images.length > 0) {
+          await this.sendMessage({
+            type: "output_update",
+            job_id: jobId,
+            workflow_id: workflowId,
+            result: { images: result.images },
+          });
+        }
+        active.status = "completed";
+        active.finished = true;
+        await this.sendMessage({
+          type: "job_update",
+          status: "completed",
+          job_id: jobId,
+          workflow_id: workflowId,
+        });
+      } else {
+        throw new Error(result.error ?? "ComfyUI execution failed");
+      }
+    } catch (err) {
+      active.status = "failed";
+      active.finished = true;
+      active.error = err instanceof Error ? err.message : String(err);
+      log.error("ComfyUI job failed", { jobId, error: active.error });
+      await this.sendMessage({
+        type: "job_update",
+        status: "failed",
+        job_id: jobId,
+        workflow_id: workflowId,
+        error: active.error,
+      });
+    } finally {
+      this.activeJobs.delete(jobId);
+    }
   }
 
   private async streamJobMessages(
