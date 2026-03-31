@@ -15,6 +15,7 @@ import { NodeData } from "./NodeData";
 import { isLocalhost } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
+import { useComfyUIStore } from "./ComfyUIStore";
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
 import {
@@ -352,7 +353,10 @@ export const createWorkflowRunnerStore = (
           edges: activeEdges.map(reactFlowEdgeToGraphEdge)
         },
         resource_limits: resource_limits,
-        settings: workflow.settings ?? {}
+        settings: {
+          ...(workflow.settings ?? {}),
+          comfy_host: useComfyUIStore.getState().baseUrl,
+        }
       };
 
       log.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);

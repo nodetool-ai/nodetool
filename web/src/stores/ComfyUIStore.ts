@@ -11,6 +11,9 @@ import {
   getDefaultComfyBaseUrl,
   normalizeComfyBaseUrl
 } from "../services/ComfyUIService";
+import useMetadataStore from "./MetadataStore";
+import { comfyObjectInfoToMetadataMap } from "../utils/comfySchemaConverter";
+import { BASE_URL } from "./BASE_URL";
 import log from "loglevel";
 
 export type ComfyBackendType = "local" | "runpod";
@@ -142,32 +145,41 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
     set({ isConnecting: true, connectionError: null });
 
     try {
-      // Set the base URL
       service.setBaseUrl(baseUrl);
 
-      // Check if backend is reachable
-      const connected = await service.checkConnection();
-
-      if (!connected) {
-        throw new Error("ComfyUI backend is not reachable");
+      // Fetch object_info through the backend proxy to avoid CORS
+      const resp = await fetch(
+        `${BASE_URL}/api/comfy/object_info?host=${encodeURIComponent(baseUrl)}`
+      );
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+        throw new Error((body as Record<string, string>).error || `HTTP ${resp.status}`);
       }
+      const objectInfo = await resp.json() as ComfyUIObjectInfo;
 
-      // Fetch object info to validate connection
-      await get().fetchObjectInfo();
+      // Register ComfyUI node metadata
+      const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
+      const currentMetadata = useMetadataStore.getState().metadata;
+      useMetadataStore.getState().setMetadata({
+        ...currentMetadata,
+        ...comfyMetadata,
+      });
 
       set({
+        objectInfo,
         isConnected: true,
         isConnecting: false,
         connectionError: null
       });
 
-      log.info("Successfully connected to ComfyUI backend");
+      log.info(`Connected to ComfyUI at ${baseUrl}, registered ${Object.keys(comfyMetadata).length} nodes`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to connect";
       set({
         isConnected: false,
         isConnecting: false,
-        connectionError: errorMessage
+        connectionError: errorMessage,
+        objectInfo: null
       });
       log.error("Failed to connect to ComfyUI:", error);
       throw error;

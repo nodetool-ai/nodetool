@@ -2,16 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useState, useRef } from "react";
+import React, { memo, useCallback } from "react";
 import {
   Fab,
   Box,
   useMediaQuery,
   Tooltip,
   Menu,
-  TextField,
-  InputAdornment,
-  CircularProgress
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -21,9 +18,6 @@ import { useLocation } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useComfyUIStore } from "../../stores/ComfyUIStore";
-import useMetadataStore from "../../stores/MetadataStore";
-import { comfyObjectInfoToMetadataMap } from "../../utils/comfySchemaConverter";
-import { BASE_URL } from "../../stores/BASE_URL";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -393,63 +387,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
-  const comfyHost = useNodes((state) => {
-    const settings = state.workflow.settings as Record<string, unknown> | undefined;
-    return String(settings?.comfy_host ?? "");
-  });
-  const updateWorkflowSetting = useNodes((state) => state.updateWorkflowSetting);
-  const comfySetBaseUrl = useComfyUIStore((state) => state.setBaseUrl);
-  const [comfyHostInput, setComfyHostInput] = useState(comfyHost);
-  const [comfyConnecting, setComfyConnecting] = useState(false);
-  const [comfyConnected, setComfyConnected] = useState(false);
-  const [comfyError, setComfyError] = useState<string | null>(null);
-  const comfyHostRef = useRef(comfyHost);
-  if (comfyHostRef.current !== comfyHost) {
-    comfyHostRef.current = comfyHost;
-    setComfyHostInput(comfyHost);
-  }
-
-  const connectComfyHost = useCallback(async (host: string) => {
-    const trimmed = host.trim();
-    if (!trimmed) return;
-    updateWorkflowSetting("comfy_host", trimmed);
-    setComfyConnecting(true);
-    setComfyError(null);
-    setComfyConnected(false);
-    try {
-      // Fetch object_info through the backend proxy to avoid CORS
-      const resp = await fetch(`${BASE_URL}/api/comfy/object_info?host=${encodeURIComponent(trimmed)}`);
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
-        throw new Error((body as Record<string, string>).error || `HTTP ${resp.status}`);
-      }
-      const objectInfo = await resp.json();
-      comfySetBaseUrl(trimmed);
-      useComfyUIStore.setState({
-        objectInfo,
-        isConnected: true,
-        connectionError: null,
-      });
-      // Convert ComfyUI schemas to NodeTool metadata and register them
-      const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-      const currentMetadata = useMetadataStore.getState().metadata;
-      useMetadataStore.getState().setMetadata({
-        ...currentMetadata,
-        ...comfyMetadata,
-      });
-      setComfyConnected(true);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setComfyError(msg);
-      useComfyUIStore.setState({
-        isConnected: false,
-        connectionError: msg,
-        objectInfo: null,
-      });
-    } finally {
-      setComfyConnecting(false);
-    }
-  }, [updateWorkflowSetting, comfySetBaseUrl]);
+  const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
+  const comfyBaseUrl = useComfyUIStore((state) => state.baseUrl);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
@@ -578,52 +517,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {isComfyWorkflow && (
-          <Tooltip title={comfyError || (comfyConnected ? "Connected" : "Enter ComfyUI host and press Enter")}>
-            <TextField
-              size="small"
-              placeholder="ComfyUI host (e.g. localhost:8188)"
-              value={comfyHostInput}
-              onChange={(e) => setComfyHostInput(e.target.value)}
-              onBlur={() => {
-                if (comfyHostInput.trim() && comfyHostInput.trim() !== comfyHost) {
-                  connectComfyHost(comfyHostInput);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (comfyHostInput.trim()) {
-                    connectComfyHost(comfyHostInput);
-                  }
-                }
-              }}
-              error={!!comfyError}
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {comfyConnecting ? (
-                        <CircularProgress size={14} />
-                      ) : (
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: "50%",
-                            bgcolor: comfyConnected ? "success.main" : comfyError ? "error.main" : "grey.500",
-                          }}
-                        />
-                      )}
-                    </InputAdornment>
-                  ),
-                }
-              }}
-              sx={{
-                width: 260,
-                mr: 1,
-                "& .MuiInputBase-input": { height: 28, py: 0, fontSize: "0.75rem" }
-              }}
-            />
+          <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: comfyIsConnected ? "success.main" : "grey.500",
+                }}
+              />
+              ComfyUI
+            </Box>
           </Tooltip>
         )}
 
