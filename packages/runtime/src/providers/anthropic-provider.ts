@@ -506,9 +506,10 @@ export class AnthropicProvider extends BaseProvider {
 
     log.debug("Anthropic request", { model: args.model });
 
-    const stream = this.getClient().messages.stream(
-      request as unknown as MessageStreamParams
-    );
+    const stream = await this.getClient().messages.create({
+      ...request as unknown as MessageStreamParams,
+      stream: true,
+    });
 
     let streamInputTokens = 0;
     let streamOutputTokens = 0;
