@@ -516,5 +516,26 @@ app.listen({ port, host }, (err) => {
   log.info(`WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`);
 });
 
-// Python bridge connects lazily — spawned on first workflow that needs Python nodes.
-// See ensurePythonBridge() passed to the websocket plugin.
+// Start Python bridge eagerly in the background so it's ready when needed.
+pythonBridge
+  .ensureConnected()
+  .then(() => {
+    pythonBridgeReady = true;
+    const meta = pythonBridge.getNodeMetadata();
+    log.info(`Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`);
+    registerPythonProviders(pythonBridge)
+      .then((registered) => {
+        if (registered.length > 0) {
+          log.info(`Registered Python providers: ${registered.join(", ")}`);
+        }
+      })
+      .catch((err) => {
+        log.warn("Failed to register Python providers", err instanceof Error ? err : new Error(String(err)));
+      });
+  })
+  .catch((err) => {
+    log.warn(
+      "Python bridge failed to start (Python nodes will not be available)",
+      err instanceof Error ? err : new Error(String(err)),
+    );
+  });
