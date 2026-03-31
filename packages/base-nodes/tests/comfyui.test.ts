@@ -23,6 +23,15 @@ describe("RunComfyUIWorkflowNode", () => {
     expect(RunComfyUIWorkflowNode.nodeType).toBe("comfyui.RunComfyUIWorkflow");
     expect(RunComfyUIWorkflowNode.title).toBe("Run ComfyUI Workflow");
     expect(RunComfyUIWorkflowNode.requiredSettings).toContain("COMFYUI_ADDR");
+    expect(RunComfyUIWorkflowNode.metadataOutputTypes).toEqual({
+      images: "list[image]",
+      raw_output: "dict[str, any]",
+    });
+  });
+
+  it("does not support streaming", () => {
+    expect(RunComfyUIWorkflowNode.isStreamingInput).toBe(false);
+    expect(RunComfyUIWorkflowNode.isStreamingOutput).toBe(false);
   });
 
   it("throws when workflow is empty", async () => {
@@ -31,18 +40,24 @@ describe("RunComfyUIWorkflowNode", () => {
     await expect(node.process()).rejects.toThrow("workflow is required");
   });
 
-  it("submits prompt and collects images", async () => {
-    // 1. POST /prompt
+  it("throws when workflow is null", async () => {
+    const node = new RunComfyUIWorkflowNode();
+    node.assign({ workflow: null });
+    await expect(node.process()).rejects.toThrow("workflow is required");
+  });
+
+  it("submits prompt, polls history, and collects images", async () => {
+    // POST /prompt
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ prompt_id: "p1", number: 1 }),
     });
-    // 2. GET /history/p1 (first poll — empty)
+    // GET /history/p1 — first poll empty
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({}),
     });
-    // 3. GET /history/p1 (second poll — has result)
+    // GET /history/p1 — second poll has result
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -57,7 +72,7 @@ describe("RunComfyUIWorkflowNode", () => {
         },
       }),
     });
-    // 4. GET /view (image fetch)
+    // GET /view (image fetch)
     const fakeImage = Buffer.from("PNG_DATA");
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -73,7 +88,11 @@ describe("RunComfyUIWorkflowNode", () => {
     });
 
     const result = await node.process();
-    expect(result.images).toHaveLength(1);
+    const images = result.images as Array<Record<string, unknown>>;
+    expect(images).toHaveLength(1);
+    expect(images[0].type).toBe("image");
+    expect(images[0].filename).toBe("out.png");
+    expect(typeof images[0].data).toBe("string");
     expect(result.raw_output).toHaveProperty("9");
   });
 });
@@ -97,6 +116,15 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
     expect(RunComfyUIWorkflowOnRunPodNode.requiredSettings).toContain(
       "RUNPOD_COMFYUI_ENDPOINT_ID"
     );
+    // Same output types as the local node
+    expect(RunComfyUIWorkflowOnRunPodNode.metadataOutputTypes).toEqual(
+      RunComfyUIWorkflowNode.metadataOutputTypes
+    );
+  });
+
+  it("does not support streaming", () => {
+    expect(RunComfyUIWorkflowOnRunPodNode.isStreamingInput).toBe(false);
+    expect(RunComfyUIWorkflowOnRunPodNode.isStreamingOutput).toBe(false);
   });
 
   it("throws when workflow is empty", async () => {
@@ -117,21 +145,23 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
       workflow: { "3": { class_type: "KSampler", inputs: {} } },
     });
     Object.defineProperty(node, "_secrets", { get: () => ({}) });
-    await expect(node.process()).rejects.toThrow("RunPod credentials not configured");
+    await expect(node.process()).rejects.toThrow(
+      "RunPod credentials not configured"
+    );
   });
 
-  it("submits workflow to RunPod and returns images", async () => {
-    // 1. POST /run
+  it("submits workflow and returns images in same format as local node", async () => {
+    // POST /run
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: "job1", status: "IN_QUEUE" }),
     });
-    // 2. GET /status/job1 (polling - still in progress)
+    // GET /status/job1 — still running
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: "job1", status: "IN_PROGRESS" }),
     });
-    // 3. GET /status/job1 (polling - completed)
+    // GET /status/job1 — completed
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -139,7 +169,11 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
         status: "COMPLETED",
         output: {
           images: [
-            { filename: "out.png", type: "base64", data: "aWltYWdlZGF0YQ==" },
+            {
+              filename: "out.png",
+              type: "base64",
+              data: "aWltYWdlZGF0YQ==",
+            },
           ],
         },
       }),
@@ -157,10 +191,13 @@ describe("RunComfyUIWorkflowOnRunPodNode", () => {
     });
 
     const result = await node.process();
-    expect(result.images).toHaveLength(1);
-    const img = (result.images as Array<Record<string, unknown>>)[0];
-    expect(img.filename).toBe("out.png");
-    expect((img.data as string).startsWith("data:image/png;base64,")).toBe(true);
+    const images = result.images as Array<Record<string, unknown>>;
+    expect(images).toHaveLength(1);
+    // Same shape as local node output
+    expect(images[0].type).toBe("image");
+    expect(images[0].filename).toBe("out.png");
+    expect(typeof images[0].data).toBe("string");
+    expect(result.raw_output).toBeDefined();
   });
 });
 

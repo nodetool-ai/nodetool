@@ -3,6 +3,10 @@
  *
  * Backend nodes for executing ComfyUI workflows via a local ComfyUI server
  * or a RunPod serverless ComfyUI endpoint.
+ *
+ * Both nodes share the same inputs (workflow JSON) and outputs (images list +
+ * raw_output dict). ComfyUI nodes do not support streaming — they submit the
+ * whole workflow and poll for completion.
  */
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
@@ -11,42 +15,39 @@ import type { ProcessingContext } from "@nodetool/runtime";
 import { RunPodComfyClient } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Shared types & helpers
 // ---------------------------------------------------------------------------
 
-function getComfyAddr(secrets: Record<string, string>): string {
-  return (
-    secrets.COMFYUI_ADDR ||
-    process.env.COMFYUI_ADDR ||
-    "127.0.0.1:8188"
-  );
+/** Canonical image output — matches the format used by other image nodes. */
+interface ImageOutput {
+  type: "image";
+  data: string; // base64 (no data-uri prefix)
+  filename: string;
 }
 
-function getRunPodCredentials(
-  secrets: Record<string, string>
-): { apiKey: string; endpointId: string } | null {
-  const apiKey = secrets.RUNPOD_API_KEY || process.env.RUNPOD_API_KEY || "";
-  const endpointId =
-    secrets.RUNPOD_COMFYUI_ENDPOINT_ID ||
-    process.env.RUNPOD_COMFYUI_ENDPOINT_ID ||
-    "";
-  if (!apiKey || !endpointId) return null;
-  return { apiKey, endpointId };
+/** Validate the workflow prop and throw a clear error if it's empty. */
+function requireWorkflow(
+  workflow: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+  if (!workflow || Object.keys(workflow).length === 0) {
+    throw new Error(
+      "workflow is required — export from ComfyUI via Workflow > Export (API)"
+    );
+  }
+  return workflow;
 }
 
-/** Build a base URL for a local ComfyUI server. */
-function comfyBaseUrl(addr: string): string {
-  const host = addr.startsWith("http") ? addr : `http://${addr}`;
-  return host.replace(/\/+$/, "");
-}
-
-/** Wait for ms, respecting an AbortSignal. */
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Read a secret/env var, with a fallback. */
+function envOrSecret(
+  secrets: Record<string, string>,
+  name: string,
+  fallback = ""
+): string {
+  return secrets[name] || process.env[name] || fallback;
 }
 
 // ---------------------------------------------------------------------------
-// Local ComfyUI client (minimal, just what the node needs)
+// Local ComfyUI helpers
 // ---------------------------------------------------------------------------
 
 interface ComfyPromptResponse {
@@ -56,20 +57,24 @@ interface ComfyPromptResponse {
 }
 
 interface ComfyHistoryOutput {
-  images?: Array<{
-    filename: string;
-    subfolder: string;
-    type: string;
-  }>;
+  images?: Array<{ filename: string; subfolder: string; type: string }>;
 }
 
 interface ComfyHistoryItem {
   outputs: Record<string, ComfyHistoryOutput>;
-  status?: { status_str?: string; completed?: boolean };
 }
 
 interface ComfyHistoryResponse {
   [promptId: string]: ComfyHistoryItem;
+}
+
+function comfyBaseUrl(addr: string): string {
+  const host = addr.startsWith("http") ? addr : `http://${addr}`;
+  return host.replace(/\/+$/, "");
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function submitComfyPrompt(
@@ -105,25 +110,70 @@ async function pollComfyHistory(
   throw new Error(`ComfyUI prompt ${promptId} timed out`);
 }
 
-function buildComfyImageUrl(
+/** Collect images from a local ComfyUI history item. */
+async function collectLocalImages(
   base: string,
-  filename: string,
-  subfolder: string,
-  type: string
-): string {
-  const params = new URLSearchParams({ filename, subfolder, type });
-  return `${base}/view?${params.toString()}`;
+  historyItem: ComfyHistoryItem
+): Promise<{ images: ImageOutput[]; raw_output: Record<string, unknown> }> {
+  const images: ImageOutput[] = [];
+  const rawOutput: Record<string, unknown> = {};
+
+  for (const [nodeId, output] of Object.entries(historyItem.outputs)) {
+    rawOutput[nodeId] = output;
+    if (output.images) {
+      for (const img of output.images) {
+        const params = new URLSearchParams({
+          filename: img.filename,
+          subfolder: img.subfolder,
+          type: img.type,
+        });
+        const url = `${base}/view?${params.toString()}`;
+        const resp = await fetch(url);
+        if (!resp.ok) continue;
+        const buf = Buffer.from(await resp.arrayBuffer());
+        images.push({
+          type: "image",
+          data: buf.toString("base64"),
+          filename: img.filename,
+        });
+      }
+    }
+  }
+
+  return { images, raw_output: rawOutput };
 }
 
-async function fetchImageAsBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch image: ${url}`);
-  const buffer = Buffer.from(await response.arrayBuffer());
-  return `data:image/png;base64,${buffer.toString("base64")}`;
+/** Collect images from a RunPod job response. */
+function collectRunPodImages(
+  output: { images?: Array<{ filename: string; type: string; data: string }>; errors?: string[] } | undefined
+): { images: ImageOutput[]; raw_output: Record<string, unknown> } {
+  const images: ImageOutput[] = [];
+  if (output?.images) {
+    for (const img of output.images) {
+      images.push({
+        type: "image",
+        // RunPod base64 images come without the data-uri prefix.
+        // S3 URLs are passed through as-is (consumers can detect by checking
+        // whether data starts with "http").
+        data: img.data,
+        filename: img.filename,
+      });
+    }
+  }
+  return { images, raw_output: output ?? {} };
 }
 
 // ---------------------------------------------------------------------------
-// 1. RunComfyUIWorkflow — local ComfyUI
+// Shared static metadata — both nodes expose the same interface.
+// ---------------------------------------------------------------------------
+
+const COMFY_OUTPUT_TYPES = {
+  images: "list[image]",
+  raw_output: "dict[str, any]",
+} as const;
+
+// ---------------------------------------------------------------------------
+// 1. RunComfyUIWorkflow — local ComfyUI server
 // ---------------------------------------------------------------------------
 
 export class RunComfyUIWorkflowNode extends BaseNode {
@@ -132,11 +182,9 @@ export class RunComfyUIWorkflowNode extends BaseNode {
   static readonly description =
     "Execute a ComfyUI workflow on a local ComfyUI server.\n" +
     "Accepts a workflow in ComfyUI API format (exported via Workflow > Export API).\n" +
+    "Returns generated images and raw node outputs.\n" +
     "comfyui, workflow, image, generation, local";
-  static readonly metadataOutputTypes = {
-    images: "list[image]",
-    raw_output: "dict[str, any]",
-  };
+  static readonly metadataOutputTypes = COMFY_OUTPUT_TYPES;
   static readonly requiredSettings = ["COMFYUI_ADDR"];
 
   @prop({
@@ -150,53 +198,23 @@ export class RunComfyUIWorkflowNode extends BaseNode {
   declare workflow: Record<string, unknown>;
 
   async process(
-    context?: ProcessingContext
+    _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const workflow = this.workflow;
-    if (!workflow || Object.keys(workflow).length === 0) {
-      throw new Error("workflow is required");
-    }
+    const workflow = requireWorkflow(this.workflow);
+    const base = comfyBaseUrl(envOrSecret(this._secrets, "COMFYUI_ADDR", "127.0.0.1:8188"));
 
-    const addr = getComfyAddr(this._secrets);
-    const base = comfyBaseUrl(addr);
-
-    // Submit
     const submitResult = await submitComfyPrompt(base, workflow);
-    if (submitResult.node_errors && Object.keys(submitResult.node_errors).length > 0) {
+    if (
+      submitResult.node_errors &&
+      Object.keys(submitResult.node_errors).length > 0
+    ) {
       throw new Error(
         `ComfyUI node errors: ${JSON.stringify(submitResult.node_errors)}`
       );
     }
 
-    // Poll for completion
     const historyItem = await pollComfyHistory(base, submitResult.prompt_id);
-
-    // Collect images from all output nodes
-    const images: Array<Record<string, unknown>> = [];
-    const rawOutputs: Record<string, unknown> = {};
-
-    for (const [nodeId, output] of Object.entries(historyItem.outputs)) {
-      rawOutputs[nodeId] = output;
-      if (output.images) {
-        for (const img of output.images) {
-          const url = buildComfyImageUrl(
-            base,
-            img.filename,
-            img.subfolder,
-            img.type
-          );
-          const dataUri = await fetchImageAsBase64(url);
-          images.push({
-            type: "image",
-            filename: img.filename,
-            data: dataUri,
-            source_url: url,
-          });
-        }
-      }
-    }
-
-    return { images, raw_output: rawOutputs };
+    return collectLocalImages(base, historyItem);
   }
 }
 
@@ -209,12 +227,9 @@ export class RunComfyUIWorkflowOnRunPodNode extends BaseNode {
   static readonly title = "Run ComfyUI Workflow (RunPod)";
   static readonly description =
     "Execute a ComfyUI workflow on a RunPod serverless ComfyUI endpoint.\n" +
-    "Accepts a workflow in ComfyUI API format. Images are returned as base64 or S3 URLs.\n" +
+    "Accepts a workflow in ComfyUI API format. Returns generated images and raw output.\n" +
     "comfyui, workflow, image, generation, runpod, cloud, serverless";
-  static readonly metadataOutputTypes = {
-    images: "list[image]",
-    raw_output: "dict[str, any]",
-  };
+  static readonly metadataOutputTypes = COMFY_OUTPUT_TYPES;
   static readonly requiredSettings = [
     "RUNPOD_API_KEY",
     "RUNPOD_COMFYUI_ENDPOINT_ID",
@@ -233,19 +248,17 @@ export class RunComfyUIWorkflowOnRunPodNode extends BaseNode {
   async process(
     _context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const workflow = this.workflow;
-    if (!workflow || Object.keys(workflow).length === 0) {
-      throw new Error("workflow is required");
-    }
+    const workflow = requireWorkflow(this.workflow);
 
-    const creds = getRunPodCredentials(this._secrets);
-    if (!creds) {
+    const apiKey = envOrSecret(this._secrets, "RUNPOD_API_KEY");
+    const endpointId = envOrSecret(this._secrets, "RUNPOD_COMFYUI_ENDPOINT_ID");
+    if (!apiKey || !endpointId) {
       throw new Error(
         "RunPod credentials not configured. Set RUNPOD_API_KEY and RUNPOD_COMFYUI_ENDPOINT_ID in settings."
       );
     }
 
-    const client = new RunPodComfyClient(creds.apiKey, creds.endpointId);
+    const client = new RunPodComfyClient(apiKey, endpointId);
     const result = await client.runWorkflow({ workflow });
 
     if (result.status !== "COMPLETED") {
@@ -256,31 +269,7 @@ export class RunComfyUIWorkflowOnRunPodNode extends BaseNode {
       throw new Error(`RunPod ComfyUI job failed: ${errorMsg}`);
     }
 
-    // Convert output images
-    const images: Array<Record<string, unknown>> = [];
-    if (result.output?.images) {
-      for (const img of result.output.images) {
-        if (img.type === "base64") {
-          images.push({
-            type: "image",
-            filename: img.filename,
-            data: `data:image/png;base64,${img.data}`,
-          });
-        } else {
-          // s3_url
-          images.push({
-            type: "image",
-            filename: img.filename,
-            url: img.data,
-          });
-        }
-      }
-    }
-
-    return {
-      images,
-      raw_output: result.output ?? {},
-    };
+    return collectRunPodImages(result.output);
   }
 }
 
