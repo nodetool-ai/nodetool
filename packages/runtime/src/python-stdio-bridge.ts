@@ -530,6 +530,11 @@ export class PythonStdioBridge extends EventEmitter {
     this._connected = false;
   }
 
+  /** Check if a Python interpreter can be found (without spawning). */
+  hasPython(): boolean {
+    return this._getPythonLaunchCandidates().length > 0;
+  }
+
   // ── Python path detection (shared with PythonBridge) ───────────────
 
   private _getPythonLaunchCandidates(): PythonLaunchCandidate[] {
