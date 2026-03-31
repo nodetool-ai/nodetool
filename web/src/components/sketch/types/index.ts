@@ -193,6 +193,30 @@ export interface PencilSettings {
   stabilizer: number;
 }
 
+/** Apply global {@link ToolSettings.penPressure} for paint engines (brush/pencil store strips these for UI). */
+export function mergePenPressureIntoBrush(
+  brush: BrushSettings,
+  penPressure: PenPressureSettings | undefined
+): BrushSettings {
+  return {
+    ...brush,
+    ...DEFAULT_PEN_PRESSURE,
+    ...(penPressure ?? {})
+  };
+}
+
+/** Apply global {@link ToolSettings.penPressure} for paint engines (brush/pencil store strips these for UI). */
+export function mergePenPressureIntoPencil(
+  pencil: PencilSettings,
+  penPressure: PenPressureSettings | undefined
+): PencilSettings {
+  return {
+    ...pencil,
+    ...DEFAULT_PEN_PRESSURE,
+    ...(penPressure ?? {})
+  };
+}
+
 /** Brush: same stamp as Brush tool (`drawBrushStroke`). Pencil: same as Pencil tool (`drawPencilStroke`). */
 export type EraserMode = "brush" | "pencil";
 

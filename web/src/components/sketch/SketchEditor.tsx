@@ -558,6 +558,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
           onMergeDown={layerActions.handleMergeDown}
           onFlattenVisible={layerActions.handleFlattenVisible}
           onTrimLayerToBounds={canvasActions.handleTrimLayerToBounds}
+          onCropCanvasToActiveLayer={canvasActions.handleCropCanvasToActiveLayer}
           canvasWidth={store.document.canvas.width}
           canvasHeight={store.document.canvas.height}
           onCanvasResize={canvasActions.handleCanvasResize}

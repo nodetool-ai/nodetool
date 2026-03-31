@@ -7,6 +7,7 @@
 
 import type { ToolHandler, ToolContext, ToolPointerEvent } from "./types";
 import { PaintSession, PencilEngine } from "../painting";
+import { mergePenPressureIntoPencil } from "../types";
 
 export class PencilTool implements ToolHandler {
   readonly toolId = "pencil" as const;
@@ -22,7 +23,8 @@ export class PencilTool implements ToolHandler {
   // ── Handlers ─────────────────────────────────────────────────────────
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
-    this.engine.updateSettings(ctx.doc.toolSettings.pencil);
+    const { pencil, penPressure } = ctx.doc.toolSettings;
+    this.engine.updateSettings(mergePenPressureIntoPencil(pencil, penPressure));
     return this.session.begin(ctx, event);
   }
 

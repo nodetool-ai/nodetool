@@ -40,6 +40,7 @@ import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LayersIcon from "@mui/icons-material/Layers";
 import LockIcon from "@mui/icons-material/Lock";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
+import CropFreeIcon from "@mui/icons-material/CropFree";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -326,6 +327,7 @@ export interface SketchLayersPanelProps {
   onMergeDown: () => void;
   onFlattenVisible: () => void;
   onTrimLayerToBounds: () => void;
+  onCropCanvasToActiveLayer: () => void;
   canvasWidth: number;
   canvasHeight: number;
   onCanvasResize: (width: number, height: number) => void;
@@ -370,6 +372,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onMergeDown,
   onFlattenVisible,
   onTrimLayerToBounds,
+  onCropCanvasToActiveLayer,
   canvasWidth,
   canvasHeight,
   onCanvasResize,
@@ -895,6 +898,19 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <FitScreenIcon sx={{ fontSize: "1.125rem" }} />
             </IconButton>
           </Tooltip>
+          <Tooltip title="Crop Canvas To Active Layer">
+            <IconButton
+              size="small"
+              onClick={onCropCanvasToActiveLayer}
+              disabled={
+                !activeLayer ||
+                activeLayer.type === "group" ||
+                activeLayer.type === "mask"
+              }
+            >
+              <CropFreeIcon sx={{ fontSize: "1.125rem" }} />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Flatten Visible">
             <IconButton size="small" onClick={onFlattenVisible}>
               <LayersIcon sx={{ fontSize: "1.125rem" }} />
@@ -1355,6 +1371,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           onTrimLayerToBounds();
           handleLayerCtxClose();
         };
+        const handleCtxCropToLayer = () => {
+          onCropCanvasToActiveLayer();
+          handleLayerCtxClose();
+        };
         const handleCtxUngroup = () => {
           if (ctxLayer) {
             onUngroupLayer(ctxLayer.id);
@@ -1472,6 +1492,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               disabled={ctxPixelActionsDisabled || isMulti}
             >
               Trim to Bounds
+            </MenuItem>
+            <MenuItem
+              sx={menuItemSx}
+              onClick={handleCtxCropToLayer}
+              disabled={ctxIsGroup || isMulti || ctxLayer?.type === "mask"}
+            >
+              Crop Canvas to Layer
             </MenuItem>
 
             {ctxIsGroup && !isMulti && (

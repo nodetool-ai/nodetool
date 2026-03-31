@@ -18,7 +18,7 @@ import {
   type SketchTool
 } from "../types";
 import { useSketchStore } from "../state";
-import { getLayerCompositeOffset } from "../painting";
+import { getCanvasRasterBounds, getLayerCompositeOffset } from "../painting";
 import { getSelectionBounds, selectionHasAnyPixels } from "../selection/selectionMask";
 import {
   buildSketchInternalClipboardCanvas,
@@ -27,6 +27,56 @@ import {
   writeImageCanvasToSystemClipboardPng
 } from "../sketchClipboard";
 import type { StrokeEndOptions } from "../tools/types";
+
+function getNonTransparentCanvasBounds(
+  canvas: HTMLCanvasElement
+): LayerContentBounds | null {
+  if (canvas.width === 0 || canvas.height === 0) {
+    return null;
+  }
+
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) {
+    return null;
+  }
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let minX = canvas.width;
+  let minY = canvas.height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < canvas.height; y += 1) {
+    const rowOffset = y * canvas.width * 4;
+    for (let x = 0; x < canvas.width; x += 1) {
+      if (imageData[rowOffset + x * 4 + 3] === 0) {
+        continue;
+      }
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  const rasterBounds = getCanvasRasterBounds(canvas) ?? {
+    x: 0,
+    y: 0,
+    width: canvas.width,
+    height: canvas.height
+  };
+
+  return {
+    x: rasterBounds.x + minX,
+    y: rasterBounds.y + minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1
+  };
+}
 
 export interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -374,6 +424,50 @@ export function useCanvasActions({
     ]
   );
 
+  const reconcileAllLayerTransforms = useCallback(() => {
+    for (const layer of document.layers) {
+      bakeLayerTransformIntoDocumentSpace(layer.id);
+    }
+  }, [document.layers, bakeLayerTransformIntoDocumentSpace]);
+
+  const finalizeCanvasCrop = useCallback(
+    (x: number, y: number, width: number, height: number) => {
+      if (!canvasRef.current) {
+        return;
+      }
+      canvasRef.current.cropCanvas(x, y, width, height);
+      const state = useSketchStore.getState();
+      const nextDocument = {
+        ...state.document,
+        canvas: {
+          ...state.document.canvas,
+          width,
+          height
+        },
+        layers: state.document.layers.map((layer) => ({
+          ...layer,
+          transform: { x: 0, y: 0 },
+          contentBounds: {
+            x: 0,
+            y: 0,
+            width,
+            height
+          }
+        })),
+        metadata: {
+          ...state.document.metadata,
+          updatedAt: new Date().toISOString()
+        }
+      };
+      setDocument(nextDocument);
+      for (const layer of nextDocument.layers) {
+        const data = canvasRef.current.getLayerData(layer.id);
+        updateLayerData(layer.id, data);
+      }
+    },
+    [setDocument, updateLayerData, canvasRef]
+  );
+
   // ─── Clear active layer (or selection area) ────────────────────────
   const handleClearLayer = useCallback(() => {
     const activeLayerId = document.activeLayerId;
@@ -622,50 +716,88 @@ export function useCanvasActions({
         return;
       }
       pushHistory("crop");
-      for (const layer of document.layers) {
-        // Crop is an explicit destructive bake flow: transforms must be reconciled
-        // into document-space pixels before cropping the backing rasters.
-        bakeLayerTransformIntoDocumentSpace(layer.id);
-      }
-      canvasRef.current.cropCanvas(x, y, width, height);
-      const state = useSketchStore.getState();
-      const nextDocument = {
-        ...state.document,
-        canvas: {
-          ...state.document.canvas,
-          width,
-          height
-        },
-        layers: state.document.layers.map((layer) => ({
-          ...layer,
-          transform: { x: 0, y: 0 },
-          contentBounds: {
-            x: 0,
-            y: 0,
-            width,
-            height
-          }
-        })),
-        metadata: {
-          ...state.document.metadata,
-          updatedAt: new Date().toISOString()
-        }
-      };
-      setDocument(nextDocument);
-      for (const layer of nextDocument.layers) {
-        const data = canvasRef.current.getLayerData(layer.id);
-        updateLayerData(layer.id, data);
-      }
+      // Crop is an explicit destructive bake flow: transforms must be reconciled
+      // into document-space pixels before cropping the backing rasters.
+      reconcileAllLayerTransforms();
+      finalizeCanvasCrop(x, y, width, height);
     },
     [
       pushHistory,
-      setDocument,
-      updateLayerData,
       canvasRef,
-      document.layers,
-      bakeLayerTransformIntoDocumentSpace
+      reconcileAllLayerTransforms,
+      finalizeCanvasCrop
     ]
   );
+
+  const handleCropCanvasToActiveLayer = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const activeLayer = document.layers.find((layer) => layer.id === activeLayerId);
+    if (
+      !activeLayerId ||
+      !canvasRef.current ||
+      !activeLayer ||
+      activeLayer.type === "group" ||
+      activeLayer.type === "mask"
+    ) {
+      return;
+    }
+
+    const source = canvasRef.current.snapshotLayerCanvas(activeLayerId);
+    if (!source) {
+      return;
+    }
+
+    const probe = window.document.createElement("canvas");
+    probe.width = document.canvas.width;
+    probe.height = document.canvas.height;
+    const probeCtx = probe.getContext("2d");
+    if (!probeCtx) {
+      return;
+    }
+
+    const compositeOffset = getLayerCompositeOffset(
+      activeLayer,
+      { width: source.width, height: source.height },
+      source
+    );
+    const scaleX = activeLayer.transform.scaleX ?? 1;
+    const scaleY = activeLayer.transform.scaleY ?? 1;
+    const rotation = activeLayer.transform.rotation ?? 0;
+
+    if (scaleX !== 1 || scaleY !== 1 || rotation !== 0) {
+      const centerX = compositeOffset.x + source.width / 2;
+      const centerY = compositeOffset.y + source.height / 2;
+      probeCtx.translate(centerX, centerY);
+      probeCtx.rotate(rotation);
+      probeCtx.scale(scaleX, scaleY);
+      probeCtx.drawImage(source, -source.width / 2, -source.height / 2);
+    } else {
+      probeCtx.drawImage(source, compositeOffset.x, compositeOffset.y);
+    }
+
+    const cropBounds = getNonTransparentCanvasBounds(probe);
+    if (!cropBounds) {
+      return;
+    }
+
+    pushHistory("crop to active layer");
+    reconcileAllLayerTransforms();
+    finalizeCanvasCrop(
+      cropBounds.x,
+      cropBounds.y,
+      cropBounds.width,
+      cropBounds.height
+    );
+  }, [
+    document.activeLayerId,
+    document.layers,
+    document.canvas.width,
+    document.canvas.height,
+    canvasRef,
+    pushHistory,
+    reconcileAllLayerTransforms,
+    finalizeCanvasCrop
+  ]);
 
   // ─── Context menu ──────────────────────────────────────────────
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -947,6 +1079,7 @@ export function useCanvasActions({
     handleZoomOut,
     handleZoomReset,
     handleCropComplete,
+    handleCropCanvasToActiveLayer,
     contextMenu,
     handleContextMenu,
     handleContextMenuClose,

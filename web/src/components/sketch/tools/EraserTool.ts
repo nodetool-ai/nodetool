@@ -10,7 +10,9 @@ import { PaintSession, EraserEngine } from "../painting";
 import {
   DEFAULT_ERASER_SETTINGS,
   DEFAULT_BRUSH_SETTINGS,
-  DEFAULT_PENCIL_SETTINGS
+  DEFAULT_PENCIL_SETTINGS,
+  mergePenPressureIntoBrush,
+  mergePenPressureIntoPencil
 } from "../types";
 
 export class EraserTool implements ToolHandler {
@@ -27,8 +29,12 @@ export class EraserTool implements ToolHandler {
   // ── Handlers ─────────────────────────────────────────────────────────
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
-    const { eraser, brush, pencil } = ctx.doc.toolSettings;
-    this.engine.updateSettings(eraser, brush, pencil);
+    const { eraser, brush, pencil, penPressure } = ctx.doc.toolSettings;
+    this.engine.updateSettings(
+      eraser,
+      mergePenPressureIntoBrush(brush, penPressure),
+      mergePenPressureIntoPencil(pencil, penPressure)
+    );
     return this.session.begin(ctx, event);
   }
 
