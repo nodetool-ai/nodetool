@@ -147,9 +147,19 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
     try {
       service.setBaseUrl(baseUrl);
 
-      // Fetch object_info through the backend proxy to avoid CORS
+      // Resolve the host URL for the backend proxy.
+      // In dev mode baseUrl may be a relative proxy path like "/comfy-api"
+      // or the default "http://localhost:8000/api" — resolve to what the
+      // backend can actually reach.
+      let proxyHost = baseUrl;
+      if (proxyHost.startsWith("/") || proxyHost.includes("localhost:8000")) {
+        proxyHost = "127.0.0.1:8188";
+      }
+      // Strip /api suffix if present (ComfyUI serves at root)
+      proxyHost = proxyHost.replace(/\/api\/?$/, "");
+
       const resp = await fetch(
-        `${BASE_URL}/api/comfy/object_info?host=${encodeURIComponent(baseUrl)}`
+        `${BASE_URL}/api/comfy/object_info?host=${encodeURIComponent(proxyHost)}`
       );
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
