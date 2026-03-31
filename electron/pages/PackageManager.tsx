@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./packages.css";
 import {
   PackageModel,
@@ -6,7 +6,16 @@ import {
   InstalledPackageListResponse,
   PackageResponse,
   PackageInfo,
+  RuntimePackageId,
 } from "../src/types";
+
+interface RuntimeStatus {
+  id: string;
+  name: string;
+  description: string;
+  installed: boolean;
+  installing: boolean;
+}
 
 const PackageManager: React.FC = () => {
   const [availablePackages, setAvailablePackages] = useState<PackageInfo[]>([]);
@@ -25,7 +34,12 @@ const PackageManager: React.FC = () => {
   const [nodeResults, setNodeResults] = useState<any[]>([]);
   const [nodeSearching, setNodeSearching] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"all" | "installed" | "available" | "updates">("all");
+  // Runtime state
+  const [runtimes, setRuntimes] = useState<RuntimeStatus[]>([]);
+  const [runtimesLoading, setRuntimesLoading] = useState(true);
+  const [installingRuntimes, setInstallingRuntimes] = useState<Set<string>>(new Set());
+
+  const [activeTab, setActiveTab] = useState<"all" | "installed" | "available" | "updates" | "runtimes">("all");
 
   useEffect(() => {
     initialize();
@@ -43,6 +57,51 @@ const PackageManager: React.FC = () => {
   useEffect(() => {
     filterPackages();
   }, [searchTerm, availablePackages, installedPackages, activeTab]);
+
+  // Load runtime statuses
+  const loadRuntimes = useCallback(async () => {
+    const api = window.electronAPI;
+    if (!api?.packages?.getRuntimeStatuses) {
+      setRuntimesLoading(false);
+      return;
+    }
+    try {
+      const statuses = await api.packages.getRuntimeStatuses();
+      setRuntimes(statuses);
+    } catch (err) {
+      console.error("Failed to load runtime statuses:", err);
+    } finally {
+      setRuntimesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRuntimes();
+  }, [loadRuntimes]);
+
+  const handleInstallRuntime = useCallback(async (runtimeId: RuntimePackageId) => {
+    const api = window.electronAPI;
+    if (!api?.packages?.installRuntime) return;
+
+    setInstallingRuntimes(prev => new Set(prev).add(runtimeId));
+    setError(null);
+    try {
+      const result = await api.packages.installRuntime(runtimeId);
+      if (result.success) {
+        await loadRuntimes();
+      } else {
+        setError(result.message || "Runtime installation failed");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Runtime installation failed");
+    } finally {
+      setInstallingRuntimes(prev => {
+        const next = new Set(prev);
+        next.delete(runtimeId);
+        return next;
+      });
+    }
+  }, [loadRuntimes]);
 
   const initialize = async () => {
     try {
@@ -306,10 +365,77 @@ const PackageManager: React.FC = () => {
           >
             Updates
           </button>
+          <button
+            className={`tab ${activeTab === 'runtimes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('runtimes')}
+          >
+            Runtimes
+          </button>
         </div>
       </div>
 
       <div className="container">
+        {activeTab === "runtimes" ? (
+          <div className="runtimes-section">
+            <p className="runtimes-description">
+              Runtimes are system tools required by certain nodes. Install them to enable video processing, code execution, document conversion, and more.
+            </p>
+            {error && (
+              <div className="error-banner">
+                {error}
+                <button className="error-dismiss" onClick={() => setError(null)}>&times;</button>
+              </div>
+            )}
+            {runtimesLoading ? (
+              <div className="loading-container">
+                <div className="spinner"></div>
+                <div>Loading runtimes...</div>
+              </div>
+            ) : (
+              <div className="runtime-grid">
+                {runtimes.map((rt) => {
+                  const isInstalling = installingRuntimes.has(rt.id) || rt.installing;
+                  return (
+                    <div
+                      key={rt.id}
+                      className={`package-card ${rt.installed ? "installed" : ""}`}
+                    >
+                      <div className="package-card-header">
+                        <div className="package-title-row">
+                          <div className="package-name">{rt.name}</div>
+                          {rt.installed && (
+                            <div className="badges">
+                              <span className="badge badge-installed">Installed</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="package-card-body">
+                        <p className="package-description">{rt.description}</p>
+                      </div>
+                      <div className="package-card-footer">
+                        {rt.installed ? (
+                          <div className="status-text installed">
+                            ✓ Ready to use
+                          </div>
+                        ) : (
+                          <button
+                            className="btn btn-primary full-width"
+                            onClick={() => handleInstallRuntime(rt.id as RuntimePackageId)}
+                            disabled={isInstalling || isProcessing}
+                          >
+                            {isInstalling ? "Installing..." : "Install"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+        <>
         <div className="search-section">
           <div className="search-input-wrapper">
             <input
@@ -486,6 +612,8 @@ const PackageManager: React.FC = () => {
             <div className="spinner-large"></div>
             <div className="overlay-text">{overlayText}</div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
