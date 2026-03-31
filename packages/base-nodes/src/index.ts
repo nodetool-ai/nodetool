@@ -631,12 +631,6 @@ export {
   TeamLeadNode,
   TEAM_NODES,
 } from "./nodes/team.js";
-export {
-  RunComfyUIWorkflowNode,
-  RunComfyUIWorkflowOnRunPodNode,
-  COMFYUI_NODES,
-} from "./nodes/comfyui.js";
-
 import { CONTROL_NODES } from "./nodes/control.js";
 import { TEXT_EXTRA_NODES } from "./nodes/text-extra.js";
 import { CONSTANT_NODES } from "./nodes/constant.js";
@@ -699,7 +693,6 @@ import { SEARCH_NODES } from "./nodes/search.js";
 import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 import { TEAM_NODES } from "./nodes/team.js";
-import { COMFYUI_NODES } from "./nodes/comfyui.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -764,7 +757,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...TOOL_AGENT_NODES,
   ...ANTHROPIC_NODES,
   ...TEAM_NODES,
-  ...COMFYUI_NODES,
 ];
 
 export function registerBaseNodes(registry: NodeRegistry): void {

@@ -32,12 +32,5 @@ export {
   type StreamingInputs,
   type StreamingOutputs,
 } from "./node-executor.js";
-export {
-  RunPodComfyClient,
-  type RunPodJobStatus,
-  type RunPodJobResponse,
-  type RunPodImageOutput,
-  type RunPodComfyInput,
-} from "./runpod-comfy-client.js";
 export { executeComfyLocal, executeComfyRunPod } from "./comfy-executor.js";
 export type { ComfyExecutorResult, ComfyImage } from "./comfy-executor.js";
