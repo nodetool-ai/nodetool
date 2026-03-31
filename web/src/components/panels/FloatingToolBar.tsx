@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import {
   Fab,
   Box,
@@ -388,7 +388,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
   const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
+  const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
   const comfyBaseUrl = useComfyUIStore((state) => state.baseUrl);
+
+  // Auto-connect to ComfyUI when a comfy workflow is loaded
+  useEffect(() => {
+    if (isComfyWorkflow && !comfyIsConnected && !comfyIsConnecting) {
+      useComfyUIStore.getState().connect().catch(() => {});
+    }
+  }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting]);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(

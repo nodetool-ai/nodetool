@@ -260,9 +260,3 @@ export function initializeComfyUI(): void {
   service.setBaseUrl(url);
 }
 
-// Auto-connect on startup — silently fails if ComfyUI is not running
-setTimeout(() => {
-  useComfyUIStore.getState().connect().catch(() => {
-    // Silent failure — user can manually connect from settings
-  });
-}, 1000);
