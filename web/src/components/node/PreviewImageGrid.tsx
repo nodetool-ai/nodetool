@@ -298,6 +298,51 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     }
   }, [images, onOpenInViewer]);
 
+  // Memoized handlers for each tile to prevent unnecessary re-renders
+  // Using a factory pattern to create stable handlers for each index
+  const handleTileDoubleClick = useCallback((index: number) => {
+    return () => {
+      if (selectionMode) { return; }
+      if (onDoubleClick) {
+        onDoubleClick(index);
+      } else {
+        // Default: open in viewer
+        const img = images[index];
+        const url = urlMapRef.current.get(img);
+        if (url) {
+          setViewerUrl(url);
+          setViewerOpen(true);
+        }
+      }
+    };
+  }, [selectionMode, onDoubleClick, images]);
+
+  const handleTileClick = useCallback((index: number) => {
+    return (e: React.MouseEvent) => {
+      if (selectionMode) {
+        toggleSelect(index, e);
+      }
+    };
+  }, [selectionMode, toggleSelect]);
+
+  const handleDownloadButtonClick = useCallback((index: number) => {
+    return (e: React.MouseEvent) => {
+      handleDownloadImage(index, e);
+    };
+  }, [handleDownloadImage]);
+
+  const handleOpenInViewerButtonClick = useCallback((index: number) => {
+    return (e: React.MouseEvent) => {
+      handleOpenInViewer(index, e);
+    };
+  }, [handleOpenInViewer]);
+
+  const handleCheckboxClick = useCallback((index: number) => {
+    return (e: React.MouseEvent) => {
+      toggleSelect(index, e);
+    };
+  }, [toggleSelect]);
+
   const handleCloseViewer = useCallback(() => {
     setViewerOpen(false);
     setViewerUrl(null);
@@ -420,24 +465,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             <div
               key={key}
               className={`tile ${isSelected ? "selected" : ""}`}
-              onDoubleClick={() => {
-                if (selectionMode) { return; }
-                if (onDoubleClick) {
-                  onDoubleClick(idx);
-                } else {
-                  // Default: open in viewer
-                  const url = urlMapRef.current.get(img);
-                  if (url) {
-                    setViewerUrl(url);
-                    setViewerOpen(true);
-                  }
-                }
-              }}
-              onClick={(e) => {
-                if (selectionMode) {
-                  toggleSelect(idx, e);
-                }
-              }}
+              onDoubleClick={handleTileDoubleClick(idx)}
+              onClick={handleTileClick(idx)}
             >
               {urlMapRef.current.get(img) ? (
                 <img
@@ -462,7 +491,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     <IconButton
                       className="tile-action-btn"
                       size="small"
-                      onClick={(e) => handleDownloadImage(idx, e)}
+                      onClick={handleDownloadButtonClick(idx)}
                       aria-label={`Download image ${idx + 1}`}
                     >
                       <DownloadIcon />
@@ -472,7 +501,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     <IconButton
                       className="tile-action-btn"
                       size="small"
-                      onClick={(e) => handleOpenInViewer(idx, e)}
+                      onClick={handleOpenInViewerButtonClick(idx)}
                       aria-label={`Open image ${idx + 1} in viewer`}
                     >
                       <OpenInNewIcon />
@@ -484,7 +513,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 <Checkbox
                   className="select-checkbox"
                   checked={isSelected}
-                  onClick={(e) => toggleSelect(idx, e)}
+                  onClick={handleCheckboxClick(idx)}
                   icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
                   checkedIcon={<CheckBoxIcon fontSize="small" />}
                   sx={{ padding: "2px" }}

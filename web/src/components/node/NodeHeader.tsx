@@ -204,6 +204,13 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(false);
   }, []);
 
+  const handleOpenExternalLink = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (externalLink) {
+      window.open(externalLink, "_blank", "noopener,noreferrer");
+    }
+  }, [externalLink]);
+
   const hasIcon = Boolean(iconType);
 
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
@@ -270,11 +277,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
             <IconButton
               size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(externalLink, "_blank", "noopener,noreferrer");
-              }}
-              sx={{ 
+              onClick={handleOpenExternalLink}
+              sx={{
                 padding: "2px",
                 marginLeft: "2px",
                 color: "rgba(255, 255, 255, 0.4)",
