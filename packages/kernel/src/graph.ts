@@ -194,6 +194,13 @@ export class Graph {
             ? { ...(nodeObj.data as Record<string, unknown>) }
             : {};
 
+      // Merge dynamic_properties into the node's properties so that
+      // dynamic nodes (e.g. WorkflowNode) receive user-provided values
+      // for inputs that aren't connected via edges.
+      if (nodeObj.dynamic_properties && typeof nodeObj.dynamic_properties === "object") {
+        Object.assign(rawProperties, nodeObj.dynamic_properties as Record<string, unknown>);
+      }
+
       if (!allowUndefinedProperties) {
         // Only validate against propertyTypes when it is explicitly provided.
         // Using properties itself as a source of truth would defeat the purpose

@@ -221,4 +221,23 @@ describe("T-K-14: Graph.fromDict", () => {
     expect(graph.edges[0].id).toBe("e1");
     expect(graph.edges[0].edge_type).toBe("control");
   });
+
+  it("merges dynamic_properties into node properties", () => {
+    const graph = Graph.fromDict({
+      nodes: [
+        {
+          id: "n1",
+          type: "test.Dynamic",
+          data: { workflow_id: "wf-1" },
+          dynamic_properties: { prompt: "hello world" },
+        },
+      ],
+      edges: [],
+    });
+    const node = graph.findNode("n1");
+    expect(node?.properties).toEqual({
+      workflow_id: "wf-1",
+      prompt: "hello world",
+    });
+  });
 });

@@ -477,6 +477,65 @@ describe("WorkflowNode: embedded in parent workflow", () => {
   });
 });
 
+describe("WorkflowNode: dynamic_properties propagation (no edge)", () => {
+  it("passes dynamic_properties values to sub-workflow inputs", async () => {
+    const registry = makeRegistry();
+    const ctx = makeContext(registry);
+
+    const subWf = makeStringPassthroughSubWorkflow();
+
+    // Parent workflow: WorkflowNode (with dynamic_properties) -> output
+    // No edge feeding the "text" input — the value comes from dynamic_properties
+    const nodes: NodeDescriptor[] = [
+      {
+        id: "wf-node",
+        type: "nodetool.workflows.workflow_node.Workflow",
+        is_streaming_output: true,
+        properties: {
+          workflow_id: subWf.id,
+          workflow_json: subWf,
+        },
+        dynamic_properties: {
+          text: "from_dynamic_props",
+        },
+        dynamic_outputs: {
+          result: { type: "str", type_args: [] },
+        },
+      },
+      {
+        id: "parent-out",
+        type: "nodetool.output.Output",
+        name: "final",
+        properties: { name: "final", value: "" },
+      },
+    ];
+    const edges: Edge[] = [
+      {
+        source: "wf-node",
+        sourceHandle: "result",
+        target: "parent-out",
+        targetHandle: "value",
+      },
+    ];
+
+    const runner = makeRunner(registry, ctx);
+    const result = await runner.run(
+      { job_id: "dynamic-props-1", params: {} },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("completed");
+    const outputValues = Object.values(result.outputs).flat();
+    expect(
+      outputValues.some(
+        (v) =>
+          v === "from_dynamic_props" ||
+          JSON.stringify(v).includes("from_dynamic_props")
+      )
+    ).toBe(true);
+  });
+});
+
 describe("WorkflowNode: error handling", () => {
   it("returns empty when workflow_json has no graph", async () => {
     const registry = makeRegistry();

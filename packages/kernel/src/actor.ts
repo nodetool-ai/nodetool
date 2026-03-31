@@ -230,8 +230,13 @@ export class NodeActor {
     // Merge node properties as defaults — edge inputs override.
     // This matches Python's behavior where process() always receives
     // the node's own property values as baseline inputs.
-    if (this.node.properties) {
-      inputs = { ...this.node.properties, ...inputs };
+    // Precedence: declared properties < dynamic_properties (user-typed) < edge inputs.
+    if (this.node.properties || this.node.dynamic_properties) {
+      inputs = {
+        ...(this.node.properties ?? {}),
+        ...(this.node.dynamic_properties ?? {}),
+        ...inputs
+      };
     }
 
     // Inject _control_context for controller nodes (Python parity:
@@ -304,7 +309,8 @@ export class NodeActor {
         const inputs = this._cachedInputs ?? {};
         // Merge node properties as defaults (matching _executeWithInputs behavior)
         const baseProps = this.node.properties ?? {};
-        const merged = { ...baseProps, ...inputs, ...this._currentControlProperties };
+        const dynProps = this.node.dynamic_properties ?? {};
+        const merged = { ...baseProps, ...dynProps, ...inputs, ...this._currentControlProperties };
         const outputs = await this._executor.process(
           merged,
           this._executionContext
