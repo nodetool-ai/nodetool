@@ -9,6 +9,10 @@ import React, { memo } from "react";
 import {
   sketchSliderSx,
   toggleButtonSmallSx,
+  sketchButtonSmallSx,
+  sketchHintTextSx,
+  SKETCH_FONT,
+  SKETCH_COLORS,
   mergeHexPickerRgbPreserveAlpha as mergeColor
 } from "./sketchStyles";
 import {
@@ -741,7 +745,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
                 onChange={(e) => onChange({ filled: e.target.checked })}
               />
             }
-            label={<Typography sx={{ fontSize: "0.75rem" }}>Fill</Typography>}
+            label={<Typography sx={{ fontSize: SKETCH_FONT.section }}>Fill</Typography>}
           />
           {settings.filled && (
             <Box className="setting-row">
@@ -844,7 +848,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
         />
       </Box>
       <Box sx={{ px: "4px", mb: "4px" }}>
-        <Typography sx={{ fontSize: "0.65rem", color: "grey.500" }}>
+        <Typography sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textFaint }}>
           Start opacity
         </Typography>
         <Slider
@@ -875,7 +879,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
         />
       </Box>
       <Box sx={{ px: "4px", mb: "4px" }}>
-        <Typography sx={{ fontSize: "0.65rem", color: "grey.500" }}>
+        <Typography sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textFaint }}>
           End opacity
         </Typography>
         <Slider
@@ -981,12 +985,7 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
         </ToggleButton>
       </ToggleButtonGroup>
       <Typography
-        sx={{
-          fontSize: "0.65rem",
-          color: "grey.500",
-          fontStyle: "italic",
-          mt: 1
-        }}
+        sx={{ ...sketchHintTextSx, mt: 1 }}
       >
         Alt+click to set source point
       </Typography>
@@ -1063,7 +1062,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           color="primary"
           disabled={!hasChanges}
           onClick={onApply}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "50px", flex: 1 }}
+          sx={{ ...sketchButtonSmallSx, flex: 1 }}
         >
           Apply
         </Button>
@@ -1072,7 +1071,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           variant="outlined"
           disabled={!hasChanges}
           onClick={onCancel}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "50px", flex: 1 }}
+          sx={{ ...sketchButtonSmallSx, flex: 1 }}
         >
           Cancel
         </Button>
@@ -1125,7 +1124,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           variant="outlined"
           color="success"
           onClick={onCommit}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
         >
           ✓ Commit
         </Button>
@@ -1134,7 +1133,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           variant="outlined"
           color="error"
           onClick={onCancel}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
         >
           ✗ Cancel
         </Button>
@@ -1142,7 +1141,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           size="small"
           variant="outlined"
           onClick={onReset}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
         >
           Reset
         </Button>
@@ -1156,7 +1155,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
 export const NoSettingsMessage = memo(function NoSettingsMessage() {
   return (
     <Typography
-      sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}
+      sx={{ ...sketchHintTextSx }}
     >
       No settings for this tool.
     </Typography>
@@ -1168,7 +1167,7 @@ export const NoSettingsMessage = memo(function NoSettingsMessage() {
 export const CropSettingsMessage = memo(function CropSettingsMessage() {
   return (
     <Typography
-      sx={{ fontSize: "0.7rem", color: "grey.500", fontStyle: "italic" }}
+      sx={{ ...sketchHintTextSx }}
     >
       Drag on canvas to select crop area.
     </Typography>
@@ -1263,7 +1262,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           size="small"
           variant="outlined"
           onClick={onInvertSelection}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
         >
           Invert
         </Button>
@@ -1272,7 +1271,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           variant="outlined"
           disabled={!hasActiveSelection}
           onClick={onFeatherSelection}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
         >
           Feather
         </Button>
@@ -1281,7 +1280,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           variant="outlined"
           disabled={!hasActiveSelection}
           onClick={onSmoothSelectionBorders}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
         >
           Smooth
         </Button>
@@ -1290,7 +1289,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           variant="outlined"
           disabled={!hasActiveSelection}
           onClick={onStrokeSelectionBorder}
-          sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+          sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
         >
           Border
         </Button>
@@ -1384,7 +1383,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         <Box sx={{ mb: "4px" }}>
           <Typography
             sx={{
-              fontSize: "0.58rem",
+              fontSize: SKETCH_FONT.xs,
               lineHeight: 1.3,
               color:
                 modelInfo.status === "available"
@@ -1392,7 +1391,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                   : modelInfo.status === "error" ||
                       modelInfo.status === "not-installed"
                     ? "warning.main"
-                    : "grey.500"
+                    : SKETCH_COLORS.textFaint
             }}
           >
             {modelInfo.status === "available" && `✓ ${modelInfo.modelName}`}
@@ -1523,7 +1522,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           />
         }
         label={
-          <Typography sx={{ fontSize: "0.6rem" }}>
+          <Typography sx={{ fontSize: SKETCH_FONT.xs }}>
             {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
           </Typography>
         }
@@ -1537,7 +1536,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               size="small"
               variant="contained"
               onClick={onRunSegmentation}
-              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+              sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Segment
             </Button>
@@ -1545,7 +1544,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               size="small"
               variant="outlined"
               onClick={onClearPrompts}
-              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+              sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Clear
             </Button>
@@ -1555,7 +1554,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           <>
             <Typography
               sx={{
-                fontSize: "0.6rem",
+                fontSize: SKETCH_FONT.xs,
                 color: "info.main",
                 lineHeight: 1.3,
                 mr: 0.5,
@@ -1570,7 +1569,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               variant="outlined"
               color="warning"
               onClick={onCancelSegmentation}
-              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+              sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Cancel
             </Button>
@@ -1583,7 +1582,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               variant="contained"
               color="success"
               onClick={onApplyResult}
-              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+              sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Apply
             </Button>
@@ -1591,7 +1590,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               size="small"
               variant="outlined"
               onClick={onDiscardResult}
-              sx={{ fontSize: "0.65rem", py: "2px", minWidth: "56px" }}
+              sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Discard
             </Button>
@@ -1601,8 +1600,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
 
       <Typography
         sx={{
-          fontSize: "0.58rem",
-          color: "grey.500",
+          fontSize: SKETCH_FONT.xs,
+          color: SKETCH_COLORS.textFaint,
           lineHeight: 1.3,
           maxWidth: 320,
           mt: "4px"
@@ -1614,7 +1613,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       {segmentationStatus === "error" && (
         <Typography
           sx={{
-            fontSize: "0.6rem",
+            fontSize: SKETCH_FONT.xs,
             color: "error.main",
             lineHeight: 1.3,
             mt: "2px"
