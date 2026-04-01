@@ -3,6 +3,7 @@ import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import { handleNodesDummy, handleNodeMetadata } from "../http-api.js";
 import { getSecret } from "@nodetool/security";
+import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions { apiOptions: HttpApiOptions }
 
@@ -15,13 +16,13 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   app.get("/api/users/validate_username", async (req, reply) => {
-    const username = (req.query as Record<string, string>)["username"];
+    const username = (req.query as Record<string, string>)["username"]?.trim();
     if (username === undefined) {
-      reply.status(400).send({ detail: "username parameter is required" });
+      reply.status(400).send(apiError(ApiErrorCode.MISSING_REQUIRED_FIELD, "username parameter is required"));
       return;
     }
     if (!username) {
-      reply.status(400).send({ detail: "username cannot be empty" });
+      reply.status(400).send(apiError(ApiErrorCode.INVALID_INPUT, "username cannot be empty"));
       return;
     }
     const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
@@ -45,7 +46,7 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
    * with remote hosts (e.g. RunPod Pods).
    */
   app.get("/api/comfy/object_info", async (req, reply) => {
-    const host = (req.query as Record<string, string>)["host"];
+    const host = (req.query as Record<string, string>)["host"]?.trim();
     if (!host) {
       reply.status(400).send({ error: "host query parameter is required" });
       return;

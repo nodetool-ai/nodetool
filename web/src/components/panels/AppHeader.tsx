@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
 import { Tooltip, Toolbar, Box, Button } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -32,8 +32,8 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       overflow: "visible",
       position: "relative",
-      height: "40px",
-      minHeight: "40px",
+      height: `${HEADER_HEIGHT}px`,
+      minHeight: `${HEADER_HEIGHT}px`,
       padding: "0 2px 0 12px",
       border: "0"
     },

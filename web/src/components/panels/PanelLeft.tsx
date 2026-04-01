@@ -22,7 +22,7 @@ import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
 import { ScrollArea } from "../ui_primitives";
@@ -44,7 +44,6 @@ import { useCollectionsManagerStore } from "../../stores/CollectionsManagerStore
 import { getIsElectronDetails } from "../../utils/browser";
 import { isProduction } from "../../stores/ApiClient";
 
-const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 56;
 
@@ -81,7 +80,7 @@ const styles = (
 
     // Resize handle on right edge of drawer
     ".panel-resize-handle": {
-      width: "6px",
+      width: `${PANEL_RESIZE_HANDLE_WIDTH}px`,
       position: "absolute",
       right: 0,
       top: 0,

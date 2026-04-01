@@ -23,6 +23,12 @@ export const NOTIFICATION_READING_WPM = 200; // average reading speed in words p
 // CHAT
 export const CHAT_HISTORY_AMOUNT = 10;
 
+// LAYOUT
+export const HEADER_HEIGHT = 40; // AppHeader toolbar height in px
+export const TOOLBAR_WIDTH = 50; // Vertical toolbar width in px
+export const PANEL_MIN_WIDTH = 200; // Minimum panel width in px
+export const PANEL_RESIZE_HANDLE_WIDTH = 6; // Resize handle hit area in px
+
 // EDITOR
 export const DUPLICATE_SPACING = 50;
 export const MIN_ZOOM = 0.12;

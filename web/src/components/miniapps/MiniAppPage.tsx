@@ -32,7 +32,7 @@ import { useQuery } from "@tanstack/react-query";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import { usePanelStore } from "../../stores/PanelStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH } from "../../config/constants";
 import log from "loglevel";
 
 const MiniAppPage: React.FC = () => {
@@ -167,7 +167,7 @@ const MiniAppPage: React.FC = () => {
   );
   const isVisible = usePanelStore((state) => state.panel.isVisible);
   const panelSize = usePanelStore((state) => state.panel.panelSize);
-  const leftOffset = isVisible ? panelSize : 50;
+  const leftOffset = isVisible ? panelSize : TOOLBAR_WIDTH;
 
   // Check for custom HTML app
   const hasCustomApp = Boolean(workflow?.html_app);

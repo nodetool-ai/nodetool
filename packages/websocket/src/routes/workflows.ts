@@ -20,6 +20,7 @@ import {
   getUserId,
 } from "../http-api.js";
 import { Workflow } from "@nodetool/models";
+import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions { apiOptions: HttpApiOptions }
 
@@ -53,7 +54,7 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
 
   // /api/workflows/examples/:id → always 404 in standalone mode
   app.get("/api/workflows/examples/:id", async (_req, reply) => {
-    reply.status(404).send({ detail: "Examples not available in standalone mode" });
+    reply.status(404).send(apiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Examples not available in standalone mode"));
   });
 
   app.get("/api/workflows/public", async (req, reply) => {
@@ -75,7 +76,7 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
 
   // Workflow sub-resource routes (before /:id catch-all)
   app.post("/api/workflows/:id/run", async (_req, reply) => {
-    reply.status(501).send({ detail: "Workflow execution not available in standalone mode" });
+    reply.status(501).send(apiError(ApiErrorCode.SERVICE_UNAVAILABLE, "Workflow execution not available in standalone mode"));
   });
 
   app.post("/api/workflows/:id/autosave", async (req, reply) => {
@@ -122,7 +123,7 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const { id, version } = req.params as { id: string; version: string };
     const versionNum = Number.parseInt(version, 10);
     if (Number.isNaN(versionNum)) {
-      reply.status(400).send({ detail: "Invalid version number" });
+      reply.status(400).send(apiError(ApiErrorCode.INVALID_INPUT, "Invalid version number"));
       return;
     }
     await bridge(req, reply, (request) =>
@@ -136,7 +137,7 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const versionNum = Number.parseInt(version, 10);
     if (Number.isNaN(versionNum)) {
       // It's a version ID (string), treat as DELETE target
-      reply.status(405).send({ detail: "Method not allowed" });
+      reply.status(405).send(apiError(ApiErrorCode.INVALID_INPUT, "Method not allowed"));
       return;
     }
     await bridge(req, reply, (request) =>

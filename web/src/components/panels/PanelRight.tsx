@@ -20,6 +20,7 @@ import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntime
 import type { NodeStore } from "../../stores/NodeStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
+import { TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 import PanelHeadline from "../ui/PanelHeadline";
@@ -30,15 +31,15 @@ import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
 
-const TOOLBAR_WIDTH = 50;
-const HEADER_HEIGHT = 77;
+const HEADER_AREA_HEIGHT = 77; // Total header area offset (AppHeader + toolbar row)
+
 const styles = (theme: Theme) =>
   css({
     // Main container - fixed to right edge of viewport
     position: "fixed",
     right: 0,
-    top: `${HEADER_HEIGHT}px`,
-    height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+    top: `${HEADER_AREA_HEIGHT}px`,
+    height: `calc(100vh - ${HEADER_AREA_HEIGHT}px)`,
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,
@@ -56,7 +57,7 @@ const styles = (theme: Theme) =>
 
     // Resize handle on left edge of drawer
     ".panel-button": {
-      width: "6px",
+      width: `${PANEL_RESIZE_HANDLE_WIDTH}px`,
       position: "absolute",
       left: 0,
       top: 0,

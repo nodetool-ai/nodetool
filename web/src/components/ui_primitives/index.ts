@@ -309,3 +309,6 @@ export type { SurfaceProps } from "./Surface";
 
 export { Autocomplete } from "./Autocomplete";
 export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";
+
+// Accessibility
+export { SkipLinks } from "./SkipLinks";

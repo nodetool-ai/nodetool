@@ -13,6 +13,7 @@ import {
 } from "../http-api.js";
 import { Asset } from "@nodetool/models";
 import { loadPythonPackageMetadata } from "@nodetool/node-sdk";
+import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions { apiOptions: HttpApiOptions }
 
@@ -29,7 +30,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   app.post("/api/assets/download", async (_req, reply) => {
-    reply.status(501).send({ detail: "ZIP download not available in standalone mode" });
+    reply.status(501).send(apiError(ApiErrorCode.SERVICE_UNAVAILABLE, "ZIP download not available in standalone mode"));
   });
 
   app.get("/api/assets/by-filename", async (req, reply) => {
@@ -42,7 +43,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     try {
       decoded = decodeURIComponent(filename);
     } catch {
-      reply.status(400).send({ detail: "Invalid URL encoding" });
+      reply.status(400).send(apiError(ApiErrorCode.INVALID_INPUT, "Invalid URL encoding"));
       return;
     }
     await bridge(req, reply, (request) =>
@@ -64,13 +65,13 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         pkgName = decodeURIComponent(packageName);
         aName = decodeURIComponent(assetName);
       } catch {
-        return new Response(JSON.stringify({ detail: "Invalid URL encoding" }), {
+        return new Response(JSON.stringify(apiError(ApiErrorCode.INVALID_INPUT, "Invalid URL encoding")), {
           status: 400,
           headers: { "content-type": "application/json" },
         });
       }
       if (!pkgName || !aName || pkgName.includes("..") || aName.includes("..") || pkgName.includes("/") || aName.includes("/") || pkgName.includes("\\") || aName.includes("\\")) {
-        return new Response(JSON.stringify({ detail: "Not found" }), {
+        return new Response(JSON.stringify(apiError(ApiErrorCode.ASSET_NOT_FOUND, "Not found")), {
           status: 404,
           headers: { "content-type": "application/json" },
         });
@@ -81,7 +82,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       });
       const pkg = loaded.packages.find((p) => p.name === pkgName);
       if (!pkg || !pkg.sourceFolder) {
-        return new Response(JSON.stringify({ detail: `Package '${pkgName}' not found` }), {
+        return new Response(JSON.stringify(apiError(ApiErrorCode.NOT_FOUND, `Package '${pkgName}' not found`)), {
           status: 404,
           headers: { "content-type": "application/json" },
         });
@@ -98,7 +99,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const assetPath = resolve(baseDir, aName);
       // Prevent path traversal: resolved path must stay within the base directory
       if (!assetPath.startsWith(baseDir + "/") && assetPath !== baseDir) {
-        return new Response(JSON.stringify({ detail: "Not found" }), {
+        return new Response(JSON.stringify(apiError(ApiErrorCode.ASSET_NOT_FOUND, "Not found")), {
           status: 404,
           headers: { "content-type": "application/json" },
         });
@@ -107,7 +108,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       try {
         fileStat = statSync(assetPath);
       } catch {
-        return new Response(JSON.stringify({ detail: `Asset '${aName}' not found in package '${pkgName}'` }), {
+        return new Response(JSON.stringify(apiError(ApiErrorCode.ASSET_NOT_FOUND, `Asset '${aName}' not found in package '${pkgName}'`)), {
           status: 404,
           headers: { "content-type": "application/json" },
         });

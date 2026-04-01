@@ -80,6 +80,7 @@ import MobileClassProvider from "./components/MobileClassProvider";
 const AppHeader = React.lazy(
   () => import("./components/panels/AppHeader")
 );
+import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
 // Lazy-loaded route components for code splitting
 const _Dashboard = React.lazy(
@@ -249,10 +250,12 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <div className="page-enter" style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+            <SkipLinks />
             {/* Fixed application header at the very top */}
             <AppHeader />
             {/* Main chat area beneath the header */}
             <div
+              id="main-content"
               style={{
                 display: "flex",
                 width: "100%",
@@ -272,8 +275,10 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <>
+            <SkipLinks />
             <AppHeader />
             <div
+              id="main-content"
               style={{
                 display: "flex",
                 width: "100%",
@@ -360,10 +365,12 @@ function getRoutes() {
         <ProtectedRoute>
           <FetchCurrentWorkflow>
             <div className="page-enter" style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+              <SkipLinks />
               {/* Fixed application header at the very top */}
               <AppHeader />
               {/* Main editor area beneath the header */}
               <div
+                id="main-content"
                 style={{
                   display: "flex",
                   width: "100%",

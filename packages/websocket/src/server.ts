@@ -11,6 +11,7 @@ import { join, resolve, dirname } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
+import crypto from "node:crypto";
 import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
@@ -321,6 +322,21 @@ const app: FastifyInstance = (Fastify as any)({
   bodyLimit: 100 * 1024 * 1024, // 100 MB
   logger: false,
   ignoreTrailingSlash: true,
+  genReqId: (req: { headers: Record<string, string | string[] | undefined> }) => {
+    return (req.headers["x-request-id"] as string) || crypto.randomUUID();
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Request ID correlation
+// ---------------------------------------------------------------------------
+
+app.addHook("onRequest", async (request) => {
+  request.log.info({ reqId: request.id, method: request.method, url: request.url }, "incoming request");
+});
+
+app.addHook("onSend", async (request, reply) => {
+  reply.header("X-Request-Id", request.id);
 });
 
 // ---------------------------------------------------------------------------

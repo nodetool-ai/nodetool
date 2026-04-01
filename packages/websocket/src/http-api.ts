@@ -720,7 +720,7 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
 
   if (request.method === "GET") {
     const limit = parseLimit(url, 100);
-    const runMode = url.searchParams.get("run_mode") ?? undefined;
+    const runMode = url.searchParams.get("run_mode")?.trim() ?? undefined;
     // cursor and columns params accepted for Python parity (cursor ignored in memory adapter)
     // columns param is Python-specific (column selection) — ignored here
     const [workflows, cursor] = await Workflow.paginate(userId, { limit, runMode });
@@ -734,8 +734,8 @@ export async function handleWorkflowsRoot(request: Request, options: HttpApiOpti
     const body = await parseJsonBody<WorkflowRequestBody>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const fromPkg = url.searchParams.get("from_example_package") ?? undefined;
-      const fromName = url.searchParams.get("from_example_name") ?? undefined;
+      const fromPkg = url.searchParams.get("from_example_package")?.trim() ?? undefined;
+      const fromName = url.searchParams.get("from_example_name")?.trim() ?? undefined;
       if (fromPkg && fromName && (!body.graph || body.graph.nodes?.length === 0)) {
         const example = loadExampleGraph(fromPkg, fromName, options);
         if (example?.graph) {
@@ -1427,7 +1427,7 @@ export async function handleAssetsRoot(request: Request, options: HttpApiOptions
   if (request.method === "GET") {
     const url = new URL(request.url);
     const parentId = url.searchParams.get("parent_id") ?? undefined;
-    const contentType = url.searchParams.get("content_type") ?? undefined;
+    const contentType = url.searchParams.get("content_type")?.trim() ?? undefined;
     const workflowId = url.searchParams.get("workflow_id") ?? undefined;
     const nodeId = url.searchParams.get("node_id") ?? undefined;
     const jobId = url.searchParams.get("job_id") ?? undefined;
@@ -1622,7 +1622,7 @@ export async function handleAssetsSearch(request: Request, options: HttpApiOptio
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const url = new URL(request.url);
-  const query = url.searchParams.get("query") ?? "";
+  const query = (url.searchParams.get("query") ?? "").trim();
   if (query.length < 2) {
     return errorResponse(400, "Query must be at least 2 characters");
   }
@@ -1759,7 +1759,7 @@ export async function handleApiRequest(
   if (pathname === "/api/users/validate_username") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
     const url = new URL(request.url);
-    const username = url.searchParams.get("username");
+    const username = url.searchParams.get("username")?.trim() ?? null;
     if (username === null) return errorResponse(400, "username parameter is required");
     if (!username) return errorResponse(400, "username cannot be empty");
     const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
