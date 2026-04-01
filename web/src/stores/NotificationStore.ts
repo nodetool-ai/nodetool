@@ -2,6 +2,12 @@ import { create } from "zustand";
 import { uuidv4 } from "./uuidv4";
 import log from "loglevel";
 import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
+import {
+  NOTIFICATION_TIMEOUT_DEFAULT,
+  NOTIFICATION_TIMEOUT_MIN,
+  NOTIFICATION_TIMEOUT_MAX,
+  NOTIFICATION_READING_WPM
+} from "../config/constants";
 export type NotificationType =
   | "info"
   | "debug"
@@ -34,6 +40,16 @@ export interface Notification {
 
 /** Time window in milliseconds within which duplicate notifications are suppressed. */
 const DEDUPE_WINDOW_MS = 5000;
+
+/** Calculate auto-dismiss timeout based on message length. Longer messages get more reading time. */
+export function calculateReadingTimeout(content: string): number {
+  const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+  const readingTimeMs = Math.ceil((wordCount / NOTIFICATION_READING_WPM) * 60 * 1000);
+  return Math.max(
+    NOTIFICATION_TIMEOUT_MIN,
+    Math.min(NOTIFICATION_TIMEOUT_MAX, Math.max(readingTimeMs, NOTIFICATION_TIMEOUT_DEFAULT))
+  );
+}
 
 interface NotificationStore {
   notifications: Notification[];
@@ -104,7 +120,12 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       return {
         notifications: [
           ...base,
-          { ...sanitizedNotification, id: uuidv4(), timestamp: now }
+          {
+            ...sanitizedNotification,
+            id: uuidv4(),
+            timestamp: now,
+            timeout: sanitizedNotification.timeout ?? calculateReadingTimeout(sanitizedNotification.content)
+          }
         ]
       };
     });
