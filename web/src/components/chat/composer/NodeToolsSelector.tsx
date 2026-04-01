@@ -173,12 +173,16 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const theme = useTheme();
   const metadata = useMetadataStore((state) => state.metadata);
   const nodeTools = useMemo(() => {
-    return Object.values(metadata)
-      .filter((node) => node.expose_as_tool)
-      .reduce((acc, node) => {
-        acc[node.node_type] = node;
-        return acc;
-      }, {} as Record<string, NodeMetadata>);
+    // Optimized: Use for...in to avoid intermediate array allocations
+    // from Object.values(), .filter(), and .reduce() on large metadata objects.
+    const tools: Record<string, NodeMetadata> = {};
+    for (const key in metadata) {
+      const node = metadata[key];
+      if (node.expose_as_tool) {
+        tools[node.node_type] = node;
+      }
+    }
+    return tools;
   }, [metadata]);
 
   const selectedNodeTypes = useMemo(
