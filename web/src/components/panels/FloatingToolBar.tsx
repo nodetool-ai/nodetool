@@ -389,14 +389,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
   const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
   const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
+  const comfyConnectionError = useComfyUIStore((state) => state.connectionError);
   const comfyBaseUrl = useComfyUIStore((state) => state.baseUrl);
 
-  // Auto-connect to ComfyUI when a comfy workflow is loaded
+  // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow)
   useEffect(() => {
-    if (isComfyWorkflow && !comfyIsConnected && !comfyIsConnecting) {
+    if (isComfyWorkflow && !comfyIsConnected && !comfyIsConnecting && !comfyConnectionError) {
       useComfyUIStore.getState().connect().catch(() => {});
     }
-  }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting]);
+  }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting, comfyConnectionError]);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(

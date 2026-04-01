@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getSecret } from "@nodetool/security";
+import { getSetting } from "./settings-api.js";
 import { pack, unpack } from "msgpackr";
 import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 import {
@@ -30,6 +31,8 @@ import {
   FileStorageAdapter,
   ProcessingContext as RuntimeProcessingContext,
   executeComfy,
+  type ComfyProgressEvent,
+  type ComfyExecutionHandle,
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
 import type {
@@ -141,7 +144,8 @@ function graphToComfyPrompt(
     const inputs: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(props)) {
       if (key.startsWith("_") || key === "workflow_id") continue;
-      inputs[key] = value;
+      // MsgPack may decode large integers as BigInt; ComfyUI expects plain numbers
+      inputs[key] = typeof value === "bigint" ? Number(value) : value;
     }
     prompt[id] = { class_type: classType, inputs };
   }
@@ -155,16 +159,27 @@ function graphToComfyPrompt(
 
     if (!prompt[targetId]) continue;
 
-    // Determine output slot index from source node's _comfy_metadata
+    // Determine output slot index from source handle name.
+    // Handles may be "output_0", "output_1", etc. (generic indexed format)
+    // or named like "MODEL", "CLIP", "VAE" (resolved via _comfy_metadata).
     let slotIndex = 0;
-    const sourceNode = graph.nodes.find((n) => String(n.id) === sourceId);
-    if (sourceNode) {
-      const meta = sourceNode._comfy_metadata as
-        | { outputs?: string[] }
-        | undefined;
-      if (meta?.outputs) {
-        const idx = meta.outputs.indexOf(sourceHandle);
-        if (idx >= 0) slotIndex = idx;
+    const outputMatch = /^output_(\d+)$/.exec(sourceHandle);
+    if (outputMatch) {
+      slotIndex = parseInt(outputMatch[1], 10);
+    } else {
+      const sourceNode = graph.nodes.find((n) => String(n.id) === sourceId);
+      if (sourceNode) {
+        const nodeProps =
+          (sourceNode.properties as Record<string, unknown>) ??
+          (sourceNode.data as Record<string, unknown>) ??
+          {};
+        const meta = (nodeProps._comfy_metadata ?? sourceNode._comfy_metadata) as
+          | { outputs?: string[] }
+          | undefined;
+        if (meta?.outputs) {
+          const idx = meta.outputs.indexOf(sourceHandle);
+          if (idx >= 0) slotIndex = idx;
+        }
       }
     }
 
@@ -240,6 +255,8 @@ interface ActiveJob {
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
   streamTask?: Promise<void>;
+  /** For ComfyUI jobs: handle to cancel the underlying execution. */
+  comfyHandle?: ComfyExecutionHandle;
 }
 
 class ToolBridge {
@@ -491,7 +508,11 @@ export class UnifiedWebSocketRunner {
 
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
-      job.runner.cancel();
+      if (job.comfyHandle) {
+        job.comfyHandle.cancel();
+      } else if (job.runner) {
+        job.runner.cancel();
+      }
       this.activeJobs.delete(jobId);
     }
 
@@ -601,34 +622,45 @@ export class UnifiedWebSocketRunner {
     };
   }
 
-  private async getWorkflowGraph(req: RunJobRequest): Promise<{ nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }> {
-    let graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+  private getRawGraph(req: RunJobRequest): Promise<{ nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> }> | { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> } {
     if (req.graph) {
-      graph = req.graph;
-    } else if (req.workflow_id && this.userId) {
-      const workflow = await Workflow.find(this.userId, req.workflow_id);
-      if (!workflow) throw new Error(`Workflow not found: ${req.workflow_id}`);
-      graph = workflow.graph as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
-    } else {
-      throw new Error("workflow_id or graph is required");
+      return this.normalizeGraph(req.graph);
     }
-    return this.hydrateGraph(graph);
+    if (req.workflow_id && this.userId) {
+      const userId = this.userId;
+      const workflowId = req.workflow_id;
+      return (async () => {
+        const workflow = await Workflow.find(userId, workflowId);
+        if (!workflow) throw new Error(`Workflow not found: ${workflowId}`);
+        return this.normalizeGraph(workflow.graph as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> });
+      })();
+    }
+    throw new Error("workflow_id or graph is required");
   }
 
   async runJob(req: RunJobRequest): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
-    const graph = await this.getWorkflowGraph(req);
+
+    // Get the normalized (but not hydrated) graph first so we can check
+    // for comfy nodes before hydration strips unregistered node types.
+    const rawGraph = await this.getRawGraph(req);
+
+    // Route ComfyUI workflows to the dedicated comfy executor
+    if (isComfyGraph(rawGraph)) {
+      if (this.beforeRunJob) {
+        await this.beforeRunJob(rawGraph);
+      }
+      await this.runComfyJob(jobId, workflowId, userId, rawGraph, req.settings ?? {});
+      return;
+    }
+
+    // Hydrate non-comfy graphs (resolves node types from the registry)
+    const graph = await this.hydrateGraph(rawGraph);
 
     if (this.beforeRunJob) {
       await this.beforeRunJob(graph);
-    }
-
-    // Route ComfyUI workflows to the dedicated comfy executor
-    if (isComfyGraph(graph)) {
-      await this.runComfyJob(jobId, workflowId, userId, graph, req.settings ?? {});
-      return;
     }
 
     const workspaceDir = workflowId && this.workspaceResolver ? await this.workspaceResolver(workflowId, userId) : null;
@@ -703,9 +735,9 @@ export class UnifiedWebSocketRunner {
   private async runComfyJob(
     jobId: string,
     workflowId: string | null,
-    userId: string,
+    _userId: string,
     graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
-    settings: Record<string, unknown>
+    _settings: Record<string, unknown>
   ): Promise<void> {
     const active: ActiveJob = {
       jobId,
@@ -718,6 +750,17 @@ export class UnifiedWebSocketRunner {
     };
     this.activeJobs.set(jobId, active);
 
+    // Build node metadata lookup for status messages
+    const nodeLookup = new Map<string, { name: string; type: string }>();
+    for (const node of graph.nodes) {
+      const id = String(node.id);
+      const type = (node.type as string) ?? "comfy.unknown";
+      const props = (node.properties ?? node.data ?? {}) as Record<string, unknown>;
+      const name = (props.title as string) ?? type;
+      nodeLookup.set(id, { name, type });
+    }
+    const getNode = (id: string) => nodeLookup.get(id) ?? { name: `Node ${id}`, type: "comfy.unknown" };
+
     try {
       await this.sendMessage({
         type: "job_update",
@@ -727,11 +770,108 @@ export class UnifiedWebSocketRunner {
       });
 
       const prompt = graphToComfyPrompt(graph);
-      const host =
-        (settings.comfy_host as string | undefined)?.trim() ||
-        (await getSecret("COMFYUI_ADDR", userId)) ||
-        "127.0.0.1:8188";
-      const result = await executeComfy(prompt, host);
+      const host = await getSetting("COMFYUI_ADDR");
+      if (!host) {
+        throw new Error("COMFYUI_ADDR is not configured. Set it in Settings.");
+      }
+
+      // Track active node so we can mark it completed when the next one starts
+      let activeNodeId: string | null = null;
+      const completeNode = (nodeId: string) => {
+        const n = getNode(nodeId);
+        void this.sendMessage({
+          type: "node_update",
+          node_id: nodeId,
+          node_name: n.name,
+          node_type: n.type,
+          status: "completed",
+          workflow_id: workflowId,
+        });
+      };
+
+      const onProgress = (event: ComfyProgressEvent) => {
+        switch (event.type) {
+          case "executing": {
+            // When a new node starts, the previous one is implicitly done
+            if (activeNodeId && activeNodeId !== event.node) {
+              completeNode(activeNodeId);
+              activeNodeId = null;
+            }
+            if (event.node) {
+              activeNodeId = event.node;
+              const n = getNode(event.node);
+              void this.sendMessage({
+                type: "node_update",
+                node_id: event.node,
+                node_name: n.name,
+                node_type: n.type,
+                status: "running",
+                workflow_id: workflowId,
+              });
+            } else {
+              // null node = execution finished, complete any lingering active node
+              if (activeNodeId) {
+                completeNode(activeNodeId);
+                activeNodeId = null;
+              }
+            }
+            break;
+          }
+          case "progress":
+            if (event.node) {
+              void this.sendMessage({
+                type: "node_progress",
+                node_id: event.node,
+                progress: event.progress ?? 0,
+                total: event.total ?? 1,
+                workflow_id: workflowId,
+              });
+            }
+            break;
+          case "executed":
+            if (event.node) {
+              // Explicit completion with output — mark done and clear active
+              if (activeNodeId === event.node) activeNodeId = null;
+              const n = getNode(event.node);
+              void this.sendMessage({
+                type: "node_update",
+                node_id: event.node,
+                node_name: n.name,
+                node_type: n.type,
+                status: "completed",
+                result: event.output ?? null,
+                workflow_id: workflowId,
+              });
+            }
+            break;
+          case "execution_cached":
+            if (event.cached_nodes) {
+              for (const nodeId of event.cached_nodes) {
+                completeNode(nodeId);
+              }
+            }
+            break;
+          case "execution_error":
+            if (event.node) {
+              activeNodeId = null;
+              const n = getNode(event.node);
+              void this.sendMessage({
+                type: "node_update",
+                node_id: event.node,
+                node_name: n.name,
+                node_type: n.type,
+                status: "error",
+                error: event.error ?? "Execution error",
+                workflow_id: workflowId,
+              });
+            }
+            break;
+        }
+      };
+
+      const handle = executeComfy(prompt, host, onProgress);
+      active.comfyHandle = handle;
+      const result = await handle.result;
 
       if (result.status === "completed") {
         if (result.images && result.images.length > 0) {
@@ -915,7 +1055,11 @@ export class UnifiedWebSocketRunner {
       return { error: "Job not found or already completed", job_id: jobId, workflow_id: workflowId ?? "" };
     }
 
-    active.runner.cancel();
+    if (active.comfyHandle) {
+      active.comfyHandle.cancel();
+    } else if (active.runner) {
+      active.runner.cancel();
+    }
     active.status = "cancelled";
     // Do NOT set active.finished = true here. Let the runner's cancellation
     // propagate through executePromise's .finally() callback so that

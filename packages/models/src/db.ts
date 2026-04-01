@@ -168,6 +168,10 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     priority: "integer", artifacts: "text", parent_task_id: "text", result: "text",
     failure_reason: "text", created_at: "text", updated_at: "text",
   },
+  nodetool_settings: {
+    id: "text", user_id: "text", key: "text", value: "text",
+    description: "text", created_at: "text", updated_at: "text",
+  },
 };
 
 /**
@@ -466,6 +470,18 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_team_tasks_status" ON "nodetool_team_tasks" ("status");
     CREATE INDEX IF NOT EXISTS "idx_team_tasks_team_status" ON "nodetool_team_tasks" ("team_id", "status");
     CREATE INDEX IF NOT EXISTS "idx_team_tasks_parent" ON "nodetool_team_tasks" ("parent_task_id");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_settings" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "key" text NOT NULL,
+      "value" text NOT NULL,
+      "description" text DEFAULT '',
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_settings_user_key" ON "nodetool_settings" ("user_id", "key");
+    CREATE INDEX IF NOT EXISTS "idx_settings_user_id" ON "nodetool_settings" ("user_id");
   `;
 }
 

@@ -1,25 +1,29 @@
 /**
  * Settings API — application settings registry endpoints.
  *
- * Port of Python's `nodetool.api.settings` (non-secrets portion).
- *
  * GET /api/settings  — returns all registered settings + secrets with configured flags
- * PUT /api/settings  — updates non-secret settings to settings.json; saves secrets to DB
+ * PUT /api/settings  — updates non-secret settings to DB; saves secrets to DB
  */
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readFile, rename } from "node:fs/promises";
+import { join } from "node:path";
 import { homedir } from "node:os";
-import { Secret } from "@nodetool/models";
+import { Secret, Setting } from "@nodetool/models";
 import { clearProviderCache } from "@nodetool/runtime";
 import { clearSecretCache } from "@nodetool/security";
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.settings-api");
+
 interface SettingsHandlerOptions {
   userIdHeader?: string;
 }
 
-// ── Settings file path ─────────────────────────────────────────────
+// ── One-time migration from settings.json ──────────────────────────
 
-function settingsFilePath(): string {
+let migrationDone = false;
+
+function legacySettingsFilePath(): string {
   const platform = process.platform;
   if (platform === "win32") {
     const appdata = process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
@@ -28,19 +32,24 @@ function settingsFilePath(): string {
   return join(homedir(), ".config", "nodetool", "settings.json");
 }
 
-async function loadSettings(): Promise<Record<string, unknown>> {
-  try {
-    const data = await readFile(settingsFilePath(), "utf8");
-    return JSON.parse(data) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
+async function migrateSettingsFromFile(userId: string): Promise<void> {
+  if (migrationDone) return;
+  migrationDone = true;
 
-async function saveSettings(settings: Record<string, unknown>): Promise<void> {
-  const filePath = settingsFilePath();
-  await mkdir(dirname(filePath), { recursive: true });
-  await writeFile(filePath, JSON.stringify(settings, null, 2), "utf8");
+  const filePath = legacySettingsFilePath();
+  try {
+    const data = await readFile(filePath, "utf8");
+    const settings = JSON.parse(data) as Record<string, unknown>;
+    for (const [key, value] of Object.entries(settings)) {
+      if (typeof value === "string" && value.length > 0) {
+        await Setting.upsert({ userId, key, value });
+      }
+    }
+    await rename(filePath, filePath + ".migrated");
+    log.info("Migrated settings.json to DB", { count: Object.keys(settings).length });
+  } catch {
+    // File doesn't exist or is unreadable — nothing to migrate
+  }
 }
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -79,6 +88,15 @@ export function registerSetting(def: SettingDefinition): void {
 /** Get all registered definitions. */
 export function getRegisteredSettings(): SettingDefinition[] {
   return registry;
+}
+
+/** Get a single setting value from DB, then env var. */
+export async function getSetting(key: string): Promise<string | null> {
+  const setting = await Setting.find("1", key);
+  if (setting && setting.value.length > 0) return setting.value;
+  const envVal = process.env[key];
+  if (envVal !== undefined && envVal.length > 0) return envVal;
+  return null;
 }
 
 // ── Default settings (ported from nodetool/config/settings.py) ────
@@ -126,8 +144,6 @@ s("TRACELOOP_DISABLE_BATCH", "Observability", "Disable Traceloop batch span proc
 // SERP
 s("SERP_PROVIDER", "SERP", "Select which SERP provider to use for search operations. Options: 'serpapi', 'apify', 'dataforseo'.", ["serpapi", "apify", "dataforseo"]);
 s("ZAI_USE_CODING_PLAN", "ZAI", "Use Z.AI coding plan endpoint instead of normal endpoint", ["true", "false"]);
-
-// Deployment (registered as secret — sensitive token)
 
 // Secrets (value shown as "****" when env var is set, null otherwise)
 sec("OPENAI_API_KEY", "OpenAI", "OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services");
@@ -180,11 +196,13 @@ function errorResponse(status: number, detail: string): Response {
 // ── Handlers ───────────────────────────────────────────────────────
 
 async function handleGetSettings(userId: string): Promise<Response> {
+  await migrateSettingsFromFile(userId);
 
-  const currentSettings = await loadSettings();
+  const userSettings = await Setting.listForUser(userId);
+  const settingsMap = new Map(userSettings.map(s => [s.key, s.value]));
   const result: SettingWithValue[] = [];
 
-  // Non-secret settings: read from settings.json then env
+  // Non-secret settings: read from DB then env
   for (const def of registry) {
     if (def.isSecret) continue;
     result.push({
@@ -193,7 +211,7 @@ async function handleGetSettings(userId: string): Promise<Response> {
       group: def.group,
       description: def.description,
       enum: def.enum ?? null,
-      value: currentSettings[def.envVar] ?? process.env[def.envVar] ?? null,
+      value: settingsMap.get(def.envVar) ?? process.env[def.envVar] ?? null,
       is_secret: false,
     });
   }
@@ -227,11 +245,11 @@ async function handleUpdateSettings(request: Request, userId: string): Promise<R
     return errorResponse(400, "Invalid JSON body");
   }
 
-  // Save non-secret settings to file
+  // Save non-secret settings to DB
   if (body.settings) {
-    const currentSettings = await loadSettings();
-    Object.assign(currentSettings, body.settings);
-    await saveSettings(currentSettings);
+    for (const [key, value] of Object.entries(body.settings)) {
+      await Setting.upsert({ userId, key, value: String(value ?? "") });
+    }
   }
 
   // Save secrets to DB (skip "****" placeholder values)

@@ -355,7 +355,6 @@ export const createWorkflowRunnerStore = (
         resource_limits: resource_limits,
         settings: {
           ...(workflow.settings ?? {}),
-          comfy_host: useComfyUIStore.getState().baseUrl,
         }
       };
 
