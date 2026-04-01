@@ -31,7 +31,7 @@ const PanelRight = React.lazy(
 const PanelBottom = React.lazy(
   () => import("./components/panels/PanelBottom")
 );
-import { CircularProgress } from "@mui/material";
+import { LoadingSpinner } from "./components/ui_primitives/LoadingSpinner";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
@@ -248,7 +248,7 @@ function getRoutes() {
       path: "/chat/:thread_id?",
       element: (
         <ProtectedRoute>
-          <>
+          <div className="page-enter" style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
             {/* Fixed application header at the very top */}
             <AppHeader />
             {/* Main chat area beneath the header */}
@@ -263,7 +263,7 @@ function getRoutes() {
               <GlobalChat />
               <PanelBottom />
             </div>
-          </>
+          </div>
         </ProtectedRoute>
       )
     },
@@ -359,7 +359,7 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <FetchCurrentWorkflow>
-            <>
+            <div className="page-enter" style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
               {/* Fixed application header at the very top */}
               <AppHeader />
               {/* Main editor area beneath the header */}
@@ -376,7 +376,7 @@ function getRoutes() {
                 <PanelBottom />
                 <Alert />
               </div>
-            </>
+            </div>
           </FetchCurrentWorkflow>
         </ProtectedRoute>
       )
@@ -545,28 +545,52 @@ const AppWrapper = () => {
                 <KeyboardProvider active={true}>
                   {status === "pending" && !isDevTestRoute && (
                     <div
+                      role="status"
+                      aria-label="Loading NodeTool"
                       style={{
                         display: "flex",
+                        flexDirection: "column",
                         justifyContent: "center",
                         alignItems: "center",
-                        height: "100vh"
+                        height: "100vh",
+                        gap: "16px"
                       }}
                     >
-                      <CircularProgress />
+                      <LoadingSpinner size="large" />
+                      <span style={{ color: "var(--palette-text-secondary)", fontSize: "0.9rem" }}>
+                        Loading NodeTool...
+                      </span>
                     </div>
                   )}
                   {status === "error" && !isDevTestRoute && (
                     <div
+                      role="alert"
                       style={{
                         display: "flex",
                         justifyContent: "center",
                         alignItems: "center",
                         height: "100vh",
-                        flexDirection: "column"
+                        flexDirection: "column",
+                        gap: "12px"
                       }}
                     >
-                      <div>Error loading application metadata.</div>
-                      <div>Please try refreshing the page.</div>
+                      <span style={{ color: "var(--palette-text-primary)", fontSize: "1rem" }}>
+                        Error loading application metadata.
+                      </span>
+                      <button
+                        onClick={() => window.location.reload()}
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--palette-divider)",
+                          backgroundColor: "transparent",
+                          color: "var(--palette-text-primary)",
+                          cursor: "pointer",
+                          fontSize: "0.85rem"
+                        }}
+                      >
+                        Refresh Page
+                      </button>
                     </div>
                   )}
                   {/* Render RouterProvider only when metadata is successfully loaded */}
@@ -575,15 +599,22 @@ const AppWrapper = () => {
                       <Suspense
                         fallback={
                           <div
+                            role="status"
+                            aria-label="Loading"
                             style={{
                               display: "flex",
+                              flexDirection: "column",
                               justifyContent: "center",
                               alignItems: "center",
                               height: "100vh",
-                              width: "100%"
+                              width: "100%",
+                              gap: "16px"
                             }}
                           >
-                            <CircularProgress />
+                            <LoadingSpinner size="large" />
+                            <span style={{ color: "var(--palette-text-secondary)", fontSize: "0.9rem" }}>
+                              Preparing workspace...
+                            </span>
                           </div>
                         }
                       >

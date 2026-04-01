@@ -29,9 +29,11 @@ const KNOWN_PROVIDER_KEYS = [
 
 type PortalState = "idle" | "setup";
 
-const fadeOut = keyframes`
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-20px); }
+const TRANSITION_DURATION = 350;
+
+const portalExit = keyframes`
+  from { opacity: 1; transform: scale(1); filter: blur(0); }
+  to { opacity: 0; transform: scale(0.92); filter: blur(6px); }
 `;
 
 const fadeIn = keyframes`
@@ -148,17 +150,8 @@ const styles = (theme: Theme) =>
     "&.portal-transitioning": {
       pointerEvents: "none",
     },
-    "&.portal-transitioning .portal-heading": {
-      animation: `${fadeOut} 300ms ease-out forwards`,
-    },
-    "&.portal-transitioning .portal-recents": {
-      animation: `${fadeOut} 200ms ease-out forwards`,
-    },
-    "&.portal-transitioning .portal-input-wrapper": {
-      animation: `${fadeOut} 350ms ease-out forwards`,
-    },
-    "&.portal-transitioning .portal-hint": {
-      animation: `${fadeOut} 150ms ease-out forwards`,
+    "&.portal-transitioning .portal-center": {
+      animation: `${portalExit} ${TRANSITION_DURATION}ms ease-in forwards`,
     },
 
     // Setup state
@@ -315,24 +308,33 @@ const Portal: React.FC = () => {
     [pendingMessage, setSelectedModel, sendAndNavigate]
   );
 
+  const transitionTo = useCallback(
+    (onComplete: () => void) => {
+      setIsTransitioning(true);
+      setTimeout(onComplete, TRANSITION_DURATION);
+    },
+    []
+  );
+
   // Handle clicking a recent chat thread
   const handleThreadClick = useCallback(
     (threadId: string) => {
-      setIsTransitioning(true);
-      setTimeout(() => {
+      transitionTo(() => {
         selectThread(threadId);
         navigate(`/chat/${threadId}`);
-      }, 400);
+      });
     },
-    [selectThread, navigate]
+    [selectThread, navigate, transitionTo]
   );
 
   // Handle clicking a recent workflow
   const handleWorkflowItemClick = useCallback(
     (workflowId: string) => {
-      navigate(`/editor/${workflowId}`);
+      transitionTo(() => {
+        navigate(`/editor/${workflowId}`);
+      });
     },
-    [navigate]
+    [navigate, transitionTo]
   );
 
   // Handle template selection from search
@@ -340,10 +342,12 @@ const Portal: React.FC = () => {
     (templateId: string) => {
       const template = startTemplates.find((t) => t.id === templateId);
       if (template) {
-        handleExampleClick(template);
+        transitionTo(() => {
+          handleExampleClick(template);
+        });
       }
     },
-    [handleExampleClick, startTemplates]
+    [handleExampleClick, startTemplates, transitionTo]
   );
 
   const handleModelChange = useCallback(
@@ -438,6 +442,7 @@ const Portal: React.FC = () => {
           <div className="portal-hint">Type anything to get started</div>
         )}
       </div>
+
     </Box>
   );
 };
