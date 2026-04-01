@@ -197,6 +197,9 @@ describe("ComfyUIStore", () => {
   });
 
   describe("connect", () => {
+    // Use a remote URL so connect() goes through the fetch path (easily mockable).
+    // setBaseUrl also resets the connection cooldown timer.
+    const remoteUrl = "http://runpod.example.com:8188";
     const mockObjectInfo: ComfyUIObjectInfo = {
       KSampler: {
         input: {
@@ -213,9 +216,22 @@ describe("ComfyUIStore", () => {
       },
     };
 
+    beforeEach(() => {
+      // Set a remote URL so connect() uses the fetch path and resets cooldown.
+      act(() => {
+        useComfyUIStore.getState().setBaseUrl(remoteUrl);
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it("successfully connects to ComfyUI backend", async () => {
-      mockService.checkConnection.mockResolvedValue(true);
-      mockService.fetchObjectInfo.mockResolvedValue(mockObjectInfo);
+      (global as Record<string, unknown>).fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce(mockObjectInfo),
+      });
 
       const { connect } = useComfyUIStore.getState();
 
@@ -231,8 +247,14 @@ describe("ComfyUIStore", () => {
       expect(mockService.setBaseUrl).toHaveBeenCalled();
     });
 
-    it("fails when backend is not reachable", async () => {
-      mockService.checkConnection.mockResolvedValue(false);
+    it("fails when backend returns an error response", async () => {
+      (global as Record<string, unknown>).fetch = jest.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        json: jest
+          .fn()
+          .mockResolvedValueOnce({ error: "ComfyUI backend is not reachable" }),
+      });
 
       const { connect } = useComfyUIStore.getState();
 
@@ -252,10 +274,10 @@ describe("ComfyUIStore", () => {
       expect(_error?.message).toBe("ComfyUI backend is not reachable");
     });
 
-    it("handles fetchObjectInfo errors", async () => {
-      mockService.checkConnection.mockResolvedValue(true);
-      const testError = new Error("Failed to fetch schema");
-      mockService.fetchObjectInfo.mockRejectedValue(testError);
+    it("handles network errors", async () => {
+      (global as Record<string, unknown>).fetch = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("Failed to fetch schema"));
 
       const { connect } = useComfyUIStore.getState();
 
@@ -272,30 +294,36 @@ describe("ComfyUIStore", () => {
       expect(state.isConnected).toBe(false);
       expect(state.isConnecting).toBe(false);
       expect(state.connectionError).toBe("Failed to fetch schema");
+      expect(_error?.message).toBe("Failed to fetch schema");
     });
 
     it("sets isConnecting during connection attempt", async () => {
-      mockService.checkConnection.mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(() => resolve(true), 100);
-          })
-      );
-      mockService.fetchObjectInfo.mockResolvedValue({});
+      let resolveFetch!: (v: unknown) => void;
+      const pendingFetch = new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+      (global as Record<string, unknown>).fetch = jest
+        .fn()
+        .mockReturnValueOnce(pendingFetch);
 
       const { connect } = useComfyUIStore.getState();
 
       act(() => {
-        connect();
+        void connect();
       });
 
       // Should be connecting immediately after calling connect
       let state = useComfyUIStore.getState();
       expect(state.isConnecting).toBe(true);
 
+      // Resolve the pending fetch
+      resolveFetch({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce(mockObjectInfo),
+      });
+
       await act(async () => {
-        // Wait for the promise to resolve
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       });
 
       // After completion, should not be connecting
@@ -590,23 +618,36 @@ describe("ComfyUIStore", () => {
   });
 
   describe("integration scenarios", () => {
-    it("handles full connection lifecycle", async () => {
-      const mockObjectInfo: ComfyUIObjectInfo = {
-        KSampler: {
-          input: { required: {} },
-          output: ["LATENT"],
-          output_is_list: [false],
-          output_name: ["latent"],
-          name: "KSampler",
-          display_name: "KSampler",
-          description: "Sampler",
-          category: "sampling",
-          output_node: false,
-        },
-      };
+    const remoteUrl = "http://runpod.example.com:8188";
+    const mockObjectInfo: ComfyUIObjectInfo = {
+      KSampler: {
+        input: { required: {} },
+        output: ["LATENT"],
+        output_is_list: [false],
+        output_name: ["latent"],
+        name: "KSampler",
+        display_name: "KSampler",
+        description: "Sampler",
+        category: "sampling",
+        output_node: false,
+      },
+    };
 
-      mockService.checkConnection.mockResolvedValue(true);
-      mockService.fetchObjectInfo.mockResolvedValue(mockObjectInfo);
+    beforeEach(() => {
+      act(() => {
+        useComfyUIStore.getState().setBaseUrl(remoteUrl);
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("handles full connection lifecycle", async () => {
+      (global as Record<string, unknown>).fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockObjectInfo),
+      });
 
       const { connect, disconnect } = useComfyUIStore.getState();
 
@@ -659,8 +700,10 @@ describe("ComfyUIStore", () => {
     });
 
     it("handles reconnection after disconnect", async () => {
-      mockService.checkConnection.mockResolvedValue(true);
-      mockService.fetchObjectInfo.mockResolvedValue({});
+      (global as Record<string, unknown>).fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockObjectInfo),
+      });
 
       const { connect, disconnect } = useComfyUIStore.getState();
 
@@ -680,7 +723,11 @@ describe("ComfyUIStore", () => {
       state = useComfyUIStore.getState();
       expect(state.isConnected).toBe(false);
 
-      // Reconnect
+      // Reconnect — setBaseUrl resets the cooldown so this succeeds
+      act(() => {
+        useComfyUIStore.getState().setBaseUrl(remoteUrl);
+      });
+
       await act(async () => {
         await connect();
       });

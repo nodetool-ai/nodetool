@@ -50,7 +50,28 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       reply.status(400).send({ error: "host query parameter is required" });
       return;
     }
-    const base = host.startsWith("http") ? host.replace(/\/+$/, "") : `http://${host}`;
+
+    // Validate and normalise the host into a safe URL (prevents SSRF via
+    // non-HTTP schemes such as file://, ftp://, etc.).
+    let parsedUrl: URL;
+    try {
+      const raw = host.startsWith("http") ? host : `http://${host}`;
+      parsedUrl = new URL(raw);
+    } catch {
+      reply.status(400).send({ error: "Invalid host URL" });
+      return;
+    }
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      reply.status(400).send({ error: "Only http and https hosts are supported" });
+      return;
+    }
+
+    // Trim any trailing slashes without backtracking regex (avoids ReDoS).
+    let base = parsedUrl.origin + parsedUrl.pathname;
+    let end = base.length;
+    while (end > 0 && base[end - 1] === "/") end--;
+    base = base.slice(0, end);
+
     try {
       const resp = await fetch(`${base}/object_info`);
       if (!resp.ok) {

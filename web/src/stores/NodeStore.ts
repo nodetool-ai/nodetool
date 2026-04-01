@@ -258,7 +258,6 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
-    // @ts-expect-error zundo temporal middleware type is not compatible with Zustand's StoreMutators
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;

@@ -46,7 +46,9 @@ export interface ComfyExecutionHandle {
 
 function normalizeBaseUrl(addr: string): string {
   const url = addr.startsWith("http") ? addr : `http://${addr}`;
-  return url.replace(/\/+$/, "");
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end--;
+  return url.slice(0, end);
 }
 
 function toWsUrl(httpBase: string, clientId: string): string {
