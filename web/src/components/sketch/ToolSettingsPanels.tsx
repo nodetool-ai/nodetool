@@ -47,10 +47,14 @@ import {
   rgbaToCss,
   colorToHex6,
   PenPressureSettings,
+  StrokeAssistSettings,
+  StrokeAssistPreset,
   DEFAULT_PRESSURE_MIN_SCALE,
   DEFAULT_PRESSURE_CURVE,
   pressureMinScaleFromSliderUnit,
-  pressureMinScaleToSliderUnit
+  pressureMinScaleToSliderUnit,
+  resolveStrokeAssistSettings,
+  createStrokeAssistPreset
 } from "./types";
 import type { SamModelInfo } from "./sam";
 
@@ -253,6 +257,16 @@ interface EraserSettingsPanelProps {
   onChange: (settings: Partial<EraserSettings>) => void;
 }
 
+interface StrokeAssistToolSettings {
+  stabilizer: number;
+  strokeAssist?: StrokeAssistSettings;
+}
+
+interface StrokeAssistSettingsPanelProps<T extends StrokeAssistToolSettings> {
+  settings: T;
+  onChange: (settings: Partial<T>) => void;
+}
+
 interface ShapeSettingsPanelProps {
   settings: ShapeSettings;
   onChange: (settings: Partial<ShapeSettings>) => void;
@@ -286,6 +300,153 @@ interface SelectSettingsPanelProps {
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
   onStrokeSelectionBorder: () => void;
+}
+
+const STROKE_ASSIST_PRESETS: Array<{
+  value: Exclude<StrokeAssistPreset, "custom">;
+  label: string;
+}> = [
+  { value: "smooth", label: "Smooth" },
+  { value: "lazy", label: "Lazy" },
+  { value: "inking", label: "Ink" }
+];
+
+const STROKE_ASSIST_ANGLE_OPTIONS = [15, 30, 45, 90];
+
+function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
+  settings,
+  onChange
+}: StrokeAssistSettingsPanelProps<T>) {
+  const assist = resolveStrokeAssistSettings(
+    settings.stabilizer,
+    settings.strokeAssist
+  );
+
+  const pushAssist = (nextAssist: StrokeAssistSettings) => {
+    onChange({
+      strokeAssist: nextAssist,
+      stabilizer: nextAssist.mode === "stabilizer" ? nextAssist.strength : 0
+    } as Partial<T>);
+  };
+
+  const updateAssist = (partial: Partial<StrokeAssistSettings>) => {
+    pushAssist({
+      ...assist,
+      ...partial,
+      preset: "custom"
+    });
+  };
+
+  return (
+    <>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "4px",
+          mb: "4px"
+        }}
+      >
+        {STROKE_ASSIST_PRESETS.map(({ value, label }) => (
+          <Button
+            key={value}
+            variant={assist.preset === value ? "contained" : "outlined"}
+            size="small"
+            onClick={() => pushAssist(createStrokeAssistPreset(value))}
+          >
+            {label}
+          </Button>
+        ))}
+      </Box>
+      <ToggleButtonGroup
+        value={assist.mode}
+        exclusive
+        onChange={(_, v) => {
+          if (v) {
+            updateAssist({ mode: v as StrokeAssistSettings["mode"] });
+          }
+        }}
+        size="small"
+        sx={{ mb: "4px" }}
+      >
+        <ToggleButton value="stabilizer" sx={toggleButtonSmallSx}>
+          Smooth
+        </ToggleButton>
+        <ToggleButton value="lazy" sx={toggleButtonSmallSx}>
+          Lazy
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <Box className="setting-row">
+        <Typography className="setting-label">Assist</Typography>
+        <Slider
+          sx={sketchSliderSx}
+          size="small"
+          min={0}
+          max={1}
+          step={0.01}
+          value={assist.strength}
+          onChange={(_, v) => updateAssist({ strength: v as number })}
+        />
+        <Typography className="setting-value">
+          {Math.round(assist.strength * 100)}%
+        </Typography>
+      </Box>
+      <ToggleButtonGroup
+        value={assist.snapMode}
+        exclusive
+        onChange={(_, v) => {
+          if (v) {
+            updateAssist({ snapMode: v as StrokeAssistSettings["snapMode"] });
+          }
+        }}
+        size="small"
+        sx={{ mb: "4px" }}
+      >
+        <ToggleButton value="off" sx={toggleButtonSmallSx}>
+          Free
+        </ToggleButton>
+        <ToggleButton value="angle" sx={toggleButtonSmallSx}>
+          Angle
+        </ToggleButton>
+      </ToggleButtonGroup>
+      {assist.snapMode === "angle" ? (
+        <>
+          <ToggleButtonGroup
+            value={assist.angleIncrement}
+            exclusive
+            onChange={(_, v) => {
+              if (v) {
+                updateAssist({ angleIncrement: v as number });
+              }
+            }}
+            size="small"
+            sx={{ mb: "4px" }}
+          >
+            {STROKE_ASSIST_ANGLE_OPTIONS.map((angle) => (
+              <ToggleButton key={angle} value={angle} sx={toggleButtonSmallSx}>
+                {angle}°
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          <Box className="setting-row">
+            <Typography className="setting-label">Snap</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0}
+              max={1}
+              step={0.01}
+              value={assist.snapStrength}
+              onChange={(_, v) => updateAssist({ snapStrength: v as number })}
+            />
+            <Typography className="setting-value">
+              {Math.round(assist.snapStrength * 100)}%
+            </Typography>
+          </Box>
+        </>
+      ) : null}
+    </>
+  );
 }
 
 // ─── BrushSettingsPanel ───────────────────────────────────────────────────
@@ -401,21 +562,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           </Box>
         </>
       )}
-      <Box className="setting-row">
-        <Typography className="setting-label">Smooth</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={1}
-          step={0.01}
-          value={settings.stabilizer ?? 0}
-          onChange={(_, v) => onChange({ stabilizer: v as number })}
-        />
-        <Typography className="setting-value">
-          {Math.round((settings.stabilizer ?? 0) * 100)}%
-        </Typography>
-      </Box>
+      <StrokeAssistSettingsPanel settings={settings} onChange={onChange} />
     </>
   );
 });
@@ -460,21 +607,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
           </Box>
         </>
       )}
-      <Box className="setting-row">
-        <Typography className="setting-label">Smooth</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={1}
-          step={0.01}
-          value={settings.stabilizer ?? 0}
-          onChange={(_, v) => onChange({ stabilizer: v as number })}
-        />
-        <Typography className="setting-value">
-          {Math.round((settings.stabilizer ?? 0) * 100)}%
-        </Typography>
-      </Box>
+      <StrokeAssistSettingsPanel settings={settings} onChange={onChange} />
     </>
   );
 });
@@ -532,21 +665,7 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
           {Math.round(settings.opacity * 100)}%
         </Typography>
       </Box>
-      <Box className="setting-row">
-        <Typography className="setting-label">Smooth</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={1}
-          step={0.01}
-          value={settings.stabilizer ?? 0}
-          onChange={(_, v) => onChange({ stabilizer: v as number })}
-        />
-        <Typography className="setting-value">
-          {Math.round((settings.stabilizer ?? 0) * 100)}%
-        </Typography>
-      </Box>
+      <StrokeAssistSettingsPanel settings={settings} onChange={onChange} />
     </>
   );
 });

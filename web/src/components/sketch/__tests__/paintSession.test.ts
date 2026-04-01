@@ -278,6 +278,66 @@ describe("PaintEngine implementations", () => {
       expect(p4.x).toBe(15);
       expect(p4.y).toBe(15);
     });
+
+    it("supports lazy brush stroke assist", () => {
+      const engine = new BrushEngine({
+        size: 10,
+        opacity: 1,
+        hardness: 0.8,
+        color: "#000000",
+        brushType: "round",
+        pressureSensitivity: true,
+        pressureAffects: "size",
+        roundness: 1,
+        angle: 0,
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 0,
+        strokeAssist: {
+          preset: "custom",
+          mode: "lazy",
+          strength: 0.5,
+          snapMode: "off",
+          snapStrength: 0.75,
+          angleIncrement: 45
+        }
+      });
+      engine.beginStroke();
+      engine.stabilize({ x: 0, y: 0 });
+      const p2 = engine.stabilize({ x: 50, y: 0 });
+      expect(p2.x).toBe(31);
+      expect(p2.y).toBe(0);
+    });
+
+    it("can angle-snap assisted strokes", () => {
+      const engine = new BrushEngine({
+        size: 10,
+        opacity: 1,
+        hardness: 0.8,
+        color: "#000000",
+        brushType: "round",
+        pressureSensitivity: true,
+        pressureAffects: "size",
+        roundness: 1,
+        angle: 0,
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 0,
+        strokeAssist: {
+          preset: "custom",
+          mode: "lazy",
+          strength: 0.25,
+          snapMode: "angle",
+          snapStrength: 1,
+          angleIncrement: 45
+        }
+      });
+      engine.beginStroke();
+      engine.stabilize({ x: 0, y: 0 });
+      const p2 = engine.stabilize({ x: 30, y: 10 });
+      expect(p2.x).toBeGreaterThan(0);
+      expect(p2.y).toBe(0);
+    });
   });
 
   describe("PencilEngine", () => {

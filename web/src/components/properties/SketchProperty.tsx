@@ -110,29 +110,17 @@ const SketchProperty = (props: PropertyProps) => {
     const doc = documentRef.current;
     if (doc) {
       props.onChange(serializeDocument(doc));
+      props.onChangeComplete?.();
     }
     setIsModalOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.onChange]);
+  }, [props.onChange, props.onChangeComplete]);
 
   const handleDocumentChange = useCallback((doc: SketchDocument) => {
     // Keep in-memory ref up to date. No serialization here —
     // persisting on every stroke stalls the main thread.
-    // handleCloseModal and handleSave do the actual persist.
     documentRef.current = doc;
   }, []);
-
-  const handleSave = useCallback(
-    (_doc: SketchDocument) => {
-      const currentDoc = documentRef.current;
-      if (currentDoc) {
-        const serialized = serializeDocument(currentDoc);
-        props.onChange(serialized);
-        props.onChangeComplete?.();
-      }
-    },
-    [props]
-  );
 
   return (
     <div css={styles(theme)}>
@@ -188,7 +176,6 @@ const SketchProperty = (props: PropertyProps) => {
         title={props.property.name || "Image Editor"}
         initialDocument={getDocument()}
         onClose={handleCloseModal}
-        onSave={handleSave}
         onDocumentChange={handleDocumentChange}
       />
     </div>

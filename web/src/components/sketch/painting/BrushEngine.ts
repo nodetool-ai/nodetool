@@ -7,12 +7,13 @@
  */
 
 import type { Point, BrushSettings } from "../types";
+import { resolveStrokeAssistSettings } from "../types";
 import type { PaintEngine, EngineCompositeOp, StrokeBufferMode } from "./PaintEngine";
 import {
   drawBrushStroke as drawBrushStrokeUtil
 } from "../drawingUtils";
 import type { StrokeStampState, DirtyRectTracker } from "../drawingUtils";
-import { StabilizerBuffer } from "./StabilizerBuffer";
+import { StrokeAssist } from "./StrokeAssist";
 
 export class BrushEngine implements PaintEngine {
   readonly engineId = "brush";
@@ -25,7 +26,7 @@ export class BrushEngine implements PaintEngine {
   private dirtyRect: DirtyRectTracker = { current: null };
   private stampStates: Map<number, StrokeStampState> = new Map();
   private stampCache: Map<string, HTMLCanvasElement> = new Map();
-  private stab = new StabilizerBuffer();
+  private assist = new StrokeAssist();
 
   constructor(settings: BrushSettings) {
     this.settings = settings;
@@ -39,11 +40,17 @@ export class BrushEngine implements PaintEngine {
   beginStroke(): void {
     this.dirtyRect = { current: null };
     this.stampStates.clear();
-    this.stab.reset();
+    this.assist.reset();
   }
 
   stabilize(raw: Point): Point {
-    return this.stab.apply(raw, this.settings.stabilizer ?? 0);
+    return this.assist.apply(
+      raw,
+      resolveStrokeAssistSettings(
+        this.settings.stabilizer,
+        this.settings.strokeAssist
+      )
+    );
   }
 
   evaluate(

@@ -13,7 +13,7 @@
 
 import type { Point } from "../types";
 
-const WINDOW_MAX = 16;
+const WINDOW_MAX = 20;
 
 export class StabilizerBuffer {
   private buffer: Point[] = [];

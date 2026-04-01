@@ -188,6 +188,24 @@ export const DEFAULT_PEN_PRESSURE: PenPressureSettings = {
   pressureCurve: DEFAULT_PRESSURE_CURVE
 };
 
+export type StrokeAssistMode = "stabilizer" | "lazy";
+
+export type StrokeAssistSnapMode = "off" | "angle";
+
+export type StrokeAssistPreset = "smooth" | "lazy" | "inking" | "custom";
+
+export interface StrokeAssistSettings {
+  preset: StrokeAssistPreset;
+  mode: StrokeAssistMode;
+  /** Main assist amount: 0 = off, 1 = maximum effect. */
+  strength: number;
+  snapMode: StrokeAssistSnapMode;
+  /** Blend toward the snapped guide when snapping is enabled. */
+  snapStrength: number;
+  /** Angle step in degrees for angle snap. */
+  angleIncrement: number;
+}
+
 export interface BrushSettings {
   size: number;
   opacity: number;
@@ -204,6 +222,8 @@ export interface BrushSettings {
   angle: number; // 0 to 360 degrees
   /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
   stabilizer: number;
+  /** New stroke input assist model. Falls back to legacy `stabilizer` when absent. */
+  strokeAssist?: StrokeAssistSettings;
 }
 
 export interface PencilSettings {
@@ -218,6 +238,8 @@ export interface PencilSettings {
   pressureCurve: number;
   /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
   stabilizer: number;
+  /** New stroke input assist model. Falls back to legacy `stabilizer` when absent. */
+  strokeAssist?: StrokeAssistSettings;
 }
 
 /** Apply global {@link ToolSettings.penPressure} for paint engines (brush/pencil store strips these for UI). */
@@ -256,6 +278,8 @@ export interface EraserSettings {
   mode: EraserMode;
   /** Stroke stabilizer strength: 0 = off, 1 = maximum smoothing. */
   stabilizer: number;
+  /** New stroke input assist model. Falls back to legacy `stabilizer` when absent. */
+  strokeAssist?: StrokeAssistSettings;
 }
 
 export interface ShapeSettings {
@@ -630,6 +654,110 @@ export interface SketchEditorState {
 const SKETCH_LARGE_TOOL_SIZE_MAX = 200;
 /** Pencil size slider max in ToolSettingsPanels. */
 const SKETCH_PENCIL_SIZE_MAX = 10;
+const STROKE_ASSIST_ANGLE_INCREMENTS = [15, 30, 45, 90] as const;
+
+export const DEFAULT_STROKE_ASSIST_SETTINGS: StrokeAssistSettings = {
+  preset: "custom",
+  mode: "stabilizer",
+  strength: 0,
+  snapMode: "off",
+  snapStrength: 0.75,
+  angleIncrement: 45
+};
+
+export function createStrokeAssistPreset(
+  preset: Exclude<StrokeAssistPreset, "custom">
+): StrokeAssistSettings {
+  switch (preset) {
+    case "smooth":
+      return {
+        preset,
+        mode: "stabilizer",
+        strength: 0.65,
+        snapMode: "off",
+        snapStrength: DEFAULT_STROKE_ASSIST_SETTINGS.snapStrength,
+        angleIncrement: 45
+      };
+    case "lazy":
+      return {
+        preset,
+        mode: "lazy",
+        strength: 0.6,
+        snapMode: "off",
+        snapStrength: DEFAULT_STROKE_ASSIST_SETTINGS.snapStrength,
+        angleIncrement: 45
+      };
+    case "inking":
+      return {
+        preset,
+        mode: "lazy",
+        strength: 0.45,
+        snapMode: "angle",
+        snapStrength: 0.9,
+        angleIncrement: 45
+      };
+  }
+}
+
+function normalizedStrokeAssistAngleIncrement(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  const nearest = STROKE_ASSIST_ANGLE_INCREMENTS.reduce((best, candidate) =>
+    Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best
+  );
+  return nearest;
+}
+
+export function resolveStrokeAssistSettings(
+  legacyStabilizer: number | undefined,
+  strokeAssist: Partial<StrokeAssistSettings> | undefined
+): StrokeAssistSettings {
+  const presetBase =
+    strokeAssist?.preset && strokeAssist.preset !== "custom"
+      ? createStrokeAssistPreset(strokeAssist.preset)
+      : DEFAULT_STROKE_ASSIST_SETTINGS;
+  const merged = {
+    ...presetBase,
+    ...(strokeAssist ?? {})
+  };
+  if (!strokeAssist) {
+    merged.strength = normalizedUnitScalar(
+      legacyStabilizer,
+      DEFAULT_STROKE_ASSIST_SETTINGS.strength
+    );
+    merged.mode = "stabilizer";
+    merged.snapMode = "off";
+    merged.preset = "custom";
+  }
+  const shouldPreferLegacyStabilizer =
+    typeof legacyStabilizer === "number" &&
+    legacyStabilizer > 0 &&
+    merged.preset === "custom" &&
+    merged.mode === "stabilizer" &&
+    merged.strength === DEFAULT_STROKE_ASSIST_SETTINGS.strength &&
+    merged.snapMode === DEFAULT_STROKE_ASSIST_SETTINGS.snapMode;
+  if (shouldPreferLegacyStabilizer) {
+    merged.strength = legacyStabilizer;
+  }
+  return {
+    preset: merged.preset ?? "custom",
+    mode: merged.mode === "lazy" ? "lazy" : "stabilizer",
+    strength: normalizedUnitScalar(
+      merged.strength,
+      DEFAULT_STROKE_ASSIST_SETTINGS.strength
+    ),
+    snapMode: merged.snapMode === "angle" ? "angle" : "off",
+    snapStrength: normalizedUnitScalar(
+      merged.snapStrength,
+      DEFAULT_STROKE_ASSIST_SETTINGS.snapStrength
+    ),
+    angleIncrement: normalizedStrokeAssistAngleIncrement(
+      merged.angleIncrement,
+      DEFAULT_STROKE_ASSIST_SETTINGS.angleIncrement
+    )
+  };
+}
 
 export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   size: 8,
@@ -643,7 +771,8 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   pressureCurve: DEFAULT_PRESSURE_CURVE,
   roundness: 1.0,
   angle: 0,
-  stabilizer: 0
+  stabilizer: 0,
+  strokeAssist: { ...DEFAULT_STROKE_ASSIST_SETTINGS }
 };
 
 export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
@@ -654,14 +783,16 @@ export const DEFAULT_PENCIL_SETTINGS: PencilSettings = {
   pressureAffects: "both",
   pressureMinScale: DEFAULT_PRESSURE_MIN_SCALE,
   pressureCurve: DEFAULT_PRESSURE_CURVE,
-  stabilizer: 0
+  stabilizer: 0,
+  strokeAssist: { ...DEFAULT_STROKE_ASSIST_SETTINGS }
 };
 
 export const DEFAULT_ERASER_SETTINGS: EraserSettings = {
   size: 14,
   opacity: 1,
   mode: "brush",
-  stabilizer: 0
+  stabilizer: 0,
+  strokeAssist: { ...DEFAULT_STROKE_ASSIST_SETTINGS }
 };
 
 export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {
@@ -733,9 +864,18 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
  */
 export function cloneDefaultToolSettings(): ToolSettings {
   return {
-    brush: { ...DEFAULT_BRUSH_SETTINGS },
-    pencil: { ...DEFAULT_PENCIL_SETTINGS },
-    eraser: { ...DEFAULT_ERASER_SETTINGS },
+    brush: {
+      ...DEFAULT_BRUSH_SETTINGS,
+      strokeAssist: { ...DEFAULT_BRUSH_SETTINGS.strokeAssist! }
+    },
+    pencil: {
+      ...DEFAULT_PENCIL_SETTINGS,
+      strokeAssist: { ...DEFAULT_PENCIL_SETTINGS.strokeAssist! }
+    },
+    eraser: {
+      ...DEFAULT_ERASER_SETTINGS,
+      strokeAssist: { ...DEFAULT_ERASER_SETTINGS.strokeAssist! }
+    },
     penPressure: { ...DEFAULT_PEN_PRESSURE },
     shape: { ...DEFAULT_SHAPE_SETTINGS },
     fill: { ...DEFAULT_FILL_SETTINGS },
@@ -1004,6 +1144,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         angle: normalizedBrushAngle(
           mergedBrush.angle,
           DEFAULT_BRUSH_SETTINGS.angle
+        ),
+        strokeAssist: resolveStrokeAssistSettings(
+          mergedBrush.stabilizer,
+          mergedBrush.strokeAssist
         )
       };
       const normalizedPencil = {
@@ -1015,6 +1159,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
         opacity: normalizedUnitScalar(
           mergedPencil.opacity,
           DEFAULT_PENCIL_SETTINGS.opacity
+        ),
+        strokeAssist: resolveStrokeAssistSettings(
+          mergedPencil.stabilizer,
+          mergedPencil.strokeAssist
         )
       };
       const rawPen = doc.toolSettings?.penPressure as
@@ -1046,6 +1194,10 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
           opacity: normalizedUnitScalar(
             mergedEraser.opacity,
             DEFAULT_ERASER_SETTINGS.opacity
+          ),
+          strokeAssist: resolveStrokeAssistSettings(
+            mergedEraser.stabilizer,
+            mergedEraser.strokeAssist
           )
         },
         shape: {

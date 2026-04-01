@@ -22,6 +22,7 @@ export { EraserEngine } from "./EraserEngine";
 
 // ── Shared stabiliser ───────────────────────────────────────────────────────
 export { StabilizerBuffer } from "./StabilizerBuffer";
+export { StrokeAssist } from "./StrokeAssist";
 
 // ── Coordinate mapping ─────────────────────────────────────────────────────
 export { CoordinateMapper } from "./CoordinateMapper";

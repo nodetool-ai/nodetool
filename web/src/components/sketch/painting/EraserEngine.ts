@@ -13,14 +13,15 @@ import {
   type BrushSettings,
   type PencilSettings,
   DEFAULT_BRUSH_SETTINGS,
-  DEFAULT_PENCIL_SETTINGS
+  DEFAULT_PENCIL_SETTINGS,
+  resolveStrokeAssistSettings
 } from "../types";
 import type { PaintEngine, EngineCompositeOp, StrokeBufferMode } from "./PaintEngine";
 import {
   drawEraserStroke as drawEraserStrokeUtil
 } from "../drawingUtils";
 import type { StrokeStampState, DirtyRectTracker } from "../drawingUtils";
-import { StabilizerBuffer } from "./StabilizerBuffer";
+import { StrokeAssist } from "./StrokeAssist";
 
 export class EraserEngine implements PaintEngine {
   readonly engineId = "eraser";
@@ -35,7 +36,7 @@ export class EraserEngine implements PaintEngine {
   private dirtyRect: DirtyRectTracker = { current: null };
   private stampStates: Map<number, StrokeStampState> = new Map();
   private stampCache: Map<string, HTMLCanvasElement> = new Map();
-  private stab = new StabilizerBuffer();
+  private assist = new StrokeAssist();
 
   constructor(
     eraser: EraserSettings,
@@ -60,11 +61,17 @@ export class EraserEngine implements PaintEngine {
   beginStroke(): void {
     this.dirtyRect = { current: null };
     this.stampStates.clear();
-    this.stab.reset();
+    this.assist.reset();
   }
 
   stabilize(raw: Point): Point {
-    return this.stab.apply(raw, this.eraser.stabilizer ?? 0);
+    return this.assist.apply(
+      raw,
+      resolveStrokeAssistSettings(
+        this.eraser.stabilizer,
+        this.eraser.strokeAssist
+      )
+    );
   }
 
   evaluate(

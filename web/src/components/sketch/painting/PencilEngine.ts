@@ -8,13 +8,14 @@
  */
 
 import type { Point, PencilSettings } from "../types";
+import { resolveStrokeAssistSettings } from "../types";
 import type { PaintEngine, EngineCompositeOp, StrokeBufferMode } from "./PaintEngine";
 import {
   drawPencilStroke as drawPencilStrokeUtil,
   type StrokeStampState
 } from "../drawingUtils";
 import type { DirtyRectTracker } from "../drawingUtils";
-import { StabilizerBuffer } from "./StabilizerBuffer";
+import { StrokeAssist } from "./StrokeAssist";
 
 export class PencilEngine implements PaintEngine {
   readonly engineId = "pencil";
@@ -29,7 +30,7 @@ export class PencilEngine implements PaintEngine {
   private settings: PencilSettings;
   private dirtyRect: DirtyRectTracker = { current: null };
   private stampStates: Map<number, StrokeStampState> = new Map();
-  private stab = new StabilizerBuffer();
+  private assist = new StrokeAssist();
 
   constructor(settings: PencilSettings) {
     this.settings = settings;
@@ -42,12 +43,18 @@ export class PencilEngine implements PaintEngine {
   beginStroke(): void {
     this.dirtyRect = { current: null };
     this.stampStates.clear();
-    this.stab.reset();
+    this.assist.reset();
   }
 
   stabilize(raw: Point): Point {
-    // Smooth first (when enabled), then snap to pixel centres for crisp lines.
-    const smoothed = this.stab.apply(raw, this.settings.stabilizer ?? 0);
+    // Apply stroke assist first, then snap to pixel centres for crisp lines.
+    const smoothed = this.assist.apply(
+      raw,
+      resolveStrokeAssistSettings(
+        this.settings.stabilizer,
+        this.settings.strokeAssist
+      )
+    );
     return { x: Math.round(smoothed.x), y: Math.round(smoothed.y) };
   }
 

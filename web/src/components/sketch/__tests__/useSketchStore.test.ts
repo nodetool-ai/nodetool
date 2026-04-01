@@ -103,6 +103,29 @@ describe("useSketchStore", () => {
       expect(useSketchStore.getState().document.toolSettings.eraser.size).toBe(30);
     });
 
+    it("stores stroke assist settings for paint tools", () => {
+      act(() => {
+        useSketchStore.getState().setBrushSettings({
+          strokeAssist: {
+            preset: "inking",
+            mode: "lazy",
+            strength: 0.45,
+            snapMode: "angle",
+            snapStrength: 0.9,
+            angleIncrement: 45
+          }
+        });
+      });
+      expect(useSketchStore.getState().document.toolSettings.brush.strokeAssist).toEqual({
+        preset: "inking",
+        mode: "lazy",
+        strength: 0.45,
+        snapMode: "angle",
+        snapStrength: 0.9,
+        angleIncrement: 45
+      });
+    });
+
     it("clamps zoom values", () => {
       act(() => {
         useSketchStore.getState().setZoom(0.01);
