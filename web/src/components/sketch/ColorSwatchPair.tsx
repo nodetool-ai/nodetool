@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { colorToHex6 } from "./types";
-import { SKETCH_CHECKERBOARD, SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, colorSwatchSx } from "./sketchStyles";
+import { SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, colorSwatchSx } from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";
 
 export interface ColorSwatchPairProps {

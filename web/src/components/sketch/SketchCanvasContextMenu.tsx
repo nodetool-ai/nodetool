@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
-import { sketchToolSettingsContainerSx, SKETCH_FONT, SKETCH_SPACING, SKETCH_SIZE } from "./sketchStyles";
+import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   Box,

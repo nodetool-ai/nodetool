@@ -14,8 +14,7 @@ import {
   SKETCH_CHECKERBOARD,
   SKETCH_FONT,
   SKETCH_SIZE,
-  SKETCH_SPACING,
-  SKETCH_COLORS
+  SKETCH_SPACING
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

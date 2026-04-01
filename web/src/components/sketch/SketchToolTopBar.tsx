@@ -29,7 +29,6 @@ import {
 import type { SamModelInfo } from "./sam";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
 import {
-  SKETCH_COLORS,
   SKETCH_SPACING,
   SKETCH_SIZE,
   settingRowChildrenSx
