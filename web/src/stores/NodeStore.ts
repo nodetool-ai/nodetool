@@ -286,7 +286,7 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
 export const createNodeStore = (
   workflow?: Workflow,
   state?: Partial<NodeStoreState>
-): NodeStore =>
+) =>
   create<NodeStoreState>()(
     temporal(
       (set, get) => {
