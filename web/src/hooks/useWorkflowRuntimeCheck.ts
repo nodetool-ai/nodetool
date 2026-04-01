@@ -26,7 +26,7 @@ export function useWorkflowRuntimeCheck(workflowId: string | null): void {
     if (!isElectron || !workflowId || workflowId === checkedWorkflowRef.current) {
       return;
     }
-    if (nodes.length === 0) return;
+    if (nodes.length === 0) {return;}
 
     checkedWorkflowRef.current = workflowId;
 
@@ -36,14 +36,14 @@ export function useWorkflowRuntimeCheck(workflowId: string | null): void {
         await refreshRuntimeStatuses();
       }
       const statuses = getCachedRuntimeStatuses();
-      if (!statuses) return;
+      if (!statuses) {return;}
 
       // Collect all missing runtimes across all nodes
       const missingSet = new Set<string>();
       for (const node of nodes) {
-        if (!node.type) continue;
+        if (!node.type) {continue;}
         const meta = getMetadata(node.type);
-        if (!meta?.required_runtimes) continue;
+        if (!meta?.required_runtimes) {continue;}
         for (const rt of meta.required_runtimes) {
           const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
           if (!statuses[pkgId]) {
