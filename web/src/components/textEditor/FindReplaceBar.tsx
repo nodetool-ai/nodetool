@@ -269,7 +269,6 @@ const FindReplaceBar = ({
             <ToolbarIconButton
               icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Replace</span>}
               tooltip="Replace"
-              ariaLabel="Replace match"
               onClick={handleReplace}
               disabled={!isValidSearch || totalMatches === 0}
               className="toolbar-button"
@@ -280,7 +279,6 @@ const FindReplaceBar = ({
             <ToolbarIconButton
               icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>All</span>}
               tooltip="Replace All"
-              ariaLabel="Replace all matches"
               onClick={handleReplaceAll}
               disabled={!isValidSearch || totalMatches === 0}
               className="toolbar-button"

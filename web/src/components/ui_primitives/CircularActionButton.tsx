@@ -174,10 +174,6 @@ export interface CircularActionButtonProps {
    * @default 0
    */
   tabIndex?: number;
-  /**
-   * Accessible label for the button
-   */
-  ariaLabel?: string;
 }
 
 const getThemeColor = (theme: Theme, colorKey: string): string => {
@@ -233,8 +229,7 @@ export const CircularActionButton = memo(
         className,
         sx,
         disableRipple = false,
-        tabIndex = 0,
-        ariaLabel
+        tabIndex = 0
       },
       ref
     ) => {
@@ -308,7 +303,7 @@ export const CircularActionButton = memo(
         <IconButton
           ref={ref}
           tabIndex={tabIndex}
-          aria-label={ariaLabel || (typeof tooltip === "string" ? tooltip : undefined)}
+          aria-label={typeof tooltip === "string" ? tooltip : undefined}
           className={cn(
             "circular-action-button",
             nodrag && editorClassNames.nodrag,

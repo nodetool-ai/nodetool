@@ -179,7 +179,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
 
   const handleInstall = useCallback(async () => {
     const api = (window as any).api;
-    if (!api?.packages?.installRuntime) {return;}
+    if (!api?.packages?.installRuntime) return;
     setInstalling(true);
     try {
       for (const rt of missingRuntimes) {
