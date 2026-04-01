@@ -1614,7 +1614,9 @@ export class UnifiedWebSocketRunner {
               }
             }
           }
-        } catch {}
+        } catch {
+          // Intentional: best-effort extraction of error message from response body
+        }
 
         if (bodyMsg) {
           formattedMsg = bodyMsg;
@@ -2608,7 +2610,9 @@ export class UnifiedWebSocketRunner {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => {
-      this.sendMessage({ type: "ping", ts: Date.now() / 1000 }).catch(() => {});
+      this.sendMessage({ type: "ping", ts: Date.now() / 1000 }).catch((err) => {
+        log.warn("Failed to send heartbeat ping", { error: String(err) });
+      });
     }, 25_000);
   }
 
@@ -2622,7 +2626,9 @@ export class UnifiedWebSocketRunner {
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
     this.statsTimer = setInterval(() => {
-      this.sendMessage({ type: "system_stats", stats: this.getSystemStats() }).catch(() => {});
+      this.sendMessage({ type: "system_stats", stats: this.getSystemStats() }).catch((err) => {
+        log.warn("Failed to send system stats", { error: String(err) });
+      });
     }, 1_000);
   }
 

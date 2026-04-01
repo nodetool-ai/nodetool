@@ -117,13 +117,13 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const webStream = new ReadableStream({
         start(controller) {
           stream.on("data", (chunk) => {
-            try { controller.enqueue(chunk); } catch { stream.destroy(); }
+            try { controller.enqueue(chunk); } catch { /* Intentional: stream already closed by consumer; destroy source */ stream.destroy(); }
           });
           stream.on("end", () => {
-            try { controller.close(); } catch { /* already closed */ }
+            try { controller.close(); } catch { /* Intentional: controller already closed */ }
           });
           stream.on("error", (err) => {
-            try { controller.error(err); } catch { /* already errored */ }
+            try { controller.error(err); } catch { /* Intentional: controller already errored/closed */ }
           });
         },
         cancel() { stream.destroy(); },

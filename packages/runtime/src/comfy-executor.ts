@@ -78,9 +78,11 @@ export function executeComfy(
     if (cancelled) return;
     cancelled = true;
     // Tell ComfyUI to interrupt
-    void fetch(`${base}/interrupt`, { method: "POST" }).catch(() => {});
+    void fetch(`${base}/interrupt`, { method: "POST" }).catch((err) => {
+      log.warn("Failed to send ComfyUI interrupt request", { error: String(err) });
+    });
     if (ws) {
-      try { ws.close(); } catch { /* ignore */ }
+      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
     }
   };
 
@@ -101,7 +103,7 @@ export function executeComfy(
     }
 
     if (cancelled) {
-      try { ws.close(); } catch { /* ignore */ }
+      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
       return { status: "failed", error: "Cancelled before submission" };
     }
 
@@ -119,7 +121,7 @@ export function executeComfy(
       if (!submitRes.ok) {
         const text = await submitRes.text();
         log.error(`Submit failed: HTTP ${submitRes.status} — ${text}`);
-        try { ws.close(); } catch { /* ignore */ }
+        try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
         return { status: "failed", error: `Submit failed (${submitRes.status}): ${text}` };
       }
       const submitData = (await submitRes.json()) as { prompt_id: string };
@@ -128,7 +130,7 @@ export function executeComfy(
     } catch (err) {
       const errMsg = err instanceof Error ? `${err.message} (${err.cause ?? "no cause"})` : String(err);
       log.error(`Submit error to ${base}/prompt: ${errMsg}`);
-      try { ws.close(); } catch { /* ignore */ }
+      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
       return { status: "failed", error: `Submit error: ${errMsg}` };
     }
 
@@ -172,7 +174,7 @@ function listenForCompletion(
       clearTimeout(timer);
       // Remove message listener before closing to prevent stale callbacks
       ws.removeAllListeners("message");
-      try { ws.close(); } catch { /* ignore */ }
+      try { ws.close(); } catch { /* Intentional: best-effort WebSocket close during cleanup */ }
       resolve(result);
     };
 

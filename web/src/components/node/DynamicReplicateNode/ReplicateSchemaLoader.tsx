@@ -147,10 +147,10 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             onClick={handleLoad}
             sx={{
               padding: "4px",
-              color: "rgba(255, 255, 255, 0.5)",
+              color: "var(--palette-text-secondary)",
               "&:hover": {
-                color: "rgba(255, 255, 255, 0.9)",
-                backgroundColor: "rgba(255, 255, 255, 0.08)"
+                color: "var(--palette-text-primary)",
+                backgroundColor: "var(--palette-action-hover)"
               }
             }}
           >

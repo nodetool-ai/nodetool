@@ -11,6 +11,7 @@
  * directly (same behavior as programmatic use).
  */
 
+import { createLogger } from "@nodetool/config";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { TaskBoard } from "./task-board.js";
 import type {
@@ -19,6 +20,8 @@ import type {
   ITaskBoard,
   TeamEvent,
 } from "./types.js";
+
+const log = createLogger("agents:edge-task-board");
 
 export class EdgeTaskBoard implements ITaskBoard {
   private inner: TaskBoard;
@@ -188,8 +191,9 @@ export class EdgeTaskBoard implements ITaskBoard {
     params: Record<string, unknown>
   ): void {
     if (!this.canRouteToNode()) return;
-    this.routeOperation(operation, params).catch(() => {
-      // Board node notification failed — inner board is still correct
+    this.routeOperation(operation, params).catch((err) => {
+      // Intentional: board node notification failed — inner board is still correct
+      log.warn("Edge task board notification failed", { operation, error: String(err) });
     });
   }
 }

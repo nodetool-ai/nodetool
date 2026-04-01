@@ -59,6 +59,9 @@ export class ModelObserver {
   static notify(instance: DBModel, event: ModelChangeEvent): void {
     const className = instance.constructor.name;
 
+    // Intentional: catch and log observer errors to prevent one failing observer
+    // from blocking notifications to remaining observers.
+
     // Class-specific observers
     for (const cb of ModelObserver.observers.get(className) ?? []) {
       try {

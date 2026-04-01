@@ -386,7 +386,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
           container.remove({ force: true }).catch(() => {
-            // ignore
+            // Intentional: best-effort container cleanup on timeout
           });
         }, this.timeoutSeconds * 1000);
       }

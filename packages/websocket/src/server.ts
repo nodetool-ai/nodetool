@@ -343,7 +343,7 @@ app.addHook("onRequest", async (req, reply) => {
 
   // Public routes — no auth required
   const pathname = req.url.split("?")[0];
-  if (pathname === "/health" || pathname.startsWith("/api/oauth/") || pathname === "/api/assets/packages" || pathname.startsWith("/api/assets/packages/") || pathname === "/api/nodes/metadata") {
+  if (pathname === "/health" || pathname === "/ready" || pathname.startsWith("/api/oauth/") || pathname === "/api/assets/packages" || pathname.startsWith("/api/assets/packages/") || pathname === "/api/nodes/metadata") {
     return;
   }
 

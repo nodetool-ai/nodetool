@@ -172,7 +172,7 @@ export class SearchEmailTool extends Tool {
       return { error: e.message ?? String(e) };
     } finally {
       if (client) {
-        await client.logout().catch(() => {});
+        await client.logout().catch(() => { /* Intentional: best-effort IMAP logout during cleanup */ });
       }
     }
   }
@@ -236,7 +236,7 @@ export class ArchiveEmailTool extends Tool {
       return { error: e.message ?? String(e) };
     } finally {
       if (client) {
-        await client.logout().catch(() => {});
+        await client.logout().catch(() => { /* Intentional: best-effort IMAP logout during cleanup */ });
       }
     }
   }
@@ -293,7 +293,7 @@ export class AddLabelToEmailTool extends Tool {
       return { error: e.message ?? String(e) };
     } finally {
       if (client) {
-        await client.logout().catch(() => {});
+        await client.logout().catch(() => { /* Intentional: best-effort IMAP logout during cleanup */ });
       }
     }
   }

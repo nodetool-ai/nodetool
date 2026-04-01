@@ -66,10 +66,17 @@ const styles = (theme: Theme) =>
       borderRadius: 0,
       cursor: "ew-resize",
       zIndex: 10,
-      transition: "background-color 0.2s ease",
+      transition: "all 0.2s ease",
 
       "&:hover": {
-        backgroundColor: theme.vars.palette.primary.main
+        backgroundColor: theme.vars.palette.primary.main,
+        boxShadow: `0 0 8px ${theme.vars.palette.primary.main}40`,
+        transform: "scaleX(1.5)"
+      },
+      "&:active": {
+        backgroundColor: theme.vars.palette.primary.main,
+        boxShadow: `0 0 12px ${theme.vars.palette.primary.main}60`,
+        transform: "scaleX(2)"
       }
     },
 

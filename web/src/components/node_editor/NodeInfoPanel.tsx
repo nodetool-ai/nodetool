@@ -177,7 +177,7 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       "& .pretty-namespace": { display: "inline-block" },
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        backgroundColor: theme.vars.palette.action.selected,
         color: "var(--palette-primary-main)"
       },
       "&:hover .pretty-namespace span": {

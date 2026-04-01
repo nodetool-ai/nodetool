@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Tooltip, IconButton, Divider, SxProps } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { getShortcutTooltip } from "../../config/shortcuts";
 
 // Memoized styles to prevent object creation on each render
 const spacerStyle = { flexGrow: 1 } as const;
@@ -49,14 +50,7 @@ function VerticalToolbar({
             {/* Workflow Tools Section */}
             {/* Inspector Button */}
             <Tooltip
-                title={
-                    <div className="tooltip-span">
-                        <div className="tooltip-title">Inspector</div>
-                        <div className="tooltip-key">
-                            <kbd>I</kbd>
-                        </div>
-                    </div>
-                }
+                title={getShortcutTooltip("toggleInspector")}
                 placement="left-start"
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
@@ -75,14 +69,7 @@ function VerticalToolbar({
 
             {/* Assistant Button */}
             <Tooltip
-                title={
-                    <div className="tooltip-span">
-                        <div className="tooltip-title">Operator</div>
-                        <div className="tooltip-key">
-                            <kbd>O</kbd>
-                        </div>
-                    </div>
-                }
+                title={getShortcutTooltip("toggleOperator")}
                 placement="left-start"
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >
@@ -161,14 +148,7 @@ function VerticalToolbar({
 
             {/* Workflow Settings Button */}
             <Tooltip
-                title={
-                    <div className="tooltip-span">
-                        <div className="tooltip-title">Workflow Settings</div>
-                        <div className="tooltip-key">
-                            <kbd>W</kbd>
-                        </div>
-                    </div>
-                }
+                title={getShortcutTooltip("toggleWorkflowSettings")}
                 placement="left-start"
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >

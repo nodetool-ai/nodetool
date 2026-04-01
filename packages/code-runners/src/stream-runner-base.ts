@@ -158,10 +158,10 @@ export class StreamRunnerBase {
         const docker = new Dockerode();
         const container = docker.getContainer(containerId);
         container.remove({ force: true }).catch(() => {
-          // ignore
+          // Intentional: best-effort container removal during abort
         });
       } catch {
-        // ignore
+        // Intentional: container may already be removed or inaccessible
       }
     }
   }
@@ -433,7 +433,7 @@ export class StreamRunnerBase {
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
           container.remove({ force: true }).catch(() => {
-            // ignore
+            // Intentional: best-effort container cleanup on timeout
           });
         }, this.timeoutSeconds * 1000);
       }
