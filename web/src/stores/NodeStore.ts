@@ -42,11 +42,6 @@ import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
-import {
-  getComfyUIService,
-  normalizeComfyBaseUrl
-} from "../services/ComfyUIService";
-import { comfyObjectInfoToMetadataMap } from "../utils/comfySchemaConverter";
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -169,6 +164,7 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
+  updateWorkflowSetting: (key: string, value: unknown) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -224,50 +220,24 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
   if (!comfyMetadataHydrationPromise) {
     comfyMetadataHydrationPromise = (async () => {
       try {
-        const service = getComfyUIService();
-        const configuredComfyUrl = localStorage.getItem("comfyui_base_url");
-        if (configuredComfyUrl) {
-          service.setBaseUrl(normalizeComfyBaseUrl(configuredComfyUrl));
+        // Use ComfyUIStore.connect() which goes through the backend proxy
+        const { useComfyUIStore } = await import("./ComfyUIStore");
+        const comfyStore = useComfyUIStore.getState();
+        if (!comfyStore.isConnected && !comfyStore.isConnecting) {
+          await comfyStore.connect();
         }
-        log.info("[NodeStore] Hydrating missing ComfyUI metadata", {
-          missingComfyTypes,
-          baseUrl: configuredComfyUrl || service.getBaseUrl()
-        });
-        const objectInfo = await service.fetchObjectInfo();
-        const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-        if (Object.keys(comfyMetadata).length === 0) {
-          return;
-        }
-
-        const currentMetadata = useMetadataStore.getState().metadata;
-        useMetadataStore.getState().setMetadata({
-          ...currentMetadata,
-          ...comfyMetadata
-        });
-
-        const registeredNodeTypes = useMetadataStore.getState().nodeTypes;
-        const baseNodeComponent =
-          registeredNodeTypes["nodetool.workflows.base_node.Preview"] ||
-          Object.values(registeredNodeTypes)[0] ||
-          PlaceholderNode;
-
-        Object.keys(comfyMetadata).forEach((nodeType) => {
-          useMetadataStore.getState().addNodeType(nodeType, baseNodeComponent);
-        });
-
-        log.info(
-          `[NodeStore] Hydrated ${Object.keys(comfyMetadata).length} ComfyUI node metadata entries from ComfyUI service`
-        );
+        // connect() registers metadata in MetadataStore, so we're done
+        log.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
       } catch (error) {
         log.warn(
-          "[NodeStore] Failed to hydrate missing ComfyUI metadata from ComfyUI service",
+          "[NodeStore] Failed to hydrate missing ComfyUI metadata",
           error
         );
         const { useNotificationStore } = await import("./NotificationStore");
         useNotificationStore.getState().addNotification({
           type: "warning",
           content:
-            "This workflow contains ComfyUI nodes but ComfyUI is not running. Please start ComfyUI and reload the workflow.",
+            "Could not connect to ComfyUI. Configure the host in ComfyUI Settings.",
           alert: true,
           timeout: 10000,
           dedupeKey: "comfyui-not-running"
@@ -989,6 +959,11 @@ export const createNodeStore = (
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
+          },
+          updateWorkflowSetting: (key: string, value: unknown): void => {
+            const current = get().workflow;
+            const settings = { ...(current.settings ?? {}), [key]: value as string | number | boolean | null };
+            set({ workflow: { ...current, settings } });
           },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;

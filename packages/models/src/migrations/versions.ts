@@ -1074,4 +1074,38 @@ export const migrations: MigrationDef[] = [
       // no-op
     },
   },
+
+  // ── Create settings ─────────────────────────────────────────────────
+  {
+    version: "20260401_000000",
+    name: "create_settings",
+    createsTables: ["nodetool_settings"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS nodetool_settings (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          key TEXT NOT NULL,
+          value TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_user_key
+        ON nodetool_settings (user_id, key)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_settings_user_id
+        ON nodetool_settings (user_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_settings_user_key");
+      await db.execute("DROP INDEX IF EXISTS idx_settings_user_id");
+      await db.execute("DROP TABLE IF EXISTS nodetool_settings");
+    },
+  },
 ];

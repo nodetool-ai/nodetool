@@ -8,7 +8,8 @@
  */
 
 import { join, resolve, dirname } from "node:path";
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import { createLogger, getDefaultDbPath } from "@nodetool/config";
 import { NodeRegistry } from "@nodetool/node-sdk";
@@ -114,52 +115,65 @@ try {
 }
 
 // ---------------------------------------------------------------------------
-// Metadata root detection
+// Python pip metadata root detection
 // ---------------------------------------------------------------------------
 
-function hasMetadataLayout(root: string): boolean {
-  return (
-    existsSync(join(root, "src", "nodetool", "package_metadata")) ||
-    existsSync(join(root, "nodetool", "package_metadata"))
-  );
-}
-
-function detectMetadataRoots(): string[] {
-  if (process.env["METADATA_ROOTS"]) {
-    return process.env["METADATA_ROOTS"].split(":").filter(Boolean);
-  }
-
-  const candidates = new Set<string>();
-  let cur = resolve(process.cwd());
-  for (let i = 0; i < 8; i++) {
-    candidates.add(cur);
-    const parent = dirname(cur);
-    if (parent === cur) break;
-    cur = parent;
-  }
-
-  cur = resolve(process.cwd());
-  for (let i = 0; i < 6; i++) {
+function detectPipMetadataRoots(): string[] {
+  const script = `
+import json, pathlib, subprocess, sys
+roots = set()
+try:
+    proc = subprocess.run(
+        [sys.executable, "-m", "pip", "show", "-f",
+         "nodetool-core", "nodetool-base"],
+        capture_output=True, text=True, check=False,
+    )
+    output = proc.stdout or ""
+except Exception:
+    output = ""
+location = None
+in_files = False
+for raw in output.splitlines():
+    line = raw.rstrip("\\n")
+    if line.startswith("Name: "):
+        location = None; in_files = False; continue
+    if line.startswith("Location: "):
+        location = line.split(":", 1)[1].strip(); continue
+    if line.startswith("Editable project location: "):
+        editable = line.split(":", 1)[1].strip()
+        if editable: roots.add(editable)
+        continue
+    if line.startswith("Files:"): in_files = True; continue
+    if line.startswith("---"):
+        location = None; in_files = False; continue
+    if not in_files or not location or not line.startswith("  "): continue
+    rel = line.strip().replace("\\\\", "/")
+    if "package_metadata" not in rel: continue
+    abs_path = (pathlib.Path(location) / rel).resolve()
+    metadata_dir = abs_path if abs_path.is_dir() else abs_path.parent
+    roots.add(str(metadata_dir))
+print(json.dumps(sorted(roots)))
+`;
+  for (const python of ["python3", "python"]) {
+    const proc = spawnSync(python, ["-c", script], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    if (proc.status !== 0 || !proc.stdout) continue;
     try {
-      for (const entry of readdirSync(cur, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        if (entry.name.toLowerCase().startsWith("nodetool")) {
-          candidates.add(join(cur, entry.name));
-        }
+      const roots = JSON.parse(proc.stdout.trim()) as string[];
+      if (Array.isArray(roots)) {
+        return roots.filter((p) => typeof p === "string" && p.length > 0 && existsSync(p));
       }
     } catch {
-      // ignore
+      // try next python executable
     }
-    const parent = dirname(cur);
-    if (parent === cur) break;
-    cur = parent;
   }
-
-  return [...candidates].filter(hasMetadataLayout);
+  return [];
 }
 
-const metadataRoots = detectMetadataRoots();
-log.info(`Metadata roots detected [${startupMs()}]`, { roots: metadataRoots });
+const metadataRoots = detectPipMetadataRoots();
+log.info(`Pip metadata roots detected [${startupMs()}]`, { roots: metadataRoots });
 
 // ---------------------------------------------------------------------------
 // Node registry

@@ -24,6 +24,7 @@ export {
   runEvents,
   runLeases,
   teamTasks,
+  appSettings,
 } from "./schema/index.js";
 
 // ── Base Model ───────────────────────────────────────────────────────
@@ -55,6 +56,8 @@ export { Message } from "./message.js";
 export { Thread } from "./thread.js";
 
 export { Secret } from "./secret.js";
+
+export { Setting } from "./setting.js";
 
 export { OAuthCredential } from "./oauth-credential.js";
 

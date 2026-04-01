@@ -59,11 +59,7 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
-import {
-  getComfyUIService,
-  getDefaultComfyBaseUrl,
-  normalizeComfyBaseUrl
-} from "./services/ComfyUIService";
+import type { ComfyUIObjectInfo } from "./services/ComfyUIService";
 import { comfyObjectInfoToMetadataMap } from "./utils/comfySchemaConverter";
 import {
   FetchCurrentWorkflow,
@@ -450,13 +446,15 @@ const root = ReactDOM.createRoot(
 
 const preloadComfyMetadata = async (): Promise<void> => {
   try {
-    const configuredComfyUrl = normalizeComfyBaseUrl(
-      localStorage.getItem("comfyui_base_url") || getDefaultComfyBaseUrl()
+    // Load bundled ComfyUI schema snapshot (no network request)
+    const objectInfoModule = await import("./data/comfy-object-info.json").catch(
+      () => null
     );
-    const service = getComfyUIService();
-    service.setBaseUrl(configuredComfyUrl);
-
-    const objectInfo = await service.fetchObjectInfo();
+    if (!objectInfoModule) {
+      log.info("[startup] No bundled ComfyUI schema found, skipping preload");
+      return;
+    }
+    const objectInfo = (objectInfoModule.default ?? objectInfoModule) as ComfyUIObjectInfo;
     const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
     const comfyMetadataCount = Object.keys(comfyMetadata).length;
     if (comfyMetadataCount === 0) {
@@ -481,11 +479,11 @@ const preloadComfyMetadata = async (): Promise<void> => {
     }
 
     log.info(
-      `[startup] Loaded ${comfyMetadataCount} ComfyUI node metadata entries from ${configuredComfyUrl}`
+      `[startup] Loaded ${comfyMetadataCount} ComfyUI node metadata entries from bundled schema`
     );
   } catch (error) {
     log.warn(
-      "[startup] ComfyUI metadata preload skipped (service unavailable or unreachable)",
+      "[startup] ComfyUI metadata preload skipped",
       error
     );
   }

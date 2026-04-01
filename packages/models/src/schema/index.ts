@@ -12,3 +12,4 @@ export { predictions } from "./predictions.js";
 export { runEvents } from "./run-events.js";
 export { runLeases } from "./run-leases.js";
 export { teamTasks } from "./team-tasks.js";
+export { appSettings } from "./settings.js";

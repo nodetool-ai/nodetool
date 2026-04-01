@@ -32,3 +32,5 @@ export {
   type StreamingInputs,
   type StreamingOutputs,
 } from "./node-executor.js";
+export { executeComfy } from "./comfy-executor.js";
+export type { ComfyExecutorResult, ComfyImage, ComfyProgressEvent, ComfyExecutionHandle } from "./comfy-executor.js";

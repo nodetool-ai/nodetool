@@ -2,13 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import {
   Fab,
   Box,
   useMediaQuery,
   Tooltip,
-  Menu
+  Menu,
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -17,6 +17,7 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import { useLocation } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -386,6 +387,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
+  const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
+  const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
+  const comfyConnectionError = useComfyUIStore((state) => state.connectionError);
+  const comfyBaseUrl = useComfyUIStore((state) => state.baseUrl);
+
+  // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow)
+  useEffect(() => {
+    if (isComfyWorkflow && !comfyIsConnected && !comfyIsConnecting && !comfyConnectionError) {
+      useComfyUIStore.getState().connect().catch(() => {});
+    }
+  }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting, comfyConnectionError]);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
@@ -511,6 +523,22 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={handleResume}
             aria-label="Resume workflow"
           />
+        )}
+
+        {isComfyWorkflow && (
+          <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: comfyIsConnected ? "success.main" : "grey.500",
+                }}
+              />
+              ComfyUI
+            </Box>
+          </Tooltip>
         )}
 
         <Box

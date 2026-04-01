@@ -15,6 +15,7 @@ import { NodeData } from "./NodeData";
 import { isLocalhost } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
+import { useComfyUIStore } from "./ComfyUIStore";
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
 import {
@@ -337,7 +338,7 @@ export const createWorkflowRunnerStore = (
           !bypassedNodeIds.has(edge.source) && !bypassedNodeIds.has(edge.target)
       );
 
-      const req: RunJobRequest = {
+      const req: RunJobRequest & { settings?: Record<string, unknown> } = {
         type: "run_job_request",
         api_url: BASE_URL,
         user_id: user,
@@ -351,7 +352,10 @@ export const createWorkflowRunnerStore = (
           nodes: activeNodes.map(reactFlowNodeToGraphNode),
           edges: activeEdges.map(reactFlowEdgeToGraphEdge)
         },
-        resource_limits: resource_limits
+        resource_limits: resource_limits,
+        settings: {
+          ...(workflow.settings ?? {}),
+        }
       };
 
       log.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);

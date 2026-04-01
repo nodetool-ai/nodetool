@@ -39,6 +39,51 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/node/metadata", async (req, reply) => {
     await bridge(req, reply, (request) => handleNodeMetadata(request, apiOptions));
   });
+
+  /**
+   * Proxy ComfyUI /object_info through the backend to avoid CORS issues
+   * with remote hosts (e.g. RunPod Pods).
+   */
+  app.get("/api/comfy/object_info", async (req, reply) => {
+    const host = (req.query as Record<string, string>)["host"];
+    if (!host) {
+      reply.status(400).send({ error: "host query parameter is required" });
+      return;
+    }
+
+    // Validate and normalise the host into a safe URL (prevents SSRF via
+    // non-HTTP schemes such as file://, ftp://, etc.).
+    let parsedUrl: URL;
+    try {
+      const raw = host.startsWith("http") ? host : `http://${host}`;
+      parsedUrl = new URL(raw);
+    } catch {
+      reply.status(400).send({ error: "Invalid host URL" });
+      return;
+    }
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      reply.status(400).send({ error: "Only http and https hosts are supported" });
+      return;
+    }
+
+    // Trim any trailing slashes without backtracking regex (avoids ReDoS).
+    let base = parsedUrl.origin + parsedUrl.pathname;
+    let end = base.length;
+    while (end > 0 && base[end - 1] === "/") end--;
+    base = base.slice(0, end);
+
+    try {
+      const resp = await fetch(`${base}/object_info`);
+      if (!resp.ok) {
+        reply.status(resp.status).send({ error: `ComfyUI returned ${resp.status}` });
+        return;
+      }
+      const data = await resp.json();
+      reply.send(data);
+    } catch (err) {
+      reply.status(502).send({ error: `Cannot reach ComfyUI at ${base}: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  });
 };
 
 export default nodesRoutes;
