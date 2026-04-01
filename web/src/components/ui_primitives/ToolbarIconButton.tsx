@@ -76,6 +76,10 @@ export interface ToolbarIconButtonProps
    * @default 0
    */
   tabIndex?: number;
+  /**
+   * Accessible label for the button
+   */
+  ariaLabel?: string;
 }
 
 /**
@@ -96,6 +100,7 @@ export const ToolbarIconButton = memo(
         size = "small",
         sx,
         tabIndex = 0,
+        ariaLabel,
         ...props
       },
       ref
@@ -155,7 +160,7 @@ export const ToolbarIconButton = memo(
         >
           <IconButton
             ref={ref}
-            aria-label={typeof tooltip === "string" ? tooltip : undefined}
+            aria-label={ariaLabel || (typeof tooltip === "string" ? tooltip : undefined)}
             className={cn(
               "toolbar-icon-button",
               nodrag && editorClassNames.nodrag,
