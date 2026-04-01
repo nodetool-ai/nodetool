@@ -33,11 +33,12 @@ import {
   isShapeTool
 } from "./types";
 import type { SamModelInfo } from "./sam";
-import { CONTEXT_MENU_TOOLS, getToolDefinition, type ToolDefinition } from "./toolDefinitions";
 import {
-  ToolSettingsPanel,
-  getToolSettingsLabel
-} from "./ToolSettingsPanels";
+  CONTEXT_MENU_TOOLS,
+  getToolDefinition,
+  type ToolDefinition
+} from "./toolDefinitions";
+import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -56,13 +57,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ColorPreview({
-  label,
-  color
-}: {
-  label: string;
-  color: string;
-}) {
+function ColorPreview({ label, color }: { label: string; color: string }) {
   return (
     <Stack spacing={0.4} alignItems="center">
       <Box
@@ -71,11 +66,13 @@ function ColorPreview({
           height: 22,
           borderRadius: "7px",
           border: "1px solid",
-          borderColor: "divider",
+          borderColor: "var(--gray-700)",
           background: color
         }}
       />
-      <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "text.secondary" }}>
+      <Typography
+        sx={{ fontSize: "0.62rem", fontWeight: 700, color: "text.secondary" }}
+      >
         {label}
       </Typography>
     </Stack>
@@ -111,7 +108,7 @@ function ToolGridButton({
         minHeight: 64,
         borderRadius: "8px",
         border: "1px solid",
-        borderColor: selected ? "primary.main" : theme.vars.palette.grey[700],
+        borderColor: selected ? "primary.main" : "transparent",
         backgroundColor: selected
           ? alpha(theme.palette.primary.main, 0.16)
           : inactiveBg,
@@ -368,7 +365,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     );
   };
 
-
   return (
     <Popover
       open={open}
@@ -385,7 +381,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
       disableRestoreFocus
       slotProps={{
         paper: {
-          className: ["sketch-context-menu", paperClassName].filter(Boolean).join(" "),
+          className: ["sketch-context-menu", paperClassName]
+            .filter(Boolean)
+            .join(" "),
           sx: {
             width: 620,
             maxWidth: "calc(100vw - 24px)",
@@ -399,7 +397,10 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         }
       }}
     >
-      <Box className="sketch-context-menu__root" sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+      <Box
+        className="sketch-context-menu__root"
+        sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}
+      >
         <Box
           className="sketch-context-menu__header"
           sx={{
@@ -415,9 +416,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             px: 1.25,
             py: 0,
             borderRadius: "8px",
-            border: "1px solid",
-            borderColor: alpha(theme.palette.primary.main, 0.28),
-            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+            // border: "1px solid",
+            // borderColor: alpha(theme.palette.primary.main, 0.28),
+            // backgroundColor: alpha(theme.palette.primary.main, 0.1),
             overflow: "hidden"
           }}
         >
@@ -430,7 +431,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               borderRadius: "7px",
               display: "grid",
               placeItems: "center",
-              backgroundColor: alpha(theme.palette.primary.main, 0.18),
+              // backgroundColor: alpha(theme.palette.primary.main, 0.18),
               color: "primary.light"
             }}
           >
@@ -457,8 +458,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 px: 0.65,
                 py: 0.2,
                 borderRadius: "6px",
-                border: "1px solid",
-                borderColor: theme.vars.palette.grey[600],
                 fontSize: "0.68rem",
                 fontWeight: 700,
                 lineHeight: 1.2,
@@ -473,7 +472,10 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           <Divider
             orientation="vertical"
             flexItem
-            sx={{ borderColor: alpha(theme.palette.primary.main, 0.22), my: 0.75 }}
+            sx={{
+              borderColor: alpha(theme.palette.primary.main, 0.22),
+              my: 0.75
+            }}
           />
           <Box
             className="sketch-context-menu__header-colors"
@@ -488,9 +490,11 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           sx={{
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) 220px",
-            gap: 1.25,
+            gap: 8,
+            padding: 2,
             alignItems: "stretch",
             minWidth: 0,
+            backgroundColor: "var(--palette-background-paper)",
             "& > *:first-of-type": {
               position: "relative",
               "&::after": {
@@ -499,213 +503,199 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 top: 4,
                 right: -10,
                 bottom: 4,
-                width: "1px",
-                backgroundColor: theme.vars.palette.grey[800]
+                width: "1px"
               }
             }
           }}
         >
-        <Box
-          className="sketch-context-menu__quick"
-          sx={{
-            minWidth: 0,
-            minHeight: 360,
-            height: "100%",
-            borderRadius: "8px",
-            border: "1px solid",
-            borderColor: theme.vars.palette.grey[700],
-            backgroundColor: theme.vars.palette.grey[800],
-            px: 1.35,
-            py: 1.2
-          }}
-        >
-          <SectionLabel>{getToolSettingsLabel(activeTool)}</SectionLabel>
-          <Box sx={sketchToolSettingsContainerSx}>
-            <ToolSettingsPanel
-              activeTool={activeTool}
-              brushSettings={brushSettings}
-              pencilSettings={pencilSettings}
-              eraserSettings={eraserSettings}
-              shapeSettings={shapeSettings}
-              fillSettings={fillSettings}
-              blurSettings={blurSettings}
-              gradientSettings={gradientSettings}
-              cloneStampSettings={cloneStampSettings}
-              selectSettings={selectSettings}
-              hasActiveSelection={hasActiveSelection}
-              adjustBrightness={adjustBrightness}
-              adjustContrast={adjustContrast}
-              adjustSaturation={adjustSaturation}
-              onBrushSettingsChange={onBrushSettingsChange}
-              onPencilSettingsChange={onPencilSettingsChange}
-              onEraserSettingsChange={onEraserSettingsChange}
-              onShapeSettingsChange={onShapeSettingsChange}
-              onFillSettingsChange={onFillSettingsChange}
-              onBlurSettingsChange={onBlurSettingsChange}
-              onGradientSettingsChange={onGradientSettingsChange}
-              onCloneStampSettingsChange={onCloneStampSettingsChange}
-              onSelectSettingsChange={onSelectSettingsChange}
-              onInvertSelection={onInvertSelection}
-              onFeatherSelection={onFeatherSelection}
-              onSmoothSelectionBorders={onSmoothSelectionBorders}
-              onStrokeSelectionBorder={onStrokeSelectionBorder}
-              onAdjustBrightnessChange={onAdjustBrightnessChange}
-              onAdjustContrastChange={onAdjustContrastChange}
-              onAdjustSaturationChange={onAdjustSaturationChange}
-              onAdjustApply={onAdjustApply}
-              onAdjustCancel={onAdjustCancel}
-              transformScaleX={transformScaleX}
-              transformScaleY={transformScaleY}
-              transformRotation={transformRotation}
-              onTransformCommit={onTransformCommit}
-              onTransformCancel={onTransformCancel}
-              onTransformReset={onTransformReset}
-              segmentSettings={segmentSettings}
-              onSegmentSettingsChange={onSegmentSettingsChange}
-              segmentationStatus={segmentationStatus}
-              segmentModelInfo={segmentModelInfo}
-              onRunSegmentation={onRunSegmentation}
-              onApplySegmentResult={onApplySegmentResult}
-              onDiscardSegmentResult={onDiscardSegmentResult}
-              onCancelSegmentation={onCancelSegmentation}
-              onClearSegmentPrompts={onClearSegmentPrompts}
-              onCheckSegmentModel={onCheckSegmentModel}
-            />
-          </Box>
-        </Box>
-
-        <Stack className="sketch-context-menu__sidebar" spacing={1.1} sx={{ minWidth: 0 }}>
           <Box
-            className="sketch-context-menu__tools"
+            className="sketch-context-menu__quick"
             sx={{
+              minWidth: 0,
+              minHeight: 360,
+              height: "100%",
               borderRadius: "8px",
-              border: "1px solid",
-              borderColor: theme.vars.palette.grey[700],
-              backgroundColor: theme.vars.palette.grey[800],
-              px: 1.15,
-              py: 1.1
+              px: 1.35,
+              py: 1.2
             }}
           >
-            <SectionLabel>Tools</SectionLabel>
-            <Box
-              className="sketch-context-menu__tools-grid"
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 0.7
-              }}
-            >
-              {CONTEXT_MENU_TOOLS.map((definition) => (
-                <ToolGridButton
-                  key={definition.tool}
-                  definition={definition}
-                  selected={definition.tool === activeTool}
-                  onClick={() => onToolChange(definition.tool)}
-                  onDoubleClick={() => {
-                    onToolChange(definition.tool);
-                    onClose();
-                  }}
-                />
-              ))}
+            <SectionLabel>{getToolSettingsLabel(activeTool)}</SectionLabel>
+            <Box sx={sketchToolSettingsContainerSx}>
+              <ToolSettingsPanel
+                activeTool={activeTool}
+                brushSettings={brushSettings}
+                pencilSettings={pencilSettings}
+                eraserSettings={eraserSettings}
+                shapeSettings={shapeSettings}
+                fillSettings={fillSettings}
+                blurSettings={blurSettings}
+                gradientSettings={gradientSettings}
+                cloneStampSettings={cloneStampSettings}
+                selectSettings={selectSettings}
+                hasActiveSelection={hasActiveSelection}
+                adjustBrightness={adjustBrightness}
+                adjustContrast={adjustContrast}
+                adjustSaturation={adjustSaturation}
+                onBrushSettingsChange={onBrushSettingsChange}
+                onPencilSettingsChange={onPencilSettingsChange}
+                onEraserSettingsChange={onEraserSettingsChange}
+                onShapeSettingsChange={onShapeSettingsChange}
+                onFillSettingsChange={onFillSettingsChange}
+                onBlurSettingsChange={onBlurSettingsChange}
+                onGradientSettingsChange={onGradientSettingsChange}
+                onCloneStampSettingsChange={onCloneStampSettingsChange}
+                onSelectSettingsChange={onSelectSettingsChange}
+                onInvertSelection={onInvertSelection}
+                onFeatherSelection={onFeatherSelection}
+                onSmoothSelectionBorders={onSmoothSelectionBorders}
+                onStrokeSelectionBorder={onStrokeSelectionBorder}
+                onAdjustBrightnessChange={onAdjustBrightnessChange}
+                onAdjustContrastChange={onAdjustContrastChange}
+                onAdjustSaturationChange={onAdjustSaturationChange}
+                onAdjustApply={onAdjustApply}
+                onAdjustCancel={onAdjustCancel}
+                transformScaleX={transformScaleX}
+                transformScaleY={transformScaleY}
+                transformRotation={transformRotation}
+                onTransformCommit={onTransformCommit}
+                onTransformCancel={onTransformCancel}
+                onTransformReset={onTransformReset}
+                segmentSettings={segmentSettings}
+                onSegmentSettingsChange={onSegmentSettingsChange}
+                segmentationStatus={segmentationStatus}
+                segmentModelInfo={segmentModelInfo}
+                onRunSegmentation={onRunSegmentation}
+                onApplySegmentResult={onApplySegmentResult}
+                onDiscardSegmentResult={onDiscardSegmentResult}
+                onCancelSegmentation={onCancelSegmentation}
+                onClearSegmentPrompts={onClearSegmentPrompts}
+                onCheckSegmentModel={onCheckSegmentModel}
+              />
             </Box>
           </Box>
 
-          <Box
-            className="sketch-context-menu__canvas-actions"
-            sx={{
-              borderRadius: "8px",
-              border: "1px solid",
-              borderColor: theme.vars.palette.grey[700],
-              backgroundColor: theme.vars.palette.grey[800],
-              px: 1.15,
-              py: 1.1
-            }}
+          <Stack
+            className="sketch-context-menu__sidebar"
+            spacing={1.1}
+            sx={{ minWidth: 0 }}
           >
-            <SectionLabel>Canvas</SectionLabel>
-            <Stack direction="row" spacing={0.8}>
-              <Tooltip title="Undo">
-                <span>
+            <Box
+              className="sketch-context-menu__tools"
+              sx={{
+                borderRadius: "8px",
+                px: 1.15,
+                py: 1.1
+              }}
+            >
+              <SectionLabel>Tools</SectionLabel>
+              <Box
+                className="sketch-context-menu__tools-grid"
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 0.7
+                }}
+              >
+                {CONTEXT_MENU_TOOLS.map((definition) => (
+                  <ToolGridButton
+                    key={definition.tool}
+                    definition={definition}
+                    selected={definition.tool === activeTool}
+                    onClick={() => onToolChange(definition.tool)}
+                    onDoubleClick={() => {
+                      onToolChange(definition.tool);
+                      onClose();
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+
+            <Box
+              className="sketch-context-menu__canvas-actions"
+              sx={{
+                borderRadius: "8px",
+                px: 1.15,
+                py: 1.1
+              }}
+            >
+              <SectionLabel>Canvas</SectionLabel>
+              <Stack direction="row" spacing={0.8}>
+                <Tooltip title="Undo">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        onUndo();
+                        onClose();
+                      }}
+                      disabled={!canUndo}
+                      aria-label="Undo"
+                      sx={{
+                        borderRadius: "8px",
+                        p: 0.65
+                      }}
+                    >
+                      <UndoIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Redo">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        onRedo();
+                        onClose();
+                      }}
+                      disabled={!canRedo}
+                      aria-label="Redo"
+                      sx={{
+                        borderRadius: "8px",
+                        p: 0.65
+                      }}
+                    >
+                      <RedoIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Clear Layer">
                   <IconButton
                     size="small"
                     onClick={() => {
-                      onUndo();
+                      onClearLayer();
                       onClose();
                     }}
-                    disabled={!canUndo}
-                    aria-label="Undo"
+                    aria-label="Clear layer"
                     sx={{
-                      border: "1px solid",
-                      borderColor: theme.vars.palette.grey[700],
+                      color: "error.main",
                       borderRadius: "8px",
                       p: 0.65
                     }}
                   >
-                    <UndoIcon sx={{ fontSize: 18 }} />
+                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                   </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip title="Redo">
-                <span>
+                </Tooltip>
+                <Tooltip title="Export PNG">
                   <IconButton
                     size="small"
                     onClick={() => {
-                      onRedo();
+                      onExportPng();
                       onClose();
                     }}
-                    disabled={!canRedo}
-                    aria-label="Redo"
+                    aria-label="Export PNG"
                     sx={{
-                      border: "1px solid",
-                      borderColor: theme.vars.palette.grey[700],
+                      color: "primary.light",
                       borderRadius: "8px",
                       p: 0.65
                     }}
                   >
-                    <RedoIcon sx={{ fontSize: 18 }} />
+                    <SaveAltIcon sx={{ fontSize: 18 }} />
                   </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip title="Clear Layer">
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    onClearLayer();
-                    onClose();
-                  }}
-                  aria-label="Clear layer"
-                  sx={{
-                    border: "1px solid",
-                    borderColor: alpha(theme.palette.error.main, 0.45),
-                    color: "error.main",
-                    borderRadius: "8px",
-                    p: 0.65
-                  }}
-                >
-                  <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Export PNG">
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    onExportPng();
-                    onClose();
-                  }}
-                  aria-label="Export PNG"
-                  sx={{
-                    border: "1px solid",
-                    borderColor: alpha(theme.palette.primary.main, 0.45),
-                    color: "primary.light",
-                    borderRadius: "8px",
-                    p: 0.65
-                  }}
-                >
-                  <SaveAltIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </Box>
-        </Stack>
+                </Tooltip>
+              </Stack>
+            </Box>
+          </Stack>
         </Box>
       </Box>
     </Popover>

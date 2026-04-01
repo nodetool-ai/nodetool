@@ -12,30 +12,29 @@ import { parseColorToRgba, rgbaToCss } from "./types";
 // Semantic names tied to MUI's grey palette (dark theme).
 
 export const SKETCH_COLORS = {
-  bgPrimary: "grey.900",     // canvas / modal backdrop
-  bgSecondary: "grey.800",   // panels, toolbars
-  bgHover: "grey.700",       // hover states
-  border: "grey.700",        // all panel borders
-  textPrimary: "grey.200",   // main readable text
+  bgPrimary: "grey.900", // canvas / modal backdrop
+  bgSecondary: "grey.800", // panels, toolbars
+  bgHover: "grey.700", // hover states
+  border: "grey.700", // all panel borders
+  textPrimary: "grey.200", // main readable text
   textSecondary: "grey.400", // labels, secondary info
-  textMuted: "grey.500",     // placeholders, hints
+  textMuted: "grey.500" // placeholders, hints
 } as const;
 
 // Checkerboard transparency pattern used for thumbnails and color swatches.
 // Two shades that are visually distinct but subtle on dark backgrounds.
 export const SKETCH_CHECKERBOARD = {
-  backgroundImage:
-    "repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%)",
-  backgroundSize: "8px 8px",
+  backgroundImage: "repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%)",
+  backgroundSize: "8px 8px"
 } as const;
 
 // ─── Typography Scale ──────────────────────────────────────────────────────────
 
 export const SKETCH_FONT = {
-  /** Tiny labels, FG/BG text */         xs: "0.6rem",
-  /** Setting labels, value readouts */  sm: "0.65rem",
-  /** Layer names, general UI */         md: "0.7rem",
-  /** Panel section headings */         section: "0.72rem",
+  /** Tiny labels, FG/BG text */ xs: "0.6rem",
+  /** Setting labels, value readouts */ sm: "0.65rem",
+  /** Layer names, general UI */ md: "0.7rem",
+  /** Panel section headings */ section: "0.72rem"
 } as const;
 
 // ─── Spacing / Size Scale ─────────────────────────────────────────────────────
@@ -44,9 +43,9 @@ export const SKETCH_SIZE = {
   /** Row min-height; thumbnails sized to match (~40% larger than original 36/28). */
   layerItemHeight: "50.4px",
   layerThumbnail: "39.2px",
-  panelWidth:      "260px",
-  iconButtonPad:   "3px",
-  borderRadius:    "4px",
+  panelWidth: "260px",
+  iconButtonPad: "3px",
+  borderRadius: "4px"
 } as const;
 
 // ─── Shared sx Objects ────────────────────────────────────────────────────────
@@ -60,12 +59,12 @@ export const sketchSliderSx: SxProps<Theme> = (theme) => ({
   "& .MuiSlider-rail": {
     height: "2px",
     opacity: 0.3,
-    backgroundColor: (theme as Theme).palette.grey[400],
+    backgroundColor: (theme as Theme).palette.grey[400]
   },
   "& .MuiSlider-track": {
     height: "2px",
     border: "none",
-    backgroundColor: (theme as Theme).palette.grey[300],
+    backgroundColor: (theme as Theme).palette.grey[300]
   },
   "& .MuiSlider-thumb": {
     width: "10px",
@@ -74,10 +73,10 @@ export const sketchSliderSx: SxProps<Theme> = (theme) => ({
     boxShadow: "none",
     "&:hover, &.Mui-focusVisible": {
       boxShadow: "none",
-      backgroundColor: "#fff",
+      backgroundColor: "#fff"
     },
-    "&::before": { display: "none" },
-  },
+    "&::before": { display: "none" }
+  }
 });
 
 /**
@@ -87,7 +86,7 @@ export const sketchSliderSx: SxProps<Theme> = (theme) => ({
 export const toggleButtonSmallSx: SxProps<Theme> = {
   fontSize: SKETCH_FONT.xs,
   py: "2px",
-  px: "6px",
+  px: "6px"
 };
 
 /**
@@ -116,13 +115,15 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
       "& .setting-label": {
         fontSize: SKETCH_FONT.sm,
         whiteSpace: "nowrap",
-        color: t.palette.grey[300]
+        paddingRight: ".5em",
+        color: t.palette.grey[600]
       },
       "& .setting-value": {
         fontSize: SKETCH_FONT.sm,
         minWidth: "24px",
         textAlign: "right",
-        color: t.palette.grey[200]
+        paddingLeft: ".5em",
+        color: t.palette.grey[600]
       }
     },
     "& .MuiToggleButtonGroup-root": {

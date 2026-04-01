@@ -57,12 +57,15 @@ const styles = (theme: Theme) =>
       "& .setting-label": {
         fontSize: "0.65rem",
         whiteSpace: "nowrap",
+        paddingLeft: "1em",
+        paddingRight: ".5em",
         color: theme.vars.palette.grey[300]
       },
       "& .setting-value": {
         fontSize: "0.65rem",
         minWidth: "24px",
         textAlign: "right",
+        paddingLeft: ".5em",
         color: theme.vars.palette.grey[200]
       }
     },
