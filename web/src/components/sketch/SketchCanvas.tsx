@@ -33,6 +33,7 @@ import {
 import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
+import { SKETCH_Z_INDEX } from "./sketchStyles";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       pointerEvents: "none",
-      zIndex: 10,
+      zIndex: SKETCH_Z_INDEX.overlay,
       imageRendering: "auto"
     }
   });

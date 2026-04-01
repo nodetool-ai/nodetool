@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { colorToHex6 } from "./types";
-import { SKETCH_CHECKERBOARD } from "./sketchStyles";
+import { SKETCH_CHECKERBOARD, SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, colorSwatchSx } from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";
 
 export interface ColorSwatchPairProps {
@@ -53,26 +53,17 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
   }, [backgroundColor]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%", alignItems: "center" }}>
+    <Box className="color-swatch-pair" sx={{ display: "flex", flexDirection: "column", gap: SKETCH_SPACING.sm, width: "100%", alignItems: "center" }}>
 
       {/* ── Swatches ── */}
-      <Box sx={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "6px" }}>
+      <Box className="color-swatch-pair__swatches" sx={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: SKETCH_SPACING.md }}>
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
-          <Typography sx={{ fontSize: "0.5rem", color: "grey.500", userSelect: "none" }}>FG</Typography>
+          <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>FG</Typography>
           <Tooltip title="Foreground Color" placement="right">
             <Box
+              className="color-swatch-pair__fg"
               onClick={handleFgClick}
-              sx={{
-                position: "relative",
-                ...SKETCH_CHECKERBOARD,
-                borderRadius: "3px",
-                width: "24px",
-                height: "24px",
-                overflow: "hidden",
-                cursor: "pointer",
-                flexShrink: 0,
-                border: "1px solid rgba(255,255,255,0.2)"
-              }}
+              sx={colorSwatchSx}
             >
               <Box sx={{ position: "absolute", inset: 0, backgroundColor: fgHex6 }} />
             </Box>
@@ -80,21 +71,12 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         </Box>
 
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
-          <Typography sx={{ fontSize: "0.5rem", color: "grey.500", userSelect: "none" }}>BG</Typography>
+          <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>BG</Typography>
           <Tooltip title="Background Color" placement="right">
             <Box
+              className="color-swatch-pair__bg"
               onClick={handleBgClick}
-              sx={{
-                position: "relative",
-                ...SKETCH_CHECKERBOARD,
-                borderRadius: "3px",
-                width: "24px",
-                height: "24px",
-                overflow: "hidden",
-                cursor: "pointer",
-                flexShrink: 0,
-                border: "1px solid rgba(255,255,255,0.2)"
-              }}
+              sx={colorSwatchSx}
             >
               <Box sx={{ position: "absolute", inset: 0, backgroundColor: bgHex6 }} />
             </Box>
@@ -103,15 +85,15 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
       </Box>
 
       {/* ── Swap / Reset ── */}
-      <Box sx={{ display: "flex", alignItems: "center", width: "54px" }}>
+      <Box className="color-swatch-pair__actions" sx={{ display: "flex", alignItems: "center", width: "54px" }}>
         <Tooltip title="Swap Colors (X)" placement="right">
-          <IconButton size="small" onClick={onSwapColors} sx={{ flex: 1, padding: "2px", borderRadius: "3px" }}>
+          <IconButton size="small" onClick={onSwapColors} sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}>
             <SwapHorizIcon sx={{ fontSize: "13px" }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="Reset to B/W (D)" placement="right">
-          <IconButton size="small" onClick={onResetColors} sx={{ flex: 1, padding: "2px", borderRadius: "3px" }}>
-            <Typography sx={{ fontSize: "0.55rem", fontWeight: 700, lineHeight: 1 }}>D</Typography>
+          <IconButton size="small" onClick={onResetColors} sx={{ flex: 1, padding: SKETCH_SPACING.xs, borderRadius: "3px" }}>
+            <Typography sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Typography>
           </IconButton>
         </Tooltip>
       </Box>

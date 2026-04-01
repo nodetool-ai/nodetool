@@ -13,7 +13,9 @@ import {
   sketchSliderSx,
   SKETCH_CHECKERBOARD,
   SKETCH_FONT,
-  SKETCH_SIZE
+  SKETCH_SIZE,
+  SKETCH_SPACING,
+  SKETCH_COLORS
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -261,7 +263,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: "0.5rem",
+      fontSize: SKETCH_FONT.xxs,
       color: theme.vars.palette.grey[500]
     },
     "& .layer-name": {
@@ -279,19 +281,19 @@ const styles = (theme: Theme) =>
     "& .opacity-row": {
       display: "flex",
       alignItems: "center",
-      gap: "4px",
-      padding: "0 6px",
+      gap: SKETCH_SPACING.sm,
+      padding: `0 ${SKETCH_SPACING.md}`,
       "& .MuiSlider-root": {
         flex: 1
       }
     },
     "& .hex-input": {
       "& .MuiInputBase-root": {
-        fontSize: "0.7rem",
+        fontSize: SKETCH_FONT.md,
         height: "28px"
       },
       "& .MuiInputBase-input": {
-        padding: "4px 8px"
+        padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`
       }
     }
   });

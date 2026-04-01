@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
-import { sketchToolSettingsContainerSx } from "./sketchStyles";
+import { sketchToolSettingsContainerSx, SKETCH_FONT, SKETCH_SPACING, SKETCH_SIZE } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -44,7 +44,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <Typography
       sx={{
         mb: 1.05,
-        fontSize: "0.72rem",
+        fontSize: SKETCH_FONT.section,
         fontWeight: 800,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -75,7 +75,7 @@ function ColorPreview({
           background: color
         }}
       />
-      <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "text.secondary" }}>
+      <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 700, color: "text.secondary" }}>
         {label}
       </Typography>
     </Stack>
@@ -459,7 +459,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 borderRadius: "6px",
                 border: "1px solid",
                 borderColor: theme.vars.palette.grey[600],
-                fontSize: "0.68rem",
+                fontSize: SKETCH_FONT.sm,
                 fontWeight: 700,
                 lineHeight: 1.2,
                 color: "text.secondary",

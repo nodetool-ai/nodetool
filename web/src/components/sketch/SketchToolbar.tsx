@@ -21,6 +21,7 @@ import {
 import { SketchTool } from "./types";
 import { PAINTING_TOOLS, SHAPE_TOOLS, type ToolDefinition } from "./toolDefinitions";
 import ColorSwatchPair from "./ColorSwatchPair";
+import { SKETCH_SPACING, SKETCH_SIZE } from "./sketchStyles";
 
 const BTN = 36; // button size px
 
@@ -28,8 +29,8 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: "4px",
-    padding: "6px 4px",
+    gap: SKETCH_SPACING.sm,
+    padding: `${SKETCH_SPACING.md} ${SKETCH_SPACING.sm}`,
     backgroundColor: theme.vars.palette.grey[800],
     borderRight: `1px solid ${theme.vars.palette.grey[700]}`,
     width: `${BTN * 2 + 8 + 2}px`, // 2 cols + gap + border
@@ -43,13 +44,13 @@ const styles = (theme: Theme) =>
       width: "100%",
     },
     "& .MuiToggleButton-root": {
-      padding: "4px",
+      padding: SKETCH_SPACING.sm,
       width: `${BTN}px`,
       height: `${BTN}px`,
       minWidth: `${BTN}px`,
       minHeight: `${BTN}px`,
       border: "none",
-      borderRadius: "4px !important",
+      borderRadius: `${SKETCH_SIZE.borderRadius} !important`,
       color: theme.vars.palette.grey[400],
       "&.Mui-selected": {
         backgroundColor: theme.vars.palette.grey[600],
@@ -62,7 +63,7 @@ const styles = (theme: Theme) =>
     },
     "& .MuiDivider-root": {
       borderColor: theme.vars.palette.grey[700],
-      mx: "2px",
+      mx: SKETCH_SPACING.xs,
     },
   });
 
@@ -133,7 +134,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       <Divider flexItem />
 
       {/* ── Colors ── */}
-      <Box sx={{ px: "2px" }}>
+      <Box sx={{ px: SKETCH_SPACING.xs }}>
         <ColorSwatchPair
           foregroundColor={foregroundColor}
           backgroundColor={backgroundColor}

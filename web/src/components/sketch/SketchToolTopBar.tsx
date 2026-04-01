@@ -28,14 +28,20 @@ import {
 } from "./types";
 import type { SamModelInfo } from "./sam";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
+import {
+  SKETCH_COLORS,
+  SKETCH_SPACING,
+  SKETCH_SIZE,
+  settingRowChildrenSx
+} from "./sketchStyles";
 
 const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: "8px",
-    padding: "4px 8px",
+    gap: SKETCH_SPACING.lg,
+    padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`,
     backgroundColor: theme.vars.palette.grey[800],
     borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
     minHeight: "40px",
@@ -44,34 +50,9 @@ const styles = (theme: Theme) =>
     alignContent: "center",
     flexShrink: 0,
     "& .MuiIconButton-root": {
-      padding: "3px"
+      padding: SKETCH_SIZE.iconButtonPad,
     },
-    "& .setting-row": {
-      display: "flex",
-      alignItems: "center",
-      gap: "4px",
-      "& .MuiSlider-root": {
-        width: "80px",
-        minWidth: "60px"
-      },
-      "& .setting-label": {
-        fontSize: "0.65rem",
-        whiteSpace: "nowrap",
-        color: theme.vars.palette.grey[300]
-      },
-      "& .setting-value": {
-        fontSize: "0.65rem",
-        minWidth: "24px",
-        textAlign: "right",
-        color: theme.vars.palette.grey[200]
-      }
-    },
-    "& .MuiToggleButtonGroup-root": {
-      "& .MuiToggleButton-root": {
-        padding: "2px 6px",
-        fontSize: "0.6rem"
-      }
-    }
+    ...settingRowChildrenSx(theme),
   });
 
 export interface SketchToolTopBarProps {
