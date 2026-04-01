@@ -286,8 +286,9 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
 export const createNodeStore = (
   workflow?: Workflow,
   state?: Partial<NodeStoreState>
-) =>
+): NodeStore =>
   create<NodeStoreState>()(
+    // @ts-expect-error Types are not fully compatible between zundo v2 and zustand v4
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
