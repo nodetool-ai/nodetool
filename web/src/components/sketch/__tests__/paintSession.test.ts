@@ -254,6 +254,30 @@ describe("PaintEngine implementations", () => {
       expect(p2.x).toBe(5); // average of 0 and 10
       expect(p2.y).toBe(5);
     });
+
+    it("makes higher smoothing values ramp up more aggressively", () => {
+      const engine = new BrushEngine({
+        size: 10,
+        opacity: 1,
+        hardness: 0.8,
+        color: "#000000",
+        brushType: "round",
+        pressureSensitivity: true,
+        pressureAffects: "size",
+        roundness: 1,
+        angle: 0,
+        pressureMinScale: 0.06,
+        pressureCurve: 1,
+        stabilizer: 0.5
+      });
+      engine.beginStroke();
+      engine.stabilize({ x: 0, y: 0 });
+      engine.stabilize({ x: 10, y: 10 });
+      engine.stabilize({ x: 20, y: 20 });
+      const p4 = engine.stabilize({ x: 30, y: 30 });
+      expect(p4.x).toBe(15);
+      expect(p4.y).toBe(15);
+    });
   });
 
   describe("PencilEngine", () => {

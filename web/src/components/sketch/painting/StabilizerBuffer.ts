@@ -1,8 +1,9 @@
 /**
  * StabilizerBuffer — shared stroke stabiliser used by all drawing engines.
  *
- * Implements a weighted rolling-window average.  The effective window size
- * scales linearly with `strength` (0 = no smoothing, 1 = maximum smoothing).
+ * Implements a weighted rolling-window average. The effective window size uses
+ * a cubic ease-out curve so higher slider values ramp up more aggressively
+ * (0 = no smoothing, 1 = maximum smoothing).
  *
  * Usage:
  *   const stab = new StabilizerBuffer();
@@ -30,7 +31,8 @@ export class StabilizerBuffer {
     if (strength <= 0) {
       return raw;
     }
-    const windowSize = Math.max(2, Math.round(strength * WINDOW_MAX));
+    const easedStrength = 1 - Math.pow(1 - strength, 3);
+    const windowSize = Math.max(2, Math.round(easedStrength * WINDOW_MAX));
     this.buffer.push(raw);
     if (this.buffer.length > windowSize) {
       this.buffer.shift();
