@@ -221,6 +221,61 @@ describe("input/output/workspace nodes", () => {
     await expect(node.process()).resolves.toEqual({ score: 1, equal: true });
   });
 
+  it("CompareImagesNode returns score < 1 for different bytes of same length", async () => {
+    const node = new CompareImagesNode();
+    node.assign({
+      image_a: { data: Uint8Array.from([1, 2, 3, 4]) },
+      image_b: { data: Uint8Array.from([1, 2, 0, 0]) },
+    });
+    const result = await node.process();
+    // 2 of 4 bytes match, same length so no penalty: score = 2/4 = 0.5
+    expect(result.score).toBe(0.5);
+    expect(result.equal).toBe(false);
+  });
+
+  it("CompareImagesNode applies length penalty for different lengths", async () => {
+    const node = new CompareImagesNode();
+    node.assign({
+      image_a: { data: Uint8Array.from([1, 2, 3, 4]) },
+      image_b: { data: Uint8Array.from([1, 2]) },
+    });
+    const result = await node.process();
+    // min=2, max=4, all 2 compared bytes match: (2/2) * (2/4) = 0.5
+    expect(result.score).toBe(0.5);
+    expect(result.equal).toBe(false);
+  });
+
+  it("CompareImagesNode returns score=0 when one image is empty", async () => {
+    const node = new CompareImagesNode();
+    node.assign({
+      image_a: { data: Uint8Array.from([1, 2, 3]) },
+      image_b: { data: new Uint8Array() },
+    });
+    const result = await node.process();
+    expect(result.score).toBe(0);
+    expect(result.equal).toBe(false);
+  });
+
+  it("CompareImagesNode returns score=1 when both images are empty", async () => {
+    const node = new CompareImagesNode();
+    node.assign({ image_a: {}, image_b: {} });
+    const result = await node.process();
+    expect(result.score).toBe(1);
+    expect(result.equal).toBe(true);
+  });
+
+  it("CompareImagesNode combines byte mismatch and length penalty", async () => {
+    const node = new CompareImagesNode();
+    node.assign({
+      image_a: { data: Uint8Array.from([10, 20, 30, 40, 50, 60]) },
+      image_b: { data: Uint8Array.from([10, 20, 99]) },
+    });
+    const result = await node.process();
+    // min=3, max=6, 2 of 3 compared bytes match: (2/3) * (3/6) = 1/3
+    expect(result.score).toBeCloseTo(1 / 3);
+    expect(result.equal).toBe(false);
+  });
+
   it("document save/load and split json nodes work", async () => {
     const file = `/tmp/nodetool-doc-${Date.now()}.json`;
     const save = new SaveDocumentFileNode();

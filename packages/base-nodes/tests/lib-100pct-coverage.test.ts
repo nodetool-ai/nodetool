@@ -44,6 +44,7 @@ import {
   EnvelopeLibNode,
   // lib-grid
   SliceImageGridLibNode,
+  CombineImageGridLibNode,
   // lib-mail
   SendEmailLibNode,
   // lib-markitdown
@@ -1069,6 +1070,60 @@ describe("lib-grid coverage", () => {
     expect(Array.isArray(output)).toBe(true);
     expect(output.length).toBe(4);
   });
+
+  it("CombineImageGrid combines tiles into a single image", async () => {
+    const sharp = (await import("sharp")).default;
+    // Create 4 small colored tiles
+    const colors = [
+      { r: 255, g: 0, b: 0 },
+      { r: 0, g: 255, b: 0 },
+      { r: 0, g: 0, b: 255 },
+      { r: 255, g: 255, b: 0 },
+    ];
+    const tiles = await Promise.all(
+      colors.map(async (bg) => {
+        const buf = await sharp({
+          create: { width: 4, height: 4, channels: 3, background: bg },
+        })
+          .png()
+          .toBuffer();
+        return { type: "image", data: buf.toString("base64") };
+      })
+    );
+
+    const result = await new CombineImageGridLibNode({
+      tiles,
+      columns: 2,
+    }).process();
+    const output = result.output as { type: string; data: string };
+    expect(output.type).toBe("image");
+    expect(typeof output.data).toBe("string");
+    expect(output.data.length).toBeGreaterThan(0);
+  });
+
+  it("CombineImageGrid throws on empty tiles", async () => {
+    await expect(
+      new CombineImageGridLibNode({ tiles: [] }).process()
+    ).rejects.toThrow("No tiles provided");
+  });
+
+  it("CombineImageGrid defaults columns from sqrt when 0", async () => {
+    const sharp = (await import("sharp")).default;
+    const buf = await sharp({
+      create: { width: 4, height: 4, channels: 3, background: { r: 128, g: 128, b: 128 } },
+    })
+      .png()
+      .toBuffer();
+    const tile = { type: "image", data: buf.toString("base64") };
+
+    const result = await new CombineImageGridLibNode({
+      tiles: [tile, tile, tile, tile],
+      columns: 0,
+    }).process();
+    const output = result.output as { type: string; data: string };
+    expect(output.type).toBe("image");
+    expect(output.data.length).toBeGreaterThan(0);
+  });
 });
 
 // ── lib-mail: successful send (mocked) ───────────────────────────
@@ -1114,6 +1169,8 @@ describe("lib-markitdown coverage", () => {
       document: { uri: htmlPath, data: "" },
     }).process();
     const output = result.output as { data: string };
+    expect(typeof output.data).toBe("string");
+    expect(output.data.length).toBeGreaterThan(0);
     expect(output.data).toContain("Hello");
   });
 

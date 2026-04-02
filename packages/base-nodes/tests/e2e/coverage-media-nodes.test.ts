@@ -592,8 +592,10 @@ describe("image nodes — full coverage", () => {
     const _n = new LoadImageFileNode();
     _n.assign({ path: filePath });
     const result = await _n.process();
-    const output = result.output as { data: string; uri: string };
+    const output = result.output as { type: string; data: string; uri: string; mimeType: string; width: number | undefined; height: number | undefined };
+    expect(output.type).toBe("image");
     expect(output.uri).toContain(filePath);
+    expect(output.mimeType).toBe("image/png");
     expect(output.data.length).toBeGreaterThan(0);
   });
 
@@ -689,6 +691,10 @@ describe("image nodes — full coverage", () => {
     expect(meta.width).toBe(100);
     expect(meta.height).toBe(200);
     expect(meta.size_bytes).toBe(3);
+    // Verify all expected fields are present
+    expect(Object.keys(meta)).toEqual(
+      expect.arrayContaining(["uri", "mime_type", "size_bytes", "width", "height"])
+    );
   });
 
   it("GetMetadataNode handles missing optional fields", async () => {
@@ -855,7 +861,8 @@ describe("image nodes — full coverage", () => {
     const _n = new TextToImageNode();
     _n.assign({ prompt: "test-img", width: 256, height: 128 });
     const result = await _n.process();
-    const output = result.output as { data: string; width: number; height: number };
+    const output = result.output as { type: string; data: string; width: number; height: number };
+    expect(output.type).toBe("image");
     expect(output.width).toBe(256);
     expect(output.height).toBe(128);
     const bytes = Buffer.from(output.data, "base64");
@@ -867,7 +874,8 @@ describe("image nodes — full coverage", () => {
     const _n = new ImageToImageNode();
     _n.assign({ image: img, prompt: "stylize" });
     const result = await _n.process();
-    const output = result.output as { uri: string; data: string };
+    const output = result.output as { type: string; uri: string; data: string };
+    expect(output.type).toBe("image");
     expect(output.uri).toBe("file://in.png");
     const bytes = Buffer.from(output.data, "base64");
     expect(Array.from(bytes)).toEqual([1, 2]);
@@ -889,7 +897,9 @@ describe("video nodes — full coverage", () => {
     const _n = new ImageToVideoNode();
     _n.assign({ image: img, prompt: "animate" });
     const result = await _n.process();
-    const outData = Buffer.from((result.output as { data: string }).data, "base64");
+    const output = result.output as { type: string; data: string };
+    expect(output.type).toBe("video");
+    const outData = Buffer.from(output.data, "base64");
     expect(outData.length).toBeGreaterThan(0);
   });
 
@@ -1105,13 +1115,19 @@ describe("video nodes — full coverage", () => {
 
   it("GetVideoInfoNode returns metadata", async () => {
     const ref = videoRef();
+    const videoData = Buffer.from((ref as { data: string }).data, "base64");
     const _n = new GetVideoInfoNode();
     _n.assign({ video: ref });
     const result = await _n.process();
     const info = result.output as Record<string, unknown>;
     expect(info.fps).toBe(24);
-    expect(info.size_bytes).toBeGreaterThan(0);
-    expect(typeof info.duration_seconds).toBe("number");
+    expect(info.size_bytes).toBe(videoData.length);
+    expect(info.duration_seconds).toBe(videoData.length / 24000);
+    expect(info.uri).toBe("");
+    // Verify all expected metadata fields are present
+    expect(Object.keys(info)).toEqual(
+      expect.arrayContaining(["uri", "size_bytes", "fps", "duration_seconds"])
+    );
   });
 
   it("video helper functions handle edge cases", async () => {
@@ -1195,7 +1211,9 @@ describe("video nodes — full coverage", () => {
     const _n = new TextToVideoNode();
     _n.assign({ prompt: "hello-vid" });
     const result = await _n.process();
-    const outData = Buffer.from((result.output as { data: string }).data, "base64");
+    const output = result.output as { type: string; data: string };
+    expect(output.type).toBe("video");
+    const outData = Buffer.from(output.data, "base64");
     expect(outData.toString("utf8")).toBe("hello-vid");
   });
 
@@ -1216,6 +1234,8 @@ describe("video nodes — full coverage", () => {
     const info = result.output as Record<string, unknown>;
     expect(info.uri).toBe("file://test.mp4");
     expect(info.size_bytes).toBe(3);
+    expect(info.fps).toBe(24);
+    expect(info.duration_seconds).toBe(3 / 24000);
   });
 });
 
@@ -1545,6 +1565,8 @@ describe("model3d nodes — full coverage", () => {
     const result = await _n.process();
     const output = result.output as { data: string; format: string };
     expect(output.format).toBe("glb");
+    expect(output.data).toBeDefined();
+    expect(typeof output.data).toBe("string");
     expect(Buffer.from(output.data, "base64").toString("utf8")).toBe("sphere");
   });
 

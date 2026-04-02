@@ -533,7 +533,20 @@ describe("RealtimeAgentNode", () => {
     node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
     const result = await node.process();
     expect(result.text).toBe("assistant reply");
-    expect(result.audio).toBeTruthy();
+    expect(result.output).toBe("assistant reply");
+
+    // audio should be an object with a base64 data URI
+    expect(result.audio).toEqual(
+      expect.objectContaining({ data: expect.stringContaining("data:audio/mp3;base64,") })
+    );
+
+    // chunk should be a well-formed chunk object
+    expect(result.chunk).toEqual({
+      type: "chunk",
+      content_type: "text",
+      content: "assistant reply",
+      done: true,
+    });
   });
 });
 
@@ -554,6 +567,15 @@ describe("RealtimeTranscriptionNode", () => {
     node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
     const result = await node.process();
     expect(result.text).toBe("transcribed text");
+    expect(result.output).toBe("transcribed text");
+
+    // chunk should be a well-formed chunk object
+    expect(result.chunk).toEqual({
+      type: "chunk",
+      content_type: "text",
+      content: "transcribed text",
+      done: true,
+    });
   });
 });
 

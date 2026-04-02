@@ -145,25 +145,49 @@ describe("GoogleImagesNode", () => {
 // ── GoogleFinance ─────────────────────────────────────────────────────────
 
 describe("GoogleFinanceNode", () => {
-  it("returns finance data", async () => {
+  it("returns finance data with full output shape", async () => {
     const node = new GoogleFinanceNode();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ summary: { price: 150 } })
-    );
+    const apiData = { summary: { price: 150, currency: "USD" }, markets: { us: [] } };
+    mockFetch.mockResolvedValueOnce(jsonResponse(apiData));
     node.assign({ query: "AAPL:NASDAQ" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
     expect(output.success).toBe(true);
+    expect(output.results).toEqual(apiData);
+    expect(typeof output.results).toBe("object");
+    expect((output.results as Record<string, unknown>).summary).toEqual({ price: 150, currency: "USD" });
   });
 
-  it("returns error when query empty", async () => {
+  it("passes window parameter when provided", async () => {
+    const node = new GoogleFinanceNode();
+    mockFetch.mockResolvedValueOnce(jsonResponse({ graph: [1, 2, 3] }));
+    node.assign({ query: "GOOG:NASDAQ", window: "1y" });
+    node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output.success).toBe(true);
+    expect(output.results).toEqual({ graph: [1, 2, 3] });
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).toContain("window=1y");
+    expect(url).toContain("engine=google_finance");
+  });
+
+  it("returns error object with exact message when query empty", async () => {
     const node = new GoogleFinanceNode();
     node.assign({ query: "" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, unknown>;
-    expect(output.error).toBeDefined();
+    expect(output).toEqual({ error: "Query is required for Google Finance search." });
+    expect(output.success).toBeUndefined();
+    expect(output.results).toBeUndefined();
+  });
+
+  it("throws when API key missing", async () => {
+    const node = new GoogleFinanceNode();
+    node.assign({ query: "AAPL" });
+    await expect(node.process()).rejects.toThrow("SERPAPI_API_KEY is required");
   });
 });
 

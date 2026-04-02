@@ -333,6 +333,20 @@ describe("RealtimeAgentNode", () => {
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
     const result = await node.process();
     expect(result.text).toBe("ok");
+    expect(result.output).toBe("ok");
+
+    // audio should be an object with a base64 data URI (TTS response)
+    expect(result.audio).toEqual(
+      expect.objectContaining({ data: expect.stringContaining("data:audio/mp3;base64,") })
+    );
+
+    // chunk should be a well-formed chunk object
+    expect(result.chunk).toEqual({
+      type: "chunk",
+      content_type: "text",
+      content: "ok",
+      done: true,
+    });
   });
 });
 
@@ -344,5 +358,14 @@ describe("RealtimeTranscriptionNode", () => {
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
     const result = await node.process();
     expect(result.text).toBe("heard");
+    expect(result.output).toBe("heard");
+
+    // chunk should be a well-formed chunk object
+    expect(result.chunk).toEqual({
+      type: "chunk",
+      content_type: "text",
+      content: "heard",
+      done: true,
+    });
   });
 });

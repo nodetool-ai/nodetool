@@ -53,4 +53,54 @@ describe("ClaudeAgentNode", () => {
     node.assign({ prompt: "hello" });
     await expect(node.process()).rejects.toThrow(/Claude Agent SDK|Cannot find module|Claude Agent error/);
   });
+
+  it("accumulates streamed text from Claude Agent SDK", async () => {
+    // Mock the dynamic import of claude-agent-sdk
+    const messages = [
+      { content: [{ text: "Hello" }] },
+      { content: [{ text: ", " }, { text: "world" }] },
+      { content: [{ text: "!" }] },
+    ];
+
+    const mockQuery = vi.fn().mockImplementation(() => ({
+      async *[Symbol.asyncIterator]() {
+        for (const msg of messages) {
+          yield msg;
+        }
+      },
+    }));
+
+    vi.doMock("claude-agent-sdk", () => ({
+      query: mockQuery,
+    }));
+
+    const node = new ClaudeAgentNode();
+    node.assign({
+      prompt: "say hello",
+      model: { type: "language_model", provider: "anthropic", id: "claude-sonnet-4-20250514", name: "Claude Sonnet", path: null, supported_tasks: [] },
+      system_prompt: "Be concise",
+      max_turns: 5,
+      allowed_tools: ["Read"],
+      permission_mode: "acceptEdits",
+    });
+    node.setDynamic("_secrets", { ANTHROPIC_API_KEY: "test-key" });
+
+    const result = await node.process();
+
+    expect(result).toEqual({ text: "Hello, world!" });
+    expect(mockQuery).toHaveBeenCalledOnce();
+    expect(mockQuery).toHaveBeenCalledWith({
+      prompt: "say hello",
+      options: {
+        model: "claude-sonnet-4-20250514",
+        system_prompt: "Be concise",
+        max_turns: 5,
+        allowed_tools: ["Read"],
+        permission_mode: "acceptEdits",
+        env: { ANTHROPIC_API_KEY: "test-key" },
+      },
+    });
+
+    vi.doUnmock("claude-agent-sdk");
+  });
 });

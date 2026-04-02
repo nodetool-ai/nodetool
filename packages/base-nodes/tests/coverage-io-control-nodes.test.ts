@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, writeFile, readFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -163,6 +163,34 @@ describe("control nodes — full coverage", () => {
     const node = new IfNode();
     const d = node.serialize();
     expect(d).toEqual({ condition: false, value: [] });
+  });
+
+  it("IfNode process with condition=true passes value to if_true", async () => {
+    const node = new IfNode();
+    node.assign({ condition: true, value: "hello" });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: "hello", if_false: null });
+  });
+
+  it("IfNode process with condition=false passes value to if_false", async () => {
+    const node = new IfNode();
+    node.assign({ condition: false, value: "hello" });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: null, if_false: "hello" });
+  });
+
+  it("IfNode process with truthy non-boolean condition routes to if_true", async () => {
+    const node = new IfNode();
+    node.assign({ condition: 1, value: 42 });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: 42, if_false: null });
+  });
+
+  it("IfNode process with falsy non-boolean condition routes to if_false", async () => {
+    const node = new IfNode();
+    node.assign({ condition: 0, value: 42 });
+    const result = await node.process();
+    expect(result).toEqual({ if_true: null, if_false: 42 });
   });
 });
 
@@ -1292,6 +1320,462 @@ describe("trigger nodes — full coverage", () => {
     const node = new FileWatchTriggerNode();
     const result = await node.process();
     expect(result).toEqual({});
+  });
+});
+
+// ============================================================
+// TRIGGER genProcess() / run() TESTS
+// ============================================================
+describe("IntervalTriggerNode genProcess()", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("yields events with correct fields when emit_on_start is true", async () => {
+    vi.useFakeTimers();
+    const node = new IntervalTriggerNode();
+    node.assign({
+      interval_seconds: 10,
+      max_events: 3,
+      emit_on_start: true,
+      initial_delay_seconds: 0,
+      include_drift_compensation: false,
+    });
+
+    const gen = node.genProcess();
+    const results: Record<string, unknown>[] = [];
+
+    // First event emitted immediately (emit_on_start)
+    const p1 = gen.next();
+    await vi.advanceTimersByTimeAsync(0);
+    const r1 = await p1;
+    results.push(r1.value as Record<string, unknown>);
+
+    // Second event after interval
+    const p2 = gen.next();
+    await vi.advanceTimersByTimeAsync(10_000);
+    const r2 = await p2;
+    results.push(r2.value as Record<string, unknown>);
+
+    // Third event after another interval
+    const p3 = gen.next();
+    await vi.advanceTimersByTimeAsync(10_000);
+    const r3 = await p3;
+    results.push(r3.value as Record<string, unknown>);
+
+    // Should be done after max_events=3
+    const p4 = gen.next();
+    await vi.advanceTimersByTimeAsync(10_000);
+    const r4 = await p4;
+    expect(r4.done).toBe(true);
+
+    expect(results).toHaveLength(3);
+    for (const ev of results) {
+      expect(typeof ev.tick).toBe("number");
+      expect(typeof ev.elapsed_seconds).toBe("number");
+      expect(typeof ev.interval_seconds).toBe("number");
+      expect(typeof ev.timestamp).toBe("string");
+      expect(typeof ev.source).toBe("string");
+      expect(typeof ev.event_type).toBe("string");
+      expect(ev.interval_seconds).toBe(10);
+      expect(ev.source).toBe("interval");
+      expect(ev.event_type).toBe("tick");
+    }
+    expect(results[0]!.tick).toBe(1);
+    expect(results[1]!.tick).toBe(2);
+    expect(results[2]!.tick).toBe(3);
+  });
+
+  it("respects initial_delay_seconds", async () => {
+    vi.useFakeTimers();
+    const node = new IntervalTriggerNode();
+    node.assign({
+      interval_seconds: 5,
+      max_events: 1,
+      emit_on_start: true,
+      initial_delay_seconds: 2,
+      include_drift_compensation: false,
+    });
+
+    const gen = node.genProcess();
+    const p1 = gen.next();
+    // Advance past initial delay
+    await vi.advanceTimersByTimeAsync(2_000);
+    const r1 = await p1;
+    expect(r1.done).toBe(false);
+    const ev = r1.value as Record<string, unknown>;
+    expect(ev.tick).toBe(1);
+  });
+
+  it("skips first event when emit_on_start is false", async () => {
+    vi.useFakeTimers();
+    const node = new IntervalTriggerNode();
+    node.assign({
+      interval_seconds: 5,
+      max_events: 1,
+      emit_on_start: false,
+      initial_delay_seconds: 0,
+      include_drift_compensation: false,
+    });
+
+    const gen = node.genProcess();
+    const p1 = gen.next();
+    // Need to wait for the interval since emit_on_start is false
+    await vi.advanceTimersByTimeAsync(5_000);
+    const r1 = await p1;
+    expect(r1.done).toBe(false);
+    const ev = r1.value as Record<string, unknown>;
+    expect(ev.tick).toBe(1);
+    expect(ev.event_type).toBe("tick");
+  });
+});
+
+describe("ManualTriggerNode run()", () => {
+  it("emits events from streaming inputs with correct fields", async () => {
+    const node = new ManualTriggerNode();
+    node.assign({ max_events: 2, name: "my_trigger" });
+
+    const inputData = [
+      { hello: "world" },
+      "plain text",
+    ];
+
+    // Mock StreamingInputs: yields from a simple array
+    const inputs = {
+      any: async function* () {
+        for (const item of inputData) {
+          yield ["data", item] as [string, unknown];
+        }
+      },
+      stream: async function* () { /* unused */ },
+      first: async () => undefined,
+    };
+
+    const emitted: Array<[string, unknown]> = [];
+    const outputs = {
+      emit: async (slot: string, value: unknown) => {
+        emitted.push([slot, value]);
+      },
+      complete: () => {},
+    };
+
+    await node.run(inputs as any, outputs as any);
+
+    // 2 events x 4 fields = 8 emits
+    expect(emitted).toHaveLength(8);
+
+    // First event
+    expect(emitted[0]).toEqual(["data", { hello: "world" }]);
+    expect(emitted[1]![0]).toBe("timestamp");
+    expect(typeof emitted[1]![1]).toBe("string");
+    expect(emitted[2]).toEqual(["source", "my_trigger"]);
+    expect(emitted[3]).toEqual(["event_type", "manual"]);
+
+    // Second event
+    expect(emitted[4]).toEqual(["data", "plain text"]);
+    expect(emitted[5]![0]).toBe("timestamp");
+    expect(emitted[6]).toEqual(["source", "my_trigger"]);
+    expect(emitted[7]).toEqual(["event_type", "manual"]);
+  });
+
+  it("respects max_events limit", async () => {
+    const node = new ManualTriggerNode();
+    node.assign({ max_events: 1, name: "limited" });
+
+    const inputs = {
+      any: async function* () {
+        yield ["data", "first"] as [string, unknown];
+        yield ["data", "second"] as [string, unknown];
+        yield ["data", "third"] as [string, unknown];
+      },
+      stream: async function* () {},
+      first: async () => undefined,
+    };
+
+    const emitted: Array<[string, unknown]> = [];
+    const outputs = {
+      emit: async (slot: string, value: unknown) => {
+        emitted.push([slot, value]);
+      },
+      complete: () => {},
+    };
+
+    await node.run(inputs as any, outputs as any);
+    // Only 1 event x 4 fields = 4 emits
+    expect(emitted).toHaveLength(4);
+    expect(emitted[0]).toEqual(["data", "first"]);
+  });
+
+  it("skips __control__ handle items", async () => {
+    const node = new ManualTriggerNode();
+    node.assign({ max_events: 0, name: "test" });
+
+    const inputs = {
+      any: async function* () {
+        yield ["__control__", "ignored"] as [string, unknown];
+        yield ["data", "kept"] as [string, unknown];
+      },
+      stream: async function* () {},
+      first: async () => undefined,
+    };
+
+    const emitted: Array<[string, unknown]> = [];
+    const outputs = {
+      emit: async (slot: string, value: unknown) => {
+        emitted.push([slot, value]);
+      },
+      complete: () => {},
+    };
+
+    await node.run(inputs as any, outputs as any);
+    // Only 1 real event: 4 emits
+    expect(emitted).toHaveLength(4);
+    expect(emitted[0]).toEqual(["data", "kept"]);
+  });
+});
+
+describe("WebhookTriggerNode genProcess()", () => {
+  it("yields webhook event when HTTP request is received", async () => {
+    const http = await import("node:http");
+    const port = 30000 + Math.floor(Math.random() * 10000);
+    const node = new WebhookTriggerNode();
+    node.assign({
+      port,
+      path: "/hook",
+      host: "127.0.0.1",
+      methods: ["POST"],
+      secret: "",
+      max_events: 1,
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+
+    // Wait for server to be ready
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Send HTTP request
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/hook?foo=bar",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve());
+        }
+      );
+      req.on("error", reject);
+      req.write(JSON.stringify({ hello: "world" }));
+      req.end();
+    });
+
+    const result = await p;
+    expect(result.done).toBe(false);
+    const ev = result.value as Record<string, unknown>;
+
+    expect(ev.body).toEqual({ hello: "world" });
+    expect(typeof ev.headers).toBe("object");
+    expect((ev.query as Record<string, string>).foo).toBe("bar");
+    expect(ev.method).toBe("POST");
+    expect(ev.path).toBe("/hook");
+    expect(typeof ev.timestamp).toBe("string");
+    expect(typeof ev.source).toBe("string");
+    expect(ev.event_type).toBe("webhook");
+
+    // Generator should be done after max_events=1
+    const next = await gen.next();
+    expect(next.done).toBe(true);
+  }, 10_000);
+
+  it("rejects requests with wrong path (404)", async () => {
+    const http = await import("node:http");
+    const port = 30000 + Math.floor(Math.random() * 10000);
+    const node = new WebhookTriggerNode();
+    node.assign({
+      port,
+      path: "/hook",
+      host: "127.0.0.1",
+      methods: ["POST"],
+      secret: "",
+      max_events: 1,
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+    await new Promise((r) => setTimeout(r, 200));
+
+    const statusCode = await new Promise<number>((resolve, reject) => {
+      const req = http.request(
+        { hostname: "127.0.0.1", port, path: "/wrong", method: "POST" },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve(res.statusCode ?? 0));
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    expect(statusCode).toBe(404);
+
+    // Clean up: send a valid request so the generator can finish
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request(
+        { hostname: "127.0.0.1", port, path: "/hook", method: "POST" },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve());
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    await p;
+    await gen.next(); // drain
+  }, 10_000);
+
+  it("validates secret header (401)", async () => {
+    const http = await import("node:http");
+    const port = 30000 + Math.floor(Math.random() * 10000);
+    const node = new WebhookTriggerNode();
+    node.assign({
+      port,
+      path: "/hook",
+      host: "127.0.0.1",
+      methods: ["POST"],
+      secret: "mysecret",
+      max_events: 1,
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Request without secret -> 401
+    const statusCode = await new Promise<number>((resolve, reject) => {
+      const req = http.request(
+        { hostname: "127.0.0.1", port, path: "/hook", method: "POST" },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve(res.statusCode ?? 0));
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    expect(statusCode).toBe(401);
+
+    // Request with correct secret -> 200
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/hook",
+          method: "POST",
+          headers: { "x-webhook-secret": "mysecret" },
+        },
+        (res) => {
+          res.on("data", () => {});
+          res.on("end", () => resolve());
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    await p;
+    await gen.next();
+  }, 10_000);
+});
+
+describe("FileWatchTriggerNode genProcess()", () => {
+  it("yields file events when files are created", async () => {
+    const tmpDir = await mkdtemp(path.join(tmpdir(), "fw-test-"));
+
+    const node = new FileWatchTriggerNode();
+    node.assign({
+      path: tmpDir,
+      recursive: false,
+      patterns: ["*.txt"],
+      ignore_patterns: [],
+      events: ["created", "modified", "deleted"],
+      debounce_seconds: 0,
+      max_events: 1,
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+
+    // Wait for watcher to be ready
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Create a file to trigger the watcher
+    const filePath = path.join(tmpDir, "test.txt");
+    await writeFile(filePath, "hello");
+
+    const result = await p;
+    expect(result.done).toBe(false);
+    const ev = result.value as Record<string, unknown>;
+
+    expect(typeof ev.event).toBe("string");
+    expect(["created", "modified"]).toContain(ev.event);
+    expect(typeof ev.path).toBe("string");
+    expect((ev.path as string).endsWith("test.txt")).toBe(true);
+    expect(typeof ev.dest_path).toBe("string");
+    expect(typeof ev.is_directory).toBe("boolean");
+    expect(typeof ev.timestamp).toBe("string");
+
+    // Clean up
+    const next = await gen.return(undefined);
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("throws when watch path does not exist", async () => {
+    const node = new FileWatchTriggerNode();
+    node.assign({
+      path: "/nonexistent/path/that/does/not/exist",
+      max_events: 1,
+    });
+
+    const gen = node.genProcess();
+    await expect(gen.next()).rejects.toThrow("Watch path does not exist");
+  });
+
+  it("respects ignore_patterns", async () => {
+    const tmpDir = await mkdtemp(path.join(tmpdir(), "fw-ignore-"));
+
+    const node = new FileWatchTriggerNode();
+    node.assign({
+      path: tmpDir,
+      recursive: false,
+      patterns: ["*"],
+      ignore_patterns: ["*.log"],
+      events: ["created"],
+      debounce_seconds: 0,
+      max_events: 1,
+    });
+
+    const gen = node.genProcess();
+    const p = gen.next();
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Create ignored file first
+    await writeFile(path.join(tmpDir, "ignored.log"), "log data");
+    // Small delay then create a matching file
+    await new Promise((r) => setTimeout(r, 100));
+    await writeFile(path.join(tmpDir, "wanted.txt"), "data");
+
+    const result = await p;
+    expect(result.done).toBe(false);
+    const ev = result.value as Record<string, unknown>;
+    expect((ev.path as string).endsWith("wanted.txt")).toBe(true);
+
+    await gen.return(undefined);
+    await rm(tmpDir, { recursive: true, force: true });
   });
 });
 

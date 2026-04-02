@@ -11,7 +11,7 @@
  *   file URI reading, and docx branch (error path).
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -327,6 +327,333 @@ describe.skip("lib.browser.BrowserNavigation (playwright)", () => {
       expect(result.success).toBe(true);
     });
   }, 30_000);
+
+  it("throws on goto with empty URL", async () => {
+    await expect(
+      (() => { const _n = new BrowserNavigationLibNode(); _n.assign({ action: "goto", url: "" }); return _n.process(); })()
+    ).rejects.toThrow("URL is required for goto action");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// lib-browser — Mocked playwright tests (cover process() bodies)
+// ---------------------------------------------------------------------------
+
+describe("lib.browser.Browser (mocked playwright)", () => {
+  it("fetches page content and returns { success, content, metadata }", async () => {
+    const mockClose = vi.fn();
+    const mockPage = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      content: vi.fn().mockResolvedValue("<html><head><title>Mock Title</title></head><body><h1>Hello</h1></body></html>"),
+      title: vi.fn().mockResolvedValue("Mock Title"),
+    };
+    const mockContext = {
+      newPage: vi.fn().mockResolvedValue(mockPage),
+    };
+    const mockBrowser = {
+      newContext: vi.fn().mockResolvedValue(mockContext),
+      close: mockClose,
+    };
+
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      // Re-import to pick up mock
+      const { BrowserLibNode: MockedBrowserLibNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedBrowserLibNode();
+      node.assign({ url: "http://example.com", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(typeof result.content).toBe("string");
+      expect(result.content).toContain("Hello");
+      expect(result.metadata).toBeDefined();
+      expect((result.metadata as Record<string, unknown>).title).toBe("Mock Title");
+      expect(mockClose).toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("throws on empty URL (no playwright needed)", async () => {
+    await expect(
+      (() => { const _n = new BrowserLibNode(); _n.assign({ url: "" }); return _n.process(); })()
+    ).rejects.toThrow("URL is required");
+  });
+});
+
+describe("lib.browser.Screenshot (mocked playwright)", () => {
+  it("takes screenshot and returns { success, output: { type, data } }", async () => {
+    const screenshotBuffer = Buffer.from("fake-png-data");
+    const mockClose = vi.fn();
+    const mockPage = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      screenshot: vi.fn().mockResolvedValue(screenshotBuffer),
+    };
+    const mockContext = {
+      newPage: vi.fn().mockResolvedValue(mockPage),
+    };
+    const mockBrowser = {
+      newContext: vi.fn().mockResolvedValue(mockContext),
+      close: mockClose,
+    };
+
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { ScreenshotLibNode: MockedScreenshotLibNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedScreenshotLibNode();
+      node.assign({ url: "http://example.com", timeout: 5000 });
+      const result = await node.process();
+
+      expect((result as Record<string, unknown>).success).toBe(true);
+      const output = result.output as { type: string; data: string };
+      expect(output.type).toBe("image");
+      expect(output.data.length).toBeGreaterThan(0);
+      expect(output.data).toBe(screenshotBuffer.toString("base64"));
+      expect(mockClose).toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("takes screenshot of a specific selector", async () => {
+    const screenshotBuffer = Buffer.from("selector-screenshot");
+    const mockElement = {
+      screenshot: vi.fn().mockResolvedValue(screenshotBuffer),
+    };
+    const mockClose = vi.fn();
+    const mockPage = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForSelector: vi.fn().mockResolvedValue(mockElement),
+    };
+    const mockContext = {
+      newPage: vi.fn().mockResolvedValue(mockPage),
+    };
+    const mockBrowser = {
+      newContext: vi.fn().mockResolvedValue(mockContext),
+      close: mockClose,
+    };
+
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { ScreenshotLibNode: MockedScreenshotLibNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedScreenshotLibNode();
+      node.assign({ url: "http://example.com", selector: "h1", timeout: 5000 });
+      const result = await node.process();
+
+      expect((result as Record<string, unknown>).success).toBe(true);
+      const output = result.output as { type: string; data: string };
+      expect(output.type).toBe("image");
+      expect(output.data).toBe(screenshotBuffer.toString("base64"));
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("throws on empty URL", async () => {
+    await expect(
+      (() => { const _n = new ScreenshotLibNode(); _n.assign({ url: "" }); return _n.process(); })()
+    ).rejects.toThrow("URL is required");
+  });
+});
+
+describe("lib.browser.BrowserNavigation (mocked playwright)", () => {
+  function makeMockBrowser(overrides: Record<string, unknown> = {}) {
+    const mockClose = vi.fn();
+    const mockElement = {
+      click: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockImplementation((fn: Function, ...args: unknown[]) => {
+        // Simulate different extract types
+        return Promise.resolve("extracted-content");
+      }),
+    };
+    const mockPage = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      reload: vi.fn().mockResolvedValue(undefined),
+      goBack: vi.fn().mockResolvedValue(undefined),
+      goForward: vi.fn().mockResolvedValue(undefined),
+      waitForSelector: vi.fn().mockResolvedValue(mockElement),
+      content: vi.fn().mockResolvedValue("<html><body>Full HTML</body></html>"),
+      evaluate: vi.fn().mockResolvedValue("page-text-content"),
+      ...overrides,
+    };
+    const mockContext = {
+      newPage: vi.fn().mockResolvedValue(mockPage),
+    };
+    const mockBrowser = {
+      newContext: vi.fn().mockResolvedValue(mockContext),
+      close: mockClose,
+    };
+    return { mockBrowser, mockPage, mockElement, mockClose };
+  }
+
+  it("goto action returns { success, action, extracted }", async () => {
+    const { mockBrowser } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "goto", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("goto");
+      expect(result.extracted).toBeNull();
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("extract action with selector extracts text", async () => {
+    const { mockBrowser } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "extract", selector: "#info", extract_type: "text", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("extract");
+      expect(result.extracted).toBe("extracted-content");
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("extract html from full page (no selector)", async () => {
+    const { mockBrowser } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "extract", extract_type: "html", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("extract");
+      expect(result.extracted).toContain("html");
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("extract text from full page (no selector)", async () => {
+    const { mockBrowser } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "extract", extract_type: "text", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("extract");
+      expect(result.extracted).toBe("page-text-content");
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("reload action returns success", async () => {
+    const { mockBrowser, mockPage } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "reload", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("reload");
+      expect(mockPage.reload).toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("click action clicks element", async () => {
+    const { mockBrowser, mockElement } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "click", selector: "a", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("click");
+      expect(mockElement.click).toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("back action returns success", async () => {
+    const { mockBrowser, mockPage } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "back", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("back");
+      expect(mockPage.goBack).toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
+
+  it("forward action returns success", async () => {
+    const { mockBrowser, mockPage } = makeMockBrowser();
+    vi.doMock("playwright", () => ({
+      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) },
+    }));
+
+    try {
+      const { BrowserNavigationLibNode: MockedNode } = await import("../../src/nodes/lib-browser.js");
+      const node = new MockedNode();
+      node.assign({ url: "http://example.com", action: "forward", timeout: 5000 });
+      const result = await node.process();
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe("forward");
+      expect(mockPage.goForward).toHaveBeenCalled();
+    } finally {
+      vi.doUnmock("playwright");
+    }
+  });
 
   it("throws on goto with empty URL", async () => {
     await expect(

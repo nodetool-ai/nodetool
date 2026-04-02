@@ -552,9 +552,12 @@ describe("workspace nodes", () => {
       expect(info.is_file).toBe(true);
       expect(info.is_directory).toBe(false);
       expect(info.size).toBeGreaterThanOrEqual(4);
-      expect(info.created).toBeDefined();
-      expect(info.modified).toBeDefined();
-      expect(info.accessed).toBeDefined();
+      expect(typeof info.created).toBe("string");
+      expect(info.created.length).toBeGreaterThan(0);
+      expect(typeof info.modified).toBe("string");
+      expect(info.modified.length).toBeGreaterThan(0);
+      expect(typeof info.accessed).toBe("string");
+      expect(info.accessed.length).toBeGreaterThan(0);
     });
   });
 
@@ -694,7 +697,9 @@ describe("workspace nodes", () => {
         overwrite: true,
       });
       const result = await node.process();
-      expect(result.output).toBeDefined();
+      const output2 = result.output as any;
+      expect(typeof output2.uri).toBe("string");
+      expect(output2.uri).toContain("img2.png");
     });
 
     it("saves image bytes (number array)", async () => {
@@ -707,7 +712,9 @@ describe("workspace nodes", () => {
         overwrite: true,
       });
       const result = await node.process();
-      expect(result.output).toBeDefined();
+      const output3 = result.output as any;
+      expect(typeof output3.uri).toBe("string");
+      expect(output3.uri).toContain("img3.png");
     });
 
     it("saves image bytes (empty/unknown type)", async () => {
@@ -720,7 +727,8 @@ describe("workspace nodes", () => {
         overwrite: true,
       });
       const result = await node.process();
-      expect(result.output).toBeDefined();
+      const output4 = result.output as any;
+      expect(typeof output4.uri).toBe("string");
     });
 
     it("auto-increments filename on conflict", async () => {
@@ -764,7 +772,9 @@ describe("workspace nodes", () => {
         overwrite: true,
       });
       const result = await node.process();
-      expect(result.output).toBeDefined();
+      const vidOutput = result.output as any;
+      expect(typeof vidOutput.uri).toBe("string");
+      expect(vidOutput.uri).toContain("vid.mp4");
     });
 
     it("auto-increments on conflict", async () => {
@@ -1163,6 +1173,10 @@ import {
   HasLengthTextNode,
   TruncateTextNode,
   PadTextNode,
+  IndexOfTextNode,
+  AutomaticSpeechRecognitionNode,
+  LoadTextAssetsNode,
+  LoadTextFolderNode,
 } from "../src/nodes/text-extra.js";
 
 describe("text-extra nodes full coverage", () => {
@@ -1594,6 +1608,212 @@ describe("text-extra nodes full coverage", () => {
     const node = new PadTextNode();
     node.assign({ text: "hi", length: 5, pad_character: "ab" });
     await expect(node.process()).rejects.toThrow("single character");
+  });
+});
+
+// ============================================================================
+// 4b. TEXT-EXTRA — IndexOfTextNode, AutomaticSpeechRecognitionNode, LoadTextAssetsNode
+// ============================================================================
+
+describe("IndexOfTextNode", () => {
+  it("finds substring at correct index", async () => {
+    const node = new IndexOfTextNode();
+    node.assign({ text: "hello world", substring: "world", end_index: 11 });
+    const result = await node.process();
+    expect(result.output).toBe(6);
+  });
+
+  it("returns -1 when substring not found", async () => {
+    const node = new IndexOfTextNode();
+    node.assign({ text: "hello world", substring: "xyz", end_index: 11 });
+    const result = await node.process();
+    expect(result.output).toBe(-1);
+  });
+
+  it("case insensitive search", async () => {
+    const node = new IndexOfTextNode();
+    node.assign({ text: "Hello World", substring: "hello", case_sensitive: false, end_index: 11 });
+    const result = await node.process();
+    expect(result.output).toBe(0);
+  });
+
+  it("case sensitive search misses different case", async () => {
+    const node = new IndexOfTextNode();
+    node.assign({ text: "Hello World", substring: "hello", case_sensitive: true, end_index: 11 });
+    const result = await node.process();
+    expect(result.output).toBe(-1);
+  });
+
+  it("search with start_index and end_index", async () => {
+    const node = new IndexOfTextNode();
+    node.assign({ text: "abcabc", substring: "abc", start_index: 1, end_index: 6 });
+    const result = await node.process();
+    expect(result.output).toBe(3);
+  });
+
+  it("search_from_end finds last occurrence", async () => {
+    const node = new IndexOfTextNode();
+    node.assign({ text: "abcabc", substring: "abc", search_from_end: true, end_index: 6 });
+    const result = await node.process();
+    expect(result.output).toBe(3);
+  });
+
+  it("default end_index 0 returns -1 (empty slice)", async () => {
+    const node = new IndexOfTextNode();
+    node.assign({ text: "hello", substring: "hello" });
+    const result = await node.process();
+    // end_index defaults to 0, so slice(0, 0) is empty
+    expect(result.output).toBe(-1);
+  });
+});
+
+describe("AutomaticSpeechRecognitionNode", () => {
+  it("throws without provider context and audio", async () => {
+    const node = new AutomaticSpeechRecognitionNode();
+    node.assign({
+      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
+      audio: { type: "audio", uri: "", data: null },
+    });
+    await expect(node.process()).rejects.toThrow(
+      "AutomaticSpeechRecognition requires a provider-backed model and audio input."
+    );
+  });
+
+  it("calls runProviderPrediction with base64 audio data", async () => {
+    const node = new AutomaticSpeechRecognitionNode();
+    const base64Audio = Buffer.from("fake audio data").toString("base64");
+    node.assign({
+      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
+      audio: { type: "audio", uri: "", data: base64Audio },
+    });
+    const mockContext = {
+      runProviderPrediction: vi.fn().mockResolvedValue("transcribed text"),
+    };
+    const result = await node.process(mockContext as any);
+    expect(result.text).toBe("transcribed text");
+    expect(result.output).toBe("transcribed text");
+    expect(mockContext.runProviderPrediction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "fal_ai",
+        capability: "automatic_speech_recognition",
+        model: "openai/whisper-large-v3",
+      })
+    );
+  });
+
+  it("reads audio from Uint8Array data", async () => {
+    const node = new AutomaticSpeechRecognitionNode();
+    node.assign({
+      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
+      audio: { type: "audio", uri: "", data: new Uint8Array([1, 2, 3]) },
+    });
+    const mockContext = {
+      runProviderPrediction: vi.fn().mockResolvedValue("hello world"),
+    };
+    const result = await node.process(mockContext as any);
+    expect(result.text).toBe("hello world");
+  });
+
+  it("throws when no audio bytes provided even with context", async () => {
+    const node = new AutomaticSpeechRecognitionNode();
+    node.assign({
+      model: { type: "asr_model", provider: "fal_ai", id: "openai/whisper-large-v3" },
+      audio: { type: "audio", uri: "", data: null },
+    });
+    const mockContext = {
+      runProviderPrediction: vi.fn(),
+    };
+    await expect(node.process(mockContext as any)).rejects.toThrow(
+      "AutomaticSpeechRecognition requires a provider-backed model and audio input."
+    );
+  });
+});
+
+describe("LoadTextAssetsNode", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "load-text-assets-"));
+    await fs.writeFile(path.join(tmpDir, "file1.txt"), "content one");
+    await fs.writeFile(path.join(tmpDir, "file2.txt"), "content two");
+    await fs.writeFile(path.join(tmpDir, "ignore.bin"), "binary data");
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("process() returns empty object (streaming node)", async () => {
+    const node = new LoadTextAssetsNode();
+    node.assign({ folder: { type: "folder", uri: "", path: tmpDir } });
+    const result = await node.process();
+    expect(result).toEqual({});
+  });
+
+  it("genProcess yields text files from folder", async () => {
+    const node = new LoadTextAssetsNode();
+    node.assign({ folder: { type: "folder", uri: "", path: tmpDir } });
+    const items: Record<string, unknown>[] = [];
+    for await (const item of node.genProcess()) {
+      items.push(item);
+    }
+    expect(items.length).toBe(2);
+    const texts = items.map((i) => i.text).sort();
+    expect(texts).toEqual(["content one", "content two"]);
+  });
+
+  it("genProcess throws on empty folder", async () => {
+    const node = new LoadTextAssetsNode();
+    node.assign({ folder: "" });
+    const gen = node.genProcess();
+    await expect(gen.next()).rejects.toThrow("folder cannot be empty");
+  });
+});
+
+describe("LoadTextFolderNode", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "load-text-folder-"));
+    await fs.writeFile(path.join(tmpDir, "a.txt"), "alpha");
+    await fs.writeFile(path.join(tmpDir, "b.md"), "bravo");
+    await fs.writeFile(path.join(tmpDir, "c.png"), "not text");
+    await fs.mkdir(path.join(tmpDir, "sub"));
+    await fs.writeFile(path.join(tmpDir, "sub", "d.txt"), "delta");
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("yields only matching extensions", async () => {
+    const node = new LoadTextFolderNode();
+    node.assign({ folder: tmpDir, extensions: [".txt"], include_subdirectories: false });
+    const items: { text: string; path: string }[] = [];
+    for await (const item of node.genProcess()) {
+      items.push(item);
+    }
+    expect(items.length).toBe(1);
+    expect(items[0].text).toBe("alpha");
+  });
+
+  it("includes subdirectories when enabled", async () => {
+    const node = new LoadTextFolderNode();
+    node.assign({ folder: tmpDir, extensions: [".txt"], include_subdirectories: true });
+    const items: { text: string; path: string }[] = [];
+    for await (const item of node.genProcess()) {
+      items.push(item);
+    }
+    expect(items.length).toBe(2);
+    const texts = items.map((i) => i.text).sort();
+    expect(texts).toEqual(["alpha", "delta"]);
+  });
+
+  it("throws on empty folder", async () => {
+    const node = new LoadTextFolderNode();
+    node.assign({ folder: "" });
+    const gen = node.genProcess();
+    await expect(gen.next()).rejects.toThrow("folder cannot be empty");
   });
 });
 

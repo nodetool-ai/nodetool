@@ -18,6 +18,7 @@ import {
   AutoFitColumnsLibNode,
   SaveWorkbookLibNode,
   CreateDocumentLibNode,
+  LoadWordDocumentLibNode,
   AddHeadingLibNode,
   AddParagraphLibNode,
   AddTableLibNode,
@@ -189,7 +190,9 @@ describe("lib.excel", () => {
   it("CreateWorkbook creates a workbook with a sheet", async () => {
     const result = await new CreateWorkbookLibNode({ sheet_name: "Data" }).process();
     expect(result.output).toBeDefined();
+    expect(result.output).toHaveProperty("data");
     const wb = (result.output as any).data;
+    expect(wb).toBeDefined();
     expect(wb.getWorksheet("Data")).toBeDefined();
   });
 
@@ -264,6 +267,9 @@ describe("lib.excel", () => {
       sheet_name: "Sheet1",
     }).process();
     expect(result.output).toBeDefined();
+    expect(result.output).toHaveProperty("data");
+    const ws = (result.output as any).data.getWorksheet("Sheet1");
+    expect(ws).toBeDefined();
   });
 
   it("SaveWorkbook writes an xlsx file to disk", async () => {
@@ -435,6 +441,34 @@ describe("lib.docx", () => {
     // ZIP magic number: PK (0x50, 0x4B)
     expect(buf[0]).toBe(0x50);
     expect(buf[1]).toBe(0x4b);
+  });
+
+  it("LoadWordDocument extracts text from a saved .docx", async () => {
+    // Build a document with a heading and paragraph, save it, then load it back
+    let { output: doc } = await new CreateDocumentLibNode({}).process();
+    ({ output: doc } = await new AddHeadingLibNode({
+      document: doc,
+      text: "Test Heading",
+      level: 1,
+    }).process());
+    ({ output: doc } = await new AddParagraphLibNode({
+      document: doc,
+      text: "Lorem ipsum dolor sit amet.",
+    }).process());
+
+    const saveResult = await new SaveDocumentLibNode({
+      document: doc,
+      path: { path: tmpDir },
+      filename: "load-test.docx",
+    }).process();
+    const savedPath = saveResult.output as string;
+
+    // Now load the document using LoadWordDocumentLibNode
+    const loadNode = new LoadWordDocumentLibNode({ path: savedPath });
+    const loadResult = await loadNode.process();
+    const extracted = loadResult.output as string;
+    expect(extracted).toContain("Test Heading");
+    expect(extracted).toContain("Lorem ipsum dolor sit amet.");
   });
 
   it("SaveDocument with table element produces a file", async () => {

@@ -628,25 +628,66 @@ describe("data nodes", () => {
 describe("document nodes", () => {
   // -- SplitDocumentNode --
   describe("SplitDocumentNode", () => {
-    it("splits text into chunks", async () => {
+    it("splits text into chunks with correct metadata", async () => {
       const text = "A".repeat(100);
       const node = new SplitDocumentNode();
-      Object.assign(node, { document: { text }, chunk_size: 30, chunk_overlap: 5 });
+      Object.assign(node, { document: { text, uri: "test-split" }, chunk_size: 30, chunk_overlap: 5 });
       const chunks = await collectGen(node.genProcess());
-      expect(chunks.length).toBeGreaterThan(1);
-      expect((chunks[0].chunk as string).length).toBe(30);
+      // step = 30 - 5 = 25, so chunks at 0, 25, 50, 75
+      expect(chunks).toHaveLength(4);
+      expect(chunks[0]).toEqual({
+        chunk: "A".repeat(30),
+        text: "A".repeat(30),
+        source_id: "test-split",
+        start_index: 0,
+      });
+      expect(chunks[1]).toEqual({
+        chunk: "A".repeat(30),
+        text: "A".repeat(30),
+        source_id: "test-split",
+        start_index: 25,
+      });
+      expect(chunks[2]).toEqual({
+        chunk: "A".repeat(30),
+        text: "A".repeat(30),
+        source_id: "test-split",
+        start_index: 50,
+      });
+      expect(chunks[3]).toEqual({
+        chunk: "A".repeat(25),
+        text: "A".repeat(25),
+        source_id: "test-split",
+        start_index: 75,
+      });
     });
 
-    it("returns single chunk for short text", async () => {
+    it("returns single chunk for short text with correct fields", async () => {
       const node = new SplitDocumentNode();
       Object.assign(node, {
-          document: { text: "short" },
+          document: { text: "short", uri: "my-doc" },
           chunk_size: 100,
           chunk_overlap: 0,
         });
       const chunks = await collectGen(node.genProcess());
       expect(chunks).toHaveLength(1);
-      expect(chunks[0].chunk).toBe("short");
+      expect(chunks[0]).toEqual({
+        chunk: "short",
+        text: "short",
+        source_id: "my-doc",
+        start_index: 0,
+      });
+    });
+
+    it("falls back to 'document' source_id when no uri", async () => {
+      const node = new SplitDocumentNode();
+      Object.assign(node, {
+          document: { text: "hello" },
+          chunk_size: 100,
+          chunk_overlap: 0,
+        });
+      const chunks = await collectGen(node.genProcess());
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0].source_id).toBe("document");
     });
 
     it("returns empty for empty document", async () => {
@@ -663,33 +704,106 @@ describe("document nodes", () => {
 
   // -- SplitHTMLNode --
   describe("SplitHTMLNode", () => {
-    it("strips HTML tags and chunks", async () => {
+    it("strips HTML tags and chunks with correct metadata", async () => {
       const html = "<p>Hello</p> <b>World</b> " + "x".repeat(50);
       const node = new SplitHTMLNode();
       Object.assign(node, {
-          document: { text: html },
+          document: { text: html, uri: "test-html" },
           chunk_size: 20,
           chunk_overlap: 0,
         });
       const chunks = await collectGen(node.genProcess());
-      expect(chunks.length).toBeGreaterThan(0);
-      // First chunk should not contain HTML tags
-      expect(chunks[0].chunk as string).not.toContain("<");
+      // After stripping: "Hello World " + "x".repeat(50) = 62 chars
+      // chunk_size=20, overlap=0, step=20 => chunks at 0, 20, 40, 60
+      const stripped = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      expect(chunks).toHaveLength(4);
+      expect(chunks[0]).toEqual({
+        chunk: stripped.slice(0, 20),
+        text: stripped.slice(0, 20),
+        source_id: "test-html",
+        start_index: 0,
+      });
+      expect(chunks[1]).toEqual({
+        chunk: stripped.slice(20, 40),
+        text: stripped.slice(20, 40),
+        source_id: "test-html",
+        start_index: 20,
+      });
+      // No chunk should contain HTML tags
+      for (const c of chunks) {
+        expect(c.text as string).not.toContain("<");
+        expect(typeof c.source_id).toBe("string");
+        expect(typeof c.start_index).toBe("number");
+      }
+    });
+
+    it("returns single chunk for short HTML", async () => {
+      const node = new SplitHTMLNode();
+      Object.assign(node, {
+          document: { text: "<b>Hi</b>", uri: "short-html" },
+          chunk_size: 100,
+          chunk_overlap: 0,
+        });
+      const chunks = await collectGen(node.genProcess());
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]).toEqual({
+        chunk: "Hi",
+        text: "Hi",
+        source_id: "short-html",
+        start_index: 0,
+      });
     });
   });
 
   // -- SplitJSONNode --
   describe("SplitJSONNode", () => {
-    it("pretty-prints and chunks JSON", async () => {
+    it("pretty-prints and chunks JSON with correct metadata", async () => {
       const json = JSON.stringify({ a: 1, b: [1, 2, 3], c: "hello" });
+      const rendered = JSON.stringify(JSON.parse(json), null, 2);
       const node = new SplitJSONNode();
       Object.assign(node, {
-          document: { text: json },
+          document: { text: json, uri: "test-json" },
           chunk_size: 20,
           chunk_overlap: 0,
         });
       const chunks = await collectGen(node.genProcess());
-      expect(chunks.length).toBeGreaterThan(0);
+      // rendered is ~60 chars, chunk_size=20, step=20
+      expect(chunks.length).toBeGreaterThan(1);
+      expect(chunks[0]).toEqual({
+        chunk: rendered.slice(0, 20),
+        text: rendered.slice(0, 20),
+        source_id: "test-json",
+        start_index: 0,
+      });
+      // Verify all chunks have correct types and reconstruct the text
+      let reconstructed = "";
+      for (let i = 0; i < chunks.length; i++) {
+        expect(typeof chunks[i].text).toBe("string");
+        expect(typeof chunks[i].source_id).toBe("string");
+        expect(typeof chunks[i].start_index).toBe("number");
+        expect(chunks[i].source_id).toBe("test-json");
+        expect(chunks[i].chunk).toBe(chunks[i].text);
+        reconstructed += (chunks[i].text as string);
+      }
+      // With no overlap, concatenating all chunks should yield the full rendered text
+      expect(reconstructed).toBe(rendered);
+    });
+
+    it("returns single chunk for small JSON", async () => {
+      const node = new SplitJSONNode();
+      Object.assign(node, {
+          document: { text: '{"x":1}', uri: "tiny-json" },
+          chunk_size: 1000,
+          chunk_overlap: 0,
+        });
+      const chunks = await collectGen(node.genProcess());
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]).toEqual({
+        chunk: JSON.stringify({ x: 1 }, null, 2),
+        text: JSON.stringify({ x: 1 }, null, 2),
+        source_id: "tiny-json",
+        start_index: 0,
+      });
     });
   });
 

@@ -14,6 +14,9 @@ import {
   ChartGeneratorNode,
   SVGGeneratorNode,
   GENERATOR_NODES,
+  TeamAgentNode,
+  TeamLeadNode,
+  TEAM_NODES,
 } from "../src/index.js";
 
 function metadataDefaults(NodeCls: any) {
@@ -452,6 +455,10 @@ describe("AgentNode", () => {
       { getProvider: async () => mockProvider } as any
     );
     expect(result.text).toBe("Hello world");
+    expect(result.output).toBe("Hello world");
+    expect(result.chunk).toBeNull();
+    expect(result.thinking).toBeNull();
+    expect(result.audio).toBeNull();
   });
 
   it("prepares python-style messages including thread history, history, image, and audio", async () => {
@@ -687,6 +694,10 @@ describe("AgentNode", () => {
       { getProvider: async () => mockProvider } as any
     );
     expect(result.text).toBe("");
+    expect(result.output).toBe("");
+    expect(result.chunk).toBeNull();
+    expect(result.thinking).toBeNull();
+    expect(result.audio).toBeNull();
   });
 });
 
@@ -709,8 +720,15 @@ describe("ResearchAgentNode", () => {
     expect(result.output).toContain("Summary:");
     expect(result.output).toContain("Confidence: low");
     expect(result.text).toBe(result.output);
+    expect(Array.isArray(result.findings)).toBe(true);
     expect(result.findings).toHaveLength(1);
-    expect(result.findings[0].title).toBe("What is TypeScript?");
+    expect(result.findings[0]).toEqual(
+      expect.objectContaining({
+        title: "What is TypeScript?",
+        summary: expect.any(String),
+      })
+    );
+    expect(result.findings[0].summary.length).toBeGreaterThan(0);
   });
 
   it("falls back to prompt when query is empty", async () => {
@@ -731,7 +749,7 @@ describe("ResearchAgentNode", () => {
     const mockProvider = {
       generateMessage: async () => ({
         content:
-          '{"summary":"TypeScript is a typed superset of JavaScript.","findings":[{"title":"Overview","summary":"Adds static typing."}]}',
+          '{"summary":"TypeScript is a typed superset of JavaScript.","findings":[{"title":"Overview","summary":"Adds static typing.","source":"https://example.com"}]}',
       }),
       async generateMessageTraced(...a: any[]) { return (this as any).generateMessage(...a); },
     };
@@ -743,7 +761,15 @@ describe("ResearchAgentNode", () => {
       { getProvider: async () => mockProvider } as any
     );
     expect(result.text).toContain("typed superset");
-    expect(result.findings[0].title).toBe("Overview");
+    expect(Array.isArray(result.findings)).toBe(true);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toEqual(
+      expect.objectContaining({
+        title: "Overview",
+        summary: "Adds static typing.",
+        source: "https://example.com",
+      })
+    );
   });
 });
 
@@ -863,6 +889,77 @@ describe("StructuredOutputGeneratorNode", () => {
     const r2 = await n.process();
     expect(r2.output.instructions).toBe('{"a":1}');
     expect(r2.output.context).toBe("[1,2]");
+  });
+
+  it("maps int type alias to integer default 0", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = { count: { type: "int" } };
+    const result = await n.process();
+    expect(result.count).toBe(0);
+  });
+
+  it("maps float type alias to number default 0", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = { score: { type: "float" } };
+    const result = await n.process();
+    expect(result.score).toBe(0);
+  });
+
+  it("maps bool type alias to boolean default false", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = { enabled: { type: "bool" } };
+    const result = await n.process();
+    expect(result.enabled).toBe(false);
+  });
+
+  it("maps list type alias to array default []", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = { items: { type: "list" } };
+    const result = await n.process();
+    expect(result.items).toEqual([]);
+  });
+
+  it("maps dict type alias to object default {}", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = { metadata: { type: "dict" } };
+    const result = await n.process();
+    expect(result.metadata).toEqual({});
+  });
+
+  it("returns instructions/context fallback when _dynamic_outputs is empty object", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = {};
+    n.assign({ instructions: "do stuff", context: "some context" });
+    const result = await n.process();
+    expect(result.output).toEqual({
+      instructions: "do stuff",
+      context: "some context",
+    });
+  });
+
+  it("returns instructions/context fallback when _dynamic_outputs is an array", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = ["not", "an", "object"];
+    n.assign({ instructions: "test" });
+    const result = await n.process();
+    expect(result.output).toEqual({ instructions: "test", context: "" });
+  });
+
+  it("generates defaults for multiple fields of the same type", async () => {
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n._dynamic_outputs = {
+      first_name: { type: "str" },
+      last_name: { type: "str" },
+      age: { type: "integer" },
+      weight: { type: "number" },
+    };
+    const result = await n.process();
+    expect(result).toEqual({
+      first_name: "",
+      last_name: "",
+      age: 0,
+      weight: 0,
+    });
   });
 });
 
@@ -1280,6 +1377,50 @@ describe("ChartGeneratorNode", () => {
     expect(output.data.series[0].x_column).toBe("only");
     expect(output.data.series[0].y_column).toBe("only");
   });
+
+  it("output has type chart_config with proper series structure", async () => {
+    const n = new (ChartGeneratorNode as any)();
+    n.assign({
+      prompt: "bar chart",
+      data: {
+        rows: [
+          { category: "A", value: 10 },
+          { category: "B", value: 20 },
+        ],
+      },
+    });
+    const result = await n.process();
+    const output = result.output as any;
+    expect(output.type).toBe("chart_config");
+    expect(output.title).toBe("bar chart");
+    expect(output.x_label).toBe("category");
+    expect(output.y_label).toBe("value");
+    expect(output.legend).toBe(true);
+    expect(output.legend_position).toBe("auto");
+    expect(output.corner).toBe(false);
+    expect(output.annot).toBe(false);
+    expect(output.square).toBe(false);
+    expect(output.fmt).toBe(".2g");
+    // series structure
+    expect(output.data.type).toBe("chart_data");
+    expect(Array.isArray(output.data.series)).toBe(true);
+    expect(output.data.series).toHaveLength(1);
+    expect(output.data.series[0]).toEqual({
+      type: "bar",
+      x_column: "category",
+      y_column: "value",
+      label: "bar chart",
+    });
+    expect(output.data.row).toBeNull();
+    expect(output.data.col).toBeNull();
+    expect(output.data.col_wrap).toBeNull();
+    // nullable config fields
+    expect(output.height).toBeNull();
+    expect(output.aspect).toBeNull();
+    expect(output.x_lim).toBeNull();
+    expect(output.y_lim).toBeNull();
+    expect(output.palette).toBeNull();
+  });
 });
 
 // ---- SVGGeneratorNode ----
@@ -1333,5 +1474,286 @@ describe("SVGGeneratorNode", () => {
 
   it("defaults width/height to 512 when given 0 or NaN", async () => {
     expectMetadataDefaults(SVGGeneratorNode);
+  });
+
+  it("output is an array with one svg_element containing content field", async () => {
+    const n = new (SVGGeneratorNode as any)();
+    n.assign({ prompt: "test shape" });
+    const result = await n.process();
+    expect(Array.isArray(result.output)).toBe(true);
+    expect(result.output).toHaveLength(1);
+    const element = (result.output as any[])[0];
+    expect(element).toHaveProperty("content");
+    expect(typeof element.content).toBe("string");
+    expect(element.content).toContain("<svg");
+    expect(element.content).toContain("</svg>");
+    expect(element.content).toContain('xmlns="http://www.w3.org/2000/svg"');
+  });
+
+  it("generates valid SVG structure with rect and text elements", async () => {
+    const n = new (SVGGeneratorNode as any)();
+    n.assign({ prompt: "my icon" });
+    const result = await n.process();
+    const svg = (result.output as any[])[0].content;
+    expect(svg).toContain('<rect width="100%" height="100%" fill="#f2f2f2"/>');
+    expect(svg).toContain('font-size="20"');
+    expect(svg).toContain("my icon");
+  });
+
+  it("falls back to 512 when width/height are 0", async () => {
+    const n = new (SVGGeneratorNode as any)();
+    n.assign({ prompt: "zero dims" });
+    n.width = 0;
+    n.height = 0;
+    const result = await n.process();
+    const svg = (result.output as any[])[0].content;
+    expect(svg).toContain('width="512"');
+    expect(svg).toContain('height="512"');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// team.ts
+// ---------------------------------------------------------------------------
+
+describe("TEAM_NODES export", () => {
+  it("contains TeamAgentNode and TeamLeadNode", () => {
+    expect(TEAM_NODES).toHaveLength(2);
+    expect(TEAM_NODES).toContain(TeamAgentNode);
+    expect(TEAM_NODES).toContain(TeamLeadNode);
+  });
+});
+
+// ---- TeamAgentNode ----
+describe("TeamAgentNode", () => {
+  it("has correct static metadata", () => {
+    expect(TeamAgentNode.nodeType).toBe("nodetool.team.Agent");
+    expect(TeamAgentNode.title).toBe("Agent");
+    expect(TeamAgentNode.isControlled).toBe(true);
+    expect(TeamAgentNode.metadataOutputTypes).toEqual({ result: "str" });
+  });
+
+  it("defaults", () => {
+    expectMetadataDefaults(TeamAgentNode);
+  });
+
+  it("process() returns empty string when no response is set", async () => {
+    const n = new (TeamAgentNode as any)();
+    const result = await n.process();
+    expect(result).toEqual({ result: "" });
+  });
+
+  it("process() returns __agent_response__ when set", async () => {
+    const n = new (TeamAgentNode as any)();
+    (n as any).__agent_response__ = "Agent completed the task successfully.";
+    const result = await n.process();
+    expect(result).toEqual({ result: "Agent completed the task successfully." });
+  });
+
+  it("process() returns response property when __agent_response__ is not set", async () => {
+    const n = new (TeamAgentNode as any)();
+    (n as any).response = "Fallback response text";
+    const result = await n.process();
+    expect(result).toEqual({ result: "Fallback response text" });
+  });
+
+  it("process() prefers __agent_response__ over response", async () => {
+    const n = new (TeamAgentNode as any)();
+    (n as any).__agent_response__ = "preferred";
+    (n as any).response = "fallback";
+    const result = await n.process();
+    expect(result).toEqual({ result: "preferred" });
+  });
+
+  it("process() coerces non-string values to string", async () => {
+    const n = new (TeamAgentNode as any)();
+    (n as any).__agent_response__ = 42;
+    const result = await n.process();
+    expect(result).toEqual({ result: "42" });
+  });
+
+  it("toIdentity() returns correct agent identity from defaults", () => {
+    const n = new (TeamAgentNode as any)();
+    n.assign({
+      name: "researcher",
+      role: "Research specialist",
+      skills: ["web_search", "analysis"],
+      provider: "openai",
+      model: "gpt-4",
+      tools: ["search_tool"],
+    });
+    n.__node_id = "node-123";
+    const identity = n.toIdentity();
+    expect(identity).toEqual({
+      id: "node-123",
+      name: "researcher",
+      role: "Research specialist",
+      skills: ["web_search", "analysis"],
+      provider: "openai",
+      model: "gpt-4",
+      tools: ["search_tool"],
+    });
+  });
+
+  it("toIdentity() uses defaults when properties are empty", () => {
+    const n = new (TeamAgentNode as any)();
+    const identity = n.toIdentity();
+    expect(identity.name).toBe("Agent");
+    expect(identity.role).toBe("General purpose assistant");
+    expect(identity.skills).toEqual([]);
+    expect(identity.provider).toBe("anthropic");
+    expect(identity.model).toContain("claude");
+    expect(identity.tools).toEqual([]);
+  });
+
+  it("toIdentity() uses __node_id when set, falls back to name", () => {
+    const n = new (TeamAgentNode as any)();
+    n.assign({ name: "writer" });
+    // No __node_id set, should fall back to name
+    n.__node_id = "";
+    const identity = n.toIdentity();
+    expect(identity.id).toBe("writer");
+  });
+
+  it("toIdentity() handles non-array skills/tools gracefully", () => {
+    const n = new (TeamAgentNode as any)();
+    n.assign({ name: "test" });
+    n.skills = "not_an_array";
+    n.tools = null;
+    const identity = n.toIdentity();
+    expect(identity.skills).toEqual([]);
+    expect(identity.tools).toEqual([]);
+  });
+});
+
+// ---- TeamLeadNode ----
+describe("TeamLeadNode", () => {
+  it("has correct static metadata", () => {
+    expect(TeamLeadNode.nodeType).toBe("nodetool.team.TeamLead");
+    expect(TeamLeadNode.title).toBe("Team Lead");
+    expect(TeamLeadNode.metadataOutputTypes).toEqual({
+      result: "json",
+      board: "json",
+      messages: "list",
+      events: "list",
+    });
+  });
+
+  it("defaults", () => {
+    expectMetadataDefaults(TeamLeadNode);
+  });
+
+  it("throws when objective is empty", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "" });
+    await expect(n.process({} as any)).rejects.toThrow("Objective is required");
+  });
+
+  it("throws when context is not provided", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "Do something" });
+    await expect(n.process()).rejects.toThrow("Processing context is required");
+  });
+
+  it("throws when no agents are found (no control context, no inline agents)", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "Build a website" });
+    // Provide a context but no _control_context and no inline agents
+    const mockContext = {} as any;
+    await expect(n.process(mockContext)).rejects.toThrow(
+      "No agents found. Connect Agent nodes below this TeamLead via control edges."
+    );
+  });
+
+  it("genProcess throws for empty objective", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "" });
+    const gen = n.genProcess({} as any);
+    await expect(gen.next()).rejects.toThrow("Objective is required");
+  });
+
+  it("genProcess throws for missing context", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "Do something" });
+    const gen = n.genProcess();
+    await expect(gen.next()).rejects.toThrow("Processing context is required");
+  });
+
+  it("discovers agents from _control_context", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "Test objective" });
+
+    // Set up _control_context with a mock agent node
+    n.setDynamic("_control_context", {
+      "agent-1": {
+        node_type: "nodetool.team.Agent",
+        node_title: "Researcher",
+        properties: {
+          name: { value: "researcher" },
+          role: { value: "Research specialist" },
+          skills: { value: ["web_search"] },
+          provider: { value: "anthropic" },
+          model: { value: "claude-sonnet-4-20250514" },
+          tools: { value: [] },
+        },
+      },
+    });
+
+    // This will fail at TeamExecutor creation (needs DB), but we can verify
+    // it gets past the "No agents found" check
+    const mockContext = {} as any;
+    await expect(n.process(mockContext)).rejects.not.toThrow(
+      "No agents found"
+    );
+  });
+
+  it("ignores non-Agent node types in _control_context", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "Test objective" });
+
+    // Set up _control_context with a non-agent node type only
+    n.setDynamic("_control_context", {
+      "node-1": {
+        node_type: "nodetool.some.OtherNode",
+        node_title: "Other",
+        properties: {},
+      },
+    });
+
+    const mockContext = {} as any;
+    await expect(n.process(mockContext)).rejects.toThrow(
+      "No agents found"
+    );
+  });
+
+  it("falls back to inline agents when _control_context has no Agent nodes", async () => {
+    const n = new (TeamLeadNode as any)();
+    n.assign({ objective: "Test objective" });
+
+    // Set inline agents via setDynamic
+    n.setDynamic("agents", [
+      {
+        id: "inline-1",
+        name: "Writer",
+        role: "Content writer",
+        skills: ["writing"],
+        provider: "openai",
+        model: "gpt-4",
+        tools: [],
+      },
+    ]);
+
+    // This will fail at TeamExecutor (needs DB), but should get past "No agents found"
+    const mockContext = {} as any;
+    await expect(n.process(mockContext)).rejects.not.toThrow(
+      "No agents found"
+    );
+  });
+
+  it("uses default strategy and iteration values", () => {
+    const n = new (TeamLeadNode as any)();
+    expect(n.strategy).toBe("coordinator");
+    expect(n.max_iterations).toBe(50);
+    expect(n.max_concurrency).toBe(3);
   });
 });

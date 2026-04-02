@@ -3510,3 +3510,1294 @@ describe("code.ts round 2", () => {
     expect(typeof res.output).toBe("string");
   });
 });
+
+// ============================================================================
+// code.ts round 3: strengthen all return field assertions + missing nodes
+// ============================================================================
+
+// Helper to assert the full shape of Execute and Run node process() results.
+// Every result must have: stdout (string), stderr (string), exit_code (number),
+// output (string), success (boolean).
+function assertFullResult(
+  res: { stdout: string; stderr: string; exit_code: number; output: string; success: boolean },
+  expected: {
+    stdoutContains?: string;
+    stdoutEquals?: string;
+    stderrContains?: string;
+    exit_code: number;
+    success: boolean;
+  },
+) {
+  // All five fields must be present and correctly typed
+  expect(typeof res.stdout).toBe("string");
+  expect(typeof res.stderr).toBe("string");
+  expect(typeof res.exit_code).toBe("number");
+  expect(typeof res.output).toBe("string");
+  expect(typeof res.success).toBe("boolean");
+
+  // output should equal stdout
+  expect(res.output).toBe(res.stdout);
+
+  // Specific value checks
+  expect(res.exit_code).toBe(expected.exit_code);
+  expect(res.success).toBe(expected.success);
+
+  if (expected.stdoutContains !== undefined) {
+    expect(res.stdout).toContain(expected.stdoutContains);
+  }
+  if (expected.stdoutEquals !== undefined) {
+    expect(res.stdout.trim()).toBe(expected.stdoutEquals);
+  }
+  if (expected.stderrContains !== undefined) {
+    expect(res.stderr).toContain(expected.stderrContains);
+  }
+}
+
+describe("code.ts round 3 — full return field verification", () => {
+  // ---- ExecuteBashNode: strengthen existing weak tests ----
+
+  it("ExecuteBash verifies all 5 return fields", async () => {
+    const node = new ExecuteBashNode();
+    node.assign({ code: "echo hello_world", execution_mode: "subprocess" });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "hello_world",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteBash with stderr verifies all fields", async () => {
+    const node = new ExecuteBashNode();
+    node.assign({
+      code: "echo out_line; echo err_line >&2",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutContains: "out_line",
+      stderrContains: "err_line",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteBash with failing exit code", async () => {
+    const node = new ExecuteBashNode();
+    node.assign({ code: "exit 42", execution_mode: "subprocess" });
+    const res = await node.process();
+    assertFullResult(res, {
+      exit_code: 42,
+      success: false,
+    });
+  });
+
+  it("ExecuteBash empty code throws", async () => {
+    const node = new ExecuteBashNode();
+    node.assign({ code: "", execution_mode: "subprocess" });
+    await expect(node.process()).rejects.toThrow("Code is required");
+  });
+
+  // ---- ExecuteJavaScriptNode: strengthen ----
+
+  it("ExecuteJavaScript verifies all 5 return fields", async () => {
+    const node = new ExecuteJavaScriptNode();
+    node.assign({
+      code: "console.log('js_output')",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "js_output",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteJavaScript with stderr", async () => {
+    const node = new ExecuteJavaScriptNode();
+    node.assign({
+      code: "console.error('js_err'); console.log('js_out')",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutContains: "js_out",
+      stderrContains: "js_err",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteJavaScript with failing exit code", async () => {
+    const node = new ExecuteJavaScriptNode();
+    node.assign({
+      code: "process.exit(7)",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      exit_code: 7,
+      success: false,
+    });
+  });
+
+  it("ExecuteJavaScript empty code throws", async () => {
+    const node = new ExecuteJavaScriptNode();
+    node.assign({ code: "   ", execution_mode: "subprocess" });
+    await expect(node.process()).rejects.toThrow("Code is required");
+  });
+
+  // ---- ExecuteRubyNode: NEW process() tests ----
+
+  it("ExecuteRuby verifies all 5 return fields", async () => {
+    const node = new ExecuteRubyNode();
+    node.assign({
+      code: 'puts "ruby_output"',
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "ruby_output",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteRuby with stderr", async () => {
+    const node = new ExecuteRubyNode();
+    node.assign({
+      code: '$stderr.puts "ruby_err"; puts "ruby_out"',
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutContains: "ruby_out",
+      stderrContains: "ruby_err",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteRuby with failing exit code", async () => {
+    const node = new ExecuteRubyNode();
+    node.assign({
+      code: "exit 3",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      exit_code: 3,
+      success: false,
+    });
+  });
+
+  it("ExecuteRuby empty code throws", async () => {
+    const node = new ExecuteRubyNode();
+    node.assign({ code: "", execution_mode: "subprocess" });
+    await expect(node.process()).rejects.toThrow("Code is required");
+  });
+
+  // ---- ExecuteLuaNode: NEW process() tests ----
+
+  it("ExecuteLua verifies all 5 return fields", async () => {
+    const node = new ExecuteLuaNode();
+    node.assign({
+      code: 'print("lua_output")',
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "lua_output",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteLua with error produces stderr", async () => {
+    const node = new ExecuteLuaNode();
+    node.assign({
+      code: 'error("lua_err_msg")',
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    // Verify all fields exist and are correctly typed
+    expect(typeof res.stdout).toBe("string");
+    expect(typeof res.stderr).toBe("string");
+    expect(typeof res.exit_code).toBe("number");
+    expect(typeof res.output).toBe("string");
+    expect(typeof res.success).toBe("boolean");
+    expect(res.output).toBe(res.stdout);
+    expect(res.stderr).toContain("lua_err_msg");
+    expect(res.exit_code).not.toBe(0);
+    expect(res.success).toBe(false);
+  });
+
+  it("ExecuteLua with syntax error produces non-zero exit", async () => {
+    const node = new ExecuteLuaNode();
+    node.assign({
+      code: "this is not valid lua !!!",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    expect(typeof res.stdout).toBe("string");
+    expect(typeof res.stderr).toBe("string");
+    expect(typeof res.exit_code).toBe("number");
+    expect(typeof res.output).toBe("string");
+    expect(typeof res.success).toBe("boolean");
+    expect(res.exit_code).not.toBe(0);
+    expect(res.success).toBe(false);
+  });
+
+  it("ExecuteLua empty code throws", async () => {
+    const node = new ExecuteLuaNode();
+    node.assign({ code: "", execution_mode: "subprocess" });
+    await expect(node.process()).rejects.toThrow("Code is required");
+  });
+
+  // ---- ExecuteCommandNode: strengthen ----
+
+  it("ExecuteCommand verifies all 5 return fields", async () => {
+    const node = new ExecuteCommandNode();
+    node.assign({
+      command: "echo cmd_output",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "cmd_output",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("ExecuteCommand with failing exit code", async () => {
+    const node = new ExecuteCommandNode();
+    node.assign({
+      command: "false",
+      execution_mode: "subprocess",
+    });
+    const res = await node.process();
+    expect(typeof res.stdout).toBe("string");
+    expect(typeof res.stderr).toBe("string");
+    expect(typeof res.exit_code).toBe("number");
+    expect(typeof res.output).toBe("string");
+    expect(typeof res.success).toBe("boolean");
+    expect(res.output).toBe(res.stdout);
+    expect(res.exit_code).not.toBe(0);
+    expect(res.success).toBe(false);
+  });
+
+  it("ExecuteCommand empty command throws", async () => {
+    const node = new ExecuteCommandNode();
+    node.assign({ command: "", execution_mode: "subprocess" });
+    await expect(node.process()).rejects.toThrow("Command is required");
+  });
+
+  // ---- RunPythonCommandNode: NEW process() test ----
+
+  it("RunPythonCommand verifies all 5 return fields", async () => {
+    const node = new RunPythonCommandNode();
+    node.assign({ command: "print('py_run')" });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "py_run",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  it("RunPythonCommand empty command returns empty success", async () => {
+    const node = new RunPythonCommandNode();
+    node.assign({ command: "" });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  // ---- RunJavaScriptCommandNode: strengthen ----
+
+  it("RunJavaScriptCommand verifies all 5 return fields", async () => {
+    const node = new RunJavaScriptCommandNode();
+    node.assign({ command: "console.log('js_run')" });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "js_run",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  // ---- RunBashCommandNode: strengthen ----
+
+  it("RunBashCommand verifies all 5 return fields", async () => {
+    const node = new RunBashCommandNode();
+    node.assign({ command: "echo bash_run" });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "bash_run",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  // ---- RunRubyCommandNode: NEW process() test ----
+
+  it("RunRubyCommand verifies all 5 return fields", async () => {
+    const node = new RunRubyCommandNode();
+    node.assign({ command: 'puts "ruby_run"' });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "ruby_run",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  // ---- RunLuaCommandNode: NEW process() test ----
+
+  it("RunLuaCommand verifies all 5 return fields", async () => {
+    const node = new RunLuaCommandNode();
+    node.assign({ command: 'print("lua_run")' });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "lua_run",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  // ---- RunShellCommandNode: strengthen ----
+
+  it("RunShellCommand verifies all 5 return fields", async () => {
+    const node = new RunShellCommandNode();
+    node.assign({ command: "echo shell_run" });
+    const res = await node.process();
+    assertFullResult(res, {
+      stdoutEquals: "shell_run",
+      exit_code: 0,
+      success: true,
+    });
+  });
+
+  // ---- Docker variants: verify construction + empty command behavior ----
+
+  it("RunPythonCommandDockerNode constructs correctly", () => {
+    const node = new RunPythonCommandDockerNode();
+    expect(RunPythonCommandDockerNode.nodeType).toBe("nodetool.code.RunPythonCommandDocker");
+    expect(RunPythonCommandDockerNode.defaultMode).toBe("docker");
+    expect(RunPythonCommandDockerNode.lang).toBe("python");
+    const s = node.serialize();
+    expect(s).toHaveProperty("command");
+    expect(s).toHaveProperty("image");
+  });
+
+  it("RunPythonCommandDockerNode empty command returns empty success", async () => {
+    const node = new RunPythonCommandDockerNode();
+    node.assign({ command: "" });
+    const res = await node.process();
+    assertFullResult(res, { stdoutEquals: "", exit_code: 0, success: true });
+  });
+
+  it("RunJavaScriptCommandDockerNode constructs correctly", () => {
+    const node = new RunJavaScriptCommandDockerNode();
+    expect(RunJavaScriptCommandDockerNode.nodeType).toBe("nodetool.code.RunJavaScriptCommandDocker");
+    expect(RunJavaScriptCommandDockerNode.defaultMode).toBe("docker");
+    expect(RunJavaScriptCommandDockerNode.lang).toBe("javascript");
+    const s = node.serialize();
+    expect(s).toHaveProperty("command");
+    expect(s).toHaveProperty("image");
+  });
+
+  it("RunJavaScriptCommandDockerNode empty command returns empty success", async () => {
+    const node = new RunJavaScriptCommandDockerNode();
+    node.assign({ command: "" });
+    const res = await node.process();
+    assertFullResult(res, { stdoutEquals: "", exit_code: 0, success: true });
+  });
+
+  it("RunBashCommandDockerNode constructs correctly", () => {
+    const node = new RunBashCommandDockerNode();
+    expect(RunBashCommandDockerNode.nodeType).toBe("nodetool.code.RunBashCommandDocker");
+    expect(RunBashCommandDockerNode.defaultMode).toBe("docker");
+    expect(RunBashCommandDockerNode.lang).toBe("bash");
+    const s = node.serialize();
+    expect(s).toHaveProperty("command");
+    expect(s).toHaveProperty("image");
+  });
+
+  it("RunBashCommandDockerNode empty command returns empty success", async () => {
+    const node = new RunBashCommandDockerNode();
+    node.assign({ command: "" });
+    const res = await node.process();
+    assertFullResult(res, { stdoutEquals: "", exit_code: 0, success: true });
+  });
+
+  it("RunRubyCommandDockerNode constructs correctly", () => {
+    const node = new RunRubyCommandDockerNode();
+    expect(RunRubyCommandDockerNode.nodeType).toBe("nodetool.code.RunRubyCommandDocker");
+    expect(RunRubyCommandDockerNode.defaultMode).toBe("docker");
+    expect(RunRubyCommandDockerNode.lang).toBe("ruby");
+    const s = node.serialize();
+    expect(s).toHaveProperty("command");
+    expect(s).toHaveProperty("image");
+  });
+
+  it("RunRubyCommandDockerNode empty command returns empty success", async () => {
+    const node = new RunRubyCommandDockerNode();
+    node.assign({ command: "" });
+    const res = await node.process();
+    assertFullResult(res, { stdoutEquals: "", exit_code: 0, success: true });
+  });
+
+  it("RunLuaCommandDockerNode constructs correctly", () => {
+    const node = new RunLuaCommandDockerNode();
+    expect(RunLuaCommandDockerNode.nodeType).toBe("nodetool.code.RunLuaCommandDocker");
+    expect(RunLuaCommandDockerNode.defaultMode).toBe("docker");
+    expect(RunLuaCommandDockerNode.lang).toBe("lua");
+    const s = node.serialize();
+    expect(s).toHaveProperty("command");
+    expect(s).toHaveProperty("image");
+  });
+
+  it("RunLuaCommandDockerNode empty command returns empty success", async () => {
+    const node = new RunLuaCommandDockerNode();
+    node.assign({ command: "" });
+    const res = await node.process();
+    assertFullResult(res, { stdoutEquals: "", exit_code: 0, success: true });
+  });
+
+  it("RunShellCommandDockerNode constructs correctly", () => {
+    const node = new RunShellCommandDockerNode();
+    expect(RunShellCommandDockerNode.nodeType).toBe("nodetool.code.RunShellCommandDocker");
+    expect(RunShellCommandDockerNode.defaultMode).toBe("docker");
+    expect(RunShellCommandDockerNode.lang).toBe("command");
+    const s = node.serialize();
+    expect(s).toHaveProperty("command");
+    expect(s).toHaveProperty("image");
+  });
+
+  it("RunShellCommandDockerNode empty command returns empty success", async () => {
+    const node = new RunShellCommandDockerNode();
+    node.assign({ command: "" });
+    const res = await node.process();
+    assertFullResult(res, { stdoutEquals: "", exit_code: 0, success: true });
+  });
+});
+
+// ============================================================================
+// Audio signal verification helpers
+// ============================================================================
+
+/** Decode a base64 WAV AudioRef into Float32Array samples */
+function decodeTestWav(audioRef: { data?: string | Uint8Array }): {
+  samples: Float32Array;
+  sampleRate: number;
+  numChannels: number;
+} {
+  let rawData: Uint8Array;
+  if (typeof audioRef.data === "string") {
+    rawData = Uint8Array.from(Buffer.from(audioRef.data, "base64"));
+  } else if (audioRef.data instanceof Uint8Array) {
+    rawData = audioRef.data;
+  } else {
+    throw new Error("No data");
+  }
+  const buf = Buffer.from(rawData);
+  const sampleRate = buf.readUInt32LE(24);
+  const bitsPerSample = buf.readUInt16LE(34);
+  const numChannels = buf.readUInt16LE(22);
+
+  let dataOffset = 36;
+  while (dataOffset < buf.length - 8) {
+    const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
+    const chunkSize = buf.readUInt32LE(dataOffset + 4);
+    if (chunkId === "data") {
+      dataOffset += 8;
+      break;
+    }
+    dataOffset += 8 + chunkSize;
+  }
+
+  const bytesPerSample = bitsPerSample / 8;
+  const totalSamples = Math.floor((buf.length - dataOffset) / bytesPerSample);
+  const samples = new Float32Array(totalSamples);
+  for (let i = 0; i < totalSamples; i++) {
+    const pos = dataOffset + i * bytesPerSample;
+    if (bitsPerSample === 16) {
+      samples[i] = buf.readInt16LE(pos) / 0x7fff;
+    } else if (bitsPerSample === 8) {
+      samples[i] = (buf.readUInt8(pos) - 128) / 128;
+    }
+  }
+  return { samples, sampleRate, numChannels };
+}
+
+/** RMS of a Float32Array */
+function rmsVal(arr: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) sum += arr[i] * arr[i];
+  return Math.sqrt(sum / arr.length);
+}
+
+/** Max absolute value */
+function maxAbsVal(arr: Float32Array): number {
+  let m = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const a = Math.abs(arr[i]);
+    if (a > m) m = a;
+  }
+  return m;
+}
+
+/** Check if two Float32Arrays differ meaningfully */
+function arraysAreDifferent(a: Float32Array, b: Float32Array, threshold = 0.001): boolean {
+  const len = Math.min(a.length, b.length);
+  let diffSum = 0;
+  for (let i = 0; i < len; i++) diffSum += Math.abs(a[i] - b[i]);
+  return diffSum / len > threshold;
+}
+
+// ============================================================================
+// lib-audio-dsp: signal verification tests
+// ============================================================================
+
+describe("lib-audio-dsp signal verification", () => {
+  it("Gain +6dB roughly doubles amplitude", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+    const inputRms = rmsVal(inputSamples);
+
+    const node = new GainNode_();
+    node.assign({ audio, gain_db: 6 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+    const outputRms = rmsVal(outputSamples);
+
+    // +6dB should approximately double amplitude (factor ~2.0)
+    const ratio = outputRms / inputRms;
+    expect(ratio).toBeGreaterThan(1.8);
+    expect(ratio).toBeLessThan(2.2);
+  });
+
+  it("Gain -6dB roughly halves amplitude", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+    const inputRms = rmsVal(inputSamples);
+
+    const node = new GainNode_();
+    node.assign({ audio, gain_db: -6 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+    const outputRms = rmsVal(outputSamples);
+
+    const ratio = outputRms / inputRms;
+    expect(ratio).toBeGreaterThan(0.4);
+    expect(ratio).toBeLessThan(0.6);
+  });
+
+  it("Gain 0dB preserves signal", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new GainNode_();
+    node.assign({ audio, gain_db: 0 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    // Should be essentially identical
+    expect(outputSamples.length).toBe(inputSamples.length);
+    for (let i = 0; i < inputSamples.length; i++) {
+      expect(Math.abs(outputSamples[i] - inputSamples[i])).toBeLessThan(0.01);
+    }
+  });
+
+  it("Delay output is longer than input", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputLen = decodeTestWav(audio).samples.length;
+
+    const node = new DelayNode_();
+    node.assign({ audio, delay_seconds: 0.1, feedback: 0.3, mix: 0.5 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    // Output should be longer (extra space for delay echoes)
+    expect(outputSamples.length).toBeGreaterThan(inputLen);
+  });
+
+  it("Delay with feedback produces echoes after dry signal ends", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputLen = decodeTestWav(audio).samples.length;
+
+    const node = new DelayNode_();
+    node.assign({ audio, delay_seconds: 0.1, feedback: 0.5, mix: 0.5 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    // After the original signal ends, there should still be echo energy
+    const tailSamples = outputSamples.slice(inputLen);
+    const tailRms = rmsVal(tailSamples);
+    expect(tailRms).toBeGreaterThan(0.01);
+  });
+
+  it("HighPassFilter changes signal content", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new HighPassFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 2000 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    // 440Hz signal through 2000Hz highpass should be attenuated
+    expect(rmsVal(outputSamples)).toBeLessThan(rmsVal(inputSamples));
+  });
+
+  it("LowPassFilter changes signal content", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new LowPassFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 200 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    // 440Hz signal through 200Hz lowpass should be attenuated
+    expect(rmsVal(outputSamples)).toBeLessThan(rmsVal(inputSamples));
+  });
+
+  it("HighShelfFilter with positive gain boosts", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new HighShelfFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 200, gain_db: 12 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    // 440Hz is above 200Hz, so +12dB shelf should boost
+    expect(rmsVal(outputSamples)).toBeGreaterThan(rmsVal(inputSamples));
+  });
+
+  it("LowShelfFilter with negative gain cuts", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new LowShelfFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 1000, gain_db: -12 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    // 440Hz is below 1000Hz, so -12dB shelf should cut
+    expect(rmsVal(outputSamples)).toBeLessThan(rmsVal(inputSamples));
+  });
+
+  it("PeakFilter preserves length and produces valid output", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new PeakFilterNode();
+    node.assign({ audio, cutoff_frequency_hz: 440, q_factor: 5 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    expect(maxAbsVal(outputSamples)).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
+// lib-audio-effects: signal verification tests
+// ============================================================================
+
+describe("lib-audio-effects signal verification", () => {
+  it("Bitcrush reduces sample resolution", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new BitcrushNode();
+    node.assign({ audio, bit_depth: 4, sample_rate_reduction: 1 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    // With 4-bit depth, samples should be quantized to fewer unique values
+    const uniqueInput = new Set(Array.from(inputSamples).map(v => Math.round(v * 1000)));
+    const uniqueOutput = new Set(Array.from(outputSamples).map(v => Math.round(v * 1000)));
+    expect(uniqueOutput.size).toBeLessThan(uniqueInput.size);
+    expect(arraysAreDifferent(inputSamples, outputSamples)).toBe(true);
+  });
+
+  it("Bitcrush with sample rate reduction creates staircase", async () => {
+    const audio = shortSine(8000, 0.1);
+    const node = new BitcrushNode();
+    node.assign({ audio, bit_depth: 16, sample_rate_reduction: 4 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    // With srr=4, every 4 consecutive samples should be identical
+    for (let i = 0; i < outputSamples.length - 4; i += 4) {
+      expect(outputSamples[i]).toBeCloseTo(outputSamples[i + 1], 4);
+      expect(outputSamples[i]).toBeCloseTo(outputSamples[i + 2], 4);
+      expect(outputSamples[i]).toBeCloseTo(outputSamples[i + 3], 4);
+    }
+  });
+
+  it("Compress reduces dynamic range", async () => {
+    // Make audio with both quiet and loud parts
+    const n = 800;
+    const samples = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      // Loud sine for first half, quiet for second
+      const amp = i < n / 2 ? 0.9 : 0.1;
+      samples[i] = amp * Math.sin((2 * Math.PI * 440 * i) / 8000);
+    }
+    const audio = makeAudioRef(samples, 8000);
+
+    const node = new CompressNode();
+    node.assign({ audio, threshold: -10, ratio: 8, attack: 1, release: 20 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(n);
+    // Loud part should be reduced
+    const loudInputRms = rmsVal(samples.slice(100, n / 2));
+    const loudOutputRms = rmsVal(outputSamples.slice(100, n / 2));
+    expect(loudOutputRms).toBeLessThan(loudInputRms);
+  });
+
+  it("Distortion applies soft clipping", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new DistortionNode();
+    node.assign({ audio, drive_db: 30 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    expect(arraysAreDifferent(inputSamples, outputSamples)).toBe(true);
+    // Distortion with atan keeps values in [-1, 1]
+    expect(maxAbsVal(outputSamples)).toBeLessThanOrEqual(1.0);
+    // High drive should push samples toward saturation (higher RMS relative to peak)
+    const inputCrest = maxAbsVal(inputSamples) / rmsVal(inputSamples);
+    const outputCrest = maxAbsVal(outputSamples) / rmsVal(outputSamples);
+    expect(outputCrest).toBeLessThan(inputCrest);
+  });
+
+  it("Limiter caps peaks", async () => {
+    const audio = shortSine(8000, 0.1);
+
+    const node = new LimiterNode();
+    node.assign({ audio, threshold_db: -12, release_ms: 50 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    const threshold = Math.pow(10, -12 / 20);
+    // After limiter settles, peaks should be near or below threshold
+    const laterSamples = outputSamples.slice(100);
+    const laterMax = maxAbsVal(laterSamples);
+    expect(laterMax).toBeLessThan(threshold + 0.1);
+  });
+
+  it("Reverb adds tail energy beyond dry signal", async () => {
+    // Short impulse-like signal
+    const n = 400;
+    const samples = new Float32Array(n);
+    samples[0] = 0.9;
+    samples[1] = 0.5;
+    samples[2] = 0.2;
+    const audio = makeAudioRef(samples, 8000);
+
+    const node = new ReverbNode();
+    node.assign({ audio, room_scale: 0.8, damping: 0.3, wet_level: 0.5, dry_level: 0.5 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(n);
+    // The tail (after the impulse) should have energy from reverb
+    const tailRms = rmsVal(outputSamples.slice(50));
+    expect(tailRms).toBeGreaterThan(0.001);
+  });
+
+  it("NoiseGate silences below threshold", async () => {
+    // Create audio with loud and quiet sections
+    const n = 800;
+    const samples = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const amp = i < n / 2 ? 0.8 : 0.001;
+      samples[i] = amp * Math.sin((2 * Math.PI * 440 * i) / 8000);
+    }
+    const audio = makeAudioRef(samples, 8000);
+
+    const node = new NoiseGateNode();
+    node.assign({ audio, threshold_db: -20, attack_ms: 1, release_ms: 10 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(n);
+    // Quiet section should be gated (very low)
+    const quietPartRms = rmsVal(outputSamples.slice(n / 2 + 100));
+    expect(quietPartRms).toBeLessThan(0.01);
+  });
+
+  it("Phaser modifies signal differently from input", async () => {
+    const audio = shortSine(8000, 0.1);
+    const inputSamples = decodeTestWav(audio).samples;
+
+    const node = new PhaserNode();
+    node.assign({ audio, rate_hz: 2, depth: 0.8, mix: 0.5 });
+    const res = await node.process();
+    const outputSamples = decodeTestWav(res.output as { data: string }).samples;
+
+    expect(outputSamples.length).toBe(inputSamples.length);
+    expect(arraysAreDifferent(inputSamples, outputSamples)).toBe(true);
+    expect(maxAbsVal(outputSamples)).toBeGreaterThan(0);
+  });
+
+  it("PitchShift changes pitch", async () => {
+    const audio = shortSine(8000, 0.1);
+
+    const node = new PitchShiftNode();
+    node.assign({ audio, semitones: 5 });
+    const res = await node.process();
+    const out = res.output as { data: string };
+    const outputSamples = decodeTestWav(out).samples;
+
+    // Output should exist and be non-empty
+    expect(outputSamples.length).toBeGreaterThan(0);
+    expect(maxAbsVal(outputSamples)).toBeGreaterThan(0);
+  });
+
+  it("TimeStretch produces output with different length", async () => {
+    // Use longer audio for SoundTouch to work properly
+    const audio = longSine(8000, 0.5);
+    const inputLen = decodeTestWav(audio).samples.length;
+
+    const node = new TimeStretchNode();
+    node.assign({ audio, rate: 2.0 });
+    const res = await node.process();
+    const out = res.output as { data: string };
+    expect(typeof out.data).toBe("string");
+    expect(out.data.length).toBeGreaterThan(0);
+
+    const outputSamples = decodeTestWav(out).samples;
+    // rate=2 should produce fewer samples than input
+    expect(outputSamples.length).toBeLessThan(inputLen);
+    expect(outputSamples.length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
+// lib-audio-spectral: signal verification tests
+// ============================================================================
+
+describe("lib-audio-spectral signal verification", () => {
+  const audio = longSine(8000, 0.5);
+
+  it("STFT returns correct dimensions [bins][frames]", async () => {
+    const node = new STFTNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    const expectedBins = 2048 / 2 + 1; // 1025
+    expect(out.data.length).toBe(expectedBins);
+    expect(out.data[0].length).toBeGreaterThan(0);
+
+    // Each frame should have non-negative magnitudes
+    for (const frame of out.data) {
+      for (const val of frame) {
+        expect(val).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  it("STFT 440Hz sine has peak at correct frequency bin", async () => {
+    const node = new STFTNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    // Find which bin has the highest average energy
+    const avgEnergy = out.data.map(
+      (binFrames) => binFrames.reduce((a, b) => a + b, 0) / binFrames.length
+    );
+    const peakBin = avgEnergy.indexOf(Math.max(...avgEnergy));
+
+    // Expected bin for 440Hz: bin = freq * n_fft / sr = 440 * 2048 / 8000 = 112.64
+    const expectedBin = Math.round((440 * 2048) / 8000);
+    expect(Math.abs(peakBin - expectedBin)).toBeLessThanOrEqual(2);
+  });
+
+  it("MelSpectrogram returns [n_mels][frames] with non-negative values", async () => {
+    const node = new MelSpectrogramNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512, n_mels: 64 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    expect(out.data.length).toBe(64);
+    expect(out.data[0].length).toBeGreaterThan(0);
+    for (const band of out.data) {
+      for (const val of band) {
+        expect(val).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  it("MelSpectrogram has energy in mel bands corresponding to 440Hz", async () => {
+    const node = new MelSpectrogramNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512, n_mels: 64, fmin: 0, fmax: 4000 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    // Sum energy per mel band
+    const bandEnergy = out.data.map(
+      (frames) => frames.reduce((a, b) => a + b, 0)
+    );
+    const totalEnergy = bandEnergy.reduce((a, b) => a + b, 0);
+    expect(totalEnergy).toBeGreaterThan(0);
+
+    // The peak band should contain a meaningful fraction of total energy
+    const peakEnergy = Math.max(...bandEnergy);
+    expect(peakEnergy / totalEnergy).toBeGreaterThan(0.05);
+  });
+
+  it("MFCC returns [n_mfcc][frames] with numeric values", async () => {
+    const node = new MFCCNode();
+    node.assign({ audio, n_mfcc: 13, n_fft: 2048, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    expect(out.data.length).toBe(13);
+    expect(out.data[0].length).toBeGreaterThan(0);
+    // MFCCs can be negative, but should be finite numbers
+    for (const coeff of out.data) {
+      for (const val of coeff) {
+        expect(Number.isFinite(val)).toBe(true);
+      }
+    }
+  });
+
+  it("ChromaSTFT returns [12][frames] with values in [0,1]", async () => {
+    const node = new ChromaSTFTNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    expect(out.data.length).toBe(12);
+    expect(out.data[0].length).toBeGreaterThan(0);
+    for (const pitchClass of out.data) {
+      for (const val of pitchClass) {
+        expect(val).toBeGreaterThanOrEqual(0);
+        expect(val).toBeLessThanOrEqual(1.001);
+      }
+    }
+  });
+
+  it("ChromaSTFT 440Hz (A4) has energy in chroma bin 9 (A)", async () => {
+    const node = new ChromaSTFTNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    // A = pitch class 9 (C=0, C#=1, ... A=9)
+    const chromaEnergy = out.data.map(
+      (frames) => frames.reduce((a, b) => a + b, 0)
+    );
+    const peakChroma = chromaEnergy.indexOf(Math.max(...chromaEnergy));
+    expect(peakChroma).toBe(9);
+  });
+
+  it("SpectralCentroid returns positive Hz values near 440Hz", async () => {
+    const node = new SpectralCentroidNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[] };
+
+    expect(out.data.length).toBeGreaterThan(0);
+    const avgCentroid = out.data.reduce((a, b) => a + b, 0) / out.data.length;
+    expect(avgCentroid).toBeGreaterThan(300);
+    expect(avgCentroid).toBeLessThan(600);
+  });
+
+  it("SpectralContrast returns [7][frames] with numeric values", async () => {
+    const node = new SpectralContrastNode();
+    node.assign({ audio, n_fft: 2048, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[][] };
+
+    expect(out.data.length).toBe(7);
+    expect(out.data[0].length).toBeGreaterThan(0);
+    for (const band of out.data) {
+      for (const val of band) {
+        expect(Number.isFinite(val)).toBe(true);
+      }
+    }
+  });
+
+  it("GriffinLim reconstructs audio from STFT magnitude", async () => {
+    const stftNode = new STFTNode();
+    stftNode.assign({ audio, n_fft: 256, hop_length: 64 });
+    const stftRes = await stftNode.process();
+    const stftData = (stftRes.output as { data: number[][] }).data;
+
+    const glNode = new GriffinLimNode();
+    glNode.assign({
+      magnitude_spectrogram: { data: stftData },
+      n_iter: 10,
+      hop_length: 64,
+    });
+    const glRes = await glNode.process();
+    const out = (glRes.output as { data: number[] }).data;
+
+    expect(out.length).toBeGreaterThan(0);
+    const nonZero = out.filter((v) => Math.abs(v) > 0.001).length;
+    expect(nonZero).toBeGreaterThan(out.length * 0.1);
+  });
+
+  it("DetectOnsets finds onsets in signal with transients", async () => {
+    const sr = 8000;
+    const dur = 1.0;
+    const n = Math.floor(sr * dur);
+    const samples = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      if ((t > 0.2 && t < 0.3) || (t > 0.6 && t < 0.7)) {
+        samples[i] = 0.8 * Math.sin(2 * Math.PI * 1000 * t);
+      } else {
+        samples[i] = 0.01 * (Math.random() * 2 - 1);
+      }
+    }
+    const burstAudio = makeAudioRef(samples, sr);
+
+    const node = new DetectOnsetsNode();
+    node.assign({ audio: burstAudio, hop_length: 512 });
+    const res = await node.process();
+    const out = res.output as { data: number[] };
+
+    expect(Array.isArray(out.data)).toBe(true);
+    expect(out.data.length).toBeGreaterThanOrEqual(1);
+    for (const t of out.data) {
+      expect(t).toBeGreaterThan(0);
+      expect(t).toBeLessThan(dur);
+    }
+  });
+
+  it("SegmentAudioByOnsets produces valid audio segments", async () => {
+    const node = new SegmentAudioByOnsetsNode();
+    node.assign({
+      audio,
+      onsets: { data: [0.1, 0.3] },
+      min_segment_length: 0.05,
+    });
+    const res = await node.process();
+    const segments = res.output as { data: string }[];
+
+    expect(segments.length).toBeGreaterThan(0);
+    for (const seg of segments) {
+      expect(typeof seg.data).toBe("string");
+      const decoded = decodeTestWav(seg);
+      expect(decoded.samples.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("SegmentAudioByOnsets filters short segments", async () => {
+    const node = new SegmentAudioByOnsetsNode();
+    node.assign({
+      audio,
+      onsets: { data: [0.1, 0.105, 0.3] },
+      min_segment_length: 0.05,
+    });
+    const res = await node.process();
+    const segments = res.output as { data: string }[];
+
+    for (const seg of segments) {
+      const decoded = decodeTestWav(seg);
+      const durSec = decoded.samples.length / decoded.sampleRate;
+      expect(durSec).toBeGreaterThanOrEqual(0.05);
+    }
+  });
+});
+
+// ============================================================================
+// lib-synthesis: signal verification tests
+// ============================================================================
+
+describe("lib-synthesis signal verification", () => {
+  it("WhiteNoise produces non-zero output with correct length", async () => {
+    const node = new WhiteNoiseLibNode();
+    node.assign({ amplitude: 0.5, duration: 0.1, sample_rate: 8000 });
+    const res = await node.process();
+    const out = decodeTestWav(res.output as { data: string });
+
+    const expectedSamples = Math.floor(8000 * 0.1);
+    expect(out.samples.length).toBe(expectedSamples);
+    expect(maxAbsVal(out.samples)).toBeGreaterThan(0);
+    expect(rmsVal(out.samples)).toBeGreaterThan(0.1);
+    expect(maxAbsVal(out.samples)).toBeLessThanOrEqual(0.5 + 0.01);
+  });
+
+  it("PinkNoise produces non-zero output with correct length", async () => {
+    const node = new PinkNoiseLibNode();
+    node.assign({ amplitude: 0.7, duration: 0.1, sample_rate: 8000 });
+    const res = await node.process();
+    const out = decodeTestWav(res.output as { data: string });
+
+    const expectedSamples = Math.floor(8000 * 0.1);
+    expect(out.samples.length).toBe(expectedSamples);
+    expect(maxAbsVal(out.samples)).toBeGreaterThan(0);
+    expect(rmsVal(out.samples)).toBeGreaterThan(0.05);
+    expect(maxAbsVal(out.samples)).toBeLessThanOrEqual(0.7 + 0.01);
+  });
+
+  it("FM_Synthesis produces output with correct length and non-zero samples", async () => {
+    const node = new FM_SynthesisLibNode();
+    node.assign({
+      carrier_freq: 440,
+      modulator_freq: 110,
+      modulation_index: 5,
+      amplitude: 0.5,
+      duration: 0.1,
+      sample_rate: 8000,
+    });
+    const res = await node.process();
+    const out = decodeTestWav(res.output as { data: string });
+
+    const expectedSamples = Math.floor(8000 * 0.1);
+    expect(out.samples.length).toBe(expectedSamples);
+    expect(maxAbsVal(out.samples)).toBeGreaterThan(0);
+    expect(maxAbsVal(out.samples)).toBeLessThanOrEqual(0.5 + 0.01);
+  });
+
+  it("Oscillator sine produces correct frequency content", async () => {
+    const node = new OscillatorLibNode();
+    node.assign({
+      waveform: "sine",
+      frequency: 440,
+      amplitude: 0.8,
+      duration: 0.1,
+      sample_rate: 8000,
+    });
+    const res = await node.process();
+    const out = decodeTestWav(res.output as { data: string });
+
+    expect(out.samples.length).toBe(Math.floor(8000 * 0.1));
+    expect(maxAbsVal(out.samples)).toBeGreaterThan(0.7);
+    expect(maxAbsVal(out.samples)).toBeLessThanOrEqual(0.8 + 0.01);
+
+    // Verify it looks sinusoidal: check zero crossings
+    let zeroCrossings = 0;
+    for (let i = 1; i < out.samples.length; i++) {
+      if (out.samples[i] * out.samples[i - 1] < 0) zeroCrossings++;
+    }
+    // 440Hz at 8000 sr for 0.1s = 44 cycles = ~88 zero crossings
+    expect(zeroCrossings).toBeGreaterThan(70);
+    expect(zeroCrossings).toBeLessThan(110);
+  });
+
+  it("Oscillator square produces correct waveform shape", async () => {
+    const node = new OscillatorLibNode();
+    node.assign({
+      waveform: "square",
+      frequency: 440,
+      amplitude: 0.5,
+      duration: 0.05,
+      sample_rate: 8000,
+    });
+    const res = await node.process();
+    const out = decodeTestWav(res.output as { data: string });
+
+    let nearPositive = 0;
+    let nearNegative = 0;
+    for (let i = 0; i < out.samples.length; i++) {
+      if (Math.abs(out.samples[i] - 0.5) < 0.05) nearPositive++;
+      if (Math.abs(out.samples[i] + 0.5) < 0.05) nearNegative++;
+    }
+    expect(nearPositive + nearNegative).toBeGreaterThan(out.samples.length * 0.8);
+  });
+
+  it("Oscillator sawtooth and triangle produce valid output", async () => {
+    for (const waveform of ["sawtooth", "triangle"] as const) {
+      const node = new OscillatorLibNode();
+      node.assign({
+        waveform,
+        frequency: 440,
+        amplitude: 0.5,
+        duration: 0.05,
+        sample_rate: 8000,
+      });
+      const res = await node.process();
+      const out = decodeTestWav(res.output as { data: string });
+      expect(out.samples.length).toBe(Math.floor(8000 * 0.05));
+      expect(maxAbsVal(out.samples)).toBeGreaterThan(0.3);
+    }
+  });
+
+  it("Envelope modulates amplitude over time", async () => {
+    const oscNode = new OscillatorLibNode();
+    oscNode.assign({
+      waveform: "sine",
+      frequency: 440,
+      amplitude: 1.0,
+      duration: 0.5,
+      sample_rate: 8000,
+    });
+    const oscRes = await oscNode.process();
+    const oscSamples = decodeTestWav(oscRes.output as { data: string }).samples;
+
+    const envNode = new EnvelopeLibNode();
+    envNode.assign({
+      audio: oscRes.output,
+      attack: 0.1,
+      decay: 0.1,
+      release: 0.2,
+      peak_amplitude: 1.0,
+    });
+    const envRes = await envNode.process();
+    const envSamples = decodeTestWav(envRes.output as { data: string }).samples;
+
+    expect(envSamples.length).toBe(oscSamples.length);
+
+    // Attack phase: amplitude should increase
+    const earlyRms = rmsVal(envSamples.slice(0, 100));
+    const midRms = rmsVal(envSamples.slice(300, 500));
+    expect(earlyRms).toBeLessThan(midRms);
+
+    // Release phase: end should be quiet
+    const endRms = rmsVal(envSamples.slice(-200));
+    expect(endRms).toBeLessThan(midRms);
+  });
+
+  it("Envelope with zero peak amplitude silences signal", async () => {
+    const oscNode = new OscillatorLibNode();
+    oscNode.assign({
+      waveform: "sine",
+      frequency: 440,
+      amplitude: 0.5,
+      duration: 0.1,
+      sample_rate: 8000,
+    });
+    const oscRes = await oscNode.process();
+
+    const envNode = new EnvelopeLibNode();
+    envNode.assign({
+      audio: oscRes.output,
+      attack: 0.01,
+      decay: 0.01,
+      release: 0.01,
+      peak_amplitude: 0.0,
+    });
+    const envRes = await envNode.process();
+    const envSamples = decodeTestWav(envRes.output as { data: string }).samples;
+
+    expect(rmsVal(envSamples)).toBeLessThan(0.01);
+  });
+});
