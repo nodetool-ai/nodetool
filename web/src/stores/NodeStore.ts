@@ -34,7 +34,11 @@ import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import { graphEdgeToReactFlowEdge, CONTROL_HANDLE_ID, isAgentNodeType } from "./graphEdgeToReactFlowEdge";
+import {
+  graphEdgeToReactFlowEdge,
+  CONTROL_HANDLE_ID,
+  isAgentNodeType
+} from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -42,6 +46,7 @@ import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
+import { applyDefaultModels } from "../utils/applyDefaultModels";
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -141,7 +146,10 @@ export interface NodeStoreState {
   findNode: (id: string) => Node<NodeData> | undefined;
   updateNode: (id: string, node: Partial<Node<NodeData>>) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
-  updateNodeProperties: (id: string, properties: Record<string, unknown>) => void;
+  updateNodeProperties: (
+    id: string,
+    properties: Record<string, unknown>
+  ) => void;
   deleteNode: (id: string) => void;
   deleteNodes: (ids: string[]) => void;
   findEdge: (id: string) => Edge | undefined;
@@ -563,7 +571,9 @@ export const createNodeStore = (
               return;
             }
 
-            const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID;
+            const isControlEdge =
+              connection.targetHandle === CONTROL_HANDLE_ID ||
+              connection.sourceHandle === CONTROL_HANDLE_ID;
 
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
@@ -633,7 +643,9 @@ export const createNodeStore = (
               id: get().generateEdgeId(),
               sourceHandle: connection.sourceHandle || null,
               targetHandle: connection.targetHandle || null,
-              ...(isControlEdge ? { type: "control", data: { edge_type: "control" } } : {})
+              ...(isControlEdge
+                ? { type: "control", data: { edge_type: "control" } }
+                : {})
             } as Edge;
 
             // Normalize handles to null if undefined for consistency
@@ -728,7 +740,10 @@ export const createNodeStore = (
               return { ...state, nodes };
             });
           },
-          updateNodeProperties: (id: string, properties: Record<string, unknown>): void => {
+          updateNodeProperties: (
+            id: string,
+            properties: Record<string, unknown>
+          ): void => {
             const workflow_id = get().workflow.id;
             set((state) => {
               const index = state.nodes.findIndex((n) => n.id === id);
@@ -877,7 +892,12 @@ export const createNodeStore = (
             const models: UnifiedModel[] = [];
             for (const node of nodes) {
               for (const key in node.data.properties) {
-                if (Object.prototype.hasOwnProperty.call(node.data.properties, key)) {
+                if (
+                  Object.prototype.hasOwnProperty.call(
+                    node.data.properties,
+                    key
+                  )
+                ) {
                   const property = node.data.properties[key];
                   if (
                     property &&
@@ -962,7 +982,10 @@ export const createNodeStore = (
           },
           updateWorkflowSetting: (key: string, value: unknown): void => {
             const current = get().workflow;
-            const settings = { ...(current.settings ?? {}), [key]: value as string | number | boolean | null };
+            const settings = {
+              ...(current.settings ?? {}),
+              [key]: value as string | number | boolean | null
+            };
             set({ workflow: { ...current, settings } });
           },
           autoLayout: async (): Promise<void> => {
@@ -1099,7 +1122,10 @@ export const createNodeStore = (
             }
 
             // Control edge validation: only Agent nodes can create control edges
-            if (connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID) {
+            if (
+              connection.targetHandle === CONTROL_HANDLE_ID ||
+              connection.sourceHandle === CONTROL_HANDLE_ID
+            ) {
               if (!isAgentNodeType(srcNode.type)) {
                 return false;
               }
@@ -1202,6 +1228,13 @@ export const createNodeStore = (
                 defaults[key] = properties[key];
               }
             }
+
+            // Apply user's default models for empty model properties
+            const withModelDefaults = applyDefaultModels(
+              defaults,
+              metadata.properties
+            );
+            Object.assign(defaults, withModelDefaults);
 
             // Generate default name for input nodes if name property exists but is empty
             const isInputNode =
