@@ -128,9 +128,17 @@ function detectPipMetadataRoots(): string[] {
 import json, pathlib, subprocess, sys
 roots = set()
 try:
+    # Discover all nodetool-* packages
+    list_proc = subprocess.run(
+        [sys.executable, "-m", "pip", "list", "--format=json"],
+        capture_output=True, text=True, check=False,
+    )
+    pkg_names = [
+        p["name"] for p in json.loads(list_proc.stdout or "[]")
+        if p["name"].startswith("nodetool-")
+    ] or ["nodetool-core", "nodetool-base"]
     proc = subprocess.run(
-        [sys.executable, "-m", "pip", "show", "-f",
-         "nodetool-core", "nodetool-base"],
+        [sys.executable, "-m", "pip", "show", "-f"] + pkg_names,
         capture_output=True, text=True, check=False,
     )
     output = proc.stdout or ""
@@ -487,25 +495,27 @@ await app.register(websocketPlugin, {
     await pythonBridge.ensureConnected();
     pythonBridgeReady = true;
     const meta = pythonBridge.getNodeMetadata();
-    // Register Python bridge nodes into the shared registry
+    // Register Python bridge nodes — skip those already loaded from JSON metadata
+    let bridgeOnly = 0;
     for (const nodeMeta of meta) {
-      if (nodeMeta.node_type) {
-        registry.loadMetadata(nodeMeta.node_type, {
-          ...(nodeMeta as unknown as NodeMetadata),
-          namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
-          layout: "default",
-          recommended_models: [],
-          basic_fields: [],
-          required_settings: nodeMeta.required_settings ?? [],
-          is_dynamic: nodeMeta.is_dynamic ?? false,
-          is_streaming_output: nodeMeta.is_streaming_output ?? false,
-          expose_as_tool: false,
-          supports_dynamic_outputs: false
-        });
-      }
+      if (!nodeMeta.node_type) continue;
+      if (registry.getMetadata(nodeMeta.node_type)) continue;
+      bridgeOnly++;
+      registry.loadMetadata(nodeMeta.node_type, {
+        ...(nodeMeta as unknown as NodeMetadata),
+        namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+        layout: "default",
+        recommended_models: [],
+        basic_fields: [],
+        required_settings: nodeMeta.required_settings ?? [],
+        is_dynamic: nodeMeta.is_dynamic ?? false,
+        is_streaming_output: nodeMeta.is_streaming_output ?? false,
+        expose_as_tool: false,
+        supports_dynamic_outputs: false
+      });
     }
     log.info(
-      `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`
+      `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
     );
     // Notify connected clients to reload metadata
     try {
@@ -653,24 +663,26 @@ if (pythonBridge.hasPython()) {
     .then(() => {
       pythonBridgeReady = true;
       const meta = pythonBridge.getNodeMetadata();
+      let bridgeOnly = 0;
       for (const nodeMeta of meta) {
-        if (nodeMeta.node_type) {
-          registry.loadMetadata(nodeMeta.node_type, {
-            ...(nodeMeta as unknown as NodeMetadata),
-            namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
-            layout: "default",
-            recommended_models: [],
-            basic_fields: [],
-            required_settings: nodeMeta.required_settings ?? [],
-            is_dynamic: nodeMeta.is_dynamic ?? false,
-            is_streaming_output: nodeMeta.is_streaming_output ?? false,
-            expose_as_tool: false,
-            supports_dynamic_outputs: false
-          });
-        }
+        if (!nodeMeta.node_type) continue;
+        if (registry.getMetadata(nodeMeta.node_type)) continue;
+        bridgeOnly++;
+        registry.loadMetadata(nodeMeta.node_type, {
+          ...(nodeMeta as unknown as NodeMetadata),
+          namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
+          layout: "default",
+          recommended_models: [],
+          basic_fields: [],
+          required_settings: nodeMeta.required_settings ?? [],
+          is_dynamic: nodeMeta.is_dynamic ?? false,
+          is_streaming_output: nodeMeta.is_streaming_output ?? false,
+          expose_as_tool: false,
+          supports_dynamic_outputs: false
+        });
       }
       log.info(
-        `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes available`
+        `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
       );
       // Notify connected clients to reload metadata
       import("@msgpack/msgpack")
