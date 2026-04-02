@@ -8,6 +8,7 @@
  */
 
 import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
@@ -180,7 +181,10 @@ print(json.dumps(sorted(roots)))
 const metadataRoots = detectPipMetadataRoots();
 
 // Also scan local TS node packages that have nodetool/package_metadata
-const localPackagesDir = resolve(__dirname, "../../");
+const localPackagesDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../"
+);
 if (existsSync(localPackagesDir)) {
   try {
     for (const entry of readdirSync(localPackagesDir, {
