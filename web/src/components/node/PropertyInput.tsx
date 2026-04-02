@@ -161,10 +161,13 @@ export function getComponentForProperty(
   };
   // If property has predefined values, treat it as an enum/select 
   // regardless of base type (often comes as 'str' from dynamic schemas)
-  const hasValues = (property.type.values && property.type.values.length > 0) || 
+  const jsonExtra = property.json_schema_extra as Record<string, unknown> | undefined;
+  const hasValues = (property.type.values && property.type.values.length > 0) ||
                     (property.type.type_args?.[0]?.values && property.type.type_args[0].values.length > 0) ||
                     (propertyWithExtras.values && propertyWithExtras.values.length > 0) ||
-                    (propertyWithExtras.enum && propertyWithExtras.enum.length > 0);
+                    (propertyWithExtras.enum && propertyWithExtras.enum.length > 0) ||
+                    (Array.isArray(jsonExtra?.enum) && (jsonExtra.enum as unknown[]).length > 0) ||
+                    (Array.isArray(jsonExtra?.values) && (jsonExtra.values as unknown[]).length > 0);
   
   if (hasValues) {
     return EnumProperty;

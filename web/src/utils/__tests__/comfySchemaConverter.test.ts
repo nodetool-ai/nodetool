@@ -121,7 +121,7 @@ describe("ComfyUI Schema Converter", () => {
       expect(findProp("clip")?.type.type).toBe("comfy.clip");
     });
 
-    test("handles enum values in json_schema_extra", () => {
+    test("handles enum values in type.values", () => {
       const schema: ComfyUINodeSchema = {
         input: {
           required: {
@@ -141,7 +141,90 @@ describe("ComfyUI Schema Converter", () => {
       const metadata = comfySchemaToNodeMetadata("EnumTest", schema);
 
       const samplerProp = metadata.properties.find(p => p.name === "sampler");
-      expect(samplerProp?.json_schema_extra?.enum).toEqual(["euler", "dpm2", "lms"]);
+      expect(samplerProp?.type.type).toBe("str");
+      expect(samplerProp?.type.values).toEqual(["euler", "dpm2", "lms"]);
+    });
+
+    test("maps new ComfyUI types correctly", () => {
+      const schema: ComfyUINodeSchema = {
+        input: {
+          required: {
+            noise: ["NOISE", {}],
+            guider: ["GUIDER", {}],
+            audio: ["AUDIO", {}],
+            upscale_model: ["UPSCALE_MODEL", {}],
+            color: ["COLOR", {}],
+            wildcard: ["*", {}]
+          }
+        },
+        output: ["NOISE", "VIDEO", "MESH"],
+        output_is_list: [false, false, false],
+        output_name: ["noise", "video", "mesh"],
+        name: "NewTypesTest",
+        display_name: "New Types Test",
+        description: "Tests new type mappings",
+        category: "test",
+        output_node: false
+      };
+
+      const metadata = comfySchemaToNodeMetadata("NewTypesTest", schema);
+      const findProp = (name: string) => metadata.properties.find(p => p.name === name);
+
+      expect(findProp("noise")?.type.type).toBe("comfy.noise");
+      expect(findProp("guider")?.type.type).toBe("comfy.guider");
+      expect(findProp("audio")?.type.type).toBe("comfy.audio");
+      expect(findProp("upscale_model")?.type.type).toBe("comfy.upscale_model");
+      expect(findProp("color")?.type.type).toBe("color");
+      expect(findProp("wildcard")?.type.type).toBe("any");
+
+      expect(metadata.outputs[0].type.type).toBe("comfy.noise");
+      expect(metadata.outputs[1].type.type).toBe("comfy.video");
+      expect(metadata.outputs[2].type.type).toBe("comfy.mesh");
+    });
+
+    test("handles multiline STRING as text type", () => {
+      const schema: ComfyUINodeSchema = {
+        input: {
+          required: {
+            prompt: ["STRING", { multiline: true }]
+          }
+        },
+        output: [],
+        output_is_list: [],
+        output_name: [],
+        name: "MultilineTest",
+        display_name: "Multiline Test",
+        description: "Tests multiline",
+        category: "test",
+        output_node: false
+      };
+
+      const metadata = comfySchemaToNodeMetadata("MultilineTest", schema);
+      const promptProp = metadata.properties.find(p => p.name === "prompt");
+      expect(promptProp?.type.type).toBe("text");
+    });
+
+    test("handles comma-separated union types", () => {
+      const schema: ComfyUINodeSchema = {
+        input: {
+          required: {
+            model_file: ["FILE_3D_GLB,FILE_3D_OBJ,FILE_3D" as any, {}]
+          }
+        },
+        output: [],
+        output_is_list: [],
+        output_name: [],
+        name: "UnionTest",
+        display_name: "Union Test",
+        description: "Tests union types",
+        category: "test",
+        output_node: false
+      };
+
+      const metadata = comfySchemaToNodeMetadata("UnionTest", schema);
+      const prop = metadata.properties.find(p => p.name === "model_file");
+      // Should take the first type from the comma-separated list
+      expect(prop?.type.type).toBe("comfy.file_3d");
     });
   });
 

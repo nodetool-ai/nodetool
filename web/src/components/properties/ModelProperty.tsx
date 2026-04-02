@@ -90,10 +90,32 @@ const ModelProperty = (props: PropertyProps) => {
     return { imageTask, videoTask, model3dTask };
   }, [props.nodeType]);
 
+  // Comfy model types that should show a model selector when the property
+  // appears on any node (not just loaders). These types represent loadable
+  // model files that the user needs to choose from disk.
+  const comfyModelSelectTypes = useMemo(() => new Set([
+    "comfy.unet",
+    "comfy.vae",
+    "comfy.clip",
+    "comfy.clip_vision",
+    "comfy.control_net",
+    "comfy.style_model",
+    "comfy.gligen",
+    "comfy.ip_adapter",
+    "comfy.insight_face",
+    "comfy.taesd",
+    "comfy.upscale_model",
+    "comfy.latent_upscale_model",
+    "comfy.lora_model",
+    "comfy.photomaker",
+    "comfy.embeds",
+  ]), []);
+
   // Memoize model select component to avoid recreation on every render
   const modelSelectComponent = useMemo(() => {
     if (modelType.startsWith("comfy.")) {
-      if (props.nodeType.startsWith("comfy.loaders.")) {
+      // Show model selector for loader nodes or for explicitly loadable model types
+      if (props.nodeType.startsWith("comfy.loaders.") || comfyModelSelectTypes.has(modelType)) {
         return (
           <ComfyModelSelect
             modelType={modelType}
@@ -102,6 +124,8 @@ const ModelProperty = (props: PropertyProps) => {
           />
         );
       }
+      // Other comfy types are connection-only — just show the label
+      return null;
     } else if (modelType === "language_model") {
       return (
         <LanguageModelSelect
@@ -171,7 +195,7 @@ const ModelProperty = (props: PropertyProps) => {
       );
     }
     return null;
-  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
+  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask, comfyModelSelectTypes]);
 
   return (
     <div className={`model-property ${modelClass}`} css={styles(theme)}>
