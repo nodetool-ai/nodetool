@@ -434,6 +434,37 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
           outputResults: { ...state.outputResults, [key]: result }
         };
       } else {
+        // Skip duplicate values (e.g. Output node emits same image
+        // on both "enhanced" and "output" handles)
+        const isDuplicate = Array.isArray(currentResult)
+          ? currentResult.some(
+              (v) =>
+                v === result ||
+                (v &&
+                  result &&
+                  typeof v === "object" &&
+                  typeof result === "object" &&
+                  (v as Record<string, unknown>).type ===
+                    (result as Record<string, unknown>).type &&
+                  (v as Record<string, unknown>).uri ===
+                    (result as Record<string, unknown>).uri &&
+                  (v as Record<string, unknown>).data ===
+                    (result as Record<string, unknown>).data)
+            )
+          : currentResult === result ||
+            (currentResult &&
+              result &&
+              typeof currentResult === "object" &&
+              typeof result === "object" &&
+              (currentResult as Record<string, unknown>).type ===
+                (result as Record<string, unknown>).type &&
+              (currentResult as Record<string, unknown>).uri ===
+                (result as Record<string, unknown>).uri &&
+              (currentResult as Record<string, unknown>).data ===
+                (result as Record<string, unknown>).data);
+        if (isDuplicate) {
+          return state;
+        }
         if (Array.isArray(currentResult)) {
           return {
             outputResults: {
