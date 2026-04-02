@@ -33,7 +33,7 @@ import {
 import type { StrokeEndOptions } from "./tools/types";
 import type { ActiveStrokeInfo } from "./sketchCanvasHooks/useCompositing";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
-import { SKETCH_Z_INDEX } from "./sketchStyles";
+import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -622,7 +622,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             color: "#ccc",
             padding: "2px 12px",
             borderRadius: "4px",
-            fontSize: "0.7rem",
+            fontSize: SKETCH_FONT.md,
             pointerEvents: "none",
             zIndex: 5,
             display: "flex",
@@ -641,7 +641,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
           <span
             style={{
               textTransform: "uppercase",
-              fontSize: "0.6rem",
+              fontSize: SKETCH_FONT.xs,
               opacity: 0.7
             }}
           >

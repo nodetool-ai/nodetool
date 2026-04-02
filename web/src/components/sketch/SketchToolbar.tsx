@@ -51,14 +51,14 @@ const styles = (theme: Theme) =>
       minHeight: `${BTN}px`,
       border: "none",
       borderRadius: `${SKETCH_SIZE.borderRadius} !important`,
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.grey[300],
       "&.Mui-selected": {
         backgroundColor: theme.vars.palette.grey[600],
-        color: theme.vars.palette.grey[100],
+        color: theme.vars.palette.grey[50],
       },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[700],
-        color: theme.vars.palette.grey[200],
+        color: theme.vars.palette.grey[100],
       },
     },
     "& .MuiDivider-root": {

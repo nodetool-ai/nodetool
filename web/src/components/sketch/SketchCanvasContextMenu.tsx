@@ -141,7 +141,7 @@ function ToolGridButton({
             py: 0.1,
             borderRadius: 1,
             backgroundColor: shortcutBg,
-            fontSize: "0.56rem",
+            fontSize: SKETCH_FONT.xxs,
             fontWeight: 700,
             lineHeight: 1.2,
             color: "text.secondary"
@@ -159,7 +159,7 @@ function ToolGridButton({
       <Typography
         sx={{
           mt: 0.65,
-          fontSize: "0.78rem",
+          fontSize: SKETCH_FONT.md,
           fontWeight: 400,
           color: "text.secondary"
         }}
@@ -441,7 +441,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             component="span"
             sx={{
               flex: "0 0 auto",
-              fontSize: "0.92rem",
+              fontSize: SKETCH_FONT.section,
               fontWeight: 700,
               color: "text.primary",
               whiteSpace: "nowrap"
