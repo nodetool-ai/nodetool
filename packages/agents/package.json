@@ -22,7 +22,7 @@
     "dayjs": "^1.11.20",
     "imapflow": "^1.2.12",
     "js-tiktoken": "^1.0.18",
-    "lodash-es": "^4.17.23",
+    "lodash-es": "^4.18.1",
     "mailparser": "^3.9.3",
     "pdf-parse": "^1.1.4",
     "validator": "^13.15.26"
