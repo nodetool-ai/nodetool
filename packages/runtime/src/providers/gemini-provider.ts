@@ -35,7 +35,11 @@ interface GeminiProviderOptions {
 interface GeminiPart {
   text?: string;
   inlineData?: { mimeType: string; data: string };
-  functionCall?: { name: string; args?: Record<string, unknown> };
+  functionCall?: {
+    name: string;
+    args?: Record<string, unknown>;
+    thought_signature?: string;
+  };
   functionResponse?: { name: string; response: unknown };
 }
 
@@ -272,9 +276,14 @@ export class GeminiProvider extends BaseProvider {
         // Tool calls
         if (msg.toolCalls && msg.toolCalls.length > 0) {
           for (const tc of msg.toolCalls) {
-            parts.push({
-              functionCall: { name: tc.name, args: tc.args }
-            });
+            const fc: GeminiPart["functionCall"] = {
+              name: tc.name,
+              args: tc.args
+            };
+            if (tc.thought_signature) {
+              fc!.thought_signature = tc.thought_signature;
+            }
+            parts.push({ functionCall: fc });
           }
         }
 
@@ -579,11 +588,15 @@ export class GeminiProvider extends BaseProvider {
       } else if (part.functionCall) {
         const originalName =
           reverseMap.get(part.functionCall.name) ?? part.functionCall.name;
-        toolCalls.push({
+        const tc: ToolCall = {
           id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           name: originalName,
           args: part.functionCall.args ?? {}
-        });
+        };
+        if (part.functionCall.thought_signature) {
+          tc.thought_signature = part.functionCall.thought_signature;
+        }
+        toolCalls.push(tc);
       }
     }
 

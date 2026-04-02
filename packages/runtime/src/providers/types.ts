@@ -51,6 +51,7 @@ export interface ToolCall {
   id: string;
   name: string;
   args: Record<string, unknown>;
+  thought_signature?: string;
 }
 
 export interface ProviderTool {
