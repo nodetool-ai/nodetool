@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Transpose Array"
-node_type: "lib.numpy.manipulation.TransposeArray"
-namespace: "lib.numpy.manipulation"
+node_type: "lib.array.manipulation.TransposeArray"
+namespace: "lib.array.manipulation"
 ---
 
-**Type:** `lib.numpy.manipulation.TransposeArray`
+**Type:** `lib.array.manipulation.TransposeArray`
 
-**Namespace:** `lib.numpy.manipulation`
+**Namespace:** `lib.array.manipulation`
 
 ## Description
 
@@ -35,5 +35,5 @@ Transpose the dimensions of the input array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](../) namespace.
 

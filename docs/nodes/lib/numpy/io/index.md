@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.numpy.io Nodes"
+title: "lib.array.io Nodes"
 ---
 
 

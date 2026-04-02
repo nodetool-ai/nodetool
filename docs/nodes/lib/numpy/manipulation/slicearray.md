@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Slice Array"
-node_type: "lib.numpy.manipulation.SliceArray"
-namespace: "lib.numpy.manipulation"
+node_type: "lib.array.manipulation.SliceArray"
+namespace: "lib.array.manipulation"
 ---
 
-**Type:** `lib.numpy.manipulation.SliceArray`
+**Type:** `lib.array.manipulation.SliceArray`
 
-**Namespace:** `lib.numpy.manipulation`
+**Namespace:** `lib.array.manipulation`
 
 ## Description
 
@@ -39,5 +39,5 @@ Extract a slice of an array along a specified axis.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](../) namespace.
 

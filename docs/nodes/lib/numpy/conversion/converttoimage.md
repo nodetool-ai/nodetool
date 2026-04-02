@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert To Image"
-node_type: "lib.numpy.conversion.ConvertToImage"
-namespace: "lib.numpy.conversion"
+node_type: "lib.array.conversion.ConvertToImage"
+namespace: "lib.array.conversion"
 ---
 
-**Type:** `lib.numpy.conversion.ConvertToImage`
+**Type:** `lib.array.conversion.ConvertToImage`
 
-**Namespace:** `lib.numpy.conversion`
+**Namespace:** `lib.array.conversion`
 
 ## Description
 
@@ -35,5 +35,5 @@ Convert array data to PIL Image format.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](../) namespace.
 

@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.beautifulsoup Nodes"
+title: "lib.html Nodes"
 ---
 
 

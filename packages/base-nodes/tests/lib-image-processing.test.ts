@@ -336,7 +336,7 @@ describe("lib-image-draw nodes", () => {
   it("GaussianNoise — node class has correct metadata", () => {
     const Cls = findNode(LIB_IMAGE_DRAW_NODES as never, ".GaussianNoise");
     expect((Cls as unknown as { nodeType: string }).nodeType).toBe(
-      "lib.pillow.draw.GaussianNoise"
+      "lib.image.draw.GaussianNoise"
     );
     expect(
       (Cls as unknown as { metadataOutputTypes: Record<string, string> })

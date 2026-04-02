@@ -2,7 +2,7 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 
 export class ConvertToMarkdownLibNode extends BaseNode {
-  static readonly nodeType = "lib.markitdown.ConvertToMarkdown";
+  static readonly nodeType = "lib.convert.ConvertToMarkdown";
   static readonly title = "Convert To Markdown";
   static readonly description =
     "Converts various document formats to markdown using MarkItDown.\n    markdown, convert, document\n\n    Use cases:\n    - Convert Word documents to markdown\n    - Convert Excel files to markdown tables\n    - Convert PowerPoint to markdown content";

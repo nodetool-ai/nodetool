@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Render Text"
-node_type: "lib.pillow.draw.RenderText"
-namespace: "lib.pillow.draw"
+node_type: "lib.image.draw.RenderText"
+namespace: "lib.image.draw"
 ---
 
-**Type:** `lib.pillow.draw.RenderText`
+**Type:** `lib.image.draw.RenderText`
 
-**Namespace:** `lib.pillow.draw`
+**Namespace:** `lib.image.draw`
 
 ## Description
 
@@ -46,5 +46,5 @@ This node allows you to add text to images.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.draw](../) namespace.
+Browse other nodes in the [lib.image.draw](../) namespace.
 

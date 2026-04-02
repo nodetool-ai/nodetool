@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Max Array"
-node_type: "lib.numpy.statistics.MaxArray"
-namespace: "lib.numpy.statistics"
+node_type: "lib.array.statistics.MaxArray"
+namespace: "lib.array.statistics"
 ---
 
-**Type:** `lib.numpy.statistics.MaxArray`
+**Type:** `lib.array.statistics.MaxArray`
 
-**Namespace:** `lib.numpy.statistics`
+**Namespace:** `lib.array.statistics`
 
 ## Description
 
@@ -36,5 +36,5 @@ Compute the maximum value along a specified axis of a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.statistics](../) namespace.
+Browse other nodes in the [lib.array.statistics](../) namespace.
 

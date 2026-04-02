@@ -35,9 +35,9 @@ const SAMPLE_HTML = `<html>
 
 const BASE_URL = "https://example.com";
 
-// ── lib.beautifulsoup ──────────────────────────────────────────────
+// ── lib.html ──────────────────────────────────────────────
 
-describe("lib.beautifulsoup.BaseUrl", () => {
+describe("lib.html.BaseUrl", () => {
   it("extracts protocol and host from a URL", async () => {
     const result = await new BaseUrlLibNode({
       url: "https://example.com/path/to/page?q=1"
@@ -57,7 +57,7 @@ describe("lib.beautifulsoup.BaseUrl", () => {
   });
 });
 
-describe("lib.beautifulsoup.ExtractLinks", () => {
+describe("lib.html.ExtractLinks", () => {
   it("extracts links with text and type classification", async () => {
     const result = await new ExtractLinksLibNode({
       html: SAMPLE_HTML,
@@ -84,7 +84,7 @@ describe("lib.beautifulsoup.ExtractLinks", () => {
   });
 });
 
-describe("lib.beautifulsoup.ExtractImages", () => {
+describe("lib.html.ExtractImages", () => {
   it("extracts image sources resolved against base URL", async () => {
     const result = await new ExtractImagesLibNode({
       html: SAMPLE_HTML,
@@ -103,7 +103,7 @@ describe("lib.beautifulsoup.ExtractImages", () => {
   });
 });
 
-describe("lib.beautifulsoup.ExtractAudio", () => {
+describe("lib.html.ExtractAudio", () => {
   it("extracts audio sources from audio and source tags", async () => {
     const result = await new ExtractAudioLibNode({
       html: SAMPLE_HTML,
@@ -122,7 +122,7 @@ describe("lib.beautifulsoup.ExtractAudio", () => {
   });
 });
 
-describe("lib.beautifulsoup.ExtractVideos", () => {
+describe("lib.html.ExtractVideos", () => {
   it("extracts video sources from video, source, and iframe tags", async () => {
     const result = await new ExtractVideosLibNode({
       html: SAMPLE_HTML,
@@ -145,7 +145,7 @@ describe("lib.beautifulsoup.ExtractVideos", () => {
   });
 });
 
-describe("lib.beautifulsoup.ExtractMetadata", () => {
+describe("lib.html.ExtractMetadata", () => {
   it("extracts title, description, and keywords", async () => {
     const result = await new ExtractMetadataLibNode({
       html: SAMPLE_HTML
@@ -165,7 +165,7 @@ describe("lib.beautifulsoup.ExtractMetadata", () => {
   });
 });
 
-describe("lib.beautifulsoup.HTMLToText", () => {
+describe("lib.html.HTMLToText", () => {
   it("converts HTML to plain text", async () => {
     const result = await new HTMLToTextLibNode({
       text: "<p>Hello <b>World</b></p><p>Second paragraph</p>"
@@ -186,7 +186,7 @@ describe("lib.beautifulsoup.HTMLToText", () => {
   });
 });
 
-describe("lib.beautifulsoup.WebsiteContentExtractor", () => {
+describe("lib.html.WebsiteContentExtractor", () => {
   it("extracts main content from article HTML", async () => {
     const html = `<html><head><title>Article</title></head><body>
       <nav>Navigation</nav>
@@ -202,9 +202,9 @@ describe("lib.beautifulsoup.WebsiteContentExtractor", () => {
   });
 });
 
-// ── lib.markitdown ─────────────────────────────────────────────────
+// ── lib.convert ─────────────────────────────────────────────────
 
-describe("lib.markitdown.ConvertToMarkdown", () => {
+describe("lib.convert.ConvertToMarkdown", () => {
   it("converts HTML data to markdown", async () => {
     const result = await new ConvertToMarkdownLibNode({
       document: {

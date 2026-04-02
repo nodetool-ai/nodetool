@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Smooth"
-node_type: "lib.pillow.filter.Smooth"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Smooth"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Smooth`
+**Type:** `lib.image.filter.Smooth`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -34,5 +34,5 @@ Apply smoothing to reduce image noise and detail.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

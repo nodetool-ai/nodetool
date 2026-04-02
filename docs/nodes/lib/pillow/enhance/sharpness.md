@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Sharpness"
-node_type: "lib.pillow.enhance.Sharpness"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.Sharpness"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.Sharpness`
+**Type:** `lib.image.enhance.Sharpness`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -36,5 +36,5 @@ Adjusts image sharpness to enhance or reduce detail clarity.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

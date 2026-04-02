@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
-// Blend — lib.pillow.__init__.Blend
+// Blend — lib.image.Blend
 export interface BlendInputs {
   image1?: Connectable<ImageRef>;
   image2?: Connectable<ImageRef>;
@@ -16,13 +16,13 @@ export interface BlendOutputs {
 
 export function blend(inputs: BlendInputs): DslNode<BlendOutputs, "output"> {
   return createNode(
-    "lib.pillow.__init__.Blend",
+    "lib.image.Blend",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Composite — lib.pillow.__init__.Composite
+// Composite — lib.image.Composite
 export interface CompositeInputs {
   image1?: Connectable<ImageRef>;
   image2?: Connectable<ImageRef>;
@@ -37,7 +37,7 @@ export function composite(
   inputs: CompositeInputs
 ): DslNode<CompositeOutputs, "output"> {
   return createNode(
-    "lib.pillow.__init__.Composite",
+    "lib.image.Composite",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

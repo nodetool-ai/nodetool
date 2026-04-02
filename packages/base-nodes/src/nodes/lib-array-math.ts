@@ -164,7 +164,7 @@ function audioRefFromWav(wav: Uint8Array): AudioRef {
 // ---------------------------------------------------------------------------
 
 export class AddArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.arithmetic.AddArray";
+  static readonly nodeType = "lib.array.arithmetic.AddArray";
   static readonly title = "Add Array";
   static readonly description =
     "Performs addition on two arrays.\n    math, plus, add, addition, sum, +";
@@ -187,7 +187,7 @@ export class AddArrayNode extends BaseNode {
 }
 
 export class SubtractArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.arithmetic.SubtractArray";
+  static readonly nodeType = "lib.array.arithmetic.SubtractArray";
   static readonly title = "Subtract Array";
   static readonly description =
     "Subtracts the second array from the first.\n    math, minus, difference, -";
@@ -210,7 +210,7 @@ export class SubtractArrayNode extends BaseNode {
 }
 
 export class MultiplyArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.arithmetic.MultiplyArray";
+  static readonly nodeType = "lib.array.arithmetic.MultiplyArray";
   static readonly title = "Multiply Array";
   static readonly description =
     "Multiplies two arrays.\n    math, product, times, *";
@@ -233,7 +233,7 @@ export class MultiplyArrayNode extends BaseNode {
 }
 
 export class DivideArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.arithmetic.DivideArray";
+  static readonly nodeType = "lib.array.arithmetic.DivideArray";
   static readonly title = "Divide Array";
   static readonly description =
     "Divides the first array by the second.\n    math, division, arithmetic, quotient, /";
@@ -256,7 +256,7 @@ export class DivideArrayNode extends BaseNode {
 }
 
 export class ModulusArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.arithmetic.ModulusArray";
+  static readonly nodeType = "lib.array.arithmetic.ModulusArray";
   static readonly title = "Modulus Array";
   static readonly description =
     "Calculates the element-wise remainder of division.\n    math, modulo, remainder, mod, %\n\n    Use cases:\n    - Implementing cyclic behaviors\n    - Checking for even/odd numbers\n    - Limiting values to a specific range";
@@ -283,7 +283,7 @@ export class ModulusArrayNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class AbsArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.math.AbsArray";
+  static readonly nodeType = "lib.array.math.AbsArray";
   static readonly title = "Abs Array";
   static readonly description =
     "Compute the absolute value of each element in a array.\n    array, absolute, magnitude\n\n    Use cases:\n    - Calculate magnitudes of complex numbers\n    - Preprocess data for certain algorithms\n    - Implement activation functions in neural networks";
@@ -311,7 +311,7 @@ export class AbsArrayNode extends BaseNode {
 }
 
 export class SineArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.math.SineArray";
+  static readonly nodeType = "lib.array.math.SineArray";
   static readonly title = "Sine Array";
   static readonly description =
     "Computes the sine of input angles in radians.\n    math, trigonometry, sine, sin\n\n    Use cases:\n    - Calculating vertical components in physics\n    - Generating smooth periodic functions\n    - Audio signal processing";
@@ -334,7 +334,7 @@ export class SineArrayNode extends BaseNode {
 }
 
 export class CosineArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.math.CosineArray";
+  static readonly nodeType = "lib.array.math.CosineArray";
   static readonly title = "Cosine Array";
   static readonly description =
     "Computes the cosine of input angles in radians.\n    math, trigonometry, cosine, cos\n\n    Use cases:\n    - Calculating horizontal components in physics\n    - Creating circular motions\n    - Phase calculations in signal processing";
@@ -357,7 +357,7 @@ export class CosineArrayNode extends BaseNode {
 }
 
 export class ExpArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.math.ExpArray";
+  static readonly nodeType = "lib.array.math.ExpArray";
   static readonly title = "Exp Array";
   static readonly description =
     "Calculate the exponential of each element in a array.\n    array, exponential, math, activation\n\n    Use cases:\n    - Implement exponential activation functions\n    - Calculate growth rates in scientific models\n    - Transform data for certain statistical analyses";
@@ -385,7 +385,7 @@ export class ExpArrayNode extends BaseNode {
 }
 
 export class LogArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.math.LogArray";
+  static readonly nodeType = "lib.array.math.LogArray";
   static readonly title = "Log Array";
   static readonly description =
     "Calculate the natural logarithm of each element in a array.\n    array, logarithm, math, transformation\n\n    Use cases:\n    - Implement log transformations on data\n    - Calculate entropy in information theory\n    - Normalize data with large ranges";
@@ -413,7 +413,7 @@ export class LogArrayNode extends BaseNode {
 }
 
 export class SqrtArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.math.SqrtArray";
+  static readonly nodeType = "lib.array.math.SqrtArray";
   static readonly title = "Sqrt Array";
   static readonly description =
     "Calculates the square root of the input array element-wise.\n    math, square root, sqrt, √\n\n    Use cases:\n    - Normalizing data\n    - Calculating distances in Euclidean space\n    - Finding intermediate values in binary search";
@@ -442,7 +442,7 @@ export class SqrtArrayNode extends BaseNode {
 }
 
 export class PowerArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.math.PowerArray";
+  static readonly nodeType = "lib.array.math.PowerArray";
   static readonly title = "Power Array";
   static readonly description =
     "Raises the base array to the power of the exponent element-wise.\n    math, exponentiation, power, pow, **\n\n    Use cases:\n    - Calculating compound interest\n    - Implementing polynomial functions\n    - Applying non-linear transformations to data";
@@ -469,7 +469,7 @@ export class PowerArrayNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class SumArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.statistics.SumArray";
+  static readonly nodeType = "lib.array.statistics.SumArray";
   static readonly title = "Sum Array";
   static readonly description =
     "Calculate the sum of values along a specified axis of a array.\n    array, summation, reduction, statistics\n\n    Use cases:\n    - Compute total values across categories\n    - Implement sum pooling in neural networks\n    - Calculate cumulative metrics in time series data";
@@ -509,7 +509,7 @@ export class SumArrayNode extends BaseNode {
 }
 
 export class MeanArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.statistics.MeanArray";
+  static readonly nodeType = "lib.array.statistics.MeanArray";
   static readonly title = "Mean Array";
   static readonly description =
     "Compute the mean value along a specified axis of a array.\n    array, average, reduction, statistics\n\n    Use cases:\n    - Calculate average values in datasets\n    - Implement mean pooling in neural networks\n    - Compute centroids in clustering algorithms";
@@ -549,7 +549,7 @@ export class MeanArrayNode extends BaseNode {
 }
 
 export class MinArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.statistics.MinArray";
+  static readonly nodeType = "lib.array.statistics.MinArray";
   static readonly title = "Min Array";
   static readonly description =
     "Calculate the minimum value along a specified axis of a array.\n    array, minimum, reduction, statistics\n\n    Use cases:\n    - Find lowest values in datasets\n    - Implement min pooling in neural networks\n    - Determine minimum thresholds across categories";
@@ -587,7 +587,7 @@ export class MinArrayNode extends BaseNode {
 }
 
 export class MaxArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.statistics.MaxArray";
+  static readonly nodeType = "lib.array.statistics.MaxArray";
   static readonly title = "Max Array";
   static readonly description =
     "Compute the maximum value along a specified axis of a array.\n    array, maximum, reduction, statistics\n\n    Use cases:\n    - Find peak values in time series data\n    - Implement max pooling in neural networks\n    - Determine highest scores across multiple categories";
@@ -625,7 +625,7 @@ export class MaxArrayNode extends BaseNode {
 }
 
 export class ArgMinArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.statistics.ArgMinArray";
+  static readonly nodeType = "lib.array.statistics.ArgMinArray";
   static readonly title = "Arg Min Array";
   static readonly description =
     "Find indices of minimum values along a specified axis of a array.\n    array, argmin, index, minimum\n\n    Use cases:\n    - Locate lowest-performing items in datasets\n    - Find troughs in signal processing\n    - Determine least likely classes in classification tasks";
@@ -669,7 +669,7 @@ export class ArgMinArrayNode extends BaseNode {
 }
 
 export class ArgMaxArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.statistics.ArgMaxArray";
+  static readonly nodeType = "lib.array.statistics.ArgMaxArray";
   static readonly title = "Arg Max Array";
   static readonly description =
     "Find indices of maximum values along a specified axis of a array.\n    array, argmax, index, maximum\n\n    Use cases:\n    - Determine winning classes in classification tasks\n    - Find peaks in signal processing\n    - Locate best-performing items in datasets";
@@ -717,7 +717,7 @@ export class ArgMaxArrayNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class SliceArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.manipulation.SliceArray";
+  static readonly nodeType = "lib.array.manipulation.SliceArray";
   static readonly title = "Slice Array";
   static readonly description =
     "Extract a slice of an array along a specified axis.\n    array, slice, subset, index\n\n    Use cases:\n    - Extract specific time periods from time series data\n    - Select subset of features from datasets\n    - Create sliding windows over sequential data";
@@ -820,7 +820,7 @@ export class SliceArrayNode extends BaseNode {
 }
 
 export class IndexArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.manipulation.IndexArray";
+  static readonly nodeType = "lib.array.manipulation.IndexArray";
   static readonly title = "Index Array";
   static readonly description =
     "Select specific indices from an array along a specified axis.\n    array, index, select, subset\n\n    Use cases:\n    - Extract specific samples from a dataset\n    - Select particular features or dimensions\n    - Implement batch sampling operations";
@@ -895,7 +895,7 @@ export class IndexArrayNode extends BaseNode {
 }
 
 export class TransposeArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.manipulation.TransposeArray";
+  static readonly nodeType = "lib.array.manipulation.TransposeArray";
   static readonly title = "Transpose Array";
   static readonly description =
     "Transpose the dimensions of the input array.\n    array, transpose, reshape, dimensions\n\n    Use cases:\n    - Convert row vectors to column vectors\n    - Rearrange data for compatibility with other operations\n    - Implement certain linear algebra operations";
@@ -964,7 +964,7 @@ export class TransposeArrayNode extends BaseNode {
 }
 
 export class MatMulNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.manipulation.MatMul";
+  static readonly nodeType = "lib.array.manipulation.MatMul";
   static readonly title = "Mat Mul";
   static readonly description =
     "Perform matrix multiplication on two input arrays.\n    array, matrix, multiplication, linear algebra\n\n    Use cases:\n    - Implement linear transformations\n    - Calculate dot products of vectors\n    - Perform matrix operations in neural networks";
@@ -1027,7 +1027,7 @@ export class MatMulNode extends BaseNode {
 }
 
 export class StackNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.manipulation.Stack";
+  static readonly nodeType = "lib.array.manipulation.Stack";
   static readonly title = "Stack";
   static readonly description =
     "Stack multiple arrays along a specified axis.\n    array, stack, concatenate, join, merge, axis\n\n    Use cases:\n    - Combine multiple 2D arrays into a 3D array\n    - Stack time series data from multiple sources\n    - Merge feature vectors for machine learning models";
@@ -1079,7 +1079,7 @@ export class StackNode extends BaseNode {
 }
 
 export class SplitArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.manipulation.SplitArray";
+  static readonly nodeType = "lib.array.manipulation.SplitArray";
   static readonly title = "Split Array";
   static readonly description =
     "Split an array into multiple sub-arrays along a specified axis.\n    array, split, divide, partition\n\n    Use cases:\n    - Divide datasets into training/validation splits\n    - Create batches from large arrays\n    - Separate multi-channel data";
@@ -1165,7 +1165,7 @@ export class SplitArrayNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class Reshape1DNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.reshaping.Reshape1D";
+  static readonly nodeType = "lib.array.reshaping.Reshape1D";
   static readonly title = "Reshape 1D";
   static readonly description =
     "Reshape an array to a 1D shape without changing its data.\n    array, reshape, vector, flatten\n\n    Use cases:\n    - Flatten multi-dimensional data for certain algorithms\n    - Convert images to vector form for machine learning\n    - Prepare data for 1D operations";
@@ -1203,7 +1203,7 @@ export class Reshape1DNode extends BaseNode {
 }
 
 export class Reshape2DNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.reshaping.Reshape2D";
+  static readonly nodeType = "lib.array.reshaping.Reshape2D";
   static readonly title = "Reshape 2D";
   static readonly description =
     "Reshape an array to a new shape without changing its data.\n    array, reshape, dimensions, structure\n\n    Use cases:\n    - Convert between different dimensional representations\n    - Prepare data for specific model architectures\n    - Flatten or unflatten arrays";
@@ -1249,7 +1249,7 @@ export class Reshape2DNode extends BaseNode {
 }
 
 export class Reshape3DNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.reshaping.Reshape3D";
+  static readonly nodeType = "lib.array.reshaping.Reshape3D";
   static readonly title = "Reshape 3D";
   static readonly description =
     "Reshape an array to a 3D shape without changing its data.\n    array, reshape, dimensions, volume\n\n    Use cases:\n    - Convert data for 3D visualization\n    - Prepare image data with channels\n    - Structure data for 3D convolutions";
@@ -1304,7 +1304,7 @@ export class Reshape3DNode extends BaseNode {
 }
 
 export class Reshape4DNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.reshaping.Reshape4D";
+  static readonly nodeType = "lib.array.reshaping.Reshape4D";
   static readonly title = "Reshape 4D";
   static readonly description =
     "Reshape an array to a 4D shape without changing its data.\n    array, reshape, dimensions, batch\n\n    Use cases:\n    - Prepare batch data for neural networks\n    - Structure spatiotemporal data\n    - Format data for 3D image processing with channels";
@@ -1374,7 +1374,7 @@ export class Reshape4DNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class ListToArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.conversion.ListToArray";
+  static readonly nodeType = "lib.array.conversion.ListToArray";
   static readonly title = "List To Array";
   static readonly description =
     "Convert a list of values to a array.\n    list, array, conversion, type\n\n    Use cases:\n    - Prepare list data for array operations\n    - Create arrays from Python data structures\n    - Convert sequence data to array format";
@@ -1419,7 +1419,7 @@ function inferShape(val: unknown): number[] {
 }
 
 export class ArrayToListNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.conversion.ArrayToList";
+  static readonly nodeType = "lib.array.conversion.ArrayToList";
   static readonly title = "Array To List";
   static readonly description =
     "Convert a array to a nested list structure.\n    array, list, conversion, type\n\n    Use cases:\n    - Prepare array data for JSON serialization\n    - Convert array outputs to Python data structures\n    - Interface array data with non-array operations";
@@ -1470,7 +1470,7 @@ function toNestedList(
 }
 
 export class ScalarToArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.conversion.ScalarToArray";
+  static readonly nodeType = "lib.array.conversion.ScalarToArray";
   static readonly title = "Scalar To Array";
   static readonly description =
     "Convert a scalar value to a single-element array.\n    scalar, array, conversion, type\n\n    Use cases:\n    - Prepare scalar inputs for array operations\n    - Create constant arrays for computations\n    - Initialize array values in workflows";
@@ -1493,7 +1493,7 @@ export class ScalarToArrayNode extends BaseNode {
 }
 
 export class ArrayToScalarNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.conversion.ArrayToScalar";
+  static readonly nodeType = "lib.array.conversion.ArrayToScalar";
   static readonly title = "Array To Scalar";
   static readonly description =
     "Convert a single-element array to a scalar value.\n    array, scalar, conversion, type\n\n    Use cases:\n    - Extract final results from array computations\n    - Prepare values for non-array operations\n    - Simplify output for human-readable results";
@@ -1521,7 +1521,7 @@ export class ArrayToScalarNode extends BaseNode {
 }
 
 export class ConvertToImageNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.conversion.ConvertToImage";
+  static readonly nodeType = "lib.array.conversion.ConvertToImage";
   static readonly title = "Convert To Image";
   static readonly description =
     "Convert array data to PIL Image format.\n    array, image, conversion, denormalization\n\n    Use cases:\n    - Visualize array data as images\n    - Save processed array results as images\n    - Convert model outputs back to viewable format";
@@ -1588,7 +1588,7 @@ export class ConvertToImageNode extends BaseNode {
 }
 
 export class ConvertToAudioNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.conversion.ConvertToAudio";
+  static readonly nodeType = "lib.array.conversion.ConvertToAudio";
   static readonly title = "Convert To Audio";
   static readonly description =
     "Converts a array object back to an audio file.\n    audio, conversion, array\n\n    Use cases:\n    - Save processed audio data as a playable file\n    - Convert generated or modified audio arrays to audio format\n    - Output results of audio processing pipelinesr";
@@ -1629,7 +1629,7 @@ export class ConvertToAudioNode extends BaseNode {
 }
 
 export class ConvertToArrayNumpyNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.conversion.ConvertToArray";
+  static readonly nodeType = "lib.array.conversion.ConvertToArray";
   static readonly title = "Convert To Array";
   static readonly description =
     "Convert PIL Image to normalized tensor representation.\n    image, tensor, conversion, normalization\n\n    Use cases:\n    - Prepare images for machine learning models\n    - Convert between image formats for processing\n    - Normalize image data for consistent calculations";
@@ -1692,7 +1692,7 @@ export class ConvertToArrayNumpyNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class SaveArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.io.SaveArray";
+  static readonly nodeType = "lib.array.io.SaveArray";
   static readonly title = "Save Array";
   static readonly description =
     "Save a numpy array to a file in the specified folder.\n    array, save, file, storage\n\n    Use cases:\n    - Store processed arrays for later use\n    - Save analysis results\n    - Create checkpoints in processing pipelines";
@@ -1770,7 +1770,7 @@ export class SaveArrayNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class BinaryOperationNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.utils.BinaryOperation";
+  static readonly nodeType = "lib.array.utils.BinaryOperation";
   static readonly title = "Binary Operation";
   static readonly description = "";
   static readonly metadataOutputTypes = {
@@ -1796,7 +1796,7 @@ export class BinaryOperationNode extends BaseNode {
 // ---------------------------------------------------------------------------
 
 export class PlotArrayNode extends BaseNode {
-  static readonly nodeType = "lib.numpy.visualization.PlotArray";
+  static readonly nodeType = "lib.array.visualization.PlotArray";
   static readonly title = "Plot Array";
   static readonly description =
     "Create a plot visualization of array data.\n    array, plot, visualization, graph\n\n    Use cases:\n    - Visualize trends in array data\n    - Create charts for reports or dashboards\n    - Debug array outputs in workflows";

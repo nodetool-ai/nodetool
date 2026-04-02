@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Unsharp Mask"
-node_type: "lib.pillow.enhance.UnsharpMask"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.UnsharpMask"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.UnsharpMask`
+**Type:** `lib.image.enhance.UnsharpMask`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -38,5 +38,5 @@ Sharpens images using the unsharp mask technique.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 

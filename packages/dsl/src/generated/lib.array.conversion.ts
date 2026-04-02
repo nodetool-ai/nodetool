@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef } from "../types.js";
 
-// List To Array — lib.numpy.conversion.ListToArray
+// List To Array — lib.array.conversion.ListToArray
 export interface ListToArrayInputs {
   values?: Connectable<unknown[]>;
 }
@@ -16,13 +16,13 @@ export function listToArray(
   inputs: ListToArrayInputs
 ): DslNode<ListToArrayOutputs, "output"> {
   return createNode(
-    "lib.numpy.conversion.ListToArray",
+    "lib.array.conversion.ListToArray",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Array To List — lib.numpy.conversion.ArrayToList
+// Array To List — lib.array.conversion.ArrayToList
 export interface ArrayToListInputs {
   values?: Connectable<unknown>;
 }
@@ -35,13 +35,13 @@ export function arrayToList(
   inputs: ArrayToListInputs
 ): DslNode<ArrayToListOutputs, "output"> {
   return createNode(
-    "lib.numpy.conversion.ArrayToList",
+    "lib.array.conversion.ArrayToList",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Scalar To Array — lib.numpy.conversion.ScalarToArray
+// Scalar To Array — lib.array.conversion.ScalarToArray
 export interface ScalarToArrayInputs {
   value?: Connectable<number>;
 }
@@ -54,13 +54,13 @@ export function scalarToArray(
   inputs: ScalarToArrayInputs
 ): DslNode<ScalarToArrayOutputs, "output"> {
   return createNode(
-    "lib.numpy.conversion.ScalarToArray",
+    "lib.array.conversion.ScalarToArray",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Array To Scalar — lib.numpy.conversion.ArrayToScalar
+// Array To Scalar — lib.array.conversion.ArrayToScalar
 export interface ArrayToScalarInputs {
   values?: Connectable<unknown>;
 }
@@ -73,13 +73,13 @@ export function arrayToScalar(
   inputs: ArrayToScalarInputs
 ): DslNode<ArrayToScalarOutputs, "output"> {
   return createNode(
-    "lib.numpy.conversion.ArrayToScalar",
+    "lib.array.conversion.ArrayToScalar",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Convert To Image — lib.numpy.conversion.ConvertToImage
+// Convert To Image — lib.array.conversion.ConvertToImage
 export interface ConvertToImageInputs {
   values?: Connectable<unknown>;
 }
@@ -92,13 +92,13 @@ export function convertToImage(
   inputs: ConvertToImageInputs
 ): DslNode<ConvertToImageOutputs, "output"> {
   return createNode(
-    "lib.numpy.conversion.ConvertToImage",
+    "lib.array.conversion.ConvertToImage",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Convert To Audio — lib.numpy.conversion.ConvertToAudio
+// Convert To Audio — lib.array.conversion.ConvertToAudio
 export interface ConvertToAudioInputs {
   values?: Connectable<unknown>;
   sample_rate?: Connectable<number>;
@@ -112,13 +112,13 @@ export function convertToAudio(
   inputs: ConvertToAudioInputs
 ): DslNode<ConvertToAudioOutputs, "output"> {
   return createNode(
-    "lib.numpy.conversion.ConvertToAudio",
+    "lib.array.conversion.ConvertToAudio",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Convert To Array — lib.numpy.conversion.ConvertToArray
+// Convert To Array — lib.array.conversion.ConvertToArray
 export interface ConvertToArrayInputs {
   image?: Connectable<ImageRef>;
 }
@@ -131,7 +131,7 @@ export function convertToArray(
   inputs: ConvertToArrayInputs
 ): DslNode<ConvertToArrayOutputs, "output"> {
   return createNode(
-    "lib.numpy.conversion.ConvertToArray",
+    "lib.array.conversion.ConvertToArray",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

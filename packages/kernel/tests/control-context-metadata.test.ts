@@ -6,7 +6,7 @@ describe("control context property metadata", () => {
   it("_buildControlActionProperties includes min/max/description from propertyMeta", () => {
     const node: NodeDescriptor = {
       id: "n1",
-      type: "lib.pillow.color_grading.ColorBalance",
+      type: "lib.image.color_grading.ColorBalance",
       properties: { temperature: 0, tint: 0 },
       propertyTypes: { temperature: "float", tint: "float" },
       propertyMeta: {

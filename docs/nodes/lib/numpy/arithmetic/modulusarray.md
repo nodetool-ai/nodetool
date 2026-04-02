@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Modulus Array"
-node_type: "lib.numpy.arithmetic.ModulusArray"
-namespace: "lib.numpy.arithmetic"
+node_type: "lib.array.arithmetic.ModulusArray"
+namespace: "lib.array.arithmetic"
 ---
 
-**Type:** `lib.numpy.arithmetic.ModulusArray`
+**Type:** `lib.array.arithmetic.ModulusArray`
 
-**Namespace:** `lib.numpy.arithmetic`
+**Namespace:** `lib.array.arithmetic`
 
 ## Description
 
@@ -36,5 +36,5 @@ Calculates the element-wise remainder of division.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.arithmetic](../) namespace.
+Browse other nodes in the [lib.array.arithmetic](../) namespace.
 

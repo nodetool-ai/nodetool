@@ -49,7 +49,7 @@ const arr = (data: number[], shape: number[]) => ({ data, shape });
 // Arithmetic
 // ---------------------------------------------------------------------------
 
-describe("lib.numpy.arithmetic", () => {
+describe("lib.array.arithmetic", () => {
   const a = arr([1, 2, 3, 4], [4]);
   const b = arr([4, 3, 2, 1], [4]);
 
@@ -102,7 +102,7 @@ describe("lib.numpy.arithmetic", () => {
 // Math
 // ---------------------------------------------------------------------------
 
-describe("lib.numpy.math", () => {
+describe("lib.array.math", () => {
   it("AbsArray — absolute values", async () => {
     const res = await new AbsArrayNode({
       values: arr([-3, -1, 0, 2], [4])
@@ -186,7 +186,7 @@ describe("lib.numpy.math", () => {
 // Statistics
 // ---------------------------------------------------------------------------
 
-describe("lib.numpy.statistics", () => {
+describe("lib.array.statistics", () => {
   const vals = arr([1, 2, 3, 4], [4]);
 
   it("SumArray — sum of 1D array", async () => {
@@ -264,7 +264,7 @@ describe("lib.numpy.statistics", () => {
 // Manipulation
 // ---------------------------------------------------------------------------
 
-describe("lib.numpy.manipulation", () => {
+describe("lib.array.manipulation", () => {
   it("SliceArray — basic slice", async () => {
     const res = await new SliceArrayNode({
       values: arr([10, 20, 30, 40, 50], [5]),
@@ -400,7 +400,7 @@ describe("lib.numpy.manipulation", () => {
 // Reshaping
 // ---------------------------------------------------------------------------
 
-describe("lib.numpy.reshaping", () => {
+describe("lib.array.reshaping", () => {
   const data = [1, 2, 3, 4, 5, 6];
 
   it("Reshape1D — flatten to 1D", async () => {
@@ -454,7 +454,7 @@ describe("lib.numpy.reshaping", () => {
 // Conversion
 // ---------------------------------------------------------------------------
 
-describe("lib.numpy.conversion", () => {
+describe("lib.array.conversion", () => {
   it("ListToArray — flat list", async () => {
     const res = await new ListToArrayNode({ values: [1, 2, 3] }).process();
     expect(res).toEqual({ output: arr([1, 2, 3], [3]) });
@@ -516,7 +516,7 @@ describe("lib.numpy.conversion", () => {
 // Utils
 // ---------------------------------------------------------------------------
 
-describe("lib.numpy.utils", () => {
+describe("lib.array.utils", () => {
   it("BinaryOperation — default is addition", async () => {
     const res = await new BinaryOperationNode({
       a: arr([1, 2], [2]),

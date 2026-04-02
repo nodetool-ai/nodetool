@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Sum Array"
-node_type: "lib.numpy.statistics.SumArray"
-namespace: "lib.numpy.statistics"
+node_type: "lib.array.statistics.SumArray"
+namespace: "lib.array.statistics"
 ---
 
-**Type:** `lib.numpy.statistics.SumArray`
+**Type:** `lib.array.statistics.SumArray`
 
-**Namespace:** `lib.numpy.statistics`
+**Namespace:** `lib.array.statistics`
 
 ## Description
 
@@ -36,5 +36,5 @@ Calculate the sum of values along a specified axis of a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.statistics](../) namespace.
+Browse other nodes in the [lib.array.statistics](../) namespace.
 

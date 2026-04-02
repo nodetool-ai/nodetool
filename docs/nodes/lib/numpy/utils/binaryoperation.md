@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Binary Operation"
-node_type: "lib.numpy.utils.BinaryOperation"
-namespace: "lib.numpy.utils"
+node_type: "lib.array.utils.BinaryOperation"
+namespace: "lib.array.utils"
 ---
 
-**Type:** `lib.numpy.utils.BinaryOperation`
+**Type:** `lib.array.utils.BinaryOperation`
 
-**Namespace:** `lib.numpy.utils`
+**Namespace:** `lib.array.utils`
 
 ## Description
 
@@ -30,5 +30,5 @@ No description available.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.utils](../) namespace.
+Browse other nodes in the [lib.array.utils](../) namespace.
 

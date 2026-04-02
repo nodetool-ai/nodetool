@@ -84,7 +84,7 @@ describe("barrelName", () => {
   });
 
   test("does not strip non-nodetool prefix", () => {
-    expect(barrelName("lib.numpy")).toBe("libNumpy");
+    expect(barrelName("lib.array")).toBe("libNumpy");
   });
 
   test("appends underscore for TS type keywords", () => {

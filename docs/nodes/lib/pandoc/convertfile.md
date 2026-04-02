@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert File"
-node_type: "lib.pandoc.ConvertFile"
-namespace: "lib.pandoc"
+node_type: "lib.convert.pandoc.ConvertFile"
+namespace: "lib.convert.pandoc"
 ---
 
-**Type:** `lib.pandoc.ConvertFile`
+**Type:** `lib.convert.pandoc.ConvertFile`
 
-**Namespace:** `lib.pandoc`
+**Namespace:** `lib.convert.pandoc`
 
 ## Description
 
@@ -38,5 +38,5 @@ Converts between different document formats using pandoc.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pandoc](../) namespace.
+Browse other nodes in the [lib.convert.pandoc](../) namespace.
 

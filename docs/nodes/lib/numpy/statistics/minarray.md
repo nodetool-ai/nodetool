@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Min Array"
-node_type: "lib.numpy.statistics.MinArray"
-namespace: "lib.numpy.statistics"
+node_type: "lib.array.statistics.MinArray"
+namespace: "lib.array.statistics"
 ---
 
-**Type:** `lib.numpy.statistics.MinArray`
+**Type:** `lib.array.statistics.MinArray`
 
-**Namespace:** `lib.numpy.statistics`
+**Namespace:** `lib.array.statistics`
 
 ## Description
 
@@ -36,5 +36,5 @@ Calculate the minimum value along a specified axis of a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.statistics](../) namespace.
+Browse other nodes in the [lib.array.statistics](../) namespace.
 

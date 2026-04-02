@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
-// Blur — lib.pillow.filter.Blur
+// Blur — lib.image.filter.Blur
 export interface BlurInputs {
   image?: Connectable<ImageRef>;
   radius?: Connectable<number>;
@@ -15,13 +15,13 @@ export interface BlurOutputs {
 
 export function blur(inputs: BlurInputs): DslNode<BlurOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Blur",
+    "lib.image.filter.Blur",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Canny — lib.pillow.filter.Canny
+// Canny — lib.image.filter.Canny
 export interface CannyInputs {
   image?: Connectable<ImageRef>;
   low_threshold?: Connectable<number>;
@@ -34,13 +34,13 @@ export interface CannyOutputs {
 
 export function canny(inputs: CannyInputs): DslNode<CannyOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Canny",
+    "lib.image.filter.Canny",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Contour — lib.pillow.filter.Contour
+// Contour — lib.image.filter.Contour
 export interface ContourInputs {
   image?: Connectable<ImageRef>;
 }
@@ -53,13 +53,13 @@ export function contour(
   inputs: ContourInputs
 ): DslNode<ContourOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Contour",
+    "lib.image.filter.Contour",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Convert To Grayscale — lib.pillow.filter.ConvertToGrayscale
+// Convert To Grayscale — lib.image.filter.ConvertToGrayscale
 export interface ConvertToGrayscaleInputs {
   image?: Connectable<ImageRef>;
 }
@@ -72,13 +72,13 @@ export function convertToGrayscale(
   inputs: ConvertToGrayscaleInputs
 ): DslNode<ConvertToGrayscaleOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.ConvertToGrayscale",
+    "lib.image.filter.ConvertToGrayscale",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Emboss — lib.pillow.filter.Emboss
+// Emboss — lib.image.filter.Emboss
 export interface EmbossInputs {
   image?: Connectable<ImageRef>;
 }
@@ -89,13 +89,13 @@ export interface EmbossOutputs {
 
 export function emboss(inputs: EmbossInputs): DslNode<EmbossOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Emboss",
+    "lib.image.filter.Emboss",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Expand — lib.pillow.filter.Expand
+// Expand — lib.image.filter.Expand
 export interface ExpandInputs {
   image?: Connectable<ImageRef>;
   border?: Connectable<number>;
@@ -108,13 +108,13 @@ export interface ExpandOutputs {
 
 export function expand(inputs: ExpandInputs): DslNode<ExpandOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Expand",
+    "lib.image.filter.Expand",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Find Edges — lib.pillow.filter.FindEdges
+// Find Edges — lib.image.filter.FindEdges
 export interface FindEdgesInputs {
   image?: Connectable<ImageRef>;
 }
@@ -127,13 +127,13 @@ export function findEdges(
   inputs: FindEdgesInputs
 ): DslNode<FindEdgesOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.FindEdges",
+    "lib.image.filter.FindEdges",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Get Channel — lib.pillow.filter.GetChannel
+// Get Channel — lib.image.filter.GetChannel
 export interface GetChannelInputs {
   image?: Connectable<ImageRef>;
   channel?: Connectable<unknown>;
@@ -147,13 +147,13 @@ export function getChannel(
   inputs: GetChannelInputs
 ): DslNode<GetChannelOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.GetChannel",
+    "lib.image.filter.GetChannel",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Invert — lib.pillow.filter.Invert
+// Invert — lib.image.filter.Invert
 export interface InvertInputs {
   image?: Connectable<ImageRef>;
 }
@@ -164,13 +164,13 @@ export interface InvertOutputs {
 
 export function invert(inputs: InvertInputs): DslNode<InvertOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Invert",
+    "lib.image.filter.Invert",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Posterize — lib.pillow.filter.Posterize
+// Posterize — lib.image.filter.Posterize
 export interface PosterizeInputs {
   image?: Connectable<ImageRef>;
   bits?: Connectable<number>;
@@ -184,13 +184,13 @@ export function posterize(
   inputs: PosterizeInputs
 ): DslNode<PosterizeOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Posterize",
+    "lib.image.filter.Posterize",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Smooth — lib.pillow.filter.Smooth
+// Smooth — lib.image.filter.Smooth
 export interface SmoothInputs {
   image?: Connectable<ImageRef>;
 }
@@ -201,13 +201,13 @@ export interface SmoothOutputs {
 
 export function smooth(inputs: SmoothInputs): DslNode<SmoothOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Smooth",
+    "lib.image.filter.Smooth",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Solarize — lib.pillow.filter.Solarize
+// Solarize — lib.image.filter.Solarize
 export interface SolarizeInputs {
   image?: Connectable<ImageRef>;
   threshold?: Connectable<number>;
@@ -221,7 +221,7 @@ export function solarize(
   inputs: SolarizeInputs
 ): DslNode<SolarizeOutputs, "output"> {
   return createNode(
-    "lib.pillow.filter.Solarize",
+    "lib.image.filter.Solarize",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

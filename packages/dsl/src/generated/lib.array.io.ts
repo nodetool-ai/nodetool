@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { FolderRef } from "../types.js";
 
-// Save Array — lib.numpy.io.SaveArray
+// Save Array — lib.array.io.SaveArray
 export interface SaveArrayInputs {
   values?: Connectable<unknown>;
   folder?: Connectable<FolderRef>;
@@ -18,7 +18,7 @@ export function saveArray(
   inputs: SaveArrayInputs
 ): DslNode<SaveArrayOutputs, "output"> {
   return createNode(
-    "lib.numpy.io.SaveArray",
+    "lib.array.io.SaveArray",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

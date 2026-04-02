@@ -160,7 +160,7 @@
       },
       {
         "id": "2",
-        "type": "lib.pillow.enhance.Contrast",
+        "type": "lib.image.enhance.Contrast",
         "data": {
           "factor": 1.1
         },
@@ -180,7 +180,7 @@
       },
       {
         "id": "3",
-        "type": "lib.pillow.enhance.Brightness",
+        "type": "lib.image.enhance.Brightness",
         "data": {
           "factor": 1.05
         },

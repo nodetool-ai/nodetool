@@ -2,23 +2,23 @@ import { describe, expect, it } from "vitest";
 import { registerBaseNodes, LIB_PILLOW_NODES } from "../../src/index.js";
 import { NodeRegistry } from "@nodetool/node-sdk";
 
-describe("native lib.pillow via sharp", () => {
+describe("native lib.image via sharp", () => {
   it("registers pillow node types", () => {
     const registry = new NodeRegistry();
     registerBaseNodes(registry);
 
-    expect(registry.has("lib.pillow.filter.Blur")).toBe(true);
-    expect(registry.has("lib.pillow.enhance.Brightness")).toBe(true);
-    expect(registry.has("lib.pillow.color_grading.Exposure")).toBe(true);
-    expect(registry.has("lib.pillow.draw.Background")).toBe(true);
+    expect(registry.has("lib.image.filter.Blur")).toBe(true);
+    expect(registry.has("lib.image.enhance.Brightness")).toBe(true);
+    expect(registry.has("lib.image.color_grading.Exposure")).toBe(true);
+    expect(registry.has("lib.image.draw.Background")).toBe(true);
   });
 
   it("creates a background and applies blur", async () => {
     const bgNodeClass = LIB_PILLOW_NODES.find(
-      (n) => n.nodeType === "lib.pillow.draw.Background"
+      (n) => n.nodeType === "lib.image.draw.Background"
     );
     const blurNodeClass = LIB_PILLOW_NODES.find(
-      (n) => n.nodeType === "lib.pillow.filter.Blur"
+      (n) => n.nodeType === "lib.image.filter.Blur"
     );
     if (!bgNodeClass || !blurNodeClass)
       throw new Error("missing pillow node classes");
@@ -39,10 +39,10 @@ describe("native lib.pillow via sharp", () => {
 
   it("supports blend/composite shape", async () => {
     const bgNodeClass = LIB_PILLOW_NODES.find(
-      (n) => n.nodeType === "lib.pillow.draw.Background"
+      (n) => n.nodeType === "lib.image.draw.Background"
     );
     const blendNodeClass = LIB_PILLOW_NODES.find(
-      (n) => n.nodeType === "lib.pillow.__init__.Blend"
+      (n) => n.nodeType === "lib.image.Blend"
     );
     if (!bgNodeClass || !blendNodeClass)
       throw new Error("missing pillow node classes");

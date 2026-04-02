@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Reshape 4 D"
-node_type: "lib.numpy.reshaping.Reshape4D"
-namespace: "lib.numpy.reshaping"
+node_type: "lib.array.reshaping.Reshape4D"
+namespace: "lib.array.reshaping"
 ---
 
-**Type:** `lib.numpy.reshaping.Reshape4D`
+**Type:** `lib.array.reshaping.Reshape4D`
 
-**Namespace:** `lib.numpy.reshaping`
+**Namespace:** `lib.array.reshaping`
 
 ## Description
 
@@ -39,5 +39,5 @@ Reshape an array to a 4D shape without changing its data.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.reshaping](../) namespace.
+Browse other nodes in the [lib.array.reshaping](../) namespace.
 

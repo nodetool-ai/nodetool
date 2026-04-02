@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
-// Background — lib.pillow.draw.Background
+// Background — lib.image.draw.Background
 export interface BackgroundInputs {
   width?: Connectable<number>;
   height?: Connectable<number>;
@@ -18,13 +18,13 @@ export function background(
   inputs: BackgroundInputs
 ): DslNode<BackgroundOutputs, "output"> {
   return createNode(
-    "lib.pillow.draw.Background",
+    "lib.image.draw.Background",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Gaussian Noise — lib.pillow.draw.GaussianNoise
+// Gaussian Noise — lib.image.draw.GaussianNoise
 export interface GaussianNoiseInputs {
   mean?: Connectable<number>;
   stddev?: Connectable<number>;
@@ -40,13 +40,13 @@ export function gaussianNoise(
   inputs: GaussianNoiseInputs
 ): DslNode<GaussianNoiseOutputs, "output"> {
   return createNode(
-    "lib.pillow.draw.GaussianNoise",
+    "lib.image.draw.GaussianNoise",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Render Text — lib.pillow.draw.RenderText
+// Render Text — lib.image.draw.RenderText
 export interface RenderTextInputs {
   text?: Connectable<string>;
   font?: Connectable<unknown>;
@@ -66,7 +66,7 @@ export function renderText(
   inputs: RenderTextInputs
 ): DslNode<RenderTextOutputs, "output"> {
   return createNode(
-    "lib.pillow.draw.RenderText",
+    "lib.image.draw.RenderText",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

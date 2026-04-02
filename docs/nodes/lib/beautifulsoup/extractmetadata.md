@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Extract Metadata"
-node_type: "lib.beautifulsoup.ExtractMetadata"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.ExtractMetadata"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.ExtractMetadata`
+**Type:** `lib.html.ExtractMetadata`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -37,5 +37,5 @@ Extract metadata from HTML content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

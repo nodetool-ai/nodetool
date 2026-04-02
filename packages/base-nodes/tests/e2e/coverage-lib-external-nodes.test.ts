@@ -1347,7 +1347,7 @@ describe("lib-compat", () => {
 // lib-markitdown
 // ---------------------------------------------------------------------------
 
-describe("lib.markitdown.ConvertToMarkdown", () => {
+describe("lib.convert.ConvertToMarkdown", () => {
   it("throws when no document URI or data", async () => {
     await expect(
       (() => {

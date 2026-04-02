@@ -57,7 +57,7 @@
       {
         "id": "e30d1d60-0a2a-4c28-9844-3d9a1e09c85b",
         "parent_id": null,
-        "type": "lib.pillow.color_grading.Exposure",
+        "type": "lib.image.color_grading.Exposure",
         "data": {
           "exposure": 0.2,
           "contrast": 0.1,
@@ -78,7 +78,7 @@
       {
         "id": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
         "parent_id": null,
-        "type": "lib.pillow.color_grading.SaturationVibrance",
+        "type": "lib.image.color_grading.SaturationVibrance",
         "data": {
           "saturation": 0.5,
           "vibrance": 0.4

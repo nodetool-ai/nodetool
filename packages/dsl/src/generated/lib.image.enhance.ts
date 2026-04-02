@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef } from "../types.js";
 
-// Adaptive Contrast — lib.pillow.enhance.AdaptiveContrast
+// Adaptive Contrast — lib.image.enhance.AdaptiveContrast
 export interface AdaptiveContrastInputs {
   image?: Connectable<ImageRef>;
   clip_limit?: Connectable<number>;
@@ -18,13 +18,13 @@ export function adaptiveContrast(
   inputs: AdaptiveContrastInputs
 ): DslNode<AdaptiveContrastOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.AdaptiveContrast",
+    "lib.image.enhance.AdaptiveContrast",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Auto Contrast — lib.pillow.enhance.AutoContrast
+// Auto Contrast — lib.image.enhance.AutoContrast
 export interface AutoContrastInputs {
   image?: Connectable<ImageRef>;
   cutoff?: Connectable<number>;
@@ -38,13 +38,13 @@ export function autoContrast(
   inputs: AutoContrastInputs
 ): DslNode<AutoContrastOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.AutoContrast",
+    "lib.image.enhance.AutoContrast",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Brightness — lib.pillow.enhance.Brightness
+// Brightness — lib.image.enhance.Brightness
 export interface BrightnessInputs {
   image?: Connectable<ImageRef>;
   factor?: Connectable<number>;
@@ -58,13 +58,13 @@ export function brightness(
   inputs: BrightnessInputs
 ): DslNode<BrightnessOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.Brightness",
+    "lib.image.enhance.Brightness",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Color — lib.pillow.enhance.Color
+// Color — lib.image.enhance.Color
 export interface ColorInputs {
   image?: Connectable<ImageRef>;
   factor?: Connectable<number>;
@@ -76,13 +76,13 @@ export interface ColorOutputs {
 
 export function color(inputs: ColorInputs): DslNode<ColorOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.Color",
+    "lib.image.enhance.Color",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Contrast — lib.pillow.enhance.Contrast
+// Contrast — lib.image.enhance.Contrast
 export interface ContrastInputs {
   image?: Connectable<ImageRef>;
   factor?: Connectable<number>;
@@ -96,13 +96,13 @@ export function contrast(
   inputs: ContrastInputs
 ): DslNode<ContrastOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.Contrast",
+    "lib.image.enhance.Contrast",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Detail — lib.pillow.enhance.Detail
+// Detail — lib.image.enhance.Detail
 export interface DetailInputs {
   image?: Connectable<ImageRef>;
 }
@@ -113,13 +113,13 @@ export interface DetailOutputs {
 
 export function detail(inputs: DetailInputs): DslNode<DetailOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.Detail",
+    "lib.image.enhance.Detail",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Edge Enhance — lib.pillow.enhance.EdgeEnhance
+// Edge Enhance — lib.image.enhance.EdgeEnhance
 export interface EdgeEnhanceInputs {
   image?: Connectable<ImageRef>;
 }
@@ -132,13 +132,13 @@ export function edgeEnhance(
   inputs: EdgeEnhanceInputs
 ): DslNode<EdgeEnhanceOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.EdgeEnhance",
+    "lib.image.enhance.EdgeEnhance",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Equalize — lib.pillow.enhance.Equalize
+// Equalize — lib.image.enhance.Equalize
 export interface EqualizeInputs {
   image?: Connectable<ImageRef>;
 }
@@ -151,13 +151,13 @@ export function equalize(
   inputs: EqualizeInputs
 ): DslNode<EqualizeOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.Equalize",
+    "lib.image.enhance.Equalize",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Rank Filter — lib.pillow.enhance.RankFilter
+// Rank Filter — lib.image.enhance.RankFilter
 export interface RankFilterInputs {
   image?: Connectable<ImageRef>;
   size?: Connectable<number>;
@@ -172,13 +172,13 @@ export function rankFilter(
   inputs: RankFilterInputs
 ): DslNode<RankFilterOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.RankFilter",
+    "lib.image.enhance.RankFilter",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Sharpen — lib.pillow.enhance.Sharpen
+// Sharpen — lib.image.enhance.Sharpen
 export interface SharpenInputs {
   image?: Connectable<ImageRef>;
 }
@@ -191,13 +191,13 @@ export function sharpen(
   inputs: SharpenInputs
 ): DslNode<SharpenOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.Sharpen",
+    "lib.image.enhance.Sharpen",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Sharpness — lib.pillow.enhance.Sharpness
+// Sharpness — lib.image.enhance.Sharpness
 export interface SharpnessInputs {
   image?: Connectable<ImageRef>;
   factor?: Connectable<number>;
@@ -211,13 +211,13 @@ export function sharpness(
   inputs: SharpnessInputs
 ): DslNode<SharpnessOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.Sharpness",
+    "lib.image.enhance.Sharpness",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Unsharp Mask — lib.pillow.enhance.UnsharpMask
+// Unsharp Mask — lib.image.enhance.UnsharpMask
 export interface UnsharpMaskInputs {
   image?: Connectable<ImageRef>;
   radius?: Connectable<number>;
@@ -233,7 +233,7 @@ export function unsharpMask(
   inputs: UnsharpMaskInputs
 ): DslNode<UnsharpMaskOutputs, "output"> {
   return createNode(
-    "lib.pillow.enhance.UnsharpMask",
+    "lib.image.enhance.UnsharpMask",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

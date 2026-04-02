@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.pillow.draw Nodes"
+title: "lib.image.draw Nodes"
 ---
 
 

@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef } from "../types.js";
 
-// YouTube Downloader — lib.ytdlp.YtDlpDownload
+// YouTube Downloader — lib.video.download.YtDlpDownload
 export interface YtDlpDownloadInputs {
   url?: Connectable<string>;
   mode?: Connectable<unknown>;
@@ -28,7 +28,7 @@ export function ytDlpDownload(
   inputs: YtDlpDownloadInputs
 ): DslNode<YtDlpDownloadOutputs> {
   return createNode(
-    "lib.ytdlp.YtDlpDownload",
+    "lib.video.download.YtDlpDownload",
     inputs as Record<string, unknown>,
     { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] }
   );

@@ -91,7 +91,7 @@ abstract class PandocBaseLibNode extends BaseNode {
 }
 
 export class ConvertTextPandocLibNode extends PandocBaseLibNode {
-  static readonly nodeType = "lib.pandoc.ConvertText";
+  static readonly nodeType = "lib.convert.pandoc.ConvertText";
   static readonly title = "Convert Text";
   static readonly description =
     "Converts text content between different document formats using pandoc.\n    convert, text, format, pandoc\n\n    Use cases:\n    - Convert text content between various formats (Markdown, HTML, LaTeX, etc.)\n    - Transform content without saving to disk\n    - Process text snippets in different formats";
@@ -215,7 +215,7 @@ export class ConvertTextPandocLibNode extends PandocBaseLibNode {
 }
 
 export class ConvertFilePandocLibNode extends PandocBaseLibNode {
-  static readonly nodeType = "lib.pandoc.ConvertFile";
+  static readonly nodeType = "lib.convert.pandoc.ConvertFile";
   static readonly title = "Convert File";
   static readonly description =
     "Converts between different document formats using pandoc.\n    convert, document, format, pandoc\n\n    Use cases:\n    - Convert between various document formats (Markdown, HTML, LaTeX, etc.)\n    - Generate documentation in different formats\n    - Create publication-ready documents";

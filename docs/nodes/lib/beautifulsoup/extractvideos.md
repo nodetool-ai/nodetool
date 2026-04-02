@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Extract Videos"
-node_type: "lib.beautifulsoup.ExtractVideos"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.ExtractVideos"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.ExtractVideos`
+**Type:** `lib.html.ExtractVideos`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -36,5 +36,5 @@ Extract videos from HTML content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

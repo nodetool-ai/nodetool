@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Split Array"
-node_type: "lib.numpy.manipulation.SplitArray"
-namespace: "lib.numpy.manipulation"
+node_type: "lib.array.manipulation.SplitArray"
+namespace: "lib.array.manipulation"
 ---
 
-**Type:** `lib.numpy.manipulation.SplitArray`
+**Type:** `lib.array.manipulation.SplitArray`
 
-**Namespace:** `lib.numpy.manipulation`
+**Namespace:** `lib.array.manipulation`
 
 ## Description
 
@@ -37,5 +37,5 @@ Split an array into multiple sub-arrays along a specified axis.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](../) namespace.
 

@@ -45,7 +45,7 @@ from nodetool.providers.base import ProcessingContext
 from nodetool.workflows.processing_context import AssetOutputMode
 from nodetool.dsl.nodetool.input import ImageInput
 from nodetool.dsl.nodetool.image import Fit, GetMetadata
-from nodetool.dsl.lib.pillow.enhance import AutoContrast, Color, Sharpness, UnsharpMask
+from nodetool.dsl.lib.image.enhance import AutoContrast, Color, Sharpness, UnsharpMask
 from nodetool.dsl.nodetool.text import FormatText
 from nodetool.dsl.nodetool.dictionary import MakeDictionary, Combine
 from nodetool.dsl.nodetool.data import JSONToDataframe

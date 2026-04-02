@@ -227,7 +227,7 @@
       },
       {
         "id": "3",
-        "type": "lib.pillow.draw.RenderText",
+        "type": "lib.image.draw.RenderText",
         "data": {
           "font": {
             "type": "font",
@@ -283,7 +283,7 @@
       },
       {
         "id": "5",
-        "type": "lib.pillow.draw.RenderText",
+        "type": "lib.image.draw.RenderText",
         "data": {
           "font": {
             "type": "font",
@@ -339,7 +339,7 @@
       },
       {
         "id": "7",
-        "type": "lib.pillow.enhance.Contrast",
+        "type": "lib.image.enhance.Contrast",
         "data": {
           "factor": 1.1
         },

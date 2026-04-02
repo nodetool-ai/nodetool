@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert To Grayscale"
-node_type: "lib.pillow.filter.ConvertToGrayscale"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.ConvertToGrayscale"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.ConvertToGrayscale`
+**Type:** `lib.image.filter.ConvertToGrayscale`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -34,5 +34,5 @@ Convert an image to grayscale.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

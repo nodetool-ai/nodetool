@@ -75,7 +75,7 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "lib.pillow.enhance.UnsharpMask",
+        "type": "lib.image.enhance.UnsharpMask",
         "data": {
           "image": {
             "type": "image",
@@ -96,7 +96,7 @@
       {
         "id": "5",
         "parent_id": null,
-        "type": "lib.pillow.enhance.Sharpen",
+        "type": "lib.image.enhance.Sharpen",
         "data": {
           "image": {
             "type": "image",
@@ -114,7 +114,7 @@
       {
         "id": "6",
         "parent_id": null,
-        "type": "lib.pillow.enhance.Color",
+        "type": "lib.image.enhance.Color",
         "data": {
           "image": {
             "type": "image",
@@ -133,7 +133,7 @@
       {
         "id": "7",
         "parent_id": null,
-        "type": "lib.pillow.enhance.Brightness",
+        "type": "lib.image.enhance.Brightness",
         "data": {
           "image": {
             "type": "image",
@@ -152,7 +152,7 @@
       {
         "id": "8",
         "parent_id": null,
-        "type": "lib.pillow.enhance.AutoContrast",
+        "type": "lib.image.enhance.AutoContrast",
         "data": {
           "image": {
             "type": "image",

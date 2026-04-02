@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Get Channel"
-node_type: "lib.pillow.filter.GetChannel"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.GetChannel"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.GetChannel`
+**Type:** `lib.image.filter.GetChannel`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -35,5 +35,5 @@ Extract a specific color channel from an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

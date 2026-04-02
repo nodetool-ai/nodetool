@@ -91,13 +91,13 @@ fi
   }
 }
 
-describe("native lib.pandoc and lib.ytdlp", () => {
+describe("native lib.convert.pandoc and lib.video.download", () => {
   it("registers node types", () => {
     const registry = new NodeRegistry();
     registerBaseNodes(registry);
-    expect(registry.has("lib.pandoc.ConvertText")).toBe(true);
-    expect(registry.has("lib.pandoc.ConvertFile")).toBe(true);
-    expect(registry.has("lib.ytdlp.YtDlpDownload")).toBe(true);
+    expect(registry.has("lib.convert.pandoc.ConvertText")).toBe(true);
+    expect(registry.has("lib.convert.pandoc.ConvertFile")).toBe(true);
+    expect(registry.has("lib.video.download.YtDlpDownload")).toBe(true);
   });
 
   it("converts text and file via pandoc cli", async () => {

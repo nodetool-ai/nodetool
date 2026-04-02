@@ -538,7 +538,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
 const DESCRIPTORS: readonly Desc[] = [
   {
-    nodeType: "lib.pillow.color_grading.CDL",
+    nodeType: "lib.image.color_grading.CDL",
     title: "CDL",
     description:
       "ASC CDL (Color Decision List) color correction.\n    cdl, slope, offset, power, saturation, asc, color decision list\n\n    Use cases:\n    - Apply industry-standard CDL color correction\n    - Exchange color grades between different software\n    - Apply precise mathematical color transformations\n    - Create consistent looks across multiple shots\n\n    Formula: output = (input * slope + offset) ^ power\n    Followed by saturation adjustment.",
@@ -687,7 +687,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.ColorBalance",
+    nodeType: "lib.image.color_grading.ColorBalance",
     title: "Color Balance",
     description:
       "Adjust color temperature and tint for white balance correction.\n    white balance, temperature, tint, color balance, warm, cool\n\n    Use cases:\n    - Correct white balance in photos and video\n    - Warm up or cool down the overall image\n    - Fix color casts from mixed lighting\n    - Create mood through color temperature shifts",
@@ -737,7 +737,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.Curves",
+    nodeType: "lib.image.color_grading.Curves",
     title: "Curves",
     description:
       "RGB curves adjustment with control points for precise tonal control.\n    curves, rgb, tonal, contrast, levels\n\n    Use cases:\n    - Create custom contrast curves\n    - Adjust specific tonal ranges precisely\n    - Create cross-processed or stylized looks\n    - Match the tonal characteristics of film stocks",
@@ -862,7 +862,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.Exposure",
+    nodeType: "lib.image.color_grading.Exposure",
     title: "Exposure",
     description:
       "Comprehensive tonal exposure controls similar to Lightroom/Camera Raw.\n    exposure, contrast, highlights, shadows, whites, blacks, tonal\n\n    Use cases:\n    - Correct over/underexposed images\n    - Recover highlight and shadow detail\n    - Adjust overall contrast and tonal range\n    - Fine-tune the brightness of specific tonal regions",
@@ -965,7 +965,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.FilmLook",
+    nodeType: "lib.image.color_grading.FilmLook",
     title: "Film Look",
     description:
       "Apply preset cinematic film looks with adjustable intensity.\n    film look, cinematic, preset, movie, lut, color grade\n\n    Use cases:\n    - Quickly apply popular cinematic color grades\n    - Create consistent looks across multiple images\n    - Emulate classic film stock characteristics\n    - Starting point for custom color grading",
@@ -1025,7 +1025,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.HSLAdjust",
+    nodeType: "lib.image.color_grading.HSLAdjust",
     title: "HSLAdjust",
     description:
       "Adjust hue, saturation, and luminance for specific color ranges.\n    hsl, hue, saturation, luminance, selective color, color range\n\n    Use cases:\n    - Shift specific colors (e.g., make blues more cyan)\n    - Desaturate or boost individual color ranges\n    - Brighten or darken specific colors\n    - Create color-specific looks (teal skies, orange skin)",
@@ -1112,7 +1112,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.LiftGammaGain",
+    nodeType: "lib.image.color_grading.LiftGammaGain",
     title: "Lift Gamma Gain",
     description:
       "Three-way color corrector for shadows, midtones, and highlights.\n    lift, gamma, gain, color wheels, primary correction, shadows, midtones, highlights\n\n    Use cases:\n    - Apply the industry-standard three-way color correction\n    - Balance colors across different tonal ranges\n    - Create color contrast between shadows and highlights\n    - Match footage from different sources\n\n    Lift affects shadows, Gamma affects midtones, Gain affects highlights.\n    Each control adjusts both luminance and color for its tonal range.",
@@ -1285,7 +1285,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.SaturationVibrance",
+    nodeType: "lib.image.color_grading.SaturationVibrance",
     title: "Saturation Vibrance",
     description:
       "Adjust color saturation with vibrance protection for skin tones.\n    saturation, vibrance, color intensity, skin tones\n\n    Use cases:\n    - Boost color intensity without clipping\n    - Protect skin tones while increasing saturation\n    - Create desaturated or oversaturated looks\n    - Fine-tune color intensity independently",
@@ -1336,7 +1336,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.SplitToning",
+    nodeType: "lib.image.color_grading.SplitToning",
     title: "Split Toning",
     description:
       "Apply different color tints to shadows and highlights.\n    split toning, shadows, highlights, tint, duotone\n\n    Use cases:\n    - Create classic teal and orange looks\n    - Add color contrast between shadows and highlights\n    - Emulate film processing techniques\n    - Create stylized color-graded images",
@@ -1426,7 +1426,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.color_grading.Vignette",
+    nodeType: "lib.image.color_grading.Vignette",
     title: "Vignette",
     description:
       "Apply cinematic vignette effect to darken or lighten image edges.\n    vignette, edge, darken, focus, cinematic\n\n    Use cases:\n    - Draw attention to the center of the image\n    - Create a classic cinematic look\n    - Simulate lens light falloff\n    - Add subtle framing to photos",

@@ -89,7 +89,7 @@ function createEnhanceNode(desc: Desc): NodeClass {
 
 const DESCRIPTORS: readonly Desc[] = [
   {
-    nodeType: "lib.pillow.enhance.AdaptiveContrast",
+    nodeType: "lib.image.enhance.AdaptiveContrast",
     title: "Adaptive Contrast",
     description:
       "Applies localized contrast enhancement using adaptive techniques.\n    image, contrast, enhance\n\n    Use cases:\n    - Improve visibility in images with varying lighting conditions\n    - Prepare images for improved feature detection in computer vision",
@@ -138,7 +138,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.AutoContrast",
+    nodeType: "lib.image.enhance.AutoContrast",
     title: "Auto Contrast",
     description:
       "Automatically adjusts image contrast for enhanced visual quality.\n    image, contrast, balance\n\n    Use cases:\n    - Enhance image clarity for better visual perception\n    - Pre-process images for computer vision tasks\n    - Improve photo aesthetics in editing workflows",
@@ -177,7 +177,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.Brightness",
+    nodeType: "lib.image.enhance.Brightness",
     title: "Brightness",
     description:
       "Adjusts overall image brightness to lighten or darken.\n    image, brightness, enhance\n\n    Use cases:\n    - Correct underexposed or overexposed photographs\n    - Enhance visibility of dark image regions\n    - Prepare images for consistent display across devices",
@@ -213,7 +213,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.Color",
+    nodeType: "lib.image.enhance.Color",
     title: "Color",
     description:
       "Adjusts color intensity of an image.\n    image, color, enhance\n\n    Use cases:\n    - Enhance color vibrancy in photographs\n    - Correct color imbalances in digital images\n    - Prepare images for consistent brand color representation",
@@ -249,7 +249,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.Contrast",
+    nodeType: "lib.image.enhance.Contrast",
     title: "Contrast",
     description:
       "Adjusts image contrast to modify light-dark differences.\n    image, contrast, enhance\n\n    Use cases:\n    - Enhance visibility of details in low-contrast images\n    - Prepare images for visual analysis or recognition tasks\n    - Create dramatic effects in artistic photography",
@@ -285,7 +285,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.Detail",
+    nodeType: "lib.image.enhance.Detail",
     title: "Detail",
     description:
       "Enhances fine details in images.\n    image, detail, enhance\n\n    Use cases:\n    - Improve clarity of textural elements in photographs\n    - Enhance visibility of small features for analysis\n    - Prepare images for high-resolution display or printing",
@@ -312,7 +312,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.EdgeEnhance",
+    nodeType: "lib.image.enhance.EdgeEnhance",
     title: "Edge Enhance",
     description:
       "Enhances edge visibility by increasing contrast along boundaries.\n    image, edge, enhance\n\n    Use cases:\n    - Improve object boundary detection for computer vision\n    - Highlight structural elements in technical drawings\n    - Prepare images for feature extraction in image analysis",
@@ -339,7 +339,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.Equalize",
+    nodeType: "lib.image.enhance.Equalize",
     title: "Equalize",
     description:
       "Enhances image contrast by equalizing intensity distribution.\n    image, contrast, histogram\n\n    Use cases:\n    - Improve visibility in poorly lit images\n    - Enhance details for image analysis tasks\n    - Normalize image data for machine learning",
@@ -366,7 +366,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.RankFilter",
+    nodeType: "lib.image.enhance.RankFilter",
     title: "Rank Filter",
     description:
       "Applies rank-based filtering to enhance or smooth image features.\n    image, filter, enhance\n\n    Use cases:\n    - Reduce noise while preserving edges in images\n    - Enhance specific image features based on local intensity\n    - Pre-process images for improved segmentation results",
@@ -415,7 +415,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.Sharpen",
+    nodeType: "lib.image.enhance.Sharpen",
     title: "Sharpen",
     description:
       "Enhances image detail by intensifying local pixel contrast.\n    image, sharpen, clarity\n\n    Use cases:\n    - Improve clarity of photographs for print or display\n    - Refine texture details in product photography\n    - Enhance readability of text in document images",
@@ -442,7 +442,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.Sharpness",
+    nodeType: "lib.image.enhance.Sharpness",
     title: "Sharpness",
     description:
       "Adjusts image sharpness to enhance or reduce detail clarity.\n    image, clarity, sharpness\n\n    Use cases:\n    - Enhance photo details for improved visual appeal\n    - Refine images for object detection tasks\n    - Correct slightly blurred images",
@@ -478,7 +478,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.enhance.UnsharpMask",
+    nodeType: "lib.image.enhance.UnsharpMask",
     title: "Unsharp Mask",
     description:
       "Sharpens images using the unsharp mask technique.\n    image, sharpen, enhance\n\n    Use cases:\n    - Enhance edge definition in photographs\n    - Improve perceived sharpness of digital artwork\n    - Prepare images for high-quality printing or display",

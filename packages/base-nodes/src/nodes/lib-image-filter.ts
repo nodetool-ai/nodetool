@@ -142,7 +142,7 @@ function createFilterNode(desc: Desc): NodeClass {
 
 const DESCRIPTORS: readonly Desc[] = [
   {
-    nodeType: "lib.pillow.filter.Blur",
+    nodeType: "lib.image.filter.Blur",
     title: "Blur",
     description:
       "Apply a Gaussian blur effect to an image.\n    image, filter, blur\n\n    - Soften images or reduce noise and detail\n    - Make focal areas stand out by blurring surroundings\n    - Protect privacy by blurring sensitive information",
@@ -180,7 +180,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Canny",
+    nodeType: "lib.image.filter.Canny",
     title: "Canny",
     description:
       "Apply Canny edge detection to an image.\n    image, filter, edges\n\n    - Highlight areas of rapid intensity change\n    - Outline object boundaries and structure\n    - Enhance inputs for object detection and image segmentation",
@@ -229,7 +229,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Contour",
+    nodeType: "lib.image.filter.Contour",
     title: "Contour",
     description:
       "Apply a contour filter to highlight image edges.\n    image, filter, contour\n\n    - Extract key features from complex images\n    - Aid pattern recognition and object detection\n    - Create stylized contour sketch art effects",
@@ -256,7 +256,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.ConvertToGrayscale",
+    nodeType: "lib.image.filter.ConvertToGrayscale",
     title: "Convert To Grayscale",
     description:
       "Convert an image to grayscale.\n    image, grayscale\n\n    - Simplify images for feature and edge detection\n    - Prepare images for shape-based machine learning\n    - Create vintage or monochrome aesthetic effects",
@@ -283,7 +283,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Emboss",
+    nodeType: "lib.image.filter.Emboss",
     title: "Emboss",
     description:
       "Apply an emboss filter for a 3D raised effect.\n    image, filter, emboss\n\n    - Add texture and depth to photos\n    - Create visually interesting graphics\n    - Incorporate unique effects in digital artwork",
@@ -310,7 +310,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Expand",
+    nodeType: "lib.image.filter.Expand",
     title: "Expand",
     description:
       "Add a border around an image to increase its size.\n    image, border, expand\n\n    - Make images stand out by adding a colored border\n    - Create framed photo effects\n    - Separate image content from surroundings",
@@ -359,7 +359,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.FindEdges",
+    nodeType: "lib.image.filter.FindEdges",
     title: "Find Edges",
     description:
       "Detect and highlight edges in an image.\n    image, filter, edges\n\n    - Analyze structural patterns in images\n    - Aid object detection in computer vision\n    - Detect important features like corners and ridges",
@@ -386,7 +386,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.GetChannel",
+    nodeType: "lib.image.filter.GetChannel",
     title: "Get Channel",
     description:
       "Extract a specific color channel from an image.\n    image, color, channel, isolate, extract\n\n    - Isolate color information for image analysis\n    - Manipulate specific color components in graphic design\n    - Enhance or reduce visibility of certain colors",
@@ -422,7 +422,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Invert",
+    nodeType: "lib.image.filter.Invert",
     title: "Invert",
     description:
       "Invert the colors of an image.\n    image, filter, invert\n\n    - Create negative versions of images for visual effects\n    - Analyze image data by bringing out hidden details\n    - Preprocess images for operations that work better on inverted colors",
@@ -449,7 +449,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Posterize",
+    nodeType: "lib.image.filter.Posterize",
     title: "Posterize",
     description:
       "Reduce the number of colors in an image for a poster-like effect.\n    image, filter, posterize\n\n    - Create graphic art by simplifying image colors\n    - Apply artistic effects to photographs\n    - Generate visually compelling content for advertising",
@@ -487,7 +487,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Smooth",
+    nodeType: "lib.image.filter.Smooth",
     title: "Smooth",
     description:
       "Apply smoothing to reduce image noise and detail.\n    image, filter, smooth\n\n    - Enhance visual aesthetics of images\n    - Improve object detection by reducing irrelevant details\n    - Aid facial recognition by simplifying images",
@@ -514,7 +514,7 @@ const DESCRIPTORS: readonly Desc[] = [
     ]
   },
   {
-    nodeType: "lib.pillow.filter.Solarize",
+    nodeType: "lib.image.filter.Solarize",
     title: "Solarize",
     description:
       "Apply a solarize effect to partially invert image tones.\n    image, filter, solarize\n\n    - Create surreal artistic photo effects\n    - Enhance visual data by making certain elements more prominent\n    - Add a unique style to images for graphic design",

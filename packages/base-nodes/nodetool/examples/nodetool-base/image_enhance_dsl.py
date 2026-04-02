@@ -13,7 +13,7 @@ Workflow:
 from nodetool.dsl.graph import create_graph, run_graph
 from nodetool.workflows.processing_context import AssetOutputMode
 from nodetool.dsl.nodetool.input import ImageInput
-from nodetool.dsl.lib.pillow.enhance import Sharpen, AutoContrast
+from nodetool.dsl.lib.image.enhance import Sharpen, AutoContrast
 from nodetool.dsl.nodetool.output import Output
 from nodetool.metadata.types import ImageRef
 

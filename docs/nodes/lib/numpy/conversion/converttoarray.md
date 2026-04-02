@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Convert To Array"
-node_type: "lib.numpy.conversion.ConvertToArray"
-namespace: "lib.numpy.conversion"
+node_type: "lib.array.conversion.ConvertToArray"
+namespace: "lib.array.conversion"
 ---
 
-**Type:** `lib.numpy.conversion.ConvertToArray`
+**Type:** `lib.array.conversion.ConvertToArray`
 
-**Namespace:** `lib.numpy.conversion`
+**Namespace:** `lib.array.conversion`
 
 ## Description
 
@@ -35,5 +35,5 @@ Convert PIL Image to normalized tensor representation.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](../) namespace.
 

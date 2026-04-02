@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Emboss"
-node_type: "lib.pillow.filter.Emboss"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Emboss"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Emboss`
+**Type:** `lib.image.filter.Emboss`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -34,5 +34,5 @@ Apply an emboss filter for a 3D raised effect.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

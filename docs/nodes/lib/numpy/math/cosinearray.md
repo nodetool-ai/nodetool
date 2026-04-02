@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Cosine Array"
-node_type: "lib.numpy.math.CosineArray"
-namespace: "lib.numpy.math"
+node_type: "lib.array.math.CosineArray"
+namespace: "lib.array.math"
 ---
 
-**Type:** `lib.numpy.math.CosineArray`
+**Type:** `lib.array.math.CosineArray`
 
-**Namespace:** `lib.numpy.math`
+**Namespace:** `lib.array.math`
 
 ## Description
 
@@ -35,5 +35,5 @@ Computes the cosine of input angles in radians.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.numpy.math](../) namespace.
+Browse other nodes in the [lib.array.math](../) namespace.
 

@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Solarize"
-node_type: "lib.pillow.filter.Solarize"
-namespace: "lib.pillow.filter"
+node_type: "lib.image.filter.Solarize"
+namespace: "lib.image.filter"
 ---
 
-**Type:** `lib.pillow.filter.Solarize`
+**Type:** `lib.image.filter.Solarize`
 
-**Namespace:** `lib.pillow.filter`
+**Namespace:** `lib.image.filter`
 
 ## Description
 
@@ -35,5 +35,5 @@ Apply a solarize effect to partially invert image tones.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](../) namespace.
 

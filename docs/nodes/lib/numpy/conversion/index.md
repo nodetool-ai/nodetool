@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "lib.numpy.conversion Nodes"
+title: "lib.array.conversion Nodes"
 ---
 
 

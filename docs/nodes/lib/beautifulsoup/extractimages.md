@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Extract Images"
-node_type: "lib.beautifulsoup.ExtractImages"
-namespace: "lib.beautifulsoup"
+node_type: "lib.html.ExtractImages"
+namespace: "lib.html"
 ---
 
-**Type:** `lib.beautifulsoup.ExtractImages`
+**Type:** `lib.html.ExtractImages`
 
-**Namespace:** `lib.beautifulsoup`
+**Namespace:** `lib.html`
 
 ## Description
 
@@ -36,5 +36,5 @@ Extract images from HTML content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.beautifulsoup](../) namespace.
+Browse other nodes in the [lib.html](../) namespace.
 

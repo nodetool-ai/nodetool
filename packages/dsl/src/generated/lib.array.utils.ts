@@ -2,7 +2,7 @@
 
 import { createNode, Connectable, DslNode } from "../core.js";
 
-// Binary Operation — lib.numpy.utils.BinaryOperation
+// Binary Operation — lib.array.utils.BinaryOperation
 export interface BinaryOperationInputs {
   a?: Connectable<number | unknown>;
   b?: Connectable<number | unknown>;
@@ -16,7 +16,7 @@ export function binaryOperation(
   inputs: BinaryOperationInputs
 ): DslNode<BinaryOperationOutputs, "output"> {
   return createNode(
-    "lib.numpy.utils.BinaryOperation",
+    "lib.array.utils.BinaryOperation",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

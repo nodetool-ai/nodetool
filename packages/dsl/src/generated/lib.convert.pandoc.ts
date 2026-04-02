@@ -2,7 +2,7 @@
 
 import { createNode, Connectable, DslNode } from "../core.js";
 
-// Convert File — lib.pandoc.ConvertFile
+// Convert File — lib.convert.pandoc.ConvertFile
 export interface ConvertFileInputs {
   input_path?: Connectable<unknown>;
   input_format?: Connectable<unknown>;
@@ -18,13 +18,13 @@ export function convertFile(
   inputs: ConvertFileInputs
 ): DslNode<ConvertFileOutputs, "output"> {
   return createNode(
-    "lib.pandoc.ConvertFile",
+    "lib.convert.pandoc.ConvertFile",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );
 }
 
-// Convert Text — lib.pandoc.ConvertText
+// Convert Text — lib.convert.pandoc.ConvertText
 export interface ConvertTextInputs {
   content?: Connectable<string>;
   input_format?: Connectable<unknown>;
@@ -40,7 +40,7 @@ export function convertText(
   inputs: ConvertTextInputs
 ): DslNode<ConvertTextOutputs, "output"> {
   return createNode(
-    "lib.pandoc.ConvertText",
+    "lib.convert.pandoc.ConvertText",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

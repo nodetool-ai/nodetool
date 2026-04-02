@@ -2,7 +2,7 @@
 
 import { createNode, Connectable, DslNode } from "../core.js";
 
-// Convert To Markdown — lib.markitdown.ConvertToMarkdown
+// Convert To Markdown — lib.convert.ConvertToMarkdown
 export interface ConvertToMarkdownInputs {
   document?: Connectable<unknown>;
 }
@@ -15,7 +15,7 @@ export function convertToMarkdown(
   inputs: ConvertToMarkdownInputs
 ): DslNode<ConvertToMarkdownOutputs, "output"> {
   return createNode(
-    "lib.markitdown.ConvertToMarkdown",
+    "lib.convert.ConvertToMarkdown",
     inputs as Record<string, unknown>,
     { outputNames: ["output"], defaultOutput: "output" }
   );

@@ -117,7 +117,7 @@ async function findFileByExt(
 }
 
 export class YtDlpDownloadLibNode extends BaseNode {
-  static readonly nodeType = "lib.ytdlp.YtDlpDownload";
+  static readonly nodeType = "lib.video.download.YtDlpDownload";
   static readonly title = "YouTube Downloader";
   static readonly description =
     "Download media from URLs using yt-dlp.\n    download, video, audio, youtube, media, yt-dlp, metadata, subtitles\n\n    Use cases:\n    - Download videos from YouTube and other platforms\n    - Extract audio from video URLs\n    - Retrieve video/audio metadata without downloading\n    - Download subtitles and thumbnails";

@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Rank Filter"
-node_type: "lib.pillow.enhance.RankFilter"
-namespace: "lib.pillow.enhance"
+node_type: "lib.image.enhance.RankFilter"
+namespace: "lib.image.enhance"
 ---
 
-**Type:** `lib.pillow.enhance.RankFilter`
+**Type:** `lib.image.enhance.RankFilter`
 
-**Namespace:** `lib.pillow.enhance`
+**Namespace:** `lib.image.enhance`
 
 ## Description
 
@@ -37,5 +37,5 @@ Applies rank-based filtering to enhance or smooth image features.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pillow.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](../) namespace.
 
