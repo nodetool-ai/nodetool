@@ -23,11 +23,7 @@ export function applyDefaultModels(
   propertyMetadata: PropertyMeta[]
 ): Record<string, unknown> {
   const defaults = useModelPreferencesStore.getState().defaults;
-  console.log("[applyDefaultModels] store defaults:", defaults);
-  if (Object.keys(defaults).length === 0) {
-    console.log("[applyDefaultModels] no defaults configured, skipping");
-    return properties;
-  }
+  if (Object.keys(defaults).length === 0) return properties;
 
   const result = { ...properties };
 
@@ -46,13 +42,6 @@ export function applyDefaultModels(
       current.id === "";
 
     const userDefault = defaults[modelType];
-    console.log(
-      `[applyDefaultModels] prop=${prop.name} modelType=${modelType} isEmpty=${isEmpty} hasDefault=${!!userDefault}`,
-      "current:",
-      current,
-      "default:",
-      userDefault
-    );
     if (isEmpty && userDefault) {
       result[prop.name] = {
         type: modelType,

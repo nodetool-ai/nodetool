@@ -127,7 +127,16 @@ export class ChartRendererLibNode extends BaseNode {
       throw new Error("Data is required for rendering the chart.");
     }
 
-    const { ChartJSNodeCanvas } = await import("chartjs-node-canvas");
+    let ChartJSNodeCanvas: typeof import("chartjs-node-canvas").ChartJSNodeCanvas;
+    try {
+      ({ ChartJSNodeCanvas } = await import("chartjs-node-canvas"));
+    } catch (e) {
+      throw new Error(
+        "Chart rendering requires the 'canvas' native module. " +
+          "Install it with: npm rebuild canvas. " +
+          `(${e instanceof Error ? e.message : String(e)})`
+      );
+    }
 
     const configData = (config.data ?? {}) as Record<string, unknown>;
     const series = (configData.series ?? []) as Array<Record<string, unknown>>;
