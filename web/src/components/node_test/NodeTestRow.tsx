@@ -107,6 +107,21 @@ function NodeTestRowInner({
           {metadata.title}
         </Typography>
 
+        <Typography
+          variant="body2"
+          sx={{
+            width: 120,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            opacity: 0.5,
+            fontFamily: "monospace",
+            fontSize: "0.7rem"
+          }}
+        >
+          {metadata.outputs.map((o) => o.type.type).join(", ")}
+        </Typography>
+
         <Chip
           label={
             status === "idle"
