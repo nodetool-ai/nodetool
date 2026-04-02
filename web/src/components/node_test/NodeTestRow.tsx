@@ -150,7 +150,15 @@ function NodeTestRowInner({
           {result?.error
             ? result.error
             : result?.output
-              ? JSON.stringify(result.output).slice(0, 100)
+              ? (() => {
+                  const raw = result.output as Record<string, unknown>;
+                  const keys =
+                    typeof raw === "object" && !Array.isArray(raw)
+                      ? Object.keys(raw)
+                      : [];
+                  const val = keys.length === 1 ? raw[keys[0]] : raw;
+                  return JSON.stringify(val).slice(0, 100);
+                })()
               : ""}
         </Typography>
       </Box>
@@ -201,7 +209,23 @@ function NodeTestRowInner({
                 {result.error}
               </Typography>
             ) : (
-              <OutputRenderer value={result?.output} showTextActions={true} />
+              (() => {
+                // Unwrap single-key result objects to avoid doubled display
+                // e.g. { output: "hello" } → "hello"
+                const raw = result?.output;
+                if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+                  const keys = Object.keys(raw);
+                  if (keys.length === 1) {
+                    return (
+                      <OutputRenderer
+                        value={(raw as Record<string, unknown>)[keys[0]]}
+                        showTextActions={true}
+                      />
+                    );
+                  }
+                }
+                return <OutputRenderer value={raw} showTextActions={true} />;
+              })()
             )}
           </DialogContent>
         </Dialog>
