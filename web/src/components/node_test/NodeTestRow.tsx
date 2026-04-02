@@ -1,9 +1,18 @@
 import React, { memo, useCallback, useState } from "react";
-import { IconButton, Typography, Chip, Box, Collapse } from "@mui/material";
+import {
+  IconButton,
+  Typography,
+  Chip,
+  Box,
+  DialogTitle,
+  DialogContent
+} from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import CloseIcon from "@mui/icons-material/Close";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeTestResult } from "./useNodeTestRunner";
 import OutputRenderer from "../node/OutputRenderer";
+import { Dialog } from "../ui_primitives";
 
 const STATUS_COLORS: Record<
   string,
@@ -29,15 +38,20 @@ function NodeTestRowInner({
   onRun,
   style
 }: NodeTestRowProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const status = result?.status || "idle";
+  const hasOutput = !!(result?.output || result?.error);
 
   const handleRun = useCallback(() => {
     onRun(metadata);
   }, [metadata, onRun]);
 
-  const toggleExpand = useCallback(() => {
-    setExpanded((prev) => !prev);
+  const handleRowClick = useCallback(() => {
+    if (hasOutput) setModalOpen(true);
+  }, [hasOutput]);
+
+  const handleClose = useCallback(() => {
+    setModalOpen(false);
   }, []);
 
   return (
@@ -49,10 +63,10 @@ function NodeTestRowInner({
           height: 48,
           px: 1,
           gap: 1,
-          cursor: result?.output || result?.error ? "pointer" : "default",
+          cursor: hasOutput ? "pointer" : "default",
           "&:hover": { bgcolor: "action.hover" }
         }}
-        onClick={toggleExpand}
+        onClick={handleRowClick}
       >
         <IconButton
           size="small"
@@ -126,21 +140,56 @@ function NodeTestRowInner({
         </Typography>
       </Box>
 
-      {expanded && (result?.output || result?.error) && (
-        <Collapse in={expanded}>
-          <Box sx={{ px: 2, py: 1, maxHeight: 400, overflow: "auto" }}>
+      {modalOpen && hasOutput && (
+        <Dialog open={modalOpen} onClose={handleClose} maxWidth="md" fullWidth>
+          <DialogTitle
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontFamily: "monospace",
+              fontSize: "0.9rem"
+            }}
+          >
+            <span>
+              {metadata.title}
+              <Typography
+                component="span"
+                sx={{ ml: 1, opacity: 0.5, fontSize: "0.8rem" }}
+              >
+                {metadata.node_type}
+              </Typography>
+            </span>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {result?.durationMs && (
+                <Chip
+                  label={`${result.durationMs}ms`}
+                  size="small"
+                  color={STATUS_COLORS[status]}
+                />
+              )}
+              <IconButton size="small" onClick={handleClose}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent sx={{ minHeight: 200 }}>
             {result?.error ? (
               <Typography
                 color="error"
-                sx={{ fontFamily: "monospace", fontSize: "0.85rem" }}
+                sx={{
+                  fontFamily: "monospace",
+                  fontSize: "0.85rem",
+                  whiteSpace: "pre-wrap"
+                }}
               >
                 {result.error}
               </Typography>
             ) : (
-              <OutputRenderer value={result?.output} showTextActions={false} />
+              <OutputRenderer value={result?.output} showTextActions={true} />
             )}
-          </Box>
-        </Collapse>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
